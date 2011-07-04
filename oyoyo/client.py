@@ -26,7 +26,6 @@ import os
 import traceback
 
 from oyoyo.parse import *
-from oyoyo import helpers
 from oyoyo.cmdhandler import CommandError
 import collections
 
@@ -42,20 +41,19 @@ class IRCClientError(Exception):
     
 def add_commands(d):
     def dec(cls):
-        for key in d:
+        for c in d:
             def func(x):
                 def gen(self, *a):
-                    self.send(x, *a)
+                    self.send(x.upper(), *a)
                 return gen
-            setattr(cls, d[key], func(key))
+            setattr(cls, c, func(c))
         return cls
     return dec
-@add_commands({"JOIN": "join",
-               "MODE": "mode",
-               "USER": "user",
-               "NICK": "nick",
-               "NOTICE": "notice",
-               "PART": "part"})
+@add_commands(("join",
+               "mode",
+               "nick",
+               "notice",
+               "part"))
 class IRCClient:
     """ IRC Client class. This handles one connection to a server.
     This can be used either with or without IRCApp ( see connect() docs )
@@ -84,7 +82,7 @@ class IRCClient:
         ...         print "%s said %s" % (prefix, args[1])
         ...
         >>> def connect_callback(c):
-        ...     helpers.join(c, '#myroom')
+        ...     c.join('#myroom')
         ...
         >>> cli = IRCClient(My_Handler,
         ...     host="irc.freenode.net",
@@ -98,8 +96,8 @@ class IRCClient:
         ...
         """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.nick = None
-        self.real_name = None
+        self.nickname = ""
+        self.real_name = ""
         self.host = None
         self.port = None
         self.connect_cb = None
@@ -132,6 +130,8 @@ class IRCClient:
                 bargs.append(bytes(arg, encoding))
             elif isinstance(arg, bytes):
                 bargs.append(arg)
+            elif arg is None:
+                continue
             else:
                 raise IRCClientError('Refusing to send one of the args from provided: %s'
                                      % repr([(type(arg), arg) for arg in args]))
@@ -157,8 +157,8 @@ class IRCClient:
             if not self.blocking:
                 self.socket.setblocking(0)
             
-            helpers.nick(self, self.nick)
-            helpers.user(self, self.nick, self.real_name)
+            self.nick(self.nickname)
+            self.user(self.nickname, self.real_name)
 
             if self.connect_cb:
                 self.connect_cb(self)
@@ -201,6 +201,9 @@ class IRCClient:
         self.send("QUIT :" + msg)
     def identify(self, passwd, authuser="NickServ"):
         self.msg(authuser, "IDENTIFY {0}".format(passwd))
+    def user(self, uname, rname):
+        self.send("USER", uname, self.host, self.host, 
+                 rname or uname)
 
 class IRCApp:
     """ This class manages several IRCClient instances without the use of threads.

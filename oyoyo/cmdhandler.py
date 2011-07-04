@@ -20,7 +20,6 @@ import logging
 import sys
 import traceback
 
-from oyoyo import helpers
 from oyoyo.parse import parse_nick
 
 # Python < 3 compatibility
@@ -149,75 +148,4 @@ class DefaultBotCommandHandler(CommandHandler):
         return [m for m, _ in members 
             if (not m.startswith('_') and 
                 not hasattr(getattr(obj, m), 'protected'))]
-
-    def help(self, sender, dest, arg=None):
-        """list all available commands or get help on a specific command"""
-        logging.info('help sender=%s dest=%s arg=%s' % (sender, dest, arg))
-        if not arg:
-            commands = self.getVisibleCommands()
-            commands.sort()
-            helpers.msg(self.client, dest, 
-                "available commands: %s" % " ".join(commands))
-        else:
-            try:
-                f = self.get(arg)
-            except CommandError as e:
-                helpers.msg(self.client, dest, str(e))
-                return
-                
-            doc = f.__doc__.strip() if f.__doc__ else "No help available"
-
-            if not inspect.ismethod(f):
-                subcommands = self.getVisibleCommands(f)
-                if subcommands:
-                    doc += " [sub commands: %s]" % " ".join(subcommands)
-
-            helpers.msg(self.client, dest, "%s: %s" % (arg, doc)) 
-
-
-class BotCommandHandler(DefaultCommandHandler):
-    """ complete command handler for bots """
-
-    def __init__(self, client, command_handler):
-        DefaultCommandHandler.__init__(self, client)
-        self.command_handler = command_handler
-
-    def privmsg(self, prefix, dest, msg):
-        self.tryBotCommand(prefix, dest, msg)
-
-    @protected
-    def tryBotCommand(self, prefix, dest, msg):
-        """ tests a command to see if its a command for the bot, returns True
-        and calls self.processBotCommand(cmd, sender) if its is.
-        """
-    
-        logging.debug("tryBotCommand('%s' '%s' '%s')" % (prefix, dest, msg))
-
-        if dest == self.client.nick:
-            dest = parse_nick(prefix)[0]
-        elif msg.startswith(self.client.nick):
-            msg = msg[len(self.client.nick)+1:]
-        else: 
-            return False
-
-        msg = msg.strip()
-
-        parts = msg.split(' ', 1)
-        command = parts[0]
-        arg = parts[1:]
-
-        try:
-            self.command_handler.run(command, prefix, dest, *arg)
-        except CommandError as e:
-            helpers.msg(self.client, dest, str(e))
-        return True
- 
-    
-
-
-
-
-
-
-
 
