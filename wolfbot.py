@@ -65,6 +65,7 @@ class WolfBotHandler(DefaultCommandHandler):
         print(fro, to)
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
     cli = IRCClient(WolfBotHandler, host="irc.freenode.net", port=6667, nick="wolfbot2-alpha",
                     connect_cb=connect_callback)
 
@@ -76,13 +77,13 @@ def main():
 
 @cmd("!say", True)
 def join(cli, rawnick, rest):
-    helpers.msg(cli, botconfig.CHANNEL, "{0} says: {1}".format(parse_nick(rawnick)[0], rest))
-
+    cli.msg(botconfig.CHANNEL, "{0} says: {1}".format(parse_nick(rawnick)[0], rest))
+    
 @cmd("!bye", True)
 @cmd("!bye", False)
 def forced_exit(cli, rawnick, *rest):
     if parse_nick(rawnick)[0] in botconfig.ADMINS:
-        helpers.quit(cli, "Forced quit from admin")
+        cli.quit("Forced quit from admin")
         raise SystemExit
 
 #Game Logic Ends

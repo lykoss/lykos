@@ -39,8 +39,23 @@ if sys.version_info < (3,):
 
 class IRCClientError(Exception):
     pass
-
-
+    
+def add_commands(d):
+    def dec(cls):
+        for key in d:
+            def func(x):
+                def gen(self, *a):
+                    self.send(x, *a)
+                return gen
+            setattr(cls, d[key], func(key))
+        return cls
+    return dec
+@add_commands({"JOIN": "join",
+               "MODE": "mode",
+               "USER": "user",
+               "NICK": "nick",
+               "NOTICE": "notice",
+               "PART": "part"})
 class IRCClient:
     """ IRC Client class. This handles one connection to a server.
     This can be used either with or without IRCApp ( see connect() docs )
@@ -117,16 +132,14 @@ class IRCClient:
                 bargs.append(bytes(arg, encoding))
             elif isinstance(arg, bytes):
                 bargs.append(arg)
-            elif type(arg).__name__ == 'unicode':
-                bargs.append(arg.encode(encoding))
             else:
                 raise IRCClientError('Refusing to send one of the args from provided: %s'
                                      % repr([(type(arg), arg) for arg in args]))
 
-        msg = bytes(" ", "ascii").join(bargs)
+        msg = bytes(" ", "utf_8").join(bargs)
         logging.info('---> send "%s"' % msg)
 
-        self.socket.send(msg + bytes("\r\n", "ascii"))
+        self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):
         """ initiates the connection to the server set in self.host:self.port 
@@ -181,7 +194,13 @@ class IRCClient:
             if self.socket: 
                 logging.info('closing socket')
                 self.socket.close()
-                    
+    def msg(self, user, msg):
+        for line in msg.split('\n'):
+            self.send("PRIVMSG", user, ":{0}".format(line))
+    def quit(self, msg):
+        self.send("QUIT :" + msg)
+    def identify(self, passwd, authuser="NickServ"):
+        self.msg(authuser, "IDENTIFY {0}".format(passwd))
 
 class IRCApp:
     """ This class manages several IRCClient instances without the use of threads.
