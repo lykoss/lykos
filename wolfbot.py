@@ -5,25 +5,6 @@ import logging
 import botconfig
 import wolfgame
 
-def cmd(s, pm = False):
-    def dec(f):
-        if s is None and pm:
-            G_PM_COMMAND.append(f)
-        elif s is None and not pm:
-            G_COMMAND.append(f)
-        elif pm:
-            PM_COMMANDS[s] = f
-        else:
-            COMMANDS[s] = f
-        return f
-    return dec
-
-def hook(s):
-    def dec(f):
-        HOOKS[s] = f
-        return f
-    return dec
-
 class WolfBotHandler(DefaultCommandHandler):
     def __init__(self, client):
         super().__init__(client)
@@ -39,7 +20,6 @@ class WolfBotHandler(DefaultCommandHandler):
                 if msg.startswith(x):
                     msg = msg.replace(x, "", 1)
                     wolfgame.PM_COMMANDS[x](self.client, rawnick, msg.lstrip())
-        print(wolfgame.COMMANDS)
         
     @protected
     def __unhandled__(self, cmd, *args):

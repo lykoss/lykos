@@ -29,12 +29,6 @@ from oyoyo.parse import *
 from oyoyo.cmdhandler import CommandError
 import collections
 
-# Python < 3 compatibility
-if sys.version_info < (3,):
-    class bytes(object):
-        def __new__(self, b='', encoding='utf8'):
-            return str(b)
-
 
 class IRCClientError(Exception):
     pass
@@ -52,7 +46,6 @@ def add_commands(d):
 @add_commands(("join",
                "mode",
                "nick",
-               "notice",
                "part"))
 class IRCClient:
     """ IRC Client class. This handles one connection to a server.
@@ -197,6 +190,9 @@ class IRCClient:
     def msg(self, user, msg):
         for line in msg.split('\n'):
             self.send("PRIVMSG", user, ":{0}".format(line))
+    def notice(self, user, msg):
+        for line in msg.split('\n'):
+            self.send("NOTICE", user, ":{0}".format(line))
     def quit(self, msg):
         self.send("QUIT :" + msg)
     def identify(self, passwd, authuser="NickServ"):

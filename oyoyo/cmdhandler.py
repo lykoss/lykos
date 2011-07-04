@@ -22,13 +22,6 @@ import traceback
 
 from oyoyo.parse import parse_nick
 
-# Python < 3 compatibility
-if sys.version_info < (3,):
-    class bytes(object):
-        def __new__(self, b='', encoding='utf8'):
-            return str(b)
-
-
 def protected(func):
     """ decorator to protect functions from being called """
     func.protected = True
