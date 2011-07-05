@@ -44,6 +44,12 @@ def py(cli, nick, chan, rest):
 
 @cmd("!ping")
 def pinger(cli, nick, chan, rest):
+    if vars.LAST_PING + 300 > time.time():
+        cli.notice(nick, "This command is ratelimited.  \
+Please wait a while before using it again.")
+        return
+    
+    vars.LAST_PING = time.time()
     vars.PINGING = True
     TO_PING = []
 
@@ -191,6 +197,7 @@ def start(cli, nick, chan, rest):
 party game (a theme of Mafia).".format(", ".join(vars.list_players())))
     cli.mode(chan, "+m")
     
+    vars.GAME_START_TIME = time.time()
     vars.ORIGINAL_ROLES = dict(vars.ROLES)  # Make a copy
     transition_night(cli, chan)
 
