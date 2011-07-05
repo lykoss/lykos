@@ -5,9 +5,21 @@ MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
 NIGHT_TIME_LIMIT = 90
 
-NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found",
+#######################################################################################
+#               PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   #
+ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ), #
+                   6    : (   0   ,   0   ,   1   ,   1   ,   0   ,    0   ,   0   ), #
+                   8    : (   0   ,   1   ,   0   ,   0   ,   1   ,    0   ,   0   ), #
+                   10   : (   0   ,   0   ,   0   ,   0   ,   0   ,    1   ,   1   )} #
+#######################################################################################
+
+
+
+NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
                        "A pool of blood and wolf paw prints are found.",
-                       "Traces of wolf fur are found")
+                       "Traces of wolf fur are found.")
+
+                                              
 
 # These change ingame
 ROLES = {"person" : []}
@@ -22,6 +34,8 @@ SEEN = []  # list of seers that have had visions
 DEAD = []  # list of people who are dead
 TRAITOR = ""
 TIMERS = [None, None]  # nightlimit, daylimit
+VOTES = {}
+WOUNDED = []
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 

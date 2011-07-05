@@ -1,8 +1,9 @@
 from oyoyo.parse import parse_nick
-import botconfig;
+import botconfig
 
 def generate(fdict):
-    def cmd(s, raw_nick=False, admin_only=False):
+    """Generates a decorator generator.  Always use this"""
+    def cmd(*s, raw_nick=False, admin_only=False):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
@@ -14,7 +15,10 @@ def generate(fdict):
                         largs[0].notice(largs[1], "You are not an admin.")
                         return
                 return f(*largs)
-            fdict[s] = innerf
+            for x in s:
+                fdict[x] = innerf
             return f
+            
         return dec
+        
     return cmd
