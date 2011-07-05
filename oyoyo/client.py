@@ -17,18 +17,9 @@
 
 import logging
 import socket
-import sys
-import re
-import string
-import time
-import threading
-import os
-import traceback
 
-from oyoyo.parse import *
+from oyoyo.parse import parse_raw_irc_command
 from oyoyo.cmdhandler import CommandError
-import collections
-
 
 class IRCClientError(Exception):
     pass
@@ -200,89 +191,6 @@ class IRCClient:
     def user(self, uname, rname):
         self.send("USER", uname, self.host, self.host, 
                  rname or uname)
-
-class IRCApp:
-    """ This class manages several IRCClient instances without the use of threads.
-    (Non-threaded) Timer functionality is also included.
-    """
-
-    class _ClientDesc:
-        def __init__(self, **kwargs):
-            self.con = None
-            self.autoreconnect = False
-            self.__dict__.update(kwargs)
-
-    def __init__(self):
-        self._clients = {}
-        self._timers = []
-        self.running = False
-        self.sleep_time = 0.5
-
-    def addClient(self, client, autoreconnect=False):
-        """ add a client object to the application. setting autoreconnect
-        to true will mean the application will attempt to reconnect the client
-        after every disconnect. you can also set autoreconnect to a number 
-        to specify how many reconnects should happen.
-
-        warning: if you add a client that has blocking set to true,
-        timers will no longer function properly """
-        logging.info('added client %s (ar=%s)' % (client, autoreconnect))
-        self._clients[client] = self._ClientDesc(autoreconnect=autoreconnect)
-
-    def addTimer(self, seconds, cb):
-        """ add a timed callback. accuracy is not specified, you can only
-        garuntee the callback will be called after seconds has passed.
-        ( the only advantage to these timers is they dont use threads )
-        """
-        assert isinstance(cb, collections.Callable)
-        logging.info('added timer to call %s in %ss' % (cb, seconds))
-        self._timers.append((time.time() + seconds, cb))
-
-    def run(self):
-        """ run the application. this will block until stop() is called """
-        # TODO: convert this to use generators too?
-        self.running = True
-        while self.running:
-            found_one_alive = False
-
-            for client, clientdesc in self._clients.items():
-                if clientdesc.con is None:
-                    clientdesc.con = client.connect()
-                
-                try:
-                    next(clientdesc.con)
-                except Exception as e:
-                    logging.error('client error %s' % e)
-                    logging.error(traceback.format_exc())
-                    if clientdesc.autoreconnect:
-                        clientdesc.con = None 
-                        if isinstance(clientdesc.autoreconnect, (int, float)):
-                            clientdesc.autoreconnect -= 1
-                        found_one_alive = True
-                    else:
-                        clientdesc.con = False 
-                else:
-                    found_one_alive = True
-                
-            if not found_one_alive:
-                logging.info('nothing left alive... quiting')
-                self.stop() 
-
-            now = time.time()
-            timers = self._timers[:]
-            self._timers = []
-            for target_time, cb in timers:
-                if now > target_time:
-                    logging.info('calling timer cb %s' % cb)
-                    cb()
-                else:   
-                    self._timers.append((target_time, cb))
-
-            time.sleep(self.sleep_time)
-
-    def stop(self):
-        """ stop the application """
-        self.running = False
 
 
 

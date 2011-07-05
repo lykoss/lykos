@@ -1,12 +1,19 @@
+PING_WAIT = 300  # Seconds
+MINIMUM_WAIT = 60
+EXTRA_WAIT = 20
+MAXIMUM_WAITED = 2  # limit for amount of !wait's
+MAX_SHOTS = 2
+
+# These change ingame
 ROLES = {"person" : []}
 ORIGINAL_ROLES = None
 PHASE = "none"  # "join", "day", or "night"
 LAST_PING = 0
-PING_WAIT = 300  # Seconds
-WAIT = 60
+CURSED = ""  # nickname of cursed villager
+GAME_START_TIME = 0
+CAN_START_TIME = 0
 WAITED = 0
 GUNNERS = {}
-MAX_SHOTS = 2
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 

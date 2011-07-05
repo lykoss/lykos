@@ -16,15 +16,9 @@
 # THE SOFTWARE.
 
 import logging
-import sys
 
-from oyoyo.ircevents import *
-
-# Python < 3 compatibility
-if sys.version_info < (3,):
-    class bytes(object):
-        def __new__(self, b='', encoding='utf8'):
-            return str(b)
+from oyoyo.ircevents import generated_events, protocol_events,\
+                            all_events, numeric_events
 
 
 def parse_raw_irc_command(element):
