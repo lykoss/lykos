@@ -56,6 +56,7 @@ def parse_raw_irc_command(element):
         except KeyError:
             logging.warn('unknown numeric event %s' % command)
     command = command.lower()
+    if isinstance(command, bytes): command = command.decode("ascii")
 
     if args[0].startswith(bytes(':', 'ascii')):
         args = [bytes(" ", "ascii").join(args)[1:]]

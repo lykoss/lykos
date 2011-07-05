@@ -27,7 +27,7 @@ class WolfBotHandler(DefaultCommandHandler):
             largs = list(args)
             for i,arg in enumerate(largs):
                 if arg: largs[i] = arg.decode('ascii')
-            wolfgame.HOOKS[cmd](*largs)
+            wolfgame.HOOKS[cmd](self.client, *largs)
         else:
             logging.debug('unhandled command %s(%s)' % (cmd, args))
 

@@ -55,7 +55,7 @@ def pinger(cli, nick, chan, rest):
     TO_PING = []
 
     @hook("whoreply")
-    def on_whoreply(server, dunno, chan, dunno1,
+    def on_whoreply(cli, server, dunno, chan, dunno1,
                     dunno2, dunno3, user, status, dunno4):
         if not vars.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
@@ -139,6 +139,7 @@ def leave(cli, what, nick):
     if nick not in vars.list_players():  # not playing
         return
     msg = ""
+    died_in_game = False
     if what in ("!quit", "!leave"):
         msg = ("\u0002{0}\u0002 died of an unknown disease. "+
                "S/He was a \u0002{1}\u0002.")
@@ -156,10 +157,11 @@ def leave(cli, what, nick):
     cli.msg(botconfig.CHANNEL, msg)
     del_player(cli, nick, died_in_game)
 
-cmd("!leave")(lambda cli, nick, chan, *rest: leave(cli, "!leave", nick))
-cmd("!quit")(lambda cli, nick, chan, *rest: leave(cli, "!quit", nick))
-hook("part")(lambda cli, nick, chan, *rest: leave(cli, "part", nick))
-hook("quit")(lambda cli, nick, chan, *rest: leave(cli, "quit", nick))
+cmd("!leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
+cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
+hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick))
+hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick))
+hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", nick))
     
 def transition_day(cli):
     chan = botconfig.CHANNEL

@@ -185,13 +185,9 @@ class IRCClient:
         for line in msg.split('\n'):
             self.send("NOTICE", user, ":{0}".format(line))
     def quit(self, msg):
-        self.send("QUIT :" + msg)
+        self.send("QUIT :{0}".format(msg))
     def identify(self, passwd, authuser="NickServ"):
         self.msg(authuser, "IDENTIFY {0}".format(passwd))
     def user(self, uname, rname):
         self.send("USER", uname, self.host, self.host, 
                  rname or uname)
-
-
-
-
