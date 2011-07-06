@@ -27,19 +27,8 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
 
 # These change ingame
 ROLES = {"person" : []}
-ORIGINAL_ROLES = None
 PHASE = "none"  # "join", "day", or "night"
-LAST_PING = 0
-CURSED = ""  # nickname of cursed villager
-WAITED = 0
-GUNNERS = {}
-VICTIM = ""  # nickname of to-be-killed villager
-SEEN = []  # list of seers that have had visions
-DEAD = []  # list of people who are dead
-TRAITOR = ""
 TIMERS = [None, None]  # nightlimit, daylimit
-VOTES = {}
-WOUNDED = []
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 

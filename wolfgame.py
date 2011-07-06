@@ -20,6 +20,10 @@ def connect_callback(cli):
     cli.identify(botconfig.PASS)
     cli.join(botconfig.CHANNEL)
     cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+    
+    vars.LAST_PING = 0  # time of last !ping
+    vars.ROLES = {"person" : []}
+    vars.PHASE = "none"  # "join", "day", or "night"
 
 
 
@@ -47,12 +51,6 @@ def reset(cli):
         cli.mode(chan, "-q", "{0} {0}!*@*".format(deadguy))
 
     vars.ROLES = {"person" : []}
-    vars.CURSED = ""
-    vars.CAN_START_TIME = timedelta(0)
-    vars.GUNNERS = {}
-    vars.WAITED = 0
-    vars.VICTIM = ""
-    vars.VOTES = {}
 
 
 
@@ -140,6 +138,7 @@ def join(cli, nick, chan, rest):
         cli.mode(chan, "+v", nick, nick+"!*@*")
         vars.ROLES["person"].append(nick)
         vars.PHASE = "join"
+        vars.WAITED = 0
         vars.CAN_START_TIME = datetime.now() + timedelta(seconds=vars.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "!join" to join. Type "!start" to start the game. '+
@@ -256,7 +255,10 @@ def show_votes(cli, nick, chan, rest):
                    "to vote.").format(nick, len(pl), votesneeded, avail))
 
 
+                   
 def chk_win(cli):
+    """ Returns True if someone won """
+
     chan = botconfig.CHANNEL
     if len(vars.ROLES["wolf"]) >= len(vars.list_players()) / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
@@ -267,24 +269,29 @@ def chk_win(cli):
     elif not len(vars.ROLES["wolf"]) and vars.ROLES["traitor"]:
         pass # WOLVES ARE NOT GONE :O
         # TODO: transform TRAITOR
-        return
+        return False
     else:
-        return
+        return False
     # TODO: Print the game time stats here
     reset(cli)
     # TODO: Reveal roles here
+    return True
     
     
     
 def del_player(cli, nick, forced_death):
+    """ Returns False if one side won. """
+    
     cli.mode(botconfig.CHANNEL, "-v", "{0} {0}!*@*".format(nick))
-    if vars.PHASE != "join":
+    vars.del_player(nick)
+    if vars.PHASE != "join":  # Died during the game
         cli.mode(botconfig.CHANNEL, "+q", "{0} {0}!*@*".format(nick))
         vars.DEAD.append(nick)
-    vars.del_player(nick)
-    chk_win(cli)
-    if vars.VICTIM == nick:
-        vars.VICTIM = ""
+        if chk_win(cli):
+            return False
+    if vars.PHASE == "night":
+        if vars.VICTIM == nick:
+            vars.VICTIM = ""
     if vars.PHASE == "day" and not forced_death:  # didn't die from lynching
         if nick in vars.VOTES.keys():
             del vars.VOTES[nick]  #  Delete his votes
@@ -481,10 +488,10 @@ def transition_night(cli):
     if vars.TIMERS[1]:  # cancel daytime-limit timer
         vars.TIMERS[1].cancel()
         vars.TIMERS[1] = None
-    vars.WOUNDED = ""
+    vars.WOUNDED = []
     
     # Reset nighttime variables
-    vars.VICTIM = ""  # nickname of cursed villager
+    vars.VICTIM = ""  # nickname of kill victim
     vars.SEEN = []  # list of seers that have had visions
     vars.NIGHT_START_TIME = datetime.now()
 
@@ -606,6 +613,7 @@ def start(cli, nick, chan, rest):
     vars.DAY_TIMEDELTA = timedelta(0)
     vars.NIGHT_TIMEDELTA = timedelta(0)
     vars.DEAD = []
+    vars.TIMERS = [None, None]  # nightlimit, daylimit
     transition_night(cli)
 
 
