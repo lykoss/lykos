@@ -7,12 +7,20 @@ NIGHT_TIME_LIMIT = 90
 DAY_TIME_LIMIT = 137
 
 #######################################################################################
-#               PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   #
+# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   #
 ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ), #
-                   6    : (   0   ,   0   ,   1   ,   1   ,   0   ,    0   ,   0   ), #
-                   8    : (   0   ,   1   ,   0   ,   0   ,   1   ,    0   ,   0   ), #
-                   10   : (   0   ,   0   ,   0   ,   0   ,   0   ,    1   ,   1   )} #
+                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ), #
+                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ), #
+                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   )} #
 #######################################################################################
+
+ROLE_INDICES = {0 : "seer",
+                1 : "wolf",
+                2 : "cursed",
+                3 : "village drunk",
+                4 : "harlot",
+                5 : "traitor",
+                6 : "gunner"}
 
 
 
@@ -24,11 +32,6 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
                   "The mob drags a protesting \u0002{0}\u0002 to the hanging tree. S/He succumbs to the will of the horde, and is hanged. It is discovered (s)he was a \u0002{1}\u0002.",
                   "Resigned to his/her fate, \u0002{0}\u0002 is led to the gallows. After death, it is discovered (s)he was a \u0002{1}\u0002.")
                                               
-
-# These change ingame
-ROLES = {"person" : []}
-PHASE = "none"  # "join", "day", or "night"
-TIMERS = [None, None]  # nightlimit, daylimit
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
