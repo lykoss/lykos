@@ -21,7 +21,7 @@ def connect_callback(cli):
     cli.identify(botconfig.PASS)
     cli.join(botconfig.CHANNEL)
     cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-    
+
     vars.LAST_PING = 0  # time of last !ping
     vars.ROLES = {"person" : []}
     vars.PHASE = "none"  # "join", "day", or "night"
@@ -53,7 +53,7 @@ def reset(cli):
     for deadguy in vars.DEAD:
         cli.mode(chan, "-q", "{0} {0}!*@*".format(deadguy))
     vars.DEAD = []
-        
+
     vars.ROLES = {"person" : []}
 
 
@@ -177,7 +177,7 @@ def stats(cli, nick, chan, rest):
     message = []
     for role in ("wolf", "seer", "harlot"):
         count = len(vars.ROLES.get(role,[]))
-        if count > 1:
+        if count > 1 or count == 0:
             message.append("\u0002(0}\u0002 {1}".format(count, vars.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
@@ -189,9 +189,9 @@ def stats(cli, nick, chan, rest):
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
                                                         vb))
-                                                           
-                                                      
-                                                      
+
+
+
 def hurry_up(cli):
     if vars.PHASE != "day": return
 
@@ -199,7 +199,7 @@ def hurry_up(cli):
     pl = vars.list_players()
     avail = len(pl) - len(vars.WOUNDED)
     votesneeded = avail // 2 + 1
-    
+
     found_dup = False
     max = (0, "")
     for votee, voters in iter(vars.VOTES.items()):
@@ -216,7 +216,7 @@ def hurry_up(cli):
         cli.msg(chan, "The sun is almost setting.")
         for plr in pl:
             vars.VOTES[plr] = [None] * (votesneeded - 1)
-        
+
 def chk_decision(cli):
     chan = botconfig.CHANNEL
     pl = vars.list_players()
@@ -235,17 +235,17 @@ def chk_decision(cli):
 @checks
 @cmd("!votes")
 def show_votes(cli, nick, chan, rest):
-    if not vars.VOTES.values():
-        cli.msg(chan, nick+": No votes yet.")
-        return
-    elif vars.PHASE != "day":
+    if vars.PHASE != "day":
         cli.notice(nick, "Voting is only during the day.")
+        return
+    elif not vars.VOTES.values():
+        cli.msg(chan, nick+": No votes yet.")
         return
     if None in [x for voter in vars.VOTES.values() for x in voter]:
         cli.msg(chan, (nick+": Tiebreaker conditions.  Whoever "+
                       "receives the next vote will be lynched."))
         return
-    
+
     votelist = ["{0}: {1} ({2})".format(votee,
                                         len(vars.VOTES[votee]),
                                         " ".join(vars.VOTES[votee]))
@@ -260,7 +260,7 @@ def show_votes(cli, nick, chan, rest):
                    "to vote.").format(nick, len(pl), votesneeded, avail))
 
 
-                   
+
 def chk_win(cli):
     """ Returns True if someone won """
 
@@ -282,7 +282,7 @@ def chk_win(cli):
         return False
     else:
         return False
-    
+
     if vars.DAY_START_TIME:
         now = datetime.now()
         td = now - vars.DAY_START_TIME
@@ -291,7 +291,7 @@ def chk_win(cli):
         now = datetime.now()
         td = now - vars.NIGHT_START_TIME
         vars.NIGHT_TIMEDELTA += td
-    
+
     daymin, daysec = vars.DAY_TIMEDELTA.seconds // 60, vars.DAY_TIMEDELTA.seconds % 60
     nitemin, nitesec = vars.NIGHT_TIMEDELTA.seconds // 60, vars.NIGHT_TIMEDELTA.seconds % 60
     total = vars.DAY_TIMEDELTA + vars.NIGHT_TIMEDELTA
@@ -301,7 +301,7 @@ def chk_win(cli):
                    "\u0002{4:0<2}:{5:0<2}\u0002 was night. ").format(tmin, tsec,
                                                                      daymin, daysec,
                                                                      nitemin, nitesec))
-                                                             
+
     roles_msg = []
     for role in ("wolf", "seer", "harlot", "village drunk", "traitor"):
         if len(vars.ORIGINAL_ROLES[role]) == 0:
@@ -321,16 +321,16 @@ def chk_win(cli):
     if vars.CURSED:
         roles_msg.append("The cursed villager was \u0002{0}\u0002.".format(vars.CURSED))
     cli.msg(chan, " ".join(roles_msg))
-    
+
     reset(cli)
     # TODO: Reveal roles here
     return True
-    
-    
-    
+
+
+
 def del_player(cli, nick, forced_death):
     """ Returns False if one side won. """
-    
+
     cli.mode(botconfig.CHANNEL, "-v", "{0} {0}!*@*".format(nick))
     vars.del_player(nick)
     ret = True
@@ -413,7 +413,7 @@ def transition_day(cli):
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
                    'Use "!lynch <nick>" to cast your vote. 3 votes '+
                    'are required to lynch.'))
-    
+
     if vars.DAY_TIME_LIMIT > 0:  # Time limit enabled
         t = threading.Timer(vars.DAY_TIME_LIMIT, hurry_up, [cli])
         vars.TIMERS[1] = t
@@ -448,6 +448,7 @@ def vote(cli, nick, chan, rest):
                 vars.VOTES[voters].remove(nick)
                 if not vars.VOTES[voters] and voters != voted:
                     del vars.VOTES[voters]
+                break
         if voted not in vars.VOTES.keys():
             vars.VOTES[voted] = [nick]
         else:
@@ -459,6 +460,26 @@ def vote(cli, nick, chan, rest):
         cli.notice(nick, "Not enough parameters.")
     else:
         cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(rest))
+
+
+@checks
+@cmd("!retract")
+def retract(cli, nick, chan, rest):
+    if vars.PHASE != "day":
+        cli.notice(nick, ("Lynching is only allowed during the day. "+
+                          "Please wait patiently for morning."))
+        return
+
+    candidates = vars.VOTES.keys()
+    for voters in list(candidates):
+        if nick in vars.VOTES[voters]:
+            vars.VOTES[voters].remove(nick)
+            if not vars.VOTES[voters]:
+                del vars.VOTES[voters]
+            cli.msg(chan, "\u0002{0}\u0002 retracted his/her vote.".format(nick))
+            break
+    else:
+        cli.notice(nick, "You haven't voted yet.")
 
 
 
@@ -534,20 +555,21 @@ def relay(cli, nick, rest):
 
 def transition_night(cli):
     vars.PHASE = "night"
-    
+
     # Reset daytime variables
     vars.VOTES = {}
     if vars.TIMERS[1]:  # cancel daytime-limit timer
         vars.TIMERS[1].cancel()
         vars.TIMERS[1] = None
     vars.WOUNDED = []
-    
+
     # Reset nighttime variables
     vars.VICTIM = ""  # nickname of kill victim
     vars.SEEN = []  # list of seers that have had visions
     vars.NIGHT_START_TIME = datetime.now()
-    
+
     daydur_msg = ""
+
     if vars.NIGHT_TIMEDELTA:  #  transition from day
         td = vars.NIGHT_START_TIME - vars.DAY_START_TIME
         vars.DAY_START_TIME = None
@@ -556,11 +578,7 @@ def transition_night(cli):
         daydur_msg = "Day lasted \u0002{0:0>2}:{1:0>2}. ".format(min,sec)
 
     chan = botconfig.CHANNEL
-    cli.msg(chan, (daydur_msg + "It is now nighttime. All players "+
-                   "check for PMs from me for instructions. "+
-                   "If you did not receive one, simply sit back, "+
-                   "relax, and wait patiently for morning."))
-    
+
     if vars.NIGHT_TIME_LIMIT > 0:
         t = threading.Timer(vars.NIGHT_TIME_LIMIT, transition_day, [cli])
         vars.TIMERS[0] = t
@@ -592,6 +610,13 @@ def transition_night(cli):
 
     for d in vars.ROLES["village drunk"]:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
+
+    cli.msg(chan, (daydur_msg + "It is now nighttime. All players "+
+                   "check for PMs from me for instructions. "+
+                   "If you did not receive one, simply sit back, "+
+                   "relax, and wait patiently for morning."))
+
+
 
 @cmd("!start")
 def start(cli, nick, chan, rest):
@@ -652,8 +677,8 @@ def start(cli, nick, chan, rest):
         for person in vars.ROLES["gunner"]:
             villagers.append(person)
     del vars.ROLES["gunner"]
-    
-    vars.ROLES["villager"] = villagers    
+
+    vars.ROLES["villager"] = villagers
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
                   "game (a theme of Mafia).").format(", ".join(vars.list_players())))
