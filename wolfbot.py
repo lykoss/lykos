@@ -13,13 +13,15 @@ class WolfBotHandler(DefaultCommandHandler):
         if chan != botconfig.NICK:  #not a PM
             for x in wolfgame.COMMANDS.keys():
                 if msg.startswith(x):
-                    h = msg.replace(x, "", 1).lstrip()
-                    wolfgame.COMMANDS[x](self.client, rawnick, chan, h)
+                    h = msg.replace(x, "", 1)
+                    if not h or h[0] == " " or not x:
+                        wolfgame.COMMANDS[x](self.client, rawnick, chan, h.lstrip())
         else:
             for x in wolfgame.PM_COMMANDS.keys():
                 if msg.startswith(x):
-                    h = msg.replace(x, "", 1).lstrip()
-                    wolfgame.PM_COMMANDS[x](self.client, rawnick, h)
+                    h = msg.replace(x, "", 1)
+                    if not h or h[0] == " " or not x:
+                        wolfgame.PM_COMMANDS[x](self.client, rawnick, h.lstrip())
         
     @protected
     def __unhandled__(self, cmd, *args):
