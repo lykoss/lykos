@@ -60,7 +60,7 @@ def reset(cli):
 @pmcmd("!bye", admin_only=True)
 @cmd("!bye", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
-    reset_game(cli, nick, botconfig.CHANNEL, None)
+    reset(cli)
     cli.quit("Forced quit from admin")
     raise SystemExit
 
@@ -109,7 +109,7 @@ def pinger(cli, nick, chan, rest):
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
         if vars.PINGING and 'G' not in status and '+' not in status:
-            # TODO: check if the user has AWAY'D himself
+            # TODO: check if the user has !AWAY'D himself
             TO_PING.append(user)
 
 
@@ -180,7 +180,7 @@ def stats(cli, nick, chan, rest):
             message.append("\u0002(0}\u0002 {1}".format(count, vars.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
-    if len(vars.ROLES["wolf"]) > 1 or not vars.ROLES["wolf"]):
+    if len(vars.ROLES["wolf"]) > 1 or not vars.ROLES["wolf"]:
         vb = "are"
     else:
         vb = "is"
@@ -208,6 +208,7 @@ def hurry_up(cli):
         elif len(voters) == max[0]:
             found_dup = True
     if max[0] > 0 and not found_dup:
+        cli.msg(chan, "The sun sets.")
         vars.VOTES[max[1]] = [None] * votesneeded
         chk_decision(cli)  # Induce a lynch
     else:
@@ -247,7 +248,7 @@ def show_votes(cli, nick, chan, rest):
     votelist = ["{0}: {1} ({2})".format(votee,
                                         len(vars.VOTES[votee]),
                                         " ".join(vars.VOTES[votee]))
-                for votee in votes_copy.keys()]
+                for votee in vars.VOTES.keys()]
     cli.msg(chan, "{0}: {1}".format(nick, ", ".join(votelist)))
 
     pl = vars.list_players()
@@ -263,7 +264,12 @@ def chk_win(cli):
     """ Returns True if someone won """
 
     chan = botconfig.CHANNEL
-    if len(vars.ROLES["wolf"]) >= len(vars.list_players()) / 2:
+    lpl = len(vars.list_players())
+    if lpl == 0:
+        cli.msg(chan, "No more players remaining. Game ended.")
+        reset(cli)
+        return True
+    if len(vars.ROLES["wolf"]) >= lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
     elif not len(vars.ROLES["wolf"]) and not vars.ROLES.get("traitor", 0):
@@ -275,7 +281,37 @@ def chk_win(cli):
         return False
     else:
         return False
-    # TODO: Print the game time stats here
+    
+    daymin, daysec = vars.DAY_TIMEDELTA.seconds // 60, vars.DAY_TIMEDELTA.seconds % 60
+    nitemin, nitesec = vars.NIGHT_TIMEDELTA.seconds // 60, vars.NIGHT_TIMEDELTA.seconds % 60
+    total = vars.DAY_TIMEDELTA + vars.NIGHT_TIMEDELTA
+    tmin, tsec = total.seconds // 60, total.seconds % 60
+    cli.msg(chan, ("Game lasted \u0002{0:0<2}:{1:0<2}\u0002. " +
+                   "\u0002{2:0<2}:{3:0<2}\u0002 was day. " +
+                   "\u0002{4:0<2}:{5:0<2}\u0002 was night. ").format(tmin, tsec,
+                                                                     daymin, daysec,
+                                                                     nitemin, nitesec))
+                                                             
+    roles_msg = []
+    for role in ("wolf", "seer", "harlot", "village drunk", "traitor"):
+        if len(vars.ORIGINAL_ROLES[role]) == 0:
+            continue
+        elif len(vars.ORIGINAL_ROLES[role]) == 2:
+            msg = "The {1} were \u0002{0[0]}\u0002 and \u0002{0[1]}\u0002."
+            roles_msg.append(msg.format(vars.ORIGINAL_ROLES[role], vars.plural(role)))
+        elif len(vars.ORIGINAL_ROLES[role]) == 1:
+            roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(vars.ORIGINAL_ROLES[role],
+                                                                      role))
+        else:
+            msg = "The {2} were \u0002{0}\u0002, and \u0002{1}\u0002."
+            nickslist = ["\u0002"+x+"\u0002" for x in vars.ORIGINAL_ROLES[role][0:-1]]
+            roles_msg.append(msg.format(", ".join(nickslist,
+                                                  vars.ORIGINAL_ROLES[role][-1],
+                                                  vars.plural(role))))
+    if vars.CURSED:
+        roles_msg.append("The cursed villager was \u0002{0}\u0002.".format(vars.CURSED))
+    cli.msg(chan, " ".join(roles_msg))
+    
     reset(cli)
     # TODO: Reveal roles here
     return True
@@ -287,19 +323,21 @@ def del_player(cli, nick, forced_death):
     
     cli.mode(botconfig.CHANNEL, "-v", "{0} {0}!*@*".format(nick))
     vars.del_player(nick)
-    if vars.PHASE != "join":  # Died during the game
+    ret = True
+    if vars.PHASE == "join":
+        ret = not chk_win(cli)
+    if vars.PHASE != "join" and ret:  # Died during the game
         cli.mode(botconfig.CHANNEL, "+q", "{0} {0}!*@*".format(nick))
         vars.DEAD.append(nick)
-        if chk_win(cli):
-            return False
-    if vars.PHASE == "night":
+        ret = not chk_win(cli)
+    if vars.PHASE == "night" and ret:
         if vars.VICTIM == nick:
             vars.VICTIM = ""
-    if vars.PHASE == "day" and not forced_death:  # didn't die from lynching
+    if vars.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
         if nick in vars.VOTES.keys():
             del vars.VOTES[nick]  #  Delete his votes
         chk_decision(cli)
-    return True
+    return ret
 
 
 
@@ -460,7 +498,7 @@ def see(cli, nick, rest):
         return
     if vars.CURSED == nick:
         role = "wolf"
-    if vars.get_role(victim) == "traitor":
+    elif vars.get_role(victim) == "traitor":
         role = "villager"
     else:
         role = vars.get_role(victim)
@@ -497,9 +535,16 @@ def transition_night(cli):
     vars.VICTIM = ""  # nickname of kill victim
     vars.SEEN = []  # list of seers that have had visions
     vars.NIGHT_START_TIME = datetime.now()
+    
+    daydur_msg = ""
+    if vars.NIGHT_TIMEDELTA:  #  transition from day
+        td = vars.NIGHT_START_TIME - vars.DAY_START_TIME
+        vars.DAY_TIMEDELTA += td
+        min, sec = td.seconds // 60, td.seconds % 60
+        daydur_msg = "Day lasted \u0002{0:0>2}:{1:0>2}. ".format(min,sec)
 
     chan = botconfig.CHANNEL
-    cli.msg(chan, ("It is now nighttime. All players "+
+    cli.msg(chan, (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning."))
@@ -534,7 +579,7 @@ def transition_night(cli):
         cli.msg(seer, "Players: "+", ".join(pl))
 
     for d in vars.ROLES["village drunk"]:
-        cli.msg(d, 'You have been drinking too much! You are the village drunk.')
+        cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 
 @cmd("!start")
 def start(cli, nick, chan, rest):
@@ -602,11 +647,9 @@ def start(cli, nick, chan, rest):
                   "game (a theme of Mafia).").format(", ".join(vars.list_players())))
     cli.mode(chan, "+m")
 
-    vars.ORIGINAL_ROLES = dict(vars.ROLES)  # Make a copy
+    vars.ORIGINAL_ROLES = vars.ROLES.copy()  # Make a copy
     vars.DAY_TIMEDELTA = timedelta(0)
     vars.NIGHT_TIMEDELTA = timedelta(0)
-    vars.DEAD = []
-    vars.TIMERS = [None, None]  # nightlimit, daylimit
     transition_night(cli)
 
 
