@@ -36,6 +36,23 @@ def connect_callback(cli):
 def say(cli, nick, rest):  # To be removed later
     cli.msg(botconfig.CHANNEL, "{0} says: {1}".format(nick, rest))
 
+    
+
+def mass_mode(cli, md):
+    """ Example: mass_mode((('+v', 'asdf'), ('-v','wobosd'))) """
+    lmd = len(md)  # store how many mode changes to do
+    for start_i in range(0, lmd, 4):  # 4 mode-changes at a time
+        if start_i + 4 > lmd:  # If this is a remainder (mode-changes < 4)
+            z = list(zip(*md[start_i:]))  # zip this remainder
+            ei = lmd % 4  # len(z)
+        else:
+            z = list(zip(*md[start_i:start_i+4])) # zip four
+            ei = 4 # len(z)
+        # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
+        arg1 = "".join(z[0])
+        arg2 = " ".join(z[1]) + " " + " ".join([x+"!*@*" for x in z[1]])
+        cli.mode(botconfig.CHANNEL, arg1, arg2)    
+    
 
 
 def reset(cli):
@@ -50,10 +67,12 @@ def reset(cli):
         vars.TIMERS[1] = None
 
     cli.mode(chan, "-m")
+    cmodes = []
     for plr in vars.list_players():
-        cli.mode(chan, "-v", "{0} {0}!*@*".format(plr))
+        cmodes.append(("-v", plr))
     for deadguy in vars.DEAD:
-        cli.mode(chan, "-q", "{0} {0}!*@*".format(deadguy))
+       cmodes.append(("-q", deadguy))
+    mass_mode(cli, cmodes)
     vars.DEAD = []
 
     vars.ROLES = {"person" : []}
@@ -321,8 +340,9 @@ def chk_win(cli):
                                                                      nitemin, nitesec))
 
     roles_msg = []
+    vars.ORIGINAL_ROLES["cursed villager"] = vars.CURSED
     for role in vars.ORIGINAL_ROLES.keys():
-        if len(vars.ORIGINAL_ROLES[role]) == 0:
+        if len(vars.ORIGINAL_ROLES[role]) == 0 or if role == "villager":
             continue
         elif len(vars.ORIGINAL_ROLES[role]) == 2:
             msg = "The {1} were \u0002{0[0]}\u0002 and \u0002{0[1]}\u0002."
@@ -336,8 +356,6 @@ def chk_win(cli):
             roles_msg.append(msg.format(", ".join(nickslist),
                                                   vars.ORIGINAL_ROLES[role][-1],
                                                   vars.plural(role)))
-    if vars.CURSED:
-        roles_msg.append("The cursed villager was \u0002{0}\u0002.".format(vars.CURSED))
     cli.msg(chan, " ".join(roles_msg))
 
     reset(cli)
@@ -347,15 +365,21 @@ def chk_win(cli):
 
 
 def del_player(cli, nick, forced_death):
-    """ Returns False if one side won. """
+    """
+    forced_death = True if death is from a natural game process
+    Returns False if one side won. forced_death = True when lynched or killed 
+    """
 
-    cli.mode(botconfig.CHANNEL, "-v", "{0} {0}!*@*".format(nick))
+    cmode = []
+    cmode.append(("-v", nick))
     vars.del_player(nick)
     ret = True
     if vars.PHASE == "join":
+        mass_mode(cli, cmode)
         ret = not chk_win(cli)
     if vars.PHASE != "join" and ret:  # Died during the game
-        cli.mode(botconfig.CHANNEL, "+q", "{0} {0}!*@*".format(nick))
+        cmode.append(("+q", nick))
+        mass_mode(cli, cmode)
         vars.DEAD.append(nick)
         ret = not chk_win(cli)
     if vars.PHASE in ("night", "day") and ret:
@@ -674,7 +698,7 @@ def see(cli, nick, rest):
     if victim not in pll:
         cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
-    if vars.CURSED == nick:
+    if nick in vars.CURSED:
         role = "wolf"
     elif vars.get_role(victim) == "traitor":
         role = "villager"
@@ -814,7 +838,7 @@ def start(cli, nick, chan, rest):
 
     vars.ROLES = {}
     vars.CURSED = ""
-    vars.GUNNERS = []
+    vars.GUNNERS = {}
 
     addroles = None
     for pcount in range(len(villagers), 3, -1):
@@ -829,10 +853,10 @@ def start(cli, nick, chan, rest):
             villagers.remove(x)
     # Select cursed (just a villager)
     if vars.ROLES["cursed"]:
-        vars.CURSED = random.choice((villagers +  # harlot and drunk can be cursed
+        vars.CURSED = random.sample((villagers +  # harlot and drunk can be cursed
                                      vars.ROLES["harlot"] +
                                      vars.ROLES["village drunk"] +
-                                     vars.ROLES["cursed"]))
+                                     vars.ROLES["cursed"]), len(vars.ROLES["cursed"]))
         for person in vars.ROLES["cursed"]:
             villagers.append(person)
     del vars.ROLES["cursed"]
@@ -843,8 +867,9 @@ def start(cli, nick, chan, rest):
                    vars.ROLES["village drunk"] +
                    vars.ROLES["seer"] +
                    vars.ROLES["gunner"])
-        if vars.CURSED in possible:
-            possible.remove(vars.CURSED)
+        for csd in vars.CURSED:
+            if csd in possible:
+                possible.remove(csd)
         vars.GUNNERS = random.sample(possible, len(vars.ROLES["gunner"]))
         for person in vars.ROLES["gunner"]:
             villagers.append(person)
