@@ -256,14 +256,38 @@ def show_votes(cli, nick, chan, rest):
                    "to vote.").format(nick, len(pl), votesneeded, avail))
 
 
-
+def chk_win(cli):
+    chan = botconfig.CHANNEL
+    if len(vars.ROLES["wolf"]) >= len(vars.list_players()) / 2:
+        cli.msg(chan, ("Game over! There are the same number of wolves as "+
+                       "villagers. The wolves eat everyone, and win."))
+    elif not len(vars.ROLES["wolf"]) and not vars.ROLES["traitor"]:
+        cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
+                       "chop them up, BBQ them, and have a hearty meal."))
+    elif not len(vars.ROLES["wolf"]) and vars.ROLES["traitor"]:
+        pass # WOLVES ARE NOT GONE :O
+        # TODO: transform TRAITOR
+        return
+    else:
+        return
+    # TODO: Print the game time stats here
+    reset(cli)
+    # TODO: Reveal roles here
+    
+    
+    
 def del_player(cli, nick, forced_death):
     cli.mode(botconfig.CHANNEL, "-v", "{0} {0}!*@*".format(nick))
     if vars.PHASE != "join":
         cli.mode(botconfig.CHANNEL, "+q", "{0} {0}!*@*".format(nick))
         vars.DEAD.append(nick)
     vars.del_player(nick)
+    chk_win(cli)
+    if vars.VICTIM == nick:
+        vars.VICTIM = ""
     if vars.PHASE == "day" and not forced_death:  # didn't die from lynching
+        if nick in vars.VOTES.keys():
+            del vars.VOTES[nick]  #  Delete his votes
         chk_decision(cli)
     return True
 
@@ -426,7 +450,7 @@ def see(cli, nick, rest):
         return
     if vars.CURSED == nick:
         role = "wolf"
-    elif vars.TRAITOR == nick:
+    if vars.get_role(victim) == "traitor":
         role = "villager"
     else:
         role = vars.get_role(victim)
@@ -544,31 +568,35 @@ def start(cli, nick, chan, rest):
     seer = random.choice(pl)
     vars.ROLES["seer"] = [seer]
     pl.remove(seer)
-    if nharlots:
-        harlots = random.sample(pl, nharlots)
-        vars.ROLES["harlot"] = harlots
-        for h in harlots:
-            pl.remove(h)
-    if nwolves:
-        wolves = random.sample(pl, nwolves)
-        vars.ROLES["wolf"] = wolves
-        for w in wolves:
-            pl.remove(w)
-    if ndrunk:
-        drunk = random.choice(pl)
-        vars.ROLES["village drunk"] = [drunk]
-        pl.remove(drunk)
+
+    harlots = random.sample(pl, nharlots)
+    vars.ROLES["harlot"] = harlots
+    for h in harlots:
+        pl.remove(h)
+
+    wolves = random.sample(pl, nwolves)
+    vars.ROLES["wolf"] = wolves
+    for w in wolves:
+        pl.remove(w)
+
+    drunk = random.choice(pl)
+    vars.ROLES["village drunk"] = [drunk]
+    pl.remove(drunk)
+    
     vars.ROLES["villager"] = pl
 
     if ncursed:
         vars.CURSED = random.choice(vars.ROLES["villager"] + \
                                     vars.ROLES.get("harlot", []) +\
                                     vars.ROLES.get("village drunk", []))
+    else:
+        vars.CURSED = ""
+    
     if ntraitor:
         possible = vars.ROLES["villager"]
-        if ncursed:
+        if vars.CURSED:
             possible.remove(vars.CURSED)  # Cursed traitors are not allowed
-        vars.TRAITOR = random.choice(possible)
+        vars.ROLES["traitor"] = random.sample(possible, ntraitor)
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
                   "game (a theme of Mafia).").format(", ".join(vars.list_players())))
