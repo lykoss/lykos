@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import threading
 import random
 import copy
+from time import sleep
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -62,6 +63,8 @@ def reset(cli):
 @cmd("!bye", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     reset(cli)
+    print("Quitting in 7 seconds.")
+    time.sleep(7)
     cli.quit("Forced quit from admin")
     raise SystemExit
 
@@ -296,9 +299,9 @@ def chk_win(cli):
     nitemin, nitesec = vars.NIGHT_TIMEDELTA.seconds // 60, vars.NIGHT_TIMEDELTA.seconds % 60
     total = vars.DAY_TIMEDELTA + vars.NIGHT_TIMEDELTA
     tmin, tsec = total.seconds // 60, total.seconds % 60
-    cli.msg(chan, ("Game lasted \u0002{0:0<2}:{1:0<2}\u0002. " +
-                   "\u0002{2:0<2}:{3:0<2}\u0002 was day. " +
-                   "\u0002{4:0<2}:{5:0<2}\u0002 was night. ").format(tmin, tsec,
+    cli.msg(chan, ("Game lasted \u0002{0:0>2}:{1:0>2}\u0002. " +
+                   "\u0002{2:0>2}:{3:0>2}\u0002 was day. " +
+                   "\u0002{4:0>2}:{5:0>2}\u0002 was night. ").format(tmin, tsec,
                                                                      daymin, daysec,
                                                                      nitemin, nitesec))
 
@@ -389,27 +392,42 @@ def transition_day(cli):
     vars.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
-    message = ("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
+    message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
-               "and search the village... ").format(min, sec)
+               "and search the village... ").format(min, sec)]
     dead = []
+    
     if not vars.VICTIM:
-        message += random.choice(vars.NO_VICTIMS_MESSAGES)
-        message += " All villagers, however, have survived."
-        cli.msg(chan, message);
-    # TODO: check if visited is harlot
-    else:
-        message += ("The dead body of \u0002{0}\u0002, a "+
-                    "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
-                    "death.").format(vars.VICTIM, vars.get_role(vars.VICTIM))
+        message.append(random.choice(vars.NO_VICTIMS_MESSAGES) + 
+                    " All villagers, however, have survived.")
+    elif vars.VICTIM in vars.ROLES["harlot"]:  # Attacked harlot, yay no deaths
+        if vars.HVISITED.get(vars.VICTIM):
+            message.append("The wolves' selected victim was a harlot, "+
+                           "but she wasn't home.")
+    if vars.VICTIM and (vars.VICTIM not in vars.ROLES["harlot"] or   # not a harlot
+                          not vars.HVISITED.get(vars.VICTIM)):   # harlot stayed home
+        message.append(("The dead body of \u0002{0}\u0002, a "+
+                        "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
+                        "death.").format(vars.VICTIM, vars.get_role(vars.VICTIM)))
         dead.append(vars.VICTIM)
-        cli.msg(chan, message)
+    if vars.VICTIM in vars.HVISITED.values():  #  victim was visited by some harlot
+        for hlt in vars.HVISITED.keys():
+            if vars.HVISITED[hlt] == vars.VICTIM:
+                message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
+                                "visiting the victim's house last night and is "+
+                                "now dead.").format(hlt))
+                dead.append(hlt)
     # TODO: check if harlot also died
-
+    for harlot in vars.ROLES["harlot"]:
+        if vars.HVISITED.get(harlot) in vars.ROLES["wolf"]:
+            message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
+                            "visiting a wolf's house last night and is "+
+                            "now dead.").format(harlot))
+            dead.append(harlot)
     for deadperson in dead:
         if not del_player(cli, deadperson, True):
             return
-
+    cli.msg(chan, "\n".join(message))
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
                    'Use "!lynch <nick>" to cast your vote. 3 votes '+
                    'are required to lynch.'))
@@ -422,6 +440,7 @@ def transition_day(cli):
 
 def chk_nightdone(cli):
     if (len(vars.SEEN) == len(vars.ROLES["seer"]) and
+        len(vars.HVISITED.keys()) == len(vars.ROLES["harlot"]) and
         vars.VICTIM and vars.PHASE == "night"):
         if vars.TIMERS[0]:
             vars.TIMERS[0].cancel()  # cancel timer
@@ -460,6 +479,7 @@ def vote(cli, nick, chan, rest):
         cli.notice(nick, "Not enough parameters.")
     else:
         cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(rest))
+
 
 
 @checks
@@ -510,6 +530,42 @@ def kill(cli, nick, rest):
     chk_nightdone(cli)
 
 
+
+@checks
+@pmcmd("visit", "!visit")
+def hvisit(cli, nick, rest):
+    if not vars.is_role(nick, "harlot"):
+        cli.msg(nick, "Only a harlot may use this command.")
+        return
+    if vars.PHASE != "night":
+        cli.msg(nick, "You may only visit someone at night.")
+        return
+    if vars.HVISITED.get(nick):
+        cli.msg(nick, ("You are already spending the night "+
+                      "with \u0002{0}\u0002.").format(vars.HVISITED[nick]))
+        return
+    victim = rest.split(" ")[0].strip().lower()
+    if not victim:
+        cli.msg(nick, "Not enough parameters")
+        return
+    pl = [x.lower() for x in vars.list_players()]
+    if victim not in pl:
+        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+        return
+    if nick.lower() == victim:  # Staying home
+        vars.HVISITED[nick] = None
+        cli.msg(nick, "You have chosen to stay home for the night.")
+    else:
+        vars.HVISITED[nick] = vars.list_players()[pl.index(victim)]
+        cli.msg(nick, ("You are spending the night with \u0002{0}\u0002. "+
+                      "Have a good time!").format(victim))
+        if vars.HVISITED[nick] not in vars.ROLES["wolf"]:
+            cli.msg(vars.HVISITED[nick], ("You are spending the night with \u0002{0}"+
+                                          "\u0002. Have a good time!").format(nick))
+    chk_nightdone(cli)
+    
+    
+
 @checks
 @pmcmd("see", "!see")
 def see(cli, nick, rest):
@@ -517,7 +573,7 @@ def see(cli, nick, rest):
         cli.msg(nick, "Only a seer may use this command")
         return
     if vars.PHASE != "night":
-        cli.msg(nick, "You may have visions at night.")
+        cli.msg(nick, "You may only have visions at night.")
         return
     if nick in vars.SEEN:
         cli.msg(nick, "You may only have one vision per round.")
@@ -566,6 +622,7 @@ def transition_night(cli):
     # Reset nighttime variables
     vars.VICTIM = ""  # nickname of kill victim
     vars.SEEN = []  # list of seers that have had visions
+    vars.HVISITED = {}
     vars.NIGHT_START_TIME = datetime.now()
 
     daydur_msg = ""
@@ -575,7 +632,7 @@ def transition_night(cli):
         vars.DAY_START_TIME = None
         vars.DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
-        daydur_msg = "Day lasted \u0002{0:0>2}:{1:0>2}. ".format(min,sec)
+        daydur_msg = "Day lasted \u0002{0:0>2}:{1:0>2}\u0002. ".format(min,sec)
 
     chan = botconfig.CHANNEL
 
@@ -608,6 +665,15 @@ def transition_night(cli):
                       'Use "see <nick>" to see the role of a player.'))
         cli.msg(seer, "Players: "+", ".join(pl))
 
+    for harlot in vars.ROLES["harlot"]:
+        pl = ps[:]
+        pl.remove(harlot)
+        cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
+                         'You may spend the night with one person per round. '+
+                         'If you visit a victim of a wolf, or visit a wolf, '+
+                         'you will die. Use !visit to visit a player.'))
+        cli.msg(harlot, "Players: "+", ".join(pl))
+        
     for d in vars.ROLES["village drunk"]:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 

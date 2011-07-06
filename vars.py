@@ -3,16 +3,18 @@ MINIMUM_WAIT = 0 # debug, change to 60 for normal
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
-NIGHT_TIME_LIMIT = 90
-DAY_TIME_LIMIT = 137
+NIGHT_TIME_LIMIT = 0
+DAY_TIME_LIMIT = 0
 
-#######################################################################################
-# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   #
-ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ), #
-                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ), #
-                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ), #
-                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   )} #
-#######################################################################################
+GAME_MODES = {}
+
+############################################################################################
+# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW #
+ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0), #
+                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0), #
+                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0), #
+                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0)} #
+############################################################################################
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -20,7 +22,8 @@ ROLE_INDICES = {0 : "seer",
                 3 : "village drunk",
                 4 : "harlot",
                 5 : "traitor",
-                6 : "gunner"}
+                6 : "gunner",
+                7 : "werecrow"}
 
 
 
@@ -58,3 +61,52 @@ get_role = lambda plyr: list_players_and_roles()[plyr]
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
+
+
+    
+class InvalidModeException(object): pass
+def game_mode(name):
+    def decor(c):
+        GAME_MODES[name] = c
+        return c
+    return decor
+
+    
+CHANGEABLE_ROLES = { "seer" : 0,
+                     "wolf" : 1,
+                    "drunk" : 3,
+                   "harlot" : 4,
+                  "traitor" : 5,
+                   "gunner" : 6,
+                 "werecrow" : 7 }
+    
+#  !game roles wolves:1 seers:0
+
+# TODO: implement game modes
+@game_mode("roles")
+class ChangedRolesMode(object):
+    ROLES_GUIDE = ROLES_GUIDE.copy()
+    def __init__(self, arg):
+        pairs = arg.split(" ")
+        if len(parts) == 1:
+            raise InvalidModeException("Invalid syntax for !game roles.")
+        for pair in pairs:
+            change = pair.split(":")
+            if len(change) != 2:
+                raise InvalidModeException("Invalid syntax for !game roles.")
+            role, num = change
+            try:
+                num = int(num)
+            except ValueError:
+                raise InvalidModeException("A bad value was used in !game roles.")
+            for x in self.ROLES_GUIDE.keys():
+                lx = list(x)
+                try:
+                    lx[CHANGEABLE_ROLES[role.lower()]] = num
+                except KeyError:
+                    raise InvalidModeException('"{0}" is not a changeable role.'.format(role))
+                self.ROLES_GUIDE[x] = tuple(lx)
+                pl = list_players()
+        if len(pl) < sum(self.ROLES_GUIDE[4]):
+            raise InvalidModeException("Too few players for such these custom roles.")
+            

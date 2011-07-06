@@ -34,7 +34,7 @@ class WolfBotHandler(DefaultCommandHandler):
             logging.debug('unhandled command %s(%s)' % (cmd, args))
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO, filename="log.txt")
     cli = IRCClient(WolfBotHandler, host=botconfig.HOST, port=botconfig.PORT, nickname=botconfig.NICK,
                     connect_cb=wolfgame.connect_callback)
 
