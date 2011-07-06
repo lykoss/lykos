@@ -7,6 +7,7 @@ import threading
 import random
 import copy
 from time import sleep
+import re
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -63,8 +64,11 @@ def reset(cli):
 @cmd("!bye", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     reset(cli)
-    print("Quitting in 7 seconds.")
-    time.sleep(7)
+    print("Quitting in 5 seconds.")
+    dict.clear(COMMANDS)
+    dict.clear(PM_COMMANDS)
+    dict.clear(PM_COMMANDS)
+    sleep(5)
     cli.quit("Forced quit from admin")
     raise SystemExit
 
@@ -178,10 +182,12 @@ def stats(cli, nick, chan, rest):
         return
 
     message = []
-    for role in ("wolf", "seer", "harlot"):
-        count = len(vars.ROLES.get(role,[]))
+    for role in vars.ORIGINAL_ROLES.keys():
+        if not vars.ORIGINAL_ROLES[role]:
+            continue  # Never had this role, don't list it.
+        count = len(vars.ROLES[role])
         if count > 1 or count == 0:
-            message.append("\u0002(0}\u0002 {1}".format(count, vars.plural(role)))
+            message.append("\u0002{0}\u0002 {1}".format(count, vars.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
     if len(vars.ROLES["wolf"]) > 1 or not vars.ROLES["wolf"]:
@@ -273,15 +279,24 @@ def chk_win(cli):
         cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
         return True
-    elif len(vars.ROLES["wolf"]) >= lpl / 2:
+    elif (len(vars.ROLES["wolf"])+
+          len(vars.ROLES["traitor"])+
+          len(vars.ROLES["werecrow"])) >= lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
-    elif not len(vars.ROLES["wolf"]) and not vars.ROLES.get("traitor", 0):
+    elif (not vars.ROLES["wolf"] and
+          not vars.ROLES["traitor"] and 
+          not vars.ROLES["werecrow"]):
         cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
                        "chop them up, BBQ them, and have a hearty meal."))
-    elif not len(vars.ROLES["wolf"]) and vars.ROLES.get("traitor", 0):
-        pass # WOLVES ARE NOT GONE :O
-        # TODO: transform TRAITOR
+    elif not len(vars.ROLES["wolf"]) and vars.ROLES["traitor"]:
+        for tt in vars.ROLES["traitor"]:
+            vars.ROLES["wolf"].append(tt)
+            vars.ROLES["traitor"].remove(tt)
+            cli.msg(tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
+                         'It is up to you to avenge your fallen leaders!'))
+            cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
+                          'frightened as they hear a loud howl. The wolves are not gone!\u0002'))
         return False
     else:
         return False
@@ -306,7 +321,7 @@ def chk_win(cli):
                                                                      nitemin, nitesec))
 
     roles_msg = []
-    for role in ("wolf", "seer", "harlot", "village drunk", "traitor"):
+    for role in vars.ORIGINAL_ROLES.keys():
         if len(vars.ORIGINAL_ROLES[role]) == 0:
             continue
         elif len(vars.ORIGINAL_ROLES[role]) == 2:
@@ -316,11 +331,11 @@ def chk_win(cli):
             roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(vars.ORIGINAL_ROLES[role],
                                                                       role))
         else:
-            msg = "The {2} were \u0002{0}\u0002, and \u0002{1}\u0002."
+            msg = "The {2} were {0}, and \u0002{1}\u0002."
             nickslist = ["\u0002"+x+"\u0002" for x in vars.ORIGINAL_ROLES[role][0:-1]]
-            roles_msg.append(msg.format(", ".join(nickslist,
+            roles_msg.append(msg.format(", ".join(nickslist),
                                                   vars.ORIGINAL_ROLES[role][-1],
-                                                  vars.plural(role))))
+                                                  vars.plural(role)))
     if vars.CURSED:
         roles_msg.append("The cursed villager was \u0002{0}\u0002.".format(vars.CURSED))
     cli.msg(chan, " ".join(roles_msg))
@@ -343,9 +358,16 @@ def del_player(cli, nick, forced_death):
         cli.mode(botconfig.CHANNEL, "+q", "{0} {0}!*@*".format(nick))
         vars.DEAD.append(nick)
         ret = not chk_win(cli)
-    if vars.PHASE == "night" and ret:
+    if vars.PHASE in ("night", "day") and ret:
         if vars.VICTIM == nick:
             vars.VICTIM = ""
+        for x in (vars.OBSERVED, vars.HVISITED):
+            keys = list(x.keys())
+            for k in keys:
+                if k == nick:
+                    del x[k]
+                elif x[k] == nick:
+                    del x[k]
     if vars.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
         if nick in vars.VOTES.keys():
             del vars.VOTES[nick]  #  Delete his votes
@@ -355,7 +377,11 @@ def del_player(cli, nick, forced_death):
 
 
 def leave(cli, what, nick):
+    if vars.PHASE == "none":
+        cli.notice(nick, "No game is currently running.")
+        return
     if nick not in vars.list_players():  # not playing
+        cli.notice(nick, "You're not currently playing.")
         return
     msg = ""
     if what in ("!quit", "!leave"):
@@ -396,7 +422,14 @@ def transition_day(cli):
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
     dead = []
-    
+    crowonly = vars.ROLES["werecrow"] and not vars.ROLES["wolf"]
+    for crow, target in iter(vars.OBSERVED.items()):
+        if target in vars.ROLES["harlot"]+vars.ROLES["seer"]:
+            cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
+                          "bed at night, and you fly back to your house.").format(target))
+        elif target not in vars.ROLES["village drunk"]:
+            cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
+                          "all night long, and you fly back to your house.").format(target))
     if not vars.VICTIM:
         message.append(random.choice(vars.NO_VICTIMS_MESSAGES) + 
                     " All villagers, however, have survived.")
@@ -424,6 +457,19 @@ def transition_day(cli):
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
+    for crow, target in iter(vars.OBSERVED.items()):
+        if (target in vars.ROLES["harlot"] and 
+            target in vars.HVISITED.keys() and 
+            target not in dead):
+            # Was visited by a crow
+            cli.msg(target, ("You suddenly remember that you were startled by the loud "+
+                            "sound of the flapping of wings during the walk back home."))
+        elif target in vars.ROLES["village drunk"]:
+            # Crow dies because of tiger (HANGOVER)
+            cli.msg(chan, ("The bones of \u0002{0}\u0002, a werecrow, "+
+                           "were found near the village drunk's house. "+
+                           "The drunk's pet tiger probably ate him.").format(crow))
+            dead.append(crow)
     for deadperson in dead:
         if not del_player(cli, deadperson, True):
             return
@@ -458,14 +504,14 @@ def vote(cli, nick, chan, rest):
         return
     pl = vars.list_players()
     pl_l = [x.strip().lower() for x in pl]
-    rest = rest.split(" ")[0].strip().lower()
+    rest = re.split("\s+",rest)[0].strip().lower()
     if rest in pl_l:
         voted = pl[pl_l.index(rest)]
-        candidates = vars.VOTES.keys()
-        for voters in list(candidates):  # remove previous vote
+        lcandidates = list(vars.VOTES.keys())
+        for voters in lcandidates:  # remove previous vote
             if nick in vars.VOTES[voters]:
                 vars.VOTES[voters].remove(nick)
-                if not vars.VOTES[voters] and voters != voted:
+                if not vars.VOTES.get(voters) and voters != voted:
                     del vars.VOTES[voters]
                 break
         if voted not in vars.VOTES.keys():
@@ -491,11 +537,11 @@ def retract(cli, nick, chan, rest):
         return
 
     candidates = vars.VOTES.keys()
-    for voters in list(candidates):
-        if nick in vars.VOTES[voters]:
-            vars.VOTES[voters].remove(nick)
-            if not vars.VOTES[voters]:
-                del vars.VOTES[voters]
+    for voter in list(candidates):
+        if nick in vars.VOTES[voter]:
+            vars.VOTES[voter].remove(nick)
+            if not vars.VOTES[voter]:
+                del vars.VOTES[voter]
             cli.msg(chan, "\u0002{0}\u0002 retracted his/her vote.".format(nick))
             break
     else:
@@ -506,31 +552,73 @@ def retract(cli, nick, chan, rest):
 @checks
 @pmcmd("!kill", "kill")
 def kill(cli, nick, rest):
-    if not (vars.is_role(nick, "wolf") or vars.is_role(nick, "traitor")):
-        cli.msg(nick, "Only a wolf may use this command")
+    role = vars.get_role(nick)
+    if role not in ('wolf', 'werecrow'):
+        cli.msg(nick, "Only a wolf may use this command.")
         return
     if vars.PHASE != "night":
         cli.msg(nick, "You may only kill people at night.")
         return
-    victim = rest.split(" ")[0].strip()
+    victim = re.split("\s+",rest)[0].strip().lower()
     if not victim:
         cli.msg(nick, "Not enough parameters")
         return
-    if victim not in vars.list_players():
+    if role == "werecrow":  # Check if flying to observe
+        if vars.OBSERVED.get(nick):
+            cli.msg(nick, ("You are flying to \u0002{0}'s\u0002 house, and "+
+                          "therefore you will not have the time "+
+                          "and energy to kill a villager.").format(vars.OBSERVED[nick]))
+            return
+    pl = vars.list_players()
+    pll = [x.lower() for x in pl]
+    if victim not in pll:
         cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
-    if victim == nick:
+    if victim == nick.lower():
         cli.msg(nick, "Suicide is bad.  Don't do it.")
         return
     if victim in vars.ROLES["wolf"]:
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
-    vars.VICTIM = victim
+    vars.VICTIM = pl[pll.index(victim)]
     cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(victim))
     chk_nightdone(cli)
 
 
 
+@checks
+@pmcmd("observe", "!observe")
+def observe(cli, nick, rest):
+    if not vars.is_role(nick, "werecrow"):
+        cli.msg(nick, "Only a werecrow may use this command.")
+        return
+    if vars.PHASE != "night":
+        cli.msg(nick, "You may only fly at night.")
+        return
+    victim = re.split("\s+", rest)[0].strip().lower()
+    if not victim:
+        cli.msg(nick, "Not enough parameters")
+        return
+    pl = vars.list_players()
+    pll = [x.lower() for x in pl]
+    if victim not in pll:
+        cli.msg(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        print(pll)
+        print(victim)
+        return
+    if victim == nick.lower():
+        cli.msg(nick, "Instead of doing that, you should probably go kill someone.")
+        return
+    if vars.get_role(pl[pll.index(victim)]) in ("werecrow", "traitor", "wolf"):
+        cli.msg(nick, "Flying to another wolf's house is a waste of time.")
+        return
+    vars.OBSERVED[nick] = pl[pll.index(victim)]
+    cli.msg(nick, ("You have started your flight to \u0002{0}'s\u0002 house. "+
+                  "You will return after collecting your observations "+
+                  "when day begins.").format(victim))
+        
+    
+    
 @checks
 @pmcmd("visit", "!visit")
 def hvisit(cli, nick, rest):
@@ -544,7 +632,7 @@ def hvisit(cli, nick, rest):
         cli.msg(nick, ("You are already spending the night "+
                       "with \u0002{0}\u0002.").format(vars.HVISITED[nick]))
         return
-    victim = rest.split(" ")[0].strip().lower()
+    victim = re.split("\s+",rest)[0].strip().lower()
     if not victim:
         cli.msg(nick, "Not enough parameters")
         return
@@ -577,11 +665,13 @@ def see(cli, nick, rest):
         return
     if nick in vars.SEEN:
         cli.msg(nick, "You may only have one vision per round.")
-    victim = rest.split(" ")[0].strip()
+    victim = re.split("\s+",rest)[0].strip().lower()
+    pl = vars.list_players()
+    pll = [x.lower() for x in pl]
     if not victim:
         cli.msg(nick, "Not enough parameters")
         return
-    if victim not in vars.list_players():
+    if victim not in pll:
         cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     if vars.CURSED == nick:
@@ -589,7 +679,7 @@ def see(cli, nick, rest):
     elif vars.get_role(victim) == "traitor":
         role = "villager"
     else:
-        role = vars.get_role(victim)
+        role = vars.get_role(pl[pll.index(victim)])
     cli.msg(nick, ("You have a vision; in this vision, "+
                     "you see that \u0002{0}\u0002 is a "+
                     "\u0002{1}\u0002!").format(victim, role))
@@ -600,9 +690,9 @@ def see(cli, nick, rest):
 
 @pmcmd("")
 def relay(cli, nick, rest):
-    badguys = vars.ROLES.get("wolf", []) + vars.ROLES.get("traitor", [])
+    badguys = vars.ROLES["wolf"] + vars.ROLES["traitor"] + vars.ROLES["werecrow"]
     if len(badguys) > 1:
-        if vars.is_role(nick, "wolf") or vars.is_role(nick, "traitor"):
+        if vars.get_role(nick) in ("wolf","traitor","werecrow"):
             badguys.remove(nick)  #  remove self from list
             for badguy in badguys:
                 cli.msg(badguy, "{0} says: {1}".format(nick, rest))
@@ -621,7 +711,9 @@ def transition_night(cli):
 
     # Reset nighttime variables
     vars.VICTIM = ""  # nickname of kill victim
+    vars.KILLER = ""  # nickname of who chose the victim
     vars.SEEN = []  # list of seers that have had visions
+    vars.OBSERVED = {}  # those whom werecrows have observed
     vars.HVISITED = {}
     vars.NIGHT_START_TIME = datetime.now()
 
@@ -643,18 +735,32 @@ def transition_night(cli):
 
     # send PMs
     ps = vars.list_players()
-    for wolf in vars.ROLES["wolf"]:
-        cli.msg(wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
-                       'villagers. Use "kill <nick>" to kill a villager. Also, if '+
-                       'you send a PM to me, it will be relayed to all other wolves.'))
+    wolves = vars.ROLES["wolf"]+vars.ROLES["traitor"]+vars.ROLES["werecrow"]
+    for wolf in wolves:
+        if wolf in vars.ROLES["wolf"]:
+            cli.msg(wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
+                           'villagers. Use "kill <nick>" to kill a villager.'))
+        elif wolf in vars.ROLES["traitor"]:
+            cli.msg(wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
+                           'villager and not even a seer can see your true identity. '+
+                           'Only detectives can. '))
+        else:
+            cli.msg(wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
+                           'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
+                           'use "observe <nick>" to check if someone is in bed or not. '+
+                           'Observing will prevent you participating in a killing.'))
+        if len(wolves) > 1:
+            cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         pl = ps[:]
         pl.remove(wolf)  # remove self from list
         for i, player in enumerate(pl):
-            if vars.is_role(player, "wolf"):
+            if player in vars.ROLES["wolf"]:
                 pl[i] = player + " (wolf)"
-            elif vars.is_role(player, "traitor"):
+            elif player in vars.ROLES["traitor"]:
                 pl[i] = player + " (traitor)"
-        cli.msg(wolf, "Players: "+", ".join(pl))
+            elif player in vars.ROLES["werecrow"]:
+                pl[i] = player + " (werecrow)"
+        cli.msg(wolf, "\u0002Players:\u0002 "+", ".join(pl))
 
     for seer in vars.ROLES["seer"]:
         pl = ps[:]

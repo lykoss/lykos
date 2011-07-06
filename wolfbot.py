@@ -12,14 +12,14 @@ class WolfBotHandler(DefaultCommandHandler):
     def privmsg(self, rawnick, chan, msg):         
         if chan != botconfig.NICK:  #not a PM
             for x in wolfgame.COMMANDS.keys():
-                if msg.startswith(x):
-                    h = msg.replace(x, "", 1)
+                if msg.lower().startswith(x):
+                    h = msg[len(x):]
                     if not h or h[0] == " " or not x:
                         wolfgame.COMMANDS[x](self.client, rawnick, chan, h.lstrip())
         else:
             for x in wolfgame.PM_COMMANDS.keys():
-                if msg.startswith(x):
-                    h = msg.replace(x, "", 1)
+                if msg.lower().startswith(x):
+                    h = msg[len(x):]
                     if not h or h[0] == " " or not x:
                         wolfgame.PM_COMMANDS[x](self.client, rawnick, h.lstrip())
         
@@ -34,7 +34,7 @@ class WolfBotHandler(DefaultCommandHandler):
             logging.debug('unhandled command %s(%s)' % (cmd, args))
 
 def main():
-    logging.basicConfig(level=logging.INFO, filename="log.txt")
+    logging.basicConfig(level=logging.INFO)
     cli = IRCClient(WolfBotHandler, host=botconfig.HOST, port=botconfig.PORT, nickname=botconfig.NICK,
                     connect_cb=wolfgame.connect_callback)
 
