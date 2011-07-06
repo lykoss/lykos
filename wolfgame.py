@@ -5,6 +5,7 @@ import decorators
 from datetime import datetime, timedelta
 import threading
 import random
+import copy
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -269,7 +270,7 @@ def chk_win(cli):
         cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
         return True
-    if len(vars.ROLES["wolf"]) >= lpl / 2:
+    elif len(vars.ROLES["wolf"]) >= lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
     elif not len(vars.ROLES["wolf"]) and not vars.ROLES.get("traitor", 0):
@@ -281,6 +282,15 @@ def chk_win(cli):
         return False
     else:
         return False
+    
+    if vars.DAY_START_TIME:
+        now = datetime.now()
+        td = now - vars.DAY_START_TIME
+        vars.DAY_TIMEDELTA += td
+    if vars.NIGHT_START_TIME:
+        now = datetime.now()
+        td = now - vars.NIGHT_START_TIME
+        vars.NIGHT_TIMEDELTA += td
     
     daymin, daysec = vars.DAY_TIMEDELTA.seconds // 60, vars.DAY_TIMEDELTA.seconds % 60
     nitemin, nitesec = vars.NIGHT_TIMEDELTA.seconds // 60, vars.NIGHT_TIMEDELTA.seconds % 60
@@ -375,6 +385,7 @@ def transition_day(cli):
 
     vars.DAY_START_TIME = datetime.now()
     td = vars.DAY_START_TIME - vars.NIGHT_START_TIME
+    vars.NIGHT_START_TIME = None
     vars.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
@@ -539,6 +550,7 @@ def transition_night(cli):
     daydur_msg = ""
     if vars.NIGHT_TIMEDELTA:  #  transition from day
         td = vars.NIGHT_START_TIME - vars.DAY_START_TIME
+        vars.DAY_START_TIME = None
         vars.DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
         daydur_msg = "Day lasted \u0002{0:0>2}:{1:0>2}. ".format(min,sec)
@@ -647,9 +659,11 @@ def start(cli, nick, chan, rest):
                   "game (a theme of Mafia).").format(", ".join(vars.list_players())))
     cli.mode(chan, "+m")
 
-    vars.ORIGINAL_ROLES = vars.ROLES.copy()  # Make a copy
+    vars.ORIGINAL_ROLES = copy.deepcopy(vars.ROLES)  # Make a copy
     vars.DAY_TIMEDELTA = timedelta(0)
     vars.NIGHT_TIMEDELTA = timedelta(0)
+    vars.DAY_START_TIME = None
+    vars.NIGHT_START_TIME = None
     transition_night(cli)
 
 
