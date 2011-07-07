@@ -302,6 +302,8 @@ def chk_win(cli):
         cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
         return True
+    if vars.PHASE == "join":
+        return True
     elif (len(vars.ROLES["wolf"])+
           len(vars.ROLES["traitor"])+
           len(vars.ROLES["werecrow"])) >= lpl / 2:
@@ -417,7 +419,7 @@ def del_player_lynch(cli, nick):
     
     
 @hook("ping")
-def on_ping(cli, prefix, server):
+def on_ping(cli, server):
     cli.send('PONG', server)    
     
     
@@ -800,6 +802,8 @@ def see(cli, nick, rest):
 
 @pmcmd("")
 def relay(cli, nick, rest):
+    if vars.PHASE != "night":
+        return
     badguys = vars.ROLES["wolf"] + vars.ROLES["traitor"] + vars.ROLES["werecrow"]
     if len(badguys) > 1:
         if vars.get_role(nick) in ("wolf","traitor","werecrow"):

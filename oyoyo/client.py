@@ -159,7 +159,7 @@ class IRCClient(object):
                                 self.command_handler[command](self, *largs)
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, command, *largs)
-                        except CommandError:
+                        finally:
                             # error will of already been logged by the handler
                             pass 
 
