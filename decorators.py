@@ -7,9 +7,9 @@ def generate(fdict):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
-                if not raw_nick: largs[1] = parse_nick(largs[1])[0]
+                if not raw_nick and largs[1]: largs[1] = parse_nick(largs[1])[0]
                 if admin_only:
-                    if largs[1] in botconfig.ADMINS:
+                    if largs[1] and largs[1] in botconfig.ADMINS:
                         return f(*largs)
                     else:
                         largs[0].notice(largs[1], "You are not an admin.")

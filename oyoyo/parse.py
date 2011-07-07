@@ -40,8 +40,8 @@ def parse_raw_irc_command(element):
 
     <crlf>     ::= CR LF
     """
-    parts = element.strip().split(bytes(" ", "ascii"))
-    if parts[0].startswith(bytes(':', 'ascii')):
+    parts = element.strip().split(bytes(" ", "utf_8"))
+    if parts[0].startswith(bytes(':', 'utf_8')):
         prefix = parts[0][1:]
         command = parts[1]
         args = parts[2:]
@@ -54,16 +54,16 @@ def parse_raw_irc_command(element):
         try:
             command = numeric_events[command]
         except KeyError:
-            logging.warn('unknown numeric event %s' % command)
+            logging.warn('unknown numeric event {0}'.format(command))
     command = command.lower()
-    if isinstance(command, bytes): command = command.decode("ascii")
+    if isinstance(command, bytes): command = command.decode("utf_8")
 
-    if args[0].startswith(bytes(':', 'ascii')):
-        args = [bytes(" ", "ascii").join(args)[1:]]
+    if args[0].startswith(bytes(':', 'utf_8')):
+        args = [bytes(" ", "utf_8").join(args)[1:]]
     else:
         for idx, arg in enumerate(args):           
-            if arg.startswith(bytes(':', 'ascii')):
-                args = args[:idx] + [bytes(" ", 'ascii').join(args[idx:])[1:]]
+            if arg.startswith(bytes(':', 'utf_8')):
+                args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
                 break
 
     return (prefix, command, args)

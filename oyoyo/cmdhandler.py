@@ -33,11 +33,11 @@ class CommandError(Exception):
 
 class NoSuchCommandError(CommandError):
     def __str__(self):
-        return 'No such command "%s"' % ".".join(self.cmd)
+        return 'No such command "{0}"'.format(".".join(self.cmd))
 
 class ProtectedCommandError(CommandError):
     def __str__(self):
-        return 'Command "%s" is protected' % ".".join(self.cmd)
+        return 'Command "{0}" is protected'.format(".".join(self.cmd))
         
 
 class CommandHandler(object):
@@ -65,7 +65,7 @@ class CommandHandler(object):
         command_parts = []
         for cmdpart in in_command_parts:
             if isinstance(cmdpart, bytes):
-                cmdpart = cmdpart.decode('ascii')    
+                cmdpart = cmdpart.decode('utf_8')    
             command_parts.append(cmdpart)
 
         p = self
@@ -91,7 +91,10 @@ class CommandHandler(object):
     @protected
     def run(self, command, *args):
         """ finds and runs a command """
-        logging.debug("processCommand %s(%s)" % (command, args))
+        logging.debug("processCommand {0}({1})".format(command,
+                                                       [arg.decode('utf_8')
+                                                        for arg in args
+                                                        if isinstance(arg, bytes)]))
 
         try:
             f = self.get(command)
@@ -99,15 +102,15 @@ class CommandHandler(object):
             self.__unhandled__(command, *args)
             return
 
-        logging.debug('f %s' % f)
-
+        logging.debug('f {0}'.format(f))
         try:
             largs = list(args)
             for i,arg in enumerate(largs):
-                if arg: largs[i] = arg.decode('ascii')
+                if arg: largs[i] = arg.decode('utf_8')
             f(*largs)
+            self.__unhandled__(command, *args)
         except Exception as e:
-            logging.error('command raised %s' % e)
+            logging.error('command raised {0}'.format(e))
             logging.error(traceback.format_exc())
             raise CommandError(command)
 
@@ -116,13 +119,6 @@ class CommandHandler(object):
         """The default handler for commands. Override this method to
         apply custom behavior (example, printing) unhandled commands.
         """
-        logging.debug('unhandled command %s(%s)' % (cmd, args))
-
-
-class DefaultCommandHandler(CommandHandler):
-    """ CommandHandler that provides methods for the normal operation of IRC.
-    If you want your bot to properly respond to pings, etc, you should subclass this.
-    """
-
-    def ping(self, prefix, server):
-        self.client.send('PONG', server)
+        logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
+                                                                for arg in args
+                                                                if isinstance(arg, bytes)]))

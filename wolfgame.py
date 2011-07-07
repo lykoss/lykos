@@ -259,7 +259,7 @@ def chk_decision(cli):
             cli.msg(botconfig.CHANNEL,
                     random.choice(vars.LYNCH_MESSAGES).format(
                     votee, vars.get_role(votee)))
-            if del_player(cli, votee, True):
+            if del_player_lynch(cli, vote):
                 transition_night(cli)
 
 
@@ -368,10 +368,10 @@ def chk_win(cli):
 
 
 
-def del_player(cli, nick, forced_death):
+def del_player(cli, nick):
     """
-    forced_death = True if death is from a natural game process
-    Returns False if one side won. forced_death = True when lynched or killed 
+    Returns: False if one side won.
+    arg: forced_death = True when lynched.
     """
 
     cmode = []
@@ -379,14 +379,17 @@ def del_player(cli, nick, forced_death):
     vars.del_player(nick)
     ret = True
     if vars.PHASE == "join":
+        # Died during the joining process as a person
         mass_mode(cli, cmode)
         return not chk_win(cli)
-    if vars.PHASE != "join" and ret:  # Died during the game
+    if vars.PHASE != "join" and ret:
+        # Died during the game, so quiet!
         cmode.append(("+q", nick))
         mass_mode(cli, cmode)
         vars.DEAD.append(nick)
         ret = not chk_win(cli)
     if vars.PHASE in ("night", "day") and ret:
+        # remove him from variables if he is in there
         if vars.VICTIM == nick:
             vars.VICTIM = ""
         for x in (vars.OBSERVED, vars.HVISITED):
@@ -396,17 +399,28 @@ def del_player(cli, nick, forced_death):
                     del x[k]
                 elif x[k] == nick:
                     del x[k]
-    if vars.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
+    return ret
+
+
+def del_player_lynch(cli, nick):
+    if not del_player(cli, nick):
+        return
+    if vars.PHASE == "day" and not lynched_death and ret:
+        # didn't die from lynching, therefore a vote is still going on
         if nick in vars.VOTES.keys():
             del vars.VOTES[nick]  #  Delete his votes
         for k in vars.VOTES.keys():
             if nick in vars.VOTES[k]:
                 vars.VOTES[k].remove(nick)
         chk_decision(cli)
-    return ret
-
+    return not chk_win(cli)
     
-
+    
+@hook("ping")
+def on_ping(cli, prefix, server):
+    cli.send('PONG', server)    
+    
+    
 def leave(cli, what, nick):
     if vars.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
@@ -429,7 +443,7 @@ def leave(cli, what, nick):
                "Appears (s)he was a \u0002{1}\u0002.")
     msg = msg.format(nick, vars.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
-    del_player(cli, nick, False)
+    del_player(cli, nick)
 
 cmd("!leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
 cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
@@ -502,7 +516,7 @@ def transition_day(cli):
                            "The drunk's pet tiger probably ate him.").format(crow))
             dead.append(crow)
     for deadperson in dead:
-        if not del_player(cli, deadperson, True):
+        if not del_player(cli, deadperson):
             return
     cli.msg(chan, "\n".join(message))
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
@@ -540,6 +554,9 @@ def vote(cli, nick, chan, rest):
     pl_l = [x.strip().lower() for x in pl]
     rest = re.split("\s+",rest)[0].strip().lower()
     if rest in pl_l:
+        if nick in vars.WOUNDED:
+            cli.msg(chan, ("{0}: You are wounded and resting, "+
+                          "thus you are unable to vote for the day."))
         voted = pl[pl_l.index(rest)]
         lcandidates = list(vars.VOTES.keys())
         for voters in lcandidates:  # remove previous vote
@@ -618,13 +635,13 @@ def shoot(cli, nick, chan, rest):
         if victimrole in ("wolf", "werecrow"):
             cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
                            "the silver bullet.").format(victim))
-            if not del_player(cli, victim, True):
+            if not del_player(cli, victim):
                 return
         elif random.random() <= vars.MANSLAUGHTER_CHANCE:
             cli.msg(chan, ("\u0002{0}\u0002 is a not a wolf "+
                            "but was accidentally fatally injured.").format(victim))
             cli.msg(chan, "Appears (s)he was a \u0002{0}\u0002.".format(victimrole))
-            if not del_player(cli, victim, True):
+            if not del_player(cli, victim):
                 return
         else:
             cli.msg(chan, ("\u0002{0}\u0002 is a villager and is injured but "+
@@ -639,7 +656,7 @@ def shoot(cli, nick, chan, rest):
         cli.msg(chan, ("\u0002{0}\u0002 should clean his/her weapons more often. "+
                       "The gun exploded and killed him/her!").format(nick))
         cli.msg(chan, "Appears that (s)he was a \u0002{0}\u0002.".format(vars.get_role(nick)))
-        if not del_player(cli, nick, True):
+        if not del_player(cli, nick):
             return  # Someone won.
         
 @checks

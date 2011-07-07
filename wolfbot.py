@@ -1,11 +1,11 @@
 from oyoyo.client import IRCClient
-from oyoyo.cmdhandler import DefaultCommandHandler, protected
+from oyoyo.cmdhandler import CommandHandler, protected
 from oyoyo.parse import parse_nick
 import logging
 import botconfig
 import wolfgame
 
-class WolfBotHandler(DefaultCommandHandler):
+class WolfBotHandler(CommandHandler):
     def __init__(self, client):
         super().__init__(client)
 
@@ -28,19 +28,19 @@ class WolfBotHandler(DefaultCommandHandler):
         if cmd in wolfgame.HOOKS.keys():
             largs = list(args)
             for i,arg in enumerate(largs):
-                if arg: largs[i] = arg.decode('ascii')
+                if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
             wolfgame.HOOKS[cmd](self.client, *largs)
         else:
-            logging.debug('unhandled command %s(%s)' % (cmd, args))
+            logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
+                                                                  for arg in args
+                                                                  if isinstance(arg, bytes)]))
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     cli = IRCClient(WolfBotHandler, host=botconfig.HOST, port=botconfig.PORT, nickname=botconfig.NICK,
                     connect_cb=wolfgame.connect_callback)
 
-    conn = cli.connect()
-    while True:
-        next(conn)
+    cli.mainLoop()
 
 
 if __name__ == "__main__":

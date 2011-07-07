@@ -60,25 +60,8 @@ class IRCClient(object):
         Warning: By default this class will not block on socket operations, this 
         means if you use a plain while loop your app will consume 100% cpu.
         To enable blocking pass blocking=True. 
-
-        >>> class My_Handler(DefaultCommandHandler):
-        ...     def privmsg(self, prefix, command, args):
-        ...         print "%s said %s" % (prefix, args[1])
-        ...
-        >>> def connect_callback(c):
-        ...     c.join('#myroom')
-        ...
-        >>> cli = IRCClient(My_Handler,
-        ...     host="irc.freenode.net",
-        ...     port=6667,
-        ...     nick="myname",
-        ...     connect_cb=connect_callback)
-        ...
-        >>> cli_con = cli.connect()
-        >>> while 1:
-        ...     cli_con.next()
-        ...
         """
+        
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.nickname = ""
         self.real_name = ""
@@ -96,7 +79,7 @@ class IRCClient(object):
         """ send a message to the connected server. all arguments are joined
         with a space for convenience, for example the following are identical 
         
-        >>> cli.send("JOIN %s" % some_room)
+        >>> cli.send("JOIN " + some_room)
         >>> cli.send("JOIN", some_room)
 
         In python 2, all args must be of type str or unicode, *BUT* if they are
@@ -109,7 +92,7 @@ class IRCClient(object):
         # Convert all args to bytes if not already
         encoding = kwargs.get('encoding') or 'utf_8'
         bargs = []
-        for arg in args:
+        for i,arg in enumerate(args):
             if isinstance(arg, str):
                 bargs.append(bytes(arg, encoding))
             elif isinstance(arg, bytes):
@@ -117,11 +100,12 @@ class IRCClient(object):
             elif arg is None:
                 continue
             else:
-                raise IRCClientError('Refusing to send one of the args from provided: %s'
-                                     % repr([(type(arg), arg) for arg in args]))
+                raise Exception(('Refusing to send arg at index {1} of the args from '+
+                                 'provided: {0}').format(repr([(type(arg), arg)
+                                                               for arg in args]), i))
 
         msg = bytes(" ", "utf_8").join(bargs)
-        logging.info('---> send "%s"' % msg)
+        logging.info('---> send "{0}"'.format(msg))
 
         self.socket.send(msg + bytes("\r\n", "utf_8"))
 
@@ -132,12 +116,12 @@ class IRCClient(object):
         >>> cli = IRCClient(my_handler, host="irc.freenode.net", port=6667)
         >>> g = cli.connect()
         >>> while 1:
-        ...     g.next()
+        ...     next(g)
 
         """
         try:
-            logging.info('connecting to %s:%s' % (self.host, self.port))
-            self.socket.connect(("%s" % self.host, self.port))
+            logging.info('connecting to {0}:{1}'.format(self.host, self.port))
+            self.socket.connect(("{0}".format(self.host), self.port))
             if not self.blocking:
                 self.socket.setblocking(0)
             
@@ -151,17 +135,13 @@ class IRCClient(object):
             while not self._end:
                 try:
                     buffer += self.socket.recv(1024)
-                except socket.error as e:
-                    try:  # a little dance of compatibility to get the errno
-                        errno = e.errno
-                    except AttributeError:
-                        errno = e[0]                        
-                    if not self.blocking and errno == 11:
+                except socket.error as e:                
+                    if not self.blocking and e.errno == 11:
                         pass
                     else:
                         raise e
                 else:
-                    data = buffer.split(bytes("\n", "ascii"))
+                    data = buffer.split(bytes("\n", "utf_8"))
                     buffer = data.pop()
 
                     for el in data:
@@ -181,6 +161,7 @@ class IRCClient(object):
     def msg(self, user, msg):
         for line in msg.split('\n'):
             self.send("PRIVMSG", user, ":{0}".format(line))
+    privmsg = msg  # Same thing
     def notice(self, user, msg):
         for line in msg.split('\n'):
             self.send("NOTICE", user, ":{0}".format(line))
@@ -191,3 +172,7 @@ class IRCClient(object):
     def user(self, uname, rname):
         self.send("USER", uname, self.host, self.host, 
                  rname or uname)
+    def mainLoop(self):
+        conn = self.connect()
+        while True:
+            next(conn)
