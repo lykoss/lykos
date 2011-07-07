@@ -15,7 +15,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import inspect
 import logging
 import sys
 import traceback
@@ -127,18 +126,3 @@ class DefaultCommandHandler(CommandHandler):
 
     def ping(self, prefix, server):
         self.client.send('PONG', server)
-
-
-class DefaultBotCommandHandler(CommandHandler):
-    """ default command handler for bots. methods/attributes are made 
-    available as commands """
-
-    @protected
-    def getVisibleCommands(self, obj=None):
-        test = (lambda x: isinstance(x, CommandHandler) or \
-                inspect.ismethod(x) or inspect.isfunction(x))
-        members = inspect.getmembers(obj or self, test)          
-        return [m for m, _ in members 
-            if (not m.startswith('_') and 
-                not hasattr(getattr(obj, m), 'protected'))]
-

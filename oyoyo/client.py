@@ -38,7 +38,7 @@ def add_commands(d):
                "mode",
                "nick",
                "part"))
-class IRCClient:
+class IRCClient(object):
     """ IRC Client class. This handles one connection to a server.
     This can be used either with or without IRCApp ( see connect() docs )
     """

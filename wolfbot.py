@@ -22,7 +22,7 @@ class WolfBotHandler(DefaultCommandHandler):
                     h = msg[len(x):]
                     if not h or h[0] == " " or not x:
                         wolfgame.PM_COMMANDS[x](self.client, rawnick, h.lstrip())
-        
+    
     @protected
     def __unhandled__(self, cmd, *args):
         if cmd in wolfgame.HOOKS.keys():

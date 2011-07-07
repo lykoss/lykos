@@ -3,15 +3,21 @@ MINIMUM_WAIT = 0 # debug, change to 60 for normal
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
+DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 0
 DAY_TIME_LIMIT = 0
+
+                    #       HIT    MISS    SUICIDE
+GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
+DRUNK_GUN_CHANCES   =   (   4/7  ,  2/7  ,   1/7   )
+MANSLAUGHTER_CHANCE =       1/5
 
 GAME_MODES = {}
 
 ############################################################################################
 # ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW #
 ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0), #
-                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0), #
+                   6    : (   0   ,   1   ,   0   ,   5   ,   0   ,    0   ,   5   ,   0), #
                    8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0), #
                    10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0)} #
 ############################################################################################
