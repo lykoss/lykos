@@ -14,13 +14,14 @@ MANSLAUGHTER_CHANCE =       1/5
 
 GAME_MODES = {}
 
-############################################################################################
-# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW #
-ROLES_GUIDE = {    4    : (   0   ,   1   ,   0   ,   0   ,   0   ,    0   ,   2   ,   0), #
-                   6    : (   0   ,   1   ,   0   ,   0   ,   0   ,    0   ,   4   ,   0), #
-                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0), #
-                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0)} #
-############################################################################################
+################################################################################################
+# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW     #
+ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ), #
+                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0    ), #
+                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0    ), #
+                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ), #
+                   None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    )} #
+################################################################################################
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -70,7 +71,7 @@ def del_player(pname):
 
 
     
-class InvalidModeException(object): pass
+class InvalidModeException(Exception): pass
 def game_mode(name):
     def decor(c):
         GAME_MODES[name] = c
@@ -78,41 +79,40 @@ def game_mode(name):
     return decor
 
     
-CHANGEABLE_ROLES = { "seer" : 0,
-                     "wolf" : 1,
-                    "drunk" : 3,
-                   "harlot" : 4,
-                  "traitor" : 5,
-                   "gunner" : 6,
-                 "werecrow" : 7 }
+CHANGEABLE_ROLES = { "seers" : 0,
+                     "wolves" : 1,
+                    "drunks" : 3,
+                   "harlots" : 4,
+                  "traitors" : 5,
+                   "gunners" : 6,
+                 "werecrows" : 7 }
     
-#  !game roles wolves:1 seers:0
+#  !game roles=wolves:1 seers:0, x=1
 
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):
     ROLES_GUIDE = ROLES_GUIDE.copy()
     def __init__(self, arg):
-        pairs = arg.split(" ")
-        if len(parts) == 1:
-            raise InvalidModeException("Invalid syntax for !game roles.")
+        pairs = arg.split(",")
+        pl = list_players()
+        if not pairs:
+            raise InvalidModeException("Invalid syntax for mode roles.")
         for pair in pairs:
             change = pair.split(":")
             if len(change) != 2:
-                raise InvalidModeException("Invalid syntax for !game roles.")
+                raise InvalidModeException("Invalid syntax for mode roles.")
             role, num = change
             try:
                 num = int(num)
             except ValueError:
-                raise InvalidModeException("A bad value was used in !game roles.")
-            for x in self.ROLES_GUIDE.keys():
-                lx = list(x)
-                try:
-                    lx[CHANGEABLE_ROLES[role.lower()]] = num
-                except KeyError:
-                    raise InvalidModeException('"{0}" is not a changeable role.'.format(role))
-                self.ROLES_GUIDE[x] = tuple(lx)
-                pl = list_players()
-        if len(pl) < sum(self.ROLES_GUIDE[4]):
+                raise InvalidModeException("A bad value was used in mode roles.")
+            lx = list(ROLES_GUIDE[None])
+            try:
+                lx[CHANGEABLE_ROLES[role.lower()]] = num
+            except KeyError:
+                raise InvalidModeException('"{0}" is not a changeable role.'.format(role))
+            self.ROLES_GUIDE[len(pl)] = tuple(lx)
+        if len(pl) < sum(self.ROLES_GUIDE[len(pl)]):
             raise InvalidModeException("Too few players for such these custom roles.")
             
