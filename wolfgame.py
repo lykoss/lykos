@@ -477,6 +477,14 @@ hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", nick))
 
 def begin_day(cli):
     chan = botconfig.CHANNEL
+    
+    # Reset nighttime variables
+    var.VICTIM = ""  # nickname of kill victim
+    var.KILLER = ""  # nickname of who chose the victim
+    var.SEEN = []  # list of seers that have had visions
+    var.OBSERVED = {}  # those whom werecrows have observed
+    var.HVISITED = {}
+    
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
                    'Use "!lynch <nick>" to cast your vote. 3 votes '+
                    'are required to lynch.'))
@@ -497,6 +505,8 @@ def transition_day(cli):
     var.WOUNDED = []
     var.DAY_START_TIME = datetime.now()
     if not var.NIGHT_START_TIME:
+        for plr in var.list_players():
+            cli.msg(plr, "You are a \u0002{0}\u0002.".format(var.get_role(plr))
         begin_day(cli)
         return
     
@@ -864,7 +874,7 @@ def transition_night(cli):
 
     daydur_msg = ""
 
-    if var.NIGHT_TIMEDELTA:  #  transition from day
+    if var.NIGHT_TIMEDELTA or var.START_WITH_DAY:  #  transition from day
         td = var.NIGHT_START_TIME - var.DAY_START_TIME
         var.DAY_START_TIME = None
         var.DAY_TIMEDELTA += td
@@ -1073,11 +1083,10 @@ def start(cli, nick, chan, rest):
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
 
-    if not chk_win(cli): 
-        if not var.START_WITH_DAY:
-            transition_night(cli)
-        else:
-            transition_day(cli)
+    if not var.START_WITH_DAY:
+        transition_night(cli)
+    else:
+        transition_day(cli)
 
 
     
