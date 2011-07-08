@@ -230,7 +230,7 @@ def stats(cli, nick, chan, rest):
 
     message = []
     f = False
-    for role in var.ROLES.keys():
+    for role in set(list(var.ROLES.keys())+list(var.ORIGINAL_ROLES.keys())):
         if not var.ROLES[role]:
             continue  # Never had this role, don't list it.
         count = len(var.ROLES[role])
