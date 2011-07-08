@@ -447,8 +447,12 @@ def leave(cli, what, nick):
     if var.PHASE == "none" and what.startswith("!"):
         cli.notice(nick, "No game is currently running.")
         return
+    elif var.PHASE == "none":
+        return
     if nick not in var.list_players() and what.startswith("!"):  # not playing
         cli.notice(nick, "You're not currently playing.")
+        return
+    elif nick not in var.list_players():
         return
     msg = ""
     if what in ("!quit", "!leave"):
@@ -506,7 +510,7 @@ def transition_day(cli):
     var.DAY_START_TIME = datetime.now()
     if not var.NIGHT_START_TIME:
         for plr in var.list_players():
-            cli.msg(plr, "You are a \u0002{0}\u0002.".format(var.get_role(plr))
+            cli.msg(plr, "You are a \u0002{0}\u0002.".format(var.get_role(plr)))
         begin_day(cli)
         return
     
