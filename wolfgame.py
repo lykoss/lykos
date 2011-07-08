@@ -16,7 +16,7 @@ HOOKS = {}
 
 cmd = decorators.generate(COMMANDS)
 pmcmd = decorators.generate(PM_COMMANDS)
-hook = decorators.generate(HOOKS)
+hook = decorators.generate(HOOKS, raw_nick=True)
 
 # Game Logic Begins:
 
@@ -229,18 +229,20 @@ def stats(cli, nick, chan, rest):
         return
 
     message = []
-    for role in var.ORIGINAL_ROLES.keys():
-        if not var.ORIGINAL_ROLES[role]:
+    f = False
+    for role in var.ROLES.keys():
+        if not var.ROLES[role]:
             continue  # Never had this role, don't list it.
         count = len(var.ROLES[role])
+        if not f:
+            if count>1:
+                vb = "are"
+            else:
+                vb = "is"
         if count > 1 or count == 0:
-            message.append("\u0002{0}\u0002 {1}".format(count, var.plural(role)))
+            message.append("\u0002{0}\u0002 {1}".format(count if count else "no", var.plural(role)))
         else:
-            message.append("\u0002{0}\u0002 {1}".format(count, role))
-    if len(var.ROLES["wolf"]) > 1 or not var.ROLES["wolf"]:
-        vb = "are"
-    else:
-        vb = "is"
+            message.append("\u0002{0}\u0002 {1}".format(count if count else "no", role))
     cli.msg(chan, "{0}: There {3} {1}, and {2}.".format(nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
@@ -431,6 +433,10 @@ def del_player(cli, nick, forced_death = False):
                     del x[k]
                 elif x[k] == nick:
                     del x[k]
+        if nick in var.GUNNERS.keys():
+            del var.GUNNERS[nick]
+        if nick in var.CURSED:
+            var.CURSED.remove(nick)
     if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
         if nick in var.VOTES.keys():
             del var.VOTES[nick]  #  Delete his votes
@@ -442,8 +448,51 @@ def del_player(cli, nick, forced_death = False):
     
     
 @hook("ping")
-def on_ping(cli, server):
+def on_ping(cli, prefix, server):
     cli.send('PONG', server)    
+    
+@hook("nick")
+def on_nick(cli, prefix, nick):
+    prefix = parse_nick(prefix)[0]
+    if prefix in var.list_players():
+        r = var.ROLES[var.get_role(prefix)]
+        r.append(nick)
+        r.remove(prefix)
+        
+        if var.PHASE in ("night", "day"):
+            if var.VICTIM == prefix:
+                var.VICTIM = nick
+            kvp = []
+            for dictvar in (var.HVISITED, var.OBSERVED):
+                for a,b in dictvar.items():
+                    if a == prefix:
+                        a = nick
+                    if b == prefix:
+                        b = nick
+                    kvp.append((a,b))
+                dictvar.update(kvp)
+                if prefix in dictvar.keys():
+                    del dictvar[prefix]
+            if prefix in var.SEEN:
+                var.SEEN.remove(prefix)
+                var.SEEN.append(nick)
+            if nick in var.GUNNERS.keys():
+                del var.GUNNERS[nick]
+            if nick in var.CURSED:
+                var.CURSED.remove(nick)
+                
+        if var.PHASE == "day":
+            if prefix in var.WOUNDED:
+                var.WOUNDED.remove(prefix)
+                var.WOUNDED.append(nick)
+            if prefix in var.VOTES:
+                var.VOTES[nick] = var.VOTES.pop(prefix)
+            for v in var.VOTES.values():
+                if prefix in v:
+                    v.remove(prefix)
+                    v.append(nick)
+    else:
+        return
     
     
 def leave(cli, what, nick):
@@ -476,9 +525,9 @@ def leave(cli, what, nick):
 
 cmd("!leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
 cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
-hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick))
-hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick))
-hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", nick))
+hook("part")(lambda cli, prefix, nick, *rest: leave(cli, "part", nick))
+hook("quit")(lambda cli, prefix, nick, *rest: leave(cli, "quit", nick))
+hook("kick")(lambda cli, prefix, nick, *rest: leave(cli, "kick", nick))
 
 
 

@@ -145,20 +145,20 @@ class IRCClient(object):
 
                     for el in data:
                         prefix, command, args = parse_raw_irc_command(el)
-                        logging.debug("processCommand {0}({1})".format(command,
+                        logging.debug("processCommand ({2}){0}({1})".format(command,
                                                        [arg.decode('utf_8')
                                                         for arg in args
-                                                        if isinstance(arg, bytes)]))
+                                                        if isinstance(arg, bytes)], prefix))
                         try:
                             largs = list(args)
-                            if prefix:
-                                largs.insert(0, prefix)
+                            if prefix is not None:
+                                prefix = prefix.decode("utf-8")
                             for i,arg in enumerate(largs):
-                                if arg: largs[i] = arg.decode('utf_8')
+                                if arg is not None: largs[i] = arg.decode('utf_8')
                             if command in self.command_handler:
-                                self.command_handler[command](self, *largs)
+                                self.command_handler[command](self, prefix,*largs)
                             elif "" in self.command_handler:
-                                self.command_handler[""](self, command, *largs)
+                                self.command_handler[""](self, prefix, command, *largs)
                         finally:
                             # error will of already been logged by the handler
                             pass 
