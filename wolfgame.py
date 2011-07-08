@@ -527,9 +527,10 @@ def leave(cli, what, nick):
 
 cmd("!leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
 cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
-hook("part")(lambda cli, prefix, nick, *rest: leave(cli, "part", nick))
-hook("quit")(lambda cli, prefix, nick, *rest: leave(cli, "quit", nick))
-hook("kick")(lambda cli, prefix, nick, *rest: leave(cli, "kick", nick))
+#Functions decorated with hook do not parse the nick by default
+hook("part")(lambda cli, nick, *reset: leave(cli, "part", parse_nick(nick)[0]))
+hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0]))
+hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(nick)[0]))
 
 
 

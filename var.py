@@ -1,11 +1,11 @@
 PING_WAIT = 300  # Seconds
-MINIMUM_WAIT = 0 # debug, change to 60 for normal
-EXTRA_WAIT = 0
+MINIMUM_WAIT = 60 # debug, change to 60 for normal
+EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
 DRUNK_SHOTS_MULTIPLIER = 3
-NIGHT_TIME_LIMIT = 0
-DAY_TIME_LIMIT = 0
+NIGHT_TIME_LIMIT = 90
+DAY_TIME_LIMIT = 333
 START_WITH_DAY = False
 
                     #       HIT    MISS    SUICIDE
