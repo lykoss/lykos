@@ -35,7 +35,12 @@ def connect_callback(cli):
     var.DENIED_SETTINGS_CHANGE = []
     var.SETTINGS_CHANGE_OPPOSITION = []
     var.SETTINGS_CHANGE_REQUESTER = None
-
+    
+    var.LAST_SAID_TIME = {}
+    
+    var.GAME_START_TIME = datetime.now()  # for idle checker only
+    var.GRAVEYARD = []
+    var.GRAVEYARD_LOCK = threading.Lock()
 
 
 @cmd("!say")
@@ -66,8 +71,6 @@ def reset_settings():
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
     
-    var.ORIGINAL_SETTINGS = {}
-    var.DENIED_SETTINGS_CHANGE = []
     var.SETTINGS_CHANGE_OPPOSITION = []
     var.SETTINGS_CHANGE_REQUESTER = None
     
@@ -96,8 +99,8 @@ def reset(cli):
     
     reset_settings()
     var.DENIED_SETTINGS_CHANGE = []
-    var.SETTINGS_CHANGE_OPPOSITION = []
-    var.SETTINGS_CHANGE_REQUESTER = None
+    
+    dict.clear(var.LAST_SAID_TIME)
     
 
 @pmcmd("!bye", admin_only=True)
@@ -122,20 +125,6 @@ def py(cli, nick, chan, rest):
         cli.msg(chan, str(type(e))+":"+str(e))
 
 
-
-# A decorator for standard game commands
-def checks(f):
-    def inner(*args):
-        cli = args[0]
-        nick = args[1]
-        if var.PHASE in ("none", "join"):
-            cli.notice(nick, "No game is currently running.")
-            return
-        elif nick not in var.list_players():
-            cli.notice(nick, "You're not currently playing.")
-            return
-        f(*args)
-    return inner
 
 
 
@@ -211,6 +200,27 @@ def join(cli, nick, chan, rest):
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
 
 
+@cmd("!fjoin")
+def fjoin(cli, nick, chan, rest):
+    if nick in ("nyuszika7h", "jcao219"):
+        for a in rest.split(" "):
+            a = a.strip()
+            if a != botconfig.NICK:
+                join(cli, a.strip(), chan, "")
+        
+@cmd("!fleave")
+def fleave(cli, nick, chan, rest):
+    if nick in ("nyuszika7h", "jcao219"):
+        for a in rest.split(" "):
+            a = a.strip()
+            if a.lower() != botconfig.NICK.lower():
+                del_player(cli, a.strip())
+
+@cmd("!fstart")
+def fstart(cli, nick, chan, rest):
+    if nick not in ("nyuszika7h", "jcao219"): return
+    var.CAN_START_TIME = datetime.now()
+    start(cli, nick, chan, rest)
 
 @cmd("!stats")
 def stats(cli, nick, chan, rest):
@@ -292,9 +302,14 @@ def chk_decision(cli):
 
 
 
-@checks
 @cmd("!votes")
 def show_votes(cli, nick, chan, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if var.PHASE != "day":
         cli.notice(nick, "Voting is only during the day.")
         return
@@ -399,7 +414,6 @@ def chk_win(cli):
     cli.msg(chan, " ".join(roles_msg))
 
     reset(cli)
-    # TODO: Reveal roles here
     return True
 
 
@@ -453,9 +467,72 @@ def del_player(cli, nick, forced_death = False):
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)    
     
+    
+def reaper(cli):
+    # check to see if idlers need to be killed.
+    var.IDLE_KILLED = []
+    var.IDLE_WARNED = []
+    
+    while var.PHASE != "none":
+        to_warn = []
+        for nick in var.list_players():
+            lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
+            tdiff = datetime.now() - lst
+            if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and 
+                                    nick not in var.IDLE_WARNED):
+                to_warn.append(nick)
+                var.IDLE_WARNED.append(nick)
+                var.LAST_SAID_TIME[nick] = (datetime.now() - 
+                    timedelta(seconds=var.KILL_IDLE_TIME))  # Give him a chance
+            elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
+                nick not in var.IDLE_KILLED):
+                with var.GRAVEYARD_LOCK:
+                    var.GRAVEYARD.append(("kill",nick))
+                    var.IDLE_KILLED.append(nick)
+        if to_warn:
+            with var.GRAVEYARD_LOCK:
+                var.GRAVEYARD.append(("warn", to_warn))
+        sleep(10)
+            
+    
+    
+def check_graveyard(cli):
+    if not var.GRAVEYARD: return
+    chan = botconfig.CHANNEL
+    with var.GRAVEYARD_LOCK:
+        for action, x in var.GRAVEYARD:
+            if action=="kill":
+                if x not in var.list_players():
+                    continue
+                cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
+                    "for a very long time. S/He is declared dead. Appears "+
+                    "(s)he was a \u0002{1}\u0002").format(x, var.get_role(x)))
+                del_player(cli, x)
+            elif action=="warn":
+                pl = var.list_players()
+                x = [a for a in x if a in pl]
+                cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
+                              "Please remember to say something soon or you "+
+                              "might be declared dead.\u0002").format(", ".join(x)))
+        var.GRAVEYARD = []
+    
+    
+@cmd("")  # update last said
+def update_last_said(cli, nick, *rest):
+    if var.PHASE not in ("join", "none"):
+        var.LAST_SAID_TIME[nick] = datetime.now()
+        check_graveyard(cli)
+    
+    
+    
 @hook("nick")
 def on_nick(cli, prefix, nick):
     prefix = parse_nick(prefix)[0]
+    
+    if prefix in var.DENIED_SETTINGS_CHANGE:
+        var.DENIED_SETTINGS_CHANGE.append(nick)
+        var.DENIED_SETTINGS_CHANGE.remove(prefix)
+        
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
         r.append(nick)
@@ -528,7 +605,7 @@ def leave(cli, what, nick):
 cmd("!leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
 cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
 #Functions decorated with hook do not parse the nick by default
-hook("part")(lambda cli, nick, *reset: leave(cli, "part", parse_nick(nick)[0]))
+hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(nick)[0]))
 
@@ -648,9 +725,15 @@ def chk_nightdone(cli):
             transition_day(cli)
 
 
-@checks
+
 @cmd("!lynch", "!vote")
 def vote(cli, nick, chan, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if var.PHASE != "day":
         cli.notice(nick, ("Lynching is only allowed during the day. "+
                           "Please wait patiently for morning."))
@@ -675,7 +758,7 @@ def vote(cli, nick, chan, rest):
         else:
             var.VOTES[voted].append(nick)
         cli.msg(chan, ("\u0002{0}\u0002 votes for "+
-                       "\u0002{1}\u0002.").format(nick, rest))
+                       "\u0002{1}\u0002.").format(nick, voted))
         chk_decision(cli)
     elif not rest:
         cli.notice(nick, "Not enough parameters.")
@@ -684,9 +767,14 @@ def vote(cli, nick, chan, rest):
 
 
 
-@checks
 @cmd("!retract")
 def retract(cli, nick, chan, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if var.PHASE != "day":
         cli.notice(nick, ("Lynching is only allowed during the day. "+
                           "Please wait patiently for morning."))
@@ -705,9 +793,14 @@ def retract(cli, nick, chan, rest):
 
 
 
-@checks
 @cmd("!shoot", "shoot")
 def shoot(cli, nick, chan, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if var.PHASE != "day":
         cli.notice(nick, ("Shooting is only allowed during the day. "+
                           "Please wait patiently for morning."))
@@ -764,9 +857,16 @@ def shoot(cli, nick, chan, rest):
         if not del_player(cli, nick):
             return  # Someone won.
         
-@checks
+
+
 @pmcmd("!kill", "kill")
 def kill(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     role = var.get_role(nick)
     if role not in ('wolf', 'werecrow'):
         cli.msg(nick, "Only a wolf may use this command.")
@@ -792,7 +892,7 @@ def kill(cli, nick, rest):
     if victim == nick.lower():
         cli.msg(nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]:
+    if victim in var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]:
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
     var.VICTIM = pl[pll.index(victim)]
@@ -801,9 +901,14 @@ def kill(cli, nick, rest):
 
 
 
-@checks
 @pmcmd("observe", "!observe")
 def observe(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if not var.is_role(nick, "werecrow"):
         cli.msg(nick, "Only a werecrow may use this command.")
         return
@@ -833,9 +938,14 @@ def observe(cli, nick, rest):
         
     
     
-@checks
 @pmcmd("visit", "!visit")
 def hvisit(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if not var.is_role(nick, "harlot"):
         cli.msg(nick, "Only a harlot may use this command.")
         return
@@ -868,9 +978,14 @@ def hvisit(cli, nick, rest):
     
     
 
-@checks
 @pmcmd("see", "!see")
 def see(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
     if not var.is_role(nick, "seer"):
         cli.msg(nick, "Only a seer may use this command")
         return
@@ -1041,7 +1156,7 @@ def cgamemode(cli, *args):
                 cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
                 return False
         else:
-            cli.msg(chan, "Mode \u0002{0}\u0002not found.".format(modeargs[0]))
+            cli.msg(chan, "Mode \u0002{0}\u0002 not found.".format(modeargs[0]))
             
 
 @cmd("!start")
@@ -1077,7 +1192,8 @@ def start(cli, nick, chan, rest):
         while True:
             wvs = (addroles[var.INDEX_OF_ROLE["wolf"]] + 
                   addroles[var.INDEX_OF_ROLE["traitor"]])
-            if len(villagers) < sum(addroles):
+            if len(villagers) < (sum(addroles) - addroles[var.INDEX_OF_ROLE["gunner"]] -
+                    addroles[var.INDEX_OF_ROLE["cursed"]]):
                 cli.msg(chan, "There are too few players in the "+
                               "game to use the custom roles.")
             elif not wvs:
@@ -1142,12 +1258,16 @@ def start(cli, nick, chan, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
-
+    
+    
     if not var.START_WITH_DAY:
         transition_night(cli)
     else:
         transition_day(cli)
-
+    
+    # DEATH TO IDLERS!
+    reapertimer = threading.Thread(None, reaper, args=(cli,))
+    reapertimer.start()
 
     
 @cmd("!game")
@@ -1177,11 +1297,9 @@ def game(cli, nick, chan, rest):
             cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
                             "game settings successfully. To "+
                             'oppose this change, use "!no".').format(nick))
-            if var.CAN_START_TIME > datetime.now():
-                var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT) * 2
-            else:
+            if var.CAN_START_TIME <= datetime.now():
                 var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.EXTRA_WAIT) * 2
-            cli.msg(chan, "The wait time has also been extended.")
+                cli.msg(chan, "The wait time has also been extended.")
 
                             
 @cmd("!no")
@@ -1204,12 +1322,13 @@ def nay(cli, nick, chan, rest):
     if len(var.SETTINGS_CHANGE_OPPOSITION) >= needed:
         cli.msg(chan, "The settings change request has been downvoted "+
                       "to oblivion.  The default settings are restored.")
+        var.DENIED_SETTINGS_CHANGE.append(var.SETTINGS_CHANGE_REQUESTER)
         reset_settings()
     else:
         cli.msg(chan, ("\u0002{0}\u0002 has voted \u0002no\u0002. {1} more "+
                       "vote{2} are needed to deny the change.").format(nick,
-                             needed - len(var.SETTINGS_CHANGE_OPPOSITION),
-                             "s" if needed > 1 else ""))
+                       needed - len(var.SETTINGS_CHANGE_OPPOSITION),
+                      "s" if needed > len(var.SETTINGS_CHANGE_OPPOSITION) + 1 else ""))
 
                              
                              
@@ -1240,6 +1359,7 @@ def wait(cli, nick, chan, rest):
 
 
 
-@cmd("!reset", admin_only = True)
+@cmd("!reset")
 def reset_game(cli, nick, chan, rest):
-    reset(cli)
+    if nick in ("nyuszika7h", "jcao219"):
+        reset(cli)

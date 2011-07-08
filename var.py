@@ -7,6 +7,8 @@ DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 90
 DAY_TIME_LIMIT = 333
 START_WITH_DAY = False
+KILL_IDLE_TIME = 300
+WARN_IDLE_TIME = 180
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
