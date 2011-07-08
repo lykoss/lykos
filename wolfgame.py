@@ -230,17 +230,19 @@ def stats(cli, nick, chan, rest):
 
     message = []
     f = False
-    for role in set(list(var.ROLES.keys())+list(var.ORIGINAL_ROLES.keys())):
-        if not var.ROLES[role]:
-            continue  # Never had this role, don't list it.
+    l1 = [k for k in var.ROLES.keys()
+          if var.ROLES[k]]
+    l2 = [k for k in var.ORIGINAL_ROLES.keys()
+          if var.ORIGINAL_ROLES[k]]
+    for role in set(l1+l2):
         count = len(var.ROLES[role])
-        if not f:
-            if count>1:
-                vb = "are"
-            else:
-                vb = "is"
-        if count > 1 or count == 0:
-            message.append("\u0002{0}\u0002 {1}".format(count if count else "no", var.plural(role)))
+        if not f and count>1:
+            vb = "are"
+            f = True
+        else:
+            vb = "is"
+        if count > 1:
+            message.append("\u0002{0}\u0002 {1}".format(count, var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count if count else "no", role))
     cli.msg(chan, "{0}: There {3} {1}, and {2}.".format(nick,
