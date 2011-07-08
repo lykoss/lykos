@@ -66,6 +66,10 @@ def reset_settings():
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
     
+    var.ORIGINAL_SETTINGS = {}
+    var.DENIED_SETTINGS_CHANGE = []
+    var.SETTINGS_CHANGE_OPPOSITION = []
+    var.SETTINGS_CHANGE_REQUESTER = None
     
     
 def reset(cli):
@@ -276,7 +280,7 @@ def chk_decision(cli):
             cli.msg(botconfig.CHANNEL,
                     random.choice(var.LYNCH_MESSAGES).format(
                     votee, var.get_role(votee)))
-            if del_player_lynch(cli, vote):
+            if del_player(cli, votee, True):
                 transition_night(cli)
 
 
@@ -310,6 +314,15 @@ def show_votes(cli, nick, chan, rest):
 
 
 
+def chk_traitor(cli):
+    for tt in var.ROLES["traitor"]:
+        var.ROLES["wolf"].append(tt)
+        var.ROLES["traitor"].remove(tt)
+        cli.msg(tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
+                     'It is up to you to avenge your fallen leaders!'))
+
+                     
+
 def chk_win(cli):
     """ Returns True if someone won """
 
@@ -320,7 +333,7 @@ def chk_win(cli):
         reset(cli)
         return True
     if var.PHASE == "join":
-        return True
+        return False
     elif (len(var.ROLES["wolf"])+
           len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) >= lpl / 2:
@@ -332,13 +345,10 @@ def chk_win(cli):
         cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
                        "chop them up, BBQ them, and have a hearty meal."))
     elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
-        for tt in var.ROLES["traitor"]:
-            var.ROLES["wolf"].append(tt)
-            var.ROLES["traitor"].remove(tt)
-            cli.msg(tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
-                         'It is up to you to avenge your fallen leaders!'))
-            cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
-                          'frightened as they hear a loud howl. The wolves are not gone!\u0002'))
+        chk_traitor(cli)
+        cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
+                       'frightened as they hear a loud howl. The wolves are '+
+                       'not gone!\u0002'))
         return False
     else:
         return False
@@ -387,7 +397,7 @@ def chk_win(cli):
 
 
 
-def del_player(cli, nick):
+def del_player(cli, nick, forced_death = False):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched.
@@ -418,21 +428,14 @@ def del_player(cli, nick):
                     del x[k]
                 elif x[k] == nick:
                     del x[k]
-    return ret
-
-
-def del_player_lynch(cli, nick):
-    if not del_player(cli, nick):
-        return
-    if var.PHASE == "day" and not lynched_death and ret:
-        # didn't die from lynching, therefore a vote is still going on
+    if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
         if nick in var.VOTES.keys():
             del var.VOTES[nick]  #  Delete his votes
         for k in var.VOTES.keys():
             if nick in var.VOTES[k]:
                 var.VOTES[k].remove(nick)
         chk_decision(cli)
-    return not chk_win(cli)
+    return ret
     
     
 @hook("ping")
@@ -472,11 +475,31 @@ hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", nick))
 
 
 
+def begin_day(cli):
+    chan = botconfig.CHANNEL
+    cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
+                   'Use "!lynch <nick>" to cast your vote. 3 votes '+
+                   'are required to lynch.'))
+
+    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
+        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli])
+        var.TIMERS[1] = t
+        t.start()
+        
+        
+        
 def transition_day(cli):
     var.PHASE = "day"
     chan = botconfig.CHANNEL
 
+    # Reset daytime variables
+    var.VOTES = {}
+    var.WOUNDED = []
     var.DAY_START_TIME = datetime.now()
+    if not var.NIGHT_START_TIME:
+        begin_day(cli)
+        return
+    
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
     var.NIGHT_TIMEDELTA += td
@@ -538,23 +561,17 @@ def transition_day(cli):
         if not del_player(cli, deadperson):
             return
     cli.msg(chan, "\n".join(message))
-    cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
-                   'Use "!lynch <nick>" to cast your vote. 3 votes '+
-                   'are required to lynch.'))
-
-    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
-        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli])
-        var.TIMERS[1] = t
-        t.start()
-
+    begin_day(cli)
+    
 
 def chk_nightdone(cli):
     if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
-        (var.VICTIM or (var.ROLES["werecrow"] == 1 and  # Wolves have done their stuff
-                         not var.ROLES["wolf"] and
-                         var.OBSERVED)) and
-                         var.PHASE == "night"):  # It is night time
+            (var.VICTIM or 
+                (var.ROLES["werecrow"] == 1 and  # Wolves have done their stuff
+                    not var.ROLES["wolf"] and var.OBSERVED) or
+            (not var.ROLES["wolf"] + var.ROLES["werecrow"])) and
+         var.PHASE == "night"):  # no wolves
         if var.TIMERS[0]:
             var.TIMERS[0].cancel()  # cancel timer
             var.TIMERS[0] = None
@@ -833,12 +850,9 @@ def relay(cli, nick, rest):
 def transition_night(cli):
     var.PHASE = "night"
 
-    # Reset daytime variables
-    var.VOTES = {}
     if var.TIMERS[1]:  # cancel daytime-limit timer
         var.TIMERS[1].cancel()
         var.TIMERS[1] = None
-    var.WOUNDED = []
 
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
@@ -930,6 +944,11 @@ def transition_night(cli):
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning."))
+    if not var.ROLES["wolf"]:  # Probably something interesting going on.
+        chk_nightdone(cli)
+        chk_traitor(cli)  # TODO: Remove this nonsense and add
+                          #       a startWithDay custom setting
+
 
 
 def cgamemode(cli, *args):
@@ -979,15 +998,34 @@ def start(cli, nick, chan, rest):
         cli.msg(chan, "{0}: Four or more players are required to play.".format(nick))
         return
     
-    var.ROLES = {}
-    var.CURSED = []
-    var.GUNNERS = {}
-
-    addroles = None
     for pcount in range(len(villagers), 3, -1):
         addroles = var.ROLES_GUIDE.get(pcount)
         if addroles:
             break
+    
+    if var.ORIGINAL_SETTINGS:  # Custom settings
+        while True:
+            wvs = (addroles[var.INDEX_OF_ROLE["wolf"]] + 
+                  addroles[var.INDEX_OF_ROLE["traitor"]])
+            if len(villagers) < sum(addroles):
+                cli.msg(chan, "There are too few players in the "+
+                              "game to use the custom roles.")
+            elif not wvs:
+                cli.msg(chan, "There has to be at least one wolf!")
+            elif wvs > (len(villagers) / 2):
+                cli.msg(chan, "Too many wolves.")
+            else:
+                break
+            reset_settings()
+            cli.msg(chan, "The default settings have been restored.  Please !start again.")
+            var.PHASE = "join"
+            return
+    
+    
+    var.ROLES = {}
+    var.CURSED = []
+    var.GUNNERS = {}
+
     villager_roles = ("gunner", "cursed")
     for i, count in enumerate(addroles):
         role = var.ROLE_INDICES[i]
@@ -1026,7 +1064,7 @@ def start(cli, nick, chan, rest):
     var.ROLES["villager"] = villagers
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                  "game (a theme of Mafia).").format(", ".join(var.list_players())))
+                   "game (a theme of Mafia).").format(", ".join(var.list_players())))
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -1034,14 +1072,18 @@ def start(cli, nick, chan, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
-    transition_night(cli)
+
+    if not chk_win(cli): 
+        if not var.START_WITH_DAY:
+            transition_night(cli)
+        else:
+            transition_day(cli)
 
 
     
 @cmd("!game")
 def game(cli, nick, chan, rest):
     pl = var.list_players()
-
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -1054,6 +1096,10 @@ def game(cli, nick, chan, rest):
     if nick in var.DENIED_SETTINGS_CHANGE:
         cli.notice(nick, "You cannot vote because your previous "+
                          "settings change was denied by vote.")
+        return
+    if var.SETTINGS_CHANGE_REQUESTER:
+        cli.notice(nick, "There is already an existing "+
+                         "settings change request.")
         return
     rest = rest.strip().lower()
     if rest:
@@ -1087,12 +1133,9 @@ def nay(cli, nick, chan, rest):
         cli.msg(chan, "The settings change request has been downvoted "+
                       "to oblivion.  The default settings are restored.")
         reset_settings()
-        var.SETTINGS_CHANGE_OPPOSITION = []
-        var.DENIED_SETTINGS_CHANGE.append(var.SETTINGS_CHANGE_REQUESTER)
-        var.SETTINGS_CHANGE_REQUESTER = None
     else:
-        cli.msg(chan, "\u0002{0}\u0002 has voted \u0002no\u0002. {1} more"+
-                      "vote{2} are needed to deny the change.".format(nick,
+        cli.msg(chan, ("\u0002{0}\u0002 has voted \u0002no\u0002. {1} more "+
+                      "vote{2} are needed to deny the change.").format(nick,
                              needed - len(var.SETTINGS_CHANGE_OPPOSITION),
                              "s" if needed > 1 else ""))
 

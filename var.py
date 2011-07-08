@@ -1,11 +1,12 @@
 PING_WAIT = 300  # Seconds
 MINIMUM_WAIT = 0 # debug, change to 60 for normal
-EXTRA_WAIT = 20
+EXTRA_WAIT = 0
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 0
 DAY_TIME_LIMIT = 0
+START_WITH_DAY = True
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
@@ -31,7 +32,7 @@ ROLE_INDICES = {0 : "seer",
                 5 : "traitor",
                 6 : "gunner",
                 7 : "werecrow"}
-
+INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
 
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
@@ -79,21 +80,23 @@ def game_mode(name):
     return decor
 
     
-CHANGEABLE_ROLES = { "seers" : 0,
-                     "wolves" : 1,
-                    "drunks" : 3,
-                   "harlots" : 4,
-                  "traitors" : 5,
-                   "gunners" : 6,
-                 "werecrows" : 7 }
+CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
+                     "wolves" : INDEX_OF_ROLE["wolf"],
+                     "cursed" : INDEX_OF_ROLE["cursed"],
+                    "drunks"  : INDEX_OF_ROLE["village drunk"],
+                   "harlots"  : INDEX_OF_ROLE["harlot"],
+                  "traitors"  : INDEX_OF_ROLE["traitor"],
+                   "gunners"  : INDEX_OF_ROLE["gunner"],
+                 "werecrows"  : INDEX_OF_ROLE["werecrow"]}
     
 #  !game roles=wolves:1 seers:0, x=1
 
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):
-    ROLES_GUIDE = ROLES_GUIDE.copy()
     def __init__(self, arg):
+        self.ROLES_GUIDE = ROLES_GUIDE.copy()
+        lx = list(ROLES_GUIDE[None])
         pairs = arg.split(",")
         pl = list_players()
         if not pairs:
@@ -105,14 +108,11 @@ class ChangedRolesMode(object):
             role, num = change
             try:
                 num = int(num)
+                try:
+                    lx[CHANGEABLE_ROLES[role.lower()]] = num
+                except KeyError:
+                    raise InvalidModeException("The role \u0002{0}\u0002 is not valid.")
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
-            lx = list(ROLES_GUIDE[None])
-            try:
-                lx[CHANGEABLE_ROLES[role.lower()]] = num
-            except KeyError:
-                raise InvalidModeException('"{0}" is not a changeable role.'.format(role))
-            self.ROLES_GUIDE[len(pl)] = tuple(lx)
-        if len(pl) < sum(self.ROLES_GUIDE[len(pl)]):
-            raise InvalidModeException("Too few players for such these custom roles.")
-            
+        for k in ROLES_GUIDE.keys():
+            self.ROLES_GUIDE[k] = tuple(lx)
