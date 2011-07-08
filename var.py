@@ -6,7 +6,7 @@ MAX_SHOTS = 2
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 0
 DAY_TIME_LIMIT = 0
-START_WITH_DAY = True
+START_WITH_DAY = False
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
@@ -112,7 +112,8 @@ class ChangedRolesMode(object):
                 try:
                     lx[CHANGEABLE_ROLES[role.lower()]] = num
                 except KeyError:
-                    raise InvalidModeException("The role \u0002{0}\u0002 is not valid.")
+                    raise InvalidModeException(("The role \u0002{0}\u0002 "+
+                                                "is not valid.").format(role))
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
         for k in ROLES_GUIDE.keys():

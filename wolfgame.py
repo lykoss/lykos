@@ -116,7 +116,10 @@ def forced_exit(cli, nick, *rest):  # Admin Only
 
 @cmd("!exec", admin_only=True)
 def py(cli, nick, chan, rest):
-    exec(rest)
+    try:
+        exec(rest)
+    except Exception as e:
+        cli.msg(chan, str(type(e))+":"+str(e))
 
 
 
@@ -261,7 +264,7 @@ def hurry_up(cli):
             found_dup = False
         elif len(voters) == maxfound[0]:
             found_dup = True
-    if max[0] > 0 and not found_dup:
+    if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
         var.VOTES[maxfound[1]] = [None] * votesneeded
         chk_decision(cli)  # Induce a lynch
@@ -966,6 +969,7 @@ def transition_night(cli):
 
 
 def cgamemode(cli, *args):
+    chan = botconfig.CHANNEL
     for arg in args:
         modeargs = arg.split("=", 1)
         modeargs[0] = modeargs[0].strip()
@@ -985,7 +989,7 @@ def cgamemode(cli, *args):
                 cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
                 return False
         else:
-            cli.msg(chan, "Mode \u0002{0}\u0002not found.".format(mode))
+            cli.msg(chan, "Mode \u0002{0}\u0002not found.".format(modeargs[0]))
             
 
 @cmd("!start")
@@ -1132,7 +1136,7 @@ def game(cli, nick, chan, rest):
 def nay(cli, nick, chan, rest):
     pl = var.list_players()
     if var.PHASE != "join" or not var.SETTINGS_CHANGE_REQUESTER:
-        cli.notice("This command is only allowed if there is "+
+        cli.notice(nick, "This command is only allowed if there is "+
                    "a game settings change request in effect.")
         return
     if nick not in pl:
@@ -1140,6 +1144,9 @@ def nay(cli, nick, chan, rest):
         return
     if var.SETTINGS_CHANGE_REQUESTER in pl:
         pl.remove(var.SETTINGS_CHANGE_REQUESTER)
+    if nick in var.SETTINGS_CHANGE_OPPOSITION:
+        cli.notice(nick, "You are already in the opposition.")
+        return
     var.SETTINGS_CHANGE_OPPOSITION.append(nick)
     needed = len(pl)//2 + 1
     if len(var.SETTINGS_CHANGE_OPPOSITION) >= needed:
