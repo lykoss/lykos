@@ -17,14 +17,19 @@ MANSLAUGHTER_CHANCE =       1/5
 
 GAME_MODES = {}
 
-################################################################################################
-# ROLE INDEX:   PLAYERS     SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW     #
-ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ), #
-                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0    ), #
-                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0    ), #
-                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ), #
-                   None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    )} #
-################################################################################################
+######################################################################################################
+#   ROLE INDEX:   PLAYERS   SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW    ANGEL ##
+######################################################################################################
+ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0), ##
+                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0    ,   0), ##
+                   8    : (   1   ,   2   ,   1   ,   1   ,   1   ,    0   ,   0   ,   0    ,   0), ##
+                   10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ,   0), ##
+                   11   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ,   1), ##
+                   None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0)} ##
+######################################################################################################
+#   Notes:                                                                                          ##
+######################################################################################################
+
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -33,7 +38,8 @@ ROLE_INDICES = {0 : "seer",
                 4 : "harlot",
                 5 : "traitor",
                 6 : "gunner",
-                7 : "werecrow"}
+                7 : "werecrow",
+                8 : "guardian angel"}
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
 
@@ -90,10 +96,17 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                    "harlots"  : INDEX_OF_ROLE["harlot"],
                   "traitors"  : INDEX_OF_ROLE["traitor"],
                    "gunners"  : INDEX_OF_ROLE["gunner"],
-                 "werecrows"  : INDEX_OF_ROLE["werecrow"]}
+                 "werecrows"  : INDEX_OF_ROLE["werecrow"],
+                 "angels"     : INDEX_OF_ROLE["guardian angel"]}
     
-#  !game roles=wolves:1 seers:0, x=1
+    
+    
+@game_mode("normal")
+class Normal(object):
+    pass   
 
+   
+#  Example  !game roles=wolves:1,seers:0
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):

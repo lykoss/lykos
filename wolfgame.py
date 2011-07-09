@@ -607,7 +607,7 @@ cmd("!quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0]))
-hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(nick)[0]))
+hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(rest[1])[0]))
 
 
 
@@ -616,6 +616,7 @@ def begin_day(cli):
     
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
+    var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
@@ -635,6 +636,11 @@ def begin_day(cli):
 def transition_day(cli):
     var.PHASE = "day"
     chan = botconfig.CHANNEL
+    
+    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
+        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli])
+        var.TIMERS[1] = t
+        t.start()
 
     # Reset daytime variables
     var.VOTES = {}
@@ -1040,6 +1046,7 @@ def transition_night(cli):
 
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
+    var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
@@ -1108,6 +1115,15 @@ def transition_night(cli):
                          'If you visit a victim of a wolf, or visit a wolf, '+
                          'you will die. Use !visit to visit a player.'))
         cli.msg(harlot, "Players: "+", ".join(pl))
+        
+    for g_angel in var.ROLES["guardian angel"]:
+        pl = ps[:]
+        pl.remove(g_angel)
+        cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
+                          'It is your job to protect the villagers. If you guard a'+
+                          ' wolf, there is a 50/50 chance of you dying, if you guard '+
+                          'a victim, they will live. Use !guard to guard a player.'));
+        cli.msg(g_angel, "Players: ", ", ".join(pl))
         
     for d in var.ROLES["village drunk"]:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
