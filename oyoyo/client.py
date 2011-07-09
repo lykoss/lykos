@@ -36,7 +36,8 @@ def add_commands(d):
 @add_commands(("join",
                "mode",
                "nick",
-               "part"))
+               "part",
+               "kick"))
 class IRCClient(object):
     """ IRC Client class. This handles one connection to a server.
     This can be used either with or without IRCApp ( see connect() docs )
@@ -120,7 +121,16 @@ class IRCClient(object):
         """
         try:
             logging.info('connecting to {0}:{1}'.format(self.host, self.port))
-            self.socket.connect(("{0}".format(self.host), self.port))
+            retries = 0
+            while True:
+                try:
+                    self.socket.connect(("{0}".format(self.host), self.port))
+                    break
+                except socket.error as e:
+                    retries += 1
+                    logging.warning('Error: {0}'.format(e))
+                    if retries > 3:
+                        break
             if not self.blocking:
                 self.socket.setblocking(0)
             

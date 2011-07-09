@@ -9,6 +9,8 @@ import copy
 from time import sleep
 import re
 import logging
+import sys
+import os
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -43,7 +45,7 @@ def connect_callback(cli):
     var.GRAVEYARD_LOCK = threading.Lock()
 
 
-@cmd("!say")
+@pmcmd("!say")
 def say(cli, nick, rest):  # To be removed later
     cli.msg(botconfig.CHANNEL, "{0} says: {1}".format(nick, rest))
 
@@ -111,22 +113,67 @@ def forced_exit(cli, nick, *rest):  # Admin Only
     dict.clear(COMMANDS)
     dict.clear(PM_COMMANDS)
     dict.clear(PM_COMMANDS)
-    sleep(5)
     cli.quit("Forced quit from admin")
     raise SystemExit
 
 
 
-@cmd("!exec", admin_only=True)
+@cmd("!exec", owner_only = True)
 def py(cli, nick, chan, rest):
     try:
         exec(rest)
     except Exception as e:
         cli.msg(chan, str(type(e))+":"+str(e))
-
-
-
-
+        
+        
+        
+@cmd("!eval", owner_only = True)
+def pyeval(cli, nick, chan, rest):
+    try:
+        a = str(eval(rest))
+        if len(a) < 500:
+            cli.msg(chan, a)
+        else:
+            cli.msg(chan, a[0:500])
+    except Exception as e:
+        cli.msg(chan, str(type(e))+":"+str(e))
+        
+        
+@cmd("!restart", admin_only=True)
+def restart_program(cli, nick, chan, rest):
+    try:
+        forced_exit(cli, nick, chan, rest)
+    finally:
+        print("RESTARTING!")
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+        
+        
+@cmd("!op", admin_only=True)
+def give_op(cli, nick, chan, rest):
+    if not rest.strip():
+        rest = nick
+    cli.msg("ChanServ", " ".join(("op",chan,rest.strip())))
+    
+    
+    
+@cmd("!deop", admin_only=True)
+def take_op(cli, nick, chan, rest):
+    if not rest.strip():
+        rest = nick
+    cli.msg("ChanServ", " ".join(("deop",chan,rest.strip())))
+    
+    
+@cmd("!sudo revoke", owner_only=True)
+def revoke(cli, nick, chan, rest):
+    r = rest.strip()
+    if r in botconfig.ADMINS:
+        ladmins = list(botconfig.ADMINS)
+        ladmins.remove(r)
+        botconfig.ADMINS = tuple(ladmins)
+        cli.msg(chan, "Revoked admin rights for \u0002{0}\u0002.".format(r))
+    
+    
 
 @cmd("!ping")
 def pinger(cli, nick, chan, rest):
@@ -172,7 +219,7 @@ def pinger(cli, nick, chan, rest):
     
     
     
-@cmd("!sudo ping", admin_only=True)
+@cmd("!fping", admin_only=True)
 def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
@@ -200,27 +247,41 @@ def join(cli, nick, chan, rest):
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
 
 
-@cmd("!fjoin")
+@cmd("!fjoin", admin_only=True)
 def fjoin(cli, nick, chan, rest):
-    if nick in ("nyuszika7h", "jcao219"):
-        for a in rest.split(" "):
-            a = a.strip()
-            if a != botconfig.NICK:
-                join(cli, a.strip(), chan, "")
+    for a in rest.split(" "):
+        a = a.strip()
+        if a != botconfig.NICK:
+            join(cli, a.strip(), chan, "")
         
-@cmd("!fleave")
+@cmd("!fleave", admin_only=True)
 def fleave(cli, nick, chan, rest):
-    if nick in ("nyuszika7h", "jcao219"):
-        for a in rest.split(" "):
-            a = a.strip()
-            if a.lower() != botconfig.NICK.lower():
-                del_player(cli, a.strip())
+    for a in rest.split(" "):
+        a = a.strip()
+        if a.lower() != botconfig.NICK.lower():
+            del_player(cli, a.strip())
+        cli.msg(chan, ("\u0002{0}\u0002 has used fleave"+
+                      " on \u0002{1}\u0002.").format(nick, a.strip()))
 
-@cmd("!fstart")
+@cmd("!fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
-    if nick not in ("nyuszika7h", "jcao219"): return
     var.CAN_START_TIME = datetime.now()
     start(cli, nick, chan, rest)
+    
+@cmd("!chankick", admin_only=True)
+def chankick(cli, nick, chan, rest):
+    rest = rest.split(" ", 1)
+    if rest[0] != botconfig.NICK:
+        cli.kick(chan, *rest)
+    else:
+        cli.kick(chan, nick, "No.")
+        
+@hook("kick")
+def on_kicked(cli, nick, chan, victim, reason):
+    if victim == botconfig.NICK:
+        cli.join(botconfig.CHANNEL)
+        cli.kick(chan, nick, "No.")
+    
 
 @cmd("!stats")
 def stats(cli, nick, chan, rest):
@@ -725,6 +786,8 @@ def chk_nightdone(cli):
             (not var.ROLES["wolf"] + var.ROLES["werecrow"])) and
          var.PHASE == "night"):  # no wolves
         if var.TIMERS[0]:
+            if var.TIMERS[0].is_alive():
+                return
             var.TIMERS[0].cancel()  # cancel timer
             var.TIMERS[0] = None
         if var.PHASE == "night":  # Double check
@@ -1283,6 +1346,7 @@ def start(cli, nick, chan, rest):
     
     # DEATH TO IDLERS!
     reapertimer = threading.Thread(None, reaper, args=(cli,))
+    reapertimer.daemon = True
     reapertimer.start()
 
     
@@ -1334,7 +1398,7 @@ def nay(cli, nick, chan, rest):
         cli.notice(nick, "You are already in the opposition.")
         return
     var.SETTINGS_CHANGE_OPPOSITION.append(nick)
-    needed = len(pl)//2 + 1
+    needed = max(len(pl)//2 + 1, 2)
     if len(var.SETTINGS_CHANGE_OPPOSITION) >= needed:
         cli.msg(chan, "The settings change request has been downvoted "+
                       "to oblivion.  The default settings are restored.")
