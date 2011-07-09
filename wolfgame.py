@@ -270,7 +270,7 @@ def fjoin(cli, nick, chan, rest):
                     cli.msg(chan, nick+": You may only fjoin fake people for now.")
                     noticed = True
                 continue
-        if a != botconfig.NICK:
+        if a != botconfig.NICK and a:
             join(cli, a.strip(), chan, "")
         else:
             cli.notice(nick, "No, that won't be allowed.")
@@ -305,6 +305,8 @@ def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
         cli.join(botconfig.CHANNEL)
         cli.kick(chan, nick, "No.")
+    else:
+        print("WHAT", nick, chan, victim, reason)
     
 
 @cmd("!stats")
@@ -462,8 +464,13 @@ def chk_win(cli):
         return False
     elif (len(var.ROLES["wolf"])+
           len(var.ROLES["traitor"])+
-          len(var.ROLES["werecrow"])) >= lpl / 2:
+          len(var.ROLES["werecrow"])) == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
+                       "villagers. The wolves eat everyone, and win."))
+    elif (len(var.ROLES["wolf"])+
+          len(var.ROLES["traitor"])+
+          len(var.ROLES["werecrow"])) > lpl / 2:
+        cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and 
@@ -538,7 +545,8 @@ def del_player(cli, nick, forced_death = False):
         return not chk_win(cli)
     if var.PHASE != "join" and ret:
         # Died during the game, so quiet!
-        cmode.append(("+q", nick))
+        if nick[0].isalpha() or nick[0] == "\\":
+            cmode.append(("+q", nick))
         mass_mode(cli, cmode)
         var.DEAD.append(nick)
         ret = not chk_win(cli)
@@ -774,9 +782,8 @@ def begin_day(cli):
         
 def transition_day(cli, gameid=0):
     if gameid:
-        if gameid != var.GAME_ID:
+        if gameid != var.NIGHT_ID:
             return
-
     print("Day is starting...")
     var.PHASE = "day"
     var.GOATED = False
@@ -1126,22 +1133,39 @@ def hvisit(cli, nick, rest):
     
     
     
-@cmd("!give", admin_only=True)
-def give(cli, nick, chan, rest):
+@cmd("!frole", admin_only=True)
+def frole(cli, nick, chan, rest):
     rst = rest.split(" ")
     if len(rst) < 2:
         cli.msg(chan, "The syntax is incorrect.")
     who = rst.pop(0).strip()
     rol = " ".join(rst).strip()
-    
+    if who not in var.USERS:
+        if ((who[0].isalpha() or (who[0] == "!" or who[0] == "\\")) and
+                                    not who.lower().endswith("serv")):
+            cli.msg(chan, "Could not be done.")
+            cli.msg(chan, "The target needs to be in this channel or a fake name.")
+            return
+    elif who == botconfig.NICK or not who:
+        cli.msg(chan, "No.")
+        return
+    if rol not in var.ROLES.keys():
+        if var.PHASE not in ("night", "day"):
+            cli.msg(chan, "This is only allowed in game.")
+        if rol == "gunner":
+            var.GUNNERS[who] = var.MAX_SHOTS
+        elif rol == "cursed":
+            var.CURSED.append(who)
+        else:
+            cli.msg(chan, "Not a valid role.")
+        cli.msg(chan, "Operation successful.")
+        return
     if who in var.list_players():
         var.del_player(who)
-    if rol not in var.ROLES.keys():
-        cli.msg(chan, "Not a valid role.")
-        return
     var.ROLES[rol].append(who)
     cli.msg(chan, "Operation successful.")
-    chk_win(cli)
+    if var.PHASE not in ('none','join'):
+        chk_win(cli)
     
     
 @cmd("!force", admin_only=True)
@@ -1151,18 +1175,23 @@ def forcepm(cli, nick, chan, rest):
         cli.msg(chan, "The syntax is incorrect.")
         return
     who = rst.pop(0).strip()
-    if not who:
+    if not who or who == botconfig.NICK:
         cli.msg(chan, "That won't work.")
         return
     if who[0].isalpha() or who[0] == "!" and who[0] != "\\":
         if not who.lower().endswith("serv"):
-            cli.msg(chan, "This can only be done on fake nicks.")
-            return
+            if who not in var.USERS:
+                cli.msg(chan, "This can only be done on fake nicks.")
+                return
     cmd = rst.pop(0)
     if cmd.lower() in PM_COMMANDS.keys():
         PM_COMMANDS[cmd.lower()](cli, who, " ".join(rst))
+        cli.msg(chan, "Operation successful.")
+        if var.PHASE == "night":
+            chk_nightdone(cli)
     elif cmd.lower() in COMMANDS.keys():
         COMMANDS[cmd.lower()](cli, who, chan, " ".join(rst))
+        cli.msg(chan, "Operation successful.")
     else:
         cli.msg(chan, "That command was not found.")
 
@@ -1247,7 +1276,7 @@ def transition_night(cli):
     chan = botconfig.CHANNEL
 
     if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.GAME_ID])
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
         var.TIMERS[0] = t
         t.start()
 
@@ -1456,13 +1485,14 @@ def start(cli, nick, chan, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
-    var.GAME_ID = timetime()
     
     
     if not var.START_WITH_DAY:
+        var.NIGHT_ID = timetime()
         transition_night(cli)
     else:
         #todo: notify roles
+        var.DAY_ID = timetime()
         transition_day(cli)
     
     # DEATH TO IDLERS!
@@ -1471,7 +1501,7 @@ def start(cli, nick, chan, rest):
     reapertimer.start()
 
     
-@cmd("!game", admin_only=True)
+@cmd("!game", admin_only=var.GAME_COMMAND_ADMIN_ONLY)
 def game(cli, nick, chan, rest):
     pl = var.list_players()
     if var.PHASE == "none":

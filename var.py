@@ -9,6 +9,7 @@ DAY_TIME_LIMIT = 333
 START_WITH_DAY = False
 KILL_IDLE_TIME = 0 #300
 WARN_IDLE_TIME = 0 #180
+GAME_COMMAND_ADMIN_ONLY = True
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )

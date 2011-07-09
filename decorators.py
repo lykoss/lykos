@@ -9,7 +9,9 @@ def generate(fdict, **kwargs):
                 largs = list(args)
                 if not raw_nick and largs[1]:
                     cloak = parse_nick(largs[1])[3]
-                    largs[1] = parse_nick(largs[1])[0]
+                    largs[1] = parse_nick(largs[1])[0]  # username
+                    #if largs[1].startswith("#"):
+                        
                 if owner_only:
                     if cloak and cloak == botconfig.OWNER:
                         return f(*largs)
