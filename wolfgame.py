@@ -578,6 +578,9 @@ def reaper(cli):
     var.IDLE_KILLED = []
     var.IDLE_WARNED = []
     
+    if not var.WARN_IDLE_TIME or not var.KILL_IDLE_TIME:
+        return
+    
     while var.PHASE != "none":
         to_warn = []
         for nick in var.list_players():
@@ -788,11 +791,6 @@ def transition_day(cli, gameid=0):
     var.VOTES = {}
     var.WOUNDED = []
     var.DAY_START_TIME = datetime.now()
-    if not var.NIGHT_START_TIME:
-        for plr in var.list_players():
-            cli.msg(plr, "You are a \u0002{0}\u0002.".format(var.get_role(plr)))
-        begin_day(cli)
-        return
     
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
@@ -1127,13 +1125,35 @@ def hvisit(cli, nick, rest):
     chk_nightdone(cli)
     
     
+    
+@cmd("!give", admin_only=True)
+def give(cli, nick, chan, rest):
+    rst = rest.split(" ")
+    if len(rst) < 2:
+        cli.msg(chan, "The syntax is incorrect.")
+    who = rst.pop(0).strip()
+    rol = " ".join(rst).strip()
+    
+    if who in var.list_players():
+        var.del_player(who)
+    if rol not in var.ROLES.keys():
+        cli.msg(chan, "Not a valid role.")
+        return
+    var.ROLES[rol].append(who)
+    cli.msg(chan, "Operation successful.")
+    chk_win(cli)
+    
+    
 @cmd("!force", admin_only=True)
 def forcepm(cli, nick, chan, rest):
     rst = rest.split(" ")
-    if len(rst) > 2:
+    if len(rst) < 2:
         cli.msg(chan, "The syntax is incorrect.")
         return
-    who = rst.pop(0)
+    who = rst.pop(0).strip()
+    if not who:
+        cli.msg(chan, "That won't work.")
+        return
     if who[0].isalpha() or who[0] == "!" and who[0] != "\\":
         if not who.lower().endswith("serv"):
             cli.msg(chan, "This can only be done on fake nicks.")
@@ -1442,6 +1462,7 @@ def start(cli, nick, chan, rest):
     if not var.START_WITH_DAY:
         transition_night(cli)
     else:
+        #todo: notify roles
         transition_day(cli)
     
     # DEATH TO IDLERS!
