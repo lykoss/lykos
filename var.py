@@ -78,7 +78,7 @@ get_role = lambda plyr: list_players_and_roles()[plyr]
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
-
+    
 
     
 class InvalidModeException(Exception): pass
