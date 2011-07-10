@@ -159,11 +159,15 @@ def restart_program(cli, nick, chan, rest):
         os.execl(python, python, *sys.argv)
         
         
+        
 @cmd("!op", admin_only=True)
 def give_op(cli, nick, chan, rest):
     if not rest.strip():
         rest = nick
     cli.msg("ChanServ", " ".join(("op",chan,rest.strip())))
+@pmcmd("!op", admin_only=True)
+def give_op_pm(cli, nick, rest):
+    give_op(cli, nick, botconfig.CHANNEL, rest)
     
     
     
@@ -262,8 +266,10 @@ def fjoin(cli, nick, chan, rest):
     noticed = False
     if not rest.strip():
         return
-    for a in rest.split(" "):
+    for a in re.split("\s+",rest):
         a = a.strip()
+        if not a:
+            continue
         if a[0].isalpha() or a[0] == "!" and a[0] != "\\":
             if not a.lower().endswith("serv"):
                 if not noticed:
@@ -277,8 +283,10 @@ def fjoin(cli, nick, chan, rest):
         
 @cmd("!fleave", admin_only=True)
 def fleave(cli, nick, chan, rest):
-    for a in rest.split(" "):
+    for a in re.split("\s+",rest):
         a = a.strip()
+        if not a:
+            continue
         pll = [x.lower() for x in var.list_players()]
         if a.lower() != botconfig.NICK.lower() and a.lower() in pll:
             del_player(cli, a.strip())
@@ -1053,6 +1061,48 @@ def kill(cli, nick, rest):
     var.VICTIM = pl[pll.index(victim)]
     cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(var.VICTIM))
     chk_nightdone(cli)
+    
+    
+@pmcmd("!guard", "guard")
+def kill(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role != 'guardian angel':
+        cli.msg(nick, "Only a wolf may use this command.")
+        return
+    if var.PHASE != "night":
+        cli.msg(nick, "You may only guard people at night.")
+        return
+    victim = re.split("\s+",rest)[0].strip().lower()
+    if not victim:
+        cli.msg(nick, "Not enough parameters")
+        return
+    return #TODO
+    if role == "werecrow":  # Check if flying to observe
+        if var.OBSERVED.get(nick):
+            cli.msg(nick, ("You are flying to \u0002{0}'s\u0002 house, and "+
+                          "therefore you don't have the time "+
+                          "and energy to kill a villager.").format(var.OBSERVED[nick]))
+            return
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    if victim not in pll:
+        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+        return
+    if victim == nick.lower():
+        cli.msg(nick, "Suicide is bad.  Don't do it.")
+        return
+    if victim in var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]:
+        cli.msg(nick, "You may only kill villagers, not other wolves")
+        return
+    var.VICTIM = pl[pll.index(victim)]
+    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(var.VICTIM))
+    chk_nightdone(cli)
 
 
 
@@ -1135,7 +1185,7 @@ def hvisit(cli, nick, rest):
     
 @cmd("!frole", admin_only=True)
 def frole(cli, nick, chan, rest):
-    rst = rest.split(" ")
+    rst = re.split("\s+",rest)
     if len(rst) < 2:
         cli.msg(chan, "The syntax is incorrect.")
     who = rst.pop(0).strip()
@@ -1170,7 +1220,7 @@ def frole(cli, nick, chan, rest):
     
 @cmd("!force", admin_only=True)
 def forcepm(cli, nick, chan, rest):
-    rst = rest.split(" ")
+    rst = re.split("\s+",rest)
     if len(rst) < 2:
         cli.msg(chan, "The syntax is incorrect.")
         return
@@ -1523,7 +1573,7 @@ def game(cli, nick, chan, rest):
         return
     rest = rest.strip().lower()
     if rest:
-        if cgamemode(cli, *rest.split(" ")):
+        if cgamemode(cli, *re.split("\s+",rest)):
             var.SETTINGS_CHANGE_REQUESTER = nick
             cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
                             "game settings successfully. To "+

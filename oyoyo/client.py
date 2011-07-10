@@ -197,3 +197,4 @@ class IRCClient(object):
         conn = self.connect()
         while True:
             next(conn)
+            
