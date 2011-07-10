@@ -39,11 +39,7 @@ def main():
                      nickname=botconfig.NICK,
                      connect_cb=wolfgame.connect_callback
                     )
-    try:
-        cli.mainLoop()
-    except Exception as e:
-        cli.msg(botconfig.CHANNEL, "An error has occured: "+str(e))
-        raise e
+    cli.mainLoop()
 
 
 if __name__ == "__main__":

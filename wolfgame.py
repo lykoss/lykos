@@ -854,7 +854,7 @@ def transition_day(cli, gameid=0):
             message.append("The wolves' selected victim was a harlot, "+
                            "but she wasn't home.")
     if var.VICTIM in var.GUNNERS.keys() and var.GUNNERS[var.VICTIM]:  # victim had bullets!
-        if random.random() < 0.5:
+        if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
             for crow in wc:
                 if crow in var.OBSERVED.keys():
@@ -888,7 +888,7 @@ def transition_day(cli, gameid=0):
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
             r = random.random()
-            if r < 0.50:
+            if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 message.append(("\u0002{0}\u0002, a guardian angel, "+
                                 "made the unfortunate mistake of guarding a wolf "+
                                 "last night, attempted to escape, but failed "+
@@ -1212,7 +1212,7 @@ def investigate(cli, nick, rest):
     var.INVESTIGATED.append(nick)
     cli.msg(nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
                    " is a... \u0002{1}\u0002!").format(victim, var.get_role(victim)))
-    if random.random() < 0.4:  # a 2/5 chance (should be changeable in settings)
+    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # Reveal his role!
         for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
             cli.msg(badguy, ("\0002{0}\0002 accidentally drops a paper. The paper reveals "+

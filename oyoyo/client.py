@@ -194,16 +194,22 @@ class IRCClient(object):
 
                     for el in data:
                         prefix, command, args = parse_raw_irc_command(el)
+                    
+                        try:
+                            enc = "utf8"
+                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                        except UnicodeDecodeError:
+                            enc = "latin1"
+                            fargs = fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                    
                         logging.debug("processCommand ({2}){0}({1})".format(command,
-                                                       [arg.decode('utf_8')
-                                                        for arg in args
-                                                        if isinstance(arg, bytes)], prefix))
+                                                       fargs, prefix))
                         try:
                             largs = list(args)
                             if prefix is not None:
-                                prefix = prefix.decode("utf-8")
+                                prefix = prefix.decode(enc)
                             for i,arg in enumerate(largs):
-                                if arg is not None: largs[i] = arg.decode('utf_8')
+                                if arg is not None: largs[i] = arg.decode(enc)
                             if command in self.command_handler:
                                 self.command_handler[command](self, prefix,*largs)
                             elif "" in self.command_handler:
