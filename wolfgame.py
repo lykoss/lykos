@@ -183,7 +183,7 @@ def take_op(cli, nick, chan, rest):
 @cmd("!sudo revoke", owner_only=True)
 def revoke(cli, nick, chan, rest):
     r = rest.strip()
-    if r in botconfig.ADMINS:
+    if var.CLOAKS[var.USERS.index(r)] in botconfig.ADMINS:
         ladmins = list(botconfig.ADMINS)
         ladmins.remove(r)
         botconfig.ADMINS = tuple(ladmins)
@@ -729,6 +729,9 @@ def on_nick(cli, prefix, nick):
             if prefix in var.WOUNDED:
                 var.WOUNDED.remove(prefix)
                 var.WOUNDED.append(nick)
+            if prefix in var.INVESTIGATED:
+                var.INVESTIGATED.remove(prefix)
+                var.INVESTIGATED.append(prefix)
             if prefix in var.VOTES:
                 var.VOTES[nick] = var.VOTES.pop(prefix)
             for v in var.VOTES.values():
@@ -816,6 +819,7 @@ def transition_day(cli, gameid=0):
 
     # Reset daytime variables
     var.VOTES = {}
+    var.INVESTIGATED = []
     var.WOUNDED = []
     var.DAY_START_TIME = datetime.now()
     
@@ -1173,6 +1177,45 @@ def observe(cli, nick, rest):
         
     
     
+@pmcmd("id", "!id")
+def investigate(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    if not var.is_role(nick, "detective"):
+        cli.msg(nick, "Only a detective may use this command.")
+        return
+    if var.PHASE != "day":
+        cli.msg(nick, "You may only investigate people during the day.")
+        return
+    if nick in var.INVESTIGATED:
+        cli.msg(nick, "You may only investigate one person per round.")
+        return
+    victim = re.split("\s+", rest)[0].strip().lower()
+    if not victim:
+        cli.msg(nick, "Not enough parameters")
+        return
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    if victim not in pll:
+        cli.msg(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        return
+    victim = pl[pll.index(victim)]
+    
+    var.INVESTIGATED.append(nick)
+    cli.msg(nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
+                   " is a... \u0002{1}\u0002").format(victim, var.get_role(victim)))
+    if random.random < 0.4:  # a 2/5 chance (should be changeable in settings)
+        # Reveal his role!
+        for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
+            cli.msg(badguy, ("\0002{0}\0002 accidentally drops a paper. The paper reveals "+
+                            "that (s)he is the detective!").format(nick))
+    
+    
+    
 @pmcmd("visit", "!visit")
 def hvisit(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -1330,7 +1373,7 @@ def relay(cli, nick, rest):
         return
     badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"]
     if len(badguys) > 1:
-        if var.get_role(nick) in ("wolf","traitor","werecrow"):
+        if nick in badguys:
             badguys.remove(nick)  #  remove self from list
             for badguy in badguys:
                 cli.msg(badguy, "{0} says: {1}".format(nick, rest))
@@ -1425,7 +1468,11 @@ def transition_night(cli):
                           ' wolf, there is a 50/50 chance of you dying, if you guard '+
                           'a victim, they will live. Use !guard to guard a player.'));
         cli.msg(g_angel, "Players: " + ", ".join(pl))
-        
+    for dttv in var.ROLES["detective"]:
+        cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
+                      "It is your job to determine all the wolves and traitors. "+
+                      "Your job is during the day, and you can see the true "+
+                      "identity of all users, even traitors."))
     for d in var.ROLES["village drunk"]:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
     
@@ -1698,7 +1745,6 @@ def fwait(cli, nick, chan, rest):
                   "{1} seconds.").format(nick, var.EXTRA_WAIT))
                   
 
-@cmd("!reset")
+@cmd("!reset",admin_only=True)
 def reset_game(cli, nick, chan, rest):
-    if nick in ("nyuszika7h", "jcao219"):
-        reset(cli)
+    reset(cli)
