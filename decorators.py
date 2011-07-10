@@ -7,11 +7,13 @@ def generate(fdict, **kwargs):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
-                if not raw_nick and largs[1]:
+                if largs[1]:
                     cloak = parse_nick(largs[1])[3]
+                else:
+                    cloak = ""
+                if not raw_nick and largs[1]:
                     largs[1] = parse_nick(largs[1])[0]  # username
-                    #if largs[1].startswith("#"):
-                        
+                    #if largs[1].startswith("#"):       
                 if owner_only:
                     if cloak and cloak == botconfig.OWNER:
                         return f(*largs)
@@ -27,6 +29,9 @@ def generate(fdict, **kwargs):
                 return f(*largs)
             for x in s:
                 fdict[x] = innerf
+            innerf.owner_only = owner_only
+            innerf.raw_nick = raw_nick
+            innerf.admin_only = admin_only
             return innerf
             
         return dec

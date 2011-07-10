@@ -29,11 +29,13 @@ def connect_callback(cli):
     cli.msg("ChanServ", "op "+botconfig.CHANNEL)
     
     var.USERS = []    
+    var.CLOAKS = []
+    
     @hook("whoreply")
     def on_whoreply(cli, server, dunno, chan, dunno1,
-                    dunno2, dunno3, user, status, dunno4):
+                    cloak, dunno3, user, status, dunno4):
         if user in var.USERS: return  # Don't add someone who is already there
-
+        var.CLOAKS.append(cloak)
         var.USERS.append(user)
     cli.who(botconfig.CHANNEL)
 
@@ -186,6 +188,8 @@ def revoke(cli, nick, chan, rest):
         ladmins.remove(r)
         botconfig.ADMINS = tuple(ladmins)
         cli.msg(chan, "Revoked admin rights for \u0002{0}\u0002.".format(r))
+    else:
+        cli.msg(chan, "This person is not an admin.")
     
     
 
@@ -270,8 +274,7 @@ def fjoin(cli, nick, chan, rest):
         a = a.strip()
         if not a:
             continue
-        if a[0].isalpha() or a[0] == "!" and a[0] != "\\":
-            if not a.lower().endswith("serv"):
+        if not is_fake_nick(a):
                 if not noticed:
                     cli.msg(chan, nick+": You may only fjoin fake people for now.")
                     noticed = True
@@ -357,9 +360,13 @@ def stats(cli, nick, chan, rest):
 
 
 
-def hurry_up(cli):
+def hurry_up(cli, gameid=0):
     if var.PHASE != "day": return
-
+    if gameid:
+        if gameid != var.DAY_ID:
+            return
+    
+    
     chan = botconfig.CHANNEL
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
@@ -553,7 +560,7 @@ def del_player(cli, nick, forced_death = False):
         return not chk_win(cli)
     if var.PHASE != "join" and ret:
         # Died during the game, so quiet!
-        if nick[0].isalpha() or nick[0] == "\\":
+        if not is_fake_nick(nick):
             cmode.append(("+q", nick))
         mass_mode(cli, cmode)
         var.DEAD.append(nick)
@@ -562,7 +569,7 @@ def del_player(cli, nick, forced_death = False):
         # remove him from variables if he is in there
         if var.VICTIM == nick:
             var.VICTIM = ""
-        for x in (var.OBSERVED, var.HVISITED):
+        for x in (var.OBSERVED, var.HVISITED, var.GUARDED):
             keys = list(x.keys())
             for k in keys:
                 if k == nick:
@@ -685,8 +692,11 @@ def on_nick(cli, prefix, nick):
         var.DENIED_SETTINGS_CHANGE.remove(prefix)
         
     if prefix in var.USERS:
+        i = var.USERS.index(prefix)
         var.USERS.remove(prefix)
         var.USERS.append(nick)
+        var.CLOAKS.append(var.CLOAKS.pop(i))
+        
         
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
@@ -697,7 +707,7 @@ def on_nick(cli, prefix, nick):
             if var.VICTIM == prefix:
                 var.VICTIM = nick
             kvp = []
-            for dictvar in (var.HVISITED, var.OBSERVED):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED):
                 for a,b in dictvar.items():
                     if a == prefix:
                         a = nick
@@ -776,13 +786,15 @@ def begin_day(cli):
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
+    var.GUARDED = {}
     
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
                    'Use "!lynch <nick>" to cast your vote. 3 votes '+
                    'are required to lynch.'))
 
     if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
-        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli])
+        var.DAY_ID = timetime()
+        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID])
         var.TIMERS[1] = t
         t.start()
         
@@ -824,6 +836,8 @@ def transition_day(cli, gameid=0):
         elif target not in var.ROLES["village drunk"]:
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
+    if var.VICTIM in var.GUARDED.values():
+        var.VICTIM = ""  # Whew... protected by guardian angel.
     if not var.VICTIM:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) + 
                     " All villagers, however, have survived.")
@@ -831,6 +845,18 @@ def transition_day(cli, gameid=0):
         if var.HVISITED.get(var.VICTIM):
             message.append("The wolves' selected victim was a harlot, "+
                            "but she wasn't home.")
+    if var.VICTIM in var.GUNNERS.keys() and var.GUNNERS[var.VICTIM]:  # victim had bullets!
+        if random.random() < 0.5:
+            wc = var.ROLES["werecrow"]
+            for crow in wc:
+                if crow in var.OBSERVED.keys():
+                    wc.remove(crow)
+            deadwolf = random.choice(var.ROLES["wolf"]+wc)
+            message.append(("The wolves made the fortunate mistake of attacking "+
+                            "the gunner last night, and \2{0}\2, a wolf,"+
+                            " was shot dead.").format(deadwolf))
+            dead.append(deadwolf)
+            var.VICTIM = ""
     if var.VICTIM and (var.VICTIM not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(var.VICTIM)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
@@ -846,11 +872,20 @@ def transition_day(cli, gameid=0):
                 dead.append(hlt)
     # TODO: check if harlot also died
     for harlot in var.ROLES["harlot"]:
-        if var.HVISITED.get(harlot) in var.ROLES["wolf"]:
+        if var.HVISITED.get(harlot) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
             message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
+    for gangel in var.ROLES["guardian angel"]:
+        if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+            r = random.random()
+            if r < 0.50:
+                message.append(("\u0002{0}\u0002, a guardian angel, "+
+                                "made the unfortunate mistake of guarding a wolf "+
+                                "last night, attempted to escape, but failed "+
+                                "and is now dead.").format(gangel))
+                dead.append(gangel)
     for crow, target in iter(var.OBSERVED.items()):
         if (target in var.ROLES["harlot"] and 
             target in var.HVISITED.keys() and 
@@ -864,10 +899,10 @@ def transition_day(cli, gameid=0):
                            "were found near the village drunk's house. "+
                            "The drunk's pet tiger probably ate him.").format(crow))
             dead.append(crow)
+    cli.msg(chan, "\n".join(message))
     for deadperson in dead:
         if not del_player(cli, deadperson):
             return
-    cli.msg(chan, "\n".join(message))
     begin_day(cli)
     
 
@@ -1073,35 +1108,30 @@ def kill(cli, nick, rest):
         return
     role = var.get_role(nick)
     if role != 'guardian angel':
-        cli.msg(nick, "Only a wolf may use this command.")
+        cli.msg(nick, "Only a guardian angel may use this command.")
         return
     if var.PHASE != "night":
-        cli.msg(nick, "You may only guard people at night.")
+        cli.msg(nick, "You may only protect people at night.")
         return
     victim = re.split("\s+",rest)[0].strip().lower()
     if not victim:
         cli.msg(nick, "Not enough parameters")
         return
-    return #TODO
-    if role == "werecrow":  # Check if flying to observe
-        if var.OBSERVED.get(nick):
-            cli.msg(nick, ("You are flying to \u0002{0}'s\u0002 house, and "+
-                          "therefore you don't have the time "+
-                          "and energy to kill a villager.").format(var.OBSERVED[nick]))
-            return
+    if var.GUARDED.get(nick):
+        cli.msg(nick, ("You are already protecting "+
+                      "\u0002{0}\u0002.").format(var.GUARDED[nick]))
+        return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
     if victim not in pll:
         cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     if victim == nick.lower():
-        cli.msg(nick, "Suicide is bad.  Don't do it.")
+        cli.msg(nick, "You may not guard yourself.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]:
-        cli.msg(nick, "You may only kill villagers, not other wolves")
-        return
-    var.VICTIM = pl[pll.index(victim)]
-    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(var.VICTIM))
+    var.GUARDED[nick] = pl[pll.index(victim)]
+    cli.msg(nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.VICTIM))
+    cli.msg(victim, "You can sleep well tonight, for a guardian angel is protecting you.")
     chk_nightdone(cli)
 
 
@@ -1181,6 +1211,11 @@ def hvisit(cli, nick, rest):
                                           "\u0002. Have a good time!").format(nick))
     chk_nightdone(cli)
     
+
+def is_fake_nick(who):
+    return not( ((who[0].isalpha() or (who[0] in ("!", "\\", "_"))) and
+              not who.lower().endswith("serv")))
+    
     
     
 @cmd("!frole", admin_only=True)
@@ -1191,8 +1226,7 @@ def frole(cli, nick, chan, rest):
     who = rst.pop(0).strip()
     rol = " ".join(rst).strip()
     if who not in var.USERS:
-        if ((who[0].isalpha() or (who[0] == "!" or who[0] == "\\")) and
-                                    not who.lower().endswith("serv")):
+        if not is_fake_nick(who):
             cli.msg(chan, "Could not be done.")
             cli.msg(chan, "The target needs to be in this channel or a fake name.")
             return
@@ -1200,14 +1234,20 @@ def frole(cli, nick, chan, rest):
         cli.msg(chan, "No.")
         return
     if rol not in var.ROLES.keys():
+        pl = var.list_players()
         if var.PHASE not in ("night", "day"):
             cli.msg(chan, "This is only allowed in game.")
         if rol == "gunner":
             var.GUNNERS[who] = var.MAX_SHOTS
+            if who not in pl:
+                var.ROLES["villager"].append(who)
         elif rol == "cursed":
             var.CURSED.append(who)
+            if who not in pl:
+                var.ROLES["villager"].append(who)
         else:
             cli.msg(chan, "Not a valid role.")
+            return
         cli.msg(chan, "Operation successful.")
         return
     if who in var.list_players():
@@ -1228,18 +1268,17 @@ def forcepm(cli, nick, chan, rest):
     if not who or who == botconfig.NICK:
         cli.msg(chan, "That won't work.")
         return
-    if who[0].isalpha() or who[0] == "!" and who[0] != "\\":
-        if not who.lower().endswith("serv"):
+    if not is_fake_nick(who):
             if who not in var.USERS:
                 cli.msg(chan, "This can only be done on fake nicks.")
                 return
     cmd = rst.pop(0)
-    if cmd.lower() in PM_COMMANDS.keys():
+    if cmd.lower() in PM_COMMANDS.keys() and not PM_COMMANDS[cmd].owner_only:
         PM_COMMANDS[cmd.lower()](cli, who, " ".join(rst))
         cli.msg(chan, "Operation successful.")
         if var.PHASE == "night":
             chk_nightdone(cli)
-    elif cmd.lower() in COMMANDS.keys():
+    elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd].owner_only:
         COMMANDS[cmd.lower()](cli, who, chan, " ".join(rst))
         cli.msg(chan, "Operation successful.")
     else:
@@ -1307,7 +1346,7 @@ def transition_night(cli):
 
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
-    var.GUARDED = ""
+    var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
@@ -1326,6 +1365,7 @@ def transition_night(cli):
     chan = botconfig.CHANNEL
 
     if var.NIGHT_TIME_LIMIT > 0:
+        var.NIGHT_ID = timetime()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
         var.TIMERS[0] = t
         t.start()
@@ -1538,11 +1578,9 @@ def start(cli, nick, chan, rest):
     
     
     if not var.START_WITH_DAY:
-        var.NIGHT_ID = timetime()
         transition_night(cli)
     else:
         #todo: notify roles
-        var.DAY_ID = timetime()
         transition_day(cli)
     
     # DEATH TO IDLERS!
