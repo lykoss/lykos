@@ -3,6 +3,7 @@ MINIMUM_WAIT = 60 # debug, change to 60 for normal
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 MAX_SHOTS = 2
+MAX_PLAYERS = 30
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 90
 DAY_TIME_LIMIT = 333
@@ -15,6 +16,8 @@ GAME_COMMAND_ADMIN_ONLY = True
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
 DRUNK_GUN_CHANCES   =   (   4/7  ,  2/7  ,   1/7   )
 MANSLAUGHTER_CHANCE =       1/5
+GUN_KILLS_WOLF_CHANCE = 1/2
+GUARDIAN_ANGEL_DIES_CHANCE = 1/2
 
 GAME_MODES = {}
 

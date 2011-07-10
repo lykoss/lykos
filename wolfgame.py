@@ -246,6 +246,7 @@ def fpinger(cli, nick, chan, rest):
 
 @cmd("!join")
 def join(cli, nick, chan, rest):
+    pl = var.list_players()
     if var.PHASE == "none":
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
@@ -255,8 +256,10 @@ def join(cli, nick, chan, rest):
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "!join" to join. Type "!start" to start the game. '+
                       'Type "!wait" to increase join wait time.').format(nick))
-    elif nick in var.list_players():
+    elif nick in pl:
         cli.notice(nick, "You're already playing!")
+    elif len(pl) >= var.MAX_PLAYERS:
+        cli.notice(nick, "Too many players!  Try again next time.")
     elif var.PHASE != "join":
         cli.notice(nick, "Sorry but the game is already running.  Try again next time.")
     else:
