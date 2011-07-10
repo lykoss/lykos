@@ -107,7 +107,7 @@ class IRCClient(object):
         self.port = None
         self.connect_cb = None
         self.blocking = True
-        self.tokenbucket = TokenBucket(3, 7.3)
+        self.tokenbucket = TokenBucket(3, 1.63)
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler

@@ -365,7 +365,7 @@ def hurry_up(cli, gameid=0):
     if gameid:
         if gameid != var.DAY_ID:
             return
-    
+    var.DAY_ID = 0
     
     chan = botconfig.CHANNEL
     pl = var.list_players()
@@ -807,6 +807,7 @@ def transition_day(cli, gameid=0):
     if gameid:
         if gameid != var.NIGHT_ID:
             return
+    var.NIGHT_ID = 0
     print("Day is starting...")
     var.PHASE = "day"
     var.GOATED = False
@@ -1207,8 +1208,8 @@ def investigate(cli, nick, rest):
     
     var.INVESTIGATED.append(nick)
     cli.msg(nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
-                   " is a... \u0002{1}\u0002").format(victim, var.get_role(victim)))
-    if random.random < 0.4:  # a 2/5 chance (should be changeable in settings)
+                   " is a... \u0002{1}\u0002!").format(victim, var.get_role(victim)))
+    if random.random() < 0.4:  # a 2/5 chance (should be changeable in settings)
         # Reveal his role!
         for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
             cli.msg(badguy, ("\0002{0}\0002 accidentally drops a paper. The paper reveals "+
