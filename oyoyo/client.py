@@ -51,7 +51,7 @@ class TokenBucket(object):
 
     @property
     def tokens(self):
-        now = time()
+        now = time.time()
         if self._tokens < self.capacity:
             delta = self.fill_rate * (now - self.timestamp)
             self._tokens = min(self.capacity, self._tokens + delta)
