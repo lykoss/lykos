@@ -7,16 +7,20 @@ import wolfgame
 def on_privmsg(cli, rawnick, chan, msg):         
     if chan != botconfig.NICK:  #not a PM
         for x in wolfgame.COMMANDS.keys():
-            if msg.lower().startswith(x):
-                h = msg[len(x):]
+            if not x or msg.lower().startswith(botconfig.CMD_CHAR+x):
+                h = msg[len(x)+1:]
                 if not h or h[0] == " " or not x:
                     wolfgame.COMMANDS[x](cli, rawnick, chan, h.lstrip())
     else:
         for x in wolfgame.PM_COMMANDS.keys():
-            if msg.lower().startswith(x):
+            if msg.lower().startswith(botconfig.CMD_CHAR+x):
+                h = msg[len(x)+1:]
+            elif not x or msg.lower().startswith(x):
                 h = msg[len(x):]
-                if not h or h[0] == " " or not x:
-                    wolfgame.PM_COMMANDS[x](cli, rawnick, h.lstrip())
+            else:
+                continue
+            if not h or h[0] == " " or not x:
+                wolfgame.PM_COMMANDS[x](cli, rawnick, h.lstrip())
     
 def __unhandled__(cli, prefix, cmd, *args):
     if cmd in wolfgame.HOOKS.keys():

@@ -57,7 +57,11 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
                   "Under a lot of noise, the pitchfork-bearing villagers lynch \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
                   "The mob drags a protesting \u0002{0}\u0002 to the hanging tree. S/He succumbs to the will of the horde, and is hanged. It is discovered (s)he was a \u0002{1}\u0002.",
                   "Resigned to his/her fate, \u0002{0}\u0002 is led to the gallows. After death, it is discovered (s)he was a \u0002{1}\u0002.")
-                                              
+RULES = ("#wolfgame channel rules: 1) Be nice to others. 2) Do not share information "+
+         "after death. 3) No bots allowed. 4) Do not play with clones.\n"+
+         "5) Do not quit unless you need to leave. 6) No swearing and keep it "+
+         "family-friendly. 7) Do not paste PM's from the bot during the game. "+
+         "8) Use common sense.")                                              
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
