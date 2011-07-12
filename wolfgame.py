@@ -306,8 +306,6 @@ def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
         cli.join(botconfig.CHANNEL)
         cli.kick(chan, nick, "No.")
-    else:
-        print("WHAT", nick, chan, victim, reason)
     
 
 @cmd("stats")
@@ -787,6 +785,7 @@ def begin_day(cli):
         var.DAY_ID = timetime()
         t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID])
         var.TIMERS[1] = t
+        var.TIMERS[1].daemon = True
         t.start()
         
         
@@ -796,16 +795,10 @@ def transition_day(cli, gameid=0):
         if gameid != var.NIGHT_ID:
             return
     var.NIGHT_ID = 0
-    print("Day is starting...")
     var.PHASE = "day"
     var.GOATED = False
     chan = botconfig.CHANNEL
     
-    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
-        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli])
-        var.TIMERS[1] = t
-        t.start()
-
     # Reset daytime variables
     var.VOTES = {}
     var.INVESTIGATED = []
@@ -1091,7 +1084,7 @@ def kill(cli, nick, rest):
     
     
 @pmcmd("guard")
-def kill(cli, nick, rest):
+def guard(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1399,6 +1392,7 @@ def transition_night(cli):
         var.NIGHT_ID = timetime()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
         var.TIMERS[0] = t
+        var.TIMERS[0].daemon = True
         t.start()
 
     # send PMs
@@ -1756,3 +1750,10 @@ def help(cli, rnick, chan, rest):
     cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:
         cli.notice(nick, "Admin Commands: "+", ".join(afns))
+        
+        
+        
+@hook("invite", raw_nick = False, admin_only = True)
+def on_invite(cli, nick, something, chan):
+    cli.join(chan)
+    
