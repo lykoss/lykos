@@ -325,7 +325,7 @@ def stats(cli, nick, chan, rest):
         return
 
     message = []
-    f = False
+    f = False  # set to true after the is/are verb is decided
     l1 = [k for k in var.ROLES.keys()
           if var.ROLES[k]]
     l2 = [k for k in var.ORIGINAL_ROLES.keys()
@@ -335,8 +335,9 @@ def stats(cli, nick, chan, rest):
         if not f and count>1:
             vb = "are"
             f = True
-        else:
+        elif not f:
             vb = "is"
+            f = True
         if count > 1:
             message.append("\u0002{0}\u0002 {1}".format(count, var.plural(role)))
         else:
