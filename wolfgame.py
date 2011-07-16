@@ -729,7 +729,9 @@ def on_nick(cli, prefix, nick):
         return
     
     
-def leave(cli, what, nick):
+def leave(cli, what, nick, why=""):
+    if why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
+        return
     if var.PHASE == "none" and what.startswith(botconfig.CMD_CHAR):
         cli.notice(nick, "No game is currently running.")
         return
@@ -757,11 +759,11 @@ def leave(cli, what, nick):
     cli.msg(botconfig.CHANNEL, msg)
     del_player(cli, nick)
 
-cmd("leave")(lambda cli, nick, *rest: leave(cli, "!leave", nick))
-cmd("quit")(lambda cli, nick, *rest: leave(cli, "!quit", nick))
+cmd("leave")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"leave", nick))
+cmd("quit")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"quit", nick))
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
-hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0]))
+hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0], rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(rest[1])[0]))
 
 
@@ -1193,7 +1195,7 @@ def investigate(cli, nick, rest):
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # Reveal his role!
         for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
-            cli.msg(badguy, ("\0002{0}\0002 accidentally drops a paper. The paper reveals "+
+            cli.msg(badguy, ("\u0002{0}\u0002 accidentally drops a paper. The paper reveals "+
                             "that (s)he is the detective!").format(nick))
     
     

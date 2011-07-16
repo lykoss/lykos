@@ -223,6 +223,7 @@ class IRCClient(object):
             if self.socket: 
                 logging.info('closing socket')
                 self.socket.close()
+                raise SystemExit  # lets exit
     def msg(self, user, msg):
         for line in msg.split('\n'):
             while not self.tokenbucket.consume(1):
