@@ -235,8 +235,12 @@ class IRCClient(object):
             self.send("NOTICE", user, ":{0}".format(line))
     def quit(self, msg):
         self.send("QUIT :{0}".format(msg))
-    def identify(self, passwd, authuser="NickServ"):
-        self.msg(authuser, "IDENTIFY {0}".format(passwd))
+    def ns_identify(self, passwd):
+        self.msg("NickServ", "IDENTIFY {0} {1}".format(self.nickname, passwd))
+    def ns_ghost(self):
+        self.msg("NickServ", "GHOST "+self.nickname)
+    def ns_release(self):
+        self.msg("NickServ", "RELEASE "+self.nickname)
     def user(self, uname, rname):
         self.send("USER", uname, self.host, self.host, 
                  rname or uname)

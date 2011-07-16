@@ -24,18 +24,36 @@ hook = decorators.generate(HOOKS, raw_nick=True)
 # Game Logic Begins:
 
 def connect_callback(cli):
-    cli.identify(botconfig.PASS)
-    cli.join(botconfig.CHANNEL)
-    cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+    cli.ns_identify(botconfig.PASS)
+
+    def prepare_stuff():
+        cli.join(botconfig.CHANNEL)
+        cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+        
+        var.USERS = []    
+        
+        @hook("whoreply")
+        def on_whoreply(cli, server, dunno, chan, dunno1,
+                        cloak, dunno3, user, status, dunno4):
+            if user in var.USERS: return  # Don't add someone who is already there
+            var.USERS.append(user)
+        cli.who(botconfig.CHANNEL)
     
-    var.USERS = []    
-    
-    @hook("whoreply")
-    def on_whoreply(cli, server, dunno, chan, dunno1,
-                    cloak, dunno3, user, status, dunno4):
-        if user in var.USERS: return  # Don't add someone who is already there
-        var.USERS.append(user)
-    cli.who(botconfig.CHANNEL)
+    @hook("nicknameinuse")
+    def mustghost(cli, *blah):
+        cli.nick(botconfig.NICK+"_")
+        cli.ns_identify(botconfig.PASS)
+        cli.ns_ghost()
+        cli.nick(botconfig.NICK)
+        prepare_stuff()
+        
+    @hook("unavailresource")
+    def mustrelease(cli, *blah):
+        cli.nick(botconfig.NICK+"_")
+        cli.ns_identify(botconfig.PASS)
+        cli.ns_release()
+        cli.nick(botconfig.NICK)
+        prepare_stuff()
 
     var.LAST_PING = 0  # time of last ping
     var.ROLES = {"person" : []}
@@ -54,6 +72,7 @@ def connect_callback(cli):
     var.GRAVEYARD = []
     var.GRAVEYARD_LOCK = threading.Lock()
 
+    prepare_stuff()
 
 
 def mass_mode(cli, md):
