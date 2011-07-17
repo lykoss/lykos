@@ -28,7 +28,15 @@ def generate(fdict, **kwargs):
                         return
                 return f(*largs)
             for x in s:
-                fdict[x] = innerf
+                if x not in fdict.keys():
+                    fdict[x] = []
+                else:
+                    for fn in fdict[x]:
+                        if (fn.owner_only != owner_only or
+                            fn.admin_only != admin_only):
+                            raise Exception("Command: "+x+" has non-matching protection levels!")
+                            
+                fdict[x].append(innerf)
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick
             innerf.admin_only = admin_only

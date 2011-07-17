@@ -307,10 +307,14 @@ def fleave(cli, nick, chan, rest):
         elif a.lower() not in pll:
             cli.msg(chan, nick+": That could not be done.")
 
+            
+            
 @cmd("fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     start(cli, nick, chan, rest)
+    
+    
     
 @cmd("chankick", admin_only=True)
 def chankick(cli, nick, chan, rest):
@@ -320,12 +324,16 @@ def chankick(cli, nick, chan, rest):
     else:
         cli.kick(chan, nick, "No.")
         
+        
+        
 @hook("kick")
 def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
         cli.join(botconfig.CHANNEL)
-        cli.kick(chan, nick, "No.")
-    
+        cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+        #  cli.kick(chan, nick, "No.")
+        
+        
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
@@ -669,6 +677,8 @@ def on_join(cli, raw_nick, chan):
     nick = parse_nick(raw_nick)[0]
     if nick not in var.USERS and nick != botconfig.NICK:
         var.USERS.append(nick)
+    #if nick in var.list_players():
+    #    cli.mode(chan, "+v", nick, nick+"!*@*") needed?
     
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -749,7 +759,7 @@ def on_nick(cli, prefix, nick):
     
     
 def leave(cli, what, nick, why=""):
-    if why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
+    if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none" and what.startswith(botconfig.CMD_CHAR):
         cli.notice(nick, "No game is currently running.")
@@ -1315,17 +1325,19 @@ def forcepm(cli, nick, chan, rest):
         cli.msg(chan, "That won't work.")
         return
     if not is_fake_nick(who):
-            if who not in var.USERS:
-                cli.msg(chan, "This can only be done on fake nicks.")
-                return
+        if who not in var.USERS:
+            cli.msg(chan, "This can only be done on fake nicks.")
+            return
     cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-    if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd].owner_only:
-        PM_COMMANDS[cmd](cli, who, " ".join(rst))
+    if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
+        for fn in PM_COMMANDS[cmd]:
+            fn(cli, who, " ".join(rst))
         cli.msg(chan, "Operation successful.")
         #if var.PHASE == "night":   <-  Causes problems with night starting twice.
         #    chk_nightdone(cli)
-    elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd].owner_only:
-        COMMANDS[cmd](cli, who, chan, " ".join(rst))
+    elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
+        for fn in COMMANDS[cmd]:
+            fn(cli, who, chan, " ".join(rst))
         cli.msg(chan, "Operation successful.")
     else:
         cli.msg(chan, "That command was not found.")
@@ -1496,6 +1508,8 @@ def transition_night(cli):
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning."))
+                   
+    cli.msg(chan, "DEBUG: "+str(var.ROLES))
     if not var.ROLES["wolf"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
@@ -1762,12 +1776,12 @@ def help(cli, rnick, chan, rest):
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
     for name, fn in COMMANDS.items():
-        if name and not fn.admin_only and not fn.owner_only:
+        if name and not fn[0].admin_only and not fn[0].owner_only:
             fns.append("\u0002"+name+"\u0002")
     afns = []
     if cloak in botconfig.ADMINS:
         for name, fn in COMMANDS.items():
-            if fn.admin_only:
+            if fn[0].admin_only:
                 afns.append("\u0002"+name+"\u0002")
     cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:
