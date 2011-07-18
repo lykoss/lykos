@@ -1379,6 +1379,26 @@ def see(cli, nick, rest):
 
 
 
+@hook("featurelist")
+def getfeatures(cli, nick, *rest):
+    var.MAX_PRIVMSG_TARGETS = 1
+    for r in rest:
+        if r.startswith("TARGMAX="):
+            x = r[r.index("PRIVMSG:"):]
+            if "," in x:
+                l = x[x.index(":")+1:x.index(",")]
+            else:
+                l = x[x.index(":")+1:]
+            l = l.strip()
+            if not l or not l.isdigit():
+                continue
+            else:
+                var.MAX_PRIVMSG_TARGETS = int(l)
+                break
+    
+    
+    
+    
 @pmcmd("")
 def relay(cli, nick, rest):
     if var.PHASE != "night":
@@ -1387,8 +1407,14 @@ def relay(cli, nick, rest):
     if len(badguys) > 1:
         if nick in badguys:
             badguys.remove(nick)  #  remove self from list
-            for badguy in badguys:
-                cli.msg(badguy, "{0} says: {1}".format(nick, rest))
+            while badguys:
+                if len(badguys) <= var.MAX_PRIVMSG_TARGETS:
+                    bgs = ",".join(badguys)
+                    badguys = []
+                else:
+                    bgs = ",".join(badguys[0:var.MAX_PRIVMSG_TARGETS])
+                    badguys = badguys[var.MAX_PRIVMSG_TARGETS:]
+                cli.msg(bgs, "{0} says: {1}".format(nick, rest))
 
 
 
