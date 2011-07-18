@@ -817,6 +817,7 @@ def begin_day(cli):
     
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
+    var.ACTED_WOLVES = set()
     var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
@@ -863,7 +864,7 @@ def transition_day(cli, gameid=0):
     dead = []
     crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"]
     for crow, target in iter(var.OBSERVED.items()):
-        if target in var.ROLES["harlot"]+var.ROLES["seer"]:
+        if target in list(var.HVISITED.keys())+var.SEEN+list(var.GUARDED.keys()):
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed at night, and you fly back to your house.").format(target))
         elif target not in var.ROLES["village drunk"]:
@@ -939,13 +940,11 @@ def transition_day(cli, gameid=0):
     
 
 def chk_nightdone(cli):
-    if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
-        len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
-            (var.VICTIM or 
-                (var.ROLES["werecrow"] == 1 and  # Wolves have done their stuff
-                    not var.ROLES["wolf"] and var.OBSERVED) or
-            (not var.ROLES["wolf"] + var.ROLES["werecrow"])) and
-         var.PHASE == "night"):  # no wolves
+    if (len(var.SEEN) >= len(var.ROLES["seer"]) and  # Seers have seen.
+        len(var.HVISITED.keys()) >= len(var.ROLES["harlot"]) and  # harlots have visited.
+        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]) and  # guardians have guarded
+        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) >= len(var.ACTED_WOLVES) and
+        var.PHASE == "night"):
         if var.TIMERS[0]:
             if var.TIMERS[0].is_alive():
                 return
@@ -1127,6 +1126,7 @@ def kill(cli, nick, rest):
         return
     var.VICTIM = pl[pll.index(victim)]
     cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(var.VICTIM))
+    var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
     
     
@@ -1199,6 +1199,7 @@ def observe(cli, nick, rest):
         cli.msg(nick, "Flying to another wolf's house is a waste of time.")
         return
     var.OBSERVED[nick] = victim
+    var.ACTED_WOLVES.add(nick)
     cli.msg(nick, ("You transform into a large crow and start your flight "+
                    "to \u0002{0}'s\u0002 house. You will return after "+
                   "collecting your observations when day begins.").format(victim))
@@ -1445,6 +1446,7 @@ def transition_night(cli):
 
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
+    var.ACTED_WOLVES = set()
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
