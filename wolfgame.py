@@ -69,8 +69,7 @@ def connect_callback(cli):
     var.LAST_SAID_TIME = {}
     
     var.GAME_START_TIME = datetime.now()  # for idle checker only
-    var.GRAVEYARD = []
-    var.GRAVEYARD_LOCK = threading.Lock()
+    var.GRAVEYARD_LOCK = threading.RLock()
 
     prepare_stuff()
 
@@ -111,6 +110,7 @@ def reset(cli):
     if var.TIMERS[1]:
         var.TIMERS[1].cancel()
         var.TIMERS[1] = None
+    var.GAME_ID = 0
 
     cli.mode(chan, "-m")
     cmodes = []
@@ -565,110 +565,107 @@ def del_player(cli, nick, forced_death = False):
     Returns: False if one side won.
     arg: forced_death = True when lynched.
     """
-
-    cmode = []
-    cmode.append(("-v", nick))
-    var.del_player(nick)
-    ret = True
-    if var.PHASE == "join":
-        # Died during the joining process as a person
-        mass_mode(cli, cmode)
-        return not chk_win(cli)
-    if var.PHASE != "join" and ret:
-        # Died during the game, so quiet!
-        if not is_fake_nick(nick):
-            cmode.append(("+q", nick))
-        mass_mode(cli, cmode)
-        var.DEAD.append(nick)
-        ret = not chk_win(cli)
-    if var.PHASE in ("night", "day") and ret:
-        # remove him from variables if he is in there
-        if var.VICTIM == nick:
-            var.VICTIM = ""
-        for x in (var.OBSERVED, var.HVISITED, var.GUARDED):
-            keys = list(x.keys())
-            for k in keys:
-                if k == nick:
-                    del x[k]
-                elif x[k] == nick:
-                    del x[k]
-        if nick in var.GUNNERS.keys():
-            del var.GUNNERS[nick]
-        if nick in var.CURSED:
-            var.CURSED.remove(nick)
-    if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
-        if nick in var.VOTES.keys():
-            del var.VOTES[nick]  #  Delete his votes
-        for k in var.VOTES.keys():
-            if nick in var.VOTES[k]:
-                var.VOTES[k].remove(nick)
-        chk_decision(cli)
-    return ret
+    t = timetime()  #  time
+    with var.GRAVEYARD_LOCK:
+        if not var.GAME_ID or var.GAME_ID > t:
+            #  either game ended, or a new game has started.
+            return False
+        cmode = []
+        cmode.append(("-v", nick))
+        var.del_player(nick)
+        ret = True
+        if var.PHASE == "join":
+            # Died during the joining process as a person
+            mass_mode(cli, cmode)
+            return not chk_win(cli)
+        if var.PHASE != "join" and ret:
+            # Died during the game, so quiet!
+            if not is_fake_nick(nick):
+                cmode.append(("+q", nick))
+            mass_mode(cli, cmode)
+            var.DEAD.append(nick)
+            ret = not chk_win(cli)
+        if var.PHASE in ("night", "day") and ret:
+            # remove him from variables if he is in there
+            if var.VICTIM == nick:
+                var.VICTIM = ""
+            for x in (var.OBSERVED, var.HVISITED, var.GUARDED):
+                keys = list(x.keys())
+                for k in keys:
+                    if k == nick:
+                        del x[k]
+                    elif x[k] == nick:
+                        del x[k]
+            if nick in var.GUNNERS.keys():
+                del var.GUNNERS[nick]
+            if nick in var.CURSED:
+                var.CURSED.remove(nick)
+        if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
+            if nick in var.VOTES.keys():
+                del var.VOTES[nick]  #  Delete his votes
+            for k in var.VOTES.keys():
+                if nick in var.VOTES[k]:
+                    var.VOTES[k].remove(nick)
+            chk_decision(cli)
+        return ret
     
     
 @hook("ping")
 def on_ping(cli, prefix, server):
-    cli.send('PONG', server)  
-    check_graveyard(cli)
+    cli.send('PONG', server)      
+
     
     
-def reaper(cli):
+def reaper(cli, gameid):
     # check to see if idlers need to be killed.
-    var.IDLE_KILLED = []
     var.IDLE_WARNED = []
     
     if not var.WARN_IDLE_TIME or not var.KILL_IDLE_TIME:
         return
     
-    while var.PHASE != "none":
-        to_warn = []
-        for nick in var.list_players():
-            lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
-            tdiff = datetime.now() - lst
-            if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and 
-                                    nick not in var.IDLE_WARNED):
-                to_warn.append(nick)
-                var.IDLE_WARNED.append(nick)
-                var.LAST_SAID_TIME[nick] = (datetime.now() - 
-                    timedelta(seconds=var.KILL_IDLE_TIME))  # Give him a chance
-            elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                nick not in var.IDLE_KILLED):
-                with var.GRAVEYARD_LOCK:
-                    var.GRAVEYARD.append(("kill",nick))
-                    var.IDLE_KILLED.append(nick)
-        if to_warn:
-            with var.GRAVEYARD_LOCK:
-                var.GRAVEYARD.append(("warn", to_warn))
-        sleep(10)
-            
-    
-    
-def check_graveyard(cli):
-    if not var.GRAVEYARD: return
-    chan = botconfig.CHANNEL
-    with var.GRAVEYARD_LOCK:
-        for action, x in var.GRAVEYARD:
-            if action=="kill":
-                if x not in var.list_players():
+    while gameid == var.GAME_ID:
+        with var.GRAVEYARD_LOCK:
+            to_warn = []
+            to_kill = []
+            for nick in var.list_players():
+                lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
+                tdiff = datetime.now() - lst
+                if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and 
+                                        nick not in var.IDLE_WARNED):
+                    to_warn.append(nick)
+                    var.IDLE_WARNED.append(nick)
+                    var.LAST_SAID_TIME[nick] = (datetime.now() - 
+                        timedelta(seconds=var.WARN_IDLE_TIME))  # Give him a chance
+                elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
+                    nick in var.IDLE_WARNED):
+                    to_kill.append(nick)
+                    print("WILL KILL "+nick)
+                elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
+                    nick in var.IDLE_WARNED):
+                    var.IDLE_WARNED.remove(nick)  # he saved himself from death
+            chan = botconfig.CHANNEL
+            for nck in to_kill:
+                if nck not in var.list_players():
                     continue
                 cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
                     "for a very long time. S/He is declared dead. Appears "+
-                    "(s)he was a \u0002{1}\u0002").format(x, var.get_role(x)))
-                del_player(cli, x)
-            elif action=="warn":
-                pl = var.list_players()
-                x = [a for a in x if a in pl]
+                    "(s)he was a \u0002{1}\u0002").format(nck, var.get_role(nck)))
+                if not del_player(cli, nck):
+                    return
+            pl = var.list_players()
+            x = [a for a in to_warn if a in pl]
+            if x:
                 cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
-                              "Please remember to say something soon or you "+
-                              "might be declared dead.\u0002").format(", ".join(x)))
-        var.GRAVEYARD = []
+                               "Please remember to say something soon or you "+
+                               "might be declared dead.\u0002").format(", ".join(x)))
+        sleep(10)    
+    
     
     
 @cmd("")  # update last said
 def update_last_said(cli, nick, *rest):
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[nick] = datetime.now()
-        check_graveyard(cli)
     
 
     
@@ -1647,7 +1644,8 @@ def start(cli, nick, chan, rest):
         transition_day(cli)
     
     # DEATH TO IDLERS!
-    reapertimer = threading.Thread(None, reaper, args=(cli,))
+    var.GAME_ID = timetime()
+    reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
     reapertimer.daemon = True
     reapertimer.start()
 

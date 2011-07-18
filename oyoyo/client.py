@@ -1,4 +1,4 @@
-# Copyright (c) 2008 Duncan Fordyce
+# Copyright (c) 2011 Duncan Fordyce, Jimmy Cao
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -18,11 +18,11 @@
 import logging
 import socket
 import time
+import threading
+import traceback
 
 from oyoyo.parse import parse_raw_irc_command
 
-class IRCClientError(Exception):
-    pass
     
 
 # Adapted from http://code.activestate.com/recipes/511490-implementation-of-the-token-bucket-algorithm/
@@ -107,6 +107,7 @@ class IRCClient(object):
         self.port = None
         self.connect_cb = None
         self.blocking = True
+        self.lock = threading.RLock()
         self.tokenbucket = TokenBucket(3, 1.63)
 
         self.__dict__.update(kwargs)
@@ -128,25 +129,26 @@ class IRCClient(object):
           str they will be converted to bytes with the encoding specified by the
           'encoding' keyword argument (default 'utf8'). 
         """
-        # Convert all args to bytes if not already
-        encoding = kwargs.get('encoding') or 'utf_8'
-        bargs = []
-        for i,arg in enumerate(args):
-            if isinstance(arg, str):
-                bargs.append(bytes(arg, encoding))
-            elif isinstance(arg, bytes):
-                bargs.append(arg)
-            elif arg is None:
-                continue
-            else:
-                raise Exception(('Refusing to send arg at index {1} of the args from '+
-                                 'provided: {0}').format(repr([(type(arg), arg)
-                                                               for arg in args]), i))
+        with self.lock:
+            # Convert all args to bytes if not already
+            encoding = kwargs.get('encoding') or 'utf_8'
+            bargs = []
+            for i,arg in enumerate(args):
+                if isinstance(arg, str):
+                    bargs.append(bytes(arg, encoding))
+                elif isinstance(arg, bytes):
+                    bargs.append(arg)
+                elif arg is None:
+                    continue
+                else:
+                    raise Exception(('Refusing to send arg at index {1} of the args from '+
+                                     'provided: {0}').format(repr([(type(arg), arg)
+                                                                   for arg in args]), i))
 
-        msg = bytes(" ", "utf_8").join(bargs)
-        logging.info('---> send "{0}"'.format(msg))
+            msg = bytes(" ", "utf_8").join(bargs)
+            logging.info('---> send "{0}"'.format(msg))
 
-        self.socket.send(msg + bytes("\r\n", "utf_8"))
+            self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):
         """ initiates the connection to the server set in self.host:self.port 
@@ -214,9 +216,8 @@ class IRCClient(object):
                                 self.command_handler[command](self, prefix,*largs)
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, prefix, command, *largs)
-                        finally:
-                            # error will of already been logged by the handler
-                            pass 
+                        except Exception as e:
+                            traceback.print_exc() 
 
                 yield True
         finally:

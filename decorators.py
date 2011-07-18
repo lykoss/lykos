@@ -35,7 +35,6 @@ def generate(fdict, **kwargs):
                         if (fn.owner_only != owner_only or
                             fn.admin_only != admin_only):
                             raise Exception("Command: "+x+" has non-matching protection levels!")
-                            
                 fdict[x].append(innerf)
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick

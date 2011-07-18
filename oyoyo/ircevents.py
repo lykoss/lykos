@@ -1,4 +1,4 @@
-# Copyright (c) 2008 Duncan Fordyce
+# Copyright (c) 2011 Duncan Fordyce, Jimmy Cao
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
@@ -15,8 +15,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-# taken from python irclib.. who took it from...
-# Numeric table mostly stolen from the Perl IRC module (Net::IRC).
 numeric_events = {
     b"001": "welcome",
     b"002": "yourhost",
