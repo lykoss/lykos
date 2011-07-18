@@ -217,7 +217,8 @@ class IRCClient(object):
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, prefix, command, *largs)
                         except Exception as e:
-                            traceback.print_exc() 
+                            traceback.print_exc()
+                            raise e  # ?
 
                 yield True
         finally:

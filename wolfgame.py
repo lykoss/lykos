@@ -868,7 +868,7 @@ def transition_day(cli, gameid=0):
                     wc.remove(crow)
             deadwolf = random.choice(var.ROLES["wolf"]+wc)
             message.append(("The wolves made the fortunate mistake of attacking "+
-                            "the gunner last night, and \2{0}\2, a wolf,"+
+                            "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
                             " was shot dead.").format(deadwolf))
             dead.append(deadwolf)
             var.VICTIM = ""
