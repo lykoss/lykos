@@ -18,6 +18,7 @@
 # THE SOFTWARE.
 
 
+
 from oyoyo.client import IRCClient
 from oyoyo.parse import parse_nick
 import logging
