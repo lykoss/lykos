@@ -269,6 +269,7 @@ def fpinger(cli, nick, chan, rest):
 
 @cmd("join")
 def join(cli, nick, chan, rest):
+    """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     pl = var.list_players()
     if var.PHASE == "none":
         cli.mode(chan, "+v", nick, nick+"!*@*")
@@ -355,6 +356,7 @@ def on_kicked(cli, nick, chan, victim, reason):
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
+    """Display the player statistics"""
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -459,6 +461,7 @@ def chk_decision(cli):
 
 @cmd("votes")
 def show_votes(cli, nick, chan, rest):
+    """Displays the voting statistics."""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -697,6 +700,7 @@ def on_join(cli, raw_nick, chan):
     
 @cmd("goat")
 def goat(cli, nick, chan, rest):
+    """Use a goat to interact with anyone in the channel during the day"""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
