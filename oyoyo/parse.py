@@ -20,7 +20,7 @@ import logging
 from oyoyo.ircevents import generated_events, protocol_events,\
                             all_events, numeric_events
 
-# avoiding regex
+# avoiding regex somewhat
 def parse_raw_irc_command(element):
     """
     This function parses a raw irc command and returns a tuple
