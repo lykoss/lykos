@@ -1145,7 +1145,7 @@ def guard(cli, nick, rest):
         cli.msg(nick, "You may not guard yourself.")
         return
     var.GUARDED[nick] = pl[pll.index(victim)]
-    cli.msg(nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.VICTIM))
+    cli.msg(nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
     cli.msg(victim, "You can sleep well tonight, for a guardian angel is protecting you.")
     chk_nightdone(cli)
 
