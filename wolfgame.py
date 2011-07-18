@@ -258,6 +258,7 @@ def join(cli, nick, chan, rest):
         var.ROLES["person"].append(nick)
         var.PHASE = "join"
         var.WAITED = 0
+        var.GAME_ID = timetime()
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
@@ -1670,7 +1671,6 @@ def start(cli, nick, chan, rest):
         transition_day(cli)
     
     # DEATH TO IDLERS!
-    var.GAME_ID = timetime()
     reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
     reapertimer.daemon = True
     reapertimer.start()
