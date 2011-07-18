@@ -39,6 +39,7 @@ def generate(fdict, **kwargs):
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick
             innerf.admin_only = admin_only
+            innerf.__doc__ = f.__doc__
             return innerf
             
         return dec

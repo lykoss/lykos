@@ -1818,10 +1818,25 @@ def pm_rules(cli, nick, rest):
     cli.msg(nick, var.RULES)
     
     
-@cmd("help", raw_nick = True)
-def help(cli, rnick, chan, rest):
+@pmcmd("help", raw_nick = True)
+def help(cli, rnick, rest):
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
+    
+    cname = rest.strip().replace(botconfig.CMD_CHAR, "").lower()
+    if cname:
+        for c in (COMMANDS,PM_COMMANDS):
+            if cname in c.keys():
+                for fn in c[cname]:
+                    if fn.__doc__:
+                        cli.notice(nick, fn.__doc__)
+                        return
+                    else:
+                        continue
+                else:
+                    cli.notice(nick, "No documentation is available for this function.")
+                return
+        cli.notice(nick, "Command not found.")
     for name, fn in COMMANDS.items():
         if name and not fn[0].admin_only and not fn[0].owner_only:
             fns.append("\u0002"+name+"\u0002")
@@ -1833,6 +1848,12 @@ def help(cli, rnick, chan, rest):
     cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:
         cli.notice(nick, "Admin Commands: "+", ".join(afns))
+
+
+
+@cmd("help", raw_nick = True)
+def help2(cli, nick, chan, rest):
+    help(cli, nick, rest)
         
         
         
