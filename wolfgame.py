@@ -559,7 +559,10 @@ def chk_win(cli):
 
     roles_msg = []
     var.ORIGINAL_ROLES["cursed villager"] = var.CURSED
-    for role in var.ORIGINAL_ROLES.keys():
+    lroles = list(var.ORIGINAL_ROLES.keys())
+    lroles.remove("wolf")
+    lroles.insert(0, "wolf")   # picky, howl consistency
+    for role in lroles:
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == "villager":
             continue
         elif len(var.ORIGINAL_ROLES[role]) == 2:
