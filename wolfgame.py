@@ -515,12 +515,12 @@ def chk_win(cli):
     if var.PHASE == "join":
         return False
     elif (len(var.ROLES["wolf"])+
-          len(var.ROLES["traitor"])+
+          #len(var.ROLES["traitor"])+   Apparently not.
           len(var.ROLES["werecrow"])) == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
     elif (len(var.ROLES["wolf"])+
-          len(var.ROLES["traitor"])+
+          #len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
@@ -1556,7 +1556,7 @@ def transition_night(cli):
                    "If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning."))
                    
-    cli.msg(chan, "DEBUG: "+str(var.ROLES))
+    # cli.msg(chan, "DEBUG: "+str(var.ROLES))
     if not var.ROLES["wolf"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
@@ -1816,6 +1816,10 @@ def reset_game(cli, nick, chan, rest):
 @pmcmd("rules")
 def pm_rules(cli, nick, rest):
     cli.msg(nick, var.RULES)
+    
+@cmd("rules")
+def show_rules(cli, nick, chan, rest):
+    cli.msg(chan, var.RULES)
     
     
 @pmcmd("help", raw_nick = True)
