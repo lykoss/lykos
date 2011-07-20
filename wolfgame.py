@@ -1905,12 +1905,14 @@ def on_invite(cli, nick, something, chan):
     
 @cmd("admins")
 def show_admins(cli, nick, chan, rest):
+    """Pings the admins that are available."""
     admins = []
 
     @hook("whoreply")
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
-        if cloak in botconfig.ADMINS and 'G' not in status and user != botconfig.NICK:
+        if (cloak in botconfig.ADMINS and 'G' not in status and 
+            user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
 
 
