@@ -238,7 +238,6 @@ def pinger(cli, nick, chan, rest):
 
         if (var.PINGING and 'G' not in status and 
             '+' not in status and cloak not in var.AWAY):
-            # TODO: check if the user has AWAY'D himself
             TO_PING.append(user)
 
 
@@ -868,6 +867,14 @@ def transition_day(cli, gameid=0):
     var.GOATED = False
     chan = botconfig.CHANNEL
     
+    if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT:
+        cli.msg(botconfig.CHANNEL, ("The \u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
+                                    "were both found dead in their beds.").format(var.ROLES["wolf"][0],
+                                                                                  var.ROLES["seer"][0]))
+        for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
+            del_player(cli, x)  # kill them.
+        chk_win(cli)  # force to end 
+    
     # Reset daytime variables
     var.VOTES = {}
     var.INVESTIGATED = []
@@ -1464,6 +1471,8 @@ def transition_night(cli):
     if var.TIMERS[1]:  # cancel daytime-limit timer
         var.TIMERS[1].cancel()
         var.TIMERS[1] = None
+    
+    var.FIRST_NIGHT = (var.ROLES == var.ORIGINAL_ROLES)
 
     # Reset nighttime variables
     var.VICTIM = ""  # nickname of kill victim
@@ -1850,14 +1859,14 @@ def help(cli, rnick, rest):
             if cname in c.keys():
                 for fn in c[cname]:
                     if fn.__doc__:
-                        cli.notice(nick, fn.__doc__)
+                        cli.msg(nick, fn.__doc__)
                         return
                     else:
                         continue
                 else:
-                    cli.notice(nick, "No documentation is available for this function.")
+                    cli.msg(nick, "No documentation is available for this function.")
                 return
-        cli.notice(nick, "Command not found.")
+        cli.msg(nick, "Command not found.")
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
         if name and not fn[0].admin_only and not fn[0].owner_only:
