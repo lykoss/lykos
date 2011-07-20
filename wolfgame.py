@@ -261,6 +261,7 @@ def pinger(cli, nick, chan, rest):
 @cmd("back", raw_nick=True)
 @pmcmd("back", raw_nick=True)
 def away(cli, nick, *rest):
+    """Use this to add yourself to the no-ping list."""
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
@@ -793,6 +794,7 @@ def on_nick(cli, prefix, nick):
     
     
 def leave(cli, what, nick, why=""):
+    """Exit the game."""
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none" and what.startswith(botconfig.CMD_CHAR):
@@ -1856,6 +1858,7 @@ def help(cli, rnick, rest):
                     cli.notice(nick, "No documentation is available for this function.")
                 return
         cli.notice(nick, "Command not found.")
+    # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
         if name and not fn[0].admin_only and not fn[0].owner_only:
             fns.append("\u0002"+name+"\u0002")
@@ -1872,8 +1875,10 @@ def help(cli, rnick, rest):
 
 @cmd("help", raw_nick = True)
 def help2(cli, nick, chan, rest):
-    help(cli, nick, rest)
-        
+    if rest.strip():  # command was given
+        help(cli, chan, rest)
+    else:
+        help(cli, nick, rest)
         
         
 @hook("invite", raw_nick = False, admin_only = True)
