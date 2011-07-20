@@ -874,6 +874,7 @@ def transition_day(cli, gameid=0):
         for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
             del_player(cli, x)  # kill them.
         chk_win(cli)  # force to end 
+        return
     
     # Reset daytime variables
     var.VOTES = {}
