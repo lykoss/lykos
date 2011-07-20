@@ -747,6 +747,12 @@ def on_nick(cli, prefix, nick):
         var.USERS.remove(prefix)
         var.USERS.append(nick)
         
+    opl = []
+    for k,v in var.ORIGINAL_ROLES.items():
+        if prefix in v:
+            var.ORIGINAL_ROLES[k].remove(prefix)
+            var.ORIGINAL_ROLES[k].append(nick)
+            break
         
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
