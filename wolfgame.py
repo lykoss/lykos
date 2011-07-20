@@ -232,11 +232,12 @@ def pinger(cli, nick, chan, rest):
 
     @hook("whoreply")
     def on_whoreply(cli, server, dunno, chan, dunno1,
-                    dunno2, dunno3, user, status, dunno4):
+                    cloak, dunno3, user, status, dunno4):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if var.PINGING and 'G' not in status and '+' not in status:
+        if (var.PINGING and 'G' not in status and 
+            '+' not in status and cloak not in var.AWAY):
             # TODO: check if the user has AWAY'D himself
             TO_PING.append(user)
 
@@ -253,10 +254,21 @@ def pinger(cli, nick, chan, rest):
         HOOKS.pop("endofwho")
 
     cli.who(chan)
+    
 
-
-
-#def chk_bed
+@cmd("away", raw_nick=True)
+@pmcmd("away", raw_nick=True)
+@cmd("back", raw_nick=True)
+@pmcmd("back", raw_nick=True)
+def away(cli, nick, *rest):
+    cloak = parse_nick(nick)[3]
+    nick = parse_nick(nick)[0]
+    if cloak in var.AWAY:
+        var.AWAY.remove(cloak)
+        cli.notice(nick, "You are now no longer marked as away.")
+        return
+    var.AWAY.append(cloak)
+    cli.notice(nick, "You are now marked as away.")
     
     
     
