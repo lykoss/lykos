@@ -350,6 +350,9 @@ def fstart(cli, nick, chan, rest):
 @cmd("chankick", admin_only=True)
 def chankick(cli, nick, chan, rest):
     rest = rest.split(" ", 1)
+    if not rest[0]:
+        cli.notice(nick, "Invalid syntax for this command.")
+        return
     if rest[0] != botconfig.NICK:
         cli.kick(chan, *rest)
     else:
