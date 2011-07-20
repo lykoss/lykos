@@ -1895,3 +1895,26 @@ def help2(cli, nick, chan, rest):
 def on_invite(cli, nick, something, chan):
     cli.join(chan)
     
+    
+    
+@cmd("admins")
+def show_admins(cli, nick, chan, rest):
+    admins = []
+
+    @hook("whoreply")
+    def on_whoreply(cli, server, dunno, chan, dunno1,
+                    cloak, dunno3, user, status, dunno4):
+        if cloak in botconfig.ADMINS and 'G' not in status and user != botconfig.NICK:
+            admins.append(user)
+
+
+
+    @hook("endofwho")
+    def show(*args):
+        cli.msg(chan, "Available admins: "+" ".join(admins))
+
+        HOOKS.pop("whoreply")  # todo, makes this better :(
+        HOOKS.pop("endofwho")
+
+    cli.who(chan)
+    
