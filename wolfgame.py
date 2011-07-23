@@ -324,7 +324,8 @@ def fjoin(cli, nick, chan, rest):
                                     "or people in this channel for now."))
                 noticed = True
                 continue
-        a = var.USERS[ull.index(a.lower())]
+        if not is_fake_nick(a):
+            a = var.USERS[ull.index(a.lower())]
         if a != botconfig.NICK:
             join(cli, a.strip(), chan, "")
         else:
