@@ -410,10 +410,10 @@ def stats(cli, nick, chan, rest):
         elif not f:
             vb = "is"
             f = True
-        if count > 1:
-            message.append("\u0002{0}\u0002 {1}".format(count, var.plural(role)))
+        if count > 1 or count == 0:
+            message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
-            message.append("\u0002{0}\u0002 {1}".format(count if count else "no", role))
+            message.append("\u0002{0}\u0002 {1}".format(count, role))
     cli.msg(chan, "{0}: There {3} {1}, and {2}.".format(nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
