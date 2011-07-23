@@ -232,11 +232,11 @@ class IRCClient(object):
     def notice(self, user, msg):
         for line in msg.split('\n'):
             self.send("NOTICE", user, ":{0}".format(line))
-    def quit(self, msg):
+    def quit(self, msg=""):
         self.send("QUIT :{0}".format(msg))
-    def part(self, chan, msg):
+    def part(self, chan, msg=""):
         self.send("PART {0} :{1}".format(chan, msg))
-    def kick(self, chan, nick, msg):
+    def kick(self, chan, nick, msg=""):
         self.send("KICK", chan, nick, ":"+msg)
     def ns_identify(self, passwd):
         self.msg("NickServ", "IDENTIFY {0} {1}".format(self.nickname, passwd))
