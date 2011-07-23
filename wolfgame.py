@@ -74,6 +74,7 @@ def connect_callback(cli):
 
     var.LAST_PING = 0  # time of last ping
     var.ROLES = {"person" : []}
+    var.ORIGINAL_ROLES = {}
     var.PHASE = "none"  # "join", "day", or "night"
     var.TIMERS = [None, None]
     var.DEAD = []
@@ -979,14 +980,12 @@ def transition_day(cli, gameid=0):
     
 
 def chk_nightdone(cli):
-    if (len(var.SEEN) >= len(var.ROLES["seer"]) and  # Seers have seen.
-        len(var.HVISITED.keys()) >= len(var.ROLES["harlot"]) and  # harlots have visited.
-        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) >= len(var.ACTED_WOLVES) and
+    if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
+        len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
+        len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
+        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.ACTED_WOLVES) and
         var.PHASE == "night"):
         if var.TIMERS[0]:
-            if var.TIMERS[0].is_alive():
-                return
             var.TIMERS[0].cancel()  # cancel timer
             var.TIMERS[0] = None
         if var.PHASE == "night":  # Double check
@@ -1413,6 +1412,7 @@ def see(cli, nick, rest):
         return
     if nick in var.SEEN:
         cli.msg(nick, "You may only have one vision per round.")
+        return
     victim = re.split("\s+",rest)[0].strip().lower()
     pl = var.list_players()
     pll = [x.lower() for x in pl]
