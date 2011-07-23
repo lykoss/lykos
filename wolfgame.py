@@ -47,13 +47,15 @@ def connect_callback(cli):
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
-        var.USERS = []    
+        var.USERS = []
+        var.CLOAKS = []
         
         @hook("whoreply")
         def on_whoreply(cli, server, dunno, chan, dunno1,
                         cloak, dunno3, user, status, dunno4):
             if user in var.USERS: return  # Don't add someone who is already there
             var.USERS.append(user)
+            var.CLOAKS.append(cloak)
         cli.who(botconfig.CHANNEL)
     
     @hook("nicknameinuse")
@@ -720,9 +722,10 @@ def update_last_said(cli, nick, *rest):
     
 @hook("join")
 def on_join(cli, raw_nick, chan):
-    nick = parse_nick(raw_nick)[0]
+    nick,m,u,cloak = parse_nick(raw_nick)
     if nick not in var.USERS and nick != botconfig.NICK:
         var.USERS.append(nick)
+        var.CLOAKS.append(cloak)
     #if nick in var.list_players():
     #    cli.mode(chan, "+v", nick, nick+"!*@*") needed?
     
@@ -750,7 +753,7 @@ def goat(cli, nick, chan, rest):
     
 @hook("nick")
 def on_nick(cli, prefix, nick):
-    prefix = parse_nick(prefix)[0]
+    prefix,u,m,cloak = parse_nick(prefix)
     
     if prefix in var.DENIED_SETTINGS_CHANGE:
         var.DENIED_SETTINGS_CHANGE.append(nick)
@@ -758,7 +761,9 @@ def on_nick(cli, prefix, nick):
         
     if prefix in var.USERS:
         var.USERS.remove(prefix)
+        var.CLOAKS.remove(cloak)
         var.USERS.append(nick)
+        var.CLOAKS.append(cloak)
         
     opl = []
     for k,v in var.ORIGINAL_ROLES.items():
@@ -886,7 +891,7 @@ def transition_day(cli, gameid=0):
     var.GOATED = False
     chan = botconfig.CHANNEL
     
-    if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT:
+    if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT and var.ROLES["seer"]:
         cli.msg(botconfig.CHANNEL, ("The \u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
                                     "were both found dead in their beds.").format(var.ROLES["wolf"][0],
                                                                                   var.ROLES["seer"][0]))
@@ -1947,3 +1952,19 @@ def show_admins(cli, nick, chan, rest):
 
     cli.who(chan)
     
+    
+@cmd("admin", owner_only=True)
+def make_admin(cli, nick, chan, rest):
+    """Temporarily"""
+    rst = re.split("\s+",rest)
+    if len(rst) < 1:
+        cli.msg(chan, "The syntax is incorrect.")
+        return
+    who = rst.pop(0).strip()
+    ull = [u.lower() for u in var.USERS]
+    if who.lower() not in ull:
+        cli.msg(chan, "Could not be done.")
+        return
+    who = var.CLOAKS[ull.index(who.lower())]
+    botconfig.ADMINS = botconfig.ADMINS + (who,)
+    cli.msg(chan, "Operation successful.")
