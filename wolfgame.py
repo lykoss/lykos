@@ -88,6 +88,7 @@ def connect_callback(cli):
     
     var.GAME_START_TIME = datetime.now()  # for idle checker only
     var.GRAVEYARD_LOCK = threading.RLock()
+    var.GAME_ID = 0
 
     prepare_stuff()
 
@@ -1337,12 +1338,14 @@ def frole(cli, nick, chan, rest):
         cli.msg(chan, "The syntax is incorrect.")
     who = rst.pop(0).strip()
     rol = " ".join(rst).strip()
-    if who not in var.USERS:
+    ull = [u.lower() for u in var.USERS]
+    if who.lower() not in ull:
         if not is_fake_nick(who):
             cli.msg(chan, "Could not be done.")
             cli.msg(chan, "The target needs to be in this channel or a fake name.")
             return
-    elif who == botconfig.NICK or not who:
+    who = var.USERS[ull.index(who.lower())]
+    if who == botconfig.NICK or not who:
         cli.msg(chan, "No.")
         return
     if rol not in var.ROLES.keys():
