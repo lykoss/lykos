@@ -72,7 +72,6 @@ def add_commands(d):
 @add_commands(("join",
                "mode",
                "nick",
-               "part",
                "who"))
 class IRCClient(object):
     """ IRC Client class. This handles one connection to a server.
@@ -233,8 +232,10 @@ class IRCClient(object):
     def notice(self, user, msg):
         for line in msg.split('\n'):
             self.send("NOTICE", user, ":{0}".format(line))
-    def quit(self, chan, msg):
+    def quit(self, msg):
         self.send("QUIT :{0}".format(msg))
+    def part(self, chan, msg):
+        self.send("PART {0} :{1}".format(chan, msg))
     def kick(self, chan, nick, msg):
         self.send("KICK", chan, nick, ":"+msg)
     def ns_identify(self, passwd):

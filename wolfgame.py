@@ -343,6 +343,7 @@ def fleave(cli, nick, chan, rest):
 @cmd("fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
+    cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, chan, rest)
     
     
@@ -1844,8 +1845,12 @@ def fwait(cli, nick, chan, rest):
                   "{1} seconds.").format(nick, var.EXTRA_WAIT))
                   
 
-@cmd("reset",admin_only=True)
+@cmd("fstop",admin_only=True)
 def reset_game(cli, nick, chan, rest):
+    if var.PHASE == "none":
+        cli.notice(nick, "No game is currently running.")
+        return
+    cli.msg(chan, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
     reset(cli)
     
     
@@ -1917,6 +1922,7 @@ def show_admins(cli, nick, chan, rest):
         if (cloak in botconfig.ADMINS and 'G' not in status and 
             user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
+    hk1 = HOOKS["whoreply"][-1]
 
 
 
@@ -1926,6 +1932,7 @@ def show_admins(cli, nick, chan, rest):
 
         HOOKS.pop("whoreply")  # todo, makes this better :(
         HOOKS.pop("endofwho")
+    hk2 = HOOKS["whoreply"][-1]
 
     cli.who(chan)
     
