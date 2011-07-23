@@ -262,7 +262,7 @@ def pinger(cli, nick, chan, rest):
 @cmd("back", raw_nick=True)
 @pmcmd("back", raw_nick=True)
 def away(cli, nick, *rest):
-    """Use this to add yourself to the no-ping list."""
+    """Use this to toggle your away status (for !ping)."""
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
@@ -312,16 +312,20 @@ def fjoin(cli, nick, chan, rest):
     noticed = False
     if not rest.strip():
         return
+    
     for a in re.split("\s+",rest):
         a = a.strip()
         if not a:
             continue
-        if not is_fake_nick(a):
-                if not noticed:
-                    cli.msg(chan, nick+": You may only fjoin fake people for now.")
-                    noticed = True
+        ull = [u.lower() for u in var.USERS]
+        if a.lower() not in ull:
+            if not is_fake_nick(a) and not noticed:
+                cli.msg(chan, nick+(": You may only fjoin fake people "+
+                                    "or people in this channel for now."))
+                noticed = True
                 continue
-        if a != botconfig.NICK and a:
+        a = var.USERS[ull.index(a.lower())]
+        if a != botconfig.NICK:
             join(cli, a.strip(), chan, "")
         else:
             cli.notice(nick, "No, that won't be allowed.")
