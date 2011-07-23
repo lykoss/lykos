@@ -326,6 +326,8 @@ def fjoin(cli, nick, chan, rest):
             cli.notice(nick, "No, that won't be allowed.")
         
 @cmd("fleave", admin_only=True)
+@cmd("fdel", admin_only=True)
+@cmd("fquit", admin_only=True)
 def fleave(cli, nick, chan, rest):
     for a in re.split("\s+",rest):
         a = a.strip()
