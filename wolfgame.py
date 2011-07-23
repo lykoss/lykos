@@ -333,9 +333,7 @@ def fjoin(cli, nick, chan, rest):
         else:
             cli.notice(nick, "No, that won't be allowed.")
         
-@cmd("fleave", admin_only=True)
-@cmd("fdel", admin_only=True)
-@cmd("fquit", admin_only=True)
+@cmd("fleave","fquit","fdel", admin_only=True)
 def fleave(cli, nick, chan, rest):
     for a in re.split("\s+",rest):
         a = a.strip()
@@ -1923,7 +1921,8 @@ def help2(cli, nick, chan, rest):
         
 @hook("invite", raw_nick = False, admin_only = True)
 def on_invite(cli, nick, something, chan):
-    cli.join(chan)
+    if chan == botconfig.CHANNEL:
+        cli.join(chan)
     
     
     
@@ -1938,7 +1937,6 @@ def show_admins(cli, nick, chan, rest):
         if (cloak in botconfig.ADMINS and 'G' not in status and 
             user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
-    hk1 = HOOKS["whoreply"][-1]
 
 
 
@@ -1948,7 +1946,6 @@ def show_admins(cli, nick, chan, rest):
 
         HOOKS.pop("whoreply")  # todo, makes this better :(
         HOOKS.pop("endofwho")
-    hk2 = HOOKS["whoreply"][-1]
 
     cli.who(chan)
     
@@ -1968,3 +1965,12 @@ def make_admin(cli, nick, chan, rest):
     who = var.CLOAKS[ull.index(who.lower())]
     botconfig.ADMINS = botconfig.ADMINS + (who,)
     cli.msg(chan, "Operation successful.")
+    
+    
+    
+@cmd("revealroles", admin_only=True)
+def revroles(cli, nick, chan, rest):
+    cli.msg(chan, str(var.ROLES))
+    #TODO: make this and other functions debug-mode only
+    
+    
