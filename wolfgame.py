@@ -311,7 +311,7 @@ def join(cli, nick, chan, rest):
 def fjoin(cli, nick, chan, rest):
     noticed = False
     if not rest.strip():
-        return
+        join(cli, nick, chan, "")
     
     for a in re.split("\s+",rest):
         a = a.strip()
@@ -1349,7 +1349,8 @@ def frole(cli, nick, chan, rest):
             cli.msg(chan, "Could not be done.")
             cli.msg(chan, "The target needs to be in this channel or a fake name.")
             return
-    who = var.USERS[ull.index(who.lower())]
+    if not is_fake_nick(who):
+        who = var.USERS[ull.index(who.lower())]
     if who == botconfig.NICK or not who:
         cli.msg(chan, "No.")
         return
