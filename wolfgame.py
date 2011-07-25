@@ -88,7 +88,7 @@ def connect_callback(cli):
 
 
 def mass_mode(cli, md):
-    """ Example: mass_mode((('+v', 'asdf'), ('-v','wobosd'))) """
+    """ Example: mass_mode(cli, (('+v', 'asdf'), ('-v','wobosd'))) """
     lmd = len(md)  # store how many mode changes to do
     for start_i in range(0, lmd, 4):  # 4 mode-changes at a time
         if start_i + 4 > lmd:  # If this is a remainder (mode-changes < 4)
@@ -148,10 +148,9 @@ def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
 
     reset(cli)
-    print("Quitting in 5 seconds.")
     dict.clear(COMMANDS)
     dict.clear(PM_COMMANDS)
-    dict.clear(PM_COMMANDS)
+    dict.clear(HOOKS)
     cli.quit("Forced quit from admin")
     raise SystemExit
 
