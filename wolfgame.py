@@ -914,20 +914,23 @@ def transition_day(cli, gameid=0):
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
     if var.VICTIM in var.GUARDED.values():
-        var.VICTIM = ""  # Whew... protected by guardian angel.
-    if not var.VICTIM:
+        message.append(("\u0002{0}\u0002was attacked by the wolves last night, but luckily, the "+
+                        "guardian angel protected him/her.").format(var.VICTIM))
+        var.VICTIM = ""
+    elif not var.VICTIM:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
                     " All villagers, however, have survived.")
-    elif var.VICTIM in var.ROLES["harlot"]:  # Attacked harlot, yay no deaths
+    elif var.VICTIM in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
         if var.HVISITED.get(var.VICTIM):
             message.append("The wolves' selected victim was a harlot, "+
                            "but she wasn't home.")
-    if var.VICTIM in var.GUNNERS.keys() and var.GUNNERS[var.VICTIM]:  # victim had bullets!
+    elif var.VICTIM in var.GUNNERS.keys() and var.GUNNERS[var.VICTIM]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
             for crow in wc:
                 if crow in var.OBSERVED.keys():
                     wc.remove(crow)
+            # don't kill off werecrows that observed
             deadwolf = random.choice(var.ROLES["wolf"]+wc)
             message.append(("The wolves made the fortunate mistake of attacking "+
                             "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
