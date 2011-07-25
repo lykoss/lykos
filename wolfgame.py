@@ -604,7 +604,7 @@ def chk_win(cli):
 def del_player(cli, nick, forced_death = False):
     """
     Returns: False if one side won.
-    arg: forced_death = True when lynched.
+    arg: forced_death = True when lynched or when the seer/wolf both don't act
     """
     t = timetime()  #  time
     with var.GRAVEYARD_LOCK:
@@ -690,7 +690,7 @@ def reaper(cli, gameid):
                     continue
                 cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
                     "for a very long time. S/He is declared dead. Appears "+
-                    "(s)he was a \u0002{1}\u0002").format(nck, var.get_role(nck)))
+                    "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
                 if not del_player(cli, nck):
                     return
             pl = var.list_players()
@@ -882,11 +882,11 @@ def transition_day(cli, gameid=0):
     chan = botconfig.CHANNEL
 
     if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT and var.ROLES["seer"]:
-        cli.msg(botconfig.CHANNEL, ("The \u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
+        cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
                                     "were both found dead in their beds.").format(var.ROLES["wolf"][0],
                                                                                   var.ROLES["seer"][0]))
         for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
-            del_player(cli, x)  # kill them.
+            del_player(cli, x, True)  # kill them.
         chk_win(cli)  # force to end
         return
 
@@ -1334,77 +1334,6 @@ def is_fake_nick(who):
 
 
 
-@cmd("frole", admin_only=True)
-def frole(cli, nick, chan, rest):
-    rst = re.split(" +",rest)
-    if len(rst) < 2:
-        cli.msg(chan, "The syntax is incorrect.")
-    who = rst.pop(0).strip()
-    rol = " ".join(rst).strip()
-    ull = [u.lower() for u in var.USERS]
-    if who.lower() not in ull:
-        if not is_fake_nick(who):
-            cli.msg(chan, "Could not be done.")
-            cli.msg(chan, "The target needs to be in this channel or a fake name.")
-            return
-    if not is_fake_nick(who):
-        who = var.USERS[ull.index(who.lower())]
-    if who == botconfig.NICK or not who:
-        cli.msg(chan, "No.")
-        return
-    if rol not in var.ROLES.keys():
-        pl = var.list_players()
-        if var.PHASE not in ("night", "day"):
-            cli.msg(chan, "This is only allowed in game.")
-        if rol == "gunner":
-            var.GUNNERS[who] = var.MAX_SHOTS
-            if who not in pl:
-                var.ROLES["villager"].append(who)
-        elif rol == "cursed":
-            var.CURSED.append(who)
-            if who not in pl:
-                var.ROLES["villager"].append(who)
-        else:
-            cli.msg(chan, "Not a valid role.")
-            return
-        cli.msg(chan, "Operation successful.")
-        return
-    if who in var.list_players():
-        var.del_player(who)
-    var.ROLES[rol].append(who)
-    cli.msg(chan, "Operation successful.")
-    if var.PHASE not in ('none','join'):
-        chk_win(cli)
-
-
-@cmd("force", admin_only=True)
-def forcepm(cli, nick, chan, rest):
-    rst = re.split(" +",rest)
-    if len(rst) < 2:
-        cli.msg(chan, "The syntax is incorrect.")
-        return
-    who = rst.pop(0).strip()
-    if not who or who == botconfig.NICK:
-        cli.msg(chan, "That won't work.")
-        return
-    if not is_fake_nick(who):
-        if who not in var.USERS:
-            cli.msg(chan, "This can only be done on fake nicks.")
-            return
-    cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-    if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
-        for fn in PM_COMMANDS[cmd]:
-            fn(cli, who, " ".join(rst))
-        cli.msg(chan, "Operation successful.")
-        #if var.PHASE == "night":   <-  Causes problems with night starting twice.
-        #    chk_nightdone(cli)
-    elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
-        for fn in COMMANDS[cmd]:
-            fn(cli, who, chan, " ".join(rst))
-        cli.msg(chan, "Operation successful.")
-    else:
-        cli.msg(chan, "That command was not found.")
-
 @pmcmd("see")
 def see(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -1446,7 +1375,7 @@ def see(cli, nick, rest):
 
 
 
-@hook("featurelist")
+@hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
     var.MAX_PRIVMSG_TARGETS = 1
     for r in rest:
@@ -1945,29 +1874,6 @@ def show_admins(cli, nick, chan, rest):
     cli.who(chan)
 
 
-@cmd("admin", owner_only=True)
-def make_admin(cli, nick, chan, rest):
-    """Temporarily"""
-    rst = re.split(" +",rest)
-    if len(rst) < 1:
-        cli.msg(chan, "The syntax is incorrect.")
-        return
-    who = rst.pop(0).strip()
-    ull = [u.lower() for u in var.USERS]
-    if who.lower() not in ull:
-        cli.msg(chan, "Could not be done.")
-        return
-    who = var.CLOAKS[ull.index(who.lower())]
-    botconfig.ADMINS = botconfig.ADMINS + (who,)
-    cli.msg(chan, "Operation successful.")
-
-
-
-@cmd("revealroles", admin_only=True)
-def revroles(cli, nick, chan, rest):
-    cli.msg(chan, str(var.ROLES))
-    #TODO: make this and other functions debug-mode only
-
 
 @cmd("coin")
 def coin(cli, nick, chan, rest):
@@ -1975,3 +1881,83 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
 
+
+if var.DEBUG_MODE:
+    @cmd("revealroles", admin_only=True)
+    def revroles(cli, nick, chan, rest):
+        cli.msg(chan, str(var.ROLES))
+        #TODO: make this and other functions debug-mode only
+
+
+
+    @cmd("force", admin_only=True)
+    def forcepm(cli, nick, chan, rest):
+        rst = re.split(" +",rest)
+        if len(rst) < 2:
+            cli.msg(chan, "The syntax is incorrect.")
+            return
+        who = rst.pop(0).strip()
+        if not who or who == botconfig.NICK:
+            cli.msg(chan, "That won't work.")
+            return
+        if not is_fake_nick(who):
+            if who not in var.USERS:
+                cli.msg(chan, "This can only be done on fake nicks.")
+                return
+        cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
+        if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
+            for fn in PM_COMMANDS[cmd]:
+                fn(cli, who, " ".join(rst))
+            cli.msg(chan, "Operation successful.")
+            #if var.PHASE == "night":   <-  Causes problems with night starting twice.
+            #    chk_nightdone(cli)
+        elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
+            for fn in COMMANDS[cmd]:
+                fn(cli, who, chan, " ".join(rst))
+            cli.msg(chan, "Operation successful.")
+        else:
+            cli.msg(chan, "That command was not found.")
+
+
+
+    @cmd("frole", admin_only=True)
+    def frole(cli, nick, chan, rest):
+        rst = re.split(" +",rest)
+        if len(rst) < 2:
+            cli.msg(chan, "The syntax is incorrect.")
+        who = rst.pop(0).strip()
+        rol = " ".join(rst).strip()
+        ull = [u.lower() for u in var.USERS]
+        if who.lower() not in ull:
+            if not is_fake_nick(who):
+                cli.msg(chan, "Could not be done.")
+                cli.msg(chan, "The target needs to be in this channel or a fake name.")
+                return
+        if not is_fake_nick(who):
+            who = var.USERS[ull.index(who.lower())]
+        if who == botconfig.NICK or not who:
+            cli.msg(chan, "No.")
+            return
+        if rol not in var.ROLES.keys():
+            pl = var.list_players()
+            if var.PHASE not in ("night", "day"):
+                cli.msg(chan, "This is only allowed in game.")
+            if rol == "gunner":
+                var.GUNNERS[who] = var.MAX_SHOTS
+                if who not in pl:
+                    var.ROLES["villager"].append(who)
+            elif rol == "cursed":
+                var.CURSED.append(who)
+                if who not in pl:
+                    var.ROLES["villager"].append(who)
+            else:
+                cli.msg(chan, "Not a valid role.")
+                return
+            cli.msg(chan, "Operation successful.")
+            return
+        if who in var.list_players():
+            var.del_player(who)
+        var.ROLES[rol].append(who)
+        cli.msg(chan, "Operation successful.")
+        if var.PHASE not in ('none','join'):
+            chk_win(cli)
