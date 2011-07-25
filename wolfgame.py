@@ -914,7 +914,7 @@ def transition_day(cli, gameid=0):
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
     if var.VICTIM in var.GUARDED.values():
-        message.append(("\u0002{0}\u0002was attacked by the wolves last night, but luckily, the "+
+        message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
                         "guardian angel protected him/her.").format(var.VICTIM))
         var.VICTIM = ""
     elif not var.VICTIM:
