@@ -1094,6 +1094,9 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     victim = pl[pll.index(victim)]
+    
+    var.GUNNERS[nick] -= 1
+    
     rand = random.random()
     if nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
@@ -1122,7 +1125,6 @@ def shoot(cli, nick, chan, rest):
             chk_decision(cli)
     elif rand <= chances[0] + chances[1]:
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter.  S/He missed!".format(nick))
-        var.GUNNERS[nick] -= 1
     else:
         cli.msg(chan, ("\u0002{0}\u0002 should clean his/her weapons more often. "+
                       "The gun exploded and killed him/her!").format(nick))
