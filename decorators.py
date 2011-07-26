@@ -31,7 +31,7 @@ def generate(fdict, **kwargs):
                         largs[0].notice(largs[1], "You are not the owner.")
                         return
                 if admin_only:
-                    if cloak and cloak in botconfig.ADMINS:
+                    if cloak and (cloak in botconfig.ADMINS or cloak == botconfig.OWNER):
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not an admin.")
