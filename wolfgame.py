@@ -1601,8 +1601,10 @@ def start(cli, nick, chan, rest):
         cli.notice(nick, "You're currently not playing.")
         return
         
+    # fstart condition
     if nick == chan:
         chan = botconfig.CHANNEL
+        
     now = datetime.now()
     var.GAME_START_TIME = now  # Only used for the idler checker
     dur = int((var.CAN_START_TIME - now).total_seconds())
