@@ -333,7 +333,7 @@ def fjoin(cli, nick, chan, rest):
             continue
         ull = [u.lower() for u in var.USERS]
         if a.lower() not in ull:
-            if not is_fake_nick(a) and botconfig.DEBUG_MODE:
+            if not is_fake_nick(a) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
                     cli.msg(chan, nick+(": You may only fjoin "+
                                         "people who are in this channel."))
@@ -379,7 +379,10 @@ def chankick(cli, nick, chan, rest):
         cli.notice(nick, "Invalid syntax for this command.")
         return
     if rest[0] != botconfig.NICK:
-        cli.kick(chan, *rest)
+        if len(rest) == 1:
+            cli.kick(chan, rest[0], "Kicked by "+nick+".")
+        else:
+            cli.kick(chan, rest[0], "Kicked by {0}: {1}".format(nick, rest[1]))
     else:
         cli.kick(chan, nick, "No.")
 
