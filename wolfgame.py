@@ -83,6 +83,12 @@ def connect_callback(cli):
     var.GAME_START_TIME = datetime.now()  # for idle checker only
     var.GRAVEYARD_LOCK = threading.RLock()
     var.GAME_ID = 0
+    
+    if botconfig.DEBUG_MODE:
+        NIGHT_TIME_LIMIT = 0  # 90
+        DAY_TIME_LIMIT = 0
+        KILL_IDLE_TIME = 0 #300
+        WARN_IDLE_TIME = 0 #180
 
     prepare_stuff()
 
@@ -360,7 +366,7 @@ def fleave(cli, nick, chan, rest):
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, chan, chan, rest)
+    start(cli, nick, nick, rest)
 
 
 
@@ -1821,14 +1827,24 @@ def fwait(cli, nick, chan, rest):
         cli.notice(nick, "Werewolf is already in play.")
         return
 
+    rest = rest.strip()
+    if rest and rest.isdigit():
+        if len(rest) < 4:
+            extra = int(rest)
+        else:
+            cli.msg(chan, "{0}: We don't have all day!".format(nick))
+            return
+    else:
+        extra = var.EXTRA_WAIT
+        
     now = datetime.now()
     if now > var.CAN_START_TIME:
-        var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+        var.CAN_START_TIME = now + timedelta(seconds=extra)
     else:
-        var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
+        var.CAN_START_TIME += timedelta(seconds=extra)
     var.WAITED += 1
     cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
-                  "{1} seconds.").format(nick, var.EXTRA_WAIT))
+                  "{1} seconds.").format(nick, extra))
 
 
 @cmd("fstop",admin_only=True)
@@ -1837,7 +1853,10 @@ def reset_game(cli, nick, chan, rest):
         cli.notice(nick, "No game is currently running.")
         return
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
-    stop_game(cli)
+    if var.PHASE != "join":
+        stop_game(cli)
+    else:
+        reset(cli)
 
 
 @pmcmd("rules")
@@ -1864,7 +1883,7 @@ def help(cli, rnick, rest):
                 found = True
                 for fn in c[cname]:
                     if fn.__doc__:
-                        cli.msg(nick, fn.__doc__)
+                        cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                         return
                     else:
                         continue
@@ -1982,6 +2001,7 @@ if botconfig.DEBUG_MODE:
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
+            return
         who = rst.pop(0).strip()
         rol = " ".join(rst).strip()
         ull = [u.lower() for u in var.USERS]

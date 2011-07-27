@@ -24,6 +24,7 @@ from oyoyo.parse import parse_nick
 import logging
 import botconfig
 import wolfgame
+import traceback
 
 def on_privmsg(cli, rawnick, chan, msg):         
     if chan != botconfig.NICK:  #not a PM
@@ -32,7 +33,14 @@ def on_privmsg(cli, rawnick, chan, msg):
                 h = msg[len(x)+1:]
                 if not h or h[0] == " " or not x:
                     for fn in wolfgame.COMMANDS[x]:
-                        fn(cli, rawnick, chan, h.lstrip())
+                        try:
+                            fn(cli, rawnick, chan, h.lstrip())
+                        except Exception as e:
+                            if botconfig.DEBUG_MODE:
+                                raise e
+                            else:
+                                traceback.print_exc()
+                                cli.msg(chan, "An error has occurred.")
     else:
         for x in wolfgame.PM_COMMANDS.keys():
             if msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -43,7 +51,14 @@ def on_privmsg(cli, rawnick, chan, msg):
                 continue
             if not h or h[0] == " " or not x:
                 for fn in wolfgame.PM_COMMANDS[x]:
-                    fn(cli, rawnick, h.lstrip())
+                    try:
+                        fn(cli, rawnick, h.lstrip())
+                    except Exception as e:
+                        if botconfig.DEBUG_MODE:
+                            raise e
+                        else:
+                            traceback.print_exc()
+                            cli.msg(chan, "An error has occurred.")
     
 def __unhandled__(cli, prefix, cmd, *args):
     if cmd in wolfgame.HOOKS.keys():
@@ -58,7 +73,10 @@ def __unhandled__(cli, prefix, cmd, *args):
                                                               if isinstance(arg, bytes)]))
 
 def main():
-    logging.basicConfig(level=logging.WARNING)
+    if not botconfig.DEBUG_MODE:
+        logging.basicConfig(level=logging.WARNING)
+    else:
+        logging.basicConfig(level=logging.INFO)
     cli = IRCClient(
                       {"privmsg":on_privmsg,
                        "":__unhandled__},
