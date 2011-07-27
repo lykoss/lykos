@@ -7,3 +7,4 @@ OWNER = "unaffiliated/wolfbot_admin1"
 ADMINS = ("unaffiliated/wolfbot_admin1", "unaffiliated/wolfbot_admin2")
 CMD_CHAR = "!"
 CHANGING_HOST_QUIT_MESSAGE = "Changing host"
+DEBUG_MODE = False
