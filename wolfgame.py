@@ -153,7 +153,7 @@ def forced_exit(cli, nick, *rest):  # Admin Only
     dict.clear(COMMANDS)
     dict.clear(PM_COMMANDS)
     dict.clear(HOOKS)
-    cli.quit("Forced quit from admin")
+    cli.quit("Forced quit from "+nick)
     raise SystemExit
 
 
@@ -1670,7 +1670,8 @@ def start(cli, nick, chan, rest):
     # Select cursed (just a villager)
     possiblecursed = pl[:]
     for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
-                     var.ROLES["seer"] + var.ROLES["traitor"]):
+                     var.ROLES["seer"]):  # confusing (Traitor can be cursed apparently)
+                                          # but not in the Perl howlbot code
         possiblecursed.remove(cannotbe)
     if var.ROLES["cursed"]:
         var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed"]))
@@ -1698,7 +1699,7 @@ def start(cli, nick, chan, rest):
     var.ROLES["villager"] = villagers
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                   "game (a theme of Mafia).").format(", ".join(var.list_players())))
+                   "game (a theme of Mafia).").format(", ".join(pl)))
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -1938,12 +1939,12 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
 
 
-if var.DEBUG_MODE:
+if botconfig.DEBUG_MODE:
     @cmd("revealroles", admin_only=True)
     def revroles(cli, nick, chan, rest):
         cli.msg(chan, str(var.ROLES))
-        #TODO: make this and other functions debug-mode only
-
+        cli.msg(chan, "Cursed: "+str(var.CURSED))
+        cli.msg(chan, "Gunners: "+str(list(var.GUNNERS.keys())))
 
 
     @cmd("force", admin_only=True)

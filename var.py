@@ -21,8 +21,6 @@ GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/2
 GUARDIAN_ANGEL_DIES_CHANCE = 1/2
 DETECTIVE_REVEALED_CHANCE = 2/5
 
-DEBUG_MODE = True
-
 GAME_MODES = {}
 
 #################################################################################################################
