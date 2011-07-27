@@ -618,6 +618,7 @@ def chk_win(cli):
     else:
         return False
     stop_game(cli)
+    return True
 
 
 
