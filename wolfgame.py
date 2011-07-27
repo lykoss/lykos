@@ -207,7 +207,7 @@ def give_op(cli, nick, chan, rest):
         a = a.strip()
         if not a:
             continue
-        cli.msg("ChanServ", " ".join(("op",chan,a)))
+        cli.mode(chan, "+o", a)
     
     
     
@@ -227,7 +227,7 @@ def take_op(cli, nick, chan, rest):
         a = a.strip()
         if not a:
             continue
-        cli.msg("ChanServ", " ".join(("deop",chan,a)))
+        cli.mode(chan, "-o", a)
 
 
 
