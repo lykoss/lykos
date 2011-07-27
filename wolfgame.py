@@ -144,6 +144,8 @@ def reset(cli):
 
 @pmcmd("bye", admin_only=True)
 @cmd("bye", admin_only=True)
+@pmcmd("die", admin_only=True)
+@cmd("die", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
 
@@ -533,41 +535,8 @@ def chk_traitor(cli):
 
 
 
-def chk_win(cli):
-    """ Returns True if someone won """
-
+def stop_game(cli):
     chan = botconfig.CHANNEL
-    lpl = len(var.list_players())
-    if lpl == 0:
-        cli.msg(chan, "No more players remaining. Game ended.")
-        reset(cli)
-        return True
-    if var.PHASE == "join":
-        return False
-    elif (len(var.ROLES["wolf"])+
-          #len(var.ROLES["traitor"])+   Apparently not.
-          len(var.ROLES["werecrow"])) == lpl / 2:
-        cli.msg(chan, ("Game over! There are the same number of wolves as "+
-                       "villagers. The wolves eat everyone, and win."))
-    elif (len(var.ROLES["wolf"])+
-          #len(var.ROLES["traitor"])+
-          len(var.ROLES["werecrow"])) > lpl / 2:
-        cli.msg(chan, ("Game over! There are more wolves than "+
-                       "villagers. The wolves eat everyone, and win."))
-    elif (not var.ROLES["wolf"] and
-          not var.ROLES["traitor"] and
-          not var.ROLES["werecrow"]):
-        cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
-                       "chop them up, BBQ them, and have a hearty meal."))
-    elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
-        chk_traitor(cli)
-        cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
-                       'frightened as they hear a loud howl. The wolves are '+
-                       'not gone!\u0002'))
-        return False
-    else:
-        return False
-
     if var.DAY_START_TIME:
         now = datetime.now()
         td = now - var.DAY_START_TIME
@@ -610,7 +579,47 @@ def chk_win(cli):
     cli.msg(chan, " ".join(roles_msg))
 
     reset(cli)
-    return True
+    return True                     
+                     
+                     
+
+def chk_win(cli):
+    """ Returns True if someone won """
+
+    chan = botconfig.CHANNEL
+    lpl = len(var.list_players())
+    if lpl == 0:
+        cli.msg(chan, "No more players remaining. Game ended.")
+        reset(cli)
+        return True
+    if var.PHASE == "join":
+        return False
+    elif (len(var.ROLES["wolf"])+
+          #len(var.ROLES["traitor"])+   Apparently not.
+          len(var.ROLES["werecrow"])) == lpl / 2:
+        cli.msg(chan, ("Game over! There are the same number of wolves as "+
+                       "villagers. The wolves eat everyone, and win."))
+    elif (len(var.ROLES["wolf"])+
+          #len(var.ROLES["traitor"])+
+          len(var.ROLES["werecrow"])) > lpl / 2:
+        cli.msg(chan, ("Game over! There are more wolves than "+
+                       "villagers. The wolves eat everyone, and win."))
+    elif (not var.ROLES["wolf"] and
+          not var.ROLES["traitor"] and
+          not var.ROLES["werecrow"]):
+        cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
+                       "chop them up, BBQ them, and have a hearty meal."))
+    elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
+        chk_traitor(cli)
+        cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
+                       'frightened as they hear a loud howl. The wolves are '+
+                       'not gone!\u0002'))
+        return False
+    else:
+        return False
+    stop_game(cli)
+
+
 
 
 
@@ -1804,7 +1813,7 @@ def reset_game(cli, nick, chan, rest):
         cli.notice(nick, "No game is currently running.")
         return
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
-    reset(cli)
+    stop_game(cli)
 
 
 @pmcmd("rules")
