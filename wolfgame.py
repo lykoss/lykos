@@ -360,7 +360,7 @@ def fleave(cli, nick, chan, rest):
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, nick, chan, rest)
+    start(cli, chan, chan, rest)
 
 
 
@@ -1597,9 +1597,12 @@ def start(cli, nick, chan, rest):
     if var.PHASE != "join":
         cli.notice(nick, "Werewolf is already in play.")
         return
-    if nick not in villagers:
+    if nick not in villagers and nick != chan:
         cli.notice(nick, "You're currently not playing.")
         return
+        
+    if nick == chan:
+        chan = botconfig.CHANNEL
     now = datetime.now()
     var.GAME_START_TIME = now  # Only used for the idler checker
     dur = int((var.CAN_START_TIME - now).total_seconds())
