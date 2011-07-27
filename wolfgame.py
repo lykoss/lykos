@@ -194,7 +194,15 @@ def give_op(cli, nick, chan, rest):
     """OP [(person)] Makes someone or yourself a channel operator"""
     if not rest.strip():
         rest = nick
-    cli.msg("ChanServ", " ".join(("op",chan,rest.strip())))
+
+    for a in re.split(" +",rest):
+        a = a.strip()
+        if not a:
+            continue
+        cli.msg("ChanServ", " ".join(("op",chan,a)))
+    
+    
+    
 @pmcmd("op", admin_only=True)
 def give_op_pm(cli, nick, rest):
     give_op(cli, nick, botconfig.CHANNEL, rest)
@@ -206,7 +214,12 @@ def take_op(cli, nick, chan, rest):
     """Takes operator rights from someone or yourself."""
     if not rest.strip():
         rest = nick
-    cli.msg("ChanServ", " ".join(("deop",chan,rest.strip())))
+    
+    for a in re.split(" +",rest):
+        a = a.strip()
+        if not a:
+            continue
+        cli.msg("ChanServ", " ".join(("deop",chan,a)))
 
 
 
