@@ -1,2 +1,3 @@
 Use Python 3
+configure botconfig.py
 run wolfbot.py
