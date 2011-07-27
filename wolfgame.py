@@ -1849,7 +1849,7 @@ def help(cli, rnick, rest):
         if name and not fn[0].admin_only and not fn[0].owner_only:
             fns.append("\u0002"+name+"\u0002")
     afns = []
-    if cloak in botconfig.ADMINS:
+    if cloak in botconfig.ADMINS or cloak == botconfig.OWNER:
         for name, fn in COMMANDS.items():
             if fn[0].admin_only:
                 afns.append("\u0002"+name+"\u0002")
