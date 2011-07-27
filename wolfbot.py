@@ -58,7 +58,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                                                               if isinstance(arg, bytes)]))
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.WARNING)
     cli = IRCClient(
                       {"privmsg":on_privmsg,
                        "":__unhandled__},

@@ -40,12 +40,13 @@ class TokenBucket(object):
         self.timestamp = time.time()
 
     def consume(self, tokens):
-        """Consume tokens from the bucket. Returns True if there were
-        sufficient tokens otherwise False."""
+        """Consume tokens from the bucket. Returns 0 if there were
+        sufficient tokens otherwise time until it is filled."""
         if tokens <= self.tokens:
             self._tokens -= tokens
+            return 0
         else:
-            return False
+            return self.fill_rate
         return True
 
     @property
@@ -105,7 +106,7 @@ class IRCClient(object):
         self.connect_cb = None
         self.blocking = True
         self.lock = threading.RLock()
-        self.tokenbucket = TokenBucket(3, 1.63)
+        self.tokenbucket = TokenBucket(3, 1.13)
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
@@ -225,8 +226,10 @@ class IRCClient(object):
                 raise SystemExit  # lets exit
     def msg(self, user, msg):
         for line in msg.split('\n'):
-            while not self.tokenbucket.consume(1):
-                time.sleep(1)
+            tme = self.tokenbucket.consume(1)
+            while tme:
+                time.sleep(tme)
+                tme = self.tokenbucket.consume(1)
             self.send("PRIVMSG", user, ":{0}".format(line))
     privmsg = msg  # Same thing
     def notice(self, user, msg):

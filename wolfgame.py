@@ -860,8 +860,8 @@ def leave(cli, what, nick, why=""):
     cli.msg(botconfig.CHANNEL, msg)
     del_player(cli, nick)
 
-cmd("leave")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"leave", nick))
-cmd("quit")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"quit", nick))
+_ = cmd("quit", "leave")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"quit", nick))
+_.__doc__ = "Quits the game"
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0], rest[0]))
@@ -900,6 +900,10 @@ def transition_day(cli, gameid=0):
         if gameid != var.NIGHT_ID:
             return
     var.NIGHT_ID = 0
+    
+    if var.PHASE == "day":
+        return
+    
     var.PHASE = "day"
     var.GOATED = False
     chan = botconfig.CHANNEL
@@ -1023,6 +1027,7 @@ def chk_nightdone(cli):
 
 @cmd("lynch", "vote")
 def vote(cli, nick, chan, rest):
+    """Use this to vote for a candidate to be lynched"""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1064,6 +1069,7 @@ def vote(cli, nick, chan, rest):
 
 @cmd("retract")
 def retract(cli, nick, chan, rest):
+    """Takes back your vote during the day (for whom to lynch)"""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1090,6 +1096,7 @@ def retract(cli, nick, chan, rest):
 
 @cmd("shoot")
 def shoot(cli, nick, chan, rest):
+    """Use this to fire off a bullet at someone if you have bullets"""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1439,6 +1446,8 @@ def relay(cli, nick, rest):
 
 
 def transition_night(cli):
+    if var.PHASE == "night":
+        return
     var.PHASE = "night"
 
     if var.TIMERS[1]:  # cancel daytime-limit timer
@@ -1588,7 +1597,9 @@ def cgamemode(cli, *args):
 
 @cmd("start")
 def start(cli, nick, chan, rest):
+    """Starts a game of Werewolf"""
     villagers = var.list_players()
+    pl = villagers[:]
 
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
@@ -1657,21 +1668,26 @@ def start(cli, nick, chan, rest):
 
     # Now for the villager roles
     # Select cursed (just a villager)
+    possiblecursed = pl[:]
+    for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
+                     var.ROLES["seer"] + var.ROLES["traitor"]):
+        possiblecursed.remove(cannotbe)
     if var.ROLES["cursed"]:
-        var.CURSED = random.sample((villagers +  # harlot and drunk can be cursed
-                                     var.ROLES["harlot"] +
-                                     var.ROLES["village drunk"]),
-                                     len(var.ROLES["cursed"]))
+        var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed"]))
     del var.ROLES["cursed"]
+    
     # Select gunner (also a villager)
     if var.ROLES["gunner"]:
-        possible = (villagers +
-                   var.ROLES["harlot"] +
-                   var.ROLES["village drunk"] +
-                   var.ROLES["seer"])
-        for csd in var.CURSED:
+                   
+        possible = pl[:]
+        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
+                         var.ROLES["traitor"]):
+            possible.remove(cannotbe)
+            
+        for csd in var.CURSED:  # cursed cannot be gunner
             if csd in possible:
                 possible.remove(csd)
+                
         for gnr in random.sample(possible, len(var.ROLES["gunner"])):
             if var.ROLES["village drunk"] == gnr:
                 var.GUNNERS[gnr] = var.DRUNK_SHOTS_MULTIPLIER * var.MAX_SHOTS
@@ -1737,6 +1753,7 @@ def game(cli, nick, chan, rest):
 
 @cmd("no")
 def nay(cli, nick, chan, rest):
+    """Vote against a proposed game-settings change (!game)"""
     pl = var.list_players()
     if var.PHASE != "join" or not var.SETTINGS_CHANGE_REQUESTER:
         cli.notice(nick, "This command is only allowed if there is "+
@@ -1767,6 +1784,7 @@ def nay(cli, nick, chan, rest):
 
 @cmd("wait")
 def wait(cli, nick, chan, rest):
+    """Increase the wait time (before !start can be used)"""
     pl = var.list_players()
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
@@ -1827,18 +1845,22 @@ def pm_rules(cli, nick, rest):
 
 @cmd("rules")
 def show_rules(cli, nick, chan, rest):
+    """Displays the rules"""
     cli.msg(chan, var.RULES)
 
 
 @pmcmd("help", raw_nick = True)
 def help(cli, rnick, rest):
+    """Gets help."""
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
 
     cname = rest.strip().replace(botconfig.CMD_CHAR, "").lower()
+    found = False
     if cname:
         for c in (COMMANDS,PM_COMMANDS):
             if cname in c.keys():
+                found = True
                 for fn in c[cname]:
                     if fn.__doc__:
                         cli.msg(nick, fn.__doc__)
@@ -1846,9 +1868,13 @@ def help(cli, rnick, rest):
                     else:
                         continue
                 else:
-                    cli.msg(nick, "No documentation is available for this function.")
-                return
-        cli.msg(nick, "Command not found.")
+                    continue
+        else:
+            if not found:
+                cli.msg(nick, "Command not found.")
+            else:
+                cli.msg(nick, "Documentation for this command is not available.")
+            return
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
         if name and not fn[0].admin_only and not fn[0].owner_only:
@@ -1866,6 +1892,7 @@ def help(cli, rnick, rest):
 
 @cmd("help", raw_nick = True)
 def help2(cli, nick, chan, rest):
+    """Gets help"""
     if rest.strip():  # command was given
         help(cli, chan, rest)
     else:
