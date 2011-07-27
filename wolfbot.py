@@ -76,7 +76,7 @@ def main():
     if not botconfig.DEBUG_MODE:
         logging.basicConfig(level=logging.WARNING)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.DEBUG)
     cli = IRCClient(
                       {"privmsg":on_privmsg,
                        "":__unhandled__},

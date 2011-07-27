@@ -658,7 +658,8 @@ def del_player(cli, nick, forced_death = False):
             if not is_fake_nick(nick):
                 cmode.append(("+q", nick))
             mass_mode(cli, cmode)
-            var.DEAD.append(nick)
+            if nick not in var.DEAD:
+                var.DEAD.append(nick)
             ret = not chk_win(cli)
         if var.PHASE in ("night", "day") and ret:
             # remove him from variables if he is in there
@@ -772,6 +773,7 @@ def goat(cli, nick, chan, rest):
         cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
                       "and kicks \u0002{1}\u0002.").format(nick,
                                                            rest.strip()))
+        var.GOATED = True
 
 
 
@@ -1875,7 +1877,7 @@ def show_rules(cli, nick, chan, rest):
 
 
 @pmcmd("help", raw_nick = True)
-def help(cli, rnick, rest):
+def get_help(cli, rnick, rest):
     """Gets help."""
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
@@ -1919,9 +1921,9 @@ def help(cli, rnick, rest):
 def help2(cli, nick, chan, rest):
     """Gets help"""
     if rest.strip():  # command was given
-        help(cli, chan, rest)
+        get_help(cli, chan, rest)
     else:
-        help(cli, nick, rest)
+        get_help(cli, nick, rest)
 
 
 @hook("invite", raw_nick = False, admin_only = True)
@@ -1964,6 +1966,16 @@ def coin(cli, nick, chan, rest):
 
 
 if botconfig.DEBUG_MODE:
+
+    @cmd("set", admin_only=True)
+    def set(cli, nick, chan, rest):
+        rest = re(" +",rest, 1)
+        if len(rest) != 2 or not rest[0] or not rest[1]:
+            cli.msg(chan, "Invalid syntax.")
+            return
+        cli.msg(chan, "Not implemented yet.")
+
+
     @cmd("revealroles", admin_only=True)
     def revroles(cli, nick, chan, rest):
         cli.msg(chan, str(var.ROLES))
