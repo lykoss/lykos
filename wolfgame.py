@@ -333,10 +333,10 @@ def fjoin(cli, nick, chan, rest):
             continue
         ull = [u.lower() for u in var.USERS]
         if a.lower() not in ull:
-            if not is_fake_nick(a):
+            if not is_fake_nick(a) and botconfig.DEBUG_MODE:
                 if not noticed:  # important
-                    cli.msg(chan, nick+(": You may only fjoin fake people "+
-                                        "or people in this channel for now."))
+                    cli.msg(chan, nick+(": You may only fjoin "+
+                                        "people who are in this channel."))
                     noticed = True
                 continue
         if not is_fake_nick(a):
@@ -352,14 +352,16 @@ def fleave(cli, nick, chan, rest):
         a = a.strip()
         if not a:
             continue
-        pll = [x.lower() for x in var.list_players()]
-        if a.lower() != botconfig.NICK.lower() and a.lower() in pll:
-            del_player(cli, a.strip())
-            cli.msg(chan, ("\u0002{0}\u0002 has used fleave"+
-                          " on \u0002{1}\u0002.").format(nick, a.strip()))
-        elif a.lower() not in pll:
-            cli.msg(chan, nick+": That could not be done.")
-
+        pl = var.list_players()
+        pll = [x.lower() for x in pl]
+        if a.lower() in pll:
+            a = pl[pll.index(a.lower())]
+        else:
+            cli.msg(chan, nick+": That person is not playing.")
+            return
+        cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
+                       " \u0002{1}\u0002 to leave.").format(nick, a))
+        del_player(cli, a)
 
 
 @cmd("fstart", admin_only=True)
