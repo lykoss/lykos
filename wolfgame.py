@@ -2001,9 +2001,12 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, "That won't work.")
             return
         if not is_fake_nick(who):
-            if who not in var.USERS:
+            pll = [pl.lower() for pl in var.USERS]
+            if who.lower() not in pll:
                 cli.msg(chan, "This can only be done on fake nicks.")
                 return
+            else:
+                who = var.USERS[pll.index(who.lower())]
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
             for fn in PM_COMMANDS[cmd]:
