@@ -974,8 +974,8 @@ def transition_day(cli, gameid=0):
             message.append(("The wolves made the fortunate mistake of attacking "+
                             "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
                             " was shot dead.").format(deadwolf))
-            dead.append(deadwolf)
-            var.VICTIM = ""
+            if not del_player(cli, deadwolf):
+                return
     if var.VICTIM and (var.VICTIM not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(var.VICTIM)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
