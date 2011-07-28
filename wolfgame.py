@@ -1968,7 +1968,7 @@ def coin(cli, nick, chan, rest):
 if botconfig.DEBUG_MODE:
 
     @cmd("set", admin_only=True)
-    def set(cli, nick, chan, rest):
+    def set_setting(cli, nick, chan, rest):
         rest = re.split(" +",rest, 1)
         if len(rest) != 2 or not rest[0] or not rest[1]:
             cli.msg(chan, "Invalid syntax.")
