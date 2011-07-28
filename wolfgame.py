@@ -971,9 +971,9 @@ def transition_day(cli, gameid=0):
                     wc.remove(crow)
             # don't kill off werecrows that observed
             deadwolf = random.choice(var.ROLES["wolf"]+wc)
-            message.append(("The wolves made the fortunate mistake of attacking "+
-                            "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
-                            " was shot dead.").format(deadwolf))
+            cli.msg(chan, ("The wolves made the fortunate mistake of attacking "+
+                           "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
+                           " was shot dead.").format(deadwolf))
             if not del_player(cli, deadwolf):
                 return
     if var.VICTIM and (var.VICTIM not in var.ROLES["harlot"] or   # not a harlot
