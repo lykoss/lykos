@@ -2031,24 +2031,29 @@ if botconfig.DEBUG_MODE:
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
             return
-        who = rst.pop(0).strip()
+        who = rst.pop(0).strip().lower()
         who.replace("_", " ")
         
-        if who not in var.ROLES or not var.ROLES[who]:
+        if (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
+            or var.PHASE in ("none", "join")):
             cli.msg(chan, nick+": invalid role")
             return
+        elif who == "gunner":
+            tgt = list(var.GUNNERS.keys())
+        else:
+            tgt = var.ROLES[who]
 
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
             for fn in PM_COMMANDS[cmd]:
-                for guy in var.ROLES[who]:
+                for guy in tgt:
                     fn(cli, guy, " ".join(rst))
             cli.msg(chan, "Operation successful.")
             #if var.PHASE == "night":   <-  Causes problems with night starting twice.
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             for fn in COMMANDS[cmd]:
-                for guy in var.ROLES[who]:
+                for guy in tgt:
                     fn(cli, guy, chan, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
