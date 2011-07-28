@@ -1969,7 +1969,7 @@ if botconfig.DEBUG_MODE:
 
     @cmd("set", admin_only=True)
     def set(cli, nick, chan, rest):
-        rest = re(" +",rest, 1)
+        rest = re.split(" +",rest, 1)
         if len(rest) != 2 or not rest[0] or not rest[1]:
             cli.msg(chan, "Invalid syntax.")
             return
