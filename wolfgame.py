@@ -1907,7 +1907,7 @@ def get_help(cli, rnick, rest):
         if name and not fn[0].admin_only and not fn[0].owner_only:
             fns.append("\u0002"+name+"\u0002")
     afns = []
-    if cloak in botconfig.ADMINS or cloak == botconfig.OWNER:
+    if cloak in botconfig.ADMINS or cloak in botconfig.OWNERS:
         for name, fn in COMMANDS.items():
             if fn[0].admin_only:
                 afns.append("\u0002"+name+"\u0002")
@@ -1941,7 +1941,7 @@ def show_admins(cli, nick, chan, rest):
     @hook("whoreply")
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
-        if ((cloak in botconfig.ADMINS or cloak == botconfig.OWNER) and 'G' not in status and
+        if ((cloak in botconfig.ADMINS or cloak in botconfig.OWNERS) and 'G' not in status and
             user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
 

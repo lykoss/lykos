@@ -25,7 +25,7 @@ def generate(fdict, **kwargs):
                     largs[1] = parse_nick(largs[1])[0]  # username
                     #if largs[1].startswith("#"):       
                 if owner_only:
-                    if cloak and cloak == botconfig.OWNER:
+                    if cloak and cloak in botconfig.OWNERS:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not the owner.")
