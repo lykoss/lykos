@@ -368,6 +368,7 @@ def fleave(cli, nick, chan, rest):
             return
         cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
                        " \u0002{1}\u0002 to leave.").format(nick, a))
+        cli.msg(chan, "Appears (s)he was a \02{0}\02.".format(var.get_role(a)))
         del_player(cli, a)
 
 
@@ -689,6 +690,8 @@ def del_player(cli, nick, forced_death = False):
             for k in var.VOTES.keys():
                 if nick in var.VOTES[k]:
                     var.VOTES[k].remove(nick)
+            if nick in var.WOUNDED:
+                var.WOUNDED.remove(nick)
             chk_decision(cli)
         return ret
 
