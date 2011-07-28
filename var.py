@@ -148,3 +148,19 @@ class ChangedRolesMode(object):
                 raise InvalidModeException("A bad value was used in mode roles.")
         for k in ROLES_GUIDE.keys():
             self.ROLES_GUIDE[k] = tuple(lx)
+            
+            
+# Load saved settings
+import pickle
+import os
+
+if os.path.exists("data.dat"):
+   with open("data.dat", "rb") as lf:
+        data = pickle.load(lf)
+        if not isinstance(data, dict) or "away" not in data:
+            raise Exception("data.dat is not valid!")
+        AWAY = data["away"]
+        
+def save_data():
+    with open("data.dat", "wb") as wdf:
+        pickle.dump({"away":AWAY}, wdf)

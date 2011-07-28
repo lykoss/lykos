@@ -82,6 +82,7 @@ def main():
                        "":__unhandled__},
                      host=botconfig.HOST, 
                      port=botconfig.PORT,
+                     password=botconfig.PASS,
                      nickname=botconfig.NICK,
                      connect_cb=wolfgame.connect_callback
                     )

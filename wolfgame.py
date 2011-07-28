@@ -42,12 +42,18 @@ def connect_callback(cli):
         var.USERS = []
         var.CLOAKS = []
 
-        @hook("whoreply")
+        @hook("whoreply", id=294)
         def on_whoreply(cli, server, dunno, chan, dunno1,
                         cloak, dunno3, user, status, dunno4):
             if user in var.USERS: return  # Don't add someone who is already there
             var.USERS.append(user)
             var.CLOAKS.append(cloak)
+            
+        @hook("endofwho", id=294)
+        def afterwho(*args):
+            decorators.unhook(HOOKS, 294)
+            
+            
         cli.who(botconfig.CHANNEL)
 
     @hook("nicknameinuse")
@@ -246,7 +252,7 @@ def pinger(cli, nick, chan, rest):
 
 
 
-    @hook("whoreply")
+    @hook("whoreply", id=800)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
         if not var.PINGING: return
@@ -258,15 +264,14 @@ def pinger(cli, nick, chan, rest):
 
 
 
-    @hook("endofwho")
+    @hook("endofwho", id=800)
     def do_ping(*args):
         if not var.PINGING: return
 
         cli.msg(chan, "PING! "+" ".join(TO_PING))
         var.PINGING = False
 
-        HOOKS.pop("whoreply")
-        HOOKS.pop("endofwho")
+        decorators.unhook(HOOKS, 800)
 
     cli.who(chan)
 
@@ -284,6 +289,8 @@ def away(cli, nick, *rest):
         cli.notice(nick, "You are now no longer marked as away.")
         return
     var.AWAY.append(cloak)
+    var.save_data()
+    
     cli.notice(nick, "You are now marked as away.")
 
 
@@ -896,8 +903,8 @@ def begin_day(cli):
     var.GUARDED = {}
 
     cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
-                   'Use "{0}lynch <nick>" to cast your vote. 3 votes '+
-                   'are required to lynch.').format(botconfig.CMD_CHAR))
+                   'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
+                   'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1))
 
     if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
         var.DAY_ID = timetime()
@@ -1163,7 +1170,8 @@ def shoot(cli, nick, chan, rest):
             cli.msg(chan, ("\u0002{0}\u0002 is a villager and is injured but "+
                           "will have a full recovery. S/He will be resting "+
                           "for the day.").format(victim))
-            var.WOUNDED.append(victim)
+            if victim not in var.WOUNDED:
+                var.WOUNDED.append(victim)
             chk_decision(cli)
     elif rand <= chances[0] + chances[1]:
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter.  S/He missed!".format(nick))
@@ -1850,7 +1858,7 @@ def fwait(cli, nick, chan, rest):
     else:
         var.CAN_START_TIME += timedelta(seconds=extra)
     var.WAITED += 1
-    cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
+    cli.msg(chan, ("\u0002{0}\u0002 forcibly increased the wait time by "+
                   "{1} seconds.").format(nick, extra))
 
 
@@ -1938,7 +1946,7 @@ def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
     admins = []
 
-    @hook("whoreply")
+    @hook("whoreply", id = 4)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
         if ((cloak in botconfig.ADMINS or cloak in botconfig.OWNERS) and 'G' not in status and
@@ -1947,12 +1955,11 @@ def show_admins(cli, nick, chan, rest):
 
 
 
-    @hook("endofwho")
+    @hook("endofwho", id = 4)
     def show(*args):
         cli.msg(chan, "Available admins: "+" ".join(admins))
 
-        HOOKS.pop("whoreply")  # todo, makes this better :(
-        HOOKS.pop("endofwho")
+        decorators.unhook(HOOKS, 4)
 
     cli.who(chan)
 
@@ -2007,6 +2014,36 @@ if botconfig.DEBUG_MODE:
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             for fn in COMMANDS[cmd]:
                 fn(cli, who, chan, " ".join(rst))
+            cli.msg(chan, "Operation successful.")
+        else:
+            cli.msg(chan, "That command was not found.")
+            
+            
+    @cmd("rforce", admin_only=True)
+    def rforcepm(cli, nick, chan, rest):
+        rst = re.split(" +",rest)
+        if len(rst) < 2:
+            cli.msg(chan, "The syntax is incorrect.")
+            return
+        who = rst.pop(0).strip()
+        who.replace("_", " ")
+        
+        if who not in var.ROLES or not var.ROLES[who]:
+            cli.msg(chan, nick+": invalid role")
+            return
+
+        cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
+        if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
+            for fn in PM_COMMANDS[cmd]:
+                for guy in var.ROLES[who]:
+                    fn(cli, guy, " ".join(rst))
+            cli.msg(chan, "Operation successful.")
+            #if var.PHASE == "night":   <-  Causes problems with night starting twice.
+            #    chk_nightdone(cli)
+        elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
+            for fn in COMMANDS[cmd]:
+                for guy in var.ROLES[who]:
+                    fn(cli, guy, chan, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
