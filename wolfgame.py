@@ -287,6 +287,7 @@ def away(cli, nick, *rest):
     if cloak in var.AWAY:
         var.AWAY.remove(cloak)
         cli.notice(nick, "You are now no longer marked as away.")
+        var.save_data()
         return
     var.AWAY.append(cloak)
     var.save_data()
@@ -1845,7 +1846,7 @@ def fwait(cli, nick, chan, rest):
         cli.notice(nick, "Werewolf is already in play.")
         return
 
-    rest = rest.strip()
+    rest = re.split(" +", rest.strip(), 1)[0]
     if rest and rest.isdigit():
         if len(rest) < 4:
             extra = int(rest)
@@ -2084,8 +2085,12 @@ if botconfig.DEBUG_MODE:
             pl = var.list_players()
             if var.PHASE not in ("night", "day"):
                 cli.msg(chan, "This is only allowed in game.")
-            if rol == "gunner":
-                var.GUNNERS[who] = var.MAX_SHOTS
+            if rol.startswith("gunner"):
+                rolargs = re.split(" +",rol, 1)
+                if len(rolargs) == 2 and len(rolargs[1]) < 7 and rolargs[1].isdigit():
+                    var.GUNNERS[who] = int(rolargs[1])
+                else:
+                    var.GUNNERS[who] = var.MAX_SHOTS
                 if who not in pl:
                     var.ROLES["villager"].append(who)
             elif rol == "cursed":
