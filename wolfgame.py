@@ -161,6 +161,11 @@ def reset(cli):
 @cmd("die", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
+    
+    if var.PHASE in ("day", "night"):
+        stop_game(cli)
+    else:
+        reset(cli)
 
     reset(cli)
     dict.clear(COMMANDS)
@@ -171,32 +176,15 @@ def forced_exit(cli, nick, *rest):  # Admin Only
 
 
 
-@cmd("exec", owner_only = True)
-def py(cli, nick, chan, rest):
-    try:
-        exec(rest)
-    except Exception as e:
-        cli.msg(chan, str(type(e))+":"+str(e))
-
-
-
-@cmd("eval", owner_only = True)
-def pyeval(cli, nick, chan, rest):
-    try:
-        a = str(eval(rest))
-        if len(a) < 500:
-            cli.msg(chan, a)
-        else:
-            cli.msg(chan, a[0:500])
-    except Exception as e:
-        cli.msg(chan, str(type(e))+":"+str(e))
-
 
 @cmd("restart", admin_only=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
     try:
-        reset(cli)
+        if var.PHASE in ("day", "night"):
+            stop_game(cli)
+        else:
+            reset(cli)
         dict.clear(COMMANDS)
         dict.clear(PM_COMMANDS)
         dict.clear(HOOKS)
@@ -294,21 +282,30 @@ def pinger(cli, nick, chan, rest):
 
 @cmd("away", raw_nick=True)
 @pmcmd("away", raw_nick=True)
-@cmd("back", raw_nick=True)
-@pmcmd("back", raw_nick=True)
 def away(cli, nick, *rest):
     """Use this to toggle your away status (for !ping)."""
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
-        var.AWAY.remove(cloak)
-        cli.notice(nick, "You are now no longer marked as away.")
-        var.save_data()
+        cli.notice(nick, "You are already marked as away.")
         return
     var.AWAY.append(cloak)
     var.save_data()
     
     cli.notice(nick, "You are now marked as away.")
+    
+@cmd("back", raw_nick=True)
+@pmcmd("back", raw_nick=True)
+def back_from_away(cli, nick, *rest):
+    cloak = parse_nick(nick)[3]
+    nick = parse_nick(nick)[0]
+    if cloak not in var.AWAY:
+        cli.notice(nick, "You are not marked as away.")
+        return
+    var.AWAY.remove(cloak)
+    var.save_data()
+    
+    cli.notice(nick, "You are no longer marked as away.")
 
 
 
@@ -2005,6 +2002,27 @@ def coin(cli, nick, chan, rest):
 
 if botconfig.DEBUG_MODE:
 
+    @cmd("eval", owner_only = True)
+    def pyeval(cli, nick, chan, rest):
+        try:
+            a = str(eval(rest))
+            if len(a) < 500:
+                cli.msg(chan, a)
+            else:
+                cli.msg(chan, a[0:500])
+        except Exception as e:
+            cli.msg(chan, str(type(e))+":"+str(e))
+            
+            
+    
+    @cmd("exec", owner_only = True)
+    def py(cli, nick, chan, rest):
+        try:
+            exec(rest)
+        except Exception as e:
+            cli.msg(chan, str(type(e))+":"+str(e))
+
+            
     @cmd("set", admin_only=True)
     def set_setting(cli, nick, chan, rest):
         rest = re.split(" +",rest, 1)
