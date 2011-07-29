@@ -194,15 +194,6 @@ def restart_program(cli, nick, chan, rest):
         print("RESTARTING")
         python = sys.executable
         os.execl(python, python, *sys.argv)
-        
-        
-        
-@cmd("rehash", admin_only=True)
-def rehash(cli, nick, chan, rest):
-    reset(cli)
-    imp.reload(var)
-    imp.reload(botconfig)
-    cli.msg(chan, "Configuration reloaded")
     
 
 
@@ -283,7 +274,7 @@ def pinger(cli, nick, chan, rest):
 @cmd("away", raw_nick=True)
 @pmcmd("away", raw_nick=True)
 def away(cli, nick, *rest):
-    """Use this to toggle your away status (for !ping)."""
+    """Use this to activate your away status (so you aren't pinged)."""
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
@@ -297,6 +288,7 @@ def away(cli, nick, *rest):
 @cmd("back", raw_nick=True)
 @pmcmd("back", raw_nick=True)
 def back_from_away(cli, nick, *rest):
+    """Unmarks away status"""
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak not in var.AWAY:
@@ -1045,12 +1037,12 @@ def transition_day(cli, gameid=0):
             # Was visited by a crow
             cli.msg(target, ("You suddenly remember that you were startled by the loud "+
                             "sound of the flapping of wings during the walk back home."))
-        elif target in var.ROLES["village drunk"]:
-            # Crow dies because of tiger (HANGOVER)
-            cli.msg(chan, ("The bones of \u0002{0}\u0002, a werecrow, "+
-                           "were found near the village drunk's house. "+
-                           "The drunk's pet tiger probably ate him.").format(crow))
-            dead.append(crow)
+        # elif target in var.ROLES["village drunk"]:
+            ## Crow dies because of tiger (HANGOVER)
+            # cli.msg(chan, ("The bones of \u0002{0}\u0002, a werecrow, "+
+                           # "were found near the village drunk's house. "+
+                           # "The drunk's pet tiger probably ate him.").format(crow))
+            # dead.append(crow)
     cli.msg(chan, "\n".join(message))
     for deadperson in dead:
         if not del_player(cli, deadperson):
