@@ -21,6 +21,7 @@ import re
 import logging
 import sys
 import os
+import imp
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -205,6 +206,16 @@ def restart_program(cli, nick, chan, rest):
         print("RESTARTING")
         python = sys.executable
         os.execl(python, python, *sys.argv)
+        
+        
+        
+@cmd("rehash", admin_only=True)
+def rehash(cli, nick, chan, rest):
+    reset(cli)
+    imp.reload(var)
+    imp.reload(botconfig)
+    cli.msg(chan, "Configuration reloaded")
+    
 
 
 
@@ -534,9 +545,6 @@ def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players():
-        cli.notice(nick, "You're not currently playing.")
         return
     if var.PHASE != "day":
         cli.notice(nick, "Voting is only during the day.")
