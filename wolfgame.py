@@ -592,7 +592,7 @@ def stop_game(cli):
                                                                      nitemin, nitesec))
 
     roles_msg = []
-    var.ORIGINAL_ROLES["cursed villager"] = var.CURSED
+
     lroles = list(var.ORIGINAL_ROLES.keys())
     lroles.remove("wolf")
     lroles.insert(0, "wolf")   # picky, howl consistency
@@ -1708,12 +1708,13 @@ def start(cli, nick, chan, rest):
 
     # Now for the villager roles
     # Select cursed (just a villager)
-    possiblecursed = pl[:]
-    for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
-                     var.ROLES["seer"]):  # confusing (Traitor can be cursed apparently)
-                                          # but not in the Perl howlbot code
-        possiblecursed.remove(cannotbe)
     if var.ROLES["cursed"]:
+        possiblecursed = pl[:]
+        for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
+                         var.ROLES["seer"]):  # confusing (Traitor can be cursed apparently)
+                                              # but not in the Perl howlbot code
+            possiblecursed.remove(cannotbe)
+        
         var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed"]))
     del var.ROLES["cursed"]
     
@@ -1743,6 +1744,9 @@ def start(cli, nick, chan, rest):
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
+    
+    var.ORIGINAL_ROLES["cursed villager"] = var.CURSED  # Make sure it shows up in the final stats.
+    
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
