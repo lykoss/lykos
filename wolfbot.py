@@ -39,7 +39,7 @@ def on_privmsg(cli, rawnick, chan, msg):
                             if botconfig.DEBUG_MODE:
                                 raise e
                             else:
-                                traceback.print_exc()
+                                logging.error(traceback.format_exc())
                                 cli.msg(chan, "An error has occurred.")
     else:
         for x in wolfgame.PM_COMMANDS.keys():
@@ -57,7 +57,7 @@ def on_privmsg(cli, rawnick, chan, msg):
                         if botconfig.DEBUG_MODE:
                             raise e
                         else:
-                            traceback.print_exc()
+                            logging.error(traceback.format_exc())
                             cli.msg(chan, "An error has occurred.")
     
 def __unhandled__(cli, prefix, cmd, *args):
@@ -74,9 +74,10 @@ def __unhandled__(cli, prefix, cmd, *args):
 
 def main():
     if not botconfig.DEBUG_MODE:
-        logging.basicConfig(level=logging.WARNING)
+        logging.basicConfig(filename='errors.log', filemode='w', level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.DEBUG)
+    
     cli = IRCClient(
                       {"privmsg":on_privmsg,
                        "":__unhandled__},
