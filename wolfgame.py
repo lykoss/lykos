@@ -91,10 +91,10 @@ def connect_callback(cli):
     var.GAME_ID = 0
     
     if botconfig.DEBUG_MODE:
-        NIGHT_TIME_LIMIT = 0  # 90
-        DAY_TIME_LIMIT = 0
-        KILL_IDLE_TIME = 0 #300
-        WARN_IDLE_TIME = 0 #180
+        var.NIGHT_TIME_LIMIT = 0  # 90
+        var.DAY_TIME_LIMIT = 0
+        var.KILL_IDLE_TIME = 0 #300
+        var.WARN_IDLE_TIME = 0 #180
 
     prepare_stuff()
 
@@ -195,7 +195,12 @@ def pyeval(cli, nick, chan, rest):
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
     try:
-        forced_exit(cli, nick, chan, rest)
+        reset(cli)
+        dict.clear(COMMANDS)
+        dict.clear(PM_COMMANDS)
+        dict.clear(HOOKS)
+        cli.quit("Forced restart from "+nick)
+        raise SystemExit
     finally:
         print("RESTARTING")
         python = sys.executable
@@ -378,6 +383,19 @@ def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, nick, rest)
+    
+    
+
+@cmd("kpon")
+def kpon(cli, nick, chan, rest):
+    """(Same as !join)"""
+    join(cli, nick, chan, rest)
+    if "person" in var.ROLES.keys() and nick in var.ROLES["person"]:
+        var.ROLES["person"].remove(nick)
+    if "typo" in var.ROLES.keys():
+        var.ROLES["typo"].append(nick)
+    else:
+        var.ROLES["typo"] = [nick]
 
 
 
