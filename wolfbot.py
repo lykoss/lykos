@@ -40,7 +40,7 @@ def on_privmsg(cli, rawnick, chan, msg):
                                 raise e
                             else:
                                 logging.error(traceback.format_exc())
-                                cli.msg(chan, "An error has occurred.")
+                                cli.msg(chan, "An error has occurred and has been logged.")
     else:
         for x in wolfgame.PM_COMMANDS.keys():
             if msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -58,7 +58,7 @@ def on_privmsg(cli, rawnick, chan, msg):
                             raise e
                         else:
                             logging.error(traceback.format_exc())
-                            cli.msg(chan, "An error has occurred.")
+                            cli.msg(chan, "An error has occurred and has been logged.")
     
 def __unhandled__(cli, prefix, cmd, *args):
     if cmd in wolfgame.HOOKS.keys():
