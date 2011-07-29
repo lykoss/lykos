@@ -37,6 +37,8 @@ def generate(fdict, **kwargs):
                         largs[0].notice(largs[1], "You are not an admin.")
                         return
                 return f(*largs)
+            alias = False
+            innerf.aliases = []
             for x in s:
                 if x not in fdict.keys():
                     fdict[x] = []
@@ -46,6 +48,9 @@ def generate(fdict, **kwargs):
                             fn.admin_only != admin_only):
                             raise Exception("Command: "+x+" has non-matching protection levels!")
                 fdict[x].append(innerf)
+                if alias:
+                    innerf.aliases.append(x)
+                alias = True
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick
             innerf.admin_only = admin_only

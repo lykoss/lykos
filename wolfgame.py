@@ -396,17 +396,17 @@ def fstart(cli, nick, chan, rest):
     start(cli, nick, nick, rest)
     
     
-
-@cmd("kpon")
-def kpon(cli, nick, chan, rest):
-    """(Same as !join)"""
-    join(cli, nick, chan, rest)
-    if "person" in var.ROLES.keys() and nick in var.ROLES["person"]:
-        var.ROLES["person"].remove(nick)
-    if "typo" in var.ROLES.keys():
-        var.ROLES["typo"].append(nick)
-    else:
-        var.ROLES["typo"] = [nick]
+# lol this was funny
+# @cmd("kpon")
+# def kpon(cli, nick, chan, rest):
+    # """(Same as !join)"""
+    # join(cli, nick, chan, rest)
+    # if "person" in var.ROLES.keys() and nick in var.ROLES["person"]:
+        # var.ROLES["person"].remove(nick)
+    # if "typo" in var.ROLES.keys():
+        # var.ROLES["typo"].append(nick)
+    # else:
+        # var.ROLES["typo"] = [nick]
 
 
 
@@ -1942,12 +1942,13 @@ def get_help(cli, rnick, rest):
             return
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
-        if name and not fn[0].admin_only and not fn[0].owner_only:
+        if (name and not fn[0].admin_only and 
+            not fn[0].owner_only and name not in fn[0].aliases):
             fns.append("\u0002"+name+"\u0002")
     afns = []
     if cloak in botconfig.ADMINS or cloak in botconfig.OWNERS:
         for name, fn in COMMANDS.items():
-            if fn[0].admin_only:
+            if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
     cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:

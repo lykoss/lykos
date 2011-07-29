@@ -105,7 +105,9 @@ class IRCClient(object):
         self.connect_cb = None
         self.blocking = True
         self.lock = threading.RLock()
+        
         self.tokenbucket = TokenBucket(3, 1.73)
+        self.last_messaged = ""
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
@@ -200,7 +202,7 @@ class IRCClient(object):
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
                         except UnicodeDecodeError:
                             enc = "latin1"
-                            fargs = fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
+                            fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
                     
                         logging.debug("processCommand ({2}){0}({1})".format(command,
                                                        fargs, prefix))
@@ -208,12 +210,12 @@ class IRCClient(object):
                             largs = list(args)
                             if prefix is not None:
                                 prefix = prefix.decode(enc)
-                            for i,arg in enumerate(largs):
-                                if arg is not None: largs[i] = arg.decode(enc)
+                            # for i,arg in enumerate(largs):
+                                # if arg is not None: largs[i] = arg.decode(enc)
                             if command in self.command_handler:
-                                self.command_handler[command](self, prefix,*largs)
+                                self.command_handler[command](self, prefix,*fargs)
                             elif "" in self.command_handler:
-                                self.command_handler[""](self, prefix, command, *largs)
+                                self.command_handler[""](self, prefix, command, *fargs)
                         except Exception as e:
                             traceback.print_exc()
                             raise e  # ?
@@ -226,9 +228,14 @@ class IRCClient(object):
                 raise SystemExit  # lets exit
     def msg(self, user, msg):
         for line in msg.split('\n'):
-            while not self.tokenbucket.consume(1):
-                pass
+            if user == self.last_messaged:
+                while not self.tokenbucket.consume(1):
+                    pass
+            else:  # ?
+                while not self.tokenbucket.consume(0.37):
+                    pass
             self.send("PRIVMSG", user, ":{0}".format(line))
+            self.last_messaged = user
     privmsg = msg  # Same thing
     def notice(self, user, msg):
         for line in msg.split('\n'):
