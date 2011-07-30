@@ -20,9 +20,7 @@ import time
 import threading
 import traceback
 
-from oyoyo.parse import parse_raw_irc_command
-
-    
+from oyoyo.parse import parse_raw_irc_command    
 
 # Adapted from http://code.activestate.com/recipes/511490-implementation-of-the-token-bucket-algorithm/
 class TokenBucket(object):

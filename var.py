@@ -11,7 +11,6 @@ START_WITH_DAY = False
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 GAME_COMMAND_ADMIN_ONLY = True
-AWAY = []  # cloaks of people who are away.
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
@@ -21,8 +20,6 @@ MANSLAUGHTER_CHANCE =       1/5  # ACCIDENTAL HEADSHOT (FATAL)
 GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/2
 GUARDIAN_ANGEL_DIES_CHANCE = 1/2
 DETECTIVE_REVEALED_CHANCE = 2/5
-
-GAME_MODES = {}
 
 #################################################################################################################
 #   ROLE INDEX:   PLAYERS   SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW    ANGEL DETECTIVE  ##
@@ -40,6 +37,8 @@ ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0
 #   Notes:                                                                                                     ##
 #################################################################################################################
 
+GAME_MODES = {}
+AWAY = []  # cloaks of people who are away.
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -51,6 +50,7 @@ ROLE_INDICES = {0 : "seer",
                 7 : "werecrow",
                 8 : "guardian angel",
                 9 : "detective"}
+                
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
 

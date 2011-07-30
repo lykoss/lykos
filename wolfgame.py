@@ -420,7 +420,6 @@ def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-        #  cli.kick(chan, nick, "No.")
 
 
 
