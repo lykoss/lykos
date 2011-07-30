@@ -686,8 +686,11 @@ def del_player(cli, nick, forced_death = False):
             ret = not chk_win(cli)
         if var.PHASE in ("night", "day") and ret:
             # remove him from variables if he is in there
-            if var.VICTIM == nick:
-                var.VICTIM = ""
+            for a,b in list(var.KILLS.items()):
+                if b == nick:
+                    del var.KILLS[a]
+                elif a == nick:
+                    del var.KILLS[a]
             for x in (var.OBSERVED, var.HVISITED, var.GUARDED):
                 keys = list(x.keys())
                 for k in keys:
@@ -829,8 +832,12 @@ def on_nick(cli, prefix, nick):
         r.remove(prefix)
 
         if var.PHASE in ("night", "day"):
-            if var.VICTIM == prefix:
-                var.VICTIM = nick
+            for a,b in list(var.KILLS.items()):
+                if prefix == b:
+                    var.KILLS[a] = nick
+                elif prefix == a:
+                    var.KILLS[nick] = b
+                    del var.KILLS[a]
             kvp = []
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED):
                 for a,b in dictvar.items():
@@ -911,7 +918,7 @@ def begin_day(cli):
     chan = botconfig.CHANNEL
 
     # Reset nighttime variables
-    var.VICTIM = ""  # nickname of kill victim
+    var.KILLS = {}  # nicknames of kill victim
     var.ACTED_WOLVES = set()
     var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
@@ -965,6 +972,29 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
+    found = {}
+    for v in var.KILLS.values():
+        if v in found:
+            found[v] += 1
+        else:
+            found[v] = 1
+    
+    maxc = 0
+    victim = ""
+    dups = []
+    for v, c in found.items():
+        if c > maxc:
+            maxc = c
+            victim = v
+            dups = []
+        elif c == maxc:
+            dups.append(v)
+
+    if maxc:
+        if dups:
+            dups.append(victim)
+            victim = random.choice(dups)
+    
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
@@ -977,18 +1007,18 @@ def transition_day(cli, gameid=0):
         elif target not in var.ROLES["village drunk"]:
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
-    if var.VICTIM in var.GUARDED.values():
+    if victim in var.GUARDED.values():
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
-                        "guardian angel protected him/her.").format(var.VICTIM))
-        var.VICTIM = ""
-    elif not var.VICTIM:
+                        "guardian angel protected him/her.").format(victim))
+        victim = ""
+    elif not victim:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
                     " All villagers, however, have survived.")
-    elif var.VICTIM in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
-        if var.HVISITED.get(var.VICTIM):
+    elif victim in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
+        if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
                            "but she wasn't home.")
-    elif var.VICTIM in var.GUNNERS.keys() and var.GUNNERS[var.VICTIM]:  # victim had bullets!
+    elif victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
             for crow in wc:
@@ -1001,15 +1031,15 @@ def transition_day(cli, gameid=0):
                            " was shot dead.").format(deadwolf))
             if not del_player(cli, deadwolf):
                 return
-    if var.VICTIM and (var.VICTIM not in var.ROLES["harlot"] or   # not a harlot
-                          not var.HVISITED.get(var.VICTIM)):   # harlot stayed home
+    if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
+                          not var.HVISITED.get(victim)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
                         "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
-                        "death.").format(var.VICTIM, var.get_role(var.VICTIM)))
-        dead.append(var.VICTIM)
-    if var.VICTIM in var.HVISITED.values():  #  victim was visited by some harlot
+                        "death.").format(victim, var.get_role(victim)))
+        dead.append(victim)
+    if victim in var.HVISITED.values():  #  victim was visited by some harlot
         for hlt in var.HVISITED.keys():
-            if var.HVISITED[hlt] == var.VICTIM:
+            if var.HVISITED[hlt] == victim:
                 message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
                                 "visiting the victim's house last night and is "+
                                 "now dead.").format(hlt))
@@ -1238,8 +1268,8 @@ def kill(cli, nick, rest):
     if victim in var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]:
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
-    var.VICTIM = pl[pll.index(victim)]
-    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(var.VICTIM))
+    var.KILLS[nick] = pl[pll.index(victim)]
+    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(pl[pll.index(victim)]))
     var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
 
@@ -1496,7 +1526,7 @@ def transition_night(cli):
     var.FIRST_NIGHT = (var.ROLES == var.ORIGINAL_ROLES)
 
     # Reset nighttime variables
-    var.VICTIM = ""  # nickname of kill victim
+    var.KILLS = {}
     var.ACTED_WOLVES = set()
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
