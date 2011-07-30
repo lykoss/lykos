@@ -1265,7 +1265,7 @@ def kill(cli, nick, rest):
     if victim == nick.lower():
         cli.msg(nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]:
+    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
     var.KILLS[nick] = pl[pll.index(victim)]
