@@ -592,10 +592,13 @@ def stop_game(cli):
                                                                      nitemin, nitesec))
 
     roles_msg = []
+    
+    var.ORIGINAL_ROLES["cursed villager"] = var.CURSED  # A hack
 
     lroles = list(var.ORIGINAL_ROLES.keys())
     lroles.remove("wolf")
     lroles.insert(0, "wolf")   # picky, howl consistency
+    
     for role in lroles:
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == "villager":
             continue
@@ -1763,9 +1766,9 @@ def start(cli, nick, chan, rest):
         for gnr in random.sample(possible, len(var.ROLES["gunner"])):
             if var.ROLES["village drunk"] == gnr:
                 var.GUNNERS[gnr] = (var.DRUNK_SHOTS_MULTIPLIER * 
-                                    math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players())))
+                                    math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
             else:
-                var.GUNNERS[gnr] = math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players()))
+                var.GUNNERS[gnr] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
     del var.ROLES["gunner"]
 
     var.ROLES["villager"] = villagers
@@ -1775,8 +1778,6 @@ def start(cli, nick, chan, rest):
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
-    
-    var.ORIGINAL_ROLES["cursed villager"] = var.CURSED  # Make sure it shows up in the final stats.
     
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
@@ -2084,16 +2085,29 @@ if botconfig.DEBUG_MODE:
             else:
                 who = var.USERS[pll.index(who.lower())]
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
+        did = False
         if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
             for fn in PM_COMMANDS[cmd]:
+                if fn.raw_nick:
+                    continue
                 fn(cli, who, " ".join(rst))
-            cli.msg(chan, "Operation successful.")
+                did = True
+            if did:
+                cli.msg(chan, "Operation successful.")
+            else:
+                cli.msg(chan, "Not possible with this command.")
             #if var.PHASE == "night":   <-  Causes problems with night starting twice.
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             for fn in COMMANDS[cmd]:
+                if fn.raw_nick:
+                    continue
                 fn(cli, who, chan, " ".join(rst))
-            cli.msg(chan, "Operation successful.")
+                did = True
+            if did:
+                cli.msg(chan, "Operation successful.")
+            else:
+                cli.msg(chan, "Not possible with this command.")
         else:
             cli.msg(chan, "That command was not found.")
             
@@ -2162,7 +2176,7 @@ if botconfig.DEBUG_MODE:
                 if len(rolargs) == 2 and len(rolargs[1]) < 7 and rolargs[1].isdigit():
                     var.GUNNERS[who] = int(rolargs[1])
                 else:
-                    var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players()))
+                    var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                 if who not in pl:
                     var.ROLES["villager"].append(who)
             elif rol == "cursed":
