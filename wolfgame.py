@@ -264,6 +264,8 @@ def pinger(cli, nick, chan, rest):
     def do_ping(*args):
         if not var.PINGING: return
 
+        TO_PING.sort(key=lambda x: x.lower())
+        
         cli.msg(chan, "PING! "+" ".join(TO_PING))
         var.PINGING = False
 
@@ -2012,10 +2014,10 @@ def show_admins(cli, nick, chan, rest):
             user != botconfig.NICK):
             admins.append(user)
 
-
-
     @hook("endofwho", id = 4)
     def show(*args):
+        admins.sort(key=lambda x: x.lower())
+        
         cli.msg(chan, "Available admins: "+" ".join(admins))
 
         decorators.unhook(HOOKS, 4)
