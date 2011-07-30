@@ -279,7 +279,10 @@ def away(cli, nick, *rest):
     cloak = parse_nick(nick)[3]
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
-        cli.notice(nick, "You are already marked as away.")
+        var.AWAY.remove(cloak)
+        var.save_data()
+    
+        cli.notice(nick, "You are no longer marked as away.")
         return
     var.AWAY.append(cloak)
     var.save_data()
@@ -2006,7 +2009,7 @@ def show_admins(cli, nick, chan, rest):
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
         if ((cloak in botconfig.ADMINS or cloak in botconfig.OWNERS) and 'G' not in status and
-            user != botconfig.NICK and cloak not in var.AWAY):
+            user != botconfig.NICK):
             admins.append(user)
 
 
