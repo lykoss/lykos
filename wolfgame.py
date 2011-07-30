@@ -22,6 +22,7 @@ import logging
 import sys
 import os
 import imp
+import math
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -1761,9 +1762,10 @@ def start(cli, nick, chan, rest):
                 
         for gnr in random.sample(possible, len(var.ROLES["gunner"])):
             if var.ROLES["village drunk"] == gnr:
-                var.GUNNERS[gnr] = var.DRUNK_SHOTS_MULTIPLIER * var.MAX_SHOTS
+                var.GUNNERS[gnr] = (var.DRUNK_SHOTS_MULTIPLIER * 
+                                    math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players())))
             else:
-                var.GUNNERS[gnr] = var.MAX_SHOTS
+                var.GUNNERS[gnr] = math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players()))
     del var.ROLES["gunner"]
 
     var.ROLES["villager"] = villagers
@@ -2160,7 +2162,7 @@ if botconfig.DEBUG_MODE:
                 if len(rolargs) == 2 and len(rolargs[1]) < 7 and rolargs[1].isdigit():
                     var.GUNNERS[who] = int(rolargs[1])
                 else:
-                    var.GUNNERS[who] = var.MAX_SHOTS
+                    var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(var.list_players()))
                 if who not in pl:
                     var.ROLES["villager"].append(who)
             elif rol == "cursed":

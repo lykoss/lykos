@@ -104,7 +104,7 @@ class IRCClient(object):
         self.blocking = True
         self.lock = threading.RLock()
         
-        self.tokenbucket = TokenBucket(3, 1.73)
+        self.tokenbucket = TokenBucket(28, 1.73)
         self.last_messaged = ""
 
         self.__dict__.update(kwargs)
@@ -145,6 +145,9 @@ class IRCClient(object):
             msg = bytes(" ", "utf_8").join(bargs)
             logging.info('---> send "{0}"'.format(msg))
 
+            while not self.tokenbucket.consume(1):
+                pass
+                
             self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):
@@ -226,12 +229,6 @@ class IRCClient(object):
                 raise SystemExit  # lets exit
     def msg(self, user, msg):
         for line in msg.split('\n'):
-            if user == self.last_messaged:
-                while not self.tokenbucket.consume(1):
-                    pass
-            else:  # ?
-                while not self.tokenbucket.consume(0.37):
-                    pass
             self.send("PRIVMSG", user, ":{0}".format(line))
             self.last_messaged = user
     privmsg = msg  # Same thing

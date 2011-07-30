@@ -2,7 +2,7 @@ PING_WAIT = 300  # Seconds
 MINIMUM_WAIT = 60 
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
-MAX_SHOTS = 2
+SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MAX_PLAYERS = 30
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 90
