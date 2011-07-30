@@ -156,10 +156,8 @@ def reset(cli):
     dict.clear(var.LAST_SAID_TIME)
 
 
-@pmcmd("bye", admin_only=True)
-@cmd("bye", admin_only=True)
-@pmcmd("die", admin_only=True)
-@cmd("die", admin_only=True)
+@pmcmd("bye", "die", "off", admin_only=True)
+@cmd("bye", "die", "off", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
     
@@ -437,6 +435,7 @@ def stats(cli, nick, chan, rest):
         return
 
     pl = var.list_players()
+    pl.sort(key=lambda x: x.lower())
     if len(pl) > 1:
         cli.msg(chan, '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
             len(pl), ", ".join(pl)))
@@ -1581,6 +1580,7 @@ def transition_night(cli):
         if len(wolves) > 1:
             cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
         pl.remove(wolf)  # remove self from list
         for i, player in enumerate(pl):
             if player in var.ROLES["wolf"]:
@@ -1593,6 +1593,7 @@ def transition_night(cli):
 
     for seer in var.ROLES["seer"]:
         pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
         pl.remove(seer)  # remove self from list
         cli.msg(seer, ('You are a \u0002seer\u0002. '+
                       'It is your job to detect the wolves, you '+
@@ -1602,6 +1603,7 @@ def transition_night(cli):
 
     for harlot in var.ROLES["harlot"]:
         pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
         pl.remove(harlot)
         cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
                          'You may spend the night with one person per round. '+
@@ -1611,6 +1613,7 @@ def transition_night(cli):
 
     for g_angel in var.ROLES["guardian angel"]:
         pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
         pl.remove(g_angel)
         cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
                           'It is your job to protect the villagers. If you guard a'+
