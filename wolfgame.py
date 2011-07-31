@@ -235,6 +235,10 @@ def pinger(cli, nick, chan, rest):
         cli.notice(nick, ("This command is ratelimited. " +
                           "Please wait a while before using it again."))
         return
+        
+    if var.PHASE in ('night','day'):
+        cli.notice(nick, "You cannot use this command while a game is running.")
+        return
 
     var.LAST_PING = datetime.now()
     var.PINGING = True
