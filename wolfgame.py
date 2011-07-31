@@ -148,7 +148,6 @@ def reset(cli):
     var.ROLES = {"person" : []}
 
     reset_settings()
-    var.DENIED_SETTINGS_CHANGE = []
 
     dict.clear(var.LAST_SAID_TIME)
 
@@ -813,10 +812,6 @@ def goat(cli, nick, chan, rest):
 @hook("nick")
 def on_nick(cli, prefix, nick):
     prefix,u,m,cloak = parse_nick(prefix)
-
-    if prefix in var.DENIED_SETTINGS_CHANGE:
-        var.DENIED_SETTINGS_CHANGE.append(nick)
-        var.DENIED_SETTINGS_CHANGE.remove(prefix)
 
     if prefix in var.USERS:
         var.USERS.remove(prefix)
@@ -2024,10 +2019,6 @@ if botconfig.DEBUG_MODE:
         if nick not in pl:
             cli.notice(nick, "You're currently not playing.")
             return
-        if nick in var.DENIED_SETTINGS_CHANGE:
-            cli.notice(nick, "You cannot vote because your previous "+
-                             "settings change was denied by vote.")
-            return
         if var.SETTINGS_CHANGE_REQUESTER:
             cli.notice(nick, "There is already an existing "+
                              "settings change request.")
@@ -2038,9 +2029,6 @@ if botconfig.DEBUG_MODE:
                 var.SETTINGS_CHANGE_REQUESTER = nick
                 cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
                                 "game settings successfully.").format(nick))
-                if var.CAN_START_TIME <= datetime.now():
-                    var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.EXTRA_WAIT) * 2
-                    cli.msg(chan, "The wait time has also been extended.")
 
 
     @cmd("force", admin_only=True)
