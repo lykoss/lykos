@@ -82,8 +82,6 @@ def connect_callback(cli):
     var.DEAD = []
 
     var.ORIGINAL_SETTINGS = {}
-    var.DENIED_SETTINGS_CHANGE = []
-    var.SETTINGS_CHANGE_OPPOSITION = []
     var.SETTINGS_CHANGE_REQUESTER = None
 
     var.LAST_SAID_TIME = {}
@@ -123,7 +121,6 @@ def reset_settings():
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
 
-    var.SETTINGS_CHANGE_OPPOSITION = []
     var.SETTINGS_CHANGE_REQUESTER = None
 
 
@@ -1804,68 +1801,6 @@ def start(cli, nick, chan, rest):
     reapertimer.start()
 
 
-@cmd("game", admin_only=var.GAME_COMMAND_ADMIN_ONLY)
-def game(cli, nick, chan, rest):
-    pl = var.list_players()
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-    if var.PHASE != "join":
-        cli.notice(nick, "Werewolf is already in play.")
-        return
-    if nick not in pl:
-        cli.notice(nick, "You're currently not playing.")
-        return
-    if nick in var.DENIED_SETTINGS_CHANGE:
-        cli.notice(nick, "You cannot vote because your previous "+
-                         "settings change was denied by vote.")
-        return
-    if var.SETTINGS_CHANGE_REQUESTER:
-        cli.notice(nick, "There is already an existing "+
-                         "settings change request.")
-        return
-    rest = rest.strip().lower()
-    if rest:
-        if cgamemode(cli, *re.split(" +",rest)):
-            var.SETTINGS_CHANGE_REQUESTER = nick
-            cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
-                            "game settings successfully. To "+
-                            'oppose this change, use "{1}no".').format(nick, botconfig.CMD_CHAR))
-            if var.CAN_START_TIME <= datetime.now():
-                var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.EXTRA_WAIT) * 2
-                cli.msg(chan, "The wait time has also been extended.")
-
-
-@cmd("no")
-def nay(cli, nick, chan, rest):
-    """Vote against a proposed game-settings change (!game)"""
-    pl = var.list_players()
-    if var.PHASE != "join" or not var.SETTINGS_CHANGE_REQUESTER:
-        cli.notice(nick, "This command is only allowed if there is "+
-                   "a game settings change request in effect.")
-        return
-    if nick not in pl:
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if var.SETTINGS_CHANGE_REQUESTER in pl:
-        pl.remove(var.SETTINGS_CHANGE_REQUESTER)
-    if nick in var.SETTINGS_CHANGE_OPPOSITION:
-        cli.notice(nick, "You are already in the opposition.")
-        return
-    var.SETTINGS_CHANGE_OPPOSITION.append(nick)
-    needed = max(len(pl)//2 + 1, 2)
-    if len(var.SETTINGS_CHANGE_OPPOSITION) >= needed:
-        cli.msg(chan, "The settings change request has been downvoted "+
-                      "to oblivion.  The default settings are restored.")
-        var.DENIED_SETTINGS_CHANGE.append(var.SETTINGS_CHANGE_REQUESTER)
-        reset_settings()
-    else:
-        cli.msg(chan, ("\u0002{0}\u0002 has voted \u0002no\u0002. {1} more "+
-                      "vote{2} are needed to deny the change.").format(nick,
-                       needed - len(var.SETTINGS_CHANGE_OPPOSITION),
-                      "s" if needed > len(var.SETTINGS_CHANGE_OPPOSITION) + 1 else ""))
-
-
 
 @cmd("wait")
 def wait(cli, nick, chan, rest):
@@ -2031,7 +1966,7 @@ def show_admins(cli, nick, chan, rest):
 
 @cmd("coin")
 def coin(cli, nick, chan, rest):
-    """Ugh"""
+    """It's a bad idea to base any decisions on this command."""
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
 
@@ -2070,9 +2005,42 @@ if botconfig.DEBUG_MODE:
 
     @cmd("revealroles", admin_only=True)
     def revroles(cli, nick, chan, rest):
-        cli.msg(chan, str(var.ROLES))
-        cli.msg(chan, "Cursed: "+str(var.CURSED))
-        cli.msg(chan, "Gunners: "+str(list(var.GUNNERS.keys())))
+        if var.PHASE != "none":
+            cli.msg(chan, str(var.ROLES))
+        if var.PHASE in ('night','day'):
+            cli.msg(chan, "Cursed: "+str(var.CURSED))
+            cli.msg(chan, "Gunners: "+str(list(var.GUNNERS.keys())))
+        
+        
+    @cmd("game", admin_only=True)
+    def game(cli, nick, chan, rest):
+        pl = var.list_players()
+        if var.PHASE == "none":
+            cli.notice(nick, "No game is currently running.")
+            return
+        if var.PHASE != "join":
+            cli.notice(nick, "Werewolf is already in play.")
+            return
+        if nick not in pl:
+            cli.notice(nick, "You're currently not playing.")
+            return
+        if nick in var.DENIED_SETTINGS_CHANGE:
+            cli.notice(nick, "You cannot vote because your previous "+
+                             "settings change was denied by vote.")
+            return
+        if var.SETTINGS_CHANGE_REQUESTER:
+            cli.notice(nick, "There is already an existing "+
+                             "settings change request.")
+            return
+        rest = rest.strip().lower()
+        if rest:
+            if cgamemode(cli, *re.split(" +",rest)):
+                var.SETTINGS_CHANGE_REQUESTER = nick
+                cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
+                                "game settings successfully.").format(nick))
+                if var.CAN_START_TIME <= datetime.now():
+                    var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.EXTRA_WAIT) * 2
+                    cli.msg(chan, "The wait time has also been extended.")
 
 
     @cmd("force", admin_only=True)
@@ -2181,8 +2149,11 @@ if botconfig.DEBUG_MODE:
                 cli.msg(chan, "This is only allowed in game.")
             if rol.startswith("gunner"):
                 rolargs = re.split(" +",rol, 1)
-                if len(rolargs) == 2 and len(rolargs[1]) < 7 and rolargs[1].isdigit():
-                    var.GUNNERS[who] = int(rolargs[1])
+                if len(rolargs) == 2 and rolargs[1].isdigit():
+                    if len(rolargs[1]) < 7:
+                        var.GUNNERS[who] = int(rolargs[1])
+                    else:
+                        var.GUNNERS[who] = 999
                 else:
                     var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                 if who not in pl:
