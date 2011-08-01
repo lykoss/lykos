@@ -1024,7 +1024,13 @@ def transition_day(cli, gameid=0):
         if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
                            "but she wasn't home.")
-    elif victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
+    if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
+                          not var.HVISITED.get(victim)):   # harlot stayed home
+        message.append(("The dead body of \u0002{0}\u0002, a "+
+                        "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
+                        "death.").format(victim, var.get_role(victim)))
+        dead.append(victim)
+    if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
             for crow in wc:
@@ -1032,17 +1038,9 @@ def transition_day(cli, gameid=0):
                     wc.remove(crow)
             # don't kill off werecrows that observed
             deadwolf = random.choice(var.ROLES["wolf"]+wc)
-            cli.msg(chan, ("The wolves made the fortunate mistake of attacking "+
-                           "a gunner last night, and \u0002{0}\u0002, a \u0002wolf\u0002,"+
-                           " was shot dead.").format(deadwolf))
-            if not del_player(cli, deadwolf):
-                return
-    if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
-                          not var.HVISITED.get(victim)):   # harlot stayed home
-        message.append(("The dead body of \u0002{0}\u0002, a "+
-                        "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
-                        "death.").format(victim, var.get_role(victim)))
-        dead.append(victim)
+            message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
+                            "\02{1}\02, a \02wolf\02, was shot dead.").format(victim, deadwolf))
+            dead.append(deadwolf)
     if victim in var.HVISITED.values():  #  victim was visited by some harlot
         for hlt in var.HVISITED.keys():
             if var.HVISITED[hlt] == victim:
