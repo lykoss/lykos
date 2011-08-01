@@ -630,6 +630,8 @@ def chk_win(cli):
 
     chan = botconfig.CHANNEL
     lpl = len(var.list_players())
+    if var.PHASE == "day":
+        lpl -= len(var.WOUNDED)
     if lpl == 0:
         cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
@@ -956,6 +958,12 @@ def transition_day(cli, gameid=0):
     var.PHASE = "day"
     var.GOATED = False
     chan = botconfig.CHANNEL
+    
+    # Reset daytime variables
+    var.VOTES = {}
+    var.INVESTIGATED = []
+    var.WOUNDED = []
+    var.DAY_START_TIME = datetime.now()
 
     if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT and var.ROLES["seer"]:
         cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
@@ -964,12 +972,6 @@ def transition_day(cli, gameid=0):
         for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
             if not del_player(cli, x, True):
                 return
-
-    # Reset daytime variables
-    var.VOTES = {}
-    var.INVESTIGATED = []
-    var.WOUNDED = []
-    var.DAY_START_TIME = datetime.now()
 
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
@@ -1225,6 +1227,7 @@ def shoot(cli, nick, chan, rest):
             if victim not in var.WOUNDED:
                 var.WOUNDED.append(victim)
             chk_decision(cli)
+            chk_win(cli)
     elif rand <= chances[0] + chances[1]:
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter.  S/He missed!".format(nick))
     else:
