@@ -451,7 +451,11 @@ def stats(cli, nick, chan, rest):
           if var.ROLES[k]]
     l2 = [k for k in var.ORIGINAL_ROLES.keys()
           if var.ORIGINAL_ROLES[k]]
-    for role in set(l1+l2):
+    rs = set(l1+l2)
+    if "village drunk" in rs:
+        rs.remove("village drunk")  # drunk is not displayed
+    
+    for role in rs:
         count = len(var.ROLES[role])
         if not f and count>1:
             vb = "are"
@@ -602,6 +606,8 @@ def stop_game(cli):
     lroles = list(var.ORIGINAL_ROLES.keys())
     lroles.remove("wolf")
     lroles.insert(0, "wolf")   # picky, howl consistency
+    
+    lroles.remove("village drunk")
     
     for role in lroles:
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == "villager":
