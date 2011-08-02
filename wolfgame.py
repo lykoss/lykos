@@ -77,6 +77,7 @@ def connect_callback(cli):
     var.LAST_PING = 0  # time of last ping
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
+    var.DEAD_USERS = {}
     var.PHASE = "none"  # "join", "day", or "night"
     var.TIMERS = [None, None]
     var.DEAD = []
@@ -150,6 +151,7 @@ def reset(cli):
     reset_settings()
 
     dict.clear(var.LAST_SAID_TIME)
+    dict.clear(var.DEAD_USERS)
 
 
 @pmcmd("bye", "die", "off", admin_only=True)
@@ -171,9 +173,9 @@ def forced_exit(cli, nick, *rest):  # Admin Only
 
 
 
-
+@pmcmd("restart", admin_only=True)
 @cmd("restart", admin_only=True)
-def restart_program(cli, nick, chan, rest):
+def restart_program(cli, nick, *rest):
     """Restarts the bot."""
     try:
         if var.PHASE in ("day", "night"):
@@ -280,12 +282,12 @@ def away(cli, nick, *rest):
     nick = parse_nick(nick)[0]
     if cloak in var.AWAY:
         var.AWAY.remove(cloak)
-        var.save_data()
+        var.remove_away(cloak)
     
         cli.notice(nick, "You are no longer marked as away.")
         return
     var.AWAY.append(cloak)
-    var.save_data()
+    var.add_away(cloak)
     
     cli.notice(nick, "You are now marked as away.")
     
@@ -299,7 +301,7 @@ def back_from_away(cli, nick, *rest):
         cli.notice(nick, "You are not marked as away.")
         return
     var.AWAY.remove(cloak)
-    var.save_data()
+    var.remove_away(cloak)
     
     cli.notice(nick, "You are no longer marked as away.")
 
@@ -578,7 +580,7 @@ def chk_traitor(cli):
 
 
 
-def stop_game(cli):
+def stop_game(cli, winner = ""):
     chan = botconfig.CHANNEL
     if var.DAY_START_TIME:
         now = datetime.now()
@@ -626,6 +628,40 @@ def stop_game(cli):
                                                   var.plural(role)))
     cli.msg(chan, " ".join(roles_msg))
 
+    plrl = []
+    for role,ppl in var.ORIGINAL_ROLES.items():
+        for x in ppl:
+            plrl.append((x, role))
+    
+    
+    for plr, rol in plrl:
+        if plr not in var.USERS:  # he died TODO: when a player leaves, count the game as lost for him
+            if plr in var.DEAD_USERS.keys():
+                clk = var.DEAD_USERS[plr]
+            else:
+                continue  # something wrong happened
+        else:
+            clk = var.CLOAKS[var.USERS.index(plr)]
+        
+        # determine if this player's team won
+        if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
+                   var.ORIGINAL_ROLES["werecrow"]):  # the player was wolf-aligned
+            if winner == "wolves":
+                won = True
+            elif winner == "villagers":
+                won = False
+            else:
+                break  # abnormal game stop
+        else:
+            if winner == "wolves":
+                won = False
+            elif winner == "villagers":
+                won = True
+            else:
+                break
+                
+        var.update_role_stats(clk, rol, won)
+    
     reset(cli)
     return True                     
                      
@@ -649,16 +685,19 @@ def chk_win(cli):
           len(var.ROLES["werecrow"])) == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
+        village_win = False
     elif (len(var.ROLES["wolf"])+
           #len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
+        village_win = False
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
           not var.ROLES["werecrow"]):
         cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
                        "chop them up, BBQ them, and have a hearty meal."))
+        village_win = True
     elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
         chk_traitor(cli)
         cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
@@ -667,7 +706,7 @@ def chk_win(cli):
         return False
     else:
         return False
-    stop_game(cli)
+    stop_game(cli, "villagers" if village_win else "wolves")
     return True
 
 
@@ -831,12 +870,16 @@ def on_nick(cli, prefix, nick):
         var.USERS.append(nick)
         var.CLOAKS.append(cloak)
 
-    opl = []
     for k,v in var.ORIGINAL_ROLES.items():
         if prefix in v:
             var.ORIGINAL_ROLES[k].remove(prefix)
             var.ORIGINAL_ROLES[k].append(nick)
             break
+            
+    for k,v in list(var.DEAD_USERS.items()):
+        if prefix == k:
+            var.DEAD_USERS[nick] = var.DEAD_USERS[k]
+            del var.DEAD_USERS[k]
 
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
@@ -888,6 +931,10 @@ def on_nick(cli, prefix, nick):
 
 def leave(cli, what, nick, why=""):
     """Exit the game."""
+    if not what.startswith(botconfig.CMD_CHAR) and nick in var.USERS:
+        i = var.USERS.index(nick)
+        var.USERS.remove(nick)
+        var.CLOAKS.pop(i)
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none" and what.startswith(botconfig.CMD_CHAR):
@@ -900,6 +947,11 @@ def leave(cli, what, nick, why=""):
         return
     elif nick not in var.list_players():
         return
+        
+    if nick in var.USERS:
+        var.DEAD_USERS[nick] = var.CLOAKS[var.USERS.index(nick)]
+        # for gstats, just in case
+        
     msg = ""
     if what in (botconfig.CMD_CHAR+"quit", botconfig.CMD_CHAR+"leave"):
         msg = ("\u0002{0}\u0002 died of an unknown disease. "+
@@ -1974,8 +2026,9 @@ def show_admins(cli, nick, chan, rest):
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
-    cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
-
+    cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))    
+    
+    
 
 if botconfig.DEBUG_MODE:
 

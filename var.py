@@ -148,19 +148,61 @@ class ChangedRolesMode(object):
                 raise InvalidModeException("A bad value was used in mode roles.")
         for k in ROLES_GUIDE.keys():
             self.ROLES_GUIDE[k] = tuple(lx)
-            
-            
+
+         
 # Load saved settings
-import pickle
+import sqlite3
 import os
 
-if os.path.exists("data.dat"):
-   with open("data.dat", "rb") as lf:
-        data = pickle.load(lf)
-        if not isinstance(data, dict) or "away" not in data:
-            raise Exception("data.dat is not valid!")
-        AWAY = data["away"]
+conn = sqlite3.connect("data.sqlite3")
+c = conn.cursor()
+c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
+
+c.execute('SELECT * FROM away')
+
+for row in c:
+    AWAY.append(row[0])
+    
+def remove_away(clk):
+    with conn:
+        c.execute('DELETE from away where nick=?', (clk,))
+    
+def add_away(clk):
+    with conn:
+        c.execute('INSERT into away values (?)', (clk,))
         
-def save_data():
-    with open("data.dat", "wb") as wdf:
-        pickle.dump({"away":AWAY}, wdf)
+def update_role_stats(clk, role, won):
+    role = role+'stats'
+    with conn:
+        print("k")
+        c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
+        'cloak TEXT UNIQUE, wins SMALLINT, total SMALLINT)').format(role))
+        wins, totalgames = 0, 0
+        print("kk")
+        c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
+        row = c.fetchone()
+        if row:
+            _, __, wins,totalgames = row
+        if won:
+            wins += 1
+        totalgames += 1
+        
+        print("uh oh")
+        
+        c.execute(('INSERT OR REPLACE INTO {0} (cloak, wins, total) '+
+                  'values (?,?,?)').format(role), (clk, wins, totalgames))
+                                                           
+                                                          
+def get_role_stats(clk, role):
+    role = role+'stats'
+    with conn:
+        print("k")
+        c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
+        'cloak TEXT UNIQUE, wins SMALLINT, total SMALLINT)').format(role))
+        wins, totalgames = 0, 0
+        print("kk")
+        c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
+        row = c.fetchone()
+        if row:
+            _, __, wins,totalgames = row
+        return wins, totalgames
