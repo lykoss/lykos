@@ -395,7 +395,7 @@ def stats(cli, nick, chan, rest):
     
     for role in rs:
         count = len(var.ROLES[role])
-        if not f and count>1:
+        if not f or count > 1 or not count:
             vb = "are"
             f = True
         elif not f:
@@ -737,7 +737,6 @@ def reaper(cli, gameid):
                 elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
                     nick in var.IDLE_WARNED):
                     to_kill.append(nick)
-                    print("WILL KILL "+nick)
                 elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
                     nick in var.IDLE_WARNED):
                     var.IDLE_WARNED.remove(nick)  # he saved himself from death

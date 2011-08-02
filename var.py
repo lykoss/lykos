@@ -157,7 +157,7 @@ class ChangedRolesMode(object):
 import sqlite3
 import os
 
-conn = sqlite3.connect("data.sqlite3")
+conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 c = conn.cursor()
 c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
 
