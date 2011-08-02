@@ -1975,9 +1975,9 @@ def flastgame(cli, nick, *rest):
     chan = botconfig.CHANNEL
 
     if "join" in COMMANDS.keys():
-        del COMMANDS["join"]
+        COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
     if "start" in COMMANDS.keys():
-        del COMMANDS["start"]
+        COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     

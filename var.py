@@ -172,7 +172,7 @@ def remove_away(clk):
     
 def add_away(clk):
     with conn:
-        c.execute('INSERT into away values (?)', (clk,))
+        c.execute('INSERT into away VALUES (?)', (clk,))
         
 def update_role_stats(clk, role, won, iwon):
     role = role.replace(" ", "_")+'stats'
@@ -192,7 +192,7 @@ def update_role_stats(clk, role, won, iwon):
         totalgames += 1
         
         c.execute(('INSERT OR REPLACE INTO {0} (cloak, teamwins, individualwins, total) '+
-                  'values (?,?,?,?)').format(role), (clk, wins, iwins, totalgames))
+                  'VALUES (?,?,?,?)').format(role), (clk, wins, iwins, totalgames))
                                                            
                                                            
                                                           
