@@ -825,14 +825,8 @@ def on_nick(cli, prefix, nick):
         r.remove(prefix)
 
         if var.PHASE in ("night", "day"):
-            for a,b in list(var.KILLS.items()):
-                if prefix == b:
-                    var.KILLS[a] = nick
-                elif prefix == a:
-                    var.KILLS[nick] = b
-                    del var.KILLS[a]
-            kvp = []
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.KILLS):
+                kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
                         a = nick
@@ -1344,6 +1338,8 @@ def observe(cli, nick, rest):
         cli.msg(nick, "Flying to another wolf's house is a waste of time.")
         return
     var.OBSERVED[nick] = victim
+    if nick in var.KILLS.keys():
+        del var.KILLS[nick]
     var.ACTED_WOLVES.add(nick)
     cli.msg(nick, ("You transform into a large crow and start your flight "+
                    "to \u0002{0}'s\u0002 house. You will return after "+
