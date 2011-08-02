@@ -175,7 +175,7 @@ def add_away(clk):
         c.execute('INSERT into away VALUES (?)', (clk,))
         
 def update_role_stats(clk, role, won, iwon):
-    role = role.replace(" ", "_")+'stats'
+    role = role.replace(" ", "_")+'_stats'
     with conn:
         c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
         'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
@@ -197,7 +197,7 @@ def update_role_stats(clk, role, won, iwon):
                                                            
                                                           
 def get_role_stats(clk, role):
-    role = role.replace(" ", "_")+'stats'
+    role = role.replace(" ", "_")+'_stats'
     with conn:
         c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
         'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
