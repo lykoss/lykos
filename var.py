@@ -150,6 +150,9 @@ class ChangedRolesMode(object):
             self.ROLES_GUIDE[k] = tuple(lx)
 
          
+# Persistence
+         
+         
 # Load saved settings
 import sqlite3
 import os
@@ -171,38 +174,36 @@ def add_away(clk):
     with conn:
         c.execute('INSERT into away values (?)', (clk,))
         
-def update_role_stats(clk, role, won):
-    role = role+'stats'
+def update_role_stats(clk, role, won, iwon):
+    role = role.replace(" ", "_")+'stats'
     with conn:
-        print("k")
         c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
-        'cloak TEXT UNIQUE, wins SMALLINT, total SMALLINT)').format(role))
-        wins, totalgames = 0, 0
-        print("kk")
+        'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
+        wins, iwins, totalgames = 0, 0, 0
+
         c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
         row = c.fetchone()
         if row:
-            _, __, wins,totalgames = row
+            _, __, wins, iwins, totalgames = row
         if won:
             wins += 1
+        if iwon:
+            iwins += 1
         totalgames += 1
         
-        print("uh oh")
-        
-        c.execute(('INSERT OR REPLACE INTO {0} (cloak, wins, total) '+
-                  'values (?,?,?)').format(role), (clk, wins, totalgames))
+        c.execute(('INSERT OR REPLACE INTO {0} (cloak, teamwins, individualwins, total) '+
+                  'values (?,?,?,?)').format(role), (clk, wins, iwins, totalgames))
+                                                           
                                                            
                                                           
 def get_role_stats(clk, role):
-    role = role+'stats'
+    role = role.replace(" ", "_")+'stats'
     with conn:
-        print("k")
         c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
-        'cloak TEXT UNIQUE, wins SMALLINT, total SMALLINT)').format(role))
-        wins, totalgames = 0, 0
-        print("kk")
+        'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
+        wins, iwins, totalgames = 0, 0, 0
         c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
         row = c.fetchone()
         if row:
-            _, __, wins,totalgames = row
-        return wins, totalgames
+            _, __, wins, iwins, totalgames = row
+        return wins, iwins, totalgames

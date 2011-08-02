@@ -154,8 +154,8 @@ def reset(cli):
     dict.clear(var.DEAD_USERS)
 
 
-@pmcmd("bye", "die", "off", admin_only=True)
-@cmd("bye", "die", "off", admin_only=True)
+@pmcmd("fbye", "fdie", admin_only=True)
+@cmd("fbye", "fdie", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
     
@@ -173,8 +173,8 @@ def forced_exit(cli, nick, *rest):  # Admin Only
 
 
 
-@pmcmd("restart", admin_only=True)
-@cmd("restart", admin_only=True)
+@pmcmd("frestart", admin_only=True)
+@cmd("frestart", admin_only=True)
 def restart_program(cli, nick, *rest):
     """Restarts the bot."""
     try:
@@ -191,41 +191,6 @@ def restart_program(cli, nick, *rest):
         print("RESTARTING")
         python = sys.executable
         os.execl(python, python, *sys.argv)
-    
-
-
-
-@cmd("op", admin_only=True)
-def give_op(cli, nick, chan, rest):
-    """OP [(person)] Makes someone or yourself a channel operator"""
-    if not rest.strip():
-        rest = nick
-
-    for a in re.split(" +",rest):
-        a = a.strip()
-        if not a:
-            continue
-        cli.mode(chan, "+o", a)
-    
-    
-    
-@pmcmd("op", admin_only=True)
-def give_op_pm(cli, nick, rest):
-    give_op(cli, nick, botconfig.CHANNEL, rest)
-
-
-
-@cmd("deop", admin_only=True)
-def take_op(cli, nick, chan, rest):
-    """Takes operator rights from someone or yourself."""
-    if not rest.strip():
-        rest = nick
-    
-    for a in re.split(" +",rest):
-        a = a.strip()
-        if not a:
-            continue
-        cli.mode(chan, "-o", a)
 
 
 
@@ -389,35 +354,6 @@ def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, nick, rest)
-    
-    
-# lol this was funny
-# @cmd("kpon")
-# def kpon(cli, nick, chan, rest):
-    # """(Same as !join)"""
-    # join(cli, nick, chan, rest)
-    # if "person" in var.ROLES.keys() and nick in var.ROLES["person"]:
-        # var.ROLES["person"].remove(nick)
-    # if "typo" in var.ROLES.keys():
-        # var.ROLES["typo"].append(nick)
-    # else:
-        # var.ROLES["typo"] = [nick]
-
-
-
-@cmd("chankick", admin_only=True)
-def chankick(cli, nick, chan, rest):
-    rest = re.split(" +", rest, 1)
-    if not rest[0]:
-        cli.notice(nick, "Invalid syntax for this command.")
-        return
-    if rest[0] != botconfig.NICK:
-        if len(rest) == 1:
-            cli.kick(chan, rest[0], "Kicked by "+nick+".")
-        else:
-            cli.kick(chan, rest[0], "Kicked by {0}: {1}".format(nick, rest[1]))
-    else:
-        cli.kick(chan, nick, "No.")
 
 
 
@@ -501,9 +437,10 @@ def hurry_up(cli, gameid=0):
         var.VOTES[maxfound[1]] = [None] * votesneeded
         chk_decision(cli)  # Induce a lynch
     else:
-        cli.msg(chan, "The sun is almost setting.")
-        for plr in pl:
-            var.VOTES[plr] = [None] * (votesneeded - 1)
+        cli.msg(chan, ("As the sun sets, the villagers agree to "+
+                      "retire to their beds and wait for morning."))
+        transition_night(cli)
+        
 
 
 
@@ -660,7 +597,9 @@ def stop_game(cli, winner = ""):
             else:
                 break
                 
-        var.update_role_stats(clk, rol, won)
+        iwon = won and plr in var.list_players()  # survived, team won = individual win
+                
+        var.update_role_stats(clk, rol, won, iwon)
     
     reset(cli)
     return True                     
@@ -2026,7 +1965,21 @@ def show_admins(cli, nick, chan, rest):
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
-    cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))    
+    cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
+    
+    
+@cmd("flastgame", admin_only=True)
+@pmcmd("flastgame", admin_only=True)
+def flastgame(cli, nick, *rest):
+    """This command may be used in the channel or in a PM, and it disables starting or joining a game."""
+    chan = botconfig.CHANNEL
+
+    if "join" in COMMANDS.keys():
+        del COMMANDS["join"]
+    if "start" in COMMANDS.keys():
+        del COMMANDS["start"]
+        
+    cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     
     
 
@@ -2053,14 +2006,6 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, str(type(e))+":"+str(e))
 
             
-    @cmd("set", admin_only=True)
-    def set_setting(cli, nick, chan, rest):
-        rest = re.split(" +",rest, 1)
-        if len(rest) != 2 or not rest[0] or not rest[1]:
-            cli.msg(chan, "Invalid syntax.")
-            return
-        cli.msg(chan, "Not implemented yet.")
-
 
     @cmd("revealroles", admin_only=True)
     def revroles(cli, nick, chan, rest):
@@ -2071,7 +2016,7 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, "Gunners: "+str(list(var.GUNNERS.keys())))
         
         
-    @cmd("game", admin_only=True)
+    @cmd("fgame", admin_only=True)
     def game(cli, nick, chan, rest):
         pl = var.list_players()
         if var.PHASE == "none":
