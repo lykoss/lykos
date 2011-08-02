@@ -158,13 +158,31 @@ import sqlite3
 import os
 
 conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
-c = conn.cursor()
-c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
 
-c.execute('SELECT * FROM away')
+with conn:
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
 
-for row in c:
-    AWAY.append(row[0])
+    c.execute('SELECT * FROM away')
+
+    for row in c:
+        AWAY.append(row[0])
+    
+    # populate the roles table
+    c.execute('DROP TABLE IF EXISTS roles')
+    c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
+
+    for x in ["villager"]+list(ROLE_INDICES.values()):
+        c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
+        
+        
+    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (playerid INTEGER, roleid INTEGER, '+
+        'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
+        'UNIQUE(playerid, roleid))'))
+        
+    c.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, cloak TEXT)")
+
+    
     
 def remove_away(clk):
     with conn:
@@ -174,36 +192,40 @@ def add_away(clk):
     with conn:
         c.execute('INSERT into away VALUES (?)', (clk,))
         
+        
+
 def update_role_stats(clk, role, won, iwon):
-    role = role.replace(" ", "_")+'_stats'
+    
+    
     with conn:
-        c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
-        'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
         wins, iwins, totalgames = 0, 0, 0
 
-        c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
+        c.execute('SELECT id FROM players WHERE cloak=?', (clk,))
         row = c.fetchone()
         if row:
-            _, __, wins, iwins, totalgames = row
+            plid = row[0]
+        else:
+            c.execute('INSERT INTO players (cloak) VALUES (?)', (clk,))
+            c.execute('SELECT id FROM players WHERE cloak=?', (clk,))
+            plid = c.fetchone()[0]
+            
+        c.execute('SELECT id FROM roles WHERE role=?', (role,))
+        rid = c.fetchone()[0]
+        
+        c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
+                   "WHERE playerid=? AND roleid=?"), (plid, rid))
+        row = c.fetchone()
+        if row:
+            wins, iwins, total = row
+        else:
+            wins, iwins, total = 0,0,0
+            
         if won:
             wins += 1
         if iwon:
             iwins += 1
-        totalgames += 1
+        total += 1
         
-        c.execute(('INSERT OR REPLACE INTO {0} (cloak, teamwins, individualwins, total) '+
-                  'VALUES (?,?,?,?)').format(role), (clk, wins, iwins, totalgames))
-                                                           
-                                                           
-                                                          
-def get_role_stats(clk, role):
-    role = role.replace(" ", "_")+'_stats'
-    with conn:
-        c.execute(('CREATE TABLE IF NOT EXISTS {0} (id INTEGER PRIMARY KEY AUTOINCREMENT, '+
-        'cloak TEXT UNIQUE, teamwins SMALLINT, individualwins SMALLINT, total SMALLINT)').format(role))
-        wins, iwins, totalgames = 0, 0, 0
-        c.execute('SELECT * FROM {0} WHERE cloak=?'.format(role), (clk,))
-        row = c.fetchone()
-        if row:
-            _, __, wins, iwins, totalgames = row
-        return wins, iwins, totalgames
+        c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
+                  (plid, rid, wins, iwins, total))
+                                                    
