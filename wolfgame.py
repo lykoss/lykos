@@ -92,7 +92,7 @@ def connect_callback(cli):
     var.GRAVEYARD_LOCK = threading.RLock()
     var.GAME_ID = 0
     
-    var.LOGGER = WolfgameLogger(var.LOG_FILENAME)
+    var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
     
     if botconfig.DEBUG_MODE:
         var.NIGHT_TIME_LIMIT = 0  # 90
@@ -418,7 +418,7 @@ def stats(cli, nick, chan, rest):
                                                         message[-1],
                                                         vb)
     cli.msg(chan, stats_mssg)
-    var.LOGGER.logMessage(stats_mssg)
+    var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
 
 
 
@@ -664,9 +664,9 @@ def chk_win(cli):
         cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
                        'frightened as they hear a loud howl. The wolves are '+
                        'not gone!\u0002'))
-        var.LOGGER.logMessage(('\u0002The villagers, during their celebrations, are '+
+        var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
                                'frightened as they hear a loud howl. The wolves are '+
-                               'not gone!\u0002'))
+                               'not gone!'))
         return False
     else:
         return False
@@ -790,7 +790,7 @@ def update_last_said(cli, nick, chan, rest):
         var.LAST_SAID_TIME[nick] = datetime.now()
     
     if var.PHASE not in ("none", "join"):
-        var.LOGGER.log("<{0}> {1}".format(nick, rest))
+        var.LOGGER.logChannelMessage(nick, rest)
 
 
 

@@ -11,6 +11,7 @@ START_WITH_DAY = False
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 LOG_FILENAME = "gamelog.txt"
+BARE_LOG_FILENAME = "barelog.txt"
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
