@@ -484,6 +484,7 @@ def chk_decision(cli):
             lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_role(votee))
             cli.msg(botconfig.CHANNEL, lmsg)
             var.LOGGER.logMessage(lmsg.replace("\02", ""))
+            var.LOGGER.logBare(votee, "LYNCHED")
             if del_player(cli, votee, True):
                 transition_night(cli)
 
@@ -552,6 +553,9 @@ def stop_game(cli, winner = ""):
                                                                      nitemin, nitesec)
     cli.msg(chan, gameend_msg)
     var.LOGGER.logMessage(gameend_msg.replace("\02", "")+"\n")
+    var.LOGGER.logBare("DAY", "TIME", str(var.DAY_TIMEDELTA.seconds))
+    var.LOGGER.logBare("NIGHT", "TIME", str(var.NIGHT_TIMEDELTA.seconds))
+    var.LOGGER.logBare("GAME", "TIME", str(total.seconds))
 
     roles_msg = []
     
@@ -643,6 +647,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
+        var.LOGGER.logBare("WOLVES", "WIN")
     elif (len(var.ROLES["wolf"])+
           #len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) > lpl / 2:
@@ -651,6 +656,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! There are more wolves than "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
+        var.LOGGER.logBare("WOLVES", "WIN")
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
           not var.ROLES["werecrow"]):
@@ -659,7 +665,10 @@ def chk_win(cli):
         var.LOGGER.logMessage(("Game over! All the wolves are dead! The villagers "+
                                "chop them up, BBQ them, and have a hearty meal."))
         village_win = True
+        var.LOGGER.logBare("VILLAGERS", "WIN")
     elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
+        for t in var.ROLES["traitor"]:
+            var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
         cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
                        'frightened as they hear a loud howl. The wolves are '+
@@ -958,6 +967,7 @@ def begin_day(cli):
            'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1)
     cli.msg(chan, msg)
     var.LOGGER.logMessage(msg)
+    var.LOGGER.logBare("DAY", "BEGIN")
 
     if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
         var.DAY_ID = timetime()
@@ -1052,6 +1062,7 @@ def transition_day(cli, gameid=0):
                         "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
                         "death.").format(victim, var.get_role(victim)))
         dead.append(victim)
+        var.LOGGER.logBare(victim, "KILLED")
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
@@ -1158,6 +1169,7 @@ def vote(cli, nick, chan, rest):
         cli.msg(chan, ("\u0002{0}\u0002 votes for "+
                        "\u0002{1}\u0002.").format(nick, voted))
         var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
+        var.LOGGER.logBare(nick, "VOTE", voted)
         chk_decision(cli)
     elif not rest:
         cli.notice(nick, "Not enough parameters.")
@@ -1317,6 +1329,7 @@ def kill(cli, nick, rest):
         return
     var.KILLS[nick] = pl[pll.index(victim)]
     cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(pl[pll.index(victim)]))
+    var.LOGGER.logBare(nick, "SELECT", pl[pll.index(victim)])
     var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
 
@@ -1354,7 +1367,8 @@ def guard(cli, nick, rest):
         return
     var.GUARDED[nick] = pl[pll.index(victim)]
     cli.msg(nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
-    cli.msg(victim, "You can sleep well tonight, for a guardian angel is protecting you.")
+    cli.msg(var.GUARDED[nick], "You can sleep well tonight, for a guardian angel is protecting you.")
+    var.LOGGER.logBare(nick, "GUARDED", var.GUARDED[nick])
     chk_nightdone(cli)
 
 
@@ -1396,6 +1410,7 @@ def observe(cli, nick, rest):
     cli.msg(nick, ("You transform into a large crow and start your flight "+
                    "to \u0002{0}'s\u0002 house. You will return after "+
                   "collecting your observations when day begins.").format(victim))
+    var.LOGGER.logBare(nick, "OBSERVE", victim)
 
 
 
@@ -1430,11 +1445,13 @@ def investigate(cli, nick, rest):
     var.INVESTIGATED.append(nick)
     cli.msg(nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
                    " is a... \u0002{1}\u0002!").format(victim, var.get_role(victim)))
+    var.LOGGER.logBare(nick, "ID", victim)
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # Reveal his role!
         for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
             cli.msg(badguy, ("\u0002{0}\u0002 accidentally drops a paper. The paper reveals "+
                             "that (s)he is the detective!").format(nick))
+        var.LOGGER.logBare(nick, "PAPERDROP")
 
 
 
@@ -1470,10 +1487,10 @@ def hvisit(cli, nick, rest):
     else:
         var.HVISITED[nick] = var.list_players()[pl.index(victim)]
         cli.msg(nick, ("You are spending the night with \u0002{0}\u0002. "+
-                      "Have a good time!").format(victim))
-        if var.HVISITED[nick] not in var.ROLES["wolf"]:
-            cli.msg(var.HVISITED[nick], ("You are spending the night with \u0002{0}"+
-                                          "\u0002. Have a good time!").format(nick))
+                      "Have a good time!").format(var.HVISITED[nick]))
+        cli.msg(var.HVISITED[nick], ("You are spending the night with \u0002{0}"+
+                                     "\u0002. Have a good time!").format(nick))
+        var.LOGGER.logBare(nick, "VISIT", var.HVISITED[nick])
     chk_nightdone(cli)
 
 
@@ -1520,6 +1537,7 @@ def see(cli, nick, rest):
                     "you see that \u0002{0}\u0002 is a "+
                     "\u0002{1}\u0002!").format(victim, role))
     var.SEEN.append(nick)
+    var.LOGGER.logBare(nick, "SEE", victim)
     chk_nightdone(cli)
 
 
@@ -1687,6 +1705,7 @@ def transition_night(cli):
                    "relax, and wait patiently for morning.").replace("\02", "")
     cli.msg(chan, dmsg)
     var.LOGGER.logMessage(dmsg)
+    var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
     if not var.ROLES["wolf"]:  # Probably something interesting going on.
@@ -1836,6 +1855,7 @@ def start(cli, nick, chan, rest):
     var.NIGHT_START_TIME = None
     
     var.LOGGER.log("Game Start")
+    var.LOGGER.logBare("GAME", "BEGIN")
     
     var.LOGGER.log("***")
     var.LOGGER.log("ROLES: ")
@@ -1848,11 +1868,20 @@ def start(cli, nick, chan, rest):
             r.append(rwu)
         r = " ".join(r)
         var.LOGGER.log("{0}: {1}".format(r, ", ".join(var.ROLES[rol])))
+        
+        for plr in var.ROLES[rol]:
+            var.LOGGER.logBare(plr, "ROLE", rol)
     
     if var.CURSED:
         var.LOGGER.log("Cursed Villagers: "+", ".join(var.CURSED))
+        
+        for plr in var.CURSED:
+            var.LOGGER.logBare(plr+" ROLE cursed villager")
     if var.GUNNERS:
         var.LOGGER.log("Villagers With Bullets: "+", ".join([x+"("+str(y)+")" for x,y in var.GUNNERS.items()]))
+        for plr in var.GUNNERS:
+            var.LOGGER.logBare(plr, "ROLE gunner")
+    
     var.LOGGER.log("***")        
         
     if not var.START_WITH_DAY:

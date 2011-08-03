@@ -10,7 +10,7 @@ DAY_TIME_LIMIT = 0
 START_WITH_DAY = False
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
-LOG_FILENAME = "gamelog.txt"
+LOG_FILENAME = ""
 BARE_LOG_FILENAME = "barelog.txt"
 
                     #       HIT    MISS    SUICIDE
