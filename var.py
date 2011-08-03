@@ -15,7 +15,7 @@ BARE_LOG_FILENAME = "barelog.txt"
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
-DRUNK_GUN_CHANCES   =   (   4/7  ,  2/7  ,   1/7   )
+DRUNK_GUN_CHANCES   =   (   2/7  ,  4/7  ,   1/7   )
 MANSLAUGHTER_CHANCE =       1/5  # ACCIDENTAL HEADSHOT (FATAL)
 
 GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/2
