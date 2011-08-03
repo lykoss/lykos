@@ -10,6 +10,7 @@ DAY_TIME_LIMIT = 0
 START_WITH_DAY = False
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
+LOG_FILENAME = "gamelog.txt"
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
@@ -41,7 +42,7 @@ AWAY = []  # cloaks of people who are away.
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
-                2 : "cursed",
+                2 : "cursed villager",
                 3 : "village drunk",
                 4 : "harlot",
                 5 : "traitor",
@@ -105,7 +106,7 @@ def game_mode(name):
     
 CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                      "wolves" : INDEX_OF_ROLE["wolf"],
-                     "cursed" : INDEX_OF_ROLE["cursed"],
+                     "cursed villager" : INDEX_OF_ROLE["cursed villager"],
                     "drunks"  : INDEX_OF_ROLE["village drunk"],
                    "harlots"  : INDEX_OF_ROLE["harlot"],
                   "traitors"  : INDEX_OF_ROLE["traitor"],
@@ -195,7 +196,6 @@ def add_away(clk):
         
 
 def update_role_stats(clk, role, won, iwon):
-    
     
     with conn:
         wins, iwins, totalgames = 0, 0, 0

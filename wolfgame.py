@@ -10,6 +10,7 @@
 from oyoyo.parse import parse_nick
 import var
 import botconfig
+from wolfgamelogger import WolfgameLogger
 import decorators
 from datetime import datetime, timedelta
 import threading
@@ -91,6 +92,8 @@ def connect_callback(cli):
     var.GRAVEYARD_LOCK = threading.RLock()
     var.GAME_ID = 0
     
+    var.LOGGER = WolfgameLogger(var.LOG_FILENAME)
+    
     if botconfig.DEBUG_MODE:
         var.NIGHT_TIME_LIMIT = 0  # 90
         var.DAY_TIME_LIMIT = 0
@@ -154,8 +157,8 @@ def reset(cli):
     dict.clear(var.DEAD_USERS)
 
 
-@pmcmd("fbye", "fdie", admin_only=True)
-@cmd("fbye", "fdie", admin_only=True)
+@pmcmd("fdie", "fbye", admin_only=True)
+@cmd("fdie", "fbye", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
     """Forces the bot to close"""
     
@@ -332,6 +335,8 @@ def fjoin(cli, nick, chan, rest):
 
 @cmd("fleave","fquit","fdel", admin_only=True)
 def fleave(cli, nick, chan, rest):
+    if var.PHASE == "none":
+        cli.notice(nick, "No game is running.")
     for a in re.split(" +",rest):
         a = a.strip()
         if not a:
@@ -346,6 +351,9 @@ def fleave(cli, nick, chan, rest):
         cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
                        " \u0002{1}\u0002 to leave.").format(nick, a))
         cli.msg(chan, "Appears (s)he was a \02{0}\02.".format(var.get_role(a)))
+        if var.PHASE in ("day", "night"):
+            var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
+            var.LOGGER.logMessage("Appears (s)he was a {0}.".format(var.get_role(a)))
         del_player(cli, a)
 
 
@@ -405,10 +413,12 @@ def stats(cli, nick, chan, rest):
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
-    cli.msg(chan, "{0}: There {3} {1}, and {2}.".format(nick,
+    stats_mssg =  "{0}: There {3} {1}, and {2}.".format(nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
-                                                        vb))
+                                                        vb)
+    cli.msg(chan, stats_mssg)
+    var.LOGGER.logMessage(stats_mssg)
 
 
 
@@ -434,11 +444,14 @@ def hurry_up(cli, gameid=0):
             found_dup = True
     if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
+        var.LOGGER.logMessage("The sun sets.")
         var.VOTES[maxfound[1]] = [None] * votesneeded
         chk_decision(cli)  # Induce a lynch
     else:
         cli.msg(chan, ("As the sun sets, the villagers agree to "+
                       "retire to their beds and wait for morning."))
+        var.LOGGER.logMessage(("As the sun sets, the villagers agree to "+
+                               "retire to their beds and wait for morning."))
         transition_night(cli)
         
 
@@ -468,9 +481,9 @@ def chk_decision(cli):
     votesneeded = avail // 2 + 1
     for votee, voters in iter(var.VOTES.items()):
         if len(voters) >= votesneeded:
-            cli.msg(botconfig.CHANNEL,
-                    random.choice(var.LYNCH_MESSAGES).format(
-                    votee, var.get_role(votee)))
+            lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_role(votee))
+            cli.msg(botconfig.CHANNEL, lmsg)
+            var.LOGGER.logMessage(lmsg.replace("\02", ""))
             if del_player(cli, votee, True):
                 transition_night(cli)
 
@@ -532,11 +545,13 @@ def stop_game(cli, winner = ""):
     nitemin, nitesec = var.NIGHT_TIMEDELTA.seconds // 60, var.NIGHT_TIMEDELTA.seconds % 60
     total = var.DAY_TIMEDELTA + var.NIGHT_TIMEDELTA
     tmin, tsec = total.seconds // 60, total.seconds % 60
-    cli.msg(chan, ("Game lasted \u0002{0:0>2}:{1:0>2}\u0002. " +
+    gameend_msg = ("Game lasted \u0002{0:0>2}:{1:0>2}\u0002. " +
                    "\u0002{2:0>2}:{3:0>2}\u0002 was day. " +
                    "\u0002{4:0>2}:{5:0>2}\u0002 was night. ").format(tmin, tsec,
                                                                      daymin, daysec,
-                                                                     nitemin, nitesec))
+                                                                     nitemin, nitesec)
+    cli.msg(chan, gameend_msg)
+    var.LOGGER.logMessage(gameend_msg.replace("\02", "")+"\n")
 
     roles_msg = []
     
@@ -570,6 +585,7 @@ def stop_game(cli, winner = ""):
         for x in ppl:
             plrl.append((x, role))
     
+    var.LOGGER.saveToFile()
     
     for plr, rol in plrl:
         if plr not in var.USERS:  # he died TODO: when a player leaves, count the game as lost for him
@@ -624,24 +640,33 @@ def chk_win(cli):
           len(var.ROLES["werecrow"])) == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
+        var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
+                               "villagers. The wolves eat everyone, and win."))
         village_win = False
     elif (len(var.ROLES["wolf"])+
           #len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
+        var.LOGGER.logMessage(("Game over! There are more wolves than "+
+                               "villagers. The wolves eat everyone, and win."))
         village_win = False
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
           not var.ROLES["werecrow"]):
         cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
                        "chop them up, BBQ them, and have a hearty meal."))
+        var.LOGGER.logMessage(("Game over! All the wolves are dead! The villagers "+
+                               "chop them up, BBQ them, and have a hearty meal."))
         village_win = True
     elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
         chk_traitor(cli)
         cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
                        'frightened as they hear a loud howl. The wolves are '+
                        'not gone!\u0002'))
+        var.LOGGER.logMessage(('\u0002The villagers, during their celebrations, are '+
+                               'frightened as they hear a loud howl. The wolves are '+
+                               'not gone!\u0002'))
         return False
     else:
         return False
@@ -760,9 +785,12 @@ def reaper(cli, gameid):
 
 
 @cmd("")  # update last said
-def update_last_said(cli, nick, *rest):
+def update_last_said(cli, nick, chan, rest):
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[nick] = datetime.now()
+    
+    if var.PHASE not in ("none", "join"):
+        var.LOGGER.log("<{0}> {1}".format(nick, rest))
 
 
 
@@ -794,6 +822,7 @@ def goat(cli, nick, chan, rest):
         cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
                       "and kicks \u0002{1}\u0002.").format(nick,
                                                            rest.strip()))
+        var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, rest.strip()))
         var.GOATED = True
 
 
@@ -899,9 +928,10 @@ def leave(cli, what, nick, why=""):
                "Appears (s)he was a \u0002{1}\u0002.")
     msg = msg.format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
+    var.LOGGER.logMessage(msg.replace("\02", ""))
     del_player(cli, nick)
 
-_ = cmd("quit", "leave")(lambda cli, nick, *rest: leave(cli, botconfig.CMD_CHAR+"quit", nick))
+_ = cmd("quit", "leave")(lambda cli, nick, chan, rest: leave(cli, botconfig.CMD_CHAR+"quit", nick, ""))
 _.__doc__ = "Quits the game"
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
@@ -923,9 +953,11 @@ def begin_day(cli):
     var.HVISITED = {}
     var.GUARDED = {}
 
-    cli.msg(chan, ("The villagers must now vote for whom to lynch. "+
-                   'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
-                   'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1))
+    msg = ("The villagers must now vote for whom to lynch. "+
+           'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
+           'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1)
+    cli.msg(chan, msg)
+    var.LOGGER.logMessage(msg)
 
     if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
         var.DAY_ID = timetime()
@@ -1046,6 +1078,8 @@ def transition_day(cli, gameid=0):
             dead.append(harlot)
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+            if victim == gangel:
+                continue # already dead.
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 message.append(("\u0002{0}\u0002, a guardian angel, "+
@@ -1067,6 +1101,8 @@ def transition_day(cli, gameid=0):
                            # "The drunk's pet tiger probably ate him.").format(crow))
             # dead.append(crow)
     cli.msg(chan, "\n".join(message))
+    for msg in message:
+        var.LOGGER.logMessage(msg.replace("\02", ""))
     for deadperson in dead:
         if not del_player(cli, deadperson):
             return
@@ -1121,6 +1157,7 @@ def vote(cli, nick, chan, rest):
             var.VOTES[voted].append(nick)
         cli.msg(chan, ("\u0002{0}\u0002 votes for "+
                        "\u0002{1}\u0002.").format(nick, voted))
+        var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
         chk_decision(cli)
     elif not rest:
         cli.notice(nick, "Not enough parameters.")
@@ -1138,6 +1175,7 @@ def retract(cli, nick, chan, rest):
     elif nick not in var.list_players():
         cli.notice(nick, "You're not currently playing.")
         return
+        
     if var.PHASE != "day":
         cli.notice(nick, ("Lynching is only allowed during the day. "+
                           "Please wait patiently for morning."))
@@ -1150,6 +1188,7 @@ def retract(cli, nick, chan, rest):
             if not var.VOTES[voter]:
                 del var.VOTES[voter]
             cli.msg(chan, "\u0002{0}\u0002 retracted his/her vote.".format(nick))
+            var.LOGGER.logMessage("{0} retracted his/her vote.".format(nick))
             break
     else:
         cli.notice(nick, "You haven't voted yet.")
@@ -1165,6 +1204,7 @@ def shoot(cli, nick, chan, rest):
     elif nick not in var.list_players():
         cli.notice(nick, "You're not currently playing.")
         return
+        
     if var.PHASE != "day":
         cli.notice(nick, ("Shooting is only allowed during the day. "+
                           "Please wait patiently for morning."))
@@ -1196,32 +1236,44 @@ def shoot(cli, nick, chan, rest):
     if rand <= chances[0]:
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
+        var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
         victimrole = var.get_role(victim)
         if victimrole in ("wolf", "werecrow"):
             cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
                            "the silver bullet.").format(victim))
+            var.LOGGER.logMessage(("{0} is a wolf, and is dying from the "+
+                            "silver bullet.").format(victim))
             if not del_player(cli, victim):
                 return
         elif random.random() <= var.MANSLAUGHTER_CHANCE:
             cli.msg(chan, ("\u0002{0}\u0002 is a not a wolf "+
                            "but was accidentally fatally injured.").format(victim))
             cli.msg(chan, "Appears (s)he was a \u0002{0}\u0002.".format(victimrole))
+            var.LOGGER.logMessage("{0} is not a wolf but was accidentally fatally injured.".format(victim))
+            var.LOGGER.logMessage("Appears (s)he was a {0}.".format(victimrole))
             if not del_player(cli, victim):
                 return
         else:
             cli.msg(chan, ("\u0002{0}\u0002 is a villager and is injured but "+
                           "will have a full recovery. S/He will be resting "+
                           "for the day.").format(victim))
+            var.LOGGER.logMessage(("{0} is a villager and is injured but "+
+                            "will have a full recovery.  S/He will be resting "+
+                            "for the day").format(victim))
             if victim not in var.WOUNDED:
                 var.WOUNDED.append(victim)
             chk_decision(cli)
             chk_win(cli)
     elif rand <= chances[0] + chances[1]:
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter.  S/He missed!".format(nick))
+        var.LOGGER.logMessage("{0} is a lousy shooter.  S/He missed!".format(nick))
     else:
         cli.msg(chan, ("\u0002{0}\u0002 should clean his/her weapons more often. "+
                       "The gun exploded and killed him/her!").format(nick))
         cli.msg(chan, "Appears that (s)he was a \u0002{0}\u0002.".format(var.get_role(nick)))
+        var.LOGGER.logMessage(("{0} should clean his/her weapers more often. "+
+                        "The gun exploded and killed him/her!").format(nick))
+        var.LOGGER.logMessage("Appears that (s)he was a {0}.".format(var.get_role(nick)))
         if not del_player(cli, nick):
             return  # Someone won.
 
@@ -1629,10 +1681,12 @@ def transition_night(cli):
             continue
         cli.msg(g, gun_msg)
 
-    cli.msg(chan, (daydur_msg + "It is now nighttime. All players "+
+    dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
-                   "relax, and wait patiently for morning."))
+                   "relax, and wait patiently for morning.").replace("\02", "")
+    cli.msg(chan, dmsg)
+    var.LOGGER.logMessage(dmsg)
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
     if not var.ROLES["wolf"]:  # Probably something interesting going on.
@@ -1706,7 +1760,7 @@ def start(cli, nick, chan, rest):
             wvs = (addroles[var.INDEX_OF_ROLE["wolf"]] +
                   addroles[var.INDEX_OF_ROLE["traitor"]])
             if len(villagers) < (sum(addroles) - addroles[var.INDEX_OF_ROLE["gunner"]] -
-                    addroles[var.INDEX_OF_ROLE["cursed"]]):
+                    addroles[var.INDEX_OF_ROLE["cursed villager"]]):
                 cli.msg(chan, "There are too few players in the "+
                               "game to use the custom roles.")
             elif not wvs:
@@ -1725,7 +1779,7 @@ def start(cli, nick, chan, rest):
     var.CURSED = []
     var.GUNNERS = {}
 
-    villager_roles = ("gunner", "cursed")
+    villager_roles = ("gunner", "cursed villager")
     for i, count in enumerate(addroles):
         role = var.ROLE_INDICES[i]
         if role in villager_roles:
@@ -1738,15 +1792,15 @@ def start(cli, nick, chan, rest):
 
     # Now for the villager roles
     # Select cursed (just a villager)
-    if var.ROLES["cursed"]:
+    if var.ROLES["cursed villager"]:
         possiblecursed = pl[:]
         for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
                          var.ROLES["seer"]):  # confusing (Traitor can be cursed apparently)
                                               # but not in the Perl howlbot code
             possiblecursed.remove(cannotbe)
         
-        var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed"]))
-    del var.ROLES["cursed"]
+        var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed villager"]))
+    del var.ROLES["cursed villager"]
     
     # Select gunner (also a villager)
     if var.ROLES["gunner"]:
@@ -1780,8 +1834,27 @@ def start(cli, nick, chan, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
-
-
+    
+    var.LOGGER.log("Game Start")
+    
+    var.LOGGER.log("***")
+    var.LOGGER.log("ROLES: ")
+    for rol in var.ROLES:
+        r = []
+        for rw in var.plural(rol).split(" "):
+            rwu = rw[0].upper()
+            if len(rw) > 1:
+                rwu += rw[1:]
+            r.append(rwu)
+        r = " ".join(r)
+        var.LOGGER.log("{0}: {1}".format(r, ", ".join(var.ROLES[rol])))
+    
+    if var.CURSED:
+        var.LOGGER.log("Cursed Villagers: "+", ".join(var.CURSED))
+    if var.GUNNERS:
+        var.LOGGER.log("Villagers With Bullets: "+", ".join([x+"("+str(y)+")" for x,y in var.GUNNERS.items()]))
+    var.LOGGER.log("***")        
+        
     if not var.START_WITH_DAY:
         transition_night(cli)
     else:
@@ -1792,6 +1865,13 @@ def start(cli, nick, chan, rest):
     reapertimer.daemon = True
     reapertimer.start()
 
+    
+    
+@hook("error")
+def on_error(cli, pfx, msg):
+    if msg.endswith("(Excess Flood)"):
+        restart_program(cli, "excess flood")
+    
 
 
 @cmd("wait")
@@ -1858,6 +1938,7 @@ def reset_game(cli, nick, chan, rest):
         cli.notice(nick, "No game is currently running.")
         return
     cli.msg(chan, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
+    var.LOGGER.logMessage("{0} has forced the game to stop.".format(nick))
     if var.PHASE != "join":
         stop_game(cli)
     else:
@@ -1872,6 +1953,7 @@ def pm_rules(cli, nick, rest):
 def show_rules(cli, nick, chan, rest):
     """Displays the rules"""
     cli.msg(chan, var.RULES)
+    var.LOGGER.logMessage(var.RULES)
 
 
 @pmcmd("help", raw_nick = True)
@@ -1888,6 +1970,8 @@ def get_help(cli, rnick, rest):
                 found = True
                 for fn in c[cname]:
                     if fn.__doc__:
+                        if nick == botconfig.CHANNEL:
+                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                         cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                         return
                     else:
@@ -1960,7 +2044,10 @@ def show_admins(cli, nick, chan, rest):
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
-    cli.msg(chan, "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails"))
+    var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
+    cmsg = "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails")
+    cli.msg(chan, cmsg)
+    var.LOGGER.logMessage(cmsg)
     
     
 @cmd("flastgame", admin_only=True)
@@ -2087,7 +2174,7 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, "The syntax is incorrect.")
             return
         who = rst.pop(0).strip().lower()
-        who.replace("_", " ")
+        who = who.replace("_", " ")
         
         if (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
             or var.PHASE in ("none", "join")):
@@ -2150,7 +2237,7 @@ if botconfig.DEBUG_MODE:
                     var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                 if who not in pl:
                     var.ROLES["villager"].append(who)
-            elif rol == "cursed":
+            elif rol == "cursed villager":
                 var.CURSED.append(who)
                 if who not in pl:
                     var.ROLES["villager"].append(who)

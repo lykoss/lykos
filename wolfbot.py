@@ -28,8 +28,12 @@ import traceback
 
 def on_privmsg(cli, rawnick, chan, msg):         
     if chan != botconfig.NICK:  #not a PM
+        if "" in wolfgame.COMMANDS.keys():
+            for fn in wolfgame.COMMANDS[""]:
+                fn(cli, rawnick, chan, msg)
+            # Now that is always called first.
         for x in wolfgame.COMMANDS.keys():
-            if not x or msg.lower().startswith(botconfig.CMD_CHAR+x):
+            if x and msg.lower().startswith(botconfig.CMD_CHAR+x):
                 h = msg[len(x)+1:]
                 if not h or h[0] == " " or not x:
                     for fn in wolfgame.COMMANDS[x]:
