@@ -77,6 +77,7 @@ def connect_callback(cli):
 
     var.LAST_PING = 0  # time of last ping
     var.PINGING = False
+    var.ADMIN_PINGING = False
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
     var.DEAD_USERS = {}
@@ -2070,21 +2071,30 @@ def on_invite(cli, nick, something, chan):
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
     admins = []
+    
+    if var.ADMIN_PINGING:
+        return
+    var.ADMIN_PINGING = True
 
     @hook("whoreply", id = 4)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
+        if not var.ADMIN_PINGING:
+            return
         if ((cloak in botconfig.ADMINS or cloak in botconfig.OWNERS) and 'G' not in status and
             user != botconfig.NICK):
             admins.append(user)
 
     @hook("endofwho", id = 4)
     def show(*args):
+        if not var.ADMIN_PINGING:
+            return
         admins.sort(key=lambda x: x.lower())
         
         cli.msg(chan, "Available admins: "+" ".join(admins))
 
         decorators.unhook(HOOKS, 4)
+        var.ADMIN_PINGING = False
 
     cli.who(chan)
 
