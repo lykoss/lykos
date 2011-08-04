@@ -422,14 +422,26 @@ def stats(cli, nick, chan, rest):
 
 
 
-def hurry_up(cli, gameid=0):
+def hurry_up(cli, gameid, change):
     if var.PHASE != "day": return
     if gameid:
         if gameid != var.DAY_ID:
             return
-    var.DAY_ID = 0
 
     chan = botconfig.CHANNEL
+    
+    if not change:
+        cli.msg(chan, "The sun is almost setting.")
+        if not var.DAY_TIME_LIMIT_CHANGE:
+            return
+        var.TIMERS[1] = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
+        var.TIMERS[1].daemon = True
+        var.TIMERS[1].start()
+        return
+        
+    
+    var.DAY_ID = 0
+    
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
     votesneeded = avail // 2 + 1
@@ -462,7 +474,7 @@ def fnight(cli, nick, chan, rest):
     if var.PHASE != "day":
         cli.notice(nick, "It is not daytime.")
     else:
-        hurry_up(cli)
+        hurry_up(cli, 0, True)
 
 
 @cmd("fday", admin_only=True)
@@ -969,9 +981,9 @@ def begin_day(cli):
     var.LOGGER.logMessage(msg)
     var.LOGGER.logBare("DAY", "BEGIN")
 
-    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
+    if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
         var.DAY_ID = timetime()
-        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID])
+        t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
         var.TIMERS[1] = t
         var.TIMERS[1].daemon = True
         t.start()
@@ -1707,9 +1719,9 @@ def transition_night(cli):
     dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions. "+
                    "If you did not receive one, simply sit back, "+
-                   "relax, and wait patiently for morning.").replace("\02", "")
+                   "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
-    var.LOGGER.logMessage(dmsg)
+    var.LOGGER.logMessage(dmsg.replace("\02", ""))
     var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
