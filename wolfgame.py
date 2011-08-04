@@ -76,6 +76,7 @@ def connect_callback(cli):
         prepare_stuff()
 
     var.LAST_PING = 0  # time of last ping
+    var.PINGING = False
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
     var.DEAD_USERS = {}
@@ -211,6 +212,8 @@ def pinger(cli, nick, chan, rest):
         return
 
     var.LAST_PING = datetime.now()
+    if var.PINGING:
+        return
     var.PINGING = True
     TO_PING = []
 
