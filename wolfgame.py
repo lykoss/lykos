@@ -195,7 +195,12 @@ def restart_program(cli, nick, *rest):
     finally:
         print("RESTARTING")
         python = sys.executable
-        os.execl(python, python, *sys.argv)
+        if rest[-1].strip().lower() == "debugmode":
+            os.execl(python, python, sys.argv[0], "--debug")
+        elif rest[-1].strip().lower() == "normalmode":
+            os.execl(python, python, sys.argv[0])
+        else:
+            os.execl(python, python, *sys.argv)
 
 
 
@@ -1020,6 +1025,7 @@ def transition_day(cli, gameid=0):
         for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
             if not del_player(cli, x, True):
                 return
+    var.FIRST_NIGHT = False
 
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
@@ -1611,8 +1617,6 @@ def transition_night(cli):
         var.TIMERS[1].cancel()
         var.TIMERS[1] = None
 
-    var.FIRST_NIGHT = (var.ROLES == var.ORIGINAL_ROLES)
-
     # Reset nighttime variables
     var.KILLS = {}
     var.ACTED_WOLVES = set()
@@ -1907,6 +1911,7 @@ def start(cli, nick, chan, rest):
     var.LOGGER.log("***")        
         
     if not var.START_WITH_DAY:
+        var.FIRST_NIGHT = True
         transition_night(cli)
     else:
         transition_day(cli)
@@ -2248,14 +2253,14 @@ if botconfig.DEBUG_MODE:
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
             for fn in PM_COMMANDS[cmd]:
-                for guy in tgt:
+                for guy in tgt[:]:
                     fn(cli, guy, " ".join(rst))
             cli.msg(chan, "Operation successful.")
             #if var.PHASE == "night":   <-  Causes problems with night starting twice.
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             for fn in COMMANDS[cmd]:
-                for guy in tgt:
+                for guy in tgt[:]:
                     fn(cli, guy, chan, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
