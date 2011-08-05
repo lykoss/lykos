@@ -1363,7 +1363,7 @@ def kill(cli, nick, rest):
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
     var.KILLS[nick] = pl[pll.index(victim)]
-    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed".format(pl[pll.index(victim)]))
+    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed.".format(pl[pll.index(victim)]))
     var.LOGGER.logBare(nick, "SELECT", pl[pll.index(victim)])
     var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
