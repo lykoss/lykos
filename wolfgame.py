@@ -1020,9 +1020,7 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
 
     if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT and var.ROLES["seer"]:
-        cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
-                                    "were both found dead in their beds.").format(var.ROLES["wolf"][0],
-                                                                                  var.ROLES["seer"][0]))
+        cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
         for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
             if not del_player(cli, x, True):
                 return
