@@ -38,7 +38,8 @@ hook = decorators.generate(HOOKS, raw_nick=True)
 def connect_callback(cli):
     cli.ns_identify(botconfig.PASS)
 
-    def prepare_stuff():
+    @hook("event_hosthidden", id=294)
+    def prepare_stuff(*args):
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
@@ -102,7 +103,7 @@ def connect_callback(cli):
         var.KILL_IDLE_TIME = 0 #300
         var.WARN_IDLE_TIME = 0 #180
 
-    prepare_stuff()
+
 
 
 def mass_mode(cli, md):
