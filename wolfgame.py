@@ -38,7 +38,6 @@ hook = decorators.generate(HOOKS, raw_nick=True)
 def connect_callback(cli):
     cli.ns_identify(botconfig.PASS)
 
-    @hook("event_hosthidden", id=294)
     def prepare_stuff(*args):
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
@@ -59,6 +58,9 @@ def connect_callback(cli):
             
             
         cli.who(botconfig.CHANNEL)
+    if botconfig.JOIN_AFTER_CLOAKED:
+        prepare_stuff = hook("event_hosthidden", id=294)(prepare_stuff)
+        
 
     @hook("nicknameinuse")
     def mustghost(cli, *blah):
@@ -102,6 +104,9 @@ def connect_callback(cli):
         var.DAY_TIME_LIMIT = 0
         var.KILL_IDLE_TIME = 0 #300
         var.WARN_IDLE_TIME = 0 #180
+        
+    if not botconfig.JOIN_AFTER_CLOAKED:  # join immediately
+        prepare_stuff(cli)
 
 
 
