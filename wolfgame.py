@@ -1023,9 +1023,10 @@ def transition_day(cli, gameid=0):
         cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002, a \u0002wolf\u0002, and \u0002{1}\u0002, a \u0002seer\u0002 "+
                                     "were both found dead in their beds.").format(var.ROLES["wolf"][0],
                                                                                   var.ROLES["seer"][0]))
-        for x in (var.ROLES["wolf"][0],var.ROLES["seer"][0]):
+        for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
             if not del_player(cli, x, True):
                 return
+    
     var.FIRST_NIGHT = False
 
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
@@ -1180,7 +1181,8 @@ def vote(cli, nick, chan, rest):
     if rest in pl_l:
         if nick in var.WOUNDED:
             cli.msg(chan, ("{0}: You are wounded and resting, "+
-                          "thus you are unable to vote for the day."))
+                          "thus you are unable to vote for the day.").format(nick))
+            return
         voted = pl[pl_l.index(rest)]
         lcandidates = list(var.VOTES.keys())
         for voters in lcandidates:  # remove previous vote
@@ -1302,6 +1304,13 @@ def shoot(cli, nick, chan, rest):
                             "for the day").format(victim))
             if victim not in var.WOUNDED:
                 var.WOUNDED.append(victim)
+            lcandidates = list(var.VOTES.keys())
+            for cand in lcandidates:  # remove previous vote
+                if victim in var.VOTES[cand]:
+                    var.VOTES[cand].remove(victim)
+                    if not var.VOTES.get(cand):
+                        del var.VOTES[cand]
+                    break
             chk_decision(cli)
             chk_win(cli)
     elif rand <= chances[0] + chances[1]:
