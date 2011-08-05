@@ -528,17 +528,12 @@ def show_votes(cli, nick, chan, rest):
         return
     elif not var.VOTES.values():
         cli.msg(chan, nick+": No votes yet.")
-        return
-    if None in [x for voter in var.VOTES.values() for x in voter]:
-        cli.msg(chan, (nick+": Tiebreaker conditions.  Whoever "+
-                      "receives the next vote will be lynched."))
-        return
-
-    votelist = ["{0}: {1} ({2})".format(votee,
-                                        len(var.VOTES[votee]),
-                                        " ".join(var.VOTES[votee]))
-                for votee in var.VOTES.keys()]
-    cli.msg(chan, "{0}: {1}".format(nick, ", ".join(votelist)))
+    else:
+        votelist = ["{0}: {1} ({2})".format(votee,
+                                            len(var.VOTES[votee]),
+                                            " ".join(var.VOTES[votee]))
+                    for votee in var.VOTES.keys()]
+        cli.msg(chan, "{0}: {1}".format(nick, ", ".join(votelist)))
 
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
