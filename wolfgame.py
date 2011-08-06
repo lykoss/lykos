@@ -412,18 +412,16 @@ def stats(cli, nick, chan, rest):
           if var.ROLES[k]]
     l2 = [k for k in var.ORIGINAL_ROLES.keys()
           if var.ORIGINAL_ROLES[k]]
-    rs = set(l1+l2)
+    rs = list(set(l1+l2))
     if "village drunk" in rs:
         rs.remove("village drunk")  # drunk is not displayed
-    
+    firstcount = len(var.ROLES[rs[0]])
+    if firstcount > 1 or not firstcount:
+        vb = "are"
+    else:
+        vb = "is"
     for role in rs:
         count = len(var.ROLES[role])
-        if not f or count > 1 or not count:
-            vb = "are"
-            f = True
-        elif not f:
-            vb = "is"
-            f = True
         if count > 1 or count == 0:
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
@@ -1612,7 +1610,7 @@ def relay(cli, nick, rest):
                 else:
                     bgs = ",".join(badguys[0:var.MAX_PRIVMSG_TARGETS])
                     badguys = badguys[var.MAX_PRIVMSG_TARGETS:]
-                cli.msg(bgs, "{0} says: {1}".format(nick, rest))
+                cli.msg(bgs, "\02{0}\02 says: {1}".format(nick, rest))
 
 
 
