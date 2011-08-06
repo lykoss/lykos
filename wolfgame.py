@@ -415,6 +415,19 @@ def stats(cli, nick, chan, rest):
     rs = list(set(l1+l2))
     if "village drunk" in rs:
         rs.remove("village drunk")  # drunk is not displayed
+        
+    # Due to popular demand, picky ordering
+    if "wolf" in rs:
+        rs.remove("wolf")
+        rs.insert(0, "wolf")
+    if "seer" in rs:
+        rs.remove("seer")
+        rs.insert(1, "seer")
+    if "villager" in rs:
+        rs.remove("villager")
+        rs.append("villager")
+        
+        
     firstcount = len(var.ROLES[rs[0]])
     if firstcount > 1 or not firstcount:
         vb = "are"

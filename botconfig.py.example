@@ -1,8 +1,8 @@
-PASS = ""
-CHANNEL = ""
+PASS = "my_nickserv_pass"
+CHANNEL = "#mywolfgame"
 HOST = "irc.freenode.net"
-PORT = 6667
-NICK = "wolfbot"
+PORT = 6667  # SSL not supported yet
+NICK = "mywolfbot"
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")
 CMD_CHAR = "!"
