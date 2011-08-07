@@ -839,7 +839,7 @@ def reaper(cli, gameid):
             x = [a for a in to_warn if a in pl]
             if x:
                 cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
-                               "Please remember to say something soon or you "+
+                               "Please say something soon or you "+
                                "might be declared dead.\u0002").format(", ".join(x)))
         sleep(10)
 
@@ -1295,6 +1295,9 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     victim = pl[pll.index(victim)]
+    if victim == nick:
+        cli.notice(nick, "You are holding it the wrong way.")
+        return
     
     var.GUNNERS[nick] -= 1
     

@@ -9,6 +9,7 @@
 
 
 from oyoyo.parse import parse_nick
+import fnmatch
 import botconfig
 
 def generate(fdict, **kwargs):
@@ -23,15 +24,29 @@ def generate(fdict, **kwargs):
                     cloak = ""
                 if not raw_nick and largs[1]:
                     largs[1] = parse_nick(largs[1])[0]  # username
-                    #if largs[1].startswith("#"):       
+                    #if largs[1].startswith("#"):
+                if cloak:
+                    for pattern in botconfig.DENY.keys():
+                        if fnmatch.fnmatch(cloak, pattern):
+                            for cmdname in s:
+                                if cmdname in botconfig.DENY[pattern]:
+                                    largs[0].notice(largs[1], "You do not have permission to use that command.")
+                                    return
+                    for pattern in botconfig.ALLOW.keys():
+                        if fnmatch.fnmatch(cloak, pattern):
+                            for cmdname in s:
+                                if cmdname in botconfig.ALLOW[pattern]:
+                                    return f(*largs)  # no questions
                 if owner_only:
-                    if cloak and cloak in botconfig.OWNERS:
+                    if cloak and [ptn for ptn in botconfig.OWNERS 
+                                    if fnmatch.fnmatch(cloak, ptn)]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not the owner.")
                         return
                 if admin_only:
-                    if cloak and (cloak in botconfig.ADMINS or cloak in botconfig.OWNERS):
+                    if cloak and [ptn for ptn in botconfig.OWNERS 
+                                    if fnmatch.fnmatch(cloak, ptn)]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not an admin.")
