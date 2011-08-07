@@ -36,14 +36,10 @@ hook = decorators.generate(HOOKS, raw_nick=True)
 # Game Logic Begins:
 
 def connect_callback(cli):
-    cli.ns_identify(botconfig.PASS)
 
     def prepare_stuff(*args):
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-
-        var.USERS = []
-        var.CLOAKS = []
 
         @hook("whoreply", id=294)
         def on_whoreply(cli, server, dunno, chan, dunno1,
@@ -65,7 +61,6 @@ def connect_callback(cli):
     @hook("nicknameinuse")
     def mustghost(cli, *blah):
         cli.nick(botconfig.NICK+"_")
-        cli.ns_identify(botconfig.PASS)
         cli.ns_ghost()
         cli.nick(botconfig.NICK)
         prepare_stuff()
@@ -73,12 +68,18 @@ def connect_callback(cli):
     @hook("unavailresource")
     def mustrelease(cli, *blah):
         cli.nick(botconfig.NICK+"_")
-        cli.ns_identify(botconfig.PASS)
         cli.ns_release()
         cli.nick(botconfig.NICK)
         prepare_stuff()
 
-    var.LAST_PING = 0  # time of last ping
+    var.LAST_PING = None  # time of last ping
+    var.LAST_STATS = None
+    var.LAST_VOTES = None
+    var.LAST_ADMINS = None
+    
+    var.USERS = []
+    var.CLOAKS = []
+    
     var.PINGING = False
     var.ADMIN_PINGING = False
     var.ROLES = {"person" : []}
@@ -214,7 +215,7 @@ def restart_program(cli, nick, *rest):
 def pinger(cli, nick, chan, rest):
     """Pings the channel to get people's attention.  Rate-Limited."""
     if (var.LAST_PING and
-        var.LAST_PING + timedelta(seconds=300) > datetime.now()):
+        var.LAST_PING + timedelta(seconds=var.PING_WAIT) > datetime.now()):
         cli.notice(nick, ("This command is ratelimited. " +
                           "Please wait a while before using it again."))
         return
@@ -395,6 +396,14 @@ def stats(cli, nick, chan, rest):
         cli.notice(nick, "No game is currently running.")
         return
 
+    if (var.LAST_STATS and
+        var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
+        cli.msg(chan, (nick+": This command is ratelimited. " +
+                            "Please wait a while before using it again."))
+        return
+        
+    var.LAST_STATS = datetime.now()
+        
     pl = var.list_players()
     pl.sort(key=lambda x: x.lower())
     if len(pl) > 1:
@@ -531,13 +540,23 @@ def chk_decision(cli):
 @cmd("votes")
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
+    
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
     if var.PHASE != "day":
         cli.notice(nick, "Voting is only during the day.")
         return
-    elif not var.VOTES.values():
+    
+    if (var.LAST_VOTES and
+        var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
+        cli.msg(chan, (nick+": This command is ratelimited. " +
+                            "Please wait a while before using it again."))
+        return    
+    
+    var.LAST_VOTES = datetime.now()    
+        
+    if not var.VOTES.values():
         cli.msg(chan, nick+": No votes yet.")
     else:
         votelist = ["{0}: {1} ({2})".format(votee,
@@ -1727,7 +1746,10 @@ def transition_night(cli):
         cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
                       "It is your job to determine all the wolves and traitors. "+
                       "Your job is during the day, and you can see the true "+
-                      "identity of all users, even traitors."))
+                      "identity of all users, even traitors.\n"+
+                      "But, each time you use your ability, you risk a 2/5 "+
+                      "chance of having your identity revealed to the wolves. So be "+
+                      "careful. Use \"!id\" to identify any player during the day."))
     for d in var.ROLES["village drunk"]:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 
@@ -2095,6 +2117,14 @@ def on_invite(cli, nick, something, chan):
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
     admins = []
+    
+    if (var.LAST_ADMINS and
+        var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
+        cli.msg(chan, (nick+": This command is ratelimited. " +
+                            "Please wait a while before using it again."))
+        return
+        
+    var.LAST_ADMINS = datetime.now()
     
     if var.ADMIN_PINGING:
         return

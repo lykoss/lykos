@@ -2,6 +2,7 @@ PASS = "my_nickserv_pass"
 CHANNEL = "#mywolfgame"
 HOST = "irc.freenode.net"
 PORT = 6667  # SSL not supported yet
+USERNAME = ""  # for authentication, can be left blank if same as NICK
 NICK = "mywolfbot"
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")

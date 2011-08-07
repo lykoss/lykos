@@ -100,6 +100,7 @@ class IRCClient(object):
         self.host = None
         self.port = None
         self.password = ""
+        self.authname = ""
         self.connect_cb = None
         self.blocking = True
         self.lock = threading.RLock()
@@ -175,9 +176,11 @@ class IRCClient(object):
             if not self.blocking:
                 self.socket.setblocking(0)
             
+            self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname, 
+                                            self.password if self.password else "NOPASS"))
+            
             self.nick(self.nickname)
             self.user(self.nickname, self.real_name)
-            self.send("PASS :{0}\r\n".format(self.password if self.password else "NOPASS"))
 
             if self.connect_cb:
                 self.connect_cb(self)
