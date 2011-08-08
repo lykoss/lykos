@@ -777,10 +777,6 @@ def del_player(cli, nick, forced_death = False):
                         del x[k]
                     elif x[k] == nick:
                         del x[k]
-            if nick in var.GUNNERS.keys():
-                del var.GUNNERS[nick]
-            if nick in var.CURSED:
-                var.CURSED.remove(nick)
         if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
             if nick in var.VOTES.keys():
                 del var.VOTES[nick]  #  Delete his votes
@@ -908,6 +904,13 @@ def on_nick(cli, prefix, nick):
             var.DEAD_USERS[nick] = var.DEAD_USERS[k]
             del var.DEAD_USERS[k]
 
+    if var.PHASE in ("night", "day"):
+        if prefix in var.GUNNERS.keys():
+            var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
+        if prefix in var.CURSED:
+            var.CURSED.append(nick)
+            var.CURSED.remove(prefix)
+            
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
         r.append(nick)
@@ -928,10 +931,12 @@ def on_nick(cli, prefix, nick):
             if prefix in var.SEEN:
                 var.SEEN.remove(prefix)
                 var.SEEN.append(nick)
-            if nick in var.GUNNERS.keys():
-                del var.GUNNERS[nick]
-            if nick in var.CURSED:
-                var.CURSED.remove(nick)
+            with var.GRAVEYARD_LOCK:  # to be safe
+                if prefix in var.LAST_SAID_TIME.keys():
+                    var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
+                if prefix in var.IDLE_WARNED:
+                    var.IDLE_WARNED.remove(prefix)
+                    var.IDLE_WARNED.append(nick)
 
         if var.PHASE == "day":
             if prefix in var.WOUNDED:
@@ -1882,8 +1887,8 @@ def start(cli, nick, chan, rest):
     if var.ROLES["cursed villager"]:
         possiblecursed = pl[:]
         for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
-                         var.ROLES["seer"]):  # confusing (Traitor can be cursed apparently)
-                                              # but not in the Perl howlbot code
+                         var.ROLES["seer"] + var.ROLES["village drunk"]):
+                                              # traitor can be cursed
             possiblecursed.remove(cannotbe)
         
         var.CURSED = random.sample(possiblecursed, len(var.ROLES["cursed villager"]))
