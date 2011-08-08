@@ -24,6 +24,7 @@ import sys
 import os
 import imp
 import math
+import fnmatch
 
 COMMANDS = {}
 PM_COMMANDS = {}
@@ -2112,6 +2113,9 @@ def on_invite(cli, nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
 
+      
+def is_admin(cloak):
+    return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak, ptn)])
 
 
 @cmd("admins")
@@ -2121,7 +2125,7 @@ def show_admins(cli, nick, chan, rest):
     
     if (var.LAST_ADMINS and
         var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.msg(chan, (nick+": This command is ratelimited. " +
+        cli.notice(chan, (nick+": This command is ratelimited. " +
                             "Please wait a while before using it again."))
         return
         
@@ -2136,8 +2140,8 @@ def show_admins(cli, nick, chan, rest):
                     cloak, dunno3, user, status, dunno4):
         if not var.ADMIN_PINGING:
             return
-        if ((cloak in botconfig.ADMINS or cloak in botconfig.OWNERS) and 'G' not in status and
-            user != botconfig.NICK):
+        if (is_admin(cloak) and 'G' not in status and
+            user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
 
     @hook("endofwho", id = 4)
