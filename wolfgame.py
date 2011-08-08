@@ -218,7 +218,7 @@ def pinger(cli, nick, chan, rest):
     """Pings the channel to get people's attention.  Rate-Limited."""
     if (var.LAST_PING and
         var.LAST_PING + timedelta(seconds=var.PING_WAIT) > datetime.now()):
-        cli.notice(nick, ("This command is ratelimited. " +
+        cli.notice(nick, ("This command is rate-limited. " +
                           "Please wait a while before using it again."))
         return
         
@@ -324,6 +324,8 @@ def join(cli, nick, chan, rest):
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
+        
+        var.LAST_STATS = None # reset
 
 
 @cmd("fjoin", admin_only=True)
@@ -400,8 +402,7 @@ def stats(cli, nick, chan, rest):
 
     if (var.LAST_STATS and
         var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-        cli.msg(chan, (nick+": This command is ratelimited. " +
-                            "Please wait a while before using it again."))
+        cli.msg(chan, nick+": This command is rate-limited.")
         return
         
     var.LAST_STATS = datetime.now()
@@ -550,14 +551,14 @@ def show_votes(cli, nick, chan, rest):
     
     if (var.LAST_VOTES and
         var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
-        cli.msg(chan, (nick+": This command is ratelimited. " +
-                            "Please wait a while before using it again."))
+        cli.msg(chan, nick+": This command is rate-limited.")
         return    
     
     var.LAST_VOTES = datetime.now()    
         
     if not var.VOTES.values():
         cli.msg(chan, nick+": No votes yet.")
+        var.LAST_VOTES = None # reset
     else:
         votelist = ["{0}: {1} ({2})".format(votee,
                                             len(var.VOTES[votee]),
@@ -748,6 +749,10 @@ def del_player(cli, nick, forced_death = False):
     arg: forced_death = True when lynched or when the seer/wolf both don't act
     """
     t = timetime()  #  time
+    
+    var.LAST_STATS = None # reset
+    var.LAST_VOTES = None
+    
     with var.GRAVEYARD_LOCK:
         if not var.GAME_ID or var.GAME_ID > t:
             #  either game ended, or a new game has started.
@@ -1241,6 +1246,9 @@ def vote(cli, nick, chan, rest):
                        "\u0002{1}\u0002.").format(nick, voted))
         var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
         var.LOGGER.logBare(voted, "VOTED", nick)
+        
+        var.LAST_VOTES = None # reset
+        
         chk_decision(cli)
     elif not rest:
         cli.notice(nick, "Not enough parameters.")
@@ -1273,6 +1281,7 @@ def retract(cli, nick, chan, rest):
             cli.msg(chan, "\u0002{0}\u0002 retracted his/her vote.".format(nick))
             var.LOGGER.logBare(voter, "RETRACT", nick)
             var.LOGGER.logMessage("{0} retracted his/her vote.".format(nick))
+            var.LAST_VOTES = None # reset
             break
     else:
         cli.notice(nick, "You haven't voted yet.")
@@ -2140,8 +2149,8 @@ def show_admins(cli, nick, chan, rest):
     
     if (var.LAST_ADMINS and
         var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.notice(chan, (nick+": This command is ratelimited. " +
-                            "Please wait a while before using it again."))
+        cli.notice(nick, ("This command is rate-limited. " +
+                          "Please wait a while before using it again."))
         return
         
     var.LAST_ADMINS = datetime.now()
