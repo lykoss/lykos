@@ -1780,6 +1780,10 @@ def transition_night(cli):
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 
     for g in tuple(var.GUNNERS.keys()):
+        if not var.FIRST_NIGHT:
+            break
+        if g not in ps:
+            continue
         gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
                     "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
                     "shoot a villager, that villager will likely survive. You get {0}.")
