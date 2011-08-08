@@ -29,26 +29,26 @@ def generate(fdict, permissions=True, **kwargs):
                     return f(*largs)
                 if cloak:
                     for pattern in botconfig.DENY.keys():
-                        if fnmatch.fnmatch(cloak, pattern):
+                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in botconfig.DENY[pattern]:
                                     largs[0].notice(largs[1], "You do not have permission to use that command.")
                                     return
                     for pattern in botconfig.ALLOW.keys():
-                        if fnmatch.fnmatch(cloak, pattern):
+                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in botconfig.ALLOW[pattern]:
                                     return f(*largs)  # no questions
                 if owner_only:
                     if cloak and [ptn for ptn in botconfig.OWNERS 
-                                  if fnmatch.fnmatch(cloak, ptn)]:
+                                  if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not the owner.")
                         return
                 if admin_only:
                     if cloak and [ptn for ptn in botconfig.ADMINS+botconfig.OWNERS
-                                  if fnmatch.fnmatch(cloak, ptn)]:
+                                  if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not an admin.")

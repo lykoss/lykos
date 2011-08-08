@@ -2115,7 +2115,7 @@ def on_invite(cli, nick, something, chan):
 
       
 def is_admin(cloak):
-    return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak, ptn)])
+    return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak.lower(), ptn.lower())])
 
 
 @cmd("admins")
