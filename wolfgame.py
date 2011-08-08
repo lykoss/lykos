@@ -86,6 +86,7 @@ def connect_callback(cli):
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
     var.DEAD_USERS = {}
+    var.ADMIN_TO_PING = None
     var.PHASE = "none"  # "join", "day", or "night"
     var.TIMERS = [None, None]
     var.DEAD = []
@@ -672,6 +673,10 @@ def stop_game(cli, winner = ""):
                 
         var.update_role_stats(clk, rol, won, iwon)
     
+    if var.ADMIN_TO_PING:
+        cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
+        var.ADMIN_TO_PING = None
+        
     reset(cli)
     return True                     
                      
@@ -894,6 +899,9 @@ def on_nick(cli, prefix, nick):
         var.CLOAKS.remove(cloak)
         var.USERS.append(nick)
         var.CLOAKS.append(cloak)
+        
+    if prefix == var.ADMIN_TO_PING:
+        var.ADMIN_TO_PING = nick
 
     for k,v in var.ORIGINAL_ROLES.items():
         if prefix in v:
@@ -2188,6 +2196,7 @@ def flastgame(cli, nick, *rest):
         COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
+    var.ADMIN_TO_PING = nick
     
     
 
