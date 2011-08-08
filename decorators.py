@@ -18,11 +18,11 @@ def generate(fdict, permissions=True, **kwargs):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
-                if largs[1]:
+                if len(largs) > 1 and largs[1]:
                     cloak = parse_nick(largs[1])[3]
                 else:
                     cloak = ""
-                if not raw_nick and largs[1]:
+                if not raw_nick and len(largs) > 1 and largs[1]:
                     largs[1] = parse_nick(largs[1])[0]  # username
                     #if largs[1].startswith("#"):
                 if not permissions or "" in s:

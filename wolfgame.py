@@ -64,14 +64,14 @@ def connect_callback(cli):
         cli.nick(botconfig.NICK+"_")
         cli.ns_ghost()
         cli.nick(botconfig.NICK)
-        prepare_stuff()
+        prepare_stuff(cli)
 
     @hook("unavailresource")
     def mustrelease(cli, *blah):
         cli.nick(botconfig.NICK+"_")
         cli.ns_release()
         cli.nick(botconfig.NICK)
-        prepare_stuff()
+        prepare_stuff(cli)
 
     var.LAST_PING = None  # time of last ping
     var.LAST_STATS = None
