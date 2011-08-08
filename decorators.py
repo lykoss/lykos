@@ -12,7 +12,7 @@ from oyoyo.parse import parse_nick
 import fnmatch
 import botconfig
 
-def generate(fdict, **kwargs):
+def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
     def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, id=-1):
         def dec(f):
@@ -25,6 +25,8 @@ def generate(fdict, **kwargs):
                 if not raw_nick and largs[1]:
                     largs[1] = parse_nick(largs[1])[0]  # username
                     #if largs[1].startswith("#"):
+                if not permissions or "" in s:
+                    return f(*largs)
                 if cloak:
                     for pattern in botconfig.DENY.keys():
                         if fnmatch.fnmatch(cloak, pattern):
@@ -39,14 +41,14 @@ def generate(fdict, **kwargs):
                                     return f(*largs)  # no questions
                 if owner_only:
                     if cloak and [ptn for ptn in botconfig.OWNERS 
-                                    if fnmatch.fnmatch(cloak, ptn)]:
+                                  if fnmatch.fnmatch(cloak, ptn)]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not the owner.")
                         return
                 if admin_only:
-                    if cloak and [ptn for ptn in botconfig.OWNERS 
-                                    if fnmatch.fnmatch(cloak, ptn)]:
+                    if cloak and [ptn for ptn in botconfig.ADMINS+botconfig.OWNERS
+                                  if fnmatch.fnmatch(cloak, ptn)]:
                         return f(*largs)
                     elif cloak:
                         largs[0].notice(largs[1], "You are not an admin.")

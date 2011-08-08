@@ -31,7 +31,7 @@ HOOKS = {}
 
 cmd = decorators.generate(COMMANDS)
 pmcmd = decorators.generate(PM_COMMANDS)
-hook = decorators.generate(HOOKS, raw_nick=True)
+hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 # Game Logic Begins:
 
@@ -422,8 +422,6 @@ def stats(cli, nick, chan, rest):
     l2 = [k for k in var.ORIGINAL_ROLES.keys()
           if var.ORIGINAL_ROLES[k]]
     rs = list(set(l1+l2))
-    if "village drunk" in rs:
-        rs.remove("village drunk")  # drunk is not displayed
         
     # Due to popular demand, picky ordering
     if "wolf" in rs:
