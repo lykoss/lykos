@@ -799,7 +799,7 @@ def reaper(cli, gameid):
     # check to see if idlers need to be killed.
     var.IDLE_WARNED = []
 
-    if not var.WARN_IDLE_TIME or not var.KILL_IDLE_TIME:
+    if not var.WARN_IDLE_TIME and not var.KILL_IDLE_TIME:
         return
 
     while gameid == var.GAME_ID:
@@ -811,13 +811,15 @@ def reaper(cli, gameid):
                 tdiff = datetime.now() - lst
                 if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
                                         nick not in var.IDLE_WARNED):
-                    to_warn.append(nick)
+                    if var.WARN_IDLE_TIME:
+                        to_warn.append(nick)
                     var.IDLE_WARNED.append(nick)
                     var.LAST_SAID_TIME[nick] = (datetime.now() -
                         timedelta(seconds=var.WARN_IDLE_TIME))  # Give him a chance
                 elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
                     nick in var.IDLE_WARNED):
-                    to_kill.append(nick)
+                    if var.KILL_IDLE_TIME:
+                        to_kill.append(nick)
                 elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
                     nick in var.IDLE_WARNED):
                     var.IDLE_WARNED.remove(nick)  # he saved himself from death
