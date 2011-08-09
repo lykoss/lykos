@@ -233,4 +233,3 @@ def update_role_stats(clk, role, won, iwon):
         
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (plid, rid, wins, iwins, total))
-                                                    
