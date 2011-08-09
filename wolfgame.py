@@ -1776,7 +1776,7 @@ def transition_night(cli):
                       "But, each time you use your ability, you risk a 2/5 "+
                       "chance of having your identity revealed to the wolves. So be "+
                       "careful. Use \"!id\" to identify any player during the day."))
-    for d in var.ROLES["village drunk"]:
+    for d in var.ROLES["village drunk"] and var.FIRST_NIGHT:
         cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 
     for g in tuple(var.GUNNERS.keys()):
