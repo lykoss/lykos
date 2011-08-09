@@ -1290,7 +1290,7 @@ def retract(cli, nick, chan, rest):
 
 @cmd("shoot")
 def shoot(cli, nick, chan, rest):
-    """Use this to fire off a bullet at someone if you have bullets"""
+    """Use this to fire off a bullet at someone in the day if you have bullets"""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
