@@ -1425,7 +1425,7 @@ def kill(cli, nick, rest):
     chk_nightdone(cli)
 
 
-@pmcmd("guard")
+@pmcmd("guard", "protect", "save")
 def guard(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
