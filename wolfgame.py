@@ -697,7 +697,7 @@ def chk_win(cli):
     if var.PHASE == "join":
         return False
     elif (len(var.ROLES["wolf"])+
-          #len(var.ROLES["traitor"])+   Apparently not.
+          len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
@@ -706,7 +706,7 @@ def chk_win(cli):
         village_win = False
         var.LOGGER.logBare("WOLVES", "WIN")
     elif (len(var.ROLES["wolf"])+
-          #len(var.ROLES["traitor"])+
+          len(var.ROLES["traitor"])+
           len(var.ROLES["werecrow"])) > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
@@ -733,7 +733,7 @@ def chk_win(cli):
         var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
                                'frightened as they hear a loud howl. The wolves are '+
                                'not gone!'))
-        return False
+        return chk_win(cli)
     else:
         return False
     stop_game(cli, "villagers" if village_win else "wolves")
