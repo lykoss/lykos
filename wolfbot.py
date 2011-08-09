@@ -78,7 +78,7 @@ def __unhandled__(cli, prefix, cmd, *args):
 
 def main():
     if not botconfig.DEBUG_MODE:
-        logging.basicConfig(filename='errors.log', filemode='w', level=logging.WARNING)
+        logging.basicConfig(filename='errors.log', filemode='a', level=logging.WARNING)
     else:
         logging.basicConfig(level=logging.DEBUG)
     
@@ -96,4 +96,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        logging.error(traceback.format_exc())
