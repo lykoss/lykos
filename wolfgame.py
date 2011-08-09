@@ -1201,6 +1201,11 @@ def chk_nightdone(cli):
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
         len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.ACTED_WOLVES) and
         var.PHASE == "night"):
+        
+        # check if wolves are actually agreeing
+        if len(set(var.KILLS.values())) > 1:
+            return
+        
         if var.TIMERS[0]:
             var.TIMERS[0].cancel()  # cancel timer
             var.TIMERS[0] = None
