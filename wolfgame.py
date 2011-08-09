@@ -1936,7 +1936,7 @@ def start(cli, nick, chan, rest):
                 possible.remove(csd)
                 
         for gnr in random.sample(possible, len(var.ROLES["gunner"])):
-            if var.ROLES["village drunk"] == gnr:
+            if gnr in var.ROLES["village drunk"]:
                 var.GUNNERS[gnr] = (var.DRUNK_SHOTS_MULTIPLIER * 
                                     math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
             else:
