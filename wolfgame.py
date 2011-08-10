@@ -1904,6 +1904,12 @@ def start(cli, nick, chan, rest):
             var.PHASE = "join"
             return
 
+            
+    if var.ADMIN_TO_PING:
+        if "join" in COMMANDS.keys():
+            COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+        if "start" in COMMANDS.keys():
+            COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
 
     var.ROLES = {}
     var.CURSED = []
@@ -2217,11 +2223,11 @@ def coin(cli, nick, chan, rest):
 def flastgame(cli, nick, *rest):
     """This command may be used in the channel or in a PM, and it disables starting or joining a game."""
     chan = botconfig.CHANNEL
-
-    if "join" in COMMANDS.keys():
-        COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
-    if "start" in COMMANDS.keys():
-        COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+    if var.PHASE != "join":
+        if "join" in COMMANDS.keys():
+            COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+        if "start" in COMMANDS.keys():
+            COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     var.ADMIN_TO_PING = nick
