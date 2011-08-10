@@ -678,6 +678,7 @@ def stop_game(cli, winner = ""):
     
     reset(cli)
     
+    # This must be after reset(cli)
     if var.ADMIN_TO_PING:
         if var.AFTER_FLASTGAME:
             var.AFTER_FLASTGAME()
@@ -2143,7 +2144,7 @@ def get_help(cli, rnick, rest):
             not fn[0].owner_only and name not in fn[0].aliases):
             fns.append("\u0002"+name+"\u0002")
     afns = []
-    if cloak in botconfig.ADMINS or cloak in botconfig.OWNERS:
+    if is_admin(cloak) or cloak in botconfig.OWNERS: # todo - is_owner
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
@@ -2226,7 +2227,7 @@ def coin(cli, nick, chan, rest):
 
 @pmcmd("flastgame", admin_only=True, raw_nick=True)
 def flastgame(cli, nick, rest):
-    """This command may be used in the channel or in a PM, and it disables starting or joining a game."""
+    """This command may be used in the channel or in a PM, and it disables starting or joining a game. !flastgame <optional-command-after-game-ends>"""
     rawnick = nick
     nick, _, __, cloak = parse_nick(rawnick)
     
@@ -2338,7 +2339,13 @@ if botconfig.DEBUG_MODE:
                 who = var.USERS[pll.index(who.lower())]
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         did = False
-        if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
+        if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
+            if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
+                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                # Not a full admin
+                cli.notice(nick, "Only full admins can force an admin-only command.")
+                return
+                
             for fn in PM_COMMANDS[cmd]:
                 if fn.raw_nick:
                     continue
@@ -2350,7 +2357,13 @@ if botconfig.DEBUG_MODE:
                 cli.msg(chan, "Not possible with this command.")
             #if var.PHASE == "night":   <-  Causes problems with night starting twice.
             #    chk_nightdone(cli)
-        elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
+        elif COMMANDS.get(cmd) and not COMMANDS[cmd][0].owner_only:
+            if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
+                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                # Not a full admin
+                cli.notice(nick, "Only full admins can force an admin-only command.")
+                return
+                
             for fn in COMMANDS[cmd]:
                 if fn.raw_nick:
                     continue
@@ -2383,7 +2396,13 @@ if botconfig.DEBUG_MODE:
             tgt = var.ROLES[who]
 
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-        if cmd in PM_COMMANDS.keys() and not PM_COMMANDS[cmd][0].owner_only:
+        if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
+            if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
+                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                # Not a full admin
+                cli.notice(nick, "Only full admins can force an admin-only command.")
+                return
+        
             for fn in PM_COMMANDS[cmd]:
                 for guy in tgt[:]:
                     fn(cli, guy, " ".join(rst))
@@ -2391,6 +2410,12 @@ if botconfig.DEBUG_MODE:
             #if var.PHASE == "night":   <-  Causes problems with night starting twice.
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
+            if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
+                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                # Not a full admin
+                cli.notice(nick, "Only full admins can force an admin-only command.")
+                return
+        
             for fn in COMMANDS[cmd]:
                 for guy in tgt[:]:
                     fn(cli, guy, chan, " ".join(rst))
