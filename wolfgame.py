@@ -1407,6 +1407,8 @@ def kill(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
+    if role == "traitor":
+        return  # they do this a lot.
     if role not in ('wolf', 'werecrow'):
         cli.msg(nick, "Only a wolf may use this command.")
         return
@@ -2320,6 +2322,7 @@ if botconfig.DEBUG_MODE:
                                 "game settings successfully.").format(nick))
 
 
+    # DO NOT MAKE THIS A PMCOMMAND ALSO
     @cmd("force", admin_only=True)
     def forcepm(cli, nick, chan, rest):
         rst = re.split(" +",rest)
