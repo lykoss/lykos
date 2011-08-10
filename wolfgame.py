@@ -87,6 +87,7 @@ def connect_callback(cli):
     var.ORIGINAL_ROLES = {}
     var.DEAD_USERS = {}
     var.ADMIN_TO_PING = None
+    var.AFTER_FLASTGAME = None
     var.PHASE = "none"  # "join", "day", or "night"
     var.TIMERS = [None, None]
     var.DEAD = []
@@ -675,11 +676,15 @@ def stop_game(cli, winner = ""):
                 
         var.update_role_stats(clk, rol, won, iwon)
     
-    if var.ADMIN_TO_PING:
-        cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
-        var.ADMIN_TO_PING = None
-        
     reset(cli)
+    
+    if var.ADMIN_TO_PING:
+        if var.AFTER_FLASTGAME:
+            var.AFTER_FLASTGAME()
+        else:
+            cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
+            var.ADMIN_TO_PING = None
+    
     return True                     
                      
                      
@@ -2217,11 +2222,14 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
     
-    
-@cmd("flastgame", admin_only=True)
-@pmcmd("flastgame", admin_only=True)
-def flastgame(cli, nick, *rest):
+
+
+@pmcmd("flastgame", admin_only=True, raw_nick=True)
+def flastgame(cli, nick, rest):
     """This command may be used in the channel or in a PM, and it disables starting or joining a game."""
+    rawnick = nick
+    nick, _, __, cloak = parse_nick(rawnick)
+    
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
         if "join" in COMMANDS.keys():
@@ -2232,6 +2240,26 @@ def flastgame(cli, nick, *rest):
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     var.ADMIN_TO_PING = nick
     
+    rst = re.split(" +", rest)
+    cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1).strip()
+    if cmd in PM_COMMANDS.keys():
+        def do_action():
+            for fn in PM_COMMANDS[cmd]:
+                fn(cli, rawnick, " ".join(rst))
+    elif cmd.lower() in COMMANDS.keys():
+        def do_action():
+            for fn in COMMANDS[cmd]:
+                fn(cli, rawnick, botconfig.CHANNEL, " ".join(rst))
+    else:
+        cli.msg(chan, "That command was not found.")
+        return
+    
+    var.AFTER_FLASTGAME = do_action
+    
+    
+@cmd("flastgame", admin_only=True, raw_nick=True)
+def _flastgame(cli, nick, chan, rest):
+    flastgame(cli, nick, rest)
     
 
 if botconfig.DEBUG_MODE:
