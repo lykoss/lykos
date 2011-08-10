@@ -1662,6 +1662,17 @@ def getfeatures(cli, nick, *rest):
 
 
 
+def mass_privmsg(cli, targets, msg):
+    while targets:
+        if len(targets) <= var.MAX_PRIVMSG_TARGETS:
+            bgs = ",".join(targets)
+            targets = ()
+        else:
+            bgs = ",".join(targets[0:var.MAX_PRIVMSG_TARGETS])
+            targets = targets[var.MAX_PRIVMSG_TARGETS:]
+        cli.msg(bgs, msg)
+                
+                
 
 @pmcmd("")
 def relay(cli, nick, rest):
@@ -1671,14 +1682,7 @@ def relay(cli, nick, rest):
     if len(badguys) > 1:
         if nick in badguys:
             badguys.remove(nick)  #  remove self from list
-            while badguys:
-                if len(badguys) <= var.MAX_PRIVMSG_TARGETS:
-                    bgs = ",".join(badguys)
-                    badguys = []
-                else:
-                    bgs = ",".join(badguys[0:var.MAX_PRIVMSG_TARGETS])
-                    badguys = badguys[var.MAX_PRIVMSG_TARGETS:]
-                cli.msg(bgs, "\02{0}\02 says: {1}".format(nick, rest))
+            mass_privmsg(cli, badguys, "\02{0}\02 says: {1}".format(nick, rest))
 
 
 
