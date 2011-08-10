@@ -789,10 +789,14 @@ def del_player(cli, nick, forced_death = False):
                         del x[k]
         if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
             if nick in var.VOTES.keys():
-                del var.VOTES[nick]  #  Delete his votes
-            for k in var.VOTES.keys():
+                del var.VOTES[nick]  #  Delete other people's votes on him
+            for k in list(var.VOTES.keys()):
                 if nick in var.VOTES[k]:
                     var.VOTES[k].remove(nick)
+                    if not var.VOTES[k]:  # no more votes on that guy
+                        del var.VOTES[k]
+                    break # can only vote once
+                    
             if nick in var.WOUNDED:
                 var.WOUNDED.remove(nick)
             chk_decision(cli)
