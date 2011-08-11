@@ -223,7 +223,6 @@ class IRCClient(object):
                         except Exception as e:
                             traceback.print_exc()
                             raise e  # ?
-
                 yield True
         finally:
             if self.socket: 
@@ -255,5 +254,8 @@ class IRCClient(object):
     def mainLoop(self):
         conn = self.connect()
         while True:
-            next(conn)
+            try:
+                next(conn)
+            except:
+                return
             
