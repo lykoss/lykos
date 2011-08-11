@@ -19,11 +19,16 @@ def generate(fdict, permissions=True, **kwargs):
             def innerf(*args):
                 largs = list(args)
                 if len(largs) > 1 and largs[1]:
-                    cloak = parse_nick(largs[1])[3]
+                    nick, _, _, cloak = parse_nick(largs[1])
+
+                    if cloak is None:
+                        cloak = ""
                 else:
+                    nick = ""
                     cloak = ""
+                    
                 if not raw_nick and len(largs) > 1 and largs[1]:
-                    largs[1] = parse_nick(largs[1])[0]  # username
+                    largs[1] = nick
                     #if largs[1].startswith("#"):
                 if not permissions or "" in s:
                     return f(*largs)
@@ -32,7 +37,7 @@ def generate(fdict, permissions=True, **kwargs):
                         if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in botconfig.DENY[pattern]:
-                                    largs[0].notice(largs[1], "You do not have permission to use that command.")
+                                    largs[0].notice(nick, "You do not have permission to use that command.")
                                     return
                     for pattern in botconfig.ALLOW.keys():
                         if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
@@ -44,14 +49,14 @@ def generate(fdict, permissions=True, **kwargs):
                                   if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
                     elif cloak:
-                        largs[0].notice(largs[1], "You are not the owner.")
+                        largs[0].notice(nick, "You are not the owner.")
                         return
                 if admin_only:
                     if cloak and [ptn for ptn in botconfig.ADMINS+botconfig.OWNERS
                                   if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
                     elif cloak:
-                        largs[0].notice(largs[1], "You are not an admin.")
+                        largs[0].notice(nick, "You are not an admin.")
                         return
                 return f(*largs)
             alias = False

@@ -214,6 +214,21 @@ def restart_program(cli, nick, *rest):
             os.execl(python, python, *sys.argv)
 
 
+            
+            
+@cmd("frehash", admin_only=True)
+def frehash(cli, nick, chan, rest):
+    if var.PHASE in ("day", "night"):
+        stop_game(cli)
+    else:
+        reset(cli)       
+    imp.reload(botconfig)
+    imp.reload(var)
+    imp.reload(decorators.botconfig)
+    
+    cli.msg(chan, "Operation successful.")
+    
+            
 
 @cmd("ping")
 def pinger(cli, nick, chan, rest):
@@ -679,12 +694,12 @@ def stop_game(cli, winner = ""):
     reset(cli)
     
     # This must be after reset(cli)
-    if var.ADMIN_TO_PING:
-        if var.AFTER_FLASTGAME:
-            var.AFTER_FLASTGAME()
-        else:
-            cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
-            var.ADMIN_TO_PING = None
+    if var.AFTER_FLASTGAME:
+        var.AFTER_FLASTGAME()
+        var.AFTER_FLASTGAME = None
+    if var.ADMIN_TO_PING:  # It was an flastgame
+        cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
+        var.ADMIN_TO_PING = None
     
     return True                     
                      
@@ -2227,6 +2242,50 @@ def coin(cli, nick, chan, rest):
     
 
 
+def aftergame(cli, rawnick, rest):
+    """Schedule a command to be run after the game by someone."""
+    chan = botconfig.CHANNEL
+    nick = parse_nick(rawnick)[0]
+    
+    rst = re.split(" +", rest)
+    cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1).strip()
+
+    if cmd in PM_COMMANDS.keys():
+        def do_action():
+            for fn in PM_COMMANDS[cmd]:
+                fn(cli, rawnick, " ".join(rst))
+    elif cmd in COMMANDS.keys():
+        def do_action():
+            for fn in COMMANDS[cmd]:
+                fn(cli, rawnick, botconfig.CHANNEL, " ".join(rst))
+    else:
+        cli.notice(nick, "That command was not found.")
+        return
+        
+    if var.PHASE == "none":
+        do_action()
+        return
+    
+    cli.msg(chan, ("The command \02{0}\02 has been scheduled to run "+
+                  "after this game by \02{1}\02.").format(cmd, nick))
+    var.AFTER_FLASTGAME = do_action
+
+    
+
+@cmd("faftergame", admin_only=True, raw_nick=True)
+def _faftergame(cli, nick, chan, rest):
+    if not rest.strip():
+        cli.notice(parse_nick(nick)[0], "Incorrect syntax for this command.")
+        return
+    aftergame(cli, nick, rest)
+        
+    
+    
+@pmcmd("faftergame", admin_only=True, raw_nick=True)
+def faftergame(cli, nick, rest):
+    _faftergame(cli, nick, botconfig.CHANNEL, rest)
+    
+    
 @pmcmd("flastgame", admin_only=True, raw_nick=True)
 def flastgame(cli, nick, rest):
     """This command may be used in the channel or in a PM, and it disables starting or joining a game. !flastgame <optional-command-after-game-ends>"""
@@ -2243,21 +2302,10 @@ def flastgame(cli, nick, rest):
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     var.ADMIN_TO_PING = nick
     
-    rst = re.split(" +", rest)
-    cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1).strip()
-    if cmd in PM_COMMANDS.keys():
-        def do_action():
-            for fn in PM_COMMANDS[cmd]:
-                fn(cli, rawnick, " ".join(rst))
-    elif cmd.lower() in COMMANDS.keys():
-        def do_action():
-            for fn in COMMANDS[cmd]:
-                fn(cli, rawnick, botconfig.CHANNEL, " ".join(rst))
-    else:
-        cli.msg(chan, "That command was not found.")
-        return
+    if rest.strip():
+        aftergame(cli, rawnick, rest)
     
-    var.AFTER_FLASTGAME = do_action
+    
     
     
 @cmd("flastgame", admin_only=True, raw_nick=True)
