@@ -180,12 +180,7 @@ def forced_exit(cli, nick, *rest):  # Admin Only
     else:
         reset(cli)
 
-    reset(cli)
-    dict.clear(COMMANDS)
-    dict.clear(PM_COMMANDS)
-    dict.clear(HOOKS)
     cli.quit("Forced quit from "+nick)
-    raise SystemExit
 
 
 
@@ -198,9 +193,7 @@ def restart_program(cli, nick, *rest):
             stop_game(cli)
         else:
             reset(cli)
-        dict.clear(COMMANDS)
-        dict.clear(PM_COMMANDS)
-        dict.clear(HOOKS)
+
         cli.quit("Forced restart from "+nick)
         raise SystemExit
     finally:
@@ -2042,6 +2035,8 @@ def start(cli, nick, chan, rest):
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
         restart_program(cli, "excess flood")
+    elif msg.endswith("(Client Quit)"):
+        raise SystemExit
     
 
 
