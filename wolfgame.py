@@ -1177,13 +1177,13 @@ def transition_day(cli, gameid=0):
     if victim in var.HVISITED.values():  #  victim was visited by some harlot
         for hlt in var.HVISITED.keys():
             if var.HVISITED[hlt] == victim:
-                message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
+                message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
                                 "visiting the victim's house last night and is "+
                                 "now dead.").format(hlt))
                 dead.append(hlt)
     for harlot in var.ROLES["harlot"]:
         if var.HVISITED.get(harlot) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
-            message.append(("\u0002{0}\u0002, a harlot, made the unfortunate mistake of "+
+            message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
@@ -1193,7 +1193,7 @@ def transition_day(cli, gameid=0):
                 continue # already dead.
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
-                message.append(("\u0002{0}\u0002, a guardian angel, "+
+                message.append(("\02{0}\02, a \02guardian angel\02, "+
                                 "made the unfortunate mistake of guarding a wolf "+
                                 "last night, attempted to escape, but failed "+
                                 "and is now dead.").format(gangel))
