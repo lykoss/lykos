@@ -905,12 +905,18 @@ def goat(cli, nick, chan, rest):
     if var.GOATED:
         cli.notice(nick, "You can only do that once per day.")
         return
-    if rest.strip() in var.USERS:
-        cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
-                      "and kicks \u0002{1}\u0002.").format(nick,
-                                                           rest.strip()))
-        var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, rest.strip()))
-        var.GOATED = True
+    ull = [x.lower() for x in var.USERS]
+    lrest = rest.strip().lower()
+    if lrest in ull:
+        rest = var.USERS[ull.index(lrest)]
+    else:
+        cli.notice(nick, rest+" is not in this channel.")
+        return
+    cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
+                   "and kicks \u0002{1}\u0002.").format(nick,
+                                                        rest.strip()))
+    var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, rest.strip()))
+    var.GOATED = True
 
 
 
@@ -2494,6 +2500,7 @@ if botconfig.DEBUG_MODE:
             pl = var.list_players()
             if var.PHASE not in ("night", "day"):
                 cli.msg(chan, "This is only allowed in game.")
+                return
             if rol.startswith("gunner"):
                 rolargs = re.split(" +",rol, 1)
                 if len(rolargs) == 2 and rolargs[1].isdigit():
