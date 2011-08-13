@@ -1444,15 +1444,16 @@ def kill(cli, nick, rest):
     if victim not in pll:
         cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
         return
-    if victim == nick.lower():
+    victim = pl[pll.index(victim)]
+    if victim == nick:
         cli.msg(nick, "Suicide is bad.  Don't do it.")
         return
     if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
         cli.msg(nick, "You may only kill villagers, not other wolves")
         return
-    var.KILLS[nick] = pl[pll.index(victim)]
-    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed.".format(pl[pll.index(victim)]))
-    var.LOGGER.logBare(nick, "SELECT", pl[pll.index(victim)])
+    var.KILLS[nick] = victim
+    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
+    var.LOGGER.logBare(nick, "SELECT", victim)
     var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
 
