@@ -409,22 +409,30 @@ def stats(cli, nick, chan, rest):
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
-
-    if (var.LAST_STATS and
-        var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-        cli.msg(chan, nick+": This command is rate-limited.")
-        return
-        
-    var.LAST_STATS = datetime.now()
         
     pl = var.list_players()
+    
+    if nick in pl:  # only do this rate-limiting stuff if the person is in game
+        if (var.LAST_STATS and
+            var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
+            cli.msg(chan, nick+": This command is rate-limited.")
+            return
+            
+        var.LAST_STATS = datetime.now()
+    
     pl.sort(key=lambda x: x.lower())
     if len(pl) > 1:
-        cli.msg(chan, '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
-            len(pl), ", ".join(pl)))
+        msg = '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
+            len(pl), ", ".join(pl))
     else:
-        cli.msg(chan, '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0]))
-
+        msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
+    
+    if nick in pl:
+        cli.msg(chan, msg)
+        var.LOGGER.logMessage(msg.replace("\02", ""))
+    else:
+        cli.notice(nick, msg)
+        
     if var.PHASE == "join":
         return
 
@@ -463,8 +471,11 @@ def stats(cli, nick, chan, rest):
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
                                                         vb)
-    cli.msg(chan, stats_mssg)
-    var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
+    if nick in pl:
+        cli.msg(chan, stats_mssg)
+        var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
+    else:
+        cli.notice(nick, stats_mssg)
 
 
 
@@ -564,24 +575,37 @@ def show_votes(cli, nick, chan, rest):
         cli.msg(chan, nick+": This command is rate-limited.")
         return    
     
-    var.LAST_VOTES = datetime.now()    
+    pl = var.list_players()
+    
+    if nick in pl:
+        var.LAST_VOTES = datetime.now()    
         
     if not var.VOTES.values():
-        cli.msg(chan, nick+": No votes yet.")
-        var.LAST_VOTES = None # reset
+        msg = nick+": No votes yet."
+        if nick in pl:
+            var.LAST_VOTES = None # reset
     else:
         votelist = ["{0}: {1} ({2})".format(votee,
                                             len(var.VOTES[votee]),
                                             " ".join(var.VOTES[votee]))
                     for votee in var.VOTES.keys()]
-        cli.msg(chan, "{0}: {1}".format(nick, ", ".join(votelist)))
+        msg = "{0}: {1}".format(nick, ", ".join(votelist))
+        
+    if nick in pl:
+        cli.msg(chan, msg)
+    else:
+        cli.notice(nick, msg)
 
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
     votesneeded = avail // 2 + 1
-    cli.msg(chan, ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
+    the_message = ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
                    "required to lynch, \u0002{3}\u0002 players available " +
-                   "to vote.").format(nick, len(pl), votesneeded, avail))
+                   "to vote.").format(nick, len(pl), votesneeded, avail)
+    if nick in pl:
+        cli.msg(chan, the_message)
+    else:
+        cli.notice(nick, the_message)
 
 
 
