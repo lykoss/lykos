@@ -906,16 +906,27 @@ def goat(cli, nick, chan, rest):
         cli.notice(nick, "You can only do that once per day.")
         return
     ull = [x.lower() for x in var.USERS]
-    lrest = rest.strip().lower()
-    if lrest in ull:
-        rest = var.USERS[ull.index(lrest)]
-    else:
-        cli.notice(nick, rest+" is not in this channel.")
+    rest = re.split(" +",rest)[0].strip().lower()
+    if not rest:
+        cli.notice(nick, "Not enough parameters.")
         return
+    matches = 0
+    for player in ull:
+        if rest == player:
+            victim = player
+            break
+        if player.startswith(rest):
+            victim = player
+            matches += 1
+    else:
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is not in this channel.".format(rest))
+            return
+    victim = var.USERS[ull.index(victim)]
     cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
                    "and kicks \u0002{1}\u0002.").format(nick,
-                                                        rest.strip()))
-    var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, rest.strip()))
+                                                        victim))
+    var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, victim))
     var.GOATED = True
     
     
@@ -1250,38 +1261,51 @@ def vote(cli, nick, chan, rest):
         cli.notice(nick, ("Lynching is only allowed during the day. "+
                           "Please wait patiently for morning."))
         return
+    if nick in var.WOUNDED:
+        cli.msg(chan, ("{0}: You are wounded and resting, "+
+                      "thus you are unable to vote for the day.").format(nick))
+        return
     pl = var.list_players()
     pl_l = [x.strip().lower() for x in pl]
     rest = re.split(" +",rest)[0].strip().lower()
-    if rest in pl_l:
-        if nick in var.WOUNDED:
-            cli.msg(chan, ("{0}: You are wounded and resting, "+
-                          "thus you are unable to vote for the day.").format(nick))
-            return
-        voted = pl[pl_l.index(rest)]
-        lcandidates = list(var.VOTES.keys())
-        for voters in lcandidates:  # remove previous vote
-            if nick in var.VOTES[voters]:
-                var.VOTES[voters].remove(nick)
-                if not var.VOTES.get(voters) and voters != voted:
-                    del var.VOTES[voters]
-                break
-        if voted not in var.VOTES.keys():
-            var.VOTES[voted] = [nick]
-        else:
-            var.VOTES[voted].append(nick)
-        cli.msg(chan, ("\u0002{0}\u0002 votes for "+
-                       "\u0002{1}\u0002.").format(nick, voted))
-        var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
-        var.LOGGER.logBare(voted, "VOTED", nick)
-        
-        var.LAST_VOTES = None # reset
-        
-        chk_decision(cli)
-    elif not rest:
+    
+    if not rest:
         cli.notice(nick, "Not enough parameters.")
+        return
+    
+    matches = 0
+    for player in pl_l:
+        if rest == player:
+            target = player
+            break
+        if player.startswith(rest):
+            target = player
+            matches += 1
     else:
-        cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(rest))
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(rest))
+            return
+        
+    voted = pl[pl_l.index(target)]
+    lcandidates = list(var.VOTES.keys())
+    for voters in lcandidates:  # remove previous vote
+        if nick in var.VOTES[voters]:
+            var.VOTES[voters].remove(nick)
+            if not var.VOTES.get(voters) and voters != voted:
+                del var.VOTES[voters]
+            break
+    if voted not in var.VOTES.keys():
+        var.VOTES[voted] = [nick]
+    else:
+        var.VOTES[voted].append(nick)
+    cli.msg(chan, ("\u0002{0}\u0002 votes for "+
+                   "\u0002{1}\u0002.").format(nick, voted))
+    var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
+    var.LOGGER.logBare(voted, "VOTED", nick)
+    
+    var.LAST_VOTES = None # reset
+    
+    chk_decision(cli)
 
 
 
@@ -1342,16 +1366,19 @@ def shoot(cli, nick, chan, rest):
         return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    victim = pl[pll.index(victim)]
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
     if victim == nick:
         cli.notice(nick, "You are holding it the wrong way.")
         return
@@ -1446,17 +1473,21 @@ def kill(cli, nick, rest):
     pl = var.list_players()
     pll = [x.lower() for x in pl]
     
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-        
-    if victim == nick.lower():
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    
+    victim = pl[pll.index(target)]
+    if victim == nick:
         cli.msg(nick, "Suicide is bad.  Don't do it.")
         return
     if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
@@ -1494,19 +1525,23 @@ def guard(cli, nick, rest):
         return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    if victim == nick.lower():
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+    if victim == nick:
         cli.msg(nick, "You may not guard yourself.")
         return
-    var.GUARDED[nick] = pl[pll.index(victim)]
+    var.GUARDED[nick] = victim
     cli.msg(nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
     cli.msg(var.GUARDED[nick], "You can sleep well tonight, for a guardian angel is protecting you.")
     var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
@@ -1534,16 +1569,19 @@ def observe(cli, nick, rest):
         return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    victim = pl[pll.index(victim)]
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
     if victim == nick.lower():
         cli.msg(nick, "Instead of doing that, you should probably go kill someone.")
         return
@@ -1584,16 +1622,19 @@ def investigate(cli, nick, rest):
         return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    victim = pl[pll.index(victim)]
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
 
     var.INVESTIGATED.append(nick)
     cli.msg(nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
@@ -1631,20 +1672,24 @@ def hvisit(cli, nick, rest):
         cli.msg(nick, "Not enough parameters")
         return
     pll = [x.lower() for x in var.list_players()]
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    if nick.lower() == victim:  # Staying home
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = var.list_players()[pll.index(target)]
+    if nick == victim:  # Staying home
         var.HVISITED[nick] = None
         cli.msg(nick, "You have chosen to stay home for the night.")
     else:
-        var.HVISITED[nick] = var.list_players()[pll.index(victim)]
+        var.HVISITED[nick] = victim
         cli.msg(nick, ("You are spending the night with \u0002{0}\u0002. "+
                       "Have a good time!").format(var.HVISITED[nick]))
         cli.msg(var.HVISITED[nick], ("You are spending the night with \u0002{0}"+
@@ -1682,16 +1727,19 @@ def see(cli, nick, rest):
     if not victim:
         cli.msg(nick, "Not enough parameters")
         return
+    matches = 0
     for player in pll:
         if victim == player:
+            target = player
             break
         if player.startswith(victim):
-            victim = player
-            break
+            target = player
+            matches += 1
     else:
-        cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-        return
-    victim = pl[pll.index(victim)]
+        if matches != 1:
+            cli.msg(nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
     if victim in var.CURSED:
         role = "wolf"
     elif var.get_role(victim) == "traitor":
