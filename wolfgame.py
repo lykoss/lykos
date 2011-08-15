@@ -2233,11 +2233,14 @@ def reset_game(cli, nick, chan, rest):
 
 @pmcmd("rules")
 def pm_rules(cli, nick, rest):
-    cli.msg(nick, var.RULES)
+    cli.notice(nick, var.RULES)
 
 @cmd("rules")
 def show_rules(cli, nick, chan, rest):
     """Displays the rules"""
+    if var.PHASE in ("day", "night") and nick not in var.list_players():
+        cli.notice(nick, var.RULES)
+        return
     cli.msg(chan, var.RULES)
     var.LOGGER.logMessage(var.RULES)
 
@@ -2309,6 +2312,7 @@ def is_admin(cloak):
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
     admins = []
+    pl = var.list_players()
     
     if (var.LAST_ADMINS and
         var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
@@ -2316,7 +2320,8 @@ def show_admins(cli, nick, chan, rest):
                           "Please wait a while before using it again."))
         return
         
-    var.LAST_ADMINS = datetime.now()
+    if not (var.PHASE in ("day", "night") and nick not in pl):
+        var.LAST_ADMINS = datetime.now()
     
     if var.ADMIN_PINGING:
         return
@@ -2337,7 +2342,10 @@ def show_admins(cli, nick, chan, rest):
             return
         admins.sort(key=lambda x: x.lower())
         
-        cli.msg(chan, "Available admins: "+" ".join(admins))
+        if var.PHASE in ("day", "night") and nick not in pl:
+            cli.notice(nick, "Available admins: "+" ".join(admins))
+        else:
+            cli.msg(chan, "Available admins: "+" ".join(admins))
 
         decorators.unhook(HOOKS, 4)
         var.ADMIN_PINGING = False
@@ -2349,6 +2357,11 @@ def show_admins(cli, nick, chan, rest):
 @cmd("coin")
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
+    
+    if var.PHASE in ("day", "night") and nick not in var.list_players():
+        cli.notice(nick, "You may not use this command right now.")
+        return
+    
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     cmsg = "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails")
