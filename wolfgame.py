@@ -488,7 +488,7 @@ def hurry_up(cli, gameid, change):
     chan = botconfig.CHANNEL
     
     if not change:
-        cli.msg(chan, "The sun is almost setting.")
+        cli.msg(chan, "\02The sun is almost setting.\02")
         if not var.DAY_TIME_LIMIT_CHANGE:
             return
         var.TIMERS[1] = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
