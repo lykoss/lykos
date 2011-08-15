@@ -727,26 +727,27 @@ def chk_win(cli):
 
     chan = botconfig.CHANNEL
     lpl = len(var.list_players())
+    lwolves = (len(var.ROLES["wolf"])+
+               len(var.ROLES["traitor"])+
+               len(var.ROLES["werecrow"]))
     if var.PHASE == "day":
-        lpl -= len(var.WOUNDED)
+        lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
+        lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
+    
     if lpl == 0:
         cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
         return True
     if var.PHASE == "join":
         return False
-    elif (len(var.ROLES["wolf"])+
-          len(var.ROLES["traitor"])+
-          len(var.ROLES["werecrow"])) == lpl / 2:
+    elif lwolves == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
         var.LOGGER.logBare("WOLVES", "WIN")
-    elif (len(var.ROLES["wolf"])+
-          len(var.ROLES["traitor"])+
-          len(var.ROLES["werecrow"])) > lpl / 2:
+    elif lwolves > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
                        "villagers. The wolves eat everyone, and win."))
         var.LOGGER.logMessage(("Game over! There are more wolves than "+
@@ -762,7 +763,8 @@ def chk_win(cli):
                                "chop them up, BBQ them, and have a hearty meal."))
         village_win = True
         var.LOGGER.logBare("VILLAGERS", "WIN")
-    elif not len(var.ROLES["wolf"]) and var.ROLES["traitor"]:
+    elif (not var.ROLES["wolf"] and not 
+          var.ROLES["werecrow"] and var.ROLES["traitor"]):
         for t in var.ROLES["traitor"]:
             var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
@@ -1814,11 +1816,17 @@ def mass_privmsg(cli, targets, msg):
 def relay(cli, nick, rest):
     if var.PHASE != "night":
         return
+
     badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"]
     if len(badguys) > 1:
         if nick in badguys:
             badguys.remove(nick)  #  remove self from list
-            mass_privmsg(cli, badguys, "\02{0}\02 says: {1}".format(nick, rest))
+        
+            if rest.startswith("\01ACTION"):
+                rest = rest[7:-1]
+                mass_privmsg(cli, badguys, nick+rest)
+            else:
+                mass_privmsg(cli, badguys, "\02{0}\02 says: {1}".format(nick, rest))
 
 
 
