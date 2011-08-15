@@ -8,7 +8,7 @@ ADMINS_RATE_LIMIT = 300
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MAX_PLAYERS = 30
 DRUNK_SHOTS_MULTIPLIER = 3
-NIGHT_TIME_LIMIT = 90
+NIGHT_TIME_LIMIT = 120
 DAY_TIME_LIMIT_WARN = 780
 DAY_TIME_LIMIT_CHANGE = 120  # After DAY_TIME_LIMIT_WARN has passed
 START_WITH_DAY = False
@@ -71,7 +71,7 @@ RULES = ("#wolfgame channel rules: 1) Be nice to others. 2) Do not share informa
          "after death. 3) No bots allowed. 4) Do not play with clones.\n"+
          "5) Do not quit unless you need to leave. 6) No swearing and keep it "+
          "family-friendly. 7) Do not paste PM's from the bot during the game. "+
-         "8) Use common sense.")                                              
+         "8) Use common sense. 9) Waiting for timeouts is discouraged.")                                              
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
