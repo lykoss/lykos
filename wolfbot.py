@@ -30,7 +30,14 @@ def on_privmsg(cli, rawnick, chan, msg):
     if chan != botconfig.NICK:  #not a PM
         if "" in wolfgame.COMMANDS.keys():
             for fn in wolfgame.COMMANDS[""]:
-                fn(cli, rawnick, chan, msg)
+                try:
+                    fn(cli, rawnick, chan, msg)
+                except Exception as e:
+                    if botconfig.DEBUG_MODE:
+                        raise e
+                    else:
+                        logging.error(traceback.format_exc())
+                        cli.msg(chan, "An error has occurred and has been logged.")
             # Now that is always called first.
         for x in wolfgame.COMMANDS.keys():
             if x and msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -70,7 +77,14 @@ def __unhandled__(cli, prefix, cmd, *args):
         for i,arg in enumerate(largs):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
         for fn in wolfgame.HOOKS[cmd]:
-            fn(cli, prefix, *largs)
+            try:
+                fn(cli, prefix, *largs)
+            except Exception as e:
+                if botconfig.DEBUG_MODE:
+                    raise e
+                else:
+                    logging.error(traceback.format_exc())
+                    cli.msg(botconfig.CHANNEL, "An error has occured and has been logged.")
     else:
         logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
                                                               for arg in args
