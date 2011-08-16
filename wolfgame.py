@@ -1519,9 +1519,9 @@ def kill(cli, nick, rest):
     if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
         cli.msg(nick, "You may only kill villagers, not other wolves.")
         return
-    var.KILLS[nick] = pl[pll.index(victim)]
-    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed.".format(pl[pll.index(victim)]))
-    var.LOGGER.logBare(nick, "SELECT", pl[pll.index(victim)])
+    var.KILLS[nick] = victim
+    cli.msg(nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
+    var.LOGGER.logBare(nick, "SELECT", victim)
     var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
 
@@ -1939,9 +1939,9 @@ def transition_night(cli):
             cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
 
     for g in tuple(var.GUNNERS.keys()):
-        if not var.FIRST_NIGHT:
-            break
         if g not in ps:
+            continue
+        elif not var.GUNNERS[g]:
             continue
         gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
                     "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
