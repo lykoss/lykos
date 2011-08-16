@@ -24,7 +24,11 @@ from oyoyo.parse import parse_nick
 import logging
 import botconfig
 import wolfgame
+import time
 import traceback
+
+class UTCFormatter(logging.Formatter):
+    converter = time.gmtime
 
 def on_privmsg(cli, rawnick, chan, msg):         
     if chan != botconfig.NICK:  #not a PM
@@ -93,6 +97,9 @@ def __unhandled__(cli, prefix, cmd, *args):
 def main():
     if not botconfig.DEBUG_MODE:
         logging.basicConfig(filename='errors.log', filemode='a', level=logging.WARNING)
+        formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
+        for handler in logging.getLogger().handlers:
+            handler.setFormatter(formatter)
     else:
         logging.basicConfig(level=logging.DEBUG)
     
