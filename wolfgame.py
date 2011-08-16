@@ -43,9 +43,13 @@ def connect_callback(cli):
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
         @hook("whoreply", id=294)
-        def on_whoreply(cli, server, dunno, chan, dunno1,
+        def on_whoreply(cli, server, dunno, chan, ident,
                         cloak, dunno3, user, status, dunno4):
             if user in var.USERS: return  # Don't add someone who is already there
+            if user == botconfig.NICK:
+                cli.nickname = user
+                cli.ident = ident
+                cli.hostmask = cloak
             var.USERS.append(user)
             var.CLOAKS.append(cloak)
             
@@ -412,7 +416,8 @@ def stats(cli, nick, chan, rest):
         
     pl = var.list_players()
     
-    if nick in pl:  # only do this rate-limiting stuff if the person is in game
+    if nick in pl or var.PHASE == "join":
+        # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
             cli.msg(chan, nick+": This command is rate-limited.")
@@ -427,7 +432,7 @@ def stats(cli, nick, chan, rest):
     else:
         msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
     
-    if nick in pl:
+    if nick in pl or var.PHASE == "join":
         cli.msg(chan, msg)
         var.LOGGER.logMessage(msg.replace("\02", ""))
     else:
@@ -471,7 +476,7 @@ def stats(cli, nick, chan, rest):
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
                                                         vb)
-    if nick in pl:
+    if nick in pl or var.PHASE == "join":
         cli.msg(chan, stats_mssg)
         var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
     else:
@@ -724,9 +729,19 @@ def stop_game(cli, winner = ""):
 
 def chk_win(cli):
     """ Returns True if someone won """
-
+    
     chan = botconfig.CHANNEL
     lpl = len(var.list_players())
+    
+    if lpl == 0:
+        cli.msg(chan, "No more players remaining. Game ended.")
+        reset(cli)
+        return True
+        
+    if var.PHASE == "join":
+        return False
+        
+        
     lwolves = (len(var.ROLES["wolf"])+
                len(var.ROLES["traitor"])+
                len(var.ROLES["werecrow"]))
@@ -734,13 +749,7 @@ def chk_win(cli):
         lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
     
-    if lpl == 0:
-        cli.msg(chan, "No more players remaining. Game ended.")
-        reset(cli)
-        return True
-    if var.PHASE == "join":
-        return False
-    elif lwolves == lpl / 2:
+    if lwolves == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
                        "villagers. The wolves eat everyone, and win."))
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
@@ -2163,7 +2172,7 @@ def start(cli, nick, chan, rest):
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
         restart_program(cli, "excess flood")
-    elif msg.endswith("(Client Quit)"):
+    elif msg.startswith("Closing Link:"):
         raise SystemExit
     
 

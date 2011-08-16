@@ -96,6 +96,8 @@ class IRCClient(object):
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.nickname = ""
+        self.hostmask = ""
+        self.ident = ""
         self.real_name = ""
         self.host = None
         self.port = None
@@ -106,7 +108,6 @@ class IRCClient(object):
         self.lock = threading.RLock()
         
         self.tokenbucket = TokenBucket(28, 1.73)
-        self.last_messaged = ""
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
@@ -145,10 +146,9 @@ class IRCClient(object):
 
             msg = bytes(" ", "utf_8").join(bargs)
             logging.info('---> send "{0}"'.format(msg))
-
+            
             while not self.tokenbucket.consume(1):
                 pass
-                
             self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):
@@ -230,12 +230,25 @@ class IRCClient(object):
                 self.socket.close()
     def msg(self, user, msg):
         for line in msg.split('\n'):
-            self.send("PRIVMSG", user, ":{0}".format(line))
-            self.last_messaged = user
+            maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
+            while line:
+                extra = ""
+                if len(line) > maxchars:
+                    extra = line[maxchars:]
+                    line = line[:maxchars]
+                self.send("PRIVMSG", user, ":{0}".format(line))
+                line = extra
     privmsg = msg  # Same thing
     def notice(self, user, msg):
         for line in msg.split('\n'):
-            self.send("NOTICE", user, ":{0}".format(line))
+            maxchars = 495 - len(self.nickname+self.ident+self.hostmask+user)
+            while line:
+                extra = ""
+                if len(line) > maxchars:
+                    extra = line[maxchars:]
+                    line = line[:maxchars]
+                self.send("NOTICE", user, ":{0}".format(line))
+                line = extra
     def quit(self, msg=""):
         self.send("QUIT :{0}".format(msg))
     def part(self, chan, msg=""):
