@@ -943,6 +943,8 @@ def on_join(cli, raw_nick, chan):
                 del var.DISCONNECTED[nick]
                 
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
+                
+                var.LOGGER.logBare(nick, "RETURNED")
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -1069,6 +1071,7 @@ def on_nick(cli, prefix, nick):
                     
                     cli.msg(chan, ("\02{0}\02 has returned to "+
                                    "the village.").format(nick))
+                    var.LOGGER.logBare(nick, "RETURNED")
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
