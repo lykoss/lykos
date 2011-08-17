@@ -105,6 +105,8 @@ def connect_callback(cli):
     var.GRAVEYARD_LOCK = threading.RLock()
     var.GAME_ID = 0
     
+    var.DISCONNECTED = {}  # players who got disconnected
+    
     var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
     
     if botconfig.DEBUG_MODE:
@@ -855,53 +857,64 @@ def del_player(cli, nick, forced_death = False):
 
 @hook("ping")
 def on_ping(cli, prefix, server):
-    cli.send('PONG', server)
-
+    cli.send('PONG', server)    
 
 
 def reaper(cli, gameid):
     # check to see if idlers need to be killed.
     var.IDLE_WARNED = []
-
-    if not var.WARN_IDLE_TIME and not var.KILL_IDLE_TIME:
-        return
-
+    chan = botconfig.CHANNEL
+    
     while gameid == var.GAME_ID:
         with var.GRAVEYARD_LOCK:
-            to_warn = []
-            to_kill = []
-            for nick in var.list_players():
-                lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
-                tdiff = datetime.now() - lst
-                if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
-                                        nick not in var.IDLE_WARNED):
-                    if var.WARN_IDLE_TIME:
-                        to_warn.append(nick)
-                    var.IDLE_WARNED.append(nick)
-                    var.LAST_SAID_TIME[nick] = (datetime.now() -
-                        timedelta(seconds=var.WARN_IDLE_TIME))  # Give him a chance
-                elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                    nick in var.IDLE_WARNED):
-                    if var.KILL_IDLE_TIME:
-                        to_kill.append(nick)
-                elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
-                    nick in var.IDLE_WARNED):
-                    var.IDLE_WARNED.remove(nick)  # he saved himself from death
-            chan = botconfig.CHANNEL
-            for nck in to_kill:
-                if nck not in var.list_players():
-                    continue
-                cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
-                    "for a very long time. S/He is declared dead. Appears "+
-                    "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
-                if not del_player(cli, nck):
-                    return
-            pl = var.list_players()
-            x = [a for a in to_warn if a in pl]
-            if x:
-                cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
-                               "Please say something soon or you "+
-                               "might be declared dead.\u0002").format(", ".join(x)))
+            if var.WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
+                to_warn = []
+                to_kill = []
+                for nick in var.list_players():
+                    lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
+                    tdiff = datetime.now() - lst
+                    if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
+                                            nick not in var.IDLE_WARNED):
+                        if var.WARN_IDLE_TIME:
+                            to_warn.append(nick)
+                        var.IDLE_WARNED.append(nick)
+                        var.LAST_SAID_TIME[nick] = (datetime.now() -
+                            timedelta(seconds=var.WARN_IDLE_TIME))  # Give him a chance
+                    elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
+                        nick in var.IDLE_WARNED):
+                        if var.KILL_IDLE_TIME:
+                            to_kill.append(nick)
+                    elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
+                        nick in var.IDLE_WARNED):
+                        var.IDLE_WARNED.remove(nick)  # he saved himself from death
+                for nck in to_kill:
+                    if nck not in var.list_players():
+                        continue
+                    cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
+                        "for a very long time. S/He is declared dead. Appears "+
+                        "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
+                    if not del_player(cli, nck):
+                        return
+                pl = var.list_players()
+                x = [a for a in to_warn if a in pl]
+                if x:
+                    cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
+                                   "Please say something soon or you "+
+                                   "might be declared dead.\u0002").format(", ".join(x)))
+            for dcedplayer in list(var.DISCONNECTED.keys()):
+                _, timeofdc, what = var.DISCONNECTED[dcedplayer]
+                if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
+                    cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
+                                   "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    del var.DISCONNECTED[dcedplayer]
+                    if not del_player(cli, dcedplayer):
+                        return
+                elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
+                    cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
+                                   "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    del var.DISCONNECTED[dcedplayer]
+                    if not del_player(cli, dcedplayer):
+                        return
         sleep(10)
 
 
@@ -922,8 +935,14 @@ def on_join(cli, raw_nick, chan):
     if nick not in var.USERS and nick != botconfig.NICK:
         var.USERS.append(nick)
         var.CLOAKS.append(cloak)
-    #if nick in var.list_players():
-    #    cli.mode(chan, "+v", nick, nick+"!*@*") needed?
+    with var.GRAVEYARD_LOCK:
+        if nick in var.DISCONNECTED.keys():
+            clk = var.DISCONNECTED[nick][0]
+            if cloak == clk:
+                cli.mode(chan, "+v", nick, nick+"!*@*")
+                del var.DISCONNECTED[nick]
+                
+                cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -969,6 +988,7 @@ def goat(cli, nick, chan, rest):
 @hook("nick")
 def on_nick(cli, prefix, nick):
     prefix,u,m,cloak = parse_nick(prefix)
+    chan = botconfig.CHANNEL
 
     if prefix in var.USERS:
         var.USERS.remove(prefix)
@@ -1038,54 +1058,80 @@ def on_nick(cli, prefix, nick):
                     v.remove(prefix)
                     v.append(nick)
 
+    # Check if he was DC'ed
+    if var.PHASE in ("night", "day"):
+        with var.GRAVEYARD_LOCK:
+            if nick in var.DISCONNECTED.keys():
+                clk = var.DISCONNECTED[nick][0]
+                if cloak == clk:
+                    cli.mode(chan, "+v", nick, nick+"!*@*")
+                    del var.DISCONNECTED[nick]
+                    
+                    cli.msg(chan, ("\02{0}\02 has returned to "+
+                                   "the village.").format(nick))
 
 def leave(cli, what, nick, why=""):
-    """Exit the game."""
-    if not what.startswith(botconfig.CMD_CHAR) and nick in var.USERS:
+    nick, _, _, cloak = parse_nick(nick)
+    
+    if nick in var.USERS:
         i = var.USERS.index(nick)
         var.USERS.remove(nick)
         var.CLOAKS.pop(i)
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
-    if var.PHASE == "none" and what.startswith(botconfig.CMD_CHAR):
-        cli.notice(nick, "No game is currently running.")
+    if var.PHASE == "none":
         return
-    elif var.PHASE == "none":
+    if nick not in var.list_players():
         return
-    if nick not in var.list_players() and what.startswith(botconfig.CMD_CHAR):  # not playing
-        cli.notice(nick, "You're not currently playing.")
-        return
-    elif nick not in var.list_players():
-        return
+        
+    #  the player who just quit was in the game
         
     if nick in var.USERS:
         var.DEAD_USERS[nick] = var.CLOAKS[var.USERS.index(nick)]
         # for gstats, just in case
         
-    msg = ""
-    if what in (botconfig.CMD_CHAR+"quit", botconfig.CMD_CHAR+"leave"):
-        msg = ("\u0002{0}\u0002 died of an unknown disease. "+
-               "S/He was a \u0002{1}\u0002.")
-    elif what == "part":
-        msg = ("\u0002{0}\u0002 died due to eating poisonous berries. "+
-               "Appears (s)he was a \u0002{1}\u0002.")
-    elif what == "quit":
-        msg = ("\u0002{0}\u0002 died due to a fatal attack by wild animals. "+
-               "Appears (s)he was a \u0002{1}\u0002.")
-    elif what == "kick":
-        msg = ("\u0002{0}\u0002 died due to falling off a cliff. "+
-               "Appears (s)he was a \u0002{1}\u0002.")
-    msg = msg.format(nick, var.get_role(nick))
+    killhim = True
+    if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
+        msg = ("\02{0}\02 died due to eating poisonous berries. Appears "+
+               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
+    elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
+        msg = ("\02{0}\02 died due to a fatal attack by wild animals. Appears "+
+               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
+    elif what != "kick":
+        msg = "\u0002{0}\u0002 has gone missing.".format(nick)
+        killhim = False
+    else:
+        msg = ("\02{0}\02 died due to falling off a cliff. Appears "+
+               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
-    del_player(cli, nick)
+    if killhim:
+        del_player(cli, nick)
+    else:
+        var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
 
-_ = cmd("quit", "leave")(lambda cli, nick, chan, rest: leave(cli, botconfig.CMD_CHAR+"quit", nick, ""))
-_.__doc__ = "Quits the game"
 #Functions decorated with hook do not parse the nick by default
-hook("part")(lambda cli, nick, *rest: leave(cli, "part", parse_nick(nick)[0]))
-hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", parse_nick(nick)[0], rest[0]))
-hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", parse_nick(rest[1])[0]))
+hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick))
+hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
+hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
+
+
+@cmd("quit", "leave")
+def leave_game(cli, nick, chan, rest):
+    """Quits the game."""
+    if var.PHASE == "none":
+        cli.notice(nick, "No game is currently running.")
+        return
+    if nick not in var.list_players():  # not playing
+        cli.notice(nick, "You're not currently playing.")
+        return
+    if nick in var.USERS:
+        var.DEAD_USERS[nick] = var.CLOAKS[var.USERS.index(nick)]
+    cli.msg(chan, ("\02{0}\02 died of an unknown disease. "+
+                   "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
+    var.LOGGER.logMessage(("{0} died of an unknown disease. "+
+                           "S/He was a {1}.").format(nick, var.get_role(nick)))
+    del_player(cli, nick)
 
 
 
@@ -2123,6 +2169,8 @@ def start(cli, nick, chan, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
+    
+    dict.clear(var.DISCONNECTED)
     
     var.LOGGER.log("Game Start")
     var.LOGGER.logBare("GAME", "BEGIN", nick)
