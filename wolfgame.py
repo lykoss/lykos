@@ -16,8 +16,7 @@ from datetime import datetime, timedelta
 import threading
 import random
 import copy
-from time import sleep
-from time import time as timetime
+import time
 import re
 import logging
 import sys
@@ -325,7 +324,7 @@ def join(cli, nick, chan, rest):
         var.ROLES["person"].append(nick)
         var.PHASE = "join"
         var.WAITED = 0
-        var.GAME_ID = timetime()
+        var.GAME_ID = time.time()
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
@@ -800,7 +799,7 @@ def del_player(cli, nick, forced_death = False):
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
     """
-    t = timetime()  #  time
+    t = time.time()  #  time
     
     var.LAST_STATS = None # reset
     var.LAST_VOTES = None
@@ -915,7 +914,7 @@ def reaper(cli, gameid):
                     del var.DISCONNECTED[dcedplayer]
                     if not del_player(cli, dcedplayer):
                         return
-        sleep(10)
+        time.sleep(10)
 
 
 
@@ -944,7 +943,8 @@ def on_join(cli, raw_nick, chan):
                 
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
                 
-                var.LOGGER.logBare(nick, "RETURNED")
+                with open("returned.log", "a") as logf:
+                    logf.write(time.strftime("%d/%b/%Y %H:%M:%S ", time.gmtime())+nick+"\n")
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -1071,7 +1071,8 @@ def on_nick(cli, prefix, nick):
                     
                     cli.msg(chan, ("\02{0}\02 has returned to "+
                                    "the village.").format(nick))
-                    var.LOGGER.logBare(nick, "RETURNED")
+                    with open("returned.log", "a") as logf:
+                        logf.write(time.strftime("%d/%b/%Y %H:%M:%S ", time.gmtime())+nick+"\n")
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
@@ -1159,7 +1160,7 @@ def begin_day(cli):
     var.LOGGER.logBare("DAY", "BEGIN")
 
     if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
-        var.DAY_ID = timetime()
+        var.DAY_ID = time.time()
         t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
         var.TIMERS[1] = t
         var.TIMERS[1].daemon = True
@@ -1919,7 +1920,7 @@ def transition_night(cli):
     chan = botconfig.CHANNEL
 
     if var.NIGHT_TIME_LIMIT > 0:
-        var.NIGHT_ID = timetime()
+        var.NIGHT_ID = time.time()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
         var.TIMERS[0] = t
         var.TIMERS[0].daemon = True
