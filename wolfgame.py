@@ -838,6 +838,8 @@ def del_player(cli, nick, forced_death = False):
                         del x[k]
                     elif x[k] == nick:
                         del x[k]
+            if nick in var.DISCONNECTED:
+                del var.DISCONNECTED[nick]
         if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
             if nick in var.VOTES.keys():
                 del var.VOTES[nick]  #  Delete other people's votes on him
@@ -905,13 +907,11 @@ def reaper(cli, gameid):
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
                                    "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    del var.DISCONNECTED[dcedplayer]
                     if not del_player(cli, dcedplayer):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
                                    "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    del var.DISCONNECTED[dcedplayer]
                     if not del_player(cli, dcedplayer):
                         return
         time.sleep(10)
