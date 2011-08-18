@@ -190,7 +190,7 @@ class IRCClient(object):
                 try:
                     buffer += self.socket.recv(1024)
                 except socket.error as e:                
-                    if not self.blocking and e.errno == 11:
+                    if False and not self.blocking and e.errno == 11:
                         pass
                     else:
                         raise e
@@ -228,6 +228,7 @@ class IRCClient(object):
             if self.socket: 
                 logging.info('closing socket')
                 self.socket.close()
+                raise SystemExit
     def msg(self, user, msg):
         for line in msg.split('\n'):
             maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
