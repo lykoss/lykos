@@ -149,7 +149,7 @@ class IRCClient(object):
             logging.info('---> send "{0}"'.format(msg))
             
             while not self.tokenbucket.consume(1):
-                pass
+                time.sleep(0.3)
             self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):

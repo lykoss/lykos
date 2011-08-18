@@ -2574,7 +2574,7 @@ if botconfig.DEBUG_MODE:
         if not is_fake_nick(who):
             ul = list(var.USERS.keys())
             ull = [u.lower() for u in ul]
-            if who.lower() not in pll:
+            if who.lower() not in ull:
                 cli.msg(chan, "This can only be done on fake nicks.")
                 return
             else:

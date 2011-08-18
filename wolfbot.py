@@ -88,7 +88,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                     raise e
                 else:
                     logging.error(traceback.format_exc())
-                    cli.msg(botconfig.CHANNEL, "An error has occured and has been logged.")
+                    cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
     else:
         logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
                                                               for arg in args
