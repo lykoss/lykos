@@ -229,7 +229,7 @@ class IRCClient(object):
                 logging.info('closing socket')
                 self.socket.close()
                 import os
-                os._exit()
+                os._exit(0)
     def msg(self, user, msg):
         for line in msg.split('\n'):
             maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
