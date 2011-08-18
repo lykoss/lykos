@@ -228,7 +228,8 @@ class IRCClient(object):
             if self.socket: 
                 logging.info('closing socket')
                 self.socket.close()
-                raise SystemExit
+                import os
+                os._exit()
     def msg(self, user, msg):
         for line in msg.split('\n'):
             maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
@@ -268,8 +269,6 @@ class IRCClient(object):
     def mainLoop(self):
         conn = self.connect()
         while True:
-            try:
-                next(conn)
-            except:
-                return
+            if not next(conn):
+                break
             
