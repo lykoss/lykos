@@ -49,8 +49,7 @@ def connect_callback(cli):
                 cli.nickname = user
                 cli.ident = ident
                 cli.hostmask = cloak
-            var.USERS.append(user)
-            var.CLOAKS.append(cloak)
+            var.USERS[user] = cloak
             
         @hook("endofwho", id=294)
         def afterwho(*args):
@@ -81,8 +80,7 @@ def connect_callback(cli):
     var.LAST_VOTES = None
     var.LAST_ADMINS = None
     
-    var.USERS = []
-    var.CLOAKS = []
+    var.USERS = {}
     
     var.PINGING = False
     var.ADMIN_PINGING = False
@@ -173,6 +171,7 @@ def reset(cli):
 
     dict.clear(var.LAST_SAID_TIME)
     dict.clear(var.DEAD_USERS)
+    dict.clear(var.DISCONNECTED)
 
 
 @pmcmd("fdie", "fbye", admin_only=True)
@@ -353,7 +352,8 @@ def fjoin(cli, nick, chan, rest):
         a = a.strip()
         if not a:
             continue
-        ull = [u.lower() for u in var.USERS]
+        ul = list(var.USERS.keys())
+        ull = [u.lower() for u in ul]
         if a.lower() not in ull:
             if not is_fake_nick(a) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
@@ -362,7 +362,7 @@ def fjoin(cli, nick, chan, rest):
                     noticed = True
                 continue
         if not is_fake_nick(a):
-            a = var.USERS[ull.index(a.lower())]
+            a = ul[ull.index(a.lower())]
         if a != botconfig.NICK:
             join(cli, a.strip(), chan, "")
         else:
@@ -685,13 +685,13 @@ def stop_game(cli, winner = ""):
     var.LOGGER.saveToFile()
     
     for plr, rol in plrl:
-        if plr not in var.USERS:  # he died TODO: when a player leaves, count the game as lost for him
+        if plr not in var.USERS.keys():  # he died TODO: when a player leaves, count the game as lost for him
             if plr in var.DEAD_USERS.keys():
                 clk = var.DEAD_USERS[plr]
             else:
                 continue  # something wrong happened
         else:
-            clk = var.CLOAKS[var.USERS.index(plr)]
+            clk = var.USERS[plr]
         
         # determine if this player's team won
         if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
@@ -931,9 +931,8 @@ def update_last_said(cli, nick, chan, rest):
 @hook("join")
 def on_join(cli, raw_nick, chan):
     nick,m,u,cloak = parse_nick(raw_nick)
-    if nick not in var.USERS and nick != botconfig.NICK:
-        var.USERS.append(nick)
-        var.CLOAKS.append(cloak)
+    if nick not in var.USERS.keys() and nick != botconfig.NICK:
+        var.USERS[nick] = cloak
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
             clk = var.DISCONNECTED[nick][0]
@@ -961,7 +960,8 @@ def goat(cli, nick, chan, rest):
     if var.GOATED:
         cli.notice(nick, "You can only do that once per day.")
         return
-    ull = [x.lower() for x in var.USERS]
+    ul = list(var.USERS.keys())
+    ull = [x.lower() for x in ul]
     rest = re.split(" +",rest)[0].strip().lower()
     if not rest:
         cli.notice(nick, "Not enough parameters.")
@@ -978,7 +978,7 @@ def goat(cli, nick, chan, rest):
         if matches != 1:
             cli.msg(nick,"\u0002{0}\u0002 is not in this channel.".format(rest))
             return
-    victim = var.USERS[ull.index(victim)]
+    victim = ul[ull.index(victim)]
     cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
                    "and kicks \u0002{1}\u0002.").format(nick,
                                                         victim))
@@ -993,10 +993,7 @@ def on_nick(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
     if prefix in var.USERS:
-        var.USERS.remove(prefix)
-        var.CLOAKS.remove(cloak)
-        var.USERS.append(nick)
-        var.CLOAKS.append(cloak)
+        var.USERS[nick] = var.USERS.pop(prefix)
         
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
@@ -1078,9 +1075,7 @@ def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
     
     if nick in var.USERS:
-        i = var.USERS.index(nick)
-        var.USERS.remove(nick)
-        var.CLOAKS.pop(i)
+        del var.USERS[nick]
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none":
@@ -1091,7 +1086,7 @@ def leave(cli, what, nick, why=""):
     #  the player who just quit was in the game
         
     if nick in var.USERS:
-        var.DEAD_USERS[nick] = var.CLOAKS[var.USERS.index(nick)]
+        var.DEAD_USERS[nick] = var.USERS[nick]
         # for gstats, just in case
         
     killhim = True
@@ -1130,7 +1125,7 @@ def leave_game(cli, nick, chan, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     if nick in var.USERS:
-        var.DEAD_USERS[nick] = var.CLOAKS[var.USERS.index(nick)]
+        var.DEAD_USERS[nick] = var.USERS[nick]
     cli.msg(chan, ("\02{0}\02 died of an unknown disease. "+
                    "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
     var.LOGGER.logMessage(("{0} died of an unknown disease. "+
@@ -2174,8 +2169,6 @@ def start(cli, nick, chan, rest):
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
     
-    dict.clear(var.DISCONNECTED)
-    
     var.LOGGER.log("Game Start")
     var.LOGGER.logBare("GAME", "BEGIN", nick)
     var.LOGGER.logBare(str(len(pl)), "PLAYERCOUNT")
@@ -2579,17 +2572,18 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, "That won't work.")
             return
         if not is_fake_nick(who):
-            pll = [pl.lower() for pl in var.USERS]
+            ul = list(var.USERS.keys())
+            ull = [u.lower() for u in ul]
             if who.lower() not in pll:
                 cli.msg(chan, "This can only be done on fake nicks.")
                 return
             else:
-                who = var.USERS[pll.index(who.lower())]
+                who = ul[ull.index(who.lower())]
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         did = False
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                not is_admin(var.USERS[nick])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2607,7 +2601,7 @@ if botconfig.DEBUG_MODE:
             #    chk_nightdone(cli)
         elif COMMANDS.get(cmd) and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                not is_admin(var.USERS[nick])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2646,7 +2640,7 @@ if botconfig.DEBUG_MODE:
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                not is_admin(var.USERS[nick])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2659,7 +2653,7 @@ if botconfig.DEBUG_MODE:
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.CLOAKS[var.USERS.index(nick)])):
+                not is_admin(var.USERS[nick])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2681,14 +2675,15 @@ if botconfig.DEBUG_MODE:
             return
         who = rst.pop(0).strip()
         rol = " ".join(rst).strip()
-        ull = [u.lower() for u in var.USERS]
+        ul = list(var.USERS.keys())
+        ull = [u.lower() for u in ul]
         if who.lower() not in ull:
             if not is_fake_nick(who):
                 cli.msg(chan, "Could not be done.")
                 cli.msg(chan, "The target needs to be in this channel or a fake name.")
                 return
         if not is_fake_nick(who):
-            who = var.USERS[ull.index(who.lower())]
+            who = ul[ull.index(who.lower())]
         if who == botconfig.NICK or not who:
             cli.msg(chan, "No.")
             return
