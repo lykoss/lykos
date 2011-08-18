@@ -19,6 +19,7 @@ import socket
 import time
 import threading
 import traceback
+import sys
 
 from oyoyo.parse import parse_raw_irc_command    
 
@@ -228,8 +229,7 @@ class IRCClient(object):
             if self.socket: 
                 logging.info('closing socket')
                 self.socket.close()
-                import os
-                os._exit(0)
+                yield False
     def msg(self, user, msg):
         for line in msg.split('\n'):
             maxchars = 494 - len(self.nickname+self.ident+self.hostmask+user)
@@ -270,5 +270,6 @@ class IRCClient(object):
         conn = self.connect()
         while True:
             if not next(conn):
-                break
+                print("Calling sys.exit()...")
+                sys.exit()
             
