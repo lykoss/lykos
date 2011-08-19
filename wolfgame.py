@@ -712,7 +712,7 @@ def stop_game(cli, winner = ""):
                 
         iwon = won and plr in var.list_players()  # survived, team won = individual win
                 
-        var.update_role_stats(clk, rol, won, iwon)
+        var.update_role_stats(plr, clk, rol, won, iwon)
     
     reset(cli)
     
@@ -997,6 +997,8 @@ def on_nick(cli, prefix, nick):
         
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
+        
+    var.record_nick_change(prefix, nick, cloak)
 
     for k,v in var.ORIGINAL_ROLES.items():
         if prefix in v:

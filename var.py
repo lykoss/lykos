@@ -189,7 +189,14 @@ with conn:
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
         'UNIQUE(playerid, roleid))'))
         
-    c.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, cloak TEXT)")
+        
+    # create the players table
+    c.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, nick TEXT, cloak TEXT, "+
+              "UNIQUE(nick, cloak))")
+              
+              
+    # create nick change table
+    c.execute("CREATE TABLE IF NOT EXISTS nick_changes (old INTEGER, new INTEGER)")
 
     
     
@@ -202,19 +209,38 @@ def add_away(clk):
         c.execute('INSERT into away VALUES (?)', (clk,))
         
         
+def record_nick_change(from_nick, to_nick, cloak):
+    with conn:
+        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (from_nick, cloak))
+        row = c.fetchone()
+        if not row:
+            return  # No records for this player
+        old_plid = row[0]
+        c.execute('INSERT OR IGNORE INTO players (nick, cloak) VALUES (?,?)', (to_nick, cloak))
+        
+        # create a new entry in the players table for this nick
+        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (to_nick, cloak))
+        new_plid = c.fetchone()[0]
+        
+        c.execute('SELECT * FROM nick_changes WHERE old=? AND new=?', (new_plid, old_plid))
+        
+        if not c.fetchone():  # not recorded yet
+            c.execute('INSERT OR IGNORE INTO nick_changes (old, new) VALUES (?, ?)', (old_plid, new_plid))
+        
+        
 
-def update_role_stats(clk, role, won, iwon):
+def update_role_stats(nick, clk, role, won, iwon):
     
     with conn:
         wins, iwins, totalgames = 0, 0, 0
 
-        c.execute('SELECT id FROM players WHERE cloak=?', (clk,))
+        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (nick, clk))
         row = c.fetchone()
         if row:
             plid = row[0]
         else:
-            c.execute('INSERT INTO players (cloak) VALUES (?)', (clk,))
-            c.execute('SELECT id FROM players WHERE cloak=?', (clk,))
+            c.execute('INSERT INTO players (nick, cloak) VALUES (?,?)', (nick, clk))
+            c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (nick, clk))
             plid = c.fetchone()[0]
             
         c.execute('SELECT id FROM roles WHERE role=?', (role,))
