@@ -1006,10 +1006,10 @@ def on_nick(cli, prefix, nick):
             var.ORIGINAL_ROLES[k].append(nick)
             break
             
-    for k,v in list(var.DEAD_USERS.items()):
-        if prefix == k:
-            var.DEAD_USERS[nick] = var.DEAD_USERS[k]
-            del var.DEAD_USERS[k]
+    # for k,v in list(var.DEAD_USERS.items()):
+        # if prefix == k:
+            # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
+            # del var.DEAD_USERS[k]
 
     if var.PHASE in ("night", "day"):
         if prefix in var.GUNNERS.keys():
@@ -1077,7 +1077,8 @@ def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
     
     if nick in var.USERS:
-        del var.USERS[nick]
+        var.DEAD_USERS[nick] = var.USERS.pop(nick) # for gstats, just in case
+        
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none":
@@ -1086,11 +1087,6 @@ def leave(cli, what, nick, why=""):
         return
         
     #  the player who just quit was in the game
-        
-    if nick in var.USERS:
-        var.DEAD_USERS[nick] = var.USERS[nick]
-        # for gstats, just in case
-        
     killhim = True
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
         msg = ("\02{0}\02 died due to eating poisonous berries. Appears "+
@@ -1126,8 +1122,6 @@ def leave_game(cli, nick, chan, rest):
     if nick not in var.list_players():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    if nick in var.USERS:
-        var.DEAD_USERS[nick] = var.USERS[nick]
     cli.msg(chan, ("\02{0}\02 died of an unknown disease. "+
                    "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
     var.LOGGER.logMessage(("{0} died of an unknown disease. "+
