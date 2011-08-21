@@ -209,6 +209,11 @@ def add_away(clk):
         c.execute('INSERT into away VALUES (?)', (clk,))
         
         
+def add_player_record(nick, cloak):
+    with conn:
+        c.execute('INSERT OR IGNORE INTO players (nick, cloak) VALUES (?,?)', (nick, cloak))
+        
+        
 def record_nick_change(from_nick, to_nick, cloak):
     with conn:
         c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (from_nick, cloak))

@@ -314,11 +314,17 @@ def fpinger(cli, nick, chan, rest):
 
 
 
-@cmd("join")
+@cmd("join", raw_nick=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     pl = var.list_players()
+    
+    nick, _, __, cloak = parse_nick(nick)
+    
     if var.PHASE == "none":
+        if cloak:
+            var.add_player_record(nick, cloak)
+    
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
         var.PHASE = "join"
@@ -335,6 +341,9 @@ def join(cli, nick, chan, rest):
     elif var.PHASE != "join":
         cli.notice(nick, "Sorry but the game is already running.  Try again next time.")
     else:
+        if cloak:
+            var.add_player_record(nick, cloak)
+    
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
