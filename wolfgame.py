@@ -1092,8 +1092,9 @@ def leave(cli, what, nick, why=""):
         return
     if var.PHASE == "none":
         return
-    if nick not in var.list_players():
+    if nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         return
+    
         
     #  the player who just quit was in the game
     killhim = True
