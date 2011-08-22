@@ -960,7 +960,7 @@ def goat(cli, nick, chan, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if var.PHASE != "day":
@@ -1129,7 +1129,7 @@ def leave_game(cli, nick, chan, rest):
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
-    if nick not in var.list_players():  # not playing
+    if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
     cli.msg(chan, ("\02{0}\02 died of an unknown disease. "+
@@ -1340,7 +1340,7 @@ def vote(cli, nick, chan, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if var.PHASE != "day":
@@ -1401,7 +1401,7 @@ def retract(cli, nick, chan, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
         
@@ -1432,7 +1432,7 @@ def shoot(cli, nick, chan, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
         
@@ -1534,7 +1534,7 @@ def kill(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
@@ -1591,7 +1591,7 @@ def guard(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
@@ -1640,7 +1640,7 @@ def observe(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if not var.is_role(nick, "werecrow"):
@@ -1690,7 +1690,7 @@ def investigate(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if not var.is_role(nick, "detective"):
@@ -1740,7 +1740,7 @@ def hvisit(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if not var.is_role(nick, "harlot"):
@@ -1795,7 +1795,7 @@ def see(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    elif nick not in var.list_players():
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     if not var.is_role(nick, "seer"):
