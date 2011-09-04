@@ -1785,8 +1785,7 @@ def hvisit(cli, nick, rest):
 
 
 def is_fake_nick(who):
-    return not( ((who[0].isalpha() or (who[0] in (botconfig.CMD_CHAR, "\\", "_", "`"))) and
-              not who.lower().endswith("serv")))
+    return not(re.search("^[a-zA-Z\\\_\]\[`]([a-zA-Z0-9\\\_\]\[`]+)?", who)) or who.lower().endswith("serv")
 
 
 
