@@ -662,12 +662,11 @@ def stop_game(cli, winner = ""):
     roles_msg = []
     
     var.ORIGINAL_ROLES["cursed villager"] = var.CURSED  # A hack
+    var.ORIGINAL_ROLES["gunner"] = list(var.GUNNERS.keys())
 
     lroles = list(var.ORIGINAL_ROLES.keys())
     lroles.remove("wolf")
     lroles.insert(0, "wolf")   # picky, howl consistency
-    
-    lroles.remove("village drunk")
     
     for role in lroles:
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == "villager":
