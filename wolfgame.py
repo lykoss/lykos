@@ -223,6 +223,13 @@ def frehash(cli, nick, chan, rest):
     imp.reload(var)
     imp.reload(decorators.botconfig)
     
+    if botconfig.DEBUG_MODE:
+        var.NIGHT_TIME_LIMIT = 0  # 90
+        var.DAY_TIME_LIMIT_WARN = 0
+        var.DAY_TIME_LIMIT_CHANGE = 0
+        var.KILL_IDLE_TIME = 0 #300
+        var.WARN_IDLE_TIME = 0 #180
+    
     cli.msg(chan, "Operation successful.")
     
             
