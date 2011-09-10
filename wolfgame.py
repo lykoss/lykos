@@ -2227,7 +2227,7 @@ def start(cli, nick, chan, rest):
 @hook("error")
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
-        restart_program(cli, "excess flood")
+        restart_program(cli, "excess flood", "")
     elif msg.startswith("Closing Link:"):
         raise SystemExit
     
