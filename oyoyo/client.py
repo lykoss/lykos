@@ -108,7 +108,7 @@ class IRCClient(object):
         self.blocking = True
         self.lock = threading.RLock()
         
-        self.tokenbucket = TokenBucket(28, 1.73)
+        self.tokenbucket = TokenBucket(23, 1.73)
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
