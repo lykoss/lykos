@@ -196,7 +196,7 @@ with conn:
               
               
     # create nick change table
-    c.execute("CREATE TABLE IF NOT EXISTS nick_changes (old INTEGER, new INTEGER)")
+    c.execute("CREATE TABLE IF NOT EXISTS nick_changes (old INTEGER, new INTEGER, UNIQUE(new))")
 
     
     
