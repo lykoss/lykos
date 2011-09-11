@@ -1879,8 +1879,9 @@ def mass_privmsg(cli, targets, msg):
 
 @pmcmd("")
 def relay(cli, nick, rest):
-    if var.PHASE != "night":
-        return
+    """Let the wolves talk to each other through the bot"""
+    if var.PHASE not in ("night", "day"):
+	    return
 
     badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"]
     if len(badguys) > 1:
