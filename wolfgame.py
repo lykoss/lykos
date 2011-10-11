@@ -1033,7 +1033,7 @@ def on_nick(cli, prefix, nick):
             var.CURSED.append(nick)
             var.CURSED.remove(prefix)
             
-    if prefix in var.list_players():
+    if prefix in var.list_players() and prefix not in var.DISCONNECTED.keys():
         r = var.ROLES[var.get_role(prefix)]
         r.append(nick)
         r.remove(prefix)
