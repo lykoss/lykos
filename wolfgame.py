@@ -1012,8 +1012,6 @@ def on_nick(cli, prefix, nick):
         
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
-        
-    var.record_nick_change(prefix, nick, cloak)
 
     for k,v in var.ORIGINAL_ROLES.items():
         if prefix in v:

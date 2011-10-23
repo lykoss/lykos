@@ -213,26 +213,6 @@ def add_player_record(nick, cloak):
     with conn:
         c.execute('INSERT OR IGNORE INTO players (nick, cloak) VALUES (?,?)', (nick, cloak))
         
-        
-def record_nick_change(from_nick, to_nick, cloak):
-    with conn:
-        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (from_nick, cloak))
-        row = c.fetchone()
-        if not row:
-            return  # No records for this player
-        old_plid = row[0]
-        c.execute('INSERT OR IGNORE INTO players (nick, cloak) VALUES (?,?)', (to_nick, cloak))
-        
-        # create a new entry in the players table for this nick
-        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (to_nick, cloak))
-        new_plid = c.fetchone()[0]
-        
-        c.execute('SELECT * FROM nick_changes WHERE old=? AND new=?', (new_plid, old_plid))
-        
-        if not c.fetchone():  # not recorded yet
-            c.execute('INSERT OR IGNORE INTO nick_changes (old, new) VALUES (?, ?)', (old_plid, new_plid))
-        
-        
 
 def update_role_stats(nick, clk, role, won, iwon):
     
