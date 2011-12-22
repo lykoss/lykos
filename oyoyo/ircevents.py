@@ -98,6 +98,7 @@ numeric_events = {
     b"351": "version",
     b"352": "whoreply",
     b"353": "namreply",
+    b"354": "whospcrpl",
     b"361": "killdone",
     b"362": "closing",
     b"363": "closeend",

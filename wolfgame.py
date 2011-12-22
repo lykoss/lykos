@@ -41,9 +41,8 @@ def connect_callback(cli):
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
-        @hook("whoreply", id=294)
-        def on_whoreply(cli, server, dunno, chan, ident,
-                        cloak, dunno3, user, status, dunno4):
+        @hook("whospcrpl", id=294)
+        def on_whoreply(cli, server, nick, ident, cloak, user, acc):
             if user in var.USERS: return  # Don't add someone who is already there
             if user == botconfig.NICK:
                 cli.nickname = user
@@ -55,8 +54,10 @@ def connect_callback(cli):
         def afterwho(*args):
             decorators.unhook(HOOKS, 294)
             
+        cli.cap("REQ", "extended-join")
+        cli.cap("REQ", "account-notify")
             
-        cli.who(botconfig.CHANNEL)
+        cli.who(botconfig.CHANNEL, "%nuha")
     if botconfig.JOIN_AFTER_CLOAKED:
         prepare_stuff = hook("event_hosthidden", id=294)(prepare_stuff)
         
@@ -944,7 +945,7 @@ def update_last_said(cli, nick, chan, rest):
 
 
 @hook("join")
-def on_join(cli, raw_nick, chan):
+def on_join(cli, raw_nick, chan, acc="", rname=""):
     nick,m,u,cloak = parse_nick(raw_nick)
     if nick not in var.USERS.keys() and nick != botconfig.NICK:
         var.USERS[nick] = cloak
