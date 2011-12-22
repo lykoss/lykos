@@ -185,9 +185,9 @@ with conn:
         c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
         
         
-    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, roleid INTEGER, '+
+    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, role TEXT, '+
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
-        'UNIQUE(player, roleid))'))
+        'UNIQUE(player, role))'))
         
         
               
@@ -209,12 +209,9 @@ def update_role_stats(acc, role, won, iwon):
     
     with conn:
         wins, iwins, totalgames = 0, 0, 0
-            
-        c.execute('SELECT id FROM roles WHERE role=?', (role,))
-        rid = c.fetchone()[0]
         
         c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
-                   "WHERE player=? AND roleid=?"), (acc, rid))
+                   "WHERE player=? AND role=?"), (acc, role))
         row = c.fetchone()
         if row:
             wins, iwins, total = row
@@ -228,7 +225,7 @@ def update_role_stats(acc, role, won, iwon):
         total += 1
         
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
-                  (acc, rid, wins, iwins, total))
+                  (acc, role, wins, iwins, total))
 
 
 
