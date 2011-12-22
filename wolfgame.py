@@ -89,7 +89,7 @@ def connect_callback(cli):
     var.ADMIN_PINGING = False
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
-    var.DEAD_USERS = {}
+    var.PLAYERS = {}
     var.ADMIN_TO_PING = None
     var.AFTER_FLASTGAME = None
     var.PHASE = "none"  # "join", "day", or "night"
@@ -173,7 +173,7 @@ def reset(cli):
     reset_settings()
 
     dict.clear(var.LAST_SAID_TIME)
-    dict.clear(var.DEAD_USERS)
+    dict.clear(var.PLAYERS)
     dict.clear(var.DISCONNECTED)
 
 
@@ -704,16 +704,19 @@ def stop_game(cli, winner = ""):
     var.LOGGER.saveToFile()
     
     for plr, rol in plrl:
-        if plr not in var.USERS.keys():  # he died TODO: when a player leaves, count the game as lost for him
-            if plr in var.DEAD_USERS.keys():
-                acc = var.DEAD_USERS[plr]["account"]
-            else:
-                continue  # something wrong happened
+        #if plr not in var.USERS.keys():  # he died TODO: when a player leaves, count the game as lost for him
+        #    if plr in var.DEAD_USERS.keys():
+        #        acc = var.DEAD_USERS[plr]["account"]
+        #    else:
+        #        continue  # something wrong happened
+        #else:
+        if plr in var.PLAYERS.keys():
+            acc = var.PLAYERS[plr]["account"]
         else:
-            acc = var.USERS[plr]["account"]
-        
+            continue  #probably fjoin'd fake
+
         if acc == "*":
-            continue  # not logged in
+            continue  # not logged in during game start
         # determine if this player's team won
         if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
                    var.ORIGINAL_ROLES["werecrow"]):  # the player was wolf-aligned
@@ -1030,6 +1033,11 @@ def on_nick(cli, prefix, nick):
             # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
             # del var.DEAD_USERS[k]
 
+    for k,v in list(var.PLAYERS.items()):
+        if prefix == k:
+            var.PLAYERS[nick] = var.PLAYERS[k]
+            del var.PLAYERS[k]
+
     if var.PHASE in ("night", "day"):
         if prefix in var.GUNNERS.keys():
             var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
@@ -1094,9 +1102,6 @@ def on_nick(cli, prefix, nick):
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
-    
-    if nick in var.USERS:
-        var.DEAD_USERS[nick] = var.USERS.pop(nick) # for gstats, just in case
         
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
@@ -2216,6 +2221,8 @@ def start(cli, nick, chan, rest):
     
     var.LOGGER.log("***")        
         
+    var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}    
+
     if not var.START_WITH_DAY:
         var.FIRST_NIGHT = True
         transition_night(cli)
