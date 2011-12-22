@@ -90,6 +90,7 @@ def connect_callback(cli):
     var.ROLES = {"person" : []}
     var.ORIGINAL_ROLES = {}
     var.PLAYERS = {}
+    var.DCED_PLAYERS = {}
     var.ADMIN_TO_PING = None
     var.AFTER_FLASTGAME = None
     var.PHASE = "none"  # "join", "day", or "night"
@@ -174,6 +175,7 @@ def reset(cli):
 
     dict.clear(var.LAST_SAID_TIME)
     dict.clear(var.PLAYERS)
+    dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
 
 
@@ -682,17 +684,21 @@ def stop_game(cli, winner = ""):
     for role in lroles:
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == "villager":
             continue
-        elif len(var.ORIGINAL_ROLES[role]) == 2:
+        playersinrole = list(var.ORIGINAL_ROLES[role])
+        for i,plr in enumerate(playersinrole):
+            if plr.startswith("(dced)"):  # don't care about it here
+                playersinrole[i] = plr[6:]
+        if len(playersinrole) == 2:
             msg = "The {1} were \u0002{0[0]}\u0002 and \u0002{0[1]}\u0002."
-            roles_msg.append(msg.format(var.ORIGINAL_ROLES[role], var.plural(role)))
-        elif len(var.ORIGINAL_ROLES[role]) == 1:
-            roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(var.ORIGINAL_ROLES[role],
+            roles_msg.append(msg.format(playersinrole, var.plural(role)))
+        elif len(playersinrole) == 1:
+            roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(playersinrole,
                                                                       role))
         else:
             msg = "The {2} were {0}, and \u0002{1}\u0002."
-            nickslist = ["\u0002"+x+"\u0002" for x in var.ORIGINAL_ROLES[role][0:-1]]
+            nickslist = ["\u0002"+x+"\u0002" for x in playersinrole[0:-1]]
             roles_msg.append(msg.format(", ".join(nickslist),
-                                                  var.ORIGINAL_ROLES[role][-1],
+                                                  playersinrole[-1],
                                                   var.plural(role)))
     cli.msg(chan, " ".join(roles_msg))
 
@@ -710,7 +716,9 @@ def stop_game(cli, winner = ""):
         #    else:
         #        continue  # something wrong happened
         #else:
-        if plr in var.PLAYERS.keys():
+        if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
+            acc = var.DCED_PLAYERS[plr[6:]]["account"]
+        elif plr in var.PLAYERS.keys():
             acc = var.PLAYERS[plr]["account"]
         else:
             continue  #probably fjoin'd fake
@@ -1023,7 +1031,8 @@ def on_nick(cli, prefix, nick):
         var.ADMIN_TO_PING = nick
 
     for k,v in var.ORIGINAL_ROLES.items():
-        if prefix in v:
+        if (prefix in v and prefix in var.PLAYERS.keys()
+                       and cloak == var.PLAYERS[prefix]["cloak"]):
             var.ORIGINAL_ROLES[k].remove(prefix)
             var.ORIGINAL_ROLES[k].append(nick)
             break
@@ -1034,14 +1043,15 @@ def on_nick(cli, prefix, nick):
             # del var.DEAD_USERS[k]
 
     for k,v in list(var.PLAYERS.items()):
-        if prefix == k:
+        if prefix == k and var.PLAYERS[k]["cloak"] == cloak:
             var.PLAYERS[nick] = var.PLAYERS[k]
             del var.PLAYERS[k]
 
     if var.PHASE in ("night", "day"):
         if prefix in var.GUNNERS.keys():
             var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
-        if prefix in var.CURSED:
+        if (prefix in var.CURSED and nick in var.PLAYERS
+                                and cloak == var.PLAYERS[nick]["cloak"]):
             var.CURSED.append(nick)
             var.CURSED.remove(prefix)
             
@@ -1107,6 +1117,14 @@ def leave(cli, what, nick, why=""):
         return
     if var.PHASE == "none":
         return
+    if nick in var.PLAYERS:
+        # must prevent double entry in var.ORIGINAL_ROLES
+        for r,rlist in var.ORIGINAL_ROLES.items():
+            if nick in rlist:
+                var.ORIGINAL_ROLES[r].remove(nick)
+                var.ORIGINAL_ROLES[r].append("(dced)"+nick)
+                break
+        var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         return
     
