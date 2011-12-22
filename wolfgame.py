@@ -48,7 +48,9 @@ def connect_callback(cli):
                 cli.nickname = user
                 cli.ident = ident
                 cli.hostmask = cloak
-            var.USERS[user] = cloak
+            if acc == "0":
+                acc = "*"
+            var.USERS[user] = dict(cloak=cloak,account=acc)
             
         @hook("endofwho", id=294)
         def afterwho(*args):
@@ -424,6 +426,11 @@ def on_kicked(cli, nick, chan, victim, reason):
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
 
+@hook("account")
+def on_account(cli, nick, acc):
+    nick = parse_nick(nick)[0]    
+    if nick in var.USERS.keys():
+        var.USERS[nick]["account"] = acc
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
@@ -707,7 +714,7 @@ def stop_game(cli, winner = ""):
             else:
                 continue  # something wrong happened
         else:
-            clk = var.USERS[plr]
+            clk = var.USERS[plr]["cloak"]
         
         # determine if this player's team won
         if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
@@ -945,10 +952,10 @@ def update_last_said(cli, nick, chan, rest):
 
 
 @hook("join")
-def on_join(cli, raw_nick, chan, acc="", rname=""):
+def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick,m,u,cloak = parse_nick(raw_nick)
     if nick not in var.USERS.keys() and nick != botconfig.NICK:
-        var.USERS[nick] = cloak
+        var.USERS[nick] = dict(cloak=cloak,account=acc)
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
             clk = var.DISCONNECTED[nick][0]
@@ -2594,7 +2601,7 @@ if botconfig.DEBUG_MODE:
         did = False
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.USERS[nick])):
+                not is_admin(var.USERS[nick]["cloak"])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2612,7 +2619,7 @@ if botconfig.DEBUG_MODE:
             #    chk_nightdone(cli)
         elif COMMANDS.get(cmd) and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.USERS[nick])):
+                not is_admin(var.USERS[nick]["cloak"])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2651,7 +2658,7 @@ if botconfig.DEBUG_MODE:
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.USERS[nick])):
+                not is_admin(var.USERS[nick]["cloak"])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -2664,7 +2671,7 @@ if botconfig.DEBUG_MODE:
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and 
-                not is_admin(var.USERS[nick])):
+                not is_admin(var.USERS[nick]["cloak"])):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
