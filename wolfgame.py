@@ -332,8 +332,6 @@ def join(cli, nick, chan, rest):
     nick, _, __, cloak = parse_nick(nick)
     
     if var.PHASE == "none":
-        if cloak:
-            var.add_player_record(nick, cloak)
     
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
@@ -351,8 +349,6 @@ def join(cli, nick, chan, rest):
     elif var.PHASE != "join":
         cli.notice(nick, "Sorry but the game is already running.  Try again next time.")
     else:
-        if cloak:
-            var.add_player_record(nick, cloak)
     
         cli.mode(chan, "+v", nick, nick+"!*@*")
         var.ROLES["person"].append(nick)
@@ -710,12 +706,14 @@ def stop_game(cli, winner = ""):
     for plr, rol in plrl:
         if plr not in var.USERS.keys():  # he died TODO: when a player leaves, count the game as lost for him
             if plr in var.DEAD_USERS.keys():
-                clk = var.DEAD_USERS[plr]
+                acc = var.DEAD_USERS[plr]["account"]
             else:
                 continue  # something wrong happened
         else:
-            clk = var.USERS[plr]["cloak"]
+            acc = var.USERS[plr]["account"]
         
+        if acc == "*":
+            continue  # not logged in
         # determine if this player's team won
         if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
                    var.ORIGINAL_ROLES["werecrow"]):  # the player was wolf-aligned
@@ -735,7 +733,7 @@ def stop_game(cli, winner = ""):
                 
         iwon = won and plr in var.list_players()  # survived, team won = individual win
                 
-        var.update_role_stats(plr, clk, rol, won, iwon)
+        var.update_role_stats(acc, rol, won, iwon)
     
     reset(cli)
     

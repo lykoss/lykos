@@ -185,18 +185,13 @@ with conn:
         c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
         
         
-    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (playerid INTEGER, roleid INTEGER, '+
+    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, roleid INTEGER, '+
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
-        'UNIQUE(playerid, roleid))'))
+        'UNIQUE(player, roleid))'))
         
         
-    # create the players table
-    c.execute("CREATE TABLE IF NOT EXISTS players (id INTEGER PRIMARY KEY AUTOINCREMENT, nick TEXT, cloak TEXT, "+
-              "UNIQUE(nick, cloak))")
               
               
-    # create nick change table
-    c.execute("CREATE TABLE IF NOT EXISTS nick_changes (old INTEGER, new INTEGER, UNIQUE(new))")
 
     
     
@@ -209,30 +204,17 @@ def add_away(clk):
         c.execute('INSERT into away VALUES (?)', (clk,))
         
         
-def add_player_record(nick, cloak):
-    with conn:
-        c.execute('INSERT OR IGNORE INTO players (nick, cloak) VALUES (?,?)', (nick, cloak))
-        
 
-def update_role_stats(nick, clk, role, won, iwon):
+def update_role_stats(acc, role, won, iwon):
     
     with conn:
         wins, iwins, totalgames = 0, 0, 0
-
-        c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (nick, clk))
-        row = c.fetchone()
-        if row:
-            plid = row[0]
-        else:
-            c.execute('INSERT INTO players (nick, cloak) VALUES (?,?)', (nick, clk))
-            c.execute('SELECT id FROM players WHERE nick=? AND cloak=?', (nick, clk))
-            plid = c.fetchone()[0]
             
         c.execute('SELECT id FROM roles WHERE role=?', (role,))
         rid = c.fetchone()[0]
         
         c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
-                   "WHERE playerid=? AND roleid=?"), (plid, rid))
+                   "WHERE player=? AND roleid=?"), (acc, rid))
         row = c.fetchone()
         if row:
             wins, iwins, total = row
@@ -246,7 +228,7 @@ def update_role_stats(nick, clk, role, won, iwon):
         total += 1
         
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
-                  (plid, rid, wins, iwins, total))
+                  (acc, rid, wins, iwins, total))
 
 
 
