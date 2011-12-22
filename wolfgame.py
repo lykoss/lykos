@@ -973,7 +973,13 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                 del var.DISCONNECTED[nick]
                 
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
-                
+                for r,rlist in var.ORIGINAL_ROLES.items():
+                    if "(dced)"+nick in rlist:
+                        rlist.remove("(dced)"+nick)
+                        rlist.append(nick)
+                        break
+                if nick in var.DCED_PLAYERS.keys():
+                    var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
                 with open("returned.log", "a") as logf:
                     logf.write(time.strftime("%d/%b/%Y %H:%M:%S ", time.gmtime())+nick+"\n")
 
@@ -1030,37 +1036,31 @@ def on_nick(cli, prefix, nick):
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
 
-    for k,v in var.ORIGINAL_ROLES.items():
-        if (prefix in v and prefix in var.PLAYERS.keys()
-                       and cloak == var.PLAYERS[prefix]["cloak"]):
-            var.ORIGINAL_ROLES[k].remove(prefix)
-            var.ORIGINAL_ROLES[k].append(nick)
-            break
-            
     # for k,v in list(var.DEAD_USERS.items()):
         # if prefix == k:
             # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
             # del var.DEAD_USERS[k]
 
-    for k,v in list(var.PLAYERS.items()):
-        if prefix == k and var.PLAYERS[k]["cloak"] == cloak:
-            var.PLAYERS[nick] = var.PLAYERS[k]
-            del var.PLAYERS[k]
-
-    if var.PHASE in ("night", "day"):
-        if prefix in var.GUNNERS.keys():
-            var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
-        if (prefix in var.CURSED and nick in var.PLAYERS
-                                and cloak == var.PLAYERS[nick]["cloak"]):
-            var.CURSED.append(nick)
-            var.CURSED.remove(prefix)
-            
     if prefix in var.list_players() and prefix not in var.DISCONNECTED.keys():
         r = var.ROLES[var.get_role(prefix)]
         r.append(nick)
         r.remove(prefix)
 
         if var.PHASE in ("night", "day"):
+            for k,v in var.ORIGINAL_ROLES.items():
+                if prefix in v:
+                    var.ORIGINAL_ROLES[k].remove(prefix)
+                    var.ORIGINAL_ROLES[k].append(nick)
+                    break
+            for k,v in list(var.PLAYERS.items()):
+                if prefix == k:
+                    var.PLAYERS[nick] = var.PLAYERS[k]
+                    del var.PLAYERS[k]
+            if prefix in var.GUNNERS.keys():
+                var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
+            if prefix in var.CURSED:
+                var.CURSED.append(nick)
+                var.CURSED.remove(prefix)
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.KILLS):
                 kvp = []
                 for a,b in dictvar.items():
