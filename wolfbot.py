@@ -23,76 +23,12 @@ from oyoyo.client import IRCClient
 from oyoyo.parse import parse_nick
 import logging
 import botconfig
-import wolfgame
 import time
 import traceback
+import modules.common
 
 class UTCFormatter(logging.Formatter):
     converter = time.gmtime
-
-def on_privmsg(cli, rawnick, chan, msg):         
-    if chan != botconfig.NICK:  #not a PM
-        if "" in wolfgame.COMMANDS.keys():
-            for fn in wolfgame.COMMANDS[""]:
-                try:
-                    fn(cli, rawnick, chan, msg)
-                except Exception as e:
-                    if botconfig.DEBUG_MODE:
-                        raise e
-                    else:
-                        logging.error(traceback.format_exc())
-                        cli.msg(chan, "An error has occurred and has been logged.")
-            # Now that is always called first.
-        for x in wolfgame.COMMANDS.keys():
-            if x and msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+1:]
-                if not h or h[0] == " " or not x:
-                    for fn in wolfgame.COMMANDS[x]:
-                        try:
-                            fn(cli, rawnick, chan, h.lstrip())
-                        except Exception as e:
-                            if botconfig.DEBUG_MODE:
-                                raise e
-                            else:
-                                logging.error(traceback.format_exc())
-                                cli.msg(chan, "An error has occurred and has been logged.")
-    else:
-        for x in wolfgame.PM_COMMANDS.keys():
-            if msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+1:]
-            elif not x or msg.lower().startswith(x):
-                h = msg[len(x):]
-            else:
-                continue
-            if not h or h[0] == " " or not x:
-                for fn in wolfgame.PM_COMMANDS[x]:
-                    try:
-                        fn(cli, rawnick, h.lstrip())
-                    except Exception as e:
-                        if botconfig.DEBUG_MODE:
-                            raise e
-                        else:
-                            logging.error(traceback.format_exc())
-                            cli.msg(chan, "An error has occurred and has been logged.")
-    
-def __unhandled__(cli, prefix, cmd, *args):
-    if cmd in wolfgame.HOOKS.keys():
-        largs = list(args)
-        for i,arg in enumerate(largs):
-            if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
-        for fn in wolfgame.HOOKS[cmd]:
-            try:
-                fn(cli, prefix, *largs)
-            except Exception as e:
-                if botconfig.DEBUG_MODE:
-                    raise e
-                else:
-                    logging.error(traceback.format_exc())
-                    cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
-    else:
-        logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
-                                                              for arg in args
-                                                              if isinstance(arg, bytes)]))
 
 def main():
     if not botconfig.DEBUG_MODE:
@@ -104,14 +40,14 @@ def main():
         logging.basicConfig(level=logging.DEBUG)
     
     cli = IRCClient(
-                      {"privmsg":on_privmsg,
-                       "":__unhandled__},
+                      {"privmsg":modules.common.on_privmsg,
+                       "":modules.common.__unhandled__},
                      host=botconfig.HOST, 
                      port=botconfig.PORT,
                      authname=botconfig.USERNAME,
                      password=botconfig.PASS,
                      nickname=botconfig.NICK,
-                     connect_cb=wolfgame.connect_callback
+                     connect_cb=modules.common.connect_callback
                     )
     cli.mainLoop()
 

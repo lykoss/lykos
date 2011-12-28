@@ -8,10 +8,10 @@
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from oyoyo.parse import parse_nick
-import var
+import settings.wolfgame as var
 import botconfig
-from wolfgamelogger import WolfgameLogger
-import decorators
+from tools.wolfgamelogger import WolfgameLogger
+from tools import decorators
 from datetime import datetime, timedelta
 import threading
 import random
@@ -37,46 +37,22 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 def connect_callback(cli):
 
-    def prepare_stuff(*args):
-        cli.join(botconfig.CHANNEL)
-        cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-
-        @hook("whospcrpl", id=294)
-        def on_whoreply(cli, server, nick, ident, cloak, user, acc):
-            if user in var.USERS: return  # Don't add someone who is already there
-            if user == botconfig.NICK:
-                cli.nickname = user
-                cli.ident = ident
-                cli.hostmask = cloak
-            if acc == "0":
-                acc = "*"
-            var.USERS[user] = dict(cloak=cloak,account=acc)
-            
-        @hook("endofwho", id=294)
-        def afterwho(*args):
-            decorators.unhook(HOOKS, 294)
-            
-        cli.cap("REQ", "extended-join")
-        cli.cap("REQ", "account-notify")
-            
-        cli.who(botconfig.CHANNEL, "%nuha")
-    if botconfig.JOIN_AFTER_CLOAKED:
-        prepare_stuff = hook("event_hosthidden", id=294)(prepare_stuff)
+    @hook("whospcrpl", id=294)
+    def on_whoreply(cli, server, nick, ident, cloak, user, acc):
+        if user in var.USERS: return  # Don't add someone who is already there
+        if user == botconfig.NICK:
+            cli.nickname = user
+            cli.ident = ident
+            cli.hostmask = cloak
+        if acc == "0":
+            acc = "*"
+        var.USERS[user] = dict(cloak=cloak,account=acc)
         
-
-    @hook("nicknameinuse")
-    def mustghost(cli, *blah):
-        cli.nick(botconfig.NICK+"_")
-        cli.ns_ghost()
-        cli.nick(botconfig.NICK)
-        prepare_stuff(cli)
-
-    @hook("unavailresource")
-    def mustrelease(cli, *blah):
-        cli.nick(botconfig.NICK+"_")
-        cli.ns_release()
-        cli.nick(botconfig.NICK)
-        prepare_stuff(cli)
+    @hook("endofwho", id=294)
+    def afterwho(*args):
+        decorators.unhook(HOOKS, 294)
+            
+    cli.who(botconfig.CHANNEL, "%nuha")
 
     var.LAST_PING = None  # time of last ping
     var.LAST_STATS = None
@@ -116,9 +92,6 @@ def connect_callback(cli):
         var.DAY_TIME_LIMIT_CHANGE = 0
         var.KILL_IDLE_TIME = 0 #300
         var.WARN_IDLE_TIME = 0 #180
-        
-    if not botconfig.JOIN_AFTER_CLOAKED:  # join immediately
-        prepare_stuff(cli)
 
 
 
@@ -784,7 +757,7 @@ def chk_win(cli):
     
     if lwolves == lpl / 2:
         cli.msg(chan, ("Game over! There are the same number of wolves as "+
-                       "villagers. The wolves eat everyone, and win."))
+                       "villagers. The wolves eat everyone and win."))
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
                                "villagers. The wolves eat everyone, and win."))
         village_win = False
@@ -885,12 +858,7 @@ def del_player(cli, nick, forced_death = False):
             if nick in var.WOUNDED:
                 var.WOUNDED.remove(nick)
             chk_decision(cli)
-        return ret
-
-
-@hook("ping")
-def on_ping(cli, prefix, server):
-    cli.send('PONG', server)    
+        return ret  
 
 
 def reaper(cli, gameid):
@@ -980,8 +948,6 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                         break
                 if nick in var.DCED_PLAYERS.keys():
                     var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
-                with open("returned.log", "a") as logf:
-                    logf.write(time.strftime("%d/%b/%Y %H:%M:%S ", time.gmtime())+nick+"\n")
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -1107,8 +1073,6 @@ def on_nick(cli, prefix, nick):
                     
                     cli.msg(chan, ("\02{0}\02 has returned to "+
                                    "the village.").format(nick))
-                    with open("returned.log", "a") as logf:
-                        logf.write(time.strftime("%d/%b/%Y %H:%M:%S ", time.gmtime())+nick+"\n")
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)

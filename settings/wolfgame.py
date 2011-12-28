@@ -18,7 +18,7 @@ PART_GRACE_TIME = 7
 QUIT_GRACE_TIME = 30
 
 LOG_FILENAME = ""
-BARE_LOG_FILENAME = "barelog.txt"
+BARE_LOG_FILENAME = ""
 
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
