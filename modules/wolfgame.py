@@ -799,7 +799,7 @@ def chk_win(cli):
 
 
 
-def del_player(cli, nick, forced_death = False):
+def del_player(cli, nick, forced_death = False, devoice = True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
@@ -814,7 +814,8 @@ def del_player(cli, nick, forced_death = False):
             #  either game ended, or a new game has started.
             return False
         cmode = []
-        cmode.append(("-v", nick))
+        if devoice:
+            cmode.append(("-v", nick))
         var.del_player(nick)
         ret = True
         if var.PHASE == "join":
@@ -907,12 +908,12 @@ def reaper(cli, gameid):
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
                                    "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    if not del_player(cli, dcedplayer):
+                    if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
                                    "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    if not del_player(cli, dcedplayer):
+                    if not del_player(cli, dcedplayer, devoice = False):
                         return
         time.sleep(10)
 
