@@ -176,6 +176,8 @@ numeric_events = {
     b"492": "noservicehost",
     b"501": "umodeunknownflag",
     b"502": "usersdontmatch",
+    b"728": "quietlist",
+    b"729": "quietlistend"
 }
 
 generated_events = [

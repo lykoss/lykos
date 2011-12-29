@@ -36,9 +36,10 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 # Game Logic Begins:
 
 def connect_callback(cli):
+    to_be_devoiced = []
 
     @hook("whospcrpl", id=294)
-    def on_whoreply(cli, server, nick, ident, cloak, user, acc):
+    def on_whoreply(cli, server, nick, ident, cloak, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
         if user == botconfig.NICK:
             cli.nickname = user
@@ -46,13 +47,31 @@ def connect_callback(cli):
             cli.hostmask = cloak
         if acc == "0":
             acc = "*"
+        if "+" in status:
+            to_be_devoiced.append(user)
         var.USERS[user] = dict(cloak=cloak,account=acc)
         
     @hook("endofwho", id=294)
     def afterwho(*args):
-        decorators.unhook(HOOKS, 294)
-            
-    cli.who(botconfig.CHANNEL, "%nuha")
+        cmodes = []
+        for nick in to_be_devoiced:
+            cmodes.append(("-v", nick))
+        # devoice all on connect
+        
+        @hook("quietlist", id=294)
+        def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
+            if re.match(".+\!.+@.+", quieted):  # only unquiet people quieted by bot
+                cmodes.append(("-q", quieted))
+        
+        @hook("quietlistend", id=294)
+        def on_quietlistend(cli, *rest):
+            decorators.unhook(HOOKS, 294)
+            mass_mode(cli, cmodes)
+        
+        cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+        cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+
+    cli.who(botconfig.CHANNEL, "%nuhaf")
 
     var.LAST_PING = None  # time of last ping
     var.LAST_STATS = None
