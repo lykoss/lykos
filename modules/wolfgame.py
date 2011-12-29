@@ -1231,7 +1231,7 @@ def transition_day(cli, gameid=0):
     for crow, target in iter(var.OBSERVED.items()):
         if target in list(var.HVISITED.keys())+var.SEEN+list(var.GUARDED.keys()):
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
-                          "bed at night, and you fly back to your house.").format(target))
+                          "bed all night, and you fly back to your house.").format(target))
         elif target not in var.ROLES["village drunk"]:
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
@@ -1939,7 +1939,7 @@ def transition_night(cli):
             cli.msg(wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
                            'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
                            'use "observe <nick>" to check if someone is in bed or not. '+
-                           'Observing will prevent you participating in a killing.'))
+                           'Observing will prevent you from participating in a killing.'))
         if len(wolves) > 1:
             cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         pl = ps[:]

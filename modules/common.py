@@ -121,7 +121,7 @@ def on_ping(cli, prefix, server):
 
 
 
-@cmd("module")
+@cmd("module", admin_only = True)
 def ch_module(cli, nick, chan, rest):
     rest = rest.strip()
     if rest in ld.MODULES.keys():
