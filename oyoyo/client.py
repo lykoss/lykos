@@ -185,7 +185,11 @@ class IRCClient(object):
             self.user(self.nickname, self.real_name)
 
             if self.connect_cb:
-                self.connect_cb(self)
+                try:
+                    self.connect_cb(self)
+                except Exception as e:
+                    traceback.print_exc()
+                    raise e
             
             buffer = bytes()
             while not self._end:

@@ -14,7 +14,7 @@ import botconfig
 
 def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
-    def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, id=-1):
+    def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, hookid=-1):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
@@ -76,7 +76,7 @@ def generate(fdict, permissions=True, **kwargs):
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick
             innerf.admin_only = admin_only
-            innerf.id = id
+            innerf.hookid = hookid
             innerf.__doc__ = f.__doc__
             return innerf
             
@@ -85,10 +85,10 @@ def generate(fdict, permissions=True, **kwargs):
     return lambda *args, **kwarargs: cmd(*args, **kwarargs) if kwarargs else cmd(*args, **kwargs)
     
     
-def unhook(hdict, id):
+def unhook(hdict, hookid):
     for cmd in list(hdict.keys()):
         for x in hdict[cmd]:
-            if x.id == id:
+            if x.hookid == hookid:
                 hdict[cmd].remove(x)
         if not hdict[cmd]:
             del hdict[cmd]

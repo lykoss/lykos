@@ -14,6 +14,9 @@ for modfile in os.listdir("modules"):
         continue  # not a file
         
     modfile = modfile[:-3]
+    
+    print("Loading module "+modfile)
+    
     MODULES[modfile] = getattr(__import__("modules."+modfile), modfile)
     
 if botconfig.DEFAULT_MODULE in MODULES.keys():

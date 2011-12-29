@@ -93,7 +93,7 @@ def connect_callback(cli):
         ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
         
     if botconfig.JOIN_AFTER_CLOAKED:
-        prepare_stuff = hook("event_hosthidden", id=294)(prepare_stuff)
+        prepare_stuff = hook("event_hosthidden", hookid=294)(prepare_stuff)
         
 
     @hook("nicknameinuse")

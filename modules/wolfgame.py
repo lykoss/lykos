@@ -38,7 +38,7 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 def connect_callback(cli):
     to_be_devoiced = []
 
-    @hook("whospcrpl", id=294)
+    @hook("whospcrpl", hookid=294)
     def on_whoreply(cli, server, nick, ident, cloak, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
         if user == botconfig.NICK:
@@ -51,19 +51,19 @@ def connect_callback(cli):
             to_be_devoiced.append(user)
         var.USERS[user] = dict(cloak=cloak,account=acc)
         
-    @hook("endofwho", id=294)
+    @hook("endofwho", hookid=294)
     def afterwho(*args):
         cmodes = []
         for nick in to_be_devoiced:
             cmodes.append(("-v", nick))
         # devoice all on connect
         
-        @hook("quietlist", id=294)
+        @hook("quietlist", hookid=294)
         def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
             if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
                 cmodes.append(("-q", quieted))
         
-        @hook("quietlistend", id=294)
+        @hook("quietlistend", hookid=294)
         def on_quietlistend(cli, *rest):
             decorators.unhook(HOOKS, 294)
             mass_mode(cli, cmodes)
@@ -252,7 +252,7 @@ def pinger(cli, nick, chan, rest):
 
 
 
-    @hook("whoreply", id=800)
+    @hook("whoreply", hookid=800)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
         if not var.PINGING: return
@@ -264,7 +264,7 @@ def pinger(cli, nick, chan, rest):
 
 
 
-    @hook("endofwho", id=800)
+    @hook("endofwho", hookid=800)
     def do_ping(*args):
         if not var.PINGING: return
 
@@ -2404,7 +2404,7 @@ def show_admins(cli, nick, chan, rest):
         return
     var.ADMIN_PINGING = True
 
-    @hook("whoreply", id = 4)
+    @hook("whoreply", hookid = 4)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
         if not var.ADMIN_PINGING:
@@ -2413,7 +2413,7 @@ def show_admins(cli, nick, chan, rest):
             user != botconfig.NICK and cloak not in var.AWAY):
             admins.append(user)
 
-    @hook("endofwho", id = 4)
+    @hook("endofwho", hookid = 4)
     def show(*args):
         if not var.ADMIN_PINGING:
             return
