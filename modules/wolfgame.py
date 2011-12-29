@@ -1229,10 +1229,11 @@ def transition_day(cli, gameid=0):
     if victim:
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
     for crow, target in iter(var.OBSERVED.items()):
-        if target in list(var.HVISITED.keys())+var.SEEN+list(var.GUARDED.keys()):
+        if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
+            target in var.SEEN+list(var.GUARDED.keys())):
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed all night, and you fly back to your house.").format(target))
-        elif target not in var.ROLES["village drunk"]:
+        else:
             cli.msg(crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
     if victim in var.GUARDED.values():
@@ -1290,19 +1291,6 @@ def transition_day(cli, gameid=0):
                                 "and is now dead.").format(gangel))
                 var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
-    for crow, target in iter(var.OBSERVED.items()):
-        if (target in var.ROLES["harlot"] and
-            target in var.HVISITED.keys() and
-            target not in dead):
-            # Was visited by a crow
-            cli.msg(target, ("You suddenly remember that you were startled by the loud "+
-                            "sound of the flapping of wings during the walk back home."))
-        # elif target in var.ROLES["village drunk"]:
-            ## Crow dies because of tiger (HANGOVER)
-            # cli.msg(chan, ("The bones of \u0002{0}\u0002, a werecrow, "+
-                           # "were found near the village drunk's house. "+
-                           # "The drunk's pet tiger probably ate him.").format(crow))
-            # dead.append(crow)
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
@@ -1549,9 +1537,8 @@ def kill(cli, nick, rest):
         return
     if role == "werecrow":  # Check if flying to observe
         if var.OBSERVED.get(nick):
-            cli.msg(nick, ("You are flying to \u0002{0}'s\u0002 house, and "+
-                          "therefore you don't have the time "+
-                          "and energy to kill a villager.").format(var.OBSERVED[nick]))
+            cli.msg(nick, ("You have already transformed into a crow; therefore, "+
+                           "you are physically unable to kill a villager."))
             return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
@@ -1667,6 +1654,9 @@ def observe(cli, nick, rest):
     victim = pl[pll.index(target)]
     if victim == nick.lower():
         cli.msg(nick, "Instead of doing that, you should probably go kill someone.")
+        return
+    if nick in var.OBSERVED.keys():
+        cli.msg(nick, "You are already flying to \02{0}\02's house.".format(var.OBSERVED[nick]))
         return
     if var.get_role(victim) in ("werecrow", "traitor", "wolf"):
         cli.msg(nick, "Flying to another wolf's house is a waste of time.")

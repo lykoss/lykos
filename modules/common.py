@@ -120,13 +120,13 @@ def on_ping(cli, prefix, server):
     cli.send('PONG', server)
 
 
-
-@cmd("module", admin_only = True)
-def ch_module(cli, nick, chan, rest):
-    rest = rest.strip()
-    if rest in ld.MODULES.keys():
-        ld.CURRENT_MODULE = rest
-        ld.MODULES[rest].connect_callback(cli)
-        cli.msg(chan, "Module {0} is now active.".format(rest))
-    else:
-        cli.msg(chan, "Module {0} does not exist.".format(rest))
+if botconfig.DEBUG_MODE:
+    @cmd("module", admin_only = True)
+    def ch_module(cli, nick, chan, rest):
+        rest = rest.strip()
+        if rest in ld.MODULES.keys():
+            ld.CURRENT_MODULE = rest
+            ld.MODULES[rest].connect_callback(cli)
+            cli.msg(chan, "Module {0} is now active.".format(rest))
+        else:
+            cli.msg(chan, "Module {0} does not exist.".format(rest))
