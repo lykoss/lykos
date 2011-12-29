@@ -60,7 +60,7 @@ def connect_callback(cli):
         
         @hook("quietlist", id=294)
         def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
-            if re.match(".+\!.+@.+", quieted):  # only unquiet people quieted by bot
+            if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
                 cmodes.append(("-q", quieted))
         
         @hook("quietlistend", id=294)
