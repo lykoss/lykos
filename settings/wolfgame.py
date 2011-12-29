@@ -114,7 +114,7 @@ def game_mode(name):
     
 CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                      "wolves" : INDEX_OF_ROLE["wolf"],
-                     "cursed villager" : INDEX_OF_ROLE["cursed villager"],
+                     "cursed" : INDEX_OF_ROLE["cursed villager"],
                     "drunks"  : INDEX_OF_ROLE["village drunk"],
                    "harlots"  : INDEX_OF_ROLE["harlot"],
                   "traitors"  : INDEX_OF_ROLE["traitor"],
@@ -129,11 +129,12 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
 class Normal(object):
     pass   
 
-   
-#  Example  !game roles=wolves:1,seers:0
+
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):
+    """Example:  !game roles=wolves:1,seers:0,angels:1"""
+    
     def __init__(self, arg):
         self.ROLES_GUIDE = ROLES_GUIDE.copy()
         lx = list(ROLES_GUIDE[None])

@@ -15,6 +15,8 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 def connect_callback(cli):
     var.PHASE = "none"
     var.PLAYERS = []
+    
+    var.LAST_STATS = None
 
 
 @cmd("join")
