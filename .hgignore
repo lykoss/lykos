@@ -1,0 +1,5 @@
+syntax: glob
+
+*.pyc
+*.sqlite3
+botconfig.py
