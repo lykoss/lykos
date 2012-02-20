@@ -1,4 +1,5 @@
 PING_WAIT = 300  # Seconds
+PING_MIN_WAIT = 30
 MINIMUM_WAIT = 60 
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's

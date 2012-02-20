@@ -272,6 +272,10 @@ def pinger(cli, nick, chan, rest):
         
         cli.msg(chan, "PING! "+" ".join(TO_PING))
         var.PINGING = False
+ 
+        minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
+        if var.CAN_START_TIME < minimum:
+           var.CAN_START_TIME = minimum
 
         decorators.unhook(HOOKS, 800)
 
