@@ -77,6 +77,7 @@ def connect_callback(cli):
     var.LAST_STATS = None
     var.LAST_VOTES = None
     var.LAST_ADMINS = None
+    var.LAST_PLAYERS = None
     
     var.USERS = {}
     
@@ -353,6 +354,7 @@ def join(cli, nick, chan, rest):
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
         
         var.LAST_STATS = None # reset
+        var.LAST_PLAYERS = None # re/set
 
 
 @cmd("fjoin", admin_only=True)
@@ -428,7 +430,7 @@ def on_account(cli, nick, acc):
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
-    """Display the player statistics"""
+    """Display the game statistics"""
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -446,10 +448,12 @@ def stats(cli, nick, chan, rest):
     
     pl.sort(key=lambda x: x.lower())
     if len(pl) > 1:
-        msg = '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
-            len(pl), ", ".join(pl))
+        msg = '{0}: \u0002{1}\u0002 players'.format(nick, len(pl))
     else:
-        msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
+        msg = '{0}: \u00021\u0002 player'.format(nick)
+    
+    if var.PHASE == "join":
+        msg = msg + ". The game has not started yet."
     
     if nick in pl or var.PHASE == "join":
         cli.msg(chan, msg)
@@ -500,6 +504,29 @@ def stats(cli, nick, chan, rest):
         var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
     else:
         cli.notice(nick, stats_mssg)
+
+
+@cmd("players")
+def players(cli, nick, chan, rest):
+    """Display the player statistics"""
+    if var.PHASE == "none":
+        cli.notice(nick, "No players have joined.")
+        return
+
+    if (var.LAST_PLAYERS and
+        var.LAST_PLAYERS + timedelta(seconds=var.PLAYERS_RATE_LIMIT) > datetime.now()):
+        cli.msg(chan, nick+": This command is rate-limited.")
+        return
+        
+    var.LAST_PLAYERS = datetime.now()
+        
+    pl = var.list_players()
+    pl.sort(key=lambda x: x.lower())
+    if len(pl) > 1:
+        cli.msg(chan, '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
+            len(pl), ", ".join(pl)))
+    else:
+        cli.msg(chan, '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0]))
 
 
 
