@@ -2071,6 +2071,11 @@ def cgamemode(cli, *args):
     
     for arg in args:
         modeargs = arg.split("=", 1)
+        
+        if len(modeargs) < 2:  # no equal sign in the middle of the arg
+            cli.msg(botconfig.CHANNEL, "Invalid syntax.")
+            return False
+        
         modeargs[0] = modeargs[0].strip()
         if modeargs[0] in var.GAME_MODES.keys():
             md = modeargs.pop(0)

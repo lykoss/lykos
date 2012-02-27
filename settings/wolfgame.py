@@ -125,11 +125,7 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                  "angels"     : INDEX_OF_ROLE["guardian angel"],
                  "detectives" : INDEX_OF_ROLE["detective"]}
     
-    
-    
-@game_mode("normal")
-class Normal(object):
-    pass   
+
 
 
 # TODO: implement game modes
