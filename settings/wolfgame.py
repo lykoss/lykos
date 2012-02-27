@@ -135,7 +135,7 @@ class Normal(object):
 # TODO: implement game modes
 @game_mode("roles")
 class ChangedRolesMode(object):
-    """Example:  !game roles=wolves:1,seers:0,angels:1"""
+    """Example: !fgame roles=wolves:1,seers:0,angels:1"""
     
     def __init__(self, arg):
         self.ROLES_GUIDE = ROLES_GUIDE.copy()

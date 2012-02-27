@@ -94,7 +94,6 @@ def connect_callback(cli):
     var.DEAD = []
 
     var.ORIGINAL_SETTINGS = {}
-    var.SETTINGS_CHANGE_REQUESTER = None
 
     var.LAST_SAID_TIME = {}
 
@@ -137,8 +136,6 @@ def reset_settings():
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
-
-    var.SETTINGS_CHANGE_REQUESTER = None
 
 
 def reset(cli):
@@ -2069,6 +2066,9 @@ def transition_night(cli):
 
 def cgamemode(cli, *args):
     chan = botconfig.CHANNEL
+    if var.ORIGINAL_SETTINGS:  # needs reset
+        reset_settings()
+    
     for arg in args:
         modeargs = arg.split("=", 1)
         modeargs[0] = modeargs[0].strip()
@@ -2359,7 +2359,10 @@ def get_help(cli, rnick, rest):
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
 
-    cname = rest.strip().replace(botconfig.CMD_CHAR, "").lower()
+    rest = rest.strip().replace(botconfig.CMD_CHAR, "", 1).lower()
+    splitted = re.split(" +", rest, 1)
+    cname = splitted.pop(0)
+    rest = splitted[0] if splitted else ""
     found = False
     if cname:
         for c in (COMMANDS,PM_COMMANDS):
@@ -2368,8 +2371,11 @@ def get_help(cli, rnick, rest):
                 for fn in c[cname]:
                     if fn.__doc__:
                         if nick == botconfig.CHANNEL:
-                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
-                        cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
+                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
+                        if callable(fn.__doc__):
+                            cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
+                        else:
+                            cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                         return
                     else:
                         continue
@@ -2594,16 +2600,22 @@ if botconfig.DEBUG_MODE:
         if nick not in pl:
             cli.notice(nick, "You're currently not playing.")
             return
-        if var.SETTINGS_CHANGE_REQUESTER:
-            cli.notice(nick, "There is already an existing "+
-                             "settings change request.")
-            return
         rest = rest.strip().lower()
         if rest:
             if cgamemode(cli, *re.split(" +",rest)):
-                var.SETTINGS_CHANGE_REQUESTER = nick
                 cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
                                 "game settings successfully.").format(nick))
+    
+    def fgame_help(args = ""):
+        args = args.strip()
+        if not args:
+            return "Available game mode setters: "+ ", ".join(var.GAME_MODES.keys())
+        elif args in var.GAME_MODES.keys():
+            return var.GAME_MODES[args].__doc__
+        else:
+            return "Game mode setter {0} not found.".format(args)
+
+    game.__doc__ = fgame_help
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
