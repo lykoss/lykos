@@ -1883,7 +1883,7 @@ def mass_privmsg(cli, targets, msg):
 def relay(cli, nick, rest):
     """Let the wolves talk to each other through the bot"""
     if var.PHASE not in ("night", "day"):
-	    return
+        return
 
     badguys = var.ROLES["wolf"] + var.ROLES["traitor"] + var.ROLES["werecrow"]
     if len(badguys) > 1:
@@ -2348,12 +2348,14 @@ def get_help(cli, rnick, rest):
                 found = True
                 for fn in c[cname]:
                     if fn.__doc__:
-                        if nick == botconfig.CHANNEL:
-                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
                         if callable(fn.__doc__):
                             cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
+                            if nick == botconfig.CHANNEL:
+                                var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
                         else:
                             cli.msg(nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
+                            if nick == botconfig.CHANNEL:
+                                var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                         return
                     else:
                         continue

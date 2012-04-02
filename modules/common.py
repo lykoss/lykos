@@ -2,6 +2,7 @@ import botconfig
 from tools import decorators
 import logging
 import tools.moduleloader as ld
+import traceback
     
 
 def on_privmsg(cli, rawnick, chan, msg):
