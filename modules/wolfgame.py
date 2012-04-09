@@ -879,6 +879,8 @@ def del_player(cli, nick, forced_death = False, devoice = True):
             if nick in var.WOUNDED:
                 var.WOUNDED.remove(nick)
             chk_decision(cli)
+        elif var.PHASE == "night" and ret:
+            chk_nightdone(cli)
         return ret  
 
 
