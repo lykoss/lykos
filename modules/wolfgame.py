@@ -126,7 +126,7 @@ def mass_mode(cli, md):
             ei = 4 # len(z)
         # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
         arg1 = "".join(z[0])
-        arg2 = " ".join(z[1]) + " " + " ".join([x+"!*@*" for x in z[1]])
+        arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
         cli.mode(botconfig.CHANNEL, arg1, arg2)
 
 
@@ -154,7 +154,7 @@ def reset(cli):
     for plr in var.list_players():
         cmodes.append(("-v", plr))
     for deadguy in var.DEAD:
-       cmodes.append(("-q", deadguy))
+       cmodes.append(("-q", deadguy+"!*@*"))
     mass_mode(cli, cmodes)
     var.DEAD = []
 
@@ -845,7 +845,7 @@ def del_player(cli, nick, forced_death = False, devoice = True):
         if var.PHASE != "join" and ret:
             # Died during the game, so quiet!
             if not is_fake_nick(nick):
-                cmode.append(("+q", nick))
+                cmode.append(("+q", nick+"!*@*"))
             mass_mode(cli, cmode)
             if nick not in var.DEAD:
                 var.DEAD.append(nick)
