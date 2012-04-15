@@ -1320,6 +1320,27 @@ def transition_day(cli, gameid=0):
     for deadperson in dead:
         if not del_player(cli, deadperson):
             return
+    
+    if (var.WOLF_STEALS_GUN and victim in dead and 
+        victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
+        # victim has bullets
+        guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"] 
+                                 + var.ROLES["traitor"])  # random looter
+        numbullets = var.GUNNERS[victim]
+        var.WOLF_GUNNERS[guntaker] = numbullets  # transfer bullets to him/her
+        mmsg = ("While searching {2}'s belongings, You found " + 
+                "a gun loaded with {0} silver bullet{1}! " + 
+                "You may only use it during the day. " +
+                "If you shoot at a wolf, you will intentionally miss. " +
+                "If you shoot a villager, it is likely that they will be injured.")
+        if numbullets == 1:
+            mmsg = mmsg.format(numbullets, "", victim)
+        else:
+            mmsg = mmsg.format(numbullets, "s", victim)
+        cli.msg(guntaker, mmsg)
+        var.GUNNERS[victim] = 0  # just in case
+
+            
     begin_day(cli)
 
 
@@ -1448,10 +1469,11 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick, ("Shooting is only allowed during the day. "+
                           "Please wait patiently for morning."))
         return
-    if nick not in var.GUNNERS.keys():
+    if not (nick in var.GUNNERS.keys() or nick in var.WOLF_GUNNERS.keys()):
         cli.msg(nick, "You don't have a gun.")
         return
-    elif not var.GUNNERS[nick]:
+    elif ((nick in var.GUNNERS.keys() and not var.GUNNERS[nick]) or
+          (nick in var.WOLF_GUNNERS.keys() and not var.WOLF_GUNNERS[nick])):
         cli.msg(nick, "You don't have any more bullets.")
         return
     victim = re.split(" +",rest)[0].strip().lower()
@@ -1477,14 +1499,23 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick, "You are holding it the wrong way.")
         return
     
-    var.GUNNERS[nick] -= 1
+    wolfshooter = nick in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]
+    
+    if wolfshooter:
+        var.WOLF_GUNNERS[nick] -= 1
+    else:
+        var.GUNNERS[nick] -= 1
     
     rand = random.random()
     if nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
     else:
         chances = var.GUN_CHANCES
-    if rand <= chances[0]:
+    
+    wolfvictim = victim in var.ROLES["wolf"]+var.ROLES["werecrow"]
+    if rand <= chances[0] and not (wolfshooter and wolfvictim):  # didn't miss or suicide
+        # and it's not a wolf shooting another wolf
+        
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
         var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
@@ -2136,6 +2167,7 @@ def start(cli, nick, chan, rest):
     var.ROLES = {}
     var.CURSED = []
     var.GUNNERS = {}
+    var.WOLF_GUNNERS = {}
 
     villager_roles = ("gunner", "cursed villager")
     for i, count in enumerate(addroles):
