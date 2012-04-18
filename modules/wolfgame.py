@@ -2028,6 +2028,9 @@ def transition_night(cli):
                           'a victim, they will live. Use !guard to guard a player.'));
         cli.msg(g_angel, "Players: " + ", ".join(pl))
     for dttv in var.ROLES["detective"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(dttv)
         cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
                       "It is your job to determine all the wolves and traitors. "+
                       "Your job is during the day, and you can see the true "+
@@ -2035,6 +2038,7 @@ def transition_night(cli):
                       "But, each time you use your ability, you risk a 2/5 "+
                       "chance of having your identity revealed to the wolves. So be "+
                       "careful. Use \"!id\" to identify any player during the day."))
+        cli.msg(dttv, "Players: " + ", ".join(pl))
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
             cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
