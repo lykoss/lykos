@@ -6,8 +6,10 @@ USERNAME = ""  # for authentication, can be left blank if same as NICK
 NICK = "mywolfbot"
 CMD_CHAR = "!"
 CHANGING_HOST_QUIT_MESSAGE = "Changing host"
+
 JOIN_AFTER_CLOAKED = True # Set to false if the bot does not have a cloak
 DISABLE_DEBUG_MODE = False  # Entirely disable debug mode
+IGNORE_HIDDEN_COMMANDS = True # Ignore commands sent to @#channel or +#channel
 
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")  # glob syntax supported (wildcards)

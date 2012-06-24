@@ -12,6 +12,9 @@ def on_privmsg(cli, rawnick, chan, msg):
         currmod = ld.MODULES[ld.CURRENT_MODULE]
     else:
         currmod = None
+        
+    if botconfig.IGNORE_HIDDEN_COMMANDS and (chan.startswith("@#") or chan.startswith("+#")):
+        return
            
     if chan != botconfig.NICK:  #not a PM
         if currmod and "" in currmod.COMMANDS.keys():
