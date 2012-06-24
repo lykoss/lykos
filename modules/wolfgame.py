@@ -267,7 +267,7 @@ def pinger(cli, nick, chan, rest):
 
         TO_PING.sort(key=lambda x: x.lower())
         
-        cli.msg(chan, "PING! "+" ".join(TO_PING))
+        cli.msg(botconfig.CHANNEL, "PING! "+" ".join(TO_PING))
         var.PINGING = False
  
         minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
@@ -276,7 +276,7 @@ def pinger(cli, nick, chan, rest):
 
         decorators.unhook(HOOKS, 800)
 
-    cli.who(chan)
+    cli.who(botconfig.CHANNEL)
 
 
 @cmd("away", raw_nick=True)
@@ -320,9 +320,11 @@ def fpinger(cli, nick, chan, rest):
 
 
 @cmd("join", raw_nick=True)
-def join(cli, nick, chan, rest):
+def join(cli, nick, chann_, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     pl = var.list_players()
+    
+    chan = botconfig.CHANNEL
     
     nick, _, __, cloak = parse_nick(nick)
     
@@ -353,8 +355,9 @@ def join(cli, nick, chan, rest):
 
 
 @cmd("fjoin", admin_only=True)
-def fjoin(cli, nick, chan, rest):
+def fjoin(cli, nick, chann_, rest):
     noticed = False
+    chan = botconfig.CHANNEL
     if not rest.strip():
         join(cli, nick, chan, "")
 
@@ -379,7 +382,9 @@ def fjoin(cli, nick, chan, rest):
             cli.notice(nick, "No, that won't be allowed.")
 
 @cmd("fleave","fquit","fdel", admin_only=True)
-def fleave(cli, nick, chan, rest):
+def fleave(cli, nick, chann_, rest):
+    chan = botconfig.CHANNEL
+    
     if var.PHASE == "none":
         cli.notice(nick, "No game is running.")
     for a in re.split(" +",rest):
@@ -405,7 +410,7 @@ def fleave(cli, nick, chan, rest):
 @cmd("fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
-    cli.msg(chan, "\u0002{0}\u0002 has forced the game to start.".format(nick))
+    cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, nick, rest)
 
 
@@ -1006,9 +1011,9 @@ def goat(cli, nick, chan, rest):
             cli.msg(nick,"\u0002{0}\u0002 is not in this channel.".format(rest))
             return
     victim = ul[ull.index(victim)]
-    cli.msg(chan, ("\u0002{0}\u0002's goat walks by "+
-                   "and kicks \u0002{1}\u0002.").format(nick,
-                                                        victim))
+    cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002's goat walks by "+
+                                "and kicks \u0002{1}\u0002.").format(nick,
+                                                                     victim))
     var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, victim))
     var.GOATED = True
     
@@ -1152,8 +1157,8 @@ def leave_game(cli, nick, chan, rest):
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    cli.msg(chan, ("\02{0}\02 died of an unknown disease. "+
-                   "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
+    cli.msg(botconfig.CHANNEL, ("\02{0}\02 died of an unknown disease. "+
+                                "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
     var.LOGGER.logMessage(("{0} died of an unknown disease. "+
                            "S/He was a {1}.").format(nick, var.get_role(nick)))
     del_player(cli, nick)
@@ -1364,8 +1369,10 @@ def chk_nightdone(cli):
 
 
 @cmd("lynch", "vote")
-def vote(cli, nick, chan, rest):
+def vote(cli, nick, chann_, rest):
     """Use this to vote for a candidate to be lynched"""
+    chan = botconfig.CHANNEL
+    
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1425,8 +1432,11 @@ def vote(cli, nick, chan, rest):
 
 
 @cmd("retract")
-def retract(cli, nick, chan, rest):
+def retract(cli, nick, chann_, rest):
     """Takes back your vote during the day (for whom to lynch)"""
+    
+    chan = botconfig.CHANNEL
+    
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1456,8 +1466,10 @@ def retract(cli, nick, chan, rest):
 
 
 @cmd("shoot")
-def shoot(cli, nick, chan, rest):
+def shoot(cli, nick, chann_, rest):
     """Use this to fire off a bullet at someone in the day if you have bullets"""
+    
+    chan = botconfig.CHANNEL
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -2107,8 +2119,11 @@ def cgamemode(cli, *args):
 
 
 @cmd("start")
-def start(cli, nick, chan, rest):
+def start(cli, nick, chann_, rest):
     """Starts a game of Werewolf"""
+    
+    chan = botconfig.CHANNEL
+    
     villagers = var.list_players()
     pl = villagers[:]
 
@@ -2285,9 +2300,13 @@ def on_error(cli, pfx, msg):
 
 
 @cmd("wait")
-def wait(cli, nick, chan, rest):
+def wait(cli, nick, chann_, rest):
     """Increase the wait time (before !start can be used)"""
     pl = var.list_players()
+    
+    chan = botconfig.CHANNEL
+    
+    
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -2313,8 +2332,13 @@ def wait(cli, nick, chan, rest):
 
 
 @cmd("fwait", admin_only=True)
-def fwait(cli, nick, chan, rest):
+def fwait(cli, nick, chann_, rest):
+
     pl = var.list_players()
+    
+    chan = botconfig.CHANNEL
+    
+    
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -2347,7 +2371,7 @@ def reset_game(cli, nick, chan, rest):
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
-    cli.msg(chan, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
+    cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
     var.LOGGER.logMessage("{0} has forced the game to stop.".format(nick))
     if var.PHASE != "join":
         stop_game(cli)
@@ -2365,7 +2389,7 @@ def show_rules(cli, nick, chan, rest):
     if var.PHASE in ("day", "night") and nick not in var.list_players():
         cli.notice(nick, var.RULES)
         return
-    cli.msg(chan, var.RULES)
+    cli.msg(botconfig.CHANNEL, var.RULES)
     var.LOGGER.logMessage(var.RULES)
 
 
