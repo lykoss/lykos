@@ -2006,20 +2006,25 @@ def transition_night(cli):
     ps = var.list_players()
     wolves = var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]
     for wolf in wolves:
-        if wolf in var.ROLES["wolf"]:
-            cli.msg(wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
-                           'villagers. Use "kill <nick>" to kill a villager.'))
-        elif wolf in var.ROLES["traitor"]:
-            cli.msg(wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
-                           'villager and not even a seer can see your true identity. '+
-                           'Only detectives can. '))
+        if wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            if wolf in var.ROLES["wolf"]:
+                cli.msg(wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
+                               'villagers. Use "kill <nick>" to kill a villager.'))
+            elif wolf in var.ROLES["traitor"]:
+                cli.msg(wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
+                               'villager and not even a seer can see your true identity. '+
+                               'Only detectives can. '))
+            else:
+                cli.msg(wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
+                               'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
+                               'use "observe <nick>" to check if someone is in bed or not. '+
+                               'Observing will prevent you from participating in a killing.'))
+            if len(wolves) > 1:
+                cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            cli.msg(wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
-                           'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
-                           'use "observe <nick>" to check if someone is in bed or not. '+
-                           'Observing will prevent you from participating in a killing.'))
-        if len(wolves) > 1:
-            cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
+            cli.msg(wolf, "You are a \02{0}\02.".format(var.get_role(wolf)))  # !simple
+            
+        
         pl = ps[:]
         pl.sort(key=lambda x: x.lower())
         pl.remove(wolf)  # remove self from list
@@ -2033,45 +2038,58 @@ def transition_night(cli):
         cli.msg(wolf, "\u0002Players:\u0002 "+", ".join(pl))
 
     for seer in var.ROLES["seer"]:
-        pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
-        pl.remove(seer)  # remove self from list
-        cli.msg(seer, ('You are a \u0002seer\u0002. '+
-                      'It is your job to detect the wolves, you '+
-                      'may have a vision once per night. '+
-                      'Use "see <nick>" to see the role of a player.'))
+        if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            pl = ps[:]
+            pl.sort(key=lambda x: x.lower())
+            pl.remove(seer)  # remove self from list
+            cli.msg(seer, ('You are a \u0002seer\u0002. '+
+                          'It is your job to detect the wolves, you '+
+                          'may have a vision once per night. '+
+                          'Use "see <nick>" to see the role of a player.'))
+        else:
+            cli.msg(seer, "You are a \02seer\02.")  # !simple
         cli.msg(seer, "Players: "+", ".join(pl))
 
     for harlot in var.ROLES["harlot"]:
-        pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
-        pl.remove(harlot)
-        cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
-                         'You may spend the night with one person per round. '+
-                         'If you visit a victim of a wolf, or visit a wolf, '+
-                         'you will die. Use !visit to visit a player.'))
+        if harlot in var.PLAYERS and var.PLAYERS[harlot]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            pl = ps[:]
+            pl.sort(key=lambda x: x.lower())
+            pl.remove(harlot)
+            cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
+                             'You may spend the night with one person per round. '+
+                             'If you visit a victim of a wolf, or visit a wolf, '+
+                             'you will die. Use !visit to visit a player.'))
+        else:
+            cli.msg(harlot, "You are a \02harlot\02.")  # !simple
         cli.msg(harlot, "Players: "+", ".join(pl))
 
     for g_angel in var.ROLES["guardian angel"]:
-        pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
-        pl.remove(g_angel)
-        cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
-                          'It is your job to protect the villagers. If you guard a'+
-                          ' wolf, there is a 50/50 chance of you dying, if you guard '+
-                          'a victim, they will live. Use !guard to guard a player.'));
+        if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            pl = ps[:]
+            pl.sort(key=lambda x: x.lower())
+            pl.remove(g_angel)
+            cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
+                              'It is your job to protect the villagers. If you guard a'+
+                              ' wolf, there is a 50/50 chance of you dying, if you guard '+
+                              'a victim, they will live. Use !guard to guard a player.'))
+        else:
+            cli.msg(g_angel, "You are a \02guardian angel\02.")  # !simple
         cli.msg(g_angel, "Players: " + ", ".join(pl))
+    
     for dttv in var.ROLES["detective"]:
-        pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
-        pl.remove(dttv)
-        cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
-                      "It is your job to determine all the wolves and traitors. "+
-                      "Your job is during the day, and you can see the true "+
-                      "identity of all users, even traitors.\n"+
-                      "But, each time you use your ability, you risk a 2/5 "+
-                      "chance of having your identity revealed to the wolves. So be "+
-                      "careful. Use \"!id\" to identify any player during the day."))
+        if dttv in var.PLAYERS and var.PLAYERS[dttv]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            pl = ps[:]
+            pl.sort(key=lambda x: x.lower())
+            pl.remove(dttv)
+            cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
+                          "It is your job to determine all the wolves and traitors. "+
+                          "Your job is during the day, and you can see the true "+
+                          "identity of all users, even traitors.\n"+
+                          "But, each time you use your ability, you risk a 2/5 "+
+                          "chance of having your identity revealed to the wolves. So be "+
+                          "careful. Use \"!id\" to identify any player during the day."))
+        else:
+            cli.msg(dttv, "You are a \02detective\02.")  # !simple
         cli.msg(dttv, "Players: " + ", ".join(pl))
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
@@ -2082,9 +2100,12 @@ def transition_night(cli):
             continue
         elif not var.GUNNERS[g]:
             continue
-        gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
-                    "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
-                    "shoot a villager, that villager will likely survive. You get {0}.")
+        if g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+            gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
+                        "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
+                        "shoot a villager, that villager will likely survive. You get {0}.")
+        else:
+            gun_msg = ("You have a \02gun\02 with {0}.")
         if var.GUNNERS[g] == 1:
             gun_msg = gun_msg.format("1 bullet")
         elif var.GUNNERS[g] > 1:
