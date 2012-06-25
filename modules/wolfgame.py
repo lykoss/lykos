@@ -309,8 +309,25 @@ def back_from_away(cli, nick, *rest):
     var.remove_away(cloak)
     
     cli.notice(nick, "You are no longer marked as away.")
-
-
+    
+@cmd("simple", raw_nick = True)
+@pmcmd("simple", raw_nick = True)
+def mark_simple_role_notify(cli, nick, *rest):
+    """If you don't want to bot to send you role instructions"""
+    
+    nick, _, __, cloak = parse_nick(nick)
+    
+    if cloak in var.SIMPLE_ROLE_NOTIFY:
+        var.SIMPLE_ROLE_NOTIFY.remove(cloak)
+        var.remove_simple_rolemsg(cloak)
+        
+        cli.notice(nick, "You now no longer receive simple role instructions.")
+        return
+        
+    var.SIMPLE_ROLE_NOTIFY.append(cloak)
+    var.add_simple_rolemsg(cloak)
+    
+    cli.notice(nick, "You now receive simple role instructions.")
 
 @cmd("fping", admin_only=True)
 def fpinger(cli, nick, chan, rest):
@@ -1899,8 +1916,8 @@ def see(cli, nick, rest):
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
-    var.MAX_PRIVMSG_TARGETS = 1
     for r in rest:
+        print(r)
         if r.startswith("TARGMAX="):
             x = r[r.index("PRIVMSG:"):]
             if "," in x:
@@ -1908,6 +1925,7 @@ def getfeatures(cli, nick, *rest):
             else:
                 l = x[x.index(":")+1:]
             l = l.strip()
+            print("** "+l)
             if not l or not l.isdigit():
                 continue
             else:

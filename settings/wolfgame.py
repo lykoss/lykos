@@ -18,6 +18,7 @@ KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 7
 QUIT_GRACE_TIME = 30
+MAX_PRIVMSG_TARGETS = 1
 
 LOG_FILENAME = ""
 BARE_LOG_FILENAME = ""
@@ -49,6 +50,7 @@ ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0
 
 GAME_MODES = {}
 AWAY = []  # cloaks of people who are away.
+SIMPLE_ROLE_NOTIFY = []  # cloaks of people who !simple, meaning they don't need role instructions
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -170,11 +172,16 @@ conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 with conn:
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
+    
+    c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
 
     c.execute('SELECT * FROM away')
-
     for row in c:
         AWAY.append(row[0])
+        
+    c.execute('SELECT * FROM simple_role_notify')
+    for row in c:
+        SIMPLE_ROLE_NOTIFY.append(row[0])
     
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
@@ -201,6 +208,14 @@ def remove_away(clk):
 def add_away(clk):
     with conn:
         c.execute('INSERT into away VALUES (?)', (clk,))
+        
+def remove_simple_rolemsg(clk):
+    with conn:
+        c.execute('DELETE from simple_role_notify where nick=?', (clk,))
+    
+def add_simple_rolemsg(clk):
+    with conn:
+        c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
         
         
 

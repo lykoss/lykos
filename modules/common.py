@@ -8,11 +8,8 @@ import traceback
 from settings import common as var
 
 def on_privmsg(cli, rawnick, chan, msg):
-    if var.MODULE_READY:
-        currmod = ld.MODULES[ld.CURRENT_MODULE]
-    else:
-        currmod = None
-        
+    currmod = ld.MODULES[ld.CURRENT_MODULE]
+    
     if botconfig.IGNORE_HIDDEN_COMMANDS and (chan.startswith("@#") or chan.startswith("+#")):
         return
            
@@ -62,10 +59,7 @@ def on_privmsg(cli, rawnick, chan, msg):
                             cli.msg(chan, "An error has occurred and has been logged.")
     
 def __unhandled__(cli, prefix, cmd, *args):
-    if var.MODULE_READY:
-        currmod = ld.MODULES[ld.CURRENT_MODULE]
-    else:
-        currmod = None
+    currmod = ld.MODULES[ld.CURRENT_MODULE]
 
     if cmd in set(list(HOOKS.keys())+(list(currmod.HOOKS.keys()) if currmod else list())):
         largs = list(args)
@@ -99,10 +93,7 @@ def connect_callback(cli):
     identified = False
     need_ghost = False
 
-    def prepare_stuff(*args):
-        if var.MODULE_READY:
-            return
-    
+    def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
@@ -110,8 +101,6 @@ def connect_callback(cli):
         cli.cap("REQ", "account-notify")
         
         ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
-        
-        var.MODULE_READY = True
         
         cli.nick(botconfig.NICK)  # just in case
         
