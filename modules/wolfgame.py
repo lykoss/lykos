@@ -2006,7 +2006,9 @@ def transition_night(cli):
     ps = var.list_players()
     wolves = var.ROLES["wolf"]+var.ROLES["traitor"]+var.ROLES["werecrow"]
     for wolf in wolves:
-        if wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+        normal_notify = wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_ROLE_NOTIFY
+    
+        if normal_notify:
             if wolf in var.ROLES["wolf"]:
                 cli.msg(wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
@@ -2022,7 +2024,7 @@ def transition_night(cli):
             if len(wolves) > 1:
                 cli.msg(wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            cli.msg(wolf, "You are a \02{0}\02.".format(var.get_role(wolf)))  # !simple
+            cli.notice(wolf, "You are a \02{0}\02.".format(var.get_role(wolf)))  # !simple
             
         
         pl = ps[:]
@@ -2035,52 +2037,59 @@ def transition_night(cli):
                 pl[i] = player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
-        cli.msg(wolf, "\u0002Players:\u0002 "+", ".join(pl))
+        if normal_notify:
+            cli.msg(wolf, "\u0002Players:\u0002 "+", ".join(pl))
+        else:
+            cli.notice(wolf, "\u0002Players:\u0002 "+", ".join(pl))
 
     for seer in var.ROLES["seer"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(seer)  # remove self from list
+        
         if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
-            pl = ps[:]
-            pl.sort(key=lambda x: x.lower())
-            pl.remove(seer)  # remove self from list
             cli.msg(seer, ('You are a \u0002seer\u0002. '+
                           'It is your job to detect the wolves, you '+
                           'may have a vision once per night. '+
                           'Use "see <nick>" to see the role of a player.'))
+            cli.msg(seer, "Players: "+", ".join(pl))
         else:
-            cli.msg(seer, "You are a \02seer\02.")  # !simple
-        cli.msg(seer, "Players: "+", ".join(pl))
+            cli.notice(seer, "You are a \02seer\02.")  # !simple
+            cli.notice(seer, "Players: "+", ".join(pl))
 
     for harlot in var.ROLES["harlot"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(harlot)
         if harlot in var.PLAYERS and var.PLAYERS[harlot]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
-            pl = ps[:]
-            pl.sort(key=lambda x: x.lower())
-            pl.remove(harlot)
             cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
                              'If you visit a victim of a wolf, or visit a wolf, '+
                              'you will die. Use !visit to visit a player.'))
+            cli.msg(harlot, "Players: "+", ".join(pl))
         else:
-            cli.msg(harlot, "You are a \02harlot\02.")  # !simple
-        cli.msg(harlot, "Players: "+", ".join(pl))
+            cli.notice(harlot, "You are a \02harlot\02.")  # !simple
+            cli.notice(harlot, "Players: "+", ".join(pl))
 
     for g_angel in var.ROLES["guardian angel"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(g_angel)
         if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
-            pl = ps[:]
-            pl.sort(key=lambda x: x.lower())
-            pl.remove(g_angel)
             cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. If you guard a'+
                               ' wolf, there is a 50/50 chance of you dying, if you guard '+
                               'a victim, they will live. Use !guard to guard a player.'))
+            cli.msg(g_angel, "Players: " + ", ".join(pl))
         else:
-            cli.msg(g_angel, "You are a \02guardian angel\02.")  # !simple
-        cli.msg(g_angel, "Players: " + ", ".join(pl))
+            cli.notice(g_angel, "You are a \02guardian angel\02.")  # !simple
+            cli.notice(g_angel, "Players: " + ", ".join(pl))
     
     for dttv in var.ROLES["detective"]:
+        pl = ps[:]
+        pl.sort(key=lambda x: x.lower())
+        pl.remove(dttv)
         if dttv in var.PLAYERS and var.PLAYERS[dttv]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
-            pl = ps[:]
-            pl.sort(key=lambda x: x.lower())
-            pl.remove(dttv)
             cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
                           "It is your job to determine all the wolves and traitors. "+
                           "Your job is during the day, and you can see the true "+
@@ -2088,9 +2097,10 @@ def transition_night(cli):
                           "But, each time you use your ability, you risk a 2/5 "+
                           "chance of having your identity revealed to the wolves. So be "+
                           "careful. Use \"!id\" to identify any player during the day."))
+            cli.msg(dttv, "Players: " + ", ".join(pl))
         else:
-            cli.msg(dttv, "You are a \02detective\02.")  # !simple
-        cli.msg(dttv, "Players: " + ", ".join(pl))
+            cli.notice(dttv, "You are a \02detective\02.")  # !simple
+            cli.notice(dttv, "Players: " + ", ".join(pl))
     for d in var.ROLES["village drunk"]:
         if var.FIRST_NIGHT:
             cli.msg(d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
@@ -2100,7 +2110,8 @@ def transition_night(cli):
             continue
         elif not var.GUNNERS[g]:
             continue
-        if g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_ROLE_NOTIFY:
+        norm_notify = g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_ROLE_NOTIFY
+        if norm_notify:
             gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
                         "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
                         "shoot a villager, that villager will likely survive. You get {0}.")
@@ -2112,7 +2123,11 @@ def transition_night(cli):
             gun_msg = gun_msg.format(str(var.GUNNERS[g]) + " bullets")
         else:
             continue
-        cli.msg(g, gun_msg)
+        
+        if norm_notify:
+            cli.msg(g, gun_msg)
+        else:
+            cli.notice(g, gun_msg)
 
     dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions. "+
