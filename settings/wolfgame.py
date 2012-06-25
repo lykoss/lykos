@@ -211,7 +211,7 @@ def add_away(clk):
         
 def remove_simple_rolemsg(clk):
     with conn:
-        c.execute('DELETE from simple_role_notify where nick=?', (clk,))
+        c.execute('DELETE from simple_role_notify where cloak=?', (clk,))
     
 def add_simple_rolemsg(clk):
     with conn:
