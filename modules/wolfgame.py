@@ -35,6 +35,45 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 # Game Logic Begins:
 
+var.LAST_PING = None  # time of last ping
+var.LAST_STATS = None
+var.LAST_VOTES = None
+var.LAST_ADMINS = None
+
+var.USERS = {}
+
+var.PINGING = False
+var.ADMIN_PINGING = False
+var.ROLES = {"person" : []}
+var.ORIGINAL_ROLES = {}
+var.PLAYERS = {}
+var.DCED_PLAYERS = {}
+var.ADMIN_TO_PING = None
+var.AFTER_FLASTGAME = None
+var.PHASE = "none"  # "join", "day", or "night"
+var.TIMERS = [None, None]
+var.DEAD = []
+
+var.ORIGINAL_SETTINGS = {}
+
+var.LAST_SAID_TIME = {}
+
+var.GAME_START_TIME = datetime.now()  # for idle checker only
+var.GRAVEYARD_LOCK = threading.RLock()
+var.GAME_ID = 0
+
+var.DISCONNECTED = {}  # players who got disconnected
+
+var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
+
+if botconfig.DEBUG_MODE:
+    var.NIGHT_TIME_LIMIT = 0  # 90
+    var.DAY_TIME_LIMIT_WARN = 0
+    var.DAY_TIME_LIMIT_CHANGE = 0
+    var.KILL_IDLE_TIME = 0 #300
+    var.WARN_IDLE_TIME = 0 #180
+
+        
 def connect_callback(cli):
     to_be_devoiced = []
 
@@ -72,44 +111,6 @@ def connect_callback(cli):
         cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
-
-    var.LAST_PING = None  # time of last ping
-    var.LAST_STATS = None
-    var.LAST_VOTES = None
-    var.LAST_ADMINS = None
-    
-    var.USERS = {}
-    
-    var.PINGING = False
-    var.ADMIN_PINGING = False
-    var.ROLES = {"person" : []}
-    var.ORIGINAL_ROLES = {}
-    var.PLAYERS = {}
-    var.DCED_PLAYERS = {}
-    var.ADMIN_TO_PING = None
-    var.AFTER_FLASTGAME = None
-    var.PHASE = "none"  # "join", "day", or "night"
-    var.TIMERS = [None, None]
-    var.DEAD = []
-
-    var.ORIGINAL_SETTINGS = {}
-
-    var.LAST_SAID_TIME = {}
-
-    var.GAME_START_TIME = datetime.now()  # for idle checker only
-    var.GRAVEYARD_LOCK = threading.RLock()
-    var.GAME_ID = 0
-    
-    var.DISCONNECTED = {}  # players who got disconnected
-    
-    var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
-    
-    if botconfig.DEBUG_MODE:
-        var.NIGHT_TIME_LIMIT = 0  # 90
-        var.DAY_TIME_LIMIT_WARN = 0
-        var.DAY_TIME_LIMIT_CHANGE = 0
-        var.KILL_IDLE_TIME = 0 #300
-        var.WARN_IDLE_TIME = 0 #180
 
 
 

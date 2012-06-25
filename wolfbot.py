@@ -41,6 +41,7 @@ def main():
     
     cli = IRCClient(
                       {"privmsg":modules.common.on_privmsg,
+                       "notice":lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
                        "":modules.common.__unhandled__},
                      host=botconfig.HOST, 
                      port=botconfig.PORT,

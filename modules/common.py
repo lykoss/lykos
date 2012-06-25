@@ -7,11 +7,15 @@ import tools.moduleloader as ld
 import traceback
 from settings import common as var
 
-def on_privmsg(cli, rawnick, chan, msg):
+def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
     
     if botconfig.IGNORE_HIDDEN_COMMANDS and (chan.startswith("@#") or chan.startswith("+#")):
         return
+    
+    if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (chan == botconfig.NICK and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+        return  # not allowed in settings
            
     if chan != botconfig.NICK:  #not a PM
         if currmod and "" in currmod.COMMANDS.keys():
@@ -79,7 +83,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                                                               for arg in args
                                                               if isinstance(arg, bytes)]))
 
-
+    
 COMMANDS = {}
 PM_COMMANDS = {}
 HOOKS = {}
