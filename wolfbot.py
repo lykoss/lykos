@@ -38,6 +38,9 @@ def main():
             handler.setFormatter(formatter)
     else:
         logging.basicConfig(level=logging.DEBUG)
+        formatter = UTCFormatter('[%(asctime)s] %(message)s', '%H:%M:%S')
+        for handler in logging.getLogger().handlers:
+            handler.setFormatter(formatter)
     
     cli = IRCClient(
                       {"privmsg":modules.common.on_privmsg,
