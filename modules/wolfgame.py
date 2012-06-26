@@ -104,11 +104,14 @@ def connect_callback(cli):
         
         @hook("mode", hookid=294)
         def on_give_me_ops(cli, blah, blahh, modeaction, target):
-            if modeaction == "+o" and target == botconfig.NICK:
+            if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
                 decorators.unhook(HOOKS, 294)
                 mass_mode(cli, cmodes)
         
                 cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+            elif modeaction == "+o" and target == botconfig.NICK and var.PHASE != "none":
+                decorators.unhook(HOOKS, 294)  # forget about it
+
         cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
@@ -1197,7 +1200,6 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.KILLS = {}  # nicknames of kill victim
-    var.ACTED_WOLVES = set()
     var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
@@ -1240,7 +1242,8 @@ def transition_day(cli, gameid=0):
     var.WOUNDED = []
     var.DAY_START_TIME = datetime.now()
 
-    if not len(var.SEEN)+len(var.ACTED_WOLVES) and var.FIRST_NIGHT and var.ROLES["seer"]:
+    if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
+            and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
         cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
         for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
             if not del_player(cli, x, True):
@@ -1380,7 +1383,7 @@ def chk_nightdone(cli):
     if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
         len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
         len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.ACTED_WOLVES) and
+        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.KILLS)+len(var.OBSERVED) and
         var.PHASE == "night"):
         
         # check if wolves are actually agreeing
@@ -1659,7 +1662,6 @@ def kill(cli, nick, rest):
     var.KILLS[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
     var.LOGGER.logBare(nick, "SELECT", victim)
-    var.ACTED_WOLVES.add(nick)
     chk_nightdone(cli)
 
 
@@ -1757,7 +1759,6 @@ def observe(cli, nick, rest):
     var.OBSERVED[nick] = victim
     if nick in var.KILLS.keys():
         del var.KILLS[nick]
-    var.ACTED_WOLVES.add(nick)
     pm(cli, nick, ("You transform into a large crow and start your flight "+
                    "to \u0002{0}'s\u0002 house. You will return after "+
                   "collecting your observations when day begins.").format(victim))
@@ -1995,7 +1996,6 @@ def transition_night(cli):
 
     # Reset nighttime variables
     var.KILLS = {}
-    var.ACTED_WOLVES = set()
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
