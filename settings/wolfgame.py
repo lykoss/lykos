@@ -50,7 +50,7 @@ ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0
 
 GAME_MODES = {}
 AWAY = []  # cloaks of people who are away.
-SIMPLE_ROLE_NOTIFY = []  # cloaks of people who !simple, meaning they don't need role instructions
+SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
 
 ROLE_INDICES = {0 : "seer",
                 1 : "wolf",
@@ -181,7 +181,7 @@ with conn:
         
     c.execute('SELECT * FROM simple_role_notify')
     for row in c:
-        SIMPLE_ROLE_NOTIFY.append(row[0])
+        SIMPLE_NOTIFY.append(row[0])
     
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
