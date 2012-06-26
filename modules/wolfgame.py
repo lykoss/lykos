@@ -1924,7 +1924,6 @@ def see(cli, nick, rest):
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
     for r in rest:
-        print(r)
         if r.startswith("TARGMAX="):
             x = r[r.index("PRIVMSG:"):]
             if "," in x:
@@ -1932,7 +1931,6 @@ def getfeatures(cli, nick, *rest):
             else:
                 l = x[x.index(":")+1:]
             l = l.strip()
-            print("** "+l)
             if not l or not l.isdigit():
                 continue
             else:
