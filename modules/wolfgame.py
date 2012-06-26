@@ -102,12 +102,13 @@ def connect_callback(cli):
             if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
                 cmodes.append(("-q", quieted))
         
-        @hook("quietlistend", hookid=294)
-        def on_quietlistend(cli, *rest):
-            decorators.unhook(HOOKS, 294)
-            mass_mode(cli, cmodes)
+        @hook("mode", hookid=294)
+        def on_give_me_ops(cli, blah, blahh, modeaction, target):
+            if modeaction == "+o" and target == botconfig.NICK:
+                decorators.unhook(HOOKS, 294)
+                mass_mode(cli, cmodes)
         
-        cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+                cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
         cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
@@ -2863,8 +2864,10 @@ if botconfig.DEBUG_MODE:
                 if len(rolargs) == 2 and rolargs[1].isdigit():
                     if len(rolargs[1]) < 7:
                         var.GUNNERS[who] = int(rolargs[1])
+                        var.WOLF_GUNNERS[who] = int(rolargs[1])
                     else:
                         var.GUNNERS[who] = 999
+                        var.WOLF_GUNNERS[who] = 999
                 else:
                     var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                 if who not in pl:
