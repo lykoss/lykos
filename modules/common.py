@@ -111,7 +111,7 @@ def connect_callback(cli):
     if botconfig.JOIN_AFTER_CLOAKED:
         prepare_stuff = hook("event_hosthidden", hookid=294)(prepare_stuff)
     else:
-        prepare_stuff = hook("event_hosthidden", hookid=294)(prepare_stuff)
+        prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
     
     @hook("mode")
     def check_if_identified(cli, spam, egg, m, *etc):

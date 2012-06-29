@@ -59,6 +59,7 @@ var.ORIGINAL_SETTINGS = {}
 var.LAST_SAID_TIME = {}
 
 var.GAME_START_TIME = datetime.now()  # for idle checker only
+var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
 var.GAME_ID = 0
 
@@ -280,7 +281,7 @@ def pinger(cli, nick, chan, rest):
         var.PINGING = False
  
         minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
-        if var.CAN_START_TIME < minimum:
+        if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
            var.CAN_START_TIME = minimum
 
         decorators.unhook(HOOKS, 800)
@@ -1543,7 +1544,7 @@ def shoot(cli, nick, chann_, rest):
     
     wolfshooter = nick in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]
     
-    if wolfshooter:
+    if wolfshooter and nick in var.WOLF_GUNNERS:
         var.WOLF_GUNNERS[nick] -= 1
     else:
         var.GUNNERS[nick] -= 1
