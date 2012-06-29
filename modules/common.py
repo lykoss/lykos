@@ -133,7 +133,6 @@ def connect_callback(cli):
                 nick_b = bytes(botconfig.USERNAME if botconfig.USERNAME else botconfig.NICK, "utf-8")
                 pass_b = bytes(botconfig.PASS, "utf-8")
                 secrt_msg = b'\0'.join((nick_b, nick_b, pass_b))
-                print(secrt_msg)
                 cli.send("AUTHENTICATE " + b64encode(secrt_msg).decode("utf-8"))
     
         @hook("cap")
