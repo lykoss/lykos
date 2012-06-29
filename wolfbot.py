@@ -51,6 +51,7 @@ def main():
                      authname=botconfig.USERNAME,
                      password=botconfig.PASS,
                      nickname=botconfig.NICK,
+                     sasl_auth=botconfig.SASL_AUTHENTICATION,
                      connect_cb=modules.common.connect_callback
                     )
     cli.mainLoop()

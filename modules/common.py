@@ -6,6 +6,7 @@ import logging
 import tools.moduleloader as ld
 import traceback
 from settings import common as var
+from base64 import b64encode
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -94,9 +95,6 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 def connect_callback(cli):
 
-    identified = False
-    need_ghost = False
-
     def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
@@ -106,67 +104,56 @@ def connect_callback(cli):
         
         ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
         
-        cli.nick(botconfig.NICK)  # just in case
+        cli.nick(botconfig.NICK)  # very important (for regain/release)
         
-    if botconfig.JOIN_AFTER_CLOAKED:
-        prepare_stuff = hook("event_hosthidden", hookid=294)(prepare_stuff)
-    else:
-        prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
+    prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
+
+    def mustregain(cli, *blah):
+        cli.ns_regain()                    
+                    
+    def mustrelease(cli, *rest):
+        cli.ns_release()
+        cli.nick(botconfig.NICK)
+
+    @hook("unavailresource", hookid=239)
+    @hook("nicknameinuse", hookid=239)
+    def must_use_temp_nick(cli, *etc):
+        cli.nick(botconfig.NICK+"_")
+        cli.user(botconfig.NICK, "")
+        
+        decorators.unhook(HOOKS, 239)
+        hook("unavailresource")(mustrelease)
+        hook("nicknameinuse")(mustregain)
+        
+    if botconfig.SASL_AUTHENTICATION:
     
-    @hook("mode")
-    def check_if_identified(cli, spam, egg, m, *etc):
-        if m == "+i":
-            identified = True
-
-    @hook("nicknameinuse")
-    def mustghost(cli, *blah):
-        cli.ns_identify(cli.password)
-        cli.nick(botconfig.NICK+"_")
-        if identified:
-            cli.ns_ghost()
-            cli.nick(botconfig.NICK)
-        else:
-            @hook("mode")
-            def do_ghost(cli, spam, egg, m, *etc):
-                if m == "+i":
-                    cli.ns_ghost()
-                                  
-                    if not botconfig.JOIN_AFTER_CLOAKED:
-                        prepare_stuff(cli)
-                    
-            @hook("quit", hookid=232)
-            def after_ghost(cli, nick, reason):
-                if nick == botconfig.NICK and reason == "Disconnected by services":
-                    cli.nick(botconfig.NICK)
-                    
-                    decorators.unhook(HOOKS, 232)
-
-    @hook("unavailresource")
-    def mustrelease(cli, *blah):
-        cli.ns_identify(cli.password)
-        cli.nick(botconfig.NICK+"_")
-        if identified:
-            cli.ns_release()
-            cli.nick(botconfig.NICK)
-        else:
-            @hook("mode")
-            def do_release(cli, spam, egg, m, *etc):
-                if m == "+i":
-                    cli.ns_release()
-                    
-                    if not botconfig.JOIN_AFTER_CLOAKED:
-                        prepare_stuff(cli)
-                    
-            @hook("notice", hookid=233)
-            def after_release(cli, *etc):  #hopefully this works
-                cli.nick(botconfig.NICK)
-                    
-                decorators.unhook(HOOKS, 233)
-        
-    if not botconfig.JOIN_AFTER_CLOAKED:  # join immediately
-        pass
-        # prepare_stuff(cli)
-        
+        @hook("authenticate")
+        def auth_plus(cli, something, plus):
+            if plus == "+":
+                nick_b = bytes(botconfig.USERNAME if botconfig.USERNAME else botconfig.NICK, "utf-8")
+                pass_b = bytes(botconfig.PASS, "utf-8")
+                secrt_msg = b'\0'.join((nick_b, nick_b, pass_b))
+                print(secrt_msg)
+                cli.send("AUTHENTICATE " + b64encode(secrt_msg).decode("utf-8"))
+    
+        @hook("cap")
+        def on_cap(cli, svr, mynick, ack, cap):
+            if ack.upper() == "ACK" and "sasl" in cap:
+                cli.send("AUTHENTICATE PLAIN")
+                
+        @hook("903")
+        def on_successful_auth(cli, blah, blahh, blahhh):
+            cli.cap("END")
+            
+        @hook("904")
+        @hook("905")
+        @hook("906")
+        @hook("907")
+        def on_failure_auth(cli, *etc):
+            cli.quit()
+            print("Authentication failed.  Did you fill the account name "+
+                  "in botconfig.USERNAME if it's different from the bot nick?")
+               
         
         
 @hook("ping")

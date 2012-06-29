@@ -104,7 +104,7 @@ def connect_callback(cli):
                 cmodes.append(("-q", quieted))
         
         @hook("mode", hookid=294)
-        def on_give_me_ops(cli, blah, blahh, modeaction, target):
+        def on_give_me_ops(cli, blah, blahh, modeaction, target=""):
             if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
                 decorators.unhook(HOOKS, 294)
                 mass_mode(cli, cmodes)
@@ -357,7 +357,7 @@ def join(cli, nick, chann_, rest):
     
     if var.PHASE == "none":
     
-        cli.mode(chan, "+v", nick, nick+"!*@*")
+        cli.mode(chan, "+v", nick)
         var.ROLES["person"].append(nick)
         var.PHASE = "join"
         var.WAITED = 0
@@ -374,7 +374,7 @@ def join(cli, nick, chann_, rest):
         cli.notice(nick, "Sorry but the game is already running.  Try again next time.")
     else:
     
-        cli.mode(chan, "+v", nick, nick+"!*@*")
+        cli.mode(chan, "+v", nick)
         var.ROLES["person"].append(nick)
         cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
         

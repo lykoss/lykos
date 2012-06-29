@@ -107,6 +107,7 @@ class IRCClient(object):
         self.authname = ""
         self.connect_cb = None
         self.blocking = True
+        self.sasl_auth = False
         self.lock = threading.RLock()
         
         self.tokenbucket = TokenBucket(23, 1.73)
@@ -147,7 +148,7 @@ class IRCClient(object):
                                                                    for arg in args]), i))
 
             msg = bytes(" ", "utf_8").join(bargs)
-            logging.info('---> send "{0}"'.format(msg))
+            logging.info('---> send {0}'.format(str(msg)[1:]))
             
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
@@ -178,12 +179,19 @@ class IRCClient(object):
             if not self.blocking:
                 self.socket.setblocking(0)
             
-            self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname, 
-                                            self.password if self.password else "NOPASS"))
+            if not self.sasl_auth:
+                self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname, 
+                    self.password if self.password else "NOPASS"))
+            else:
+                self.cap("LS")
             
             self.nick(self.nickname)
             self.user(self.nickname, self.real_name)
 
+            if self.sasl_auth:
+                self.cap("REQ", "multi-prefix")
+                self.cap("REQ", "sasl")
+            
             if self.connect_cb:
                 try:
                     self.connect_cb(self)
@@ -268,6 +276,8 @@ class IRCClient(object):
         self.msg("NickServ", "GHOST "+self.nickname)
     def ns_release(self):
         self.msg("NickServ", "RELEASE "+self.nickname)
+    def ns_regain(self):
+        self.msg("NickServ", "REGAIN "+self.nickname)
     def user(self, uname, rname):
         self.send("USER", uname, self.host, self.host, 
                  rname or uname)
