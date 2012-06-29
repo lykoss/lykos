@@ -1,13 +1,14 @@
 PASS = "my_nickserv_pass"
 CHANNEL = "#mywolfgame"
 HOST = "irc.freenode.net"
-PORT = 6667  # SSL not supported yet
+PORT = 6667
 USERNAME = ""  # for authentication, can be left blank if same as NICK
 NICK = "mywolfbot"
 CMD_CHAR = "!"
 CHANGING_HOST_QUIT_MESSAGE = "Changing host"
 
 SASL_AUTHENTICATION = False  # put account name in USERNAME ^ if different from nick
+USE_SSL = False
 DISABLE_DEBUG_MODE = False  # Entirely disable debug mode
 IGNORE_HIDDEN_COMMANDS = True # Ignore commands sent to @#channel or +#channel
 ALLOW_NOTICE_COMMANDS = False  # allow /notice #channel !command to be interpreted as a command

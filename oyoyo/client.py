@@ -20,6 +20,7 @@ import time
 import threading
 import traceback
 import sys
+import ssl
 
 from oyoyo.parse import parse_raw_irc_command    
 
@@ -96,7 +97,7 @@ class IRCClient(object):
         To enable blocking pass blocking=True. 
         """
         
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
         self.nickname = ""
         self.hostmask = ""
         self.ident = ""
@@ -108,12 +109,16 @@ class IRCClient(object):
         self.connect_cb = None
         self.blocking = True
         self.sasl_auth = False
+        self.use_ssl = False
         self.lock = threading.RLock()
         
         self.tokenbucket = TokenBucket(23, 1.73)
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
+        
+        if self.use_ssl:
+            self.socket = ssl.wrap_socket(self.socket)
 
         self._end = 0
 
