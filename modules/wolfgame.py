@@ -116,7 +116,13 @@ def connect_callback(cli):
         cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
-
+    
+def quit_callback(cli):
+    # clean up
+    if var.PHASE in ("day", "night"):
+        stop_game(cli)
+    else:
+        reset(cli)
 
 
 
@@ -217,24 +223,24 @@ def restart_program(cli, nick, *rest):
 
             
             
-@cmd("frehash", admin_only=True)
-def frehash(cli, nick, chan, rest):
-    if var.PHASE in ("day", "night"):
-        stop_game(cli)
-    else:
-        reset(cli)       
-    imp.reload(botconfig)
-    imp.reload(var)
-    imp.reload(decorators.botconfig)
+# @cmd("frehash", admin_only=True)
+# def frehash(cli, nick, chan, rest):
+    # if var.PHASE in ("day", "night"):
+        # stop_game(cli)
+    # else:
+        # reset(cli)       
+    # imp.reload(botconfig)
+    # imp.reload(var)
+    # imp.reload(decorators.botconfig)
     
-    if botconfig.DEBUG_MODE:
-        var.NIGHT_TIME_LIMIT = 0  # 90
-        var.DAY_TIME_LIMIT_WARN = 0
-        var.DAY_TIME_LIMIT_CHANGE = 0
-        var.KILL_IDLE_TIME = 0 #300
-        var.WARN_IDLE_TIME = 0 #180
+    # if botconfig.DEBUG_MODE:
+        # var.NIGHT_TIME_LIMIT = 0  # 90
+        # var.DAY_TIME_LIMIT_WARN = 0
+        # var.DAY_TIME_LIMIT_CHANGE = 0
+        # var.KILL_IDLE_TIME = 0 #300
+        # var.WARN_IDLE_TIME = 0 #180
     
-    cli.msg(chan, "Operation successful.")
+    # cli.msg(chan, "Operation successful.")
     
             
 
@@ -785,9 +791,7 @@ def stop_game(cli, winner = ""):
         cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
         var.ADMIN_TO_PING = None
     
-    return True                     
-                     
-                     
+    return True
 
 def chk_win(cli):
     """ Returns True if someone won """

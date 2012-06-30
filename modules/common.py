@@ -7,6 +7,7 @@ import tools.moduleloader as ld
 import traceback
 from settings import common as var
 from base64 import b64encode
+import imp
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -102,7 +103,10 @@ def connect_callback(cli):
         cli.cap("REQ", "extended-join")
         cli.cap("REQ", "account-notify")
         
-        ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
+        try:
+            ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
+        except AttributeError:
+            pass # no connect_callback for this one
         
         cli.nick(botconfig.NICK)  # very important (for regain/release)
         
@@ -158,7 +162,43 @@ def connect_callback(cli):
 @hook("ping")
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)
+    
+@cmd("frehash", admin_only = True)
+def reload_modules(cli, nick, chan, rest):
+    error = False
+    
+    try:
+        imp.reload(var)
+        imp.reload(botconfig)
+        imp.reload(decorators.botconfig)
+    except SyntaxError as e:
+        logging.error(traceback.format_exc())
+        cli.msg(chan, "Syntax error.")
+        error = True
 
+    for nam, mod in ld.MODULES.items():
+        if nam == ld.CURRENT_MODULE:
+            try:
+                mod.quit_callback(cli)
+            except AttributeError:
+                pass # no quit_callback
+        print("Reloading module {0}....".format(nam))
+        try:
+            imp.reload(mod)
+            imp.reload(mod.var)
+            imp.reload(mod.botconfig)
+            imp.reload(mod.decorators.botconfig)
+        except AttributeError:
+            pass
+        except SyntaxError as e:
+            logging.error(traceback.format_exc())
+            cli.msg(chan, "Syntax error in module {0}".format(nam))
+            error = True
+            
+    if not error:
+        cli.msg(chan, "Operation successful.")
+    
+    
 
 if botconfig.DEBUG_MODE:
     @cmd("module", admin_only = True)
