@@ -1326,7 +1326,7 @@ def transition_day(cli, gameid=0):
             # don't kill off werecrows that observed
             deadwolf = random.choice(var.ROLES["wolf"]+wc)
             message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
-                            "\02{1}\02, a \02wolf\02, was shot dead.").format(victim, deadwolf))
+                            "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_role(deadwolf)))
             var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
             dead.append(deadwolf)
     if victim in var.HVISITED.values():  #  victim was visited by some harlot
