@@ -51,7 +51,7 @@ var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
 var.PHASE = "none"  # "join", "day", or "night"
-var.TIMERS = [None, None]
+var.TIMERS = {}
 var.DEAD = []
 
 var.ORIGINAL_SETTINGS = {}
@@ -157,12 +157,10 @@ def reset(cli):
     chan = botconfig.CHANNEL
     var.PHASE = "none"
 
-    if var.TIMERS[0]:
-        var.TIMERS[0].cancel()
-        var.TIMERS[0] = None
-    if var.TIMERS[1]:
-        var.TIMERS[1].cancel()
-        var.TIMERS[1] = None
+    for x, timr in var.TIMERS.items():
+        timr.cancel()
+    var.TIMERS = {}
+    
     var.GAME_ID = 0
 
     cli.mode(chan, "-m")
@@ -554,9 +552,10 @@ def hurry_up(cli, gameid, change):
                       "are no votes or an even split.\02"))
         if not var.DAY_TIME_LIMIT_CHANGE:
             return
-        var.TIMERS[1] = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
-        var.TIMERS[1].daemon = True
-        var.TIMERS[1].start()
+        tmr = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
+        tmr.daemon = True
+        var.TIMERS["day"] = tmr
+        tmr.start()
         return
         
     
@@ -1222,11 +1221,21 @@ def begin_day(cli):
     if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
         var.DAY_ID = time.time()
         t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
-        var.TIMERS[1] = t
-        var.TIMERS[1].daemon = True
+        var.TIMERS["day_warn"] = t
+        t.daemon = True
         t.start()
 
-
+def night_warn(cli, gameid):
+    if gameid != var.NIGHT_ID:
+        return
+    
+    if var.PHASE == "day":
+        return
+        
+    cli.msg(botconfig.CHANNEL, ("\02A few villagers awake early and notice it " +
+                                "is still dark outside. " +
+                                "The night is almost over and there are " +
+                                "still whispers heard in the village.\02"))
 
 def transition_day(cli, gameid=0):
     if gameid:
@@ -1395,9 +1404,10 @@ def chk_nightdone(cli):
         if len(set(var.KILLS.values())) > 1:
             return
         
-        if var.TIMERS[0]:
-            var.TIMERS[0].cancel()  # cancel timer
-            var.TIMERS[0] = None
+        for x, t in var.TIMERS.items():
+            t.cancel()
+        
+        var.TIMERS = {}
         if var.PHASE == "night":  # Double check
             transition_day(cli)
 
@@ -1993,9 +2003,9 @@ def transition_night(cli):
         return
     var.PHASE = "night"
 
-    if var.TIMERS[1]:  # cancel daytime-limit timer
-        var.TIMERS[1].cancel()
-        var.TIMERS[1] = None
+    for x, tmr in var.TIMERS.items():  # cancel daytime timer
+        tmr.cancel()
+    var.TIMERS = {}
 
     # Reset nighttime variables
     var.KILLS = {}
@@ -2020,9 +2030,15 @@ def transition_night(cli):
     if var.NIGHT_TIME_LIMIT > 0:
         var.NIGHT_ID = time.time()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
-        var.TIMERS[0] = t
-        var.TIMERS[0].daemon = True
+        var.TIMERS["night"] = t
+        var.TIMERS["night"].daemon = True
         t.start()
+        
+    if var.NIGHT_TIME_WARN > 0:
+        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, [cli, var.NIGHT_ID])
+        var.TIMERS["night_warn"] = t2
+        var.TIMERS["night_warn"].daemon = True
+        t2.start()
 
     # send PMs
     ps = var.list_players()

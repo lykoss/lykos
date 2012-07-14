@@ -10,6 +10,7 @@ SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MAX_PLAYERS = 30
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
+NIGHT_TIME_WARN = 0  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 780
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
 START_WITH_DAY = False
