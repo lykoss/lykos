@@ -26,15 +26,24 @@ import botconfig
 import time
 import traceback
 import modules.common
+import sys
 
 class UTCFormatter(logging.Formatter):
     converter = time.gmtime
 
 def main():
     if not botconfig.DEBUG_MODE:
-        logging.basicConfig(filename='errors.log', filemode='a', level=logging.WARNING)
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler("errors.log")
+        fh.setLevel(logging.WARNING)
+        logger.addHandler(fh)
+        if botconfig.VERBOSE_MODE:
+            hdlr = logging.StreamHandler(sys.stdout)
+            hdlr.setLevel(logging.DEBUG)
+            logger.addHandler(hdlr)
         formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
-        for handler in logging.getLogger().handlers:
+        for handler in logger.handlers:
             handler.setFormatter(formatter)
     else:
         logging.basicConfig(level=logging.DEBUG)
