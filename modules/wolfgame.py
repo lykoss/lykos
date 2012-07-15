@@ -77,6 +77,12 @@ if botconfig.DEBUG_MODE:
         
 def connect_callback(cli):
     to_be_devoiced = []
+    cmodes = []
+    
+    @hook("quietlist", hookid=294)
+    def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
+        if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
+            cmodes.append(("-q", quieted))
 
     @hook("whospcrpl", hookid=294)
     def on_whoreply(cli, server, nick, ident, cloak, user, status, acc):
@@ -93,27 +99,26 @@ def connect_callback(cli):
         
     @hook("endofwho", hookid=294)
     def afterwho(*args):
-        cmodes = []
         for nick in to_be_devoiced:
             cmodes.append(("-v", nick))
         # devoice all on connect
         
-        @hook("quietlist", hookid=294)
-        def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
-            if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
-                cmodes.append(("-q", quieted))
-        
         @hook("mode", hookid=294)
         def on_give_me_ops(cli, blah, blahh, modeaction, target=""):
             if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
-                decorators.unhook(HOOKS, 294)
-                mass_mode(cli, cmodes)
-        
+                
+                @hook("quietlistend", 294)
+                def on_quietlist_end(cli, svr, nick, chan, *etc):
+                    if chan == botconfig.CHANNEL:
+                        decorators.unhook(HOOKS, 294)
+                        mass_mode(cli, cmodes)
+                
+                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+
                 cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
             elif modeaction == "+o" and target == botconfig.NICK and var.PHASE != "none":
                 decorators.unhook(HOOKS, 294)  # forget about it
 
-        cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
     
