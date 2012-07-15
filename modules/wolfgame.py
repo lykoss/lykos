@@ -220,6 +220,8 @@ def restart_program(cli, nick, *rest):
             os.execl(python, python, sys.argv[0], "--debug")
         elif rest[-1].strip().lower() == "normalmode":
             os.execl(python, python, sys.argv[0])
+        elif rest[-1].strip().lower() == "verbosemode":
+            os.execl(python, python, sys.argv[0], "--verbose")
         else:
             os.execl(python, python, *sys.argv)
 
