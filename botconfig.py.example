@@ -14,6 +14,8 @@ IGNORE_HIDDEN_COMMANDS = True # Ignore commands sent to @#channel or +#channel
 ALLOW_NOTICE_COMMANDS = False  # allow /notice #channel !command to be interpreted as a command
 ALLOW_PRIVATE_NOTICE_COMMANDS = False  # allow !command's from /notice (Private)
 
+ALLOWED_NORMAL_MODE_COMMANDS = []
+
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")  # glob syntax supported (wildcards)
 ALLOW = {"cloakof/fwaiter": ("fwait",),

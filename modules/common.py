@@ -163,41 +163,6 @@ def connect_callback(cli):
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)
     
-@cmd("frehash", admin_only = True)
-def reload_modules(cli, nick, chan, rest):
-    error = False
-    
-    try:
-        imp.reload(var)
-        imp.reload(botconfig)
-        imp.reload(decorators.botconfig)
-    except SyntaxError as e:
-        logging.error(traceback.format_exc())
-        cli.msg(chan, "Syntax error.")
-        error = True
-
-    for nam, mod in ld.MODULES.items():
-        if nam == ld.CURRENT_MODULE:
-            try:
-                mod.quit_callback(cli)
-            except AttributeError:
-                pass # no quit_callback
-        print("Reloading module {0}....".format(nam))
-        try:
-            imp.reload(mod)
-            imp.reload(mod.var)
-            imp.reload(mod.botconfig)
-            imp.reload(mod.decorators.botconfig)
-        except AttributeError:
-            pass
-        except SyntaxError as e:
-            logging.error(traceback.format_exc())
-            cli.msg(chan, "Syntax error in module {0}".format(nam))
-            error = True
-            
-    if not error:
-        cli.msg(chan, "Operation successful.")
-    
     
 
 if botconfig.DEBUG_MODE:

@@ -104,7 +104,7 @@ def connect_callback(cli):
         # devoice all on connect
         
         @hook("mode", hookid=294)
-        def on_give_me_ops(cli, blah, blahh, modeaction, target=""):
+        def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
             if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
                 
                 @hook("quietlistend", 294)
@@ -121,14 +121,6 @@ def connect_callback(cli):
 
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
-    
-def quit_callback(cli):
-    # clean up
-    if var.PHASE in ("day", "night"):
-        stop_game(cli)
-    else:
-        reset(cli)
-
 
 
 def mass_mode(cli, md):
@@ -224,28 +216,6 @@ def restart_program(cli, nick, *rest):
             os.execl(python, python, sys.argv[0], "--verbose")
         else:
             os.execl(python, python, *sys.argv)
-
-
-            
-            
-# @cmd("frehash", admin_only=True)
-# def frehash(cli, nick, chan, rest):
-    # if var.PHASE in ("day", "night"):
-        # stop_game(cli)
-    # else:
-        # reset(cli)       
-    # imp.reload(botconfig)
-    # imp.reload(var)
-    # imp.reload(decorators.botconfig)
-    
-    # if botconfig.DEBUG_MODE:
-        # var.NIGHT_TIME_LIMIT = 0  # 90
-        # var.DAY_TIME_LIMIT_WARN = 0
-        # var.DAY_TIME_LIMIT_CHANGE = 0
-        # var.KILL_IDLE_TIME = 0 #300
-        # var.WARN_IDLE_TIME = 0 #180
-    
-    # cli.msg(chan, "Operation successful.")
     
             
 
@@ -2689,10 +2659,13 @@ def flastgame(cli, nick, rest):
 def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
     
+before_debug_mode_commands = list(COMMANDS.keys())
+before_debug_mode_pmcommands = list(PM_COMMANDS.keys())
 
-if botconfig.DEBUG_MODE:
+if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("eval", owner_only = True)
+    @pmcmd("exec", owner_only = True)
     def pyeval(cli, nick, chan, rest):
         try:
             a = str(eval(rest))
@@ -2706,6 +2679,7 @@ if botconfig.DEBUG_MODE:
             
     
     @cmd("exec", owner_only = True)
+    @pmcmd("exec", owner_only = True)
     def py(cli, nick, chan, rest):
         try:
             exec(rest)
@@ -2913,3 +2887,13 @@ if botconfig.DEBUG_MODE:
         cli.msg(chan, "Operation successful.")
         if var.PHASE not in ('none','join'):
             chk_win(cli)
+            
+if botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
+    for comd in list(COMMANDS.keys()):
+        if (comd not in before_debug_mode_commands and 
+            comd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
+            del COMMANDS[comd]
+    for pmcomd in list(PM_COMMANDS.keys()):
+        if (pmcomd not in before_debug_mode_pmcommands and
+            pmcomd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
+            del PM_COMMANDS[pmcomd]
