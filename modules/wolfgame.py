@@ -2665,7 +2665,7 @@ before_debug_mode_pmcommands = list(PM_COMMANDS.keys())
 if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("eval", owner_only = True)
-    @pmcmd("exec", owner_only = True)
+    @pmcmd("eval", owner_only = True)
     def pyeval(cli, nick, chan, rest):
         try:
             a = str(eval(rest))
