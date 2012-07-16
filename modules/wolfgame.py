@@ -2888,7 +2888,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if var.PHASE not in ('none','join'):
             chk_win(cli)
             
-if botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
+if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
     for comd in list(COMMANDS.keys()):
         if (comd not in before_debug_mode_commands and 
             comd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
