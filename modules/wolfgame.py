@@ -304,7 +304,7 @@ def back_from_away(cli, nick, *rest):
 @cmd("simple", raw_nick = True)
 @pmcmd("simple", raw_nick = True)
 def mark_simple_notify(cli, nick, *rest):
-    """If you don't want to bot to send you role instructions"""
+    """If you want the bot to NOTICE you for every interaction"""
     
     nick, _, __, cloak = parse_nick(nick)
     
@@ -419,7 +419,7 @@ def fleave(cli, nick, chann_, rest):
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, nick, nick, rest)
+    start(cli, chan, chan, rest)
 
 
 
@@ -2199,10 +2199,6 @@ def start(cli, nick, chann_, rest):
     if nick not in villagers and nick != chan:
         cli.notice(nick, "You're currently not playing.")
         return
-        
-    # fstart condition
-    if nick == chan:
-        chan = botconfig.CHANNEL
         
     now = datetime.now()
     var.GAME_START_TIME = now  # Only used for the idler checker
