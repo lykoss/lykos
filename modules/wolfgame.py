@@ -69,6 +69,7 @@ var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0  # 90
+    var.NIGHT_TIME_WARN = 0
     var.DAY_TIME_LIMIT_WARN = 0
     var.DAY_TIME_LIMIT_CHANGE = 0
     var.KILL_IDLE_TIME = 0 #300
@@ -2662,9 +2663,14 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("eval", owner_only = True)
     @pmcmd("eval", owner_only = True)
-    def pyeval(cli, nick, chan, rest):
+    def pyeval(cli, nick, *rest):
+        rest = list(rest)
+        if len(rest) == 2:
+            chan = rest.pop(0)
+        else:
+            chan = nick
         try:
-            a = str(eval(rest))
+            a = str(eval(rest[0]))
             if len(a) < 500:
                 cli.msg(chan, a)
             else:
@@ -2676,9 +2682,14 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
     
     @cmd("exec", owner_only = True)
     @pmcmd("exec", owner_only = True)
-    def py(cli, nick, chan, rest):
+    def py(cli, nick, *rest):
+        rest = list(rest)
+        if len(rest) == 2:
+            chan = rest.pop(0)
+        else:
+            chan = nick
         try:
-            exec(rest)
+            exec(rest[0])
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
