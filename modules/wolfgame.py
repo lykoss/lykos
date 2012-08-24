@@ -247,9 +247,16 @@ def pinger(cli, nick, chan, rest):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if (var.PINGING and 'G' not in status and
-            '+' not in status and cloak not in var.AWAY):
+        if (all((not var.OPT_IN_PING,
+                 'G' not in status,  # not /away
+                 '+' not in status,  # not already joined (voiced)
+                 cloak not in var.AWAY)) or
+            all((var.OPT_IN_PING, '+' not in status,
+                 cloak in var.PING_IN))):
+
             TO_PING.append(user)
+        else:
+            print(var.OPT_IN_PING, var.PINGING, status, cloak) 
 
 
 
@@ -271,37 +278,6 @@ def pinger(cli, nick, chan, rest):
     cli.who(botconfig.CHANNEL)
 
 
-@cmd("away", raw_nick=True)
-@pmcmd("away", raw_nick=True)
-def away(cli, nick, *rest):
-    """Use this to activate your away status (so you aren't pinged)."""
-    cloak = parse_nick(nick)[3]
-    nick = parse_nick(nick)[0]
-    if cloak in var.AWAY:
-        var.AWAY.remove(cloak)
-        var.remove_away(cloak)
-    
-        cli.notice(nick, "You are no longer marked as away.")
-        return
-    var.AWAY.append(cloak)
-    var.add_away(cloak)
-    
-    cli.notice(nick, "You are now marked as away.")
-    
-@cmd("back", raw_nick=True)
-@pmcmd("back", raw_nick=True)
-def back_from_away(cli, nick, *rest):
-    """Unmarks away status"""
-    cloak = parse_nick(nick)[3]
-    nick = parse_nick(nick)[0]
-    if cloak not in var.AWAY:
-        cli.notice(nick, "You are not marked as away.")
-        return
-    var.AWAY.remove(cloak)
-    var.remove_away(cloak)
-    
-    cli.notice(nick, "You are no longer marked as away.")
-    
 @cmd("simple", raw_nick = True)
 @pmcmd("simple", raw_nick = True)
 def mark_simple_notify(cli, nick, *rest):
@@ -320,6 +296,67 @@ def mark_simple_notify(cli, nick, *rest):
     var.add_simple_rolemsg(cloak)
     
     cli.notice(nick, "You now receive simple role instructions.")
+
+if not var.OPT_IN_PING:
+    @cmd("away", raw_nick=True)
+    @pmcmd("away", raw_nick=True)
+    def away(cli, nick, *rest):
+        """Use this to activate your away status (so you aren't pinged)."""
+        cloak = parse_nick(nick)[3]
+        nick = parse_nick(nick)[0]
+        if cloak in var.AWAY:
+            var.AWAY.remove(cloak)
+            var.remove_away(cloak)
+
+            cli.notice(nick, "You are no longer marked as away.")
+            return
+        var.AWAY.append(cloak)
+        var.add_away(cloak)
+
+        cli.notice(nick, "You are now marked as away.")
+
+    @cmd("back", raw_nick=True)
+    @pmcmd("back", raw_nick=True)
+    def back_from_away(cli, nick, *rest):
+        """Unmarks away status"""
+        cloak = parse_nick(nick)[3]
+        nick = parse_nick(nick)[0]
+        if cloak not in var.AWAY:
+            cli.notice(nick, "You are not marked as away.")
+            return
+        var.AWAY.remove(cloak)
+        var.remove_away(cloak)
+
+        cli.notice(nick, "You are no longer marked as away.")
+
+
+else:  # if OPT_IN_PING setting is on
+    @cmd("in", raw_nick=True)
+    @pmcmd("in", raw_nick=True)
+    def get_in(cli, nick, *rest):
+        """Get yourself in the ping list"""
+        nick, _, _, cloak = parse_nick(nick)
+        if cloak in var.PING_IN:
+            cli.notice(nick, "You are already on the list")
+            return
+        var.PING_IN.append(cloak)
+        var.add_ping(cloak)
+
+        cli.notice(nick, "You are now on the list.")
+
+    @cmd("out", raw_nick=True)
+    @pmcmd("out", raw_nick=True)
+    def get_out(cli, nick, *rest):
+        """Removes yourself from the ping list"""
+        nick, _, _, cloak = parse_nick(nick)
+        if cloak in var.PING_IN:
+            var.PING_IN.remove(cloak)
+            var.remove_ping(cloak)
+
+            cli.notice(nick, "You are no longer in the list.")
+            return
+        cli.notice(nick, "You are not in the list.")
+
 
 @cmd("fping", admin_only=True)
 def fpinger(cli, nick, chan, rest):

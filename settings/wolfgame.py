@@ -13,8 +13,6 @@ NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 0  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 780
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
-START_WITH_DAY = False
-WOLF_STEALS_GUN = False
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 7
@@ -79,6 +77,13 @@ RULES = ("#wolfgame channel rules: 1) Be nice to others. 2) Do not share informa
          "5) Do not quit unless you need to leave. 6) No swearing and keep it "+
          "family-friendly. 7) Do not paste PM's from the bot during the game. "+
          "8) Use common sense. 9) Waiting for timeouts is discouraged.")                                              
+
+# Other settings:
+START_WITH_DAY = False
+WOLF_STEALS_GUN = False  # at night, the wolf can steal steal the victim's bullets
+
+OPT_IN_PING = False  # instead of !away/!back, users can opt-in to be pinged
+PING_IN = []  # cloaks of users who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
@@ -172,7 +177,7 @@ conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 
 with conn:
     c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
     
     c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
 
@@ -196,10 +201,12 @@ with conn:
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
         'UNIQUE(player, role))'))
         
-        
-              
-              
+    if OPT_IN_PING:
+        c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
+        c.execute('SELECT * FROM ping')
+        for row in c:
+            PING_IN.append(row[0])
     
     
 def remove_away(clk):
@@ -218,7 +225,13 @@ def add_simple_rolemsg(clk):
     with conn:
         c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
         
-        
+def remove_ping(clk):
+    with conn:
+        c.execute('DELETE from ping where cloak=?', (clk,))
+def add_ping(clk):
+    with conn:
+        c.execute('INSERT into ping VALUES (?)', (clk,))        
+
 
 def update_role_stats(acc, role, won, iwon):
     
