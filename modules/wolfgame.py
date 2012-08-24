@@ -255,9 +255,6 @@ def pinger(cli, nick, chan, rest):
                  cloak in var.PING_IN))):
 
             TO_PING.append(user)
-        else:
-            print(var.OPT_IN_PING, var.PINGING, status, cloak) 
-
 
 
     @hook("endofwho", hookid=800)
