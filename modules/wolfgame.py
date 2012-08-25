@@ -2914,7 +2914,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 if who not in pl:
                     var.ROLES["villager"].append(who)
             elif rol == "cursed villager":
-                var.CURSED.append(who)
+                if who not in var.CURSED:
+                    var.CURSED.append(who)
                 if who not in pl:
                     var.ROLES["villager"].append(who)
             else:
