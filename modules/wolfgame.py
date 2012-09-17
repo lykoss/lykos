@@ -2251,6 +2251,8 @@ def start(cli, nick, chann_, rest):
         if addroles:
             break
 
+    
+
     if var.ORIGINAL_SETTINGS:  # Custom settings
         while True:
             wvs = (addroles[var.INDEX_OF_ROLE["wolf"]] +
@@ -2337,6 +2339,8 @@ def start(cli, nick, chann_, rest):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = None
     var.NIGHT_START_TIME = None
+
+    var.LAST_PING = None
     
     var.LOGGER.log("Game Start")
     var.LOGGER.logBare("GAME", "BEGIN", nick)
