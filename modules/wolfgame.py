@@ -2111,7 +2111,7 @@ def transition_night(cli):
             cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
                              'If you visit a victim of a wolf, or visit a wolf, '+
-                             'you will die. Use !visit to visit a player.'))
+                             'you will die. Use visit to visit a player.'))
         else:
             cli.notice(harlot, "You are a \02harlot\02.")  # !simple
         pm(cli, harlot, "Players: "+", ".join(pl))
@@ -2124,7 +2124,7 @@ def transition_night(cli):
             cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. If you guard a'+
                               ' wolf, there is a 50/50 chance of you dying, if you guard '+
-                              'a victim, they will live. Use !guard to guard a player.'))
+                              'a victim, they will live. Use guard to guard a player.'))
         else:
             cli.notice(g_angel, "You are a \02guardian angel\02.")  # !simple
         pm(cli, g_angel, "Players: " + ", ".join(pl))
@@ -2140,7 +2140,7 @@ def transition_night(cli):
                           "identity of all users, even traitors.\n"+
                           "But, each time you use your ability, you risk a 2/5 "+
                           "chance of having your identity revealed to the wolves. So be "+
-                          "careful. Use \"!id\" to identify any player during the day."))
+                          "careful. Use \"{0}id\" to identify any player during the day.").format(botconfig.CMD_CHAR))
         else:
             cli.notice(dttv, "You are a \02detective\02.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
