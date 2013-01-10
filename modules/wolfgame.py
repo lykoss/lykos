@@ -299,8 +299,7 @@ if not var.OPT_IN_PING:
     @pmcmd("away", raw_nick=True)
     def away(cli, nick, *rest):
         """Use this to activate your away status (so you aren't pinged)."""
-        cloak = parse_nick(nick)[3]
-        nick = parse_nick(nick)[0]
+        nick, _, _, cloak = parse_nick(nick)
         if cloak in var.AWAY:
             var.AWAY.remove(cloak)
             var.remove_away(cloak)
@@ -316,8 +315,7 @@ if not var.OPT_IN_PING:
     @pmcmd("back", raw_nick=True)
     def back_from_away(cli, nick, *rest):
         """Unmarks away status"""
-        cloak = parse_nick(nick)[3]
-        nick = parse_nick(nick)[0]
+        nick, _, _, cloak = parse_nick(nick)
         if cloak not in var.AWAY:
             cli.notice(nick, "You are not marked as away.")
             return
