@@ -2176,7 +2176,7 @@ def transition_night(cli):
     var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if not var.ROLES["wolf"]:  # Probably something interesting going on.
+    if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
 
