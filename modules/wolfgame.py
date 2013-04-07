@@ -2664,7 +2664,17 @@ def _faftergame(cli, nick, chan, rest):
 @pmcmd("faftergame", admin_only=True, raw_nick=True)
 def faftergame(cli, nick, rest):
     _faftergame(cli, nick, botconfig.CHANNEL, rest)
-    
+
+@pmcmd("fghost", owner_only=True)
+@cmd("fghost", owner_only=True)
+def fghost(cli, nick, *rest):
+    cli.msg(botconfig.CHANNEL, nick + " is the ghost!")
+    cli.mode(botconfig.CHANNEL, "+v", nick)
+
+@pmcmd("funghost", owner_only=True)
+@cmd("funghost", owner_only=True)
+def funghost(cli, nick, *rest):
+    cli.mode(botconfig.CHANNEL, "-v", nick)
     
 @pmcmd("flastgame", admin_only=True, raw_nick=True)
 def flastgame(cli, nick, rest):
