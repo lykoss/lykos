@@ -2685,9 +2685,12 @@ def flastgame(cli, nick, rest):
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
         if "join" in COMMANDS.keys():
-            COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            del COMMANDS["join"]
+            cmd("join")(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
+            # manually recreate the command by calling the decorator function
         if "start" in COMMANDS.keys():
-            COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            del COMMANDS["start"]
+            cmd("join")(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
         
     cli.msg(chan, "Starting a new game has now been disabled by \02{0}\02.".format(nick))
     var.ADMIN_TO_PING = nick
