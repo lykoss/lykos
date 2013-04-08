@@ -2618,7 +2618,8 @@ def coin(cli, nick, chan, rest):
     
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
-    cmsg = "The coin lands on \2{0}\2.".format("heads" if random.random() < 0.5 else "tails")
+    coin = random.choice(["heads", "tails"])
+    cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
     
