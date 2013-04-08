@@ -1148,6 +1148,8 @@ def on_nick(cli, prefix, nick):
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
+
+    if what == "part" and why != botconfig.CHANNEL: return
         
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
@@ -1187,7 +1189,7 @@ def leave(cli, what, nick, why=""):
         var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
 
 #Functions decorated with hook do not parse the nick by default
-hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick))
+hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick, rest[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
 
