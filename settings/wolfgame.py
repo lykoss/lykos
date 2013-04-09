@@ -150,7 +150,6 @@ class ChangedRolesMode(object):
         self.ROLES_GUIDE = ROLES_GUIDE.copy()
         lx = list(ROLES_GUIDE[None])
         pairs = arg.split(",")
-        pl = list_players()
         if not pairs:
             raise InvalidModeException("Invalid syntax for mode roles.")
         for pair in pairs:
@@ -176,7 +175,6 @@ class ChangedRolesMode(object):
 
 # Load saved settings
 import sqlite3
-import os
 
 conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 
