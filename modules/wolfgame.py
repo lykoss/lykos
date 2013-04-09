@@ -13,13 +13,11 @@ import botconfig
 from tools.wolfgamelogger import WolfgameLogger
 from tools import decorators
 from datetime import datetime, timedelta
-from operator import itemgetter
 import threading
 import random
 import copy
 import time
 import re
-import logging
 import sys
 import os
 import imp
