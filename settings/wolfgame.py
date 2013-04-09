@@ -1,6 +1,6 @@
 PING_WAIT = 300  # Seconds
-PING_MIN_WAIT = 30
-MINIMUM_WAIT = 60 
+PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
+MINIMUM_WAIT = 60
 EXTRA_WAIT = 20
 MAXIMUM_WAITED = 2  # limit for amount of !wait's
 STATS_RATE_LIMIT = 15
@@ -63,7 +63,7 @@ ROLE_INDICES = {0 : "seer",
                 7 : "werecrow",
                 8 : "guardian angel",
                 9 : "detective"}
-                
+
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
 
@@ -81,7 +81,7 @@ RULES = (botconfig.CHANNEL + " channel rules: 1) Be nice to others. 2) Do not sh
          "after death. 3) No bots allowed. 4) Do not play with clones.\n"+
          "5) Do not quit unless you need to leave. 6) Keep it "+
          "safe for work. 7) Do not paste PM's from the bot during the game. "+
-         "8) Use common sense. 9) Waiting for timeouts is discouraged.")                                              
+         "8) Use common sense. 9) Waiting for timeouts is discouraged.")
 
 # Other settings:
 START_WITH_DAY = False
@@ -96,29 +96,29 @@ def plural(role):
     if role == "wolf": return "wolves"
     elif role == "person": return "people"
     else: return role + "s"
-    
+
 def list_players():
     pl = []
     for x in ROLES.values():
         pl.extend(x)
     return pl
-    
+
 def list_players_and_roles():
     plr = {}
     for x in ROLES.keys():
         for p in ROLES[x]:
             plr[p] = x
     return plr
-    
+
 get_role = lambda plyr: list_players_and_roles()[plyr]
 
 
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
-    
 
-    
+
+
 class InvalidModeException(Exception): pass
 def game_mode(name):
     def decor(c):
@@ -126,7 +126,7 @@ def game_mode(name):
         return c
     return decor
 
-    
+
 CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                      "wolves" : INDEX_OF_ROLE["wolf"],
                      "cursed" : INDEX_OF_ROLE["cursed villager"],
@@ -137,7 +137,7 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
                  "werecrows"  : INDEX_OF_ROLE["werecrow"],
                  "angels"     : INDEX_OF_ROLE["guardian angel"],
                  "detectives" : INDEX_OF_ROLE["detective"]}
-    
+
 
 
 
@@ -145,7 +145,7 @@ CHANGEABLE_ROLES = { "seers"  : INDEX_OF_ROLE["seer"],
 @game_mode("roles")
 class ChangedRolesMode(object):
     """Example: !fgame roles=wolves:1,seers:0,angels:1"""
-    
+
     def __init__(self, arg):
         self.ROLES_GUIDE = ROLES_GUIDE.copy()
         lx = list(ROLES_GUIDE[None])
@@ -170,10 +170,10 @@ class ChangedRolesMode(object):
         for k in ROLES_GUIDE.keys():
             self.ROLES_GUIDE[k] = tuple(lx)
 
-         
+
 # Persistence
-         
-         
+
+
 # Load saved settings
 import sqlite3
 import os
@@ -183,66 +183,66 @@ conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 with conn:
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
-    
+
     c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
 
     c.execute('SELECT * FROM away')
     for row in c:
         AWAY.append(row[0])
-        
+
     c.execute('SELECT * FROM simple_role_notify')
     for row in c:
         SIMPLE_NOTIFY.append(row[0])
-    
+
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
     c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
 
     for x in ["villager"]+list(ROLE_INDICES.values()):
         c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
-        
-        
+
+
     c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, role TEXT, '+
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
         'UNIQUE(player, role))'))
-        
+
     if OPT_IN_PING:
         c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
         c.execute('SELECT * FROM ping')
         for row in c:
             PING_IN.append(row[0])
-    
-    
+
+
 def remove_away(clk):
     with conn:
         c.execute('DELETE from away where nick=?', (clk,))
-    
+
 def add_away(clk):
     with conn:
         c.execute('INSERT into away VALUES (?)', (clk,))
-        
+
 def remove_simple_rolemsg(clk):
     with conn:
         c.execute('DELETE from simple_role_notify where cloak=?', (clk,))
-    
+
 def add_simple_rolemsg(clk):
     with conn:
         c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
-        
+
 def remove_ping(clk):
     with conn:
         c.execute('DELETE from ping where cloak=?', (clk,))
 def add_ping(clk):
     with conn:
-        c.execute('INSERT into ping VALUES (?)', (clk,))        
+        c.execute('INSERT into ping VALUES (?)', (clk,))
 
 
 def update_role_stats(acc, role, won, iwon):
-    
+
     with conn:
         wins, iwins, totalgames = 0, 0, 0
-        
+
         c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
                    "WHERE player=? AND role=?"), (acc, role))
         row = c.fetchone()
@@ -250,13 +250,13 @@ def update_role_stats(acc, role, won, iwon):
             wins, iwins, total = row
         else:
             wins, iwins, total = 0,0,0
-            
+
         if won:
             wins += 1
         if iwon:
             iwins += 1
         total += 1
-        
+
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
