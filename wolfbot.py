@@ -17,10 +17,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
-
 from oyoyo.client import IRCClient
-from oyoyo.parse import parse_nick
 import logging
 import botconfig
 import time
@@ -28,8 +25,10 @@ import traceback
 import modules.common
 import sys
 
+
 class UTCFormatter(logging.Formatter):
     converter = time.gmtime
+
 
 def main():
     if botconfig.DEBUG_MODE:
@@ -48,12 +47,12 @@ def main():
     formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
     for handler in logger.handlers:
         handler.setFormatter(formatter)
-    
+
     cli = IRCClient(
-                      {"privmsg":modules.common.on_privmsg,
-                       "notice":lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
-                       "":modules.common.__unhandled__},
-                     host=botconfig.HOST, 
+                      {"privmsg": modules.common.on_privmsg,
+                       "notice": lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
+                       "": modules.common.__unhandled__},
+                     host=botconfig.HOST,
                      port=botconfig.PORT,
                      authname=botconfig.USERNAME,
                      password=botconfig.PASS,
@@ -61,7 +60,7 @@ def main():
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
                      connect_cb=modules.common.connect_callback
-                    )
+    )
     cli.mainLoop()
 
 
