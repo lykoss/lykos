@@ -13,6 +13,7 @@ import botconfig
 from tools.wolfgamelogger import WolfgameLogger
 from tools import decorators
 from datetime import datetime, timedelta
+from operator import itemgetter
 import threading
 import random
 import copy
@@ -2622,8 +2623,22 @@ def coin(cli, nick, chan, rest):
     cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
-    
 
+@cmd("roles")
+def listroles(cli, nick, chan, rest):
+    """Display which roles are enabled and when"""
+
+    old = var.ROLES_GUIDE.get(None)
+
+    txt = ""
+    for i,v in sorted({i:var.ROLES_GUIDE[i] for i in var.ROLES_GUIDE if i is not None}.items()):
+        txt += "[" + str(i) + "] "
+        for index, amt in enumerate(v):
+            if amt - old[index] != 0:
+                txt = txt + var.ROLE_INDICES[index] + ", "
+        txt = txt[:-2] + " "
+        old = v
+    cli.msg(botconfig.CHANNEL, txt)
 
 def aftergame(cli, rawnick, rest):
     """Schedule a command to be run after the game by someone."""
