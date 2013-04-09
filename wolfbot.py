@@ -32,7 +32,10 @@ class UTCFormatter(logging.Formatter):
     converter = time.gmtime
 
 def main():
-    if not botconfig.DEBUG_MODE:
+    if botconfig.DEBUG_MODE:
+        logging.basicConfig(level=logging.DEBUG)
+        logger = logging.getLogger()
+    else:
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG)
         fh = logging.FileHandler("errors.log")
@@ -42,14 +45,9 @@ def main():
             hdlr = logging.StreamHandler(sys.stdout)
             hdlr.setLevel(logging.DEBUG)
             logger.addHandler(hdlr)
-        formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
-        for handler in logger.handlers:
-            handler.setFormatter(formatter)
-    else:
-        logging.basicConfig(level=logging.DEBUG)
-        formatter = UTCFormatter('[%(asctime)s] %(message)s', '%H:%M:%S')
-        for handler in logging.getLogger().handlers:
-            handler.setFormatter(formatter)
+    formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
+    for handler in logger.handlers:
+        handler.setFormatter(formatter)
     
     cli = IRCClient(
                       {"privmsg":modules.common.on_privmsg,
