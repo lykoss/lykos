@@ -1443,6 +1443,7 @@ def vote(cli, nick, chann_, rest):
         cli.msg(chan, ("{0}: You are wounded and resting, "+
                       "thus you are unable to vote for the day.").format(nick))
         return
+
     pl = var.list_players()
     pl_l = [x.strip().lower() for x in pl]
     rest = re.split(" +",rest)[0].strip().lower()
@@ -1465,6 +1466,11 @@ def vote(cli, nick, chann_, rest):
             return
         
     voted = pl[pl_l.index(target)]
+
+    if nick == voted:
+        cli.notice(nick, "You may not vote for yourself.")
+        return
+
     lcandidates = list(var.VOTES.keys())
     for voters in lcandidates:  # remove previous vote
         if nick in var.VOTES[voters]:
