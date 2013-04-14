@@ -2711,7 +2711,6 @@ def listroles(cli, nick, chan, rest):
 
     pl = len(var.ORIGINAL_ROLES)
     if pl > 1:
-        j
         txt += '{0}: There are \u0002{1}\u0002 playing. '.format(nick, pl)
 
     for i,v in sorted({i:var.ROLES_GUIDE[i] for i in var.ROLES_GUIDE if i is not None}.items()):
