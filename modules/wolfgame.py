@@ -561,7 +561,10 @@ def hurry_up(cli, gameid, change):
                       "are no votes or an even split.\02"))
         if not var.DAY_TIME_LIMIT_CHANGE:
             return
-        tmr = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
+        if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
+            tmr = threading.Timer(var.SHORT_DAY_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
+        else:
+            tmr = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
         tmr.daemon = True
         var.TIMERS["day"] = tmr
         tmr.start()
@@ -1231,7 +1234,10 @@ def begin_day(cli):
 
     if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
         var.DAY_ID = time.time()
-        t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
+        if len(var.list_players()) <= var.SHORT_DAY_PLAYERS:
+            t = threading.Timer(var.SHORT_DAY_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
+        else:
+            t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
         var.TIMERS["day_warn"] = t
         t.daemon = True
         t.start()

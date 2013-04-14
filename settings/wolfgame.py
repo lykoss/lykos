@@ -13,6 +13,10 @@ NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 0  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
+# May only be set if the above are also set
+SHORT_DAY_PLAYERS = 6 # Number of players left to have a short day
+SHORT_DAY_LIMT_WARN = 400
+SHORT_DAY_LIMIT_CHANGE = 120
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 7
