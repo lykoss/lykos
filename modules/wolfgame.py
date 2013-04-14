@@ -2708,11 +2708,25 @@ def listroles(cli, nick, chan, rest):
     old = var.ROLES_GUIDE.get(None)
 
     txt = ""
+
+    pl = len(var.ORIGINAL_ROLES)
+    if pl > 1:
+        j
+        txt += '{0}: There are \u0002{1}\u0002 playing. '.format(nick, pl)
+
     for i,v in sorted({i:var.ROLES_GUIDE[i] for i in var.ROLES_GUIDE if i is not None}.items()):
+        BOLD = "\u0002"
+        if (i <= pl):
+            txt += BOLD
         txt += "[" + str(i) + "] "
+        if (i <= pl):
+            txt += BOLD
         for index, amt in enumerate(v):
             if amt - old[index] != 0:
-                txt = txt + var.ROLE_INDICES[index] + ", "
+                if amt > 1:
+                    txt = txt + var.ROLE_INDICES[index] + "({0}), ".format(amt)
+                else:
+                    txt = txt + var.ROLE_INDICES[index] + ", "
         txt = txt[:-2] + " "
         old = v
     cli.msg(botconfig.CHANNEL, txt)
