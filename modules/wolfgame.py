@@ -13,6 +13,7 @@ import botconfig
 from tools.wolfgamelogger import WolfgameLogger
 from tools import decorators
 from datetime import datetime, timedelta
+from collections import defaultdict
 import threading
 import random
 import copy
@@ -63,6 +64,8 @@ var.GRAVEYARD_LOCK = threading.RLock()
 var.GAME_ID = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
+
+var.illegal_joins = defaultdict(int)
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
@@ -367,7 +370,16 @@ def join(cli, nick, chann_, rest):
     chan = botconfig.CHANNEL
     
     nick, _, __, cloak = parse_nick(nick)
+
+    try:
+        cloak = var.USERS[nick]['cloak']
+        if cloak is not None and var.illegal_joins[cloak] > 0:
+            cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.illegal_joins[cloak]))
+            return
+    except KeyError:
+        cloak = None
     
+
     if var.PHASE == "none":
     
         cli.mode(chan, "+v", nick)
@@ -968,6 +980,12 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
                         "for a very long time. S/He is declared dead. Appears "+
                         "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
+                    try:
+                        cloak = var.USERS[nck]['cloak']
+                        if cloak is not None:
+                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
+                    except KeyError:
+                        pass
                     if not del_player(cli, nck):
                         return
                 pl = var.list_players()
@@ -981,11 +999,23 @@ def reaper(cli, gameid):
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
                                    "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    try:
+                        cloak = var.USERS[dcedplayer]['cloak']
+                        if cloak is not None:
+                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
+                    except KeyError:
+                        pass
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
                                    "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    try:
+                        cloak = var.USERS[dcedplayer]['cloak']
+                        if cloak is not None:
+                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
+                    except KeyError:
+                        pass
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
         time.sleep(10)
@@ -1167,7 +1197,6 @@ def leave(cli, what, nick, why=""):
         var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         return
-    
         
     #  the player who just quit was in the game
     killhim = True
@@ -1185,6 +1214,13 @@ def leave(cli, what, nick, why=""):
                "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
+    try:
+        cloak = var.USERS[str(nick)]['cloak']
+        if cloak is not None:
+            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
+    except KeyError:
+        pass
+
     if killhim:
         del_player(cli, nick)
     else:
@@ -1209,7 +1245,16 @@ def leave_game(cli, nick, chan, rest):
                                 "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
     var.LOGGER.logMessage(("{0} died of an unknown disease. "+
                            "S/He was a {1}.").format(nick, var.get_role(nick)))
+    try:
+        if var.get_role(nick) != "person":
+            cloak = var.USERS[str(nick)]['cloak']
+            if cloak is not None:
+                var.illegal_joins[cloak] += var.LEAVE_STASIS_PENALTY
+    except KeyError:
+        pass
+
     del_player(cli, nick)
+    
 
 
 
@@ -2392,6 +2437,10 @@ def start(cli, nick, chann_, rest):
     else:
         transition_day(cli)
 
+    for cloak in var.illegal_joins:
+        if var.illegal_joins[cloak] != 0:
+            var.illegal_joins[cloak] -= 1
+
     # DEATH TO IDLERS!
     reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
     reapertimer.daemon = True
@@ -2405,7 +2454,25 @@ def on_error(cli, pfx, msg):
         restart_program(cli, "excess flood", "")
     elif msg.startswith("Closing Link:"):
         raise SystemExit
-    
+
+
+@pmcmd("fstasis", admin_only=True)
+def fstasis(cli, nick, *rest):
+    data = rest[0].split()
+    if len(data) == 2:
+        if data[0] in var.USERS:
+            cloak = var.USERS[str(data[0])]['cloak']
+        else:
+            cloak = None
+        amt = data[1]
+        if cloak is not None:
+            var.illegal_joins[cloak] = int(amt)
+            cli.msg(nick, "{0} is now in statis for {1} games".format(data[0], amt))
+        else:
+            cli.msg(nick, "Sorrry, that user has a None cloak")
+    else:
+        cli.msg(nick, "current illegal joins: " + str(var.illegal_joins))
+
 
 
 @cmd("wait")
