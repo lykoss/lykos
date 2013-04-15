@@ -2697,6 +2697,8 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     coin = random.choice(["heads", "tails"])
+    if random.randrange(0, 20) == 0:
+        coin = "on its side"
     cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
