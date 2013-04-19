@@ -25,6 +25,8 @@ import imp
 import math
 import fnmatch
 
+BOLD = "\u0002"
+
 COMMANDS = {}
 PM_COMMANDS = {}
 HOOKS = {}
@@ -181,6 +183,13 @@ def reset(cli):
     dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
 
+def make_stasis(nick, penalty):
+    try:
+        cloak = var.USERS[nick]['cloak']
+        if cloak is not None:
+            var.illegal_joins[cloak] += penalty
+    except KeyError:
+        pass
 
 @pmcmd("fdie", "fbye", admin_only=True)
 @cmd("fdie", "fbye", admin_only=True)
@@ -980,12 +989,7 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
                         "for a very long time. S/He is declared dead. Appears "+
                         "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
-                    try:
-                        cloak = var.USERS[nck]['cloak']
-                        if cloak is not None:
-                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
-                    except KeyError:
-                        pass
+                    make_stasis(nck, var.PART_STASIS_PENALTY)
                     if not del_player(cli, nck):
                         return
                 pl = var.list_players()
@@ -1030,7 +1034,16 @@ def update_last_said(cli, nick, chan, rest):
     if var.PHASE not in ("none", "join"):
         var.LOGGER.logChannelMessage(nick, rest)
 
-
+    if var.CARE_BOLD and BOLD in "".join(rest):
+        if var.KILL_BOLD:
+            cli.send("KICK {0} {1} :Using bold is not allowed".format(botconfig.CHANNEL, nick))
+        else:
+            cli.msg(botconfig.CHANNEL, nick + ": Using bold in the channel is not allowed.")
+    if var.CARE_COLOR and "\x03" in "".join(rest):
+        if var.KILL_COLOR:
+            cli.send("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
+        else:
+            cli.msg(botconfig.CHANNEL, nick + ": Using color in the channel is not allowed.")
 
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
@@ -2716,7 +2729,6 @@ def listroles(cli, nick, chan, rest):
         txt += '{0}: There are \u0002{1}\u0002 playing. '.format(nick, pl)
 
     for i,v in sorted({i:var.ROLES_GUIDE[i] for i in var.ROLES_GUIDE if i is not None}.items()):
-        BOLD = "\u0002"
         if (i <= pl):
             txt += BOLD
         txt += "[" + str(i) + "] "
