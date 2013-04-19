@@ -1034,12 +1034,13 @@ def update_last_said(cli, nick, chan, rest):
     if var.PHASE not in ("none", "join"):
         var.LOGGER.logChannelMessage(nick, rest)
 
-    if var.CARE_BOLD and BOLD in "".join(rest):
+    fullstring = "".join(rest)
+    if var.CARE_BOLD and BOLD in fullstring:
         if var.KILL_BOLD:
             cli.send("KICK {0} {1} :Using bold is not allowed".format(botconfig.CHANNEL, nick))
         else:
             cli.msg(botconfig.CHANNEL, nick + ": Using bold in the channel is not allowed.")
-    if var.CARE_COLOR and "\x03" in "".join(rest):
+    if var.CARE_COLOR and any(code in fullstring for code in ["\x03", "\x16", "\x1f" ]):
         if var.KILL_COLOR:
             cli.send("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
         else:
