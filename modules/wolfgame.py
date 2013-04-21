@@ -1532,9 +1532,10 @@ def vote(cli, nick, chann_, rest):
         
     voted = pl[pl_l.index(target)]
 
-    if nick == voted:
-        cli.notice(nick, "You may not vote for yourself.")
-        return
+    if not var.SELF_LYNCH_ALLOWED:
+        if nick == voted:
+            cli.notice(nick, "Please try to save yourself.")
+            return
 
     lcandidates = list(var.VOTES.keys())
     for voters in lcandidates:  # remove previous vote
