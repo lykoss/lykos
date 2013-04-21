@@ -2481,7 +2481,7 @@ def fstasis(cli, nick, *rest):
         amt = data[1]
         if cloak is not None:
             var.illegal_joins[cloak] = int(amt)
-            cli.msg(nick, "{0} is now in statis for {1} games".format(data[0], amt))
+            cli.msg(nick, "{0} is now in stasis for {1} games".format(data[0], amt))
         else:
             cli.msg(nick, "Sorrry, that user has a None cloak")
     else:
