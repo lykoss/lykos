@@ -2399,8 +2399,8 @@ def start(cli, nick, chann_, rest):
     del var.ROLES["gunner"]
 
     var.ROLES["goat herder"] = []
-    if var.GOAT_HERDER:
-        var.ROLES["goat herder"] = nick
+    #if var.GOAT_HERDER:
+    #   var.ROLES["goat herder"] = nick
 
     var.ROLES["villager"] = villagers
 
