@@ -1079,7 +1079,7 @@ def goat(cli, nick, chan, rest):
     if var.PHASE != "day":
         cli.notice(nick, "You can only do that in the day.")
         return
-    if var.GOATED and nick != var.ROLES["goat herder"]:
+    if var.GOATED and nick in var.ROLES["goat herder"]:
         cli.notice(nick, "You can only do that once per day.")
         return
     ul = list(var.USERS.keys())
@@ -2398,7 +2398,7 @@ def start(cli, nick, chann_, rest):
                 var.GUNNERS[gnr] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
     del var.ROLES["gunner"]
 
-    var.ROLES["goat herder"] = None
+    var.ROLES["goat herder"] = []
     if var.GOAT_HERDER:
         var.ROLES["goat herder"] = [ random.choice(pl) ]
 
