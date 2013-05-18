@@ -2400,7 +2400,7 @@ def start(cli, nick, chann_, rest):
 
     var.ROLES["goat herder"] = []
     if var.GOAT_HERDER:
-        var.ROLES["goat herder"] = [ random.choice(pl) ]
+        var.ROLES["goat herder"] = [ random.choice(var.list_players()) ]
 
     var.ROLES["villager"] = villagers
 
