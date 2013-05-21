@@ -90,7 +90,8 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
                   "Under a lot of noise, the pitchfork-bearing villagers lynch \u0002{0}\u0002, who turned out to be... a \u0002{1}\u0002.",
                   "The mob drags a protesting \u0002{0}\u0002 to the hanging tree. S/He succumbs to the will of the horde, and is hanged. It is discovered (s)he was a \u0002{1}\u0002.",
                   "Resigned to his/her fate, \u0002{0}\u0002 is led to the gallows. After death, it is discovered (s)he was a \u0002{1}\u0002.",
-                  "As s/he is about to be lynched, \u0002{0}\u0002, the \u0002{1}\u0002, throws a grenade at the mob.  The grenade explodes early.")
+                  "As s/he is about to be lynched, \u0002{0}\u0002, the \u0002{1}\u0002, throws a grenade at the mob.  The grenade explodes early.",
+                  "As the real wolves run away from the murderous mob, \u0002{0}\u0002 trips and falls.  It is discovered that (s)he was a \u0002{1}\u0002.")
 
 import botconfig
 
