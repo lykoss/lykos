@@ -1394,7 +1394,7 @@ def transition_day(cli, gameid=0):
     elif victim in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
         if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
-                           "but she wasn't home.")
+                           "but s/he wasn't home.")
     if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(victim)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
@@ -2716,12 +2716,12 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     coin = random.choice(["heads", "tails"])
-    specialty = random.randrange(0,20)
-    if specialty == 0:
-        coin = "its side"
-    if specialty == 1:
-        coin = botconfig.NICK
-    cmsg = "The coin lands on \2{0}\2.".format(coin)
+    #specialty = random.randrange(0,20)
+    #if specialty == 0:
+    #    coin = "its side"
+    #if specialty == 1:
+    #    coin = botconfig.NICK
+    #cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
