@@ -2721,7 +2721,7 @@ def coin(cli, nick, chan, rest):
     #    coin = "its side"
     #if specialty == 1:
     #    coin = botconfig.NICK
-    #cmsg = "The coin lands on \2{0}\2.".format(coin)
+    cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
