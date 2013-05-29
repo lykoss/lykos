@@ -554,10 +554,11 @@ def stats(cli, nick, chan, rest):
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
-    stats_mssg =  "{0}: There {3} {1}, and {2}.".format(nick,
+    stats_mssg =  "{0}: It is currently {4}. There {3} {1}, and {2}.".format(nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
-                                                        vb)
+                                                        vb,
+                                                        var.PHASE)
     if nick in pl or var.PHASE == "join":
         cli.msg(chan, stats_mssg)
         var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
