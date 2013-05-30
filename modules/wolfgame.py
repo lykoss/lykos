@@ -1057,7 +1057,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
             if cloak == clk:
                 cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
-                
+                var.LAST_SAID_TIME[nick] = datetime.now()
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
                 for r,rlist in var.ORIGINAL_ROLES.items():
                     if "(dced)"+nick in rlist:
@@ -1222,6 +1222,7 @@ def leave(cli, what, nick, why=""):
                "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
+        del var.LAST_SAID_TIME[nick]
         killhim = False
     else:
         msg = ("\02{0}\02 died due to falling off a cliff. Appears "+
