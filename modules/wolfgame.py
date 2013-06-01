@@ -990,7 +990,7 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
                         "for a very long time. S/He is declared dead. Appears "+
                         "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
-                    make_stasis(nck, var.PART_STASIS_PENALTY)
+                    make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     if not del_player(cli, nck):
                         return
                 pl = var.list_players()
