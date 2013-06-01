@@ -47,6 +47,7 @@ var.USERS = {}
 var.PINGING = False
 var.ADMIN_PINGING = False
 var.ROLES = {"person" : []}
+var.SPECIAL_ROLES = {}
 var.ORIGINAL_ROLES = {}
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
