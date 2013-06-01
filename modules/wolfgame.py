@@ -1006,14 +1006,14 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
                                    "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
                     if var.PHASE != "join":
-                        make_stasis(cloak, var.PART_STASIS_PENALTY)
+                        make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
                                    "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
                     if var.PHASE != "join":
-                        make_stais(cloak, var.PART_STASIS_PENALTY)
+                        make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
         time.sleep(10)
@@ -1053,6 +1053,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
+                make_stasis(nick, var.PART_STASIS_PENALTY)
                 for r,rlist in var.ORIGINAL_ROLES.items():
                     if "(dced)"+nick in rlist:
                         rlist.remove("(dced)"+nick)
