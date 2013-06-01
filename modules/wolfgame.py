@@ -1224,12 +1224,7 @@ def leave(cli, what, nick, why=""):
                "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
-    try:
-        cloak = var.USERS[str(nick)]['cloak']
-        if cloak is not None:
-            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
-    except KeyError:
-        pass
+    make_stasis(nick, var.PART_STASIS_PENALTY)
 
     if killhim:
         del_player(cli, nick)
