@@ -1053,7 +1053,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
-                make_stasis(nick, var.PART_STASIS_PENALTY)
+                make_stasis(nick, -var.PART_STASIS_PENALTY)
                 for r,rlist in var.ORIGINAL_ROLES.items():
                     if "(dced)"+nick in rlist:
                         rlist.remove("(dced)"+nick)
