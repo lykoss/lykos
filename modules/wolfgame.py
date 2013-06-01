@@ -1004,23 +1004,15 @@ def reaper(cli, gameid):
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
                                    "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    try:
-                        cloak = var.USERS[dcedplayer]['cloak']
-                        if cloak is not None:
-                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
-                    except KeyError:
-                        pass
+                    if var.PHASE != "join":
+                        make_stasis(cloak, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
                                    "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
-                    try:
-                        cloak = var.USERS[dcedplayer]['cloak']
-                        if cloak is not None:
-                            var.illegal_joins[cloak] += var.PART_STASIS_PENALTY
-                    except KeyError:
-                        pass
+                    if var.PHASE != "join":
+                        make_stais(cloak, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
         time.sleep(10)
