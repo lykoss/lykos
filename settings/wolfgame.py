@@ -2,7 +2,7 @@ PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 20
-MAXIMUM_WAITED = 2  # limit for amount of !wait's
+MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 15
 VOTES_RATE_LIMIT = 15
 ADMINS_RATE_LIMIT = 300
@@ -10,7 +10,7 @@ SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MAX_PLAYERS = 30
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
-NIGHT_TIME_WARN = 0  # should be less than NIGHT_TIME_LIMIT
+NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
 # May only be set if the above are also set
@@ -21,10 +21,11 @@ KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 7
 QUIT_GRACE_TIME = 30
-MAX_PRIVMSG_TARGETS = 1
-LEAVE_STASIS_PENALTY = 3
-IDLE_STASIS_PENALTY = 2
-PART_STASIS_PENALTY = 4
+#  controls how many people it does in one /msg; only works for messages that are the same
+MAX_PRIVMSG_TARGETS = 2
+LEAVE_STASIS_PENALTY = 1
+IDLE_STASIS_PENALTY = 0
+PART_STASIS_PENALTY = 1
 
 GOAT_HERDER = True
 
