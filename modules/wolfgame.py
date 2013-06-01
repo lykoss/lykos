@@ -1186,6 +1186,7 @@ def on_nick(cli, prefix, nick):
                     
                     cli.msg(chan, ("\02{0}\02 has returned to "+
                                    "the village.").format(nick))
+                    make_stasis(nick, -var.PART_STASIS_PENALTY)
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
