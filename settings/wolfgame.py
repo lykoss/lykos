@@ -82,7 +82,6 @@ ROLE_INDICES = {0 : "seer",
 
 INDEX_OF_ROLE = dict((v,k) for k,v in ROLE_INDICES.items())
 
-
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
                        "A pool of blood and wolf paw prints are found.",
                        "Traces of wolf fur are found.")
