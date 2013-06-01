@@ -1218,7 +1218,10 @@ def leave(cli, what, nick, why=""):
                "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
-        del var.LAST_SAID_TIME[nick]
+        try:
+            del var.LAST_SAID_TIME[nick]
+        except KeyError:
+            pass
         killhim = False
     else:
         msg = ("\02{0}\02 died due to falling off a cliff. Appears "+
