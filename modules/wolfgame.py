@@ -472,7 +472,7 @@ def fleave(cli, nick, chann_, rest):
 def fstart(cli, nick, chan, rest):
     var.CAN_START_TIME = datetime.now()
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, chan, chan, rest)
+    start(cli, nick, chan, rest)
 
 
 
