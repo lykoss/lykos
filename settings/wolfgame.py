@@ -19,7 +19,7 @@ SHORT_DAY_LIMIT_WARN = 400
 SHORT_DAY_LIMIT_CHANGE = 120
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
-PART_GRACE_TIME = 7
+PART_GRACE_TIME = 12
 QUIT_GRACE_TIME = 30
 #  controls how many people it does in one /msg; only works for messages that are the same
 MAX_PRIVMSG_TARGETS = 2
