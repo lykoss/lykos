@@ -411,7 +411,7 @@ def join(cli, nick, chann_, rest):
     
         cli.mode(chan, "+v", nick)
         var.ROLES["person"].append(nick)
-        cli.msg(chan, '\u0002{0}\u0002 has joined the game.'.format(nick))
+        cli.msg(chan, '\u0002{0}\u0002 has joined the game. New player count: \u0002{1}\u0002'.format(nick, len(pl) + 1))
         
         var.LAST_STATS = None # reset
 
@@ -463,6 +463,8 @@ def fleave(cli, nick, chann_, rest):
         cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
                        " \u0002{1}\u0002 to leave.").format(nick, a))
         cli.msg(chan, "Say goodbye to the \02{0}\02.".format(var.get_role(a)))
+        if var.PHASE == "join":
+            cli.msg(chan, ("New player count: \u0002{0}\u0002").format(len(var.list_players()) - 1))
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
             var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_role(a)))
@@ -1244,10 +1246,14 @@ def leave_game(cli, nick, chan, rest):
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
+    elif var.PHASE == "join":
+        population = (" New player count: \u0002{0}\u0002").format(len(var.list_players()) - 1)
+    else:
+        population = ""
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.").format(nick, var.get_role(nick)))
+    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_role(nick), population))
     var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_role(nick)))
     if var.PHASE != "join":
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
