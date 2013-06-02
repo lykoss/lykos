@@ -2204,9 +2204,11 @@ def transition_night(cli):
         else:
             cli.notice(dttv, "You are a \02detective\02.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
-    for d in var.ROLES["village drunk"]:
-        if var.FIRST_NIGHT:
-            pm(cli, d, 'You have been drinking too much! You are the \u0002village drunk\u0002.')
+    for drunk in var.ROLES["village drunk"]:
+        if drunk in var.PLAYERS and var.PLAYERS[drunk]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(drunk, "You have been drinking too much! You are the \u0002village drunk\u0002.")
+        else:
+            cli.notice(drunk, "You are the \u0002village drunk\u0002.")
 
     for g in tuple(var.GUNNERS.keys()):
         if g not in ps:
