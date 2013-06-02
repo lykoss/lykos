@@ -462,10 +462,10 @@ def fleave(cli, nick, chann_, rest):
             return
         cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
                        " \u0002{1}\u0002 to leave.").format(nick, a))
-        cli.msg(chan, "Appears (s)he was a \02{0}\02.".format(var.get_role(a)))
+        cli.msg(chan, "Say goodbye to the \02{0}\02.".format(var.get_role(a)))
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
-            var.LOGGER.logMessage("Appears (s)he was a {0}.".format(var.get_role(a)))
+            var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_role(a)))
         del_player(cli, a)
 
 
@@ -779,7 +779,7 @@ def stop_game(cli, winner = ""):
     var.LOGGER.saveToFile()
     
     for plr, rol in plrl:
-        #if plr not in var.USERS.keys():  # he died TODO: when a player leaves, count the game as lost for him
+        #if plr not in var.USERS.keys():  # they died TODO: when a player leaves, count the game as lost for them
         #    if plr in var.DEAD_USERS.keys():
         #        acc = var.DEAD_USERS[plr]["account"]
         #    else:
@@ -925,7 +925,7 @@ def del_player(cli, nick, forced_death = False, devoice = True):
                 var.DEAD.append(nick)
             ret = not chk_win(cli)
         if var.PHASE in ("night", "day") and ret:
-            # remove him from variables if he is in there
+            # remove the player from variables if they're in there
             for a,b in list(var.KILLS.items()):
                 if b == nick:
                     del var.KILLS[a]
@@ -942,11 +942,11 @@ def del_player(cli, nick, forced_death = False, devoice = True):
                 del var.DISCONNECTED[nick]
         if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
             if nick in var.VOTES.keys():
-                del var.VOTES[nick]  #  Delete other people's votes on him
+                del var.VOTES[nick]  #  Delete other people's votes on the player
             for k in list(var.VOTES.keys()):
                 if nick in var.VOTES[k]:
                     var.VOTES[k].remove(nick)
-                    if not var.VOTES[k]:  # no more votes on that guy
+                    if not var.VOTES[k]:  # no more votes on that person
                         del var.VOTES[k]
                     break # can only vote once
                     
@@ -977,20 +977,20 @@ def reaper(cli, gameid):
                             to_warn.append(nick)
                         var.IDLE_WARNED.append(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
-                            timedelta(seconds=var.WARN_IDLE_TIME))  # Give him a chance
+                            timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
                     elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
                         nick in var.IDLE_WARNED):
                         if var.KILL_IDLE_TIME:
                             to_kill.append(nick)
                     elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
                         nick in var.IDLE_WARNED):
-                        var.IDLE_WARNED.remove(nick)  # he saved himself from death
+                        var.IDLE_WARNED.remove(nick)  # player saved himself from death
                 for nck in to_kill:
                     if nck not in var.list_players():
                         continue
-                    cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed "+
-                        "for a very long time. S/He is declared dead. Appears "+
-                        "(s)he was a \u0002{1}\u0002.").format(nck, var.get_role(nck)))
+                    cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long "+
+                                   "time and has been found dead. The survivors bury "+
+                                   "the \u0002{1}\u0002's body.").format(nck, var.get_role(nck)))
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     if not del_player(cli, nck):
                         return
@@ -1003,15 +1003,15 @@ def reaper(cli, gameid):
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 _, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
-                    cli.msg(chan, ("\02{0}\02 died due to a fatal attack by wild animals. Appears (s)he "+
-                                   "was a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
+                                   "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_role(dcedplayer)))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
-                    cli.msg(chan, ("\02{0}\02 died due to eating poisonous berries.  Appears (s)he was "+
-                                   "a \02{1}\02.").format(dcedplayer, var.get_role(dcedplayer)))
+                    cli.msg(chan, ("\02{0}\02, a \02{1}\02, ate some poisonous berries "+
+                                   "and has died.").format(dcedplayer, var.get_role(dcedplayer)))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
@@ -1209,29 +1209,25 @@ def leave(cli, what, nick, why=""):
         return
         
     #  the player who just quit was in the game
-    killhim = True
+    killplayer = True
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
-        msg = ("\02{0}\02 died due to eating poisonous berries. Appears "+
-               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
+        msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
+               "died.").format(nick, var.get_role(nick))
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
-        msg = ("\02{0}\02 died due to a fatal attack by wild animals. Appears "+
-               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
+        msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
+               "\02{1}\02 meat is tasty.").format(nick, var.get_role(nick))
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
-        try:
-            del var.LAST_SAID_TIME[nick]
-        except KeyError:
-            pass
-        killhim = False
+        killplayer = False
     else:
-        msg = ("\02{0}\02 died due to falling off a cliff. Appears "+
-               "(s)he was a \02{1}\02.").format(nick, var.get_role(nick))
+        msg = ("\02{0}\02 died due to falling off a cliff. The "+
+               "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
     if var.PHASE != "join":
         make_stasis(nick, var.PART_STASIS_PENALTY)
 
-    if killhim:
+    if killplayer:
         del_player(cli, nick)
     else:
         var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
@@ -1251,11 +1247,8 @@ def leave_game(cli, nick, chan, rest):
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    cli.msg(botconfig.CHANNEL, ("\02{0}\02 died of an unknown disease. "+
-                                "S/He was a \02{1}\02.").format(nick, var.get_role(nick)))
-    var.LOGGER.logMessage(("{0} died of an unknown disease. "+
-                           "S/He was a {1}.").format(nick, var.get_role(nick)))
-
+    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.").format(nick, var.get_role(nick)))
+    var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_role(nick)))
     if var.PHASE != "join":
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
@@ -1378,7 +1371,7 @@ def transition_day(cli, gameid=0):
                           "all night long, and you fly back to your house.").format(target))
     if victim in var.GUARDED.values():
         message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
-                        "guardian angel protected him/her.").format(victim))
+                        "guardian angel was on duty.").format(victim))
         victim = ""
     elif not victim:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
@@ -1386,12 +1379,12 @@ def transition_day(cli, gameid=0):
     elif victim in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
         if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
-                           "but s/he wasn't home.")
+                           "who was not at home last night.")
     if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(victim)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
-                        "\u0002{1}\u0002, is found. Those remaining mourn his/her "+
-                        "death.").format(victim, var.get_role(victim)))
+                        "\u0002{1}\u0002, is found. Those remaining mourn the "+
+                        "tragedy.").format(victim, var.get_role(victim)))
         dead.append(victim)
         var.LOGGER.logBare(victim, "KILLED")
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
@@ -1444,7 +1437,7 @@ def transition_day(cli, gameid=0):
         guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"] 
                                  + var.ROLES["traitor"])  # random looter
         numbullets = var.GUNNERS[victim]
-        var.WOLF_GUNNERS[guntaker] = numbullets  # transfer bullets to him/her
+        var.WOLF_GUNNERS[guntaker] = numbullets  # transfer bullets a wolf
         mmsg = ("While searching {2}'s belongings, You found " + 
                 "a gun loaded with {0} silver bullet{1}! " + 
                 "You may only use it during the day. " +
@@ -1575,9 +1568,9 @@ def retract(cli, nick, chann_, rest):
             var.VOTES[voter].remove(nick)
             if not var.VOTES[voter]:
                 del var.VOTES[voter]
-            cli.msg(chan, "\u0002{0}\u0002 retracted his/her vote.".format(nick))
+            cli.msg(chan, "\u0002{0}\u0002's vote was retracted".format(nick))
             var.LOGGER.logBare(voter, "RETRACT", nick)
-            var.LOGGER.logMessage("{0} retracted his/her vote.".format(nick))
+            var.LOGGER.logMessage("{0}'s vote was retracted.".format(nick))
             var.LAST_VOTES = None # reset
             break
     else:
@@ -1662,18 +1655,18 @@ def shoot(cli, nick, chann_, rest):
         elif random.random() <= var.MANSLAUGHTER_CHANCE:
             cli.msg(chan, ("\u0002{0}\u0002 is a not a wolf "+
                            "but was accidentally fatally injured.").format(victim))
-            cli.msg(chan, "Appears (s)he was a \u0002{0}\u0002.".format(victimrole))
+            cli.msg(chan, "The village has sacrificed a \u0002{0}\u0002.".format(victimrole))
             var.LOGGER.logMessage("{0} is not a wolf but was accidentally fatally injured.".format(victim))
-            var.LOGGER.logMessage("Appears (s)he was a {0}.".format(victimrole))
+            var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
             if not del_player(cli, victim):
                 return
         else:
-            cli.msg(chan, ("\u0002{0}\u0002 is a villager and is injured but "+
-                          "will have a full recovery. S/He will be resting "+
-                          "for the day.").format(victim))
-            var.LOGGER.logMessage(("{0} is a villager and is injured but "+
-                            "will have a full recovery.  S/He will be resting "+
-                            "for the day").format(victim))
+            cli.msg(chan, ("\u0002{0}\u0002 is a villager and was injured. Luckily "+
+                          "the injury is minor and will heal after a day of "+
+                          "rest.").format(victim))
+            var.LOGGER.logMessage(("{0} is a villager and was injured. Luckily "+
+                          "the injury is minor and will heal after a day of "+
+                          "rest.").format(victim))
             if victim not in var.WOUNDED:
                 var.WOUNDED.append(victim)
             lcandidates = list(var.VOTES.keys())
@@ -1686,15 +1679,13 @@ def shoot(cli, nick, chann_, rest):
             chk_decision(cli)
             chk_win(cli)
     elif rand <= chances[0] + chances[1]:
-        cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter.  S/He missed!".format(nick))
-        var.LOGGER.logMessage("{0} is a lousy shooter.  S/He missed!".format(nick))
+        cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter and missed!".format(nick))
+        var.LOGGER.logMessage("{0} is a lousy shooter and missed!".format(nick))
     else:
-        cli.msg(chan, ("\u0002{0}\u0002 should clean his/her weapons more often. "+
-                      "The gun exploded and killed him/her!").format(nick))
-        cli.msg(chan, "Appears that (s)he was a \u0002{0}\u0002.".format(var.get_role(nick)))
-        var.LOGGER.logMessage(("{0} should clean his/her weapers more often. "+
-                        "The gun exploded and killed him/her!").format(nick))
-        var.LOGGER.logMessage("Appears that (s)he was a {0}.".format(var.get_role(nick)))
+        cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
+                       "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_role(nick)))
+        var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
+                       "The village mourns a gunner-{1}.").format(nick, var.get_role(nick)))
         if not del_player(cli, nick):
             return  # Someone won.
 
@@ -1898,10 +1889,10 @@ def investigate(cli, nick, rest):
                    " is a... \u0002{1}\u0002!").format(victim, var.get_role(victim)))
     var.LOGGER.logBare(victim, "INVESTIGATED", nick)
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
-        # Reveal his role!
+        # The detective's identity is compromised!
         for badguy in var.ROLES["wolf"] + var.ROLES["werecrow"] + var.ROLES["traitor"]:
-            pm(cli, badguy, ("\u0002{0}\u0002 accidentally drops a paper. The paper reveals "+
-                            "that (s)he is the detective!").format(nick))
+            pm(cli, badguy, ("Someone accidentally drops a paper. The paper reveals "+
+                            "that \u0002{0}\u0002 is the detective!").format(nick))        
         var.LOGGER.logBare(nick, "PAPERDROP")
 
 
@@ -2219,8 +2210,8 @@ def transition_night(cli):
         norm_notify = g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_NOTIFY
         if norm_notify:
             gun_msg =  ("You hold a gun that shoots special silver bullets. You may only use it "+
-                        "during the day. If you shoot a wolf, (s)he will die instantly, but if you "+
-                        "shoot a villager, that villager will likely survive. You get {0}.")
+                        "during the day. Wolves and the crow will die instantly when shot, but "+
+                        "a villager or traitor will likely survive. You get {0}.")
         else:
             gun_msg = ("You have a \02gun\02 with {0}.")
         if var.GUNNERS[g] == 1:
