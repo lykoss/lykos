@@ -2635,10 +2635,7 @@ def get_help(cli, rnick, rest):
 @cmd("help", raw_nick = True)
 def help2(cli, nick, chan, rest):
     """Gets help"""
-    if rest.strip():  # command was given
-        get_help(cli, chan, rest)
-    else:
-        get_help(cli, nick, rest)
+    get_help(cli, nick, rest)
 
 
 @hook("invite", raw_nick = False, admin_only = True)
