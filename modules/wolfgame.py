@@ -411,7 +411,7 @@ def join(cli, nick, chann_, rest):
     
         cli.mode(chan, "+v", nick)
         var.ROLES["person"].append(nick)
-        cli.msg(chan, '\u0002{0}\u0002 has joined the game. New player count: \u0002{1}\u0002'.format(nick, len(pl) + 1))
+        cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002'.format(nick, len(pl) + 1))
         
         var.LAST_STATS = None # reset
 
