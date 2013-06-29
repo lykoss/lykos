@@ -383,7 +383,7 @@ def join(cli, nick, chann_, rest):
 
     try:
         cloak = var.USERS[nick]['cloak']
-        if cloak is not None and var.illegal_joins[cloak] > 0:
+        if cloak is not None and cloak in var.illegal_joins and var.illegal_joins[cloak] > 0:
             cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.illegal_joins[cloak]))
             return
     except KeyError:
@@ -2447,9 +2447,11 @@ def start(cli, nick, chann_, rest):
     else:
         transition_day(cli)
 
-    for cloak in var.illegal_joins:
+    for cloak in list(var.illegal_joins.keys()):
         if var.illegal_joins[cloak] != 0:
             var.illegal_joins[cloak] -= 1
+        else:
+            del var.illegal_joins[cloak]
 
     # DEATH TO IDLERS!
     reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
