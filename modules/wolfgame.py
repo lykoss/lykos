@@ -852,17 +852,17 @@ def chk_win(cli):
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
     
     if lwolves == lpl / 2:
-        cli.msg(chan, ("Game over! There are the same number of wolves as "+
-                       "villagers. The wolves eat everyone and win."))
+        cli.msg(chan, ("Game over! There are the same number of wolves as " +
+                       "uninjured villagers. The wolves overpower the villagers and win."))
         var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
-                               "villagers. The wolves eat everyone, and win."))
+                               "uninjured villagers. The wolves overpower the villagers and win."))
         village_win = False
         var.LOGGER.logBare("WOLVES", "WIN")
     elif lwolves > lpl / 2:
         cli.msg(chan, ("Game over! There are more wolves than "+
-                       "villagers. The wolves eat everyone, and win."))
+                       "uninjured villagers. The wolves overpower the villagers and win."))
         var.LOGGER.logMessage(("Game over! There are more wolves than "+
-                               "villagers. The wolves eat everyone, and win."))
+                               "uninjured villagers. The wolves overpower the villagers and win."))
         village_win = False
         var.LOGGER.logBare("WOLVES", "WIN")
     elif (not var.ROLES["wolf"] and
