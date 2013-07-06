@@ -1324,7 +1324,7 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
-            and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
+            and not var.START_WITH_DAY and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
         cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
         for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
             if not del_player(cli, x, True):
@@ -2345,6 +2345,11 @@ def start(cli, nick, chann_, rest):
     var.CURSED = []
     var.GUNNERS = {}
     var.WOLF_GUNNERS = {}
+    var.SEEN = []
+    var.OBSERVED = {}
+    var.KILLS = {}
+    var.GUARDED = {}
+    var.HVISITED = {}
 
     villager_roles = ("gunner", "cursed villager")
     for i, count in enumerate(addroles):
@@ -2403,8 +2408,8 @@ def start(cli, nick, chann_, rest):
     
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
-    var.DAY_START_TIME = None
-    var.NIGHT_START_TIME = None
+    var.DAY_START_TIME = datetime.now()
+    var.NIGHT_START_TIME = datetime.now()
 
     var.LAST_PING = None
     
