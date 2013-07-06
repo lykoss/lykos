@@ -24,7 +24,7 @@ QUIT_GRACE_TIME = 30
 #  controls how many people it does in one /msg; only works for messages that are the same
 MAX_PRIVMSG_TARGETS = 2
 LEAVE_STASIS_PENALTY = 1
-IDLE_STASIS_PENALTY = 0
+IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
 
 GOAT_HERDER = True
