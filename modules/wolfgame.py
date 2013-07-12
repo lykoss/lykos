@@ -1993,7 +1993,7 @@ def see(cli, nick, rest):
             pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
             return
     victim = pl[pll.index(target)]
-    if victim in var.CURSED:
+    if victim in var.CURSED or var.get_role(victim) == "werecrow":
         role = "wolf"
     elif var.get_role(victim) == "traitor":
         role = "villager"
