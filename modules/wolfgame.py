@@ -1850,7 +1850,7 @@ def observe(cli, nick, rest):
                    "to \u0002{0}'s\u0002 house. You will return after "+
                   "collecting your observations when day begins.").format(victim))
     var.LOGGER.logBare(victim, "OBSERVED", nick)
-
+    chk_nightdone(cli)
 
 
 @pmcmd("id")
