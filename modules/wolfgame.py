@@ -262,6 +262,7 @@ def pinger(cli, nick, chan, rest):
         if (all((not var.OPT_IN_PING,
                  'G' not in status,  # not /away
                  '+' not in status,  # not already joined (voiced)
+                 cloak not in var.illegal_joins, # not in stasis
                  cloak not in var.AWAY)) or
             all((var.OPT_IN_PING, '+' not in status,
                  cloak in var.PING_IN))):
