@@ -1743,7 +1743,7 @@ def kill(cli, nick, rest):
     if victim == nick:
         pm(cli, nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
         pm(cli, nick, "You may only kill villagers, not other wolves.")
         return
     var.KILLS[nick] = victim
