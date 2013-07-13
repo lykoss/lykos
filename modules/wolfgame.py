@@ -1055,7 +1055,6 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
                 cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
-                make_stasis(nick, -var.PART_STASIS_PENALTY)
                 for r,rlist in var.ORIGINAL_ROLES.items():
                     if "(dced)"+nick in rlist:
                         rlist.remove("(dced)"+nick)
@@ -1188,7 +1187,6 @@ def on_nick(cli, prefix, nick):
                     
                     cli.msg(chan, ("\02{0}\02 has returned to "+
                                    "the village.").format(nick))
-                    make_stasis(nick, -var.PART_STASIS_PENALTY)
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
@@ -1226,9 +1224,6 @@ def leave(cli, what, nick, why=""):
                "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
-    if var.PHASE != "join":
-        make_stasis(nick, var.PART_STASIS_PENALTY)
-
     if killplayer:
         del_player(cli, nick)
     else:
