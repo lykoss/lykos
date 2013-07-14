@@ -1039,9 +1039,9 @@ def update_last_said(cli, nick, chan, rest):
             cli.notice(nick, "Using bold in the channel is not allowed.")
     if var.CARE_COLOR and any(code in fullstring for code in ["\x03", "\x16", "\x1f" ]):
         if var.KILL_COLOR:
-            cli.notice("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
+            cli.send("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
         else:
-            cli.msg(nick, "Using color in the channel is not allowed.")
+            cli.notice(nick, "Using color in the channel is not allowed.")
 
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
