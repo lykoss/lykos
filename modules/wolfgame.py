@@ -505,7 +505,7 @@ def stats(cli, nick, chan, rest):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-            cli.msg(chan, nick+": This command is rate-limited.")
+            cli.notice(nick, "This command is rate-limited.")
             return
             
         var.LAST_STATS = datetime.now()
@@ -671,7 +671,7 @@ def show_votes(cli, nick, chan, rest):
     
     if (var.LAST_VOTES and
         var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
-        cli.msg(chan, nick+": This command is rate-limited.")
+        cli.notice(nick, "This command is rate-limited.")
         return    
     
     pl = var.list_players()
@@ -1035,12 +1035,12 @@ def update_last_said(cli, nick, chan, rest):
         if var.KILL_BOLD:
             cli.send("KICK {0} {1} :Using bold is not allowed".format(botconfig.CHANNEL, nick))
         else:
-            cli.msg(botconfig.CHANNEL, nick + ": Using bold in the channel is not allowed.")
+            cli.notice(nick, "Using bold in the channel is not allowed.")
     if var.CARE_COLOR and any(code in fullstring for code in ["\x03", "\x16", "\x1f" ]):
         if var.KILL_COLOR:
-            cli.send("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
+            cli.notice("KICK {0} {1} :Using color is not allowed".format(botconfig.CHANNEL, nick))
         else:
-            cli.msg(botconfig.CHANNEL, nick + ": Using color in the channel is not allowed.")
+            cli.msg(nick, "Using color in the channel is not allowed.")
 
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
