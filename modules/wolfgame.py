@@ -1457,10 +1457,10 @@ def transition_day(cli, gameid=0):
 
 
 def chk_nightdone(cli):
-    if (len(var.SEEN) == len(var.ROLES["seer"]) and  # Seers have seen.
-        len(var.HVISITED.keys()) == len(var.ROLES["harlot"]) and  # harlots have visited.
-        len(var.GUARDED.keys()) == len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.ROLES["werecrow"]+var.ROLES["wolf"]) == len(var.KILLS)+len(var.OBSERVED) and
+    if (len(var.SEEN) >= len(var.ROLES["seer"]) and  # Seers have seen.
+        len(var.HVISITED.keys()) >= len(var.ROLES["harlot"]) and  # harlots have visited.
+        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]) and  # guardians have guarded
+        len(var.KILLS)+len(var.OBSERVED) >= len(var.ROLES["werecrow"]+var.ROLES["wolf"]) and
         var.PHASE == "night"):
         
         # check if wolves are actually agreeing
