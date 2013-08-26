@@ -6,9 +6,9 @@ MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 15
 VOTES_RATE_LIMIT = 15
 ADMINS_RATE_LIMIT = 300
-SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
-MAX_PLAYERS = 30
-DRUNK_SHOTS_MULTIPLIER = 3
+SHOTS_MULTIPLIER = .18  # ceil(shots_multiplier * len_players) = bullets given
+MAX_PLAYERS = 15
+DRUNK_SHOTS_MULTIPLIER = 2
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
@@ -22,7 +22,7 @@ WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 12
 QUIT_GRACE_TIME = 30
 #  controls how many people it does in one /msg; only works for messages that are the same
-MAX_PRIVMSG_TARGETS = 2
+MAX_PRIVMSG_TARGETS = 4
 LEAVE_STASIS_PENALTY = 1
 IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
@@ -31,8 +31,8 @@ GOAT_HERDER = True
 
 SELF_LYNCH_ALLOWED = True
 
-CARE_BOLD = True
-CARE_COLOR = True
+CARE_BOLD = False
+CARE_COLOR = False
 KILL_COLOR = False
 KILL_BOLD = False
 
@@ -42,9 +42,9 @@ BARE_LOG_FILENAME = ""
                     #       HIT    MISS    SUICIDE
 GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
 DRUNK_GUN_CHANCES   =   (   2/7  ,  4/7  ,   1/7   )
-MANSLAUGHTER_CHANCE =       1/5  # ACCIDENTAL HEADSHOT (FATAL)
+MANSLAUGHTER_CHANCE =       2/5  # ACCIDENTAL HEADSHOT (FATAL)
 
-GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 0
+GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/2
 GUARDIAN_ANGEL_DIES_CHANCE = 1/2
 DETECTIVE_REVEALED_CHANCE = 2/5
 
@@ -52,15 +52,13 @@ DETECTIVE_REVEALED_CHANCE = 2/5
 #   ROLE INDEX:   PLAYERS   SEER    WOLF   CURSED   DRUNK   HARLOT  TRAITOR  GUNNER   CROW    ANGEL DETECTIVE  ##
 #################################################################################################################
 ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
-                   6    : (   1   ,   1   ,   1   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
+                   6    : (   1   ,   1   ,   1   ,   1   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   ), ##
                    8    : (   1   ,   1   ,   1   ,   1   ,   1   ,    1   ,   0   ,   0    ,   0   ,   0   ), ##
                    10   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   0    ,   0   ,   0   ), ##
-                   12   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
-                   15   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
-                   17   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   22   : (   1   ,   4   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   25   : (   1   ,   4   ,   2   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
-                   29   : (   1   ,   5   ,   2   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
+                   12   : (   1   ,   2   ,   1   ,   1   ,   2   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
+                   13   : (   1   ,   2   ,   2   ,   1   ,   2   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
+                   14   : (   1   ,   2   ,   2   ,   1   ,   2   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
+                   15   : (   1   ,   3   ,   2   ,   1   ,   2   ,    1   ,   2   ,   1    ,   1   ,   1   ), ##
                    None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   )} ##
 #################################################################################################################
 #   Notes:                                                                                                     ##
@@ -102,7 +100,7 @@ RULES = (botconfig.CHANNEL + " channel rules: 1) Be nice to others. 2) Do not sh
 
 # Other settings:
 START_WITH_DAY = False
-WOLF_STEALS_GUN = False  # at night, the wolf can steal steal the victim's bullets
+WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
 
 OPT_IN_PING = False  # instead of !away/!back, users can opt-in to be pinged
 PING_IN = []  # cloaks of users who have opted in for ping
