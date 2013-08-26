@@ -2536,7 +2536,7 @@ def fwait(cli, nick, chann_, rest):
         return
 
     rest = re.split(" +", rest.strip(), 1)[0]
-    if rest and rest.isdigit():
+    if rest and (rest.isdigit() or (rest[0] == '-' and rest[1:].isdigit())):
         if len(rest) < 4:
             extra = int(rest)
         else:
