@@ -1403,7 +1403,7 @@ def transition_day(cli, gameid=0):
             dead.append(deadwolf)
     if victim in var.HVISITED.values():  #  victim was visited by some harlot
         for hlt in var.HVISITED.keys():
-            if var.HVISITED[hlt] == victim:
+            if var.HVISITED[hlt] == victim and victim in dead:
                 message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
                                 "visiting the victim's house last night and is "+
                                 "now dead.").format(hlt))
