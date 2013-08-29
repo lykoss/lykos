@@ -2716,6 +2716,20 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
+@cmd("pony")
+def pony(cli, nick, chan, rest):
+    """For entertaining bronies."""
+
+    if var.PHASE in ("day", "night") and nick not in var.list_players():
+        cli.notice(nick, "You may not use this command right now.")
+
+    cli.msg(chan, "\2{0}\2 tosses a pony into the air...".format(nick))
+    var.LOGGER.logMessage("{0} tosses a pony into the air...".format(nick))
+    pony = random.choice(["hoof", "plot"])
+    cmsg = "The pony lands on \2{0}\2.".format(pony)
+    cli.msg(chan, cmsg)
+    var.LOGGER.logMessage(cmsg)
+
 @cmd("roles")
 def listroles(cli, nick, chan, rest):
     """Display which roles are enabled and when"""
