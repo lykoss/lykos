@@ -65,7 +65,7 @@ ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0
 #################################################################################################################
 
 GAME_MODES = {}
-AWAY = []  # cloaks of people who are away.
+AWAY = ['services.', 'services.int']  # cloaks of people who are away.
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
 
 ROLE_INDICES = {0 : "seer",
