@@ -1,4 +1,15 @@
-*.pyc
+# Backup files
+*~
+#*#
+.sw[a-p]
+
+# Python compiled files
+__pycache__/
+*.py[co]
 *.sqlite3
+
+# Config files
 botconfig.py
+
+# Log files
 errors.log
