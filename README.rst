@@ -47,3 +47,4 @@ Method       Link
 Webchat      https://webchat.freenode.net/?channels=%23%23werewolf
 Client       irc://chat.freenode.net:6697/%23%23werewolf
 Client (SSL) ircs://chat.freenode.net:6697/%23%23werewolf
+============ =====================================================
