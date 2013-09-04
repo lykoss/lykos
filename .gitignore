@@ -4,6 +4,7 @@
 .sw[a-p]
 
 # Python compiled files
+__pycache__/
 *.py[co]
 *.sqlite3
 
