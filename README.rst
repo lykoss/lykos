@@ -36,7 +36,7 @@ Verbose logging can be enabled with the ``-verbose`` argument::
 Playing the game
 ----------------
 
-You can find us on ``##werewolf`` on `freenode`_. This bot is running
+You can find us in ``##werewolf`` on `freenode`_. This bot is running
 there and we have an active community. We'd love for you to join us!
 
 **Connecting to IRC**
