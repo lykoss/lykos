@@ -6,9 +6,9 @@ MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 15
 VOTES_RATE_LIMIT = 15
 ADMINS_RATE_LIMIT = 300
-SHOTS_MULTIPLIER = .18  # ceil(shots_multiplier * len_players) = bullets given
+SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MAX_PLAYERS = 15
-DRUNK_SHOTS_MULTIPLIER = 2
+DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
@@ -40,7 +40,7 @@ LOG_FILENAME = ""
 BARE_LOG_FILENAME = ""
 
                     #       HIT    MISS    SUICIDE
-GUN_CHANCES         =   (   4/7  ,  2/7  ,   1/7   )
+GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   )
 DRUNK_GUN_CHANCES   =   (   2/7  ,  3/7  ,   2/7   )
 MANSLAUGHTER_CHANCE =       2/5  # ACCIDENTAL HEADSHOT (FATAL)
 
