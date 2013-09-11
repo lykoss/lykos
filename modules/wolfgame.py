@@ -1389,6 +1389,9 @@ def transition_day(cli, gameid=0):
                         "tragedy.").format(victim, var.get_role(victim)))
         dead.append(victim)
         var.LOGGER.logBare(victim, "KILLED")
+        if random.random() < 0.01:
+            # this is pointless.
+            message.append(" http://i.imgur.com/nO8rZ.gif")
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"]
