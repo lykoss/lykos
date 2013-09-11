@@ -24,6 +24,7 @@ import os
 import imp
 import math
 import fnmatch
+import random
 
 BOLD = "\u0002"
 
