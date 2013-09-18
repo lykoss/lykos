@@ -1395,7 +1395,7 @@ def transition_day(cli, gameid=0):
             message.append("https://i.imgur.com/nO8rZ.gif")
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-            wc = var.ROLES["werecrow"]
+            wc = var.ROLES["werecrow"][:]
             for crow in wc:
                 if crow in var.OBSERVED.keys():
                     wc.remove(crow)
