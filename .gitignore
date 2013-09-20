@@ -1,7 +1,7 @@
 # Backup files
 *~
 #*#
-.sw[a-p]
+*.sw[a-p]
 
 # Python compiled files
 __pycache__/
