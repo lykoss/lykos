@@ -1991,8 +1991,11 @@ def see(cli, nick, rest):
     else:
         if matches != 1:
             pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
+            returnj
     victim = pl[pll.index(target)]
+    if victim == nick:
+        pm(cli, nick, "Seeing yourself would be a waste.")
+        return
     if victim in var.CURSED or var.get_role(victim) == "werecrow":
         role = "wolf"
     elif var.get_role(victim) == "traitor":
