@@ -495,6 +495,7 @@ def on_account(cli, nick, acc):
         var.USERS[nick]["account"] = acc
 
 @cmd("stats")
+@pmcmd("stats")
 def stats(cli, nick, chan, rest):
     """Display the player statistics"""
     if var.PHASE == "none":
