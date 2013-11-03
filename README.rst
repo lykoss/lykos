@@ -41,7 +41,7 @@ there and we have an active community. We'd love for you to join us!
 Method       Link
 ============ =====================================================
 Webchat      https://webchat.freenode.net/?channels=%23%23werewolf
-Client       irc://chat.freenode.net:6697/%23%23werewolf
+Client       irc://chat.freenode.net:6667/%23%23werewolf
 Client (SSL) ircs://chat.freenode.net:6697/%23%23werewolf
 ============ =====================================================
 
