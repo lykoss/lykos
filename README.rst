@@ -9,7 +9,7 @@ Configuration
 -------------
 
 Copy ``botconfig.py.example`` to ``botconfig.py`` and modify the
-settings as needed. If desired, edit ``settings/modify.py`` to modify
+settings as needed. If desired, edit ``settings/wolfgame.py`` to modify
 game settings.
 
 ----------------
