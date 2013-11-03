@@ -46,3 +46,4 @@ Client (SSL) ircs://chat.freenode.net:6697/%23%23werewolf
 ============ =====================================================
 
 .. _freenode: https://freenode.net/
+=======
