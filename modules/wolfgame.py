@@ -2683,7 +2683,7 @@ def show_admins(cli, nick, chan, rest):
         if not var.ADMIN_PINGING:
             return
         if (is_admin(cloak) and 'G' not in status and
-            user != botconfig.NICK and cloak not in var.AWAY):
+            user != botconfig.NICK):
             admins.append(user)
 
     @hook("endofwho", hookid = 4)
