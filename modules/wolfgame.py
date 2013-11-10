@@ -2736,6 +2736,7 @@ def pony(cli, nick, chan, rest):
 
     if var.PHASE in ("day", "night") and nick not in var.list_players():
         cli.notice(nick, "You may not use this command right now.")
+        return
 
     cli.msg(chan, "\2{0}\2 tosses a pony into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a pony into the air...".format(nick))
