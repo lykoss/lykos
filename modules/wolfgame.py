@@ -1391,9 +1391,17 @@ def transition_day(cli, gameid=0):
                         "tragedy.").format(victim, var.get_role(victim)))
         dead.append(victim)
         var.LOGGER.logBare(victim, "KILLED")
-        if random.random() < 0.01:
+        wut = random.random()
+        if wut < 0.01:
             # this is pointless.
             message.append("https://i.imgur.com/nO8rZ.gif")
+        elif wut < 0.02:
+            message.append("https://i.imgur.com/uGVfZ.jpg")
+        elif wut < 0.03:
+            message.append("https://i.imgur.com/mUcM09n.gif")
+        elif wut < 0.04:
+            message.append("https://i.imgur.com/P7TEGyQ.gif")
+            
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
             wc = var.ROLES["werecrow"][:]
@@ -2683,7 +2691,7 @@ def show_admins(cli, nick, chan, rest):
         if not var.ADMIN_PINGING:
             return
         if (is_admin(cloak) and 'G' not in status and
-            user != botconfig.NICK and cloak not in var.AWAY):
+            user != botconfig.NICK):
             admins.append(user)
 
     @hook("endofwho", hookid = 4)
