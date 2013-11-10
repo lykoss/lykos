@@ -7,7 +7,7 @@ STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
-MAX_PLAYERS = 17
+MAX_PLAYERS = 22
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
@@ -58,6 +58,7 @@ ROLES_GUIDE = {    4    : (   1   ,   1   ,   0   ,   0   ,   0   ,    0   ,   0
                    12   : (   1   ,   2   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
                    15   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   0   ,   1   ), ##
                    17   : (   1   ,   3   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
+                   22   : (   1   ,   4   ,   1   ,   1   ,   1   ,    1   ,   1   ,   1    ,   1   ,   1   ), ##
                    None : (   0   ,   0   ,   0   ,   0   ,   0   ,    0   ,   0   ,   0    ,   0   ,   0   )} ##
 #################################################################################################################
 #   Notes:                                                                                                     ##
