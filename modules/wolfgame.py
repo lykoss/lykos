@@ -1391,16 +1391,14 @@ def transition_day(cli, gameid=0):
                         "tragedy.").format(victim, var.get_role(victim)))
         dead.append(victim)
         var.LOGGER.logBare(victim, "KILLED")
-        wut = random.random()
-        if wut < 0.01:
-            # this is pointless.
-            message.append("https://i.imgur.com/nO8rZ.gif")
-        elif wut < 0.02:
-            message.append("https://i.imgur.com/uGVfZ.jpg")
-        elif wut < 0.03:
-            message.append("https://i.imgur.com/mUcM09n.gif")
-        elif wut < 0.04:
-            message.append("https://i.imgur.com/P7TEGyQ.gif")
+        if random.random() < 1/50:
+            message.append(random.choice(
+                ["https://i.imgur.com/nO8rZ.gif",
+                "https://i.imgur.com/uGVfZ.gif",
+                "https://i.imgur.com/mUcM09n.gif",
+                "https://i.imgur.com/P7TEGyQ.gif",
+                "https://i.imgur.com/b8HAvjL.gif"]
+                ))
             
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
         if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
