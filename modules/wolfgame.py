@@ -1450,16 +1450,13 @@ def transition_day(cli, gameid=0):
         guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"] 
                                  + var.ROLES["traitor"])  # random looter
         numbullets = var.GUNNERS[victim]
-        var.WOLF_GUNNERS[guntaker] = numbullets  # transfer bullets a wolf
-        mmsg = ("While searching {2}'s belongings, You found " + 
-                "a gun loaded with {0} silver bullet{1}! " + 
+        var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
+        mmsg = ("While searching {0}'s belongings, You found " + 
+                "a gun loaded with 1 silver bullet! " + 
                 "You may only use it during the day. " +
                 "If you shoot at a wolf, you will intentionally miss. " +
                 "If you shoot a villager, it is likely that they will be injured.")
-        if numbullets == 1:
-            mmsg = mmsg.format(numbullets, "", victim)
-        else:
-            mmsg = mmsg.format(numbullets, "s", victim)
+        mmsg = mmsg.format(victim)
         pm(cli, guntaker, mmsg)
         var.GUNNERS[victim] = 0  # just in case
 
