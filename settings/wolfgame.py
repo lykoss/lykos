@@ -93,7 +93,7 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
 
 import botconfig
 
-RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules"
+RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 
 # Other settings:
 START_WITH_DAY = False
