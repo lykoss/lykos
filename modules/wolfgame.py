@@ -1397,7 +1397,8 @@ def transition_day(cli, gameid=0):
                 "https://i.imgur.com/uGVfZ.gif",
                 "https://i.imgur.com/mUcM09n.gif",
                 "https://i.imgur.com/P7TEGyQ.gif",
-                "https://i.imgur.com/b8HAvjL.gif"]
+                "https://i.imgur.com/b8HAvjL.gif",
+                "https://i.imgur.com/PIIfL15.gif"]
                 ))
             
     if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
