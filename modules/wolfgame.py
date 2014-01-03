@@ -832,7 +832,7 @@ def stop_game(cli, winner = ""):
     
     return True
 
-def chk_win(cli):
+def chk_win(cli, end_game = True):
     """ Returns True if someone won """
     
     chan = botconfig.CHANNEL
@@ -855,28 +855,19 @@ def chk_win(cli):
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
     
     if lwolves == lpl / 2:
-        cli.msg(chan, ("Game over! There are the same number of wolves as " +
-                       "uninjured villagers. The wolves overpower the villagers and win."))
-        var.LOGGER.logMessage(("Game over! There are the same number of wolves as "+
-                               "uninjured villagers. The wolves overpower the villagers and win."))
+        message = ("Game over! There are the same number of wolves as " +
+                  "uninjured villagers. The wolves overpower the villagers and win.")
         village_win = False
-        var.LOGGER.logBare("WOLVES", "WIN")
     elif lwolves > lpl / 2:
-        cli.msg(chan, ("Game over! There are more wolves than "+
-                       "uninjured villagers. The wolves overpower the villagers and win."))
-        var.LOGGER.logMessage(("Game over! There are more wolves than "+
-                               "uninjured villagers. The wolves overpower the villagers and win."))
+        message = ("Game over! There are more wolves than "+
+                  "uninjured villagers. The wolves overpower the villagers and win.")
         village_win = False
-        var.LOGGER.logBare("WOLVES", "WIN")
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
           not var.ROLES["werecrow"]):
-        cli.msg(chan, ("Game over! All the wolves are dead! The villagers "+
-                       "chop them up, BBQ them, and have a hearty meal."))
-        var.LOGGER.logMessage(("Game over! All the wolves are dead! The villagers "+
-                               "chop them up, BBQ them, and have a hearty meal."))
+        message = ("Game over! All the wolves are dead! The villagers " +
+                  "chop them up, BBQ them, and have a hearty meal.")
         village_win = True
-        var.LOGGER.logBare("VILLAGERS", "WIN")
     elif (not var.ROLES["wolf"] and not 
           var.ROLES["werecrow"] and var.ROLES["traitor"]):
         for t in var.ROLES["traitor"]:
@@ -888,17 +879,21 @@ def chk_win(cli):
         var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
                                'frightened as they hear a loud howl. The wolves are '+
                                'not gone!'))
-        return chk_win(cli)
+        return chk_win(cli, end_game)
     else:
         return False
-    stop_game(cli, "villagers" if village_win else "wolves")
+    if end_game:
+        cli.msg(chan, message)
+        var.LOGGER.logMessage(message)
+        var.LOGGER.logBare("VILLAGERS" if village_win else "WOLVES", "WIN")
+        stop_game(cli, "villagers" if village_win else "wolves")
     return True
 
 
 
 
 
-def del_player(cli, nick, forced_death = False, devoice = True):
+def del_player(cli, nick, forced_death = False, devoice = True, end_game = True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
@@ -921,14 +916,14 @@ def del_player(cli, nick, forced_death = False, devoice = True):
             # Died during the joining process as a person
             mass_mode(cli, cmode)
             return not chk_win(cli)
-        if var.PHASE != "join" and ret:
+        if var.PHASE != "join":
             # Died during the game, so quiet!
             if not is_fake_nick(nick):
                 cmode.append(("+q", nick+"!*@*"))
             mass_mode(cli, cmode)
             if nick not in var.DEAD:
                 var.DEAD.append(nick)
-            ret = not chk_win(cli)
+            ret = not chk_win(cli, end_game)
         if var.PHASE in ("night", "day") and ret:
             # remove the player from variables if they're in there
             for a,b in list(var.KILLS.items()):
@@ -1441,9 +1436,11 @@ def transition_day(cli, gameid=0):
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
-    for deadperson in dead:
-        if not del_player(cli, deadperson):
-            return
+    
+    for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
+        del_player(cli, deadperson, end_game = False)
+    if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
+        return
     
     if (var.WOLF_STEALS_GUN and victim in dead and 
         victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
