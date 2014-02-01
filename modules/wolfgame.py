@@ -839,7 +839,7 @@ def chk_win(cli, end_game = True):
     lpl = len(var.list_players())
     
     if lpl == 0:
-        cli.msg(chan, "No more players remaining. Game ended.")
+        #cli.msg(chan, "No more players remaining. Game ended.")
         reset(cli)
         return True
         
@@ -1240,7 +1240,12 @@ def leave_game(cli, nick, chan, rest):
         cli.notice(nick, "No game is currently running.")
         return
     elif var.PHASE == "join":
-        population = (" New player count: \u0002{0}\u0002").format(len(var.list_players()) - 1)
+        lpl = len(var.list_players()) - 1
+
+        if lpl == 0:
+            population = (" No more players remaining.")
+        else:
+            population = (" New player count: \u0002{0}\u0002").format(lpl)
     else:
         population = ""
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
