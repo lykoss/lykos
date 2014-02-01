@@ -2,6 +2,7 @@ PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 20
+WAIT_AFTER_JOIN = 10 # Wait at least this many seconds after the last join
 MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
