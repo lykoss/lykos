@@ -403,10 +403,11 @@ def join(cli, nick, chann_, rest):
         var.PHASE = "join"
         var.WAITED = 0
         var.GAME_ID = time.time()
+        var.JOINED_THIS_GAME.append(cloak)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
-                      'Type "{1}wait" to increase join wait time.').format(nick, botconfig.CMD_CHAR))
+                      'Type "{1}wait" to increase start wait time.').format(nick, botconfig.CMD_CHAR))
     elif nick in pl:
         cli.notice(nick, "You're already playing!")
     elif len(pl) >= var.MAX_PLAYERS:
@@ -1445,8 +1446,7 @@ def transition_day(cli, gameid=0):
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 message.append(("\02{0}\02, a \02guardian angel\02, "+
                                 "made the unfortunate mistake of guarding a wolf "+
-                                "last night, attempted to escape, but failed "+
-                                "and is now dead.").format(gangel))
+                                "last night, and is now dead.").format(gangel))
                 var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
     cli.msg(chan, "\n".join(message))
@@ -1670,10 +1670,10 @@ def shoot(cli, nick, chann_, rest):
         var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
         victimrole = var.get_role(victim)
         if victimrole in ("wolf", "werecrow"):
-            cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
-                           "the silver bullet.").format(victim))
-            var.LOGGER.logMessage(("{0} is a wolf, and is dying from the "+
-                            "silver bullet.").format(victim))
+            cli.msg(chan, ("\u0002{0}\u0002 is a {1}, and is dying from "+
+                           "the silver bullet.").format(victim, victimrole))
+            var.LOGGER.logMessage(("{0} is a {1}, and is dying from the "+
+                            "silver bullet.").format(victim, victimrole))
             if not del_player(cli, victim):
                 return
         elif random.random() <= var.MANSLAUGHTER_CHANCE:
