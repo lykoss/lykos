@@ -568,6 +568,11 @@ def stats(cli, nick, chan, rest):
         vb = "is"
     for role in rs:
         count = len(var.ROLES[role])
+        if role == "traitor" and var.HIDDEN_TRAITOR:
+            continue
+        elif role == "villager" and var.HIDDEN_TRAITOR:
+            count += len(var.ROLES["traitor"])
+                
         if count > 1 or count == 0:
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
@@ -664,7 +669,7 @@ def chk_decision(cli):
     votesneeded = avail // 2 + 1
     for votee, voters in iter(var.VOTES.items()):
         if len(voters) >= votesneeded:
-            lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_role(votee))
+            lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
             cli.msg(botconfig.CHANNEL, lmsg)
             var.LOGGER.logMessage(lmsg.replace("\02", ""))
             var.LOGGER.logBare(votee, "LYNCHED")
@@ -1002,7 +1007,7 @@ def reaper(cli, gameid):
                         continue
                     cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long "+
                                    "time and has been found dead. The survivors bury "+
-                                   "the \u0002{1}\u0002's body.").format(nck, var.get_role(nck)))
+                                   "the \u0002{1}\u0002's body.").format(nck, var.get_reveal_role(nck)))
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     if not del_player(cli, nck):
                         return
@@ -1016,14 +1021,14 @@ def reaper(cli, gameid):
                 _, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
-                                   "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_role(dcedplayer)))
+                                   "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     cli.msg(chan, ("\02{0}\02, a \02{1}\02, ate some poisonous berries "+
-                                   "and has died.").format(dcedplayer, var.get_role(dcedplayer)))
+                                   "and has died.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
@@ -1222,16 +1227,16 @@ def leave(cli, what, nick, why=""):
     killplayer = True
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
         msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
-               "died.").format(nick, var.get_role(nick))
+               "died.").format(nick, var.get_reveal_role(nick))
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
         msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
-               "\02{1}\02 meat is tasty.").format(nick, var.get_role(nick))
+               "\02{1}\02 meat is tasty.").format(nick, var.get_reveal_role(nick))
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
     else:
         msg = ("\02{0}\02 died due to falling off a cliff. The "+
-               "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_role(nick))
+               "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_reveal_role(nick))
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
     if killplayer:
@@ -1263,8 +1268,8 @@ def leave_game(cli, nick, chan, rest):
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_role(nick), population))
-    var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_role(nick)))
+    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
+    var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
     if var.PHASE != "join":
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
@@ -1668,7 +1673,7 @@ def shoot(cli, nick, chann_, rest):
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
         var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
-        victimrole = var.get_role(victim)
+        victimrole = var.get_reveal_role(victim)
         if victimrole in ("wolf", "werecrow"):
             cli.msg(chan, ("\u0002{0}\u0002 is a {1}, and is dying from "+
                            "the silver bullet.").format(victim, victimrole))
@@ -1707,9 +1712,9 @@ def shoot(cli, nick, chann_, rest):
         var.LOGGER.logMessage("{0} is a lousy shooter and missed!".format(nick))
     else:
         cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
-                       "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_role(nick)))
+                       "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_reveal_role(nick)))
         var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
-                       "The village mourns a gunner-{1}.").format(nick, var.get_role(nick)))
+                       "The village mourns a gunner-{1}.").format(nick, var.get_reveal_role(nick)))
         if not del_player(cli, nick):
             return  # Someone won.
 

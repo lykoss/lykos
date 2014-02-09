@@ -31,6 +31,7 @@ PART_STASIS_PENALTY = 1
 GOAT_HERDER = True
 
 SELF_LYNCH_ALLOWED = True
+HIDDEN_TRAITOR = True
 
 CARE_BOLD = False
 CARE_COLOR = False
@@ -125,6 +126,11 @@ def list_players_and_roles():
 
 get_role = lambda plyr: list_players_and_roles()[plyr]
 
+def get_reveal_role(nick):
+    if HIDDEN_TRAITOR and get_role(nick) == "traitor":
+        return "villager"
+    else:
+        return get_role(nick)
 
 def del_player(pname):
     prole = get_role(pname)
