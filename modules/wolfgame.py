@@ -2868,12 +2868,44 @@ def flastgame(cli, nick, rest):
     if rest.strip():
         aftergame(cli, rawnick, rest)
     
-    
-    
-    
 @cmd("flastgame", admin_only=True, raw_nick=True)
 def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
+    
+    
+@cmd("player", "p")
+def player_stats(cli, nick, chan, rest):
+    """Gets the specified player's stats based on role"""
+    if var.PHASE not in ("none", "join"):
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+
+    params = rest.split()
+    if len(params) < 2:
+        cli.notice(nick, "Supply a nick and role name.")
+        return
+    
+    player = params[0]
+    role = params[1]
+    
+    msg = var.get_player_stats(player, role)
+    if msg == "":
+        cli.notice(nick, "No stats for {0} as {1}.".format(player, role))
+    else:
+        cli.notice(nick, msg)
+    
+@pmcmd("player", "p")
+def player_stats_pm(cli, nick, rest):
+    player_stats(cli, nick, "", rest)
+    
+@pmcmd("mystats", "me")
+def my_stats_pm(cli, nick, rest):
+    my_stats(cli, nick, "", rest)
+    
+@cmd("mystats", "me")
+def my_stats(cli, nick, chan, rest):
+    player_stats(cli, nick, chan, "{0} {1}".format(nick, rest))
+    
     
 before_debug_mode_commands = list(COMMANDS.keys())
 before_debug_mode_pmcommands = list(PM_COMMANDS.keys())

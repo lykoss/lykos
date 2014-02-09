@@ -250,6 +250,7 @@ def add_simple_rolemsg(clk):
 def remove_ping(clk):
     with conn:
         c.execute('DELETE from ping where cloak=?', (clk,))
+        
 def add_ping(clk):
     with conn:
         c.execute('INSERT into ping VALUES (?)', (clk,))
@@ -277,5 +278,10 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
-
+def get_player_stats(player, role):
+    with conn:
+        for row in c.execute("SELECT * FROM rolestats WHERE player = '%s' AND role = '%s'" % (player, role)):
+            return "As {2}, {0} has {3} team wins, {4} individual wins, and {5} total games.".format(player, *row)
+        else:
+            return ""
 
