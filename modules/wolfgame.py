@@ -1889,9 +1889,6 @@ def investigate(cli, nick, rest):
         pm(cli, nick, "You may only investigate one person per round.")
         return
     victim = re.split(" +", rest)[0].strip().lower()
-    if victim == nick:
-        pm(cli, nick, "Investingating yourself would be a waste.")
-        return
     if not victim:
         pm(cli, nick, "Not enough parameters")
         return
@@ -1910,6 +1907,9 @@ def investigate(cli, nick, rest):
             pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
             return
     victim = pl[pll.index(target)]
+    if victim == nick:
+        pm(cli, nick, "Investigating yourself would be a waste.")
+        return
 
     var.INVESTIGATED.append(nick)
     pm(cli, nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
