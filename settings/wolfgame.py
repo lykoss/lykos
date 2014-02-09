@@ -223,6 +223,11 @@ with conn:
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
         'UNIQUE(player, role))'))
 
+        
+    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (size SMALLINT, villagewins SMALLINT, ' +
+        'wolfwins SMALLINT, totalgames SMALLINT, UNIQUE(size))'))
+        
+        
     if OPT_IN_PING:
         c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
@@ -257,7 +262,6 @@ def add_ping(clk):
 
 
 def update_role_stats(acc, role, won, iwon):
-
     with conn:
         wins, iwins, totalgames = 0, 0, 0
 
@@ -278,6 +282,25 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
+def update_game_stats(size, vwon, wwon):
+    with conn:
+        vwins, wwins, total = 0, 0, 0
+        
+        c.execute("SELECT villagewins, wolfwins, totalgames FROM gamestats "+
+                   "WHERE size = %d" % size)
+        row = c.fetchone()
+        if row:
+            vwins, wwins, total = row
+        
+        if vwon:
+            vwins += 1
+        if wwon:
+            wwins += 1
+        total += 1
+        
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",
+                    (size, vwins, wwins, total))
+        
 def get_player_stats(player, role):
     with conn:
         for row in c.execute("SELECT * FROM rolestats WHERE player = '%s' AND role = '%s'" % (player, role)):
@@ -285,3 +308,9 @@ def get_player_stats(player, role):
         else:
             return ""
 
+def get_game_stats(size):
+    with conn:
+        for row in c.execute("SELECT * FROM gamestats WHERE size = %d" % (size)):
+            return "{0} player games: {1} village wins, {2} wolf wins, and {3} total games.".format(*row)
+        else:
+            return ""

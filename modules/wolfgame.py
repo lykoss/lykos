@@ -837,6 +837,12 @@ def stop_game(cli, winner = ""):
                 
         var.update_role_stats(acc, rol, won, iwon)
     
+    size = len(var.list_players()) + len(var.DEAD)
+    if winner == "wolves":
+        var.update_game_stats(size, False, True)
+    elif winner == "villagers":
+        var.update_game_stats(size, True, False)
+        
     reset(cli)
     
     # This must be after reset(cli)
@@ -2872,6 +2878,27 @@ def flastgame(cli, nick, rest):
 def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
     
+@cmd("gamestats", "gstats")
+def game_stats(cli, nick, chan, rest):
+    """Gets the game stats for a given game size"""
+    if var.PHASE not in ("none", "join"):
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+    
+    if rest == "":
+        cli.notice(nick, "Supply a game size")
+        return
+    
+    if not rest.isdigit():
+        cli.notice(nick, "Please enter an integer.")
+        return
+        
+    size = int(rest.strip())
+    msg = var.get_game_stats(size)
+    if msg == "":
+        cli.msg(chan, "No stats for {0} player games.".format(size))
+    else:
+        cli.msg(chan, msg)
     
 @cmd("player", "p")
 def player_stats(cli, nick, chan, rest):
