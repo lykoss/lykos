@@ -1889,6 +1889,9 @@ def investigate(cli, nick, rest):
         pm(cli, nick, "You may only investigate one person per round.")
         return
     victim = re.split(" +", rest)[0].strip().lower()
+    if victim == nick:
+        pm(cli, nick, "Investingating yourself would be a waste.")
+        return
     if not victim:
         pm(cli, nick, "Not enough parameters")
         return
