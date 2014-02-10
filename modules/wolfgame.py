@@ -2902,7 +2902,7 @@ def game_stats(cli, nick, chan, rest):
     
 @cmd("player", "p")
 def player_stats(cli, nick, chan, rest):
-    """Gets the specified player's stats based on role"""
+    """Gets the stats for the specified player and role."""
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
@@ -2913,7 +2913,7 @@ def player_stats(cli, nick, chan, rest):
         return
     
     player = params[0]
-    role = params[1]
+    role = " ".join(params[1:])
     
     msg = var.get_player_stats(player, role)
     if msg == "":
@@ -2931,6 +2931,11 @@ def my_stats_pm(cli, nick, rest):
     
 @cmd("mystats", "me")
 def my_stats(cli, nick, chan, rest):
+    """Gets the your own stats for the specified role."""
+    if rest == "":
+        cli.notice(nick, "Supply a role.")
+        return
+    
     player_stats(cli, nick, chan, "{0} {1}".format(nick, rest))
     
     
