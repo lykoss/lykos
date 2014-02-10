@@ -287,7 +287,7 @@ def update_game_stats(size, vwon, wwon):
         vwins, wwins, total = 0, 0, 0
         
         c.execute("SELECT villagewins, wolfwins, totalgames FROM gamestats "+
-                   "WHERE size = %d" % size)
+                   "WHERE size=?", (size,))
         row = c.fetchone()
         if row:
             vwins, wwins, total = row
@@ -303,14 +303,14 @@ def update_game_stats(size, vwon, wwon):
         
 def get_player_stats(player, role):
     with conn:
-        for row in c.execute("SELECT * FROM rolestats WHERE player = '%s' AND role = '%s'" % (player, role)):
+        for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (player, role)):
             return "As {2}, {0} has {3} team wins, {4} individual wins, and {5} total games.".format(player, *row)
         else:
             return ""
 
 def get_game_stats(size):
     with conn:
-        for row in c.execute("SELECT * FROM gamestats WHERE size = %d" % (size)):
+        for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
             return "{0} player games: {1} village wins, {2} wolf wins, and {3} total games.".format(*row)
         else:
             return ""
@@ -319,7 +319,7 @@ def get_game_totals():
     sizeList = []
     with conn:
         for size in range(4, MAX_PLAYERS):
-            c.execute("SELECT size, totalgames FROM gamestats WHERE size = %d" % size)
+            c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
             row = c.fetchone()
             if row:
                 sizeList.append("{0}p({1})".format(*row))
