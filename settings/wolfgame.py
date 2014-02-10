@@ -301,17 +301,17 @@ def update_game_stats(size, vwon, wwon):
         c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",
                     (size, vwins, wwins, total))
         
-def get_player_stats(player, role):
+def get_player_stats(acc, role):
     with conn:
-        for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (player, role)):
-            return "As {2}, {0} has {3} team wins, {4} individual wins, and {5} total games.".format(player, *row)
+        for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (acc, role)):
+            return "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2}, Individual wins: {3}, Total games: {4}".format(*row)
         else:
             return ""
 
 def get_game_stats(size):
     with conn:
         for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
-            return "{0} player games: {1} village wins, {2} wolf wins, and {3} total games.".format(*row)
+            return "\u0002{0}\u0002 player games | Village wins: {1},  Wolf wins: {2}, Total games: {3}".format(*row)
         else:
             return ""
 

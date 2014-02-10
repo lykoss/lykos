@@ -2877,7 +2877,8 @@ def flastgame(cli, nick, rest):
 @cmd("flastgame", admin_only=True, raw_nick=True)
 def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
-    
+   
+   
 @cmd("gamestats", "gstats")
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
@@ -2885,39 +2886,48 @@ def game_stats(cli, nick, chan, rest):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
     
+    # List all games sizes and totals if no size is given.
     if rest == "":
         cli.msg(chan, var.get_game_totals())
         return
     
+    # Check that size is an integer.
     if not rest.isdigit():
         cli.notice(nick, "Please enter an integer.")
         return
-        
+    
+    # Attempt to find game stats for the given game size.
     size = int(rest.strip())
     msg = var.get_game_stats(size)
     if msg == "":
-        cli.msg(chan, "No stats for {0} player games.".format(size))
+        cli.msg(chan, "No stats for \u0002{0}\u0002 player games.".format(size))
     else:
         cli.msg(chan, msg)
     
 @cmd("player", "p")
 def player_stats(cli, nick, chan, rest):
-    """Gets the stats for the specified player and role."""
+    """Gets the stats for the given player and role."""
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
-
+    
+    # Check if we have enough parameters.
     params = rest.split()
     if len(params) < 2:
         cli.notice(nick, "Supply a nick and role name.")
         return
-    
-    player = params[0]
+
+    # Find the player's account if possible.
+    if params[0] in var.USERS:
+        acc = var.USERS[params[0]]["account"]
+    else:
+        acc = params[0]
     role = " ".join(params[1:]).lower()
     
-    msg = var.get_player_stats(player, role)
+    # Attempt to find the player's stats.
+    msg = var.get_player_stats(acc, role)
     if msg == "":
-        cli.notice(nick, "No stats for {0} as {1}.".format(player, role))
+        cli.notice(nick, "No stats for {0} as {1}.".format(acc, role))
     else:
         cli.notice(nick, msg)
     
@@ -2931,12 +2941,19 @@ def my_stats_pm(cli, nick, rest):
     
 @cmd("mystats", "me")
 def my_stats(cli, nick, chan, rest):
-    """Gets the your own stats for the specified role."""
+    """Gets your own stats for the given role."""
+    # Check if role has been given
     if rest == "":
         cli.notice(nick, "Supply a role.")
         return
     
-    player_stats(cli, nick, chan, "{0} {1}".format(nick, rest))
+    # Check if player is identified
+    acc = var.USERS[nick]["account"]
+    if acc == "*":
+        cli.notice(nick, "You are not identified with NickServ.")
+        return
+        
+    player_stats(cli, nick, chan, "{0} {1}".format(acc, rest))
     
     
 before_debug_mode_commands = list(COMMANDS.keys())
