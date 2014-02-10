@@ -2880,13 +2880,13 @@ def _flastgame(cli, nick, chan, rest):
     
 @cmd("gamestats", "gstats")
 def game_stats(cli, nick, chan, rest):
-    """Gets the game stats for a given game size"""
+    """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
     
     if rest == "":
-        cli.notice(nick, "Supply a game size")
+        cli.msg(chan, var.get_game_totals())
         return
     
     if not rest.isdigit():
@@ -2913,7 +2913,7 @@ def player_stats(cli, nick, chan, rest):
         return
     
     player = params[0]
-    role = " ".join(params[1:])
+    role = " ".join(params[1:]).lower()
     
     msg = var.get_player_stats(player, role)
     if msg == "":

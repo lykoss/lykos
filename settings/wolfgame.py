@@ -314,3 +314,17 @@ def get_game_stats(size):
             return "{0} player games: {1} village wins, {2} wolf wins, and {3} total games.".format(*row)
         else:
             return ""
+
+def get_game_totals():
+    sizeList = []
+    with conn:
+        for size in range(4, MAX_PLAYERS):
+            c.execute("SELECT size, totalgames FROM gamestats WHERE size = %d" % size)
+            row = c.fetchone()
+            if row:
+                sizeList.append("{0}p({1})".format(*row))
+    
+    if len(sizeList) == 0:
+        return "No games have been played."
+    else:
+        return "Game totals: %s" % ", ".join(sizeList)
