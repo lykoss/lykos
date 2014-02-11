@@ -2798,6 +2798,26 @@ def listroles(cli, nick, chan, rest):
         old = v
     cli.msg(botconfig.CHANNEL, txt)
 
+@cmd("myrole")
+def myrole(cli, nick, chan, rest):
+    """Reminds you of which role you have."""
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+        
+    if nick not in var.list_players():
+        cli.notice(nick, "You're currently not playing.")
+        return
+        
+    if var.PLAYERS[nick]["cloak"] in var.SIMPLE_NOTIFY:
+        cli.notice(nick, "You are a \02{0}\02.".format(var.get_role(nick)))
+    else:
+        cli.msg(nick, "You are a \02{0}\02.".format(var.get_role(nick)))
+    
+@pmcmd("myrole")
+def myrole_pm(cli, nick, rest):
+    myrole(cli, nick, "", rest)
+    
 def aftergame(cli, rawnick, rest):
     """Schedule a command to be run after the game by someone."""
     chan = botconfig.CHANNEL
