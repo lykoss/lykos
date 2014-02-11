@@ -2891,13 +2891,14 @@ def game_stats(cli, nick, chan, rest):
         cli.msg(chan, var.get_game_totals())
         return
     
-    # Check that size is an integer.
-    if not rest.isdigit():
-        cli.notice(nick, "Please enter an integer.")
+    # Check for invalid input
+    rest = rest.strip()
+    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < 4:
+        cli.notice(nick, "Please enter an integer between {0} and {1}.".format(4, var.MAX_PLAYERS))
         return
     
     # Attempt to find game stats for the given game size.
-    size = int(rest.strip())
+    size = int(rest)
     msg = var.get_game_stats(size)
     if msg == "":
         cli.msg(chan, "No stats for \u0002{0}\u0002 player games.".format(size))
