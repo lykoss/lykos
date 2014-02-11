@@ -2804,16 +2804,26 @@ def myrole(cli, nick, chan, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-        
-    if nick not in var.list_players():
+    
+    ps = var.list_players()
+    if nick not in ps:
         cli.notice(nick, "You're currently not playing.")
         return
-        
-    if var.PLAYERS[nick]["cloak"] in var.SIMPLE_NOTIFY:
-        cli.notice(nick, "You are a \02{0}\02.".format(var.get_role(nick)))
-    else:
-        cli.msg(nick, "You are a \02{0}\02.".format(var.get_role(nick)))
     
+    pm(cli, nick, "You are a \02{0}\02.".format(var.get_role(nick)))
+    
+    # Check for gun/bullets
+    if nick in ps and nick in var.GUNNERS and var.GUNNERS[nick]:
+        if var.GUNNERS[nick] == 1:
+            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.GUNNERS[nick], "bullet"))
+        else:
+            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.GUNNERS[nick], "bullets"))
+    elif nick in ps and nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
+        if var.WOLF_GUNNERS[nick] == 1:
+            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullet"))
+        else:
+            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullets"))
+
 @pmcmd("myrole")
 def myrole_pm(cli, nick, rest):
     myrole(cli, nick, "", rest)
