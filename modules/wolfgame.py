@@ -2813,12 +2813,12 @@ def myrole(cli, nick, chan, rest):
     pm(cli, nick, "You are a \02{0}\02.".format(var.get_role(nick)))
     
     # Check for gun/bullets
-    if nick in ps and nick in var.GUNNERS and var.GUNNERS[nick]:
+    if nick in var.GUNNERS and var.GUNNERS[nick]:
         if var.GUNNERS[nick] == 1:
             pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.GUNNERS[nick], "bullet"))
         else:
             pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.GUNNERS[nick], "bullets"))
-    elif nick in ps and nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
+    elif nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
         if var.WOLF_GUNNERS[nick] == 1:
             pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullet"))
         else:
