@@ -837,6 +837,12 @@ def stop_game(cli, winner = ""):
                 
         var.update_role_stats(acc, rol, won, iwon)
     
+    size = len(var.list_players()) + len(var.DEAD)
+    if winner == "wolves":
+        var.update_game_stats(size, False, True)
+    elif winner == "villagers":
+        var.update_game_stats(size, True, False)
+        
     reset(cli)
     
     # This must be after reset(cli)
@@ -2868,12 +2874,88 @@ def flastgame(cli, nick, rest):
     if rest.strip():
         aftergame(cli, rawnick, rest)
     
-    
-    
-    
 @cmd("flastgame", admin_only=True, raw_nick=True)
 def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
+   
+   
+@cmd("gamestats", "gstats")
+def game_stats(cli, nick, chan, rest):
+    """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
+    if var.PHASE not in ("none", "join"):
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+    
+    # List all games sizes and totals if no size is given.
+    if rest == "":
+        cli.msg(chan, var.get_game_totals())
+        return
+    
+    # Check for invalid input
+    rest = rest.strip()
+    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < 4:
+        cli.notice(nick, "Please enter an integer between {0} and {1}.".format(4, var.MAX_PLAYERS))
+        return
+    
+    # Attempt to find game stats for the given game size.
+    size = int(rest)
+    msg = var.get_game_stats(size)
+    if msg == "":
+        cli.msg(chan, "No stats for \u0002{0}\u0002 player games.".format(size))
+    else:
+        cli.msg(chan, msg)
+    
+@cmd("player", "p")
+def player_stats(cli, nick, chan, rest):
+    """Gets the stats for the given player and role."""
+    if var.PHASE not in ("none", "join"):
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+    
+    # Check if we have enough parameters.
+    params = rest.split()
+    if len(params) < 2:
+        cli.notice(nick, "Supply a nick and role name.")
+        return
+
+    # Find the player's account if possible.
+    if params[0] in var.USERS:
+        acc = var.USERS[params[0]]["account"]
+    else:
+        acc = params[0]
+    role = " ".join(params[1:]).lower()
+    
+    # Attempt to find the player's stats.
+    msg = var.get_player_stats(acc, role)
+    if msg == "":
+        cli.notice(nick, "No stats for {0} as {1}.".format(acc, role))
+    else:
+        cli.notice(nick, msg)
+    
+@pmcmd("player", "p")
+def player_stats_pm(cli, nick, rest):
+    player_stats(cli, nick, "", rest)
+    
+@pmcmd("mystats", "me")
+def my_stats_pm(cli, nick, rest):
+    my_stats(cli, nick, "", rest)
+    
+@cmd("mystats", "me")
+def my_stats(cli, nick, chan, rest):
+    """Gets your own stats for the given role."""
+    # Check if role has been given
+    if rest == "":
+        cli.notice(nick, "Supply a role.")
+        return
+    
+    # Check if player is identified
+    acc = var.USERS[nick]["account"]
+    if acc == "*":
+        cli.notice(nick, "You are not identified with NickServ.")
+        return
+        
+    player_stats(cli, nick, chan, "{0} {1}".format(acc, rest))
+    
     
 before_debug_mode_commands = list(COMMANDS.keys())
 before_debug_mode_pmcommands = list(PM_COMMANDS.keys())

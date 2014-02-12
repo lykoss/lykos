@@ -223,6 +223,11 @@ with conn:
         'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
         'UNIQUE(player, role))'))
 
+        
+    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (size SMALLINT, villagewins SMALLINT, ' +
+        'wolfwins SMALLINT, totalgames SMALLINT, UNIQUE(size))'))
+        
+        
     if OPT_IN_PING:
         c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
@@ -250,13 +255,13 @@ def add_simple_rolemsg(clk):
 def remove_ping(clk):
     with conn:
         c.execute('DELETE from ping where cloak=?', (clk,))
+        
 def add_ping(clk):
     with conn:
         c.execute('INSERT into ping VALUES (?)', (clk,))
 
 
 def update_role_stats(acc, role, won, iwon):
-
     with conn:
         wins, iwins, totalgames = 0, 0, 0
 
@@ -277,5 +282,49 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
+def update_game_stats(size, vwon, wwon):
+    with conn:
+        vwins, wwins, total = 0, 0, 0
+        
+        c.execute("SELECT villagewins, wolfwins, totalgames FROM gamestats "+
+                   "WHERE size=?", (size,))
+        row = c.fetchone()
+        if row:
+            vwins, wwins, total = row
+        
+        if vwon:
+            vwins += 1
+        if wwon:
+            wwins += 1
+        total += 1
+        
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",
+                    (size, vwins, wwins, total))
+        
+def get_player_stats(acc, role):
+    with conn:
+        for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (acc, role)):
+            return "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2}, Individual wins: {3}, Total games: {4}".format(*row)
+        else:
+            return ""
 
+def get_game_stats(size):
+    with conn:
+        for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
+            return "\u0002{0}\u0002 player games | Village wins: {1},  Wolf wins: {2}, Total games: {3}".format(*row)
+        else:
+            return ""
 
+def get_game_totals():
+    sizeList = []
+    with conn:
+        for size in range(4, MAX_PLAYERS):
+            c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
+            row = c.fetchone()
+            if row:
+                sizeList.append("{0}p({1})".format(*row))
+    
+    if len(sizeList) == 0:
+        return "No games have been played."
+    else:
+        return "Game totals: %s" % ", ".join(sizeList)
