@@ -838,7 +838,8 @@ def stop_game(cli, winner = ""):
         var.update_role_stats(acc, rol, won, iwon)
     
     size = len(var.list_players()) + len(var.DEAD)
-    var.update_game_stats(size, winner)
+    if winner != "": # Only update if not an abnormal game stop
+        var.update_game_stats(size, winner)
         
     reset(cli)
     
