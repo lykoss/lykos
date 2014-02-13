@@ -263,15 +263,13 @@ def add_ping(clk):
 
 def update_role_stats(acc, role, won, iwon):
     with conn:
-        wins, iwins, totalgames = 0, 0, 0
+        wins, iwins, total = 0, 0, 0
 
         c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
                    "WHERE player=? AND role=?"), (acc, role))
         row = c.fetchone()
         if row:
             wins, iwins, total = row
-        else:
-            wins, iwins, total = 0,0,0
 
         if won:
             wins += 1
@@ -282,7 +280,7 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
-def update_game_stats(size, vwon, wwon):
+def update_game_stats(size, winner):
     with conn:
         vwins, wwins, total = 0, 0, 0
         
@@ -292,10 +290,10 @@ def update_game_stats(size, vwon, wwon):
         if row:
             vwins, wwins, total = row
         
-        if vwon:
-            vwins += 1
-        if wwon:
+        if winner == "wolves":
             wwins += 1
+        elif winner == "villagers":
+            vwins += 1
         total += 1
         
         c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",

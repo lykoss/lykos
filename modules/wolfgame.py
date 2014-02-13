@@ -838,10 +838,7 @@ def stop_game(cli, winner = ""):
         var.update_role_stats(acc, rol, won, iwon)
     
     size = len(var.list_players()) + len(var.DEAD)
-    if winner == "wolves":
-        var.update_game_stats(size, False, True)
-    elif winner == "villagers":
-        var.update_game_stats(size, True, False)
+    var.update_game_stats(size, winner)
         
     reset(cli)
     
