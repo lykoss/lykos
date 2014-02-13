@@ -304,14 +304,16 @@ def update_game_stats(size, vwon, wwon):
 def get_player_stats(acc, role):
     with conn:
         for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (acc, role)):
-            return "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2}, Individual wins: {3}, Total games: {4}".format(*row)
+            msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}".format(*row)
+            return msg % (round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
         else:
             return ""
 
 def get_game_stats(size):
     with conn:
         for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
-            return "\u0002{0}\u0002 player games | Village wins: {1},  Wolf wins: {2}, Total games: {3}".format(*row)
+            msg = "\u0002{0}\u0002 player games | Village wins: {1} (%d%%),  Wolf wins: {2} (%d%%), Total games: {3}".format(*row)
+            return msg % (round(row[1]/row[3] * 100), round(row[2]/row[3] * 100))
         else:
             return ""
 
@@ -322,7 +324,7 @@ def get_game_totals():
             c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
             row = c.fetchone()
             if row:
-                sizeList.append("{0}p({1})".format(*row))
+                sizeList.append("\02{0}p\02: {1}".format(*row))
     
     if len(sizeList) == 0:
         return "No games have been played."
