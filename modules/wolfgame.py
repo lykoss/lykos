@@ -2926,24 +2926,19 @@ def game_stats(cli, nick, chan, rest):
         return
     
     # Attempt to find game stats for the given game size.
-    size = int(rest)
-    msg = var.get_game_stats(size)
-    if msg == "":
-        cli.msg(chan, "No stats for \u0002{0}\u0002 player games.".format(size))
-    else:
-        cli.msg(chan, msg)
+    cli.msg(chan, var.get_game_stats(int(rest)))
     
 @cmd("player", "p")
 def player_stats(cli, nick, chan, rest):
-    """Gets the stats for the given player and role."""
+    """Gets the stats for the given player and role or a list of role totals if no role is given."""
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
     
     # Check if we have enough parameters.
     params = rest.split()
-    if len(params) < 2:
-        cli.notice(nick, "Supply a nick and role name.")
+    if len(params) < 1:
+        cli.notice(nick, "Supply at least a nick.")
         return
 
     # Find the player's account if possible.
@@ -2951,14 +2946,14 @@ def player_stats(cli, nick, chan, rest):
         acc = var.USERS[params[0]]["account"]
     else:
         acc = params[0]
-    role = " ".join(params[1:]).lower()
     
-    # Attempt to find the player's stats.
-    msg = var.get_player_stats(acc, role)
-    if msg == "":
-        cli.notice(nick, "No stats for {0} as {1}.".format(acc, role))
+    # List the player's total games for all roles if no role is given
+    if len(params) == 1:
+        cli.notice(nick, var.get_player_totals(acc))
     else:
-        cli.notice(nick, msg)
+        role = " ".join(params[1:]).lower()    
+        # Attempt to find the player's stats.
+        cli.notice(nick, var.get_player_stats(acc, role))
     
 @pmcmd("player", "p")
 def player_stats_pm(cli, nick, rest):
@@ -2970,12 +2965,7 @@ def my_stats_pm(cli, nick, rest):
     
 @cmd("mystats", "me")
 def my_stats(cli, nick, chan, rest):
-    """Gets your own stats for the given role."""
-    # Check if role has been given
-    if rest == "":
-        cli.notice(nick, "Supply a role.")
-        return
-    
+    """Gets your own stats for the given role or a list of role totals if no role is given."""
     # Check if player is identified
     acc = var.USERS[nick]["account"]
     if acc == "*":

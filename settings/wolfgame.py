@@ -305,15 +305,29 @@ def get_player_stats(acc, role):
             msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}".format(*row)
             return msg % (round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
         else:
-            return ""
+            return "No stats for {0} as {1}.".format(acc, role)
 
+def get_player_totals(acc):
+    roleTotals = []
+    with conn:
+        for role in ["villager"] + [v for k, v in ROLE_INDICES.items()]:
+            c.execute("SELECT totalgames FROM rolestats WHERE player=? AND role=?", (acc, role))
+            row = c.fetchone()
+            if row:
+                roleTotals.append("\u0002{0}\u0002: {1}".format(role, *row))
+    
+    if len(roleTotals) == 0:
+        return "{0} has not played any games.".format(acc)
+    else:
+        return "\u0002{0}\u0002's totals | {1}".format(acc, ", ".join(roleTotals))
+            
 def get_game_stats(size):
     with conn:
         for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
             msg = "\u0002{0}\u0002 player games | Village wins: {1} (%d%%),  Wolf wins: {2} (%d%%), Total games: {3}".format(*row)
             return msg % (round(row[1]/row[3] * 100), round(row[2]/row[3] * 100))
         else:
-            return ""
+            return "No stats for \u0002{0}\u0002 player games.".format(size)
 
 def get_game_totals():
     sizeList = []
@@ -322,9 +336,9 @@ def get_game_totals():
             c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
             row = c.fetchone()
             if row:
-                sizeList.append("\02{0}p\02: {1}".format(*row))
+                sizeList.append("\u0002{0}p\u0002: {1}".format(*row))
     
     if len(sizeList) == 0:
         return "No games have been played."
     else:
-        return "Game totals: %s" % ", ".join(sizeList)
+        return "Game totals | %s" % ", ".join(sizeList)
