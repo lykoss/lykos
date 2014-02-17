@@ -2345,15 +2345,16 @@ def start(cli, nick, chann_, rest):
         return
 
     if len(villagers) < var.MIN_PLAYERS:
-        cli.msg(chan, "{0}: {1} or more players are required to play.".format(nick, var.MIN_PLAYERS))
+        cli.msg(chan, "{0}: \u0002{1}\u0002 or more players are required to play.".format(nick, var.MIN_PLAYERS))
         return
 
-    for pcount in range(len(villagers), 3, -1):
+    for pcount in range(len(villagers), var.MIN_PLAYERS - 1, -1):
         addroles = var.ROLES_GUIDE.get(pcount)
         if addroles:
             break
-
-    
+    else:
+        cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
+        return
 
     if var.ORIGINAL_SETTINGS:  # Custom settings
         while True:
