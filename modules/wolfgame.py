@@ -420,9 +420,16 @@ def join(cli, nick, chann_, rest):
         var.ROLES["person"].append(nick)
         cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(nick, len(pl) + 1))
         if not cloak in var.JOINED_THIS_GAME:
-            # make sure this only happens one
+            # make sure this only happens once
             var.JOINED_THIS_GAME.append(cloak)
             now = datetime.now()
+
+            # add var.EXTRA_WAIT_JOIN to wait time
+            if now > var.CAN_START_TIME:
+                var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
+            else:
+                var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
+
             # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
             if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
                 var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
