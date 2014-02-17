@@ -333,7 +333,7 @@ def get_game_totals():
     size_totals = []
     total = 0
     with conn:
-        for size in range(4, MAX_PLAYERS):
+        for size in range(4, MAX_PLAYERS + 1):
             c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
             row = c.fetchone()
             if row:
