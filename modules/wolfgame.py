@@ -2337,8 +2337,8 @@ def start(cli, nick, chann_, rest):
         cli.msg(chan, "Please wait at least {0} more seconds.".format(dur))
         return
 
-    if len(villagers) < 4:
-        cli.msg(chan, "{0}: Four or more players are required to play.".format(nick))
+    if len(villagers) < var.MIN_PLAYERS:
+        cli.msg(chan, "{0}: {1} or more players are required to play.".format(nick, var.MIN_PLAYERS))
         return
 
     for pcount in range(len(villagers), 3, -1):
@@ -2921,8 +2921,8 @@ def game_stats(cli, nick, chan, rest):
     
     # Check for invalid input
     rest = rest.strip()
-    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < 4:
-        cli.notice(nick, "Please enter an integer between {0} and {1}.".format(4, var.MAX_PLAYERS))
+    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < var.MIN_PLAYERS:
+        cli.notice(nick, "Please enter an integer between {0} and {1}.".format(var.MIN_PLAYERS, var.MAX_PLAYERS))
         return
     
     # Attempt to find game stats for the given game size.

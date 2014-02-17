@@ -8,6 +8,7 @@ STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
+MIN_PLAYERS = 4
 MAX_PLAYERS = 21
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
@@ -333,7 +334,7 @@ def get_game_totals():
     size_totals = []
     total = 0
     with conn:
-        for size in range(4, MAX_PLAYERS + 1):
+        for size in range(MIN_PLAYERS, MAX_PLAYERS + 1):
             c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
             row = c.fetchone()
             if row:
