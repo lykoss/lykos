@@ -2518,15 +2518,18 @@ def on_error(cli, pfx, msg):
 @pmcmd("fstasis", admin_only=True)
 def fstasis(cli, nick, *rest):
     data = rest[0].split()
-    if len(data) == 2:
+    if data and len(data) < 3:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0].lower()
         if user in lusers:
             cloak = lusers[user]['cloak']
         else:
             cloak = None
-        amt = int(data[1])
-        if cloak is not None:
+        if cloak is None:
+            cli.msg(nick, "Sorry, that user cannot be found.")
+            return
+        if len(data) == 2:
+            amt = int(data[1])
             if amt < 0 and cloak in var.STASISED:
                 var.STASISED[cloak] -= amt
                 cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
@@ -2539,8 +2542,12 @@ def fstasis(cli, nick, *rest):
             else:
                 var.STASISED[cloak] = amt
                 cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
-        else:
-            cli.msg(nick, "Sorry, that user cannot be found.")
+            else:
+        elif len(data) == 1:
+            if cloak in var.STASISED:
+                cli.msg(nick, "{0} ({1}) is in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
+            else:
+                cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
     elif not data:
         if var.STASISED:
             cli.msg(nick, "Currently stasised: {0}".format(
