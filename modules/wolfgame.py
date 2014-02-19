@@ -2522,24 +2522,30 @@ def fstasis(cli, nick, *rest):
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0].lower()
         if user in lusers:
-            cloak = lusers[str(user)]['cloak']
+            cloak = lusers[user]['cloak']
         else:
             cloak = None
-        amt = data[1]
+        amt = int(data[1])
         if cloak is not None:
             if amt < 0 and cloak in var.STASISED:
                 var.STASISED[cloak] -= amt
                 cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
             elif amt <= 0:
-                var.STASISED[cloak].pop(int(amt))
-                cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+                if cloak in var.STASISED:
+                    var.STASISED[cloak].pop(amt)
+                    cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+                else:
+                    cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
             else:
                 cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
         else:
             cli.msg(nick, "Sorry, that user cannot be found.")
     else:
-        cli.msg(nick, "Currently stasised: {0}".format(
-            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.STASISED.items())))
+        if var.STASISED:
+            cli.msg(nick, "Currently stasised: {0}".format(
+                ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.STASISED.items())))
+        else:
+            cli.msg(nick, "Nobody is currently stasised.")
 
 
 
