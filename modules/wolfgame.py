@@ -2527,8 +2527,14 @@ def fstasis(cli, nick, *rest):
             cloak = None
         amt = data[1]
         if cloak is not None:
-            var.STASISED[cloak] = int(amt)
-            cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
+            if amt < 0 and cloak in var.STASISED:
+                var.STASISED[cloak] -= amt
+                cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
+            elif amt <= 0:
+                var.STASISED[cloak].pop(int(amt))
+                cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+            else:
+                cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
         else:
             cli.msg(nick, "Sorry, that user cannot be found.")
     else:
