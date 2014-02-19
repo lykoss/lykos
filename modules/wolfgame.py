@@ -2531,8 +2531,11 @@ def fstasis(cli, nick, *rest):
         if len(data) == 2:
             amt = int(data[1])
             if amt < 0 and cloak in var.STASISED:
-                var.STASISED[cloak] -= amt
-                cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
+                var.STASISED[cloak] += amt
+                if var.STASISED[cloak] == 0:
+                    cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+                else:
+                    cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
             elif amt <= 0:
                 if cloak in var.STASISED:
                     var.STASISED.pop(cloak)
