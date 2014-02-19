@@ -2529,7 +2529,7 @@ def fstasis(cli, nick, *rest):
             cli.msg(nick, "Sorry, that user cannot be found.")
     else:
         cli.msg(nick, "Currently stasised: {0}".format(
-            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.illegal_joins.items()))
+            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.illegal_joins.items())))
 
 
 
