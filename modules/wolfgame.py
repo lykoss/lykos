@@ -1412,6 +1412,7 @@ def transition_day(cli, gameid=0):
         if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
                            "who was not at home last night.")
+            victim = ""
     if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(victim)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
