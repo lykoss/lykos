@@ -1412,6 +1412,7 @@ def transition_day(cli, gameid=0):
         if var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, "+
                            "who was not at home last night.")
+            victim = ""
     if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
                           not var.HVISITED.get(victim)):   # harlot stayed home
         message.append(("The dead body of \u0002{0}\u0002, a "+
@@ -2345,15 +2346,16 @@ def start(cli, nick, chann_, rest):
         return
 
     if len(villagers) < var.MIN_PLAYERS:
-        cli.msg(chan, "{0}: {1} or more players are required to play.".format(nick, var.MIN_PLAYERS))
+        cli.msg(chan, "{0}: \u0002{1}\u0002 or more players are required to play.".format(nick, var.MIN_PLAYERS))
         return
 
-    for pcount in range(len(villagers), 3, -1):
+    for pcount in range(len(villagers), var.MIN_PLAYERS - 1, -1):
         addroles = var.ROLES_GUIDE.get(pcount)
         if addroles:
             break
-
-    
+    else:
+        cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
+        return
 
     if var.ORIGINAL_SETTINGS:  # Custom settings
         while True:
