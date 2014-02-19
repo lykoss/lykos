@@ -69,7 +69,7 @@ var.GAME_ID = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
 
-var.illegal_joins = defaultdict(int)
+var.STASISED = defaultdict(int)
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
@@ -193,7 +193,7 @@ def make_stasis(nick, penalty):
     try:
         cloak = var.USERS[nick]['cloak']
         if cloak is not None:
-            var.illegal_joins[cloak] += penalty
+            var.STASISED[cloak] += penalty
     except KeyError:
         pass
 
@@ -267,7 +267,7 @@ def pinger(cli, nick, chan, rest):
         if (all((not var.OPT_IN_PING,
                  'G' not in status,  # not /away
                  '+' not in status,  # not already joined (voiced)
-                 cloak not in var.illegal_joins, # not in stasis
+                 cloak not in var.STASISED, # not in stasis
                  cloak not in var.AWAY)) or
             all((var.OPT_IN_PING, '+' not in status,
                  cloak in var.PING_IN))):
@@ -389,8 +389,8 @@ def join(cli, nick, chann_, rest):
 
     try:
         cloak = var.USERS[nick]['cloak']
-        if cloak is not None and cloak in var.illegal_joins and var.illegal_joins[cloak] > 0:
-            cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.illegal_joins[cloak]))
+        if cloak is not None and cloak in var.STASISED and var.STASISED[cloak] > 0:
+            cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.STASISED[cloak]))
             return
     except KeyError:
         cloak = None
@@ -2492,11 +2492,11 @@ def start(cli, nick, chann_, rest):
     else:
         transition_day(cli)
 
-    for cloak in list(var.illegal_joins.keys()):
-        if var.illegal_joins[cloak] != 0:
-            var.illegal_joins[cloak] -= 1
+    for cloak in list(var.STASISED.keys()):
+        if var.STASISED[cloak] != 0:
+            var.STASISED[cloak] -= 1
         else:
-            del var.illegal_joins[cloak]
+            del var.STASISED[cloak]
 
     # DEATH TO IDLERS!
     reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
@@ -2517,19 +2517,21 @@ def on_error(cli, pfx, msg):
 def fstasis(cli, nick, *rest):
     data = rest[0].split()
     if len(data) == 2:
-        if data[0] in var.USERS:
-            cloak = var.USERS[str(data[0])]['cloak']
+        lusers = {k.lower(): v for k, v in var.USERS.items()}
+        user = data[0].lower()
+        if user in lusers:
+            cloak = lusers[str(user)]['cloak']
         else:
             cloak = None
         amt = data[1]
         if cloak is not None:
-            var.illegal_joins[cloak] = int(amt)
-            cli.msg(nick, "{0} is now in stasis for {1} games".format(data[0], amt))
+            var.STASISED[cloak] = int(amt)
+            cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
         else:
             cli.msg(nick, "Sorry, that user cannot be found.")
     else:
         cli.msg(nick, "Currently stasised: {0}".format(
-            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.illegal_joins.items())))
+            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.STASISED.items())))
 
 
 
