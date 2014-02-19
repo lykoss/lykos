@@ -2537,10 +2537,11 @@ def fstasis(cli, nick, *rest):
                 else:
                     cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
             else:
+                var.STASISED[cloak] = amt
                 cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
         else:
             cli.msg(nick, "Sorry, that user cannot be found.")
-    else:
+    elif not data:
         if var.STASISED:
             cli.msg(nick, "Currently stasised: {0}".format(
                 ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.STASISED.items())))
