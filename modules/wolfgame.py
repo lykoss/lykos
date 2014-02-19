@@ -2526,9 +2526,10 @@ def fstasis(cli, nick, *rest):
             var.illegal_joins[cloak] = int(amt)
             cli.msg(nick, "{0} is now in stasis for {1} games".format(data[0], amt))
         else:
-            cli.msg(nick, "Sorrry, that user has a None cloak")
+            cli.msg(nick, "Sorry, that user cannot be found.")
     else:
-        cli.msg(nick, "current illegal joins: " + str(var.illegal_joins))
+        cli.msg(nick, "Currently stasised: {0}".format(
+            ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.illegal_joins.items()))
 
 
 
