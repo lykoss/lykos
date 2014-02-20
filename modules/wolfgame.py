@@ -2972,8 +2972,8 @@ def game_stats(cli, nick, chan, rest):
     cli.msg(chan, var.get_game_stats(int(rest)))
 
 @pmcmd("gamestats", "gstats")
-def player_stats_pm(cli, nick, rest):
-    player_stats(cli, nick, nick, rest)
+def game_stats_pm(cli, nick, rest):
+    game_stats(cli, nick, nick, rest)
     
 @cmd("playerstats", "pstats", "player", "p")
 def player_stats(cli, nick, chan, rest):
