@@ -3045,7 +3045,7 @@ def git_pull(cli, nick, chan, rest):
         raise
 
     if output:
-        for line in output:
+        for line in output.splitlines():
             cli.msg(chan, line.decode('utf-8'))
 
 @pmcmd("pull", admin_only=True)
