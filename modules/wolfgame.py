@@ -2973,7 +2973,7 @@ def game_stats(cli, nick, chan, rest):
 
 @pmcmd("gamestats", "gstats")
 def player_stats_pm(cli, nick, rest):
-    player_stats(cli, nick, "", rest)
+    player_stats(cli, nick, nick,, rest)
     
 @cmd("playerstats", "pstats", "player", "p")
 def player_stats(cli, nick, chan, rest):
@@ -3013,7 +3013,7 @@ def player_stats(cli, nick, chan, rest):
     
 @pmcmd("playerstats", "pstats", "player", "p")
 def player_stats_pm(cli, nick, rest):
-    player_stats(cli, nick, "", rest)
+    player_stats(cli, nick, nick, rest)
     
 @cmd("mystats", "me")
 def my_stats(cli, nick, chan, rest):
