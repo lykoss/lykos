@@ -3039,7 +3039,7 @@ def my_stats_pm(cli, nick, rest):
 @cmd("pull", admin_only=True)
 def git_pull(cli, nick, chan, rest):
     try:
-        output = subprocess.check_output(('git', 'pull')):
+        output = subprocess.check_output(('git', 'pull'))
     except Exception as e:
         cli.msg(chan, '{0}:{1}'.format(type(e), e))
         raise
