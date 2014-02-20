@@ -3035,6 +3035,22 @@ def my_stats(cli, nick, chan, rest):
 @pmcmd("mystats", "me")
 def my_stats_pm(cli, nick, rest):
     my_stats(cli, nick, "", rest)
+
+@cmd("pull", admin_only=True)
+def git_pull(cli, nick, chan, rest):
+    try:
+        output = subprocess.check_output(('git', 'pull')):
+    except Exception as e:
+        cli.msg(chan, '{0}:{1}'.format(type(e), e))
+        raise
+
+    if output:
+        for line in output:
+            cli.msg(chan, line.decode('utf-8'))
+
+@pmcmd("pull", admin_only=True)
+def git_pull_pm(cli, nick, rest):
+    git_pull(cli, nick, nick, rest)
     
     
 before_debug_mode_commands = list(COMMANDS.keys())
