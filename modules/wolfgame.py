@@ -42,6 +42,9 @@ var.LAST_PING = None  # time of last ping
 var.LAST_STATS = None
 var.LAST_VOTES = None
 var.LAST_ADMINS = None
+var.LAST_GSTATS = None
+var.LAST_PSTATS = None
+var.LAST_MSTATS = None
 
 var.USERS = {}
 
@@ -2944,6 +2947,12 @@ def _flastgame(cli, nick, chan, rest):
 @cmd("gamestats", "gstats")
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
+    if (chan and var.LAST_GSTATS and
+        var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. " +
+                          "Please wait a while before using it again."))
+        return
+
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
@@ -2961,10 +2970,20 @@ def game_stats(cli, nick, chan, rest):
     
     # Attempt to find game stats for the given game size.
     cli.msg(chan, var.get_game_stats(int(rest)))
+
+@pmcmd("gamestats", "gstats")
+def player_stats_pm(cli, nick, rest):
+    player_stats(cli, nick, "", rest)
     
-@cmd("player", "p")
+@cmd("playerstats", "pstats", "player", "p")
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
+    if (chan and var.LAST_PSTATS and
+        var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. " +
+                          "Please wait a while before using it again."))
+        return
+
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
@@ -2992,24 +3011,30 @@ def player_stats(cli, nick, chan, rest):
         # Attempt to find the player's stats.
         cli.notice(nick, var.get_player_stats(acc, role))
     
-@pmcmd("player", "p")
+@pmcmd("playerstats", "pstats", "player", "p")
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, "", rest)
-    
-@pmcmd("mystats", "me")
-def my_stats_pm(cli, nick, rest):
-    my_stats(cli, nick, "", rest)
     
 @cmd("mystats", "me")
 def my_stats(cli, nick, chan, rest):
     """Gets your own stats for the given role or a list of role totals if no role is given."""
     # Check if player is identified
+    if (chan and var.LAST_MSTATS and
+        var.LAST_MSTATS + timedelta(seconds=var.MSTATS_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. " +
+                          "Please wait a while before using it again."))
+        return
+
     acc = var.USERS[nick]["account"]
     if acc == "*":
         cli.notice(nick, "You are not identified with NickServ.")
         return
         
     player_stats(cli, nick, chan, "{0} {1}".format(acc, rest))
+    
+@pmcmd("mystats", "me")
+def my_stats_pm(cli, nick, rest):
+    my_stats(cli, nick, "", rest)
     
     
 before_debug_mode_commands = list(COMMANDS.keys())

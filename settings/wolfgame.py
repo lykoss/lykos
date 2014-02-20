@@ -8,6 +8,9 @@ MAXIMUM_WAITED = 3  # limit for amount of !wait's
 STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
+GSTATS_RATE_LIMIT = 300
+PSTATS_RATE_LIMIT = 300
+MSTATS_RATE_LIMIT = 300
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 MIN_PLAYERS = 4
 MAX_PLAYERS = 21
