@@ -513,7 +513,7 @@ def on_kicked(cli, nick, chan, victim, reason):
 
 @hook("account")
 def on_account(cli, nick, acc):
-    nick, mode, user, cloak = parse_nick(nick)  
+    nick, mode, user, cloak = parse_nick(nick)
     if nick in var.USERS.keys():
         var.USERS[nick]["cloak"] = cloak
         var.USERS[nick]["account"] = acc
