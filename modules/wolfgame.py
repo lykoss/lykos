@@ -3005,10 +3005,10 @@ def player_stats(cli, nick, chan, rest):
         user = params[0]
 
     # Find the player's account if possible.
-    if params[0] in var.USERS:
-        acc = var.USERS[params[0]]["account"]
+    if user in var.USERS:
+        acc = var.USERS[user]["account"]
         if acc == "*":
-            cli.notice(nick, "{0} is not identified with NickServ.".format(params[0]))
+            cli.notice(nick, "{0} is not identified with NickServ.".format(user))
             return
     else:
         acc = params[0]
