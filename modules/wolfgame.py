@@ -44,7 +44,6 @@ var.LAST_VOTES = None
 var.LAST_ADMINS = None
 var.LAST_GSTATS = None
 var.LAST_PSTATS = None
-var.LAST_MSTATS = None
 
 var.USERS = {}
 
@@ -438,6 +437,8 @@ def join(cli, nick, chann_, rest):
                 var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
 
         var.LAST_STATS = None # reset
+        var.LAST_GSTATS = None
+        var.LAST_PSTATS = None
 
 
 @cmd("fjoin", admin_only=True)
@@ -530,7 +531,8 @@ def stats(cli, nick, chan, rest):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-            cli.notice(nick, "This command is rate-limited.")
+            cli.notice(nick, ("This command is rate-limited. " +
+                              "Please wait a while before using it again."))
             return
             
         var.LAST_STATS = datetime.now()
@@ -701,7 +703,8 @@ def show_votes(cli, nick, chan, rest):
     
     if (var.LAST_VOTES and
         var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, "This command is rate-limited.")
+        cli.notice(nick, ("This command is rate-limited." +
+                          "Please wait a while before using it again."))
         return    
     
     pl = var.list_players()
@@ -2953,6 +2956,9 @@ def game_stats(cli, nick, chan, rest):
                           "Please wait a while before using it again."))
         return
 
+    if chan:
+        var.LAST_GSTATS = datetime.now()
+
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
@@ -2984,6 +2990,9 @@ def player_stats(cli, nick, chan, rest):
                           "Please wait a while before using it again."))
         return
 
+    if chan:
+        var.LAST_PSTATS = datetime.now()
+
     if var.PHASE not in ("none", "join"):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
@@ -2991,8 +3000,9 @@ def player_stats(cli, nick, chan, rest):
     # Check if we have enough parameters.
     params = rest.split()
     if len(params) < 1:
-        cli.notice(nick, "Supply at least a nick.")
-        return
+        user = nick
+    else:
+        user = params[0]
 
     # Find the player's account if possible.
     if params[0] in var.USERS:
@@ -3005,37 +3015,16 @@ def player_stats(cli, nick, chan, rest):
     
     # List the player's total games for all roles if no role is given
     if len(params) == 1:
-        cli.notice(nick, var.get_player_totals(acc))
+        cli.msg(chan, var.get_player_totals(acc))
     else:
         role = " ".join(params[1:]).lower()    
         # Attempt to find the player's stats.
-        cli.notice(nick, var.get_player_stats(acc, role))
+        cli.msg(chan, var.get_player_stats(acc, role))
     
 @pmcmd("playerstats", "pstats", "player", "p")
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
     
-@cmd("mystats", "me")
-def my_stats(cli, nick, chan, rest):
-    """Gets your own stats for the given role or a list of role totals if no role is given."""
-    # Check if player is identified
-    if (chan and var.LAST_MSTATS and
-        var.LAST_MSTATS + timedelta(seconds=var.MSTATS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. " +
-                          "Please wait a while before using it again."))
-        return
-
-    acc = var.USERS[nick]["account"]
-    if acc == "*":
-        cli.notice(nick, "You are not identified with NickServ.")
-        return
-        
-    player_stats(cli, nick, chan, "{0} {1}".format(acc, rest))
-    
-@pmcmd("mystats", "me")
-def my_stats_pm(cli, nick, rest):
-    my_stats(cli, nick, "", rest)
-
 @cmd("pull", admin_only=True)
 def git_pull(cli, nick, chan, rest):
     try:
