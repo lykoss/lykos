@@ -314,19 +314,17 @@ def get_player_stats(acc, role):
 
 def get_player_totals(acc):
     role_totals = []
-    games = 0
     with conn:
         for role in ["villager"] + [v for k, v in ROLE_INDICES.items()]:
             c.execute("SELECT totalgames FROM rolestats WHERE player=? AND role=?", (acc, role))
             row = c.fetchone()
             if row:
-                games += int(*row)
                 role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
     
     if len(role_totals) == 0:
         return "{0} has not played any games.".format(acc)
     else:
-        return "\u0002{0}\u0002's totals ({1} games) | {1}".format(acc, games, ", ".join(role_totals))
+        return "\u0002{0}\u0002's totals | {1}".format(acc, ", ".join(role_totals))
             
 def get_game_stats(size):
     with conn:
