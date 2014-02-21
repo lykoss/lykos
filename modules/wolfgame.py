@@ -2950,13 +2950,13 @@ def _flastgame(cli, nick, chan, rest):
 @cmd("gamestats", "gstats")
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
-    if (chan and var.LAST_GSTATS and
+    if (chan != nick and var.LAST_GSTATS and
         var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) > datetime.now()):
         cli.notice(nick, ("This command is rate-limited. " +
                           "Please wait a while before using it again."))
         return
 
-    if chan:
+    if chan != nick:
         var.LAST_GSTATS = datetime.now()
 
     if var.PHASE not in ("none", "join"):
@@ -2984,13 +2984,13 @@ def game_stats_pm(cli, nick, rest):
 @cmd("playerstats", "pstats", "player", "p")
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
-    if (chan and var.LAST_PSTATS and
+    if (chan != nick and var.LAST_PSTATS and
         var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) > datetime.now()):
         cli.notice(nick, ("This command is rate-limited. " +
                           "Please wait a while before using it again."))
         return
 
-    if chan:
+    if chan != nick:
         var.LAST_PSTATS = datetime.now()
 
     if var.PHASE not in ("none", "join"):
@@ -3014,7 +3014,7 @@ def player_stats(cli, nick, chan, rest):
         acc = params[0]
     
     # List the player's total games for all roles if no role is given
-    if len(params) == 1:
+    if len(params) < 2:
         cli.msg(chan, var.get_player_totals(acc))
     else:
         role = " ".join(params[1:]).lower()    
