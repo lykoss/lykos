@@ -2979,7 +2979,7 @@ def game_stats(cli, nick, chan, rest):
     
     # Attempt to find game stats for the given game size.
     if chan == nick:
-        pm(nick, var.get_game_stats(int(rest)))
+        pm(cli, nick, var.get_game_stats(int(rest)))
     else:
         cli.msg(chan, var.get_game_stats(int(rest)))
 
