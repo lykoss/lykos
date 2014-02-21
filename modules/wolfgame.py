@@ -2965,7 +2965,10 @@ def game_stats(cli, nick, chan, rest):
     
     # List all games sizes and totals if no size is given.
     if rest == "":
-        cli.msg(chan, var.get_game_totals())
+        if chan == nick:
+            pm(cli, nick, var.get_game_totals())
+        else:
+            cli.msg(chan, var.get_game_totals())
         return
     
     # Check for invalid input
@@ -2975,7 +2978,10 @@ def game_stats(cli, nick, chan, rest):
         return
     
     # Attempt to find game stats for the given game size.
-    cli.msg(chan, var.get_game_stats(int(rest)))
+    if chan == nick:
+        pm(nick, var.get_game_stats(int(rest)))
+    else:
+        cli.msg(chan, var.get_game_stats(int(rest)))
 
 @pmcmd("gamestats", "gstats")
 def game_stats_pm(cli, nick, rest):
@@ -3015,11 +3021,17 @@ def player_stats(cli, nick, chan, rest):
     
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        cli.msg(chan, var.get_player_totals(acc))
+        if chan == nick:
+            pm(cli, nick, var.get_player_totals(acc))
+        else:
+            cli.msg(chan, var.get_player_totals(acc))
     else:
         role = " ".join(params[1:]).lower()    
         # Attempt to find the player's stats.
-        cli.msg(chan, var.get_player_stats(acc, role))
+        if chan == nick:
+            pm(cli, nick, var.get_player_stats(acc, role))
+        else:
+            cli.msg(chan, var.get_player_stats(acc, role))
     
 @pmcmd("playerstats", "pstats", "player", "p")
 def player_stats_pm(cli, nick, rest):
