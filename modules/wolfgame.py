@@ -513,8 +513,9 @@ def on_kicked(cli, nick, chan, victim, reason):
 
 @hook("account")
 def on_account(cli, nick, acc):
-    nick = parse_nick(nick)[0]    
+    nick, mode, user, cloak = parse_nick(nick)  
     if nick in var.USERS.keys():
+        var.USERS[nick]["cloak"] = cloak
         var.USERS[nick]["account"] = acc
 
 @cmd("stats")
@@ -1077,8 +1078,12 @@ def update_last_said(cli, nick, chan, rest):
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick,m,u,cloak = parse_nick(raw_nick)
-    if nick not in var.USERS.keys() and nick != botconfig.NICK:
-        var.USERS[nick] = dict(cloak=cloak,account=acc)
+    if nick != botconfig.NICK:
+        if nick not in var.USERS.keys():
+            var.USERS[nick] = dict(cloak=cloak,account=acc)
+        else:
+            var.USERS[nick]["cloak"] = cloak
+            var.USERS[nick]["account"] = acc
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
             clk = var.DISCONNECTED[nick][0]
