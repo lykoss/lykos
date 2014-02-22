@@ -160,6 +160,14 @@ def reset_settings():
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
 
+def reset_modes(cli):
+    cli.mode(chan, "-m")
+    cmodes = []
+    for plr in var.list_players():
+        cmodes.append(("-v", plr))
+    for deadguy in var.DEAD:
+        cmodes.append(("-q", deadguy+"!*@*"))
+    mass_mode(cli, cmodes)
 
 def reset(cli):
     chan = botconfig.CHANNEL
@@ -171,13 +179,6 @@ def reset(cli):
     
     var.GAME_ID = 0
 
-    cli.mode(chan, "-m")
-    cmodes = []
-    for plr in var.list_players():
-        cmodes.append(("-v", plr))
-    for deadguy in var.DEAD:
-       cmodes.append(("-q", deadguy+"!*@*"))
-    mass_mode(cli, cmodes)
     var.DEAD = []
 
     var.ROLES = {"person" : []}
@@ -207,6 +208,7 @@ def forced_exit(cli, nick, *rest):  # Admin Only
     if var.PHASE in ("day", "night"):
         stop_game(cli)
     else:
+        reset_modes(cli)
         reset(cli)
 
     cli.quit("Forced quit from "+nick)
@@ -221,6 +223,7 @@ def restart_program(cli, nick, *rest):
         if var.PHASE in ("day", "night"):
             stop_game(cli)
         else:
+            reset_modes(cli)
             reset(cli)
 
         cli.quit("Forced restart from "+nick)
@@ -807,6 +810,8 @@ def stop_game(cli, winner = ""):
                                                   var.plural(role)))
     cli.msg(chan, " ".join(roles_msg))
 
+    reset_modes(cli)
+    
     plrl = []
     for role,ppl in var.ORIGINAL_ROLES.items():
         for x in ppl:
@@ -854,7 +859,7 @@ def stop_game(cli, winner = ""):
     size = len(var.list_players()) + len(var.DEAD)
     if winner != "": # Only update if not an abnormal game stop
         var.update_game_stats(size, winner)
-        
+    
     reset(cli)
     
     # This must be after reset(cli)
@@ -875,6 +880,7 @@ def chk_win(cli, end_game = True):
     
     if lpl == 0:
         #cli.msg(chan, "No more players remaining. Game ended.")
+        reset_modes(cli)
         reset(cli)
         return True
         
@@ -2647,6 +2653,7 @@ def reset_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         stop_game(cli)
     else:
+        reset_modes(cli)
         reset(cli)
 
 
