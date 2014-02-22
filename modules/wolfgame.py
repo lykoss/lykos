@@ -551,6 +551,7 @@ def stats(cli, nick, chan, rest):
         cli.msg(chan, msg)
         var.LOGGER.logMessage(msg.replace("\02", ""))
     else:
+   
         cli.notice(nick, msg)
         
     if var.PHASE == "join":
@@ -3063,7 +3064,11 @@ def git_pull(cli, nick, chan, rest):
 @pmcmd("pull", admin_only=True)
 def git_pull_pm(cli, nick, rest):
     git_pull(cli, nick, nick, rest)
-    
+
+@pmcmd("fsend", admin_only=True)
+def fsend(cli, nick, rest):
+    print('fsend ({0}): {1}'.format(nick, rest))
+    cli.send(rest)
     
 before_debug_mode_commands = list(COMMANDS.keys())
 before_debug_mode_pmcommands = list(PM_COMMANDS.keys())
@@ -3304,6 +3309,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         cli.msg(chan, "Operation successful.")
         if var.PHASE not in ('none','join'):
             chk_win(cli)
+
             
 if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
     for comd in list(COMMANDS.keys()):
