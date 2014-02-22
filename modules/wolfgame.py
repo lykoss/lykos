@@ -161,7 +161,7 @@ def reset_settings():
     dict.clear(var.ORIGINAL_SETTINGS)
 
 def reset_modes(cli):
-    cli.mode(chan, "-m")
+    cli.mode(botconfig.CHANNEL, "-m")
     cmodes = []
     for plr in var.list_players():
         cmodes.append(("-v", plr))
@@ -170,7 +170,6 @@ def reset_modes(cli):
     mass_mode(cli, cmodes)
 
 def reset(cli):
-    chan = botconfig.CHANNEL
     var.PHASE = "none"
 
     for x, timr in var.TIMERS.items():
