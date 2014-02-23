@@ -2021,7 +2021,7 @@ def see(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     if not var.is_role(nick, "seer"):
-        pm(cli, nick, "Only a seer may use this command")
+        pm(cli, nick, "Only a seer may use this command.")
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only have visions at night.")
