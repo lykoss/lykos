@@ -2205,7 +2205,7 @@ def transition_night(cli):
                 pl[i] = player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
-        pm(cli, wolf, "\u0002Players:\u0002 "+", ".join(pl))
+        pm(cli, wolf, "Players: "+", ".join(pl))
 
     for seer in var.ROLES["seer"]:
         pl = ps[:]
