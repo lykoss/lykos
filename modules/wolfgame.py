@@ -3029,7 +3029,7 @@ def player_stats(cli, nick, chan, rest):
             cli.notice(nick, "{0} is not identified with NickServ.".format(user))
             return
     else:
-        acc = params[0]
+        acc = user
     
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
