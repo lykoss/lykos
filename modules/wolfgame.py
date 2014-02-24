@@ -3002,11 +3002,11 @@ def game_stats_pm(cli, nick, rest):
 @cmd("playerstats", "pstats", "player", "p")
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
-    if (chan != nick and var.LAST_PSTATS and
-        var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. " +
-                          "Please wait a while before using it again."))
-        return
+    #if (chan != nick and var.LAST_PSTATS and
+    #    var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) > datetime.now()):
+    #    cli.notice(nick, ("This command is rate-limited. " +
+    #                      "Please wait a while before using it again."))
+    #    return
 
     if chan != nick:
         var.LAST_PSTATS = datetime.now()
