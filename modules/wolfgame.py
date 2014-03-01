@@ -244,17 +244,18 @@ def restart_program(cli, nick, *rest):
 @cmd("ping")
 def pinger(cli, nick, chan, rest):
     """Pings the channel to get people's attention.  Rate-Limited."""
+
+    if var.PHASE in ('night','day'):
+        #cli.notice(nick, "You cannot use this command while a game is running.")
+        cli.notice(nick, 'Pong!')
+        return
+
     if (var.LAST_PING and
         var.LAST_PING + timedelta(seconds=var.PING_WAIT) > datetime.now()):
         cli.notice(nick, ("This command is rate-limited. " +
                           "Please wait a while before using it again."))
         return
         
-    if var.PHASE in ('night','day'):
-        #cli.notice(nick, "You cannot use this command while a game is running.")
-        #return
-        cli.notice(nick, 'Pong!')
-
     var.LAST_PING = datetime.now()
     if var.PINGING:
         return
