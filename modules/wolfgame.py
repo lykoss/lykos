@@ -241,6 +241,11 @@ def restart_program(cli, nick, *rest):
     
             
 
+@pmcmd("ping")
+def pm_ping(cli, nick, rest):
+    pm(cli, nick, 'Pong!')
+
+
 @cmd("ping")
 def pinger(cli, nick, chan, rest):
     """Pings the channel to get people's attention.  Rate-Limited."""
