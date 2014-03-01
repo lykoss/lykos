@@ -251,8 +251,9 @@ def pinger(cli, nick, chan, rest):
         return
         
     if var.PHASE in ('night','day'):
-        cli.notice(nick, "You cannot use this command while a game is running.")
-        return
+        #cli.notice(nick, "You cannot use this command while a game is running.")
+        #return
+        cli.notice(nick, 'Pong!')
 
     var.LAST_PING = datetime.now()
     if var.PINGING:
