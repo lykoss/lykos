@@ -528,7 +528,6 @@ def on_account(cli, nick, acc):
         var.USERS[nick]["account"] = acc
 
 @cmd("stats")
-@pmcmd("stats")
 def stats(cli, nick, chan, rest):
     """Display the player statistics"""
     if var.PHASE == "none":
@@ -537,7 +536,7 @@ def stats(cli, nick, chan, rest):
         
     pl = var.list_players()
     
-    if nick in pl or var.PHASE == "join":
+    if nick != chan and (nick in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
@@ -554,12 +553,14 @@ def stats(cli, nick, chan, rest):
     else:
         msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
     
-    if nick in pl or var.PHASE == "join":
-        cli.msg(chan, msg)
-        var.LOGGER.logMessage(msg.replace("\02", ""))
+    if nick == chan:
+        pm(cli, nick, msg)
     else:
-   
-        cli.notice(nick, msg)
+        if nick in pl or var.PHASE == "join":
+            cli.msg(chan, msg)
+            var.LOGGER.logMessage(msg.replace("\02", ""))
+        else:
+            cli.notice(nick, msg)
         
     if var.PHASE == "join":
         return
@@ -605,11 +606,18 @@ def stats(cli, nick, chan, rest):
                                                         message[-1],
                                                         vb,
                                                         var.PHASE)
-    if nick in pl or var.PHASE == "join":
-        cli.msg(chan, stats_mssg)
-        var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
+    if nick == chan:
+        pm(cli, nick, stats_mssg)
     else:
-        cli.notice(nick, stats_mssg)
+        if nick in pl or var.PHASE == "join":
+            cli.msg(chan, stats_mssg)
+            var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
+        else:
+            cli.notice(nick, stats_mssg)
+
+@pmcmd("stats")
+def stats_pm(cli, nick, rest):
+    stats(cli, nick, nick, rest)
 
 
 
