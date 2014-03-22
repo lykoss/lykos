@@ -829,6 +829,9 @@ def stop_game(cli, winner = ""):
 
     reset_modes_timers(cli)
     
+    # Set temporary phase to deal with disk lag
+    var.PHASE = "writing files"
+    
     plrl = []
     for role,ppl in var.ORIGINAL_ROLES.items():
         for x in ppl:
@@ -1023,6 +1026,9 @@ def reaper(cli, gameid):
     
     while gameid == var.GAME_ID:
         with var.GRAVEYARD_LOCK:
+            # Terminate reaper when experiencing disk lag
+            if var.PHASE == "writing files":
+                return
             if var.WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
                 to_warn = []
                 to_kill = []
