@@ -1657,7 +1657,31 @@ def retract(cli, nick, chann_, rest):
     else:
         cli.notice(nick, "You haven't voted yet.")
 
-
+@pmcmd("retract")
+def wolfretract(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+	
+    role = var.get_role(nick)
+    if role not in ('wolf', 'werecrow'):
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only retract at night.")
+        return
+    if role == "werecrow":  # Check if already observed
+        if var.OBSERVED.get(nick):
+            pm(cli, nick, ("You have already transformed into a crow, and "+
+                           "cannot turn back until day."))
+            return
+	
+    if nick in var.KILLS.keys():
+        del var.KILLS[nick]
+    pm(cli, nick, "You have retracted your vote.")
+    #var.LOGGER.logBare(nick, "RETRACT", nick)
 
 @cmd("shoot")
 def shoot(cli, nick, chann_, rest):
@@ -2449,7 +2473,7 @@ def start(cli, nick, chann_, rest):
     if var.ROLES["cursed villager"]:
         possiblecursed = pl[:]
         for cannotbe in (var.ROLES["wolf"] + var.ROLES["werecrow"] +
-                         var.ROLES["seer"] + var.ROLES["village drunk"]):
+                         var.ROLES["seer"]):
                                               # traitor can be cursed
             possiblecursed.remove(cannotbe)
         
