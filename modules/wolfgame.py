@@ -479,7 +479,7 @@ def fjoin(cli, nick, chann_, rest):
         else:
             cli.notice(nick, "No, that won't be allowed.")
 
-@cmd("fleave","fquit","fdel", admin_only=True)
+@cmd("fleave", "fquit", admin_only=True)
 def fleave(cli, nick, chann_, rest):
     chan = botconfig.CHANNEL
     
