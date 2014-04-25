@@ -390,7 +390,7 @@ def fpinger(cli, nick, chan, rest):
     pinger(cli, nick, chan, rest)
 
 
-
+@cmd("j", raw_nick=True)
 @cmd("join", raw_nick=True)
 def join(cli, nick, chann_, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
