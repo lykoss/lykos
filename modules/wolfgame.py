@@ -1163,10 +1163,12 @@ def goat(cli, nick, chan, rest):
             pm(cli, nick,"\u0002{0}\u0002 is not in this channel.".format(rest))
             return
     victim = ul[ull.index(victim)]
+    goatact = random.choice(["kicks", "headbutts"])
     cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002's goat walks by "+
-                                "and kicks \u0002{1}\u0002.").format(nick,
-                                                                     victim))
-    var.LOGGER.logMessage("{0}'s goat walks by and kicks {1}.".format(nick, victim))
+                                "and {1} \u0002{2}\u0002.").format(nick,
+                                                                   goatact, victim))
+    var.LOGGER.logMessage("{0}'s goat walks by and {1} {2}.".format(nick, goatact
+                                                                    victim))
     var.GOATED = True
     
     
