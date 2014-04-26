@@ -1167,7 +1167,7 @@ def goat(cli, nick, chan, rest):
     cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002's goat walks by "+
                                 "and {1} \u0002{2}\u0002.").format(nick,
                                                                    goatact, victim))
-    var.LOGGER.logMessage("{0}'s goat walks by and {1} {2}.".format(nick, goatact
+    var.LOGGER.logMessage("{0}'s goat walks by and {1} {2}.".format(nick, goatact,
                                                                     victim))
     var.GOATED = True
     
