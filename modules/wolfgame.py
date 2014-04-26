@@ -1557,7 +1557,7 @@ def chk_nightdone(cli):
 
 
 
-@cmd("lynch", "vote")
+@cmd("lynch", "vote","v")
 def vote(cli, nick, chann_, rest):
     """Use this to vote for a candidate to be lynched"""
     chan = botconfig.CHANNEL
