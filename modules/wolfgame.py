@@ -198,6 +198,8 @@ def make_stasis(nick, penalty):
         cloak = var.USERS[nick]['cloak']
         if cloak is not None:
             var.STASISED[cloak] += penalty
+        if var.STASISED[cloak] == 0:
+            var.STASISED.remove(cloak)
     except KeyError:
         pass
 
@@ -402,7 +404,7 @@ def join(cli, nick, chann_, rest):
 
     try:
         cloak = var.USERS[nick]['cloak']
-        if cloak is not None and cloak in var.STASISED and var.STASISED[cloak] > 0:
+        if cloak is not None and cloak in var.STASISED:
             cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.STASISED[cloak]))
             return
     except KeyError:
@@ -2561,10 +2563,8 @@ def start(cli, nick, chann_, rest):
         transition_day(cli)
 
     for cloak in list(var.STASISED.keys()):
-        if var.STASISED[cloak] != 0:
+        if cloak in var.STASISED:
             var.STASISED[cloak] -= 1
-        else:
-            del var.STASISED[cloak]
 
     # DEATH TO IDLERS!
     reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
@@ -2600,11 +2600,12 @@ def fstasis(cli, nick, *rest):
                 var.STASISED[cloak] += amt
                 if var.STASISED[cloak] == 0:
                     cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+                    var.STASISED.remove(cloak)
                 else:
                     cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
             elif amt <= 0:
                 if cloak in var.STASISED:
-                    var.STASISED.pop(cloak)
+                    var.STASISED.remove(cloak)
                     cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
                 else:
                     cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
