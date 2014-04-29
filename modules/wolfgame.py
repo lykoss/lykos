@@ -25,6 +25,7 @@ import math
 import fnmatch
 import random
 import subprocess
+from imp import reload
 
 BOLD = "\u0002"
 
@@ -3119,6 +3120,30 @@ def git_pull_pm(cli, nick, rest):
 def fsend(cli, nick, rest):
     print('fsend ({0}): {1}'.format(nick, rest))
     cli.send(rest)
+
+@cmd("freload", admin_only=True)
+def freload(cli, nick, chan, rest):
+    try:
+        # No, this doesn't clear the stasis list.
+        reload(var)
+        reload(botconfig)
+    except ImportError:
+        if chan == nick:
+            pm(nick, '{0}: {1}'.format(type(e), e))
+        else:
+            cli.msg(chan, '{0}: {1}'.format(type(e), e))
+
+        raise
+    else:
+        if chan == nick:
+            pm(nick, '{0}: {1}'.format(type(e), e))
+        else:
+            cli.msg(chan, 'Reloaded config.')
+
+@pmcmd("freload", admin_only=True)
+def freload_pm(cli, nick, rest):
+    freload(cli, nick, nick, rest)
+
     
 before_debug_mode_commands = list(COMMANDS.keys())
 before_debug_mode_pmcommands = list(PM_COMMANDS.keys())
