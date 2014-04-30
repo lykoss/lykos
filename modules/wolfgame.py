@@ -3112,24 +3112,15 @@ def player_stats_pm(cli, nick, rest):
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
     try:
-        output = subprocess.check_output(('git', 'pull', '--no-progress'), stderr=subprocess.STDOUT)
+        output = subprocess.check_output(('git', 'pull'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-        if chan == nick:
-            pm(cli, nick, '{0}: {1}'.format(type(e), e))
-        else:
-            cli.msg(chan, '{0}: {1}'.format(type(e), e))
+        pm(cli, nick, '{0}: {1}'.format(type(e), e))
         #raise
     if output:
         for line in output.splitlines():
-            if chan == nick:
-                pm(cli, nick, line.decode('utf-8'))
-            else:
-                cli.msg(chan, line.decode('utf-8'))
+            pm(cli, nick, line.decode('utf-8'))
     else:
-        if chan == nick:
-            pm(cli, nick, '(no output)')
-        else:
-            cli.msg(chan, '(no output)')
+        pm(cli, nick, '(no output)')
 
 @pmcmd("fpull", admin_only=True)
 def fpull_pm(cli, nick, rest):
