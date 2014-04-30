@@ -2596,7 +2596,7 @@ def fstasis(cli, nick, chan, rest):
 
         if len(rest) == 1:
             if cloak in var.STASISED:
-                msg = "{0} ({1}) is in stasis for {2} games.".format(rest[0], cloak, var.STASISED[cloak]))
+                msg = "{0} ({1}) is in stasis for {2} games.".format(rest[0], cloak, var.STASISED[cloak])
             else:
                 msg = "{0} ({1}) is not in stasis.".format(rest[0], cloak)
         else:
