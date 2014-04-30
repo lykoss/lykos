@@ -3109,20 +3109,20 @@ def player_stats(cli, nick, chan, rest):
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
     
-@cmd("pull", admin_only=True)
-def git_pull(cli, nick, chan, rest):
+@cmd("fpull", admin_only=True)
+def fpull(cli, nick, chan, rest):
     try:
-        output = subprocess.check_output(('git', 'pull'))
+        output = subprocess.check_output(('git', 'pull', '-q'), stderr=subprocess.STDOUT)
     except Exception as e:
         cli.msg(chan, '{0}: {1}'.format(type(e), e))
-        raise
+        #raise
 
     if output:
         for line in output.splitlines():
             cli.msg(chan, line.decode('utf-8'))
 
-@pmcmd("pull", admin_only=True)
-def git_pull_pm(cli, nick, rest):
+@pmcmd("fpull", admin_only=True)
+def fpull_pm(cli, nick, rest):
     git_pull(cli, nick, nick, rest)
 
 @pmcmd("fsend", admin_only=True)
