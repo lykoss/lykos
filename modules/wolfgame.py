@@ -391,8 +391,7 @@ def fpinger(cli, nick, chan, rest):
     pinger(cli, nick, chan, rest)
 
 
-@cmd("j", raw_nick=True)
-@cmd("join", raw_nick=True)
+@cmd("join", "j", raw_nick=True)
 def join(cli, nick, chann_, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     pl = var.list_players()
@@ -1558,7 +1557,7 @@ def chk_nightdone(cli):
 
 
 
-@cmd("lynch", "vote","v")
+@cmd("lynch", "vote", "v")
 def vote(cli, nick, chann_, rest):
     """Use this to vote for a candidate to be lynched"""
     chan = botconfig.CHANNEL
@@ -2581,19 +2580,20 @@ def on_error(cli, pfx, msg):
         raise SystemExit
 
 
-@cmd("fstasis", admin_only=True)
-def fstasis(cli, nick, chan, rest):
+@pmcmd("fstasis", admin_only=True)
+def fstasis(cli, nick, rest):
+    """Admin command for removing or setting stasis penalties."""
     data = rest.split()
     msg = None
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0].lower()
-        if user in lusers:
-            cloak = lusers[user]['cloak']
-        else:
-            cloak = None
-            pm(cli, nick, "Sorry, that user cannot be found.")
+        
+        if user not in lusers:
+            cli.msg(nick, "Sorry, {0} cannot be found.".format(data[0]))
             return
+        
+        cloak = lusers[user]['cloak']
 
         if len(data) == 1:
             if cloak in var.STASISED:
