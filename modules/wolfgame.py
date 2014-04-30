@@ -3118,7 +3118,7 @@ def fsend(cli, nick, rest):
     print('fsend ({0}): {1}'.format(nick, rest))
     cli.send(rest)
 
-@cmd("freload" "frehash", admin_only=True)
+@cmd("freload", "frehash", admin_only=True)
 def freload(cli, nick, chan, rest):
     try:
         # No, this doesn't clear the stasis list.
@@ -3126,14 +3126,14 @@ def freload(cli, nick, chan, rest):
         reload(botconfig)
     except ImportError:
         if chan == nick:
-            pm(nick, '{0}: {1}'.format(type(e), e))
+            pm(cli, nick, '{0}: {1}'.format(type(e), e))
         else:
             cli.msg(chan, '{0}: {1}'.format(type(e), e))
 
         raise
     else:
         if chan == nick:
-            pm(nick, '{0}: {1}'.format(type(e), e))
+            pm(cli, nick, '{0}: {1}'.format(type(e), e))
         else:
             cli.msg(chan, 'Reloaded config.')
 
