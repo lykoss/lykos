@@ -2583,10 +2583,11 @@ def on_error(cli, pfx, msg):
 
 @cmd("fstasis", admin_only=True)
 def fstasis(cli, nick, chan, rest):
+    data = rest.split()
     msg = None
-    if rest:
+    if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
-        user = rest[0].lower()
+        user = data[0].lower()
         if user in lusers:
             cloak = lusers[user]['cloak']
         else:
@@ -2594,27 +2595,27 @@ def fstasis(cli, nick, chan, rest):
             pm(cli, nick, "Sorry, that user cannot be found.")
             return
 
-        if len(rest) == 1:
+        if len(data) == 1:
             if cloak in var.STASISED:
-                msg = "{0} ({1}) is in stasis for {2} games.".format(rest[0], cloak, var.STASISED[cloak])
+                msg = "{0} ({1}) is in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak])
             else:
-                msg = "{0} ({1}) is not in stasis.".format(rest[0], cloak)
+                msg = "{0} ({1}) is not in stasis.".format(data[0], cloak)
         else:
             try:
-                amt = int(rest[1])
+                amt = int(data[1])
             except ValueError:
                 pm(cli, nick, "Sorry, invalid integer argument.")
                 return
                 
             if amt > 0:
                 var.STASISED[cloak] = amt
-                msg = "{0} ({1}) is now in stasis for {2} games.".format(rest[0], cloak, amt)
+                msg = "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt)
             else:
                 if cloak in var.STASISED:
                     del var.STASISED[cloak]
-                    msg = "{0} ({1}) is no longer in stasis.".format(rest[0], cloak)
+                    msg = "{0} ({1}) is no longer in stasis.".format(data[0], cloak)
                 else:
-                    msg = "{0} ({1}) is not in stasis.".format(rest[0], cloak)
+                    msg = "{0} ({1}) is not in stasis.".format(data[0], cloak)
     else:
         if var.STASISED:
             msg = "Currently stasised: {0}".format(", ".join(
