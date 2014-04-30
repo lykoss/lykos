@@ -2581,46 +2581,57 @@ def on_error(cli, pfx, msg):
         raise SystemExit
 
 
-@pmcmd("fstasis", admin_only=True)
-def fstasis(cli, nick, *rest):
-    data = rest[0].split()
-    if data:
+@cmd("fstasis", admin_only=True)
+def fstasis(cli, nick, chan, rest):
+    msg = None
+    if rest:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
-        user = data[0].lower()
+        user = rest[0].lower()
         if user in lusers:
             cloak = lusers[user]['cloak']
         else:
             cloak = None
-            cli.msg(nick, "Sorry, that user cannot be found.")
+            pm(cli, nick, "Sorry, that user cannot be found.")
             return
 
-        if len(data) == 1:
+        if len(rest) == 1:
             if cloak in var.STASISED:
-                cli.msg(nick, "{0} ({1}) is in stasis for {2} games.".format(data[0], cloak, var.STASISED[cloak]))
+                msg = "{0} ({1}) is in stasis for {2} games.".format(rest[0], cloak, var.STASISED[cloak]))
             else:
-                cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
+                msg = "{0} ({1}) is not in stasis.".format(rest[0], cloak)
         else:
             try:
-                amt = int(data[1])
+                amt = int(rest[1])
             except ValueError:
-                cli.msg(nick, "Sorry, invalid integer argument.")
+                pm(cli, nick, "Sorry, invalid integer argument.")
                 return
                 
             if amt > 0:
                 var.STASISED[cloak] = amt
-                cli.msg(nick, "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt))
+                msg = "{0} ({1}) is now in stasis for {2} games.".format(rest[0], cloak, amt)
             else:
                 if cloak in var.STASISED:
                     del var.STASISED[cloak]
-                    cli.msg(nick, "{0} ({1}) is no longer in stasis.".format(data[0], cloak))
+                    msg = "{0} ({1}) is no longer in stasis.".format(rest[0], cloak)
                 else:
-                    cli.msg(nick, "{0} ({1}) is not in stasis.".format(data[0], cloak))
+                    msg = "{0} ({1}) is not in stasis.".format(rest[0], cloak)
     else:
         if var.STASISED:
-            cli.msg(nick, "Currently stasised: {0}".format(
-                ", ".join("{0}: {1}".format(cloak, number) for cloak, number in var.STASISED.items())))
+            msg = "Currently stasised: {0}".format(", ".join(
+                "{0}: {1}".format(cloak, number)
+                for cloak, number in var.STASISED.items()))
         else:
-            cli.msg(nick, "Nobody is currently stasised.")
+            msg = "Nobody is currently stasised."
+
+    if msg:
+        if chan == nick:
+            pm(cli, nick, msg)
+        else:
+            cli.msg(chan, msg)
+
+@pmcmd("fstasis", admin_only=True)
+def fstasis_pm(cli, nick, rest):
+    fstasis(cli, nick, nick, rest)
 
 
 
