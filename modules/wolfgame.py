@@ -3136,6 +3136,8 @@ def freload(cli, nick, chan, rest):
         # No, this doesn't clear the stasis list.
         reload(var)
         reload(botconfig)
+        with open(__file__, 'r') as fd:
+            exec(fd.read())
     except ImportError:
         if chan == nick:
             pm(cli, nick, '{0}: {1}'.format(type(e), e))
@@ -3147,7 +3149,7 @@ def freload(cli, nick, chan, rest):
         if chan == nick:
             pm(cli, nick, '{0}: {1}'.format(type(e), e))
         else:
-            cli.msg(chan, 'Reloaded config.')
+            cli.msg(chan, 'Reloaded.')
 
 @pmcmd("freload", "frehash", admin_only=True)
 def freload_pm(cli, nick, rest):
