@@ -3111,11 +3111,13 @@ def player_stats_pm(cli, nick, rest):
     
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
+    output = None
     try:
         output = subprocess.check_output(('git', 'pull'), stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
         pm(cli, nick, '{0}: {1}'.format(type(e), e))
         #raise
+
     if output:
         for line in output.splitlines():
             pm(cli, nick, line.decode('utf-8'))
@@ -3124,35 +3126,12 @@ def fpull(cli, nick, chan, rest):
 
 @pmcmd("fpull", admin_only=True)
 def fpull_pm(cli, nick, rest):
-    git_pull(cli, nick, nick, rest)
+    fpull(cli, nick, nick, rest)
 
 @pmcmd("fsend", admin_only=True)
 def fsend(cli, nick, rest):
     print('fsend ({0}): {1}'.format(nick, rest))
     cli.send(rest)
-
-@cmd("freload", "frehash", admin_only=True)
-def freload(cli, nick, chan, rest):
-    try:
-        # No, this doesn't clear the stasis list.
-        reload(var)
-        reload(botconfig)
-    except ImportError:
-        if chan == nick:
-            pm(cli, nick, '{0}: {1}'.format(type(e), e))
-        else:
-            cli.msg(chan, '{0}: {1}'.format(type(e), e))
-
-        raise
-    else:
-        if chan == nick:
-            pm(cli, nick, '{0}: {1}'.format(type(e), e))
-        else:
-            cli.msg(chan, 'Reloaded config.')
-
-@pmcmd("freload", "frehash", admin_only=True)
-def freload_pm(cli, nick, rest):
-    freload(cli, nick, nick, rest)
 
     
 before_debug_mode_commands = list(COMMANDS.keys())
