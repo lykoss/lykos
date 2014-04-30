@@ -2580,8 +2580,8 @@ def on_error(cli, pfx, msg):
         raise SystemExit
 
 
-@pmcmd("fstasis", admin_only=True)
-def fstasis(cli, nick, rest):
+@cmd("fstasis", admin_only=True)
+def fstasis(cli, nick, chan, rest):
     """Admin command for removing or setting stasis penalties."""
     data = rest.split()
     msg = None
@@ -2590,7 +2590,7 @@ def fstasis(cli, nick, rest):
         user = data[0].lower()
         
         if user not in lusers:
-            cli.msg(nick, "Sorry, {0} cannot be found.".format(data[0]))
+            pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
             return
         
         cloak = lusers[user]['cloak']
