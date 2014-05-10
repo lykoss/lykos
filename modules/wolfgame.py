@@ -1290,10 +1290,10 @@ def leave(cli, what, nick, why=""):
     else:
         msg = ("\02{0}\02 died due to falling off a cliff. The "+
                "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_reveal_role(nick))
+        make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
     if killplayer:
-        make_stasis(nick, var.LEAVE_STASIS_PENALTY)
         del_player(cli, nick)
     else:
         var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
