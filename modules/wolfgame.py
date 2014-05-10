@@ -2246,7 +2246,7 @@ def transition_night(cli):
             
         
         pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
+        random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
         for i, player in enumerate(pl):
             if player in var.ROLES["wolf"]:
@@ -2255,11 +2255,12 @@ def transition_night(cli):
                 pl[i] = player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
+
         pm(cli, wolf, "Players: "+", ".join(pl))
 
     for seer in var.ROLES["seer"]:
         pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
+        random.shuffle(pl)
         pl.remove(seer)  # remove self from list
         
         if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_NOTIFY:
@@ -2273,7 +2274,7 @@ def transition_night(cli):
 
     for harlot in var.ROLES["harlot"]:
         pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
+        random.shuffle(pl)
         pl.remove(harlot)
         if harlot in var.PLAYERS and var.PLAYERS[harlot]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
@@ -2286,7 +2287,7 @@ def transition_night(cli):
 
     for g_angel in var.ROLES["guardian angel"]:
         pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
+        random.shuffle(pl)
         pl.remove(g_angel)
         if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
@@ -2299,7 +2300,7 @@ def transition_night(cli):
     
     for dttv in var.ROLES["detective"]:
         pl = ps[:]
-        pl.sort(key=lambda x: x.lower())
+        random.shuffle(pl)
         pl.remove(dttv)
         if dttv in var.PLAYERS and var.PLAYERS[dttv]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
