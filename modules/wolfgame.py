@@ -1293,6 +1293,7 @@ def leave(cli, what, nick, why=""):
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
     if killplayer:
+        make_stasis(nick, var.LEAVE_STASIS_PENALTY)
         del_player(cli, nick)
     else:
         var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
