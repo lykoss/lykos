@@ -2882,6 +2882,28 @@ def pony(cli, nick, chan, rest):
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
+@cmd("time")
+def timeleft(cli, nick, chan, rest):
+    """Returns the time left until the next day/night transition"""
+    
+    if var.PHASE not in ("day", "night"):
+        return
+    if var.PHASE == "day":
+        if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
+            remaining = var.SHORT_DAY_LIMIT_WARN+var.SHORT_DAY_LIMIT_CHANGE+int((var.DAY_START_TIME-datetime.now()).total_seconds())
+        else:
+            remaining = var.DAY_TIME_LIMIT_WARN+var.DAY_TIME_LIMIT_CHANGE+int((var.DAY_START_TIME-datetime.now()).total_seconds())
+    else:
+            remaining = var.NIGHT_TIME_LIMIT+int((var.NIGHT_START_TIME-datetime.now()).total_seconds())
+    if nick == chan:
+        pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining.".format(remaining//60,remaining%60))
+    else:
+        cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining.".format(remaining//60,remaining%60))
+
+@pmcmd("time")
+def timeleft_pm(cli, nick, rest):
+    timeleft(cli, nick, nick, rest)
+
 @cmd("roles")
 def listroles(cli, nick, chan, rest):
     """Display which roles are enabled and when"""
