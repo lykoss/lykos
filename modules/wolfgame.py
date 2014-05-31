@@ -2231,9 +2231,10 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
             elif wolf in var.ROLES["traitor"]:
-                pm(cli, wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
+                pm(cli, wolf, (('You are a \u0002{0}\u0002. You are exactly like a '+
                                'villager and not even a seer can see your true identity. '+
-                               'Only detectives can. '))
+                               'Only detectives can. ').format(
+                               "cursed traitor" if wolf in var.CURSED else "traitor")))
             else:
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
                                'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
@@ -2252,9 +2253,14 @@ def transition_night(cli):
             if player in var.ROLES["wolf"]:
                 pl[i] = player + " (wolf)"
             elif player in var.ROLES["traitor"]:
-                pl[i] = player + " (traitor)"
+                if player in var.CURSED:
+                    pl[i] = player + " (cursed traitor)"
+                else:
+                    pl[i] = player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
+            elif player in var.CURSED:
+                pl[i] = player + " (cursed)"
 
         pm(cli, wolf, "Players: "+", ".join(pl))
 
