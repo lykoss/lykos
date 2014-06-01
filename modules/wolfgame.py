@@ -3128,7 +3128,7 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_player_totals(acc))
     else:
-        role = " ".join(params[1:]).lower()    
+        role = " ".join(params[1:])  
         # Attempt to find the player's stats.
         if chan == nick:
             pm(cli, nick, var.get_player_stats(acc, role))
