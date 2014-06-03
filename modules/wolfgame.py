@@ -1563,6 +1563,11 @@ def vote(cli, nick, chann_, rest):
     """Use this to vote for a candidate to be lynched"""
     chan = botconfig.CHANNEL
     
+    rest = re.split(" +",rest)[0].strip().lower()
+
+    if not rest:
+        show_votes(cli, nick, chan, rest)
+        return
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -1580,11 +1585,6 @@ def vote(cli, nick, chann_, rest):
 
     pl = var.list_players()
     pl_l = [x.strip().lower() for x in pl]
-    rest = re.split(" +",rest)[0].strip().lower()
-    
-    if not rest:
-        cli.notice(nick, "Not enough parameters.")
-        return
     
     matches = 0
     for player in pl_l:
