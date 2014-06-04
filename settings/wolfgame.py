@@ -304,26 +304,33 @@ def update_game_stats(size, winner):
                     (size, vwins, wwins, total))
         
 def get_player_stats(acc, role):
+    if role.lower() not in ["villager"] + [v.lower() for k, v in ROLE_INDICES.items()]:
+        return "No such role: {0}".format(role)
     with conn:
-        for row in c.execute("SELECT * FROM rolestats WHERE player=? AND role=?", (acc, role)):
-            msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}".format(*row)
-            return msg % (round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
-        else:
-            return "No stats for {0} as {1}.".format(acc, role)
+        c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
+        player = c.fetchone()
+        if player:
+            for row in c.execute("SELECT * FROM rolestats WHERE player=? COLLATE NOCASE AND role=? COLLATE NOCASE", (acc, role)):
+                msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}".format(*row)
+                return msg % (round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
+            else:
+                return "No stats for {0} as {1}.".format(player[0], role)
+        return "{0} has not played any games.".format(acc)
 
 def get_player_totals(acc):
     role_totals = []
     with conn:
-        for role in ["villager"] + [v for k, v in ROLE_INDICES.items()]:
-            c.execute("SELECT totalgames FROM rolestats WHERE player=? AND role=?", (acc, role))
-            row = c.fetchone()
-            if row:
-                role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
-    
-    if len(role_totals) == 0:
-        return "{0} has not played any games.".format(acc)
-    else:
-        return "\u0002{0}\u0002's totals | {1}".format(acc, ", ".join(role_totals))
+        c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
+        player = c.fetchone()
+        if player:
+            for role in ["villager"] + [v for k, v in ROLE_INDICES.items()]:
+                c.execute("SELECT totalgames FROM rolestats WHERE player=? COLLATE NOCASE AND role=? COLLATE NOCASE", (acc, role))
+                row = c.fetchone()
+                if row:
+                    role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
+            return "\u0002{0}\u0002's totals | {1}".format(player[0], ", ".join(role_totals))
+        else:
+            return "{0} has not played any games.".format(acc)
             
 def get_game_stats(size):
     with conn:

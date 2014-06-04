@@ -2231,9 +2231,10 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
             elif wolf in var.ROLES["traitor"]:
-                pm(cli, wolf, ('You are a \u0002traitor\u0002. You are exactly like a '+
+                pm(cli, wolf, (('You are a \u0002{0}\u0002. You are exactly like a '+
                                'villager and not even a seer can see your true identity. '+
-                               'Only detectives can. '))
+                               'Only detectives can. ').format(
+                               "cursed traitor" if wolf in var.CURSED else "traitor")))
             else:
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002.  You are able to fly at night. '+
                                'Use "kill <nick>" to kill a a villager.  Alternatively, you can '+
@@ -2252,9 +2253,14 @@ def transition_night(cli):
             if player in var.ROLES["wolf"]:
                 pl[i] = player + " (wolf)"
             elif player in var.ROLES["traitor"]:
-                pl[i] = player + " (traitor)"
+                if player in var.CURSED:
+                    pl[i] = player + " (cursed traitor)"
+                else:
+                    pl[i] = player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
                 pl[i] = player + " (werecrow)"
+            elif player in var.CURSED:
+                pl[i] = player + " (cursed)"
 
         pm(cli, wolf, "Players: "+", ".join(pl))
 
@@ -2882,6 +2888,33 @@ def pony(cli, nick, chan, rest):
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
+@cmd("time")
+def timeleft(cli, nick, chan, rest):
+    """Returns the time left until the next day/night transition"""
+    
+    if var.PHASE not in ("day", "night"):
+        return
+    if var.PHASE == "day":
+        if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
+            remaining = (var.SHORT_DAY_LIMIT_WARN + var.SHORT_DAY_LIMIT_CHANGE
+                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
+        else:
+            remaining = (var.DAY_TIME_LIMIT_WARN + var.DAY_TIME_LIMIT_CHANGE
+                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
+    else:
+            remaining = (var.NIGHT_TIME_LIMIT
+                         + int((var.NIGHT_START_TIME-datetime.now()).total_seconds()))
+    if nick == chan:
+        pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
+           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+    else:
+        cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
+           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+
+@pmcmd("time")
+def timeleft_pm(cli, nick, rest):
+    timeleft(cli, nick, nick, rest)
+
 @cmd("roles")
 def listroles(cli, nick, chan, rest):
     """Display which roles are enabled and when"""
@@ -3100,7 +3133,7 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_player_totals(acc))
     else:
-        role = " ".join(params[1:]).lower()    
+        role = " ".join(params[1:])  
         # Attempt to find the player's stats.
         if chan == nick:
             pm(cli, nick, var.get_player_stats(acc, role))
