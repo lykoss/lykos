@@ -3178,7 +3178,7 @@ def fpull_pm(cli, nick, rest):
 
 @pmcmd("fsend", admin_only=True)
 def fsend(cli, nick, rest):
-    print('fsend ({0}): {1}'.format(nick, rest))
+    print('{0} {1} fsend {2}'.format(time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest))
     cli.send(rest)
 
     
