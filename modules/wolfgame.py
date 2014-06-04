@@ -45,6 +45,7 @@ var.LAST_VOTES = None
 var.LAST_ADMINS = None
 var.LAST_GSTATS = None
 var.LAST_PSTATS = None
+var.LAST_TIME = None
 
 var.USERS = {}
 
@@ -450,6 +451,7 @@ def join(cli, nick, chann_, rest):
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None
         var.LAST_PSTATS = None
+        var.LAST_TIME = None
 
 
 @cmd("fjoin", admin_only=True)
@@ -2893,7 +2895,18 @@ def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition"""
     
     if var.PHASE not in ("day", "night"):
+        cli.notice(nick, "No game is currently running.")
         return
+
+    if (chan != nick and var.LAST_TIME and
+            var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. " +
+                         "Please wait a while before using it again."))
+        return
+
+    if chan != nick:
+        var.LAST_TIME = datetime.now()
+
     if var.PHASE == "day":
         if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
             remaining = (var.SHORT_DAY_LIMIT_WARN + var.SHORT_DAY_LIMIT_CHANGE
