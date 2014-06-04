@@ -2919,10 +2919,10 @@ def timeleft(cli, nick, chan, rest):
                          + int((var.NIGHT_START_TIME-datetime.now()).total_seconds()))
     if nick == chan:
         pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
-           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+           abs(remaining//60), remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
     else:
         cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
-           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+           abs(remaining//60), remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
 
 @pmcmd("time")
 def timeleft_pm(cli, nick, rest):
