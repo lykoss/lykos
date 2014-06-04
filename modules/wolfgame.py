@@ -2896,15 +2896,20 @@ def timeleft(cli, nick, chan, rest):
         return
     if var.PHASE == "day":
         if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
-            remaining = var.SHORT_DAY_LIMIT_WARN+var.SHORT_DAY_LIMIT_CHANGE+int((var.DAY_START_TIME-datetime.now()).total_seconds())
+            remaining = (var.SHORT_DAY_LIMIT_WARN + var.SHORT_DAY_LIMIT_CHANGE
+                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
         else:
-            remaining = var.DAY_TIME_LIMIT_WARN+var.DAY_TIME_LIMIT_CHANGE+int((var.DAY_START_TIME-datetime.now()).total_seconds())
+            remaining = (var.DAY_TIME_LIMIT_WARN + var.DAY_TIME_LIMIT_CHANGE
+                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
     else:
-            remaining = var.NIGHT_TIME_LIMIT+int((var.NIGHT_START_TIME-datetime.now()).total_seconds())
+            remaining = (var.NIGHT_TIME_LIMIT
+                         + int((var.NIGHT_START_TIME-datetime.now()).total_seconds()))
     if nick == chan:
-        pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining.".format(remaining//60,remaining%60))
+        pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
+           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
     else:
-        cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining.".format(remaining//60,remaining%60))
+        cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
+           remaining//60, remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
 
 @pmcmd("time")
 def timeleft_pm(cli, nick, rest):
