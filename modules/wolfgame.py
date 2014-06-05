@@ -2245,7 +2245,8 @@ def transition_night(cli):
             if len(wolves) > 1:
                 pm(cli, wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            pm(cli, wolf, "You are a \02{0}\02.".format(var.get_role(wolf)))  # !simple
+            role = var.get_role(wolf)
+            pm(cli, wolf, "You are a \02{0}\02.".format("cursed traitor" if role == "traitor" and wolf in var.CURSED else role))  # !simple
             
         
         pl = ps[:]
@@ -2253,14 +2254,14 @@ def transition_night(cli):
         pl.remove(wolf)  # remove self from list
         for i, player in enumerate(pl):
             if player in var.ROLES["wolf"]:
-                pl[i] = player + " (wolf)"
+                pl[i] = "" + player + " (wolf)"
             elif player in var.ROLES["traitor"]:
                 if player in var.CURSED:
-                    pl[i] = player + " (cursed traitor)"
+                    pl[i] = "" + player + " (cursed traitor)"
                 else:
-                    pl[i] = player + " (traitor)"
+                    pl[i] = "" + player + " (traitor)"
             elif player in var.ROLES["werecrow"]:
-                pl[i] = player + " (werecrow)"
+                pl[i] = "" + player + " (werecrow)"
             elif player in var.CURSED:
                 pl[i] = player + " (cursed)"
 
