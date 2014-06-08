@@ -2844,7 +2844,9 @@ def show_admins(cli, nick, chan, rest):
             return
         admins.sort(key=lambda x: x.lower())
         
-        if var.PHASE in ("day", "night") and nick not in pl:
+        if chan == nick:
+            pm(cli, nick, "Available admins: "+" ".join(admins))
+        elif var.PHASE in ("day", "night") and nick not in pl:
             cli.notice(nick, "Available admins: "+" ".join(admins))
         else:
             cli.msg(chan, "Available admins: "+" ".join(admins))
@@ -2853,6 +2855,10 @@ def show_admins(cli, nick, chan, rest):
         var.ADMIN_PINGING = False
 
     cli.who(chan)
+
+@pmcmd("admins", "ops")
+def show_admins_pm(cli, nick, rest):
+    show_admins(cli, nick, nick, rest)
 
 
 
@@ -2959,7 +2965,14 @@ def listroles(cli, nick, chan, rest):
                     txt = txt + var.ROLE_INDICES[index] + ", "
         txt = txt[:-2] + " "
         old = v
-    cli.msg(botconfig.CHANNEL, txt)
+    if chan == nick:
+        pm(cli, nick, txt)
+    else:
+        cli.msg(chan, txt)
+
+@pmcmd("roles")
+def listroles_pm(cli, nick, rest):
+    listroles(cli, nick, nick, rest)
 
 @cmd("myrole")
 def myrole(cli, nick, chan, rest):
