@@ -2893,7 +2893,7 @@ def pony(cli, nick, chan, rest):
 
 @cmd("time")
 def timeleft(cli, nick, chan, rest):
-    """Returns the time left until the next day/night transition"""
+    """Returns the time left until the next day/night transition."""
     
     if var.PHASE not in ("day", "night"):
         cli.notice(nick, "No game is currently running.")
@@ -2901,29 +2901,33 @@ def timeleft(cli, nick, chan, rest):
 
     if (chan != nick and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. " +
-                         "Please wait a while before using it again."))
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
         return
 
     if chan != nick:
         var.LAST_TIME = datetime.now()
 
     if var.PHASE == "day":
-        if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
-            remaining = (var.SHORT_DAY_LIMIT_WARN + var.SHORT_DAY_LIMIT_CHANGE
-                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
+        if len(var.list_players()) <= var.SHORT_DAY_PLAYERS:
+            remaining = int((var.SHORT_DAY_LIMIT_WARN +
+                var.SHORT_DAY_LIMIT_CHANGE) - (datetime.now() -
+                var.DAY_START_TIME).total_seconds())
         else:
-            remaining = (var.DAY_TIME_LIMIT_WARN + var.DAY_TIME_LIMIT_CHANGE
-                         + int((var.DAY_START_TIME - datetime.now()).total_seconds()))
+            remaining = int((var.DAY_TIME_LIMIT_WARN +
+                var.DAY_TIME_LIMIT_CHANGE) - (datetime.now() -
+                var.DAY_START_TIME).total_seconds())
     else:
-            remaining = (var.NIGHT_TIME_LIMIT
-                         + int((var.NIGHT_START_TIME-datetime.now()).total_seconds()))
+        remaining = int(var.NIGHT_TIME_LIMIT - (datetime.now() -
+            var.NIGHT_START_TIME).total_seconds())
+
+    msg = "There is \x02{0[0]:0>2}:{0[1]:0>2}\x02 remaining until {1}.".format(
+        divmod(remaining, 60), "sunrise" if var.PHASE == "night" else "sunset")
+
     if nick == chan:
-        pm(cli, nick, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
-           abs(remaining//60), remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+        pm(cli, nick, msg)
     else:
-        cli.msg(chan, "There is {0:0>2}:{1:0>2} remaining until {2}.".format(
-           abs(remaining//60), remaining%60, "sunrise" if var.PHASE=="night" else "sunset"))
+        cli.msg(chan, msg)
 
 @pmcmd("time")
 def timeleft_pm(cli, nick, rest):
