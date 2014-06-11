@@ -70,6 +70,7 @@ var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
 var.GAME_ID = 0
+var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
 
@@ -84,6 +85,8 @@ if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_WARN = 0
     var.DAY_TIME_LIMIT_WARN = 0
     var.DAY_TIME_LIMIT_CHANGE = 0
+    var.SHORT_DAY_LIMIT_WARN = 0
+    var.SHORT_DAY_LIMIT_CHANGE = 0
     var.KILL_IDLE_TIME = 0 #300
     var.WARN_IDLE_TIME = 0 #180
 
@@ -1345,7 +1348,8 @@ def begin_day(cli):
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
     var.GUARDED = {}
-
+    var.STARTED_DAY_PLAYERS = len(var.list_players())
+    
     msg = ("The villagers must now vote for whom to lynch. "+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
            'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1)
@@ -1355,7 +1359,7 @@ def begin_day(cli):
 
     if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
         var.DAY_ID = time.time()
-        if len(var.list_players()) <= var.SHORT_DAY_PLAYERS:
+        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
             t = threading.Timer(var.SHORT_DAY_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
         else:
             t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
@@ -2915,7 +2919,7 @@ def timeleft(cli, nick, chan, rest):
         var.LAST_TIME = datetime.now()
 
     if var.PHASE == "day":
-        if len(var.list_players()) <= var.SHORT_DAY_PLAYERS:
+        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
             remaining = int((var.SHORT_DAY_LIMIT_WARN +
                 var.SHORT_DAY_LIMIT_CHANGE) - (datetime.now() -
                 var.DAY_START_TIME).total_seconds())
@@ -2926,9 +2930,17 @@ def timeleft(cli, nick, chan, rest):
     else:
         remaining = int(var.NIGHT_TIME_LIMIT - (datetime.now() -
             var.NIGHT_START_TIME).total_seconds())
-
-    msg = "There is \x02{0[0]:0>2}:{0[1]:0>2}\x02 remaining until {1}.".format(
-        divmod(remaining, 60), "sunrise" if var.PHASE == "night" else "sunset")
+    
+    #Check if timers are actually enabled
+    if (var.PHASE == "day") and ((var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS and 
+            var.SHORT_DAY_LIMIT_WARN == 0) or (var.DAY_TIME_LIMIT_WARN == 0 and
+            var.STARTED_DAY_PLAYERS > var.SHORT_DAY_PLAYERS)):
+        msg = "Day timers are currently disabled."
+    elif var.PHASE == "night" and var.NIGHT_TIME_LIMIT == 0:
+        msg = "Night timers are currently disabled."
+    else:
+        msg = "There is \x02{0[0]:0>2}:{0[1]:0>2}\x02 remaining until {1}.".format(
+            divmod(remaining, 60), "sunrise" if var.PHASE == "night" else "sunset")    
 
     if nick == chan:
         pm(cli, nick, msg)
