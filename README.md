@@ -13,22 +13,22 @@ game settings.
 Starting the bot
 ----------------
 
-To start the bot, you can simply execute ``wolfbot.py``::
+To start the bot, you can simply execute ``wolfbot.py``
 
     $ ./wolfbot.py
 
-Debug mode can be enabled with the ``--debug`` argument::
+Debug mode can be enabled with the ``--debug`` argument
 
     $ ./wolfbot.py --debug
 
-Verbose logging can be enabled with the ``--verbose`` argument::
+Verbose logging can be enabled with the ``--verbose`` argument
 
     $ ./wolfbot.py --verbose
 
 Playing the game
 ----------------
 
-You can find us in ``##werewolf`` on `freenode`_. This bot is running
+You can find us in ``##werewolf`` on [`freenode`](https://freenode.net). This bot is running
 there and we have an active community. We'd love for you to join us!
 
 **Connecting to IRC**
@@ -38,5 +38,3 @@ there and we have an active community. We'd love for you to join us!
 | Webchat      | https://webchat.freenode.net/?channels=%23%23werewolf |
 | Client       | irc://chat.freenode.net:6667/%23%23werewolf           |
 | Client (SSL) | ircs://chat.freenode.net:6697/%23%23werewolf          |
-
-.. _freenode: https://freenode.net/
