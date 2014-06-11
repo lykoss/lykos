@@ -1,7 +1,7 @@
 Dependencies
 ------------
 
-- Python 3.2+ (3.1 doesn't work)
+- Python 3.2 or higher
 
 Configuration
 -------------
