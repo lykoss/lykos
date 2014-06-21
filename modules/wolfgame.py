@@ -2651,7 +2651,7 @@ def fstasis_pm(cli, nick, rest):
 
 
 
-@cmd("wait")
+@cmd("wait", "w")
 def wait(cli, nick, chann_, rest):
     """Increase the wait time (before !start can be used)"""
     pl = var.list_players()
