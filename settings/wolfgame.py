@@ -19,6 +19,7 @@ NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT_WARN = 600
 DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
+JOIN_TIME_LIMIT = 0
 # May only be set if the above are also set
 SHORT_DAY_PLAYERS = 6 # Number of players left to have a short day
 SHORT_DAY_LIMIT_WARN = 400

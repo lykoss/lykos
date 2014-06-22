@@ -89,6 +89,7 @@ if botconfig.DEBUG_MODE:
     var.SHORT_DAY_LIMIT_CHANGE = 0
     var.KILL_IDLE_TIME = 0 #300
     var.WARN_IDLE_TIME = 0 #180
+    var.JOIN_TIME_LIMIT = 0
 
         
 def connect_callback(cli):
@@ -425,6 +426,14 @@ def join(cli, nick, chann_, rest):
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
                       'Type "{1}wait" to increase start wait time.').format(nick, botconfig.CMD_CHAR))
+        
+        # Set join timer
+        if var.JOIN_TIME_LIMIT:
+            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
+            var.TIMERS['join'] = t
+            t.daemon = True
+            t.start()
+        
     elif nick in pl:
         cli.notice(nick, "You're already playing!")
     elif len(pl) >= var.MAX_PLAYERS:
@@ -456,6 +465,19 @@ def join(cli, nick, chann_, rest):
         var.LAST_PSTATS = None
         var.LAST_TIME = None
 
+        
+def kill_join(cli, chan):
+    pl = var.list_players()
+    pl.sort(key=lambda x: x.lower())
+    msg = 'PING: {0}'.format(", ".join(pl))
+    reset_modes_timers(cli)
+    reset(cli)
+    cli.msg(chan, msg)
+    cli.msg(chan, 'The current game took too long to start and ' +
+                  'has been canceled. If you are still active, ' +
+                  'please join again to start a new game.')
+    var.LOGGER.logMessage('Game canceled.')
+    
 
 @cmd("fjoin", admin_only=True)
 def fjoin(cli, nick, chann_, rest):
@@ -2438,6 +2460,11 @@ def start(cli, nick, chann_, rest):
         cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
         return
 
+    # Cancel join timer
+    if 'join' in var.TIMERS:
+        var.TIMERS['join'].cancel()
+        del var.TIMERS['join']
+        
     if var.ORIGINAL_SETTINGS:  # Custom settings
         while True:
             wvs = (addroles[var.INDEX_OF_ROLE["wolf"]] +
