@@ -1147,7 +1147,7 @@ def goat(cli, nick, chan, rest):
         cli.notice(nick, "You can only do that in the day.")
         return
     if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
-        cli.notice(nick, "You can only do that once per day.")
+        cli.notice(nick, "This can only be done once per day.")
         return
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
