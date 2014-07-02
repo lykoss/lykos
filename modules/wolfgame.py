@@ -1342,7 +1342,6 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.KILLS = {}  # nicknames of kill victim
-    var.GUARDED = ""
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
     var.OBSERVED = {}  # those whom werecrows have observed
@@ -1444,7 +1443,7 @@ def transition_day(cli, gameid=0):
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
     for crow, target in iter(var.OBSERVED.items()):
         if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
-            target in var.SEEN+list(var.GUARDED.keys())):
+            target in var.SEEN or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed all night, and you fly back to your house.").format(target))
         else:
@@ -1903,12 +1902,13 @@ def guard(cli, nick, rest):
             return
     victim = pl[pll.index(target)]
     if victim == nick:
-        pm(cli, nick, "You may not guard yourself.")
-        return
-    var.GUARDED[nick] = victim
-    pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
-    pm(cli, var.GUARDED[nick], "You can sleep well tonight, for a guardian angel is protecting you.")
-    var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
+        var.GUARDED[nick] = None
+        pm(cli, nick, "You have chosen not to guard anyone tonight.")
+    else:
+        var.GUARDED[nick] = victim
+        pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
+        pm(cli, var.GUARDED[nick], "You can sleep well tonight, for a guardian angel is protecting you.")
+        var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
     chk_nightdone(cli)
 
 
