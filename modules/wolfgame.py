@@ -1451,8 +1451,12 @@ def transition_day(cli, gameid=0):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
     if victim in var.GUARDED.values():
-        message.append(("\u0002{0}\u0002 was attacked by the wolves last night, but luckily, the "+
-                        "guardian angel was on duty.").format(victim))
+        for gangel in var.ROLES["guardian angel"]:
+            if var.GUARDED.get(gangel) == victim:
+                dead.append(gangel)
+                message.append(("\u0002{0}\u0002 sacrificed their life to the wolves to "+
+                        "guard that of another").format(gangel))
+                break
         victim = ""
     elif not victim:
         message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
