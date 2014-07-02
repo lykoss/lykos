@@ -1476,7 +1476,7 @@ def transition_day(cli, gameid=0):
             if var.GUARDED.get(gangel) == victim:
                 dead.append(gangel)
                 message.append(("\u0002{0}\u0002 sacrificed their life to the wolves to "+
-                        "guard that of another").format(gangel))
+                        "guard that of another.").format(gangel))
                 break
         victim = ""
     elif not victim:
