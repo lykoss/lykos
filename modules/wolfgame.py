@@ -469,7 +469,7 @@ def join(cli, nick, chann_, rest):
 def kill_join(cli, chan):
     pl = var.list_players()
     pl.sort(key=lambda x: x.lower())
-    msg = 'PING: {0}'.format(", ".join(pl))
+    msg = 'PING! {0}'.format(", ".join(pl))
     reset_modes_timers(cli)
     reset(cli)
     cli.msg(chan, msg)
