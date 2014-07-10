@@ -2908,7 +2908,7 @@ def coin(cli, nick, chan, rest):
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     coin = random.choice(["heads", "tails"])
-    specialty = random.randrange(0,20)
+    specialty = random.randrange(0,10)
     if specialty == 0:
         coin = "its side"
     if specialty == 1:
