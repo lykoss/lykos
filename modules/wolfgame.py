@@ -2905,7 +2905,6 @@ def coin(cli, nick, chan, rest):
         cli.notice(nick, "You may not use this command right now.")
         return
     
-    cli.notice(nick, "It's a bad idea to base any decisions on this command.")
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     coin = random.choice(["heads", "tails"])
@@ -2926,7 +2925,6 @@ def pony(cli, nick, chan, rest):
         cli.notice(nick, "You may not use this command right now.")
         return
 
-    cli.notice(nick, "It's a bad idea to base any decisions on this command.")
     cli.msg(chan, "\2{0}\2 tosses a pony into the air...".format(nick))
     var.LOGGER.logMessage("{0} tosses a pony into the air...".format(nick))
     pony = random.choice(["hoof", "plot"])
