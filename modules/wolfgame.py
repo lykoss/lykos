@@ -1,11 +1,23 @@
-# Copyright (c) 2011, Jimmy Cao
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-# Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Copyright (c) 2011, Jimmy Cao All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# Redistributions of source code must retain the above copyright notice, this
+# list of conditions and the following disclaimer.  Redistributions in binary
+# form must reproduce the above copyright notice, this list of conditions and
+# the following disclaimer in the documentation and/or other materials provided
+# with the distribution.  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS
+# AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+# BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
+# OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from oyoyo.parse import parse_nick
 import settings.wolfgame as var
@@ -3128,74 +3140,85 @@ def _flastgame(cli, nick, chan, rest):
     flastgame(cli, nick, rest)
    
    
-@cmd("gamestats", "gstats")
+@cmd('gamestats', 'gstats')
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
-    if (chan != nick and var.LAST_GSTATS and
-        var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. " +
-                          "Please wait a while before using it again."))
+    if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
+            var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) >
+            datetime.now()):
+        cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                          'before using it again.'))
         return
 
     if chan != nick:
         var.LAST_GSTATS = datetime.now()
 
-    if var.PHASE not in ("none", "join"):
-        cli.notice(nick, "Wait until the game is over to view stats.")
+    if var.PHASE not in ('none', 'join'):
+        cli.notice(nick, 'Wait until the game is over to view stats.')
         return
     
-    # List all games sizes and totals if no size is given.
-    if rest == "":
+    # List all games sizes and totals if no size is given
+    if not rest:
         if chan == nick:
             pm(cli, nick, var.get_game_totals())
         else:
             cli.msg(chan, var.get_game_totals())
+
         return
-    
+
     # Check for invalid input
     rest = rest.strip()
     if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < var.MIN_PLAYERS:
-        cli.notice(nick, "Please enter an integer between {0} and {1}.".format(var.MIN_PLAYERS, var.MAX_PLAYERS))
+        cli.notice(nick, ('Please enter an integer between {} and '
+                          '{}.').format(var.MIN_PLAYERS, var.MAX_PLAYERS))
         return
     
-    # Attempt to find game stats for the given game size.
+    # Attempt to find game stats for the given game size
     if chan == nick:
         pm(cli, nick, var.get_game_stats(int(rest)))
     else:
         cli.msg(chan, var.get_game_stats(int(rest)))
 
-@pmcmd("gamestats", "gstats")
+
+@pmcmd('gamestats', 'gstats')
 def game_stats_pm(cli, nick, rest):
     game_stats(cli, nick, nick, rest)
+
     
-@cmd("playerstats", "pstats", "player", "p")
+@cmd('playerstats', 'pstats', 'player', 'p')
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
-    #if (chan != nick and var.LAST_PSTATS and
-    #    var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) > datetime.now()):
-    #    cli.notice(nick, ("This command is rate-limited. " +
-    #                      "Please wait a while before using it again."))
-    #    return
+    if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
+            var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
+            datetime.now()):
+        cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                          'before using it again.'))
+        return
 
     if chan != nick:
         var.LAST_PSTATS = datetime.now()
 
-    if var.PHASE not in ("none", "join"):
-        cli.notice(nick, "Wait until the game is over to view stats.")
+    if var.PHASE not in ('none', 'join'):
+        cli.notice(nick, 'Wait until the game is over to view stats.')
         return
     
-    # Check if we have enough parameters.
     params = rest.split()
-    if len(params) < 1:
-        user = nick
-    else:
-        user = params[0]
 
-    # Find the player's account if possible.
+    # Check if we have enough parameters
+    if params:
+        user = params[0]
+    else:
+        user = nick
+
+    # Find the player's account if possible
     if user in var.USERS:
-        acc = var.USERS[user]["account"]
-        if acc == "*":
-            cli.notice(nick, "{0} is not identified with NickServ.".format(user))
+        acc = var.USERS[user]['account']
+        if acc == '*':
+            if user == nick:
+                cli.notice(nick, 'You are not identified with NickServ.')
+            else:  
+                cli.notice(nick, user + ' is not identified with NickServ.')
+
             return
     else:
         acc = user
@@ -3207,17 +3230,20 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_player_totals(acc))
     else:
-        role = " ".join(params[1:])  
-        # Attempt to find the player's stats.
+        role = ' '.join(params[1:])  
+
+        # Attempt to find the player's stats
         if chan == nick:
             pm(cli, nick, var.get_player_stats(acc, role))
         else:
             cli.msg(chan, var.get_player_stats(acc, role))
     
-@pmcmd("playerstats", "pstats", "player", "p")
+
+@pmcmd('playerstats', 'pstats', 'player', 'p')
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
-    
+
+
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
     output = None
