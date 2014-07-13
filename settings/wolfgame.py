@@ -137,12 +137,12 @@ TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "fool"],
-                         "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager"],
-                         "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "fool"],
+                         "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager", "lycan"],
+                         "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager", "lycan"],
                          "mayor"           : ["fool"],
                          "assassin"        : ["seer", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
-                         "amnesiac"        : ["villager", "cultist", "wolf", "wolf cub", "werecrow"],
+                         "amnesiac"        : ["villager", "cultist", "wolf", "wolf cub", "werecrow", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist"],
                          "bureaucrat"      : [],
                          }
 
@@ -176,16 +176,13 @@ def plural(role):
     elif role == "person": return "people"
     else: return role + "s"
 
-def list_players():
-    pl = []
-    for x in ROLES.values():
-        pl.extend(x)
-    return pl
+def list_players(roles = ROLES.keys()):
+    return [p for r in roles for p in ROLES[r]]
 
 def list_players_and_roles():
     plr = {}
     for x in ROLES.keys():
-        if x in TEMPLATE_RESTRICTIONS.keys():
+        if x != "amnesiac" and x in TEMPLATE_RESTRICTIONS.keys():
             continue # only get actual roles
         for p in ROLES[x]:
             plr[p] = x
