@@ -25,9 +25,11 @@ JOIN_TIME_LIMIT = 3600
 SHORT_DAY_PLAYERS = 6 # Number of players left to have a short day
 SHORT_DAY_LIMIT_WARN = 400
 SHORT_DAY_LIMIT_CHANGE = 120
-# If time lord is lynched, the day timer gets set to this instead
-TIME_LORD_WARN = 60
-TIME_LORD_CHANGE = 30
+# If time lord is lynched, the timers get set to this instead (90s day, 60s night)
+TIME_LORD_DAY_WARN = 60
+TIME_LORD_DAY_CHANGE = 30
+TIME_LORD_NIGHT_LIMIT = 60
+TIME_LORD_NIGHT_WARN = 40
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 30
@@ -43,7 +45,6 @@ GOAT_HERDER = True
 SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 VENGEFUL_GHOST_KNOWS_ROLES = True
-WOLF_MAYOR = True
 BODYGUARD_CAN_GUARD_SELF = True
 START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
@@ -81,55 +82,58 @@ SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
-ROLES_INDEX =                      (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
-ROLES_GUIDE = {# village roles
-               "villager"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "seer"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "oracle"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "village drunk"   : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "harlot"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "guardian angel"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-               "bodyguard"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "detective"       : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "village elder"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "time lord"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "matchmaker"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "mad scientist"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "hunter"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "shaman"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               # wolf roles
-               "wolf"            : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
-               "traitor"         : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "werecrow"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               "cultist"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "minion"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "hag"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "wolf cub"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "sorcerer"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               # neutral roles
-               "lycan"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "vengeful ghost"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "clone"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "crazed shaman"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "fool"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "monster"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               # templates
-               "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-               # NB: for sharpshooter, numbers can't be higher than gunner, since gunners get converted to sharpshooters. This is the MAX number of gunners that can be converted.
-               "sharpshooter"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "mayor"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "assassin"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "amnesiac"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               "bureaucrat"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-               }
+ROLE_INDEX =                      (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
+ROLE_GUIDE = {# village roles
+              "villager"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "seer"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "oracle"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "village drunk"   : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "harlot"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "guardian angel"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+              "bodyguard"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "detective"       : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "village elder"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "time lord"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "matchmaker"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "mad scientist"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "hunter"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "shaman"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              # wolf roles
+              "wolf"            : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
+              "traitor"         : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "werecrow"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              "cultist"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "minion"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "hag"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "wolf cub"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "sorcerer"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              # neutral roles
+              "lycan"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "vengeful ghost"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "clone"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "crazed shaman"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "fool"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "monster"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              # templates
+              "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
+              "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+              # NB: for sharpshooter, numbers can't be higher than gunner, since gunners get converted to sharpshooters. This is the MAX number of gunners that can be converted.
+              "sharpshooter"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "mayor"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "assassin"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "amnesiac"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "bureaucrat"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              }
 
 # Harlot dies when visiting, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
+# If every wolf role dies, the game ends and village wins and there are no remaining traitors, the game ends and villagers win
 WOLF_ROLES     = ["wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
 WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorceror"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorceror", "minion", "cultist"]
+# These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
+TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
@@ -137,17 +141,10 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "s
                          "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager"],
                          "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "cursed villager"],
                          "mayor"           : ["fool"],
-                         "assassin"        : ["seer", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor"],
-                         "amnesiac"        : ["villager", "cultist"],
+                         "assassin"        : ["seer", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
+                         "amnesiac"        : ["villager", "cultist", "wolf", "wolf cub", "werecrow"],
                          "bureaucrat"      : [],
                          }
-TEMPLATE_KEYS = {"cursed villager" : "CURSED",
-                 "gunner"          : "GUNNER_LIST",
-                 "mayor"           : "MAYORS",
-                 "assassin"        : "ASSASSINS",
-                 "amnesiac"        : "AMNESIACS",
-                 "bureaucrat"      : "BUREAUCRATS",
-                 }
 
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
                        "A pool of blood and wolf paw prints are found.",
@@ -188,6 +185,8 @@ def list_players():
 def list_players_and_roles():
     plr = {}
     for x in ROLES.keys():
+        if x in TEMPLATE_RESTRICTIONS.keys():
+            continue # only get actual roles
         for p in ROLES[x]:
             plr[p] = x
     return plr
@@ -196,15 +195,23 @@ get_role = lambda plyr: list_players_and_roles()[plyr]
 
 def get_reveal_role(nick):
     if HIDDEN_TRAITOR and get_role(nick) == "traitor":
-        return "villager"
+        return var.DEFAULT_ROLE
     else:
         return get_role(nick)
 
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
+    tpls = get_templates(nick)
+    for t in tpls:
+        ROLES[t].remove(pname)
 
-
+def get_templates(nick):
+    tpl = []
+    for x in TEMPLATE_RESTRICTIONS.keys():
+        if nick in ROLES[x]:
+            tpl.append(x)
+    return tpl
 
 class InvalidModeException(Exception): pass
 def game_mode(name):
@@ -220,7 +227,7 @@ class ChangedRolesMode(object):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
     def __init__(self, arg = ""):
-        self.ROLES_GUIDE = ROLES_GUIDE.copy()
+        self.ROLE_GUIDE = ROLE_GUIDE.copy()
         pairs = arg.split(",")
         if not pairs:
             raise InvalidModeException("Invalid syntax for mode roles.")
@@ -231,8 +238,8 @@ class ChangedRolesMode(object):
             role, num = change
             try:
                 num = int(num)
-                if role.lower() in self.ROLES_GUIDE:
-                    self.ROLES_GUIDE[role.lower()] = tuple([num] * len(ROLES_INDEX))
+                if role.lower() in self.ROLE_GUIDE:
+                    self.ROLE_GUIDE[role.lower()] = tuple([num] * len(ROLE_INDEX))
                 else:
                     raise InvalidModeException(("The role \u0002{0}\u0002 "+
                                                 "is not valid.").format(role))
@@ -245,15 +252,15 @@ class EvilVillageMode(object):
         self.MIN_PLAYERS = 6
         self.MAX_PLAYERS = 12
         self.DEFAULT_ROLE = "cultist"
-        self.ROLES_INDEX =                (   6   ,  10   )
-        self.ROLES_GUIDE = {# village roles
-                            "oracle"    : (   1   ,   1   ),
-                            "shaman"    : (   1   ,   1   ),
-                            "bodyguard" : (   0   ,   1   ),
-                            # wolf roles
-                            "wolf"      : (   1   ,   1   ),
-                            "minion"    : (   0   ,   1   ),
-                            }
+        self.ROLE_INDEX =                (   6   ,  10   )
+        self.ROLE_GUIDE = {# village roles
+                           "oracle"    : (   1   ,   1   ),
+                           "shaman"    : (   1   ,   1   ),
+                           "bodyguard" : (   0   ,   1   ),
+                           # wolf roles
+                           "wolf"      : (   1   ,   1   ),
+                           "minion"    : (   0   ,   1   ),
+                           }
 
 # Persistence
 
@@ -281,7 +288,7 @@ with conn:
     c.execute('DROP TABLE IF EXISTS roles')
     c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
 
-    for x in list(ROLES_GUIDE.keys()):
+    for x in list(ROLE_GUIDE.keys()):
         c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
 
 
@@ -366,7 +373,7 @@ def update_game_stats(size, winner):
                     (size, vwins, wwins, total))
 
 def get_player_stats(acc, role):
-    if role.lower() not in [k.lower() for k in ROLES_GUIDE.keys()]:
+    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()]:
         return "No such role: {0}".format(role)
     with conn:
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
@@ -385,7 +392,7 @@ def get_player_totals(acc):
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
         player = c.fetchone()
         if player:
-            for role in [k.lower() for k in ROLES_GUIDE.keys()]:
+            for role in [k.lower() for k in ROLE_GUIDE.keys()]:
                 c.execute("SELECT totalgames FROM rolestats WHERE player=? COLLATE NOCASE AND role=? COLLATE NOCASE", (acc, role))
                 row = c.fetchone()
                 if row:

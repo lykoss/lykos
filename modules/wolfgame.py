@@ -692,16 +692,17 @@ def hurry_up(cli, gameid, change):
     var.DAY_ID = 0
 
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED)
+    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
 
     found_dup = False
     maxfound = (0, "")
     for votee, voters in iter(var.VOTES.items()):
-        if len(voters) > maxfound[0]:
-            maxfound = (len(voters), votee)
+        numvotes = sum([var.BUREAUCRAT_VOTES if p in var.ROLES["bureaucrat"] else 1 for p in voters])
+        if numvotes > maxfound[0]:
+            maxfound = (numvotes, votee)
             found_dup = False
-        elif len(voters) == maxfound[0]:
+        elif numvotes == maxfound[0]:
             found_dup = True
     if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
@@ -738,14 +739,146 @@ def fday(cli, nick, chan, rest):
 def chk_decision(cli):
     chan = botconfig.CHANNEL
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED)
+    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     for votee, voters in iter(var.VOTES.items()):
-        if len(voters) >= votesneeded:
-            lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
+        numvotes = sum([var.BUREAUCRAT_VOTES if p in var.ROLES["bureaucrat"] else 1 for p in voters])
+        if numvotes >= votesneeded:
+            # roles that prevent any lynch from happening
+            if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
+                lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
+                        "are the \u0002mayor\u0002. The village agrees to let them live for now.").format(votee)
+                var.REVEALED_MAYORS.append(votee)
+                var.LOGGER.logBare(votee, "MAYOR REVEALED")
+                votee = None
+            elif votee in var.REVEALED:
+                lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                        "When the villagers are able to see again, they discover that {0} has escaped! " +
+                        "The left-behind totem seems to have taken on the shape of a \u0002{1}\u0002.").format(votee, var.get_reveal_role(votee))
+                var.LOGGER.logBare(votee, "ACTIVATED REVEALING TOTEM")
+                votee = None
+            else:
+                # roles that end the game upon being lynched
+                if votee in var.ROLES["fool"]:
+                    # ends game immediately, with fool as only winner
+                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
+                    cli.msg(botconfig.CHANNEL, lmsg)
+                    var.LOGGER.logMessage(lmsg.replace("\02", ""))
+                    var.LOGGER.logBare(votee, "LYNCHED")
+                    message = "Game over! The fool has been lynched, causing them to win."
+                    cli.msg(botconfig.CHANNEL, message)
+                    var.LOGGER.logMessage(message)
+                    var.LOGGER.logBare(votee, "FOOL WIN")
+                    stop_game(cli, "@" + votee)
+                    return
+                # roles that eliminate other players upon being lynched
+                # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
+                if votee in var.DESPERATE:
+                    # Also kill the very last person to vote them
+                    target = voters[-1]
+                    if var.ROLE_REVEAL:
+                        tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
+                                "a \u0002{2}\u0002, has fallen over dead.").format(votee, target, var.get_reveal_role(target))
+                    else:
+                        tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
+                                "has fallen over dead.").format(votee, target)
+                    var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                    var.LOGGER.logBare(votee, "ACTIVATED DESPERATION TOTEM")
+                    var.LOGGER.logBare(target, "DESPERATION TOTEM TARGET")
+                    cli.msg(botconfig.CHANNEL, tmsg)
+                    del_player(cli, target, end_game = False) # do not end game just yet, we have more killin's to do!
+                if votee in var.ROLES["mad scientist"]:
+                    # kills the 2 players adjacent to them in the original players listing (in order of !joining)
+                    # if those players are already dead, nothing happens
+                    index = var.ALL_PLAYERS.index(votee)
+                    targets = []
+                    target1 = var.ALL_PLAYERS[index - 1]
+                    target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
+                    if target1 in var.list_players():
+                        if target2 in var.list_players():
+                            if var.ROLE_REVEAL:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a \u0002{2}\u0002, and \u0002{3}\u0002, a \u0002{4}\u0002, " +
+                                        "get hit by the chemicals and die.").format(votee, target1, var.get_reveal_role(target1), target2, var.get_reveal_role(target2))
+                            else:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "and \u0002{2}\u0002 get hit by the chemicals and die.").format(votee, target1, target2)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
+                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target1, end_game = False)
+                            del_player(cli, target2, end_game = False)
+                        else:
+                            if var.ROLE_REVEAL:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a \u0002{2}\u0002 gets hit by the chemicals and dies.").format(votee, target1, var.get_reveal_role(target1))
+                            else:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "gets hit by the chemicals and dies.").format(votee, target1)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target1, end_game = False)
+                    else:
+                        if target2 in var.list_players():
+                            if var.ROLE_REVEAL:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a \u0002{2}\u0002 gets hit by the chemicals and dies.").format(votee, target2, var.get_reveal_role(target2))
+                            else:
+                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "gets hit by the chemicals and dies.").format(votee, target2)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target2, end_game = False)
+                        else:
+                            tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
+                                    "a potent chemical concoction into the crowd. Thankfully, " +
+                                    "nobody seems to have gotten hit.").format(votee)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                # other
+                if votee in var.ROLES["time lord"]:
+                    if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_WARN"] = var.DAY_TIME_LIMIT_WARN
+                    if "DAY_TIME_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_CHANGE"] = var.DAY_TIME_LIMIT_CHANGE
+                    if "SHORT_DAY_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_WARN"] = var.SHORT_DAY_LIMIT_WARN
+                    if "SHORT_DAY_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_CHANGE"] = var.SHORT_DAY_LIMIT_CHANGE
+                    if "NIGHT_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["NIGHT_TIME_LIMIT"] = var.NIGHT_TIME_LIMIT
+                    if "NIGHT_TIME_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["NIGHT_TIME_WARN"] = var.NIGHT_TIME_WARN
+                    var.DAY_TIME_LIMIT_WARN = var.TIME_LORD_DAY_WARN
+                    var.DAY_TIME_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
+                    var.SHORT_DAY_LIMIT_WARN = var.TIME_LORD_DAY_WARN
+                    var.SHORT_DAY_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
+                    var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
+                    var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
+
+                if var.ROLE_REVEAL:
+                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
+                else:
+                    lmsg = random.choice(var.LYNCH_MESSAGES_NO_REVEAL).format(votee)
             cli.msg(botconfig.CHANNEL, lmsg)
             var.LOGGER.logMessage(lmsg.replace("\02", ""))
-            var.LOGGER.logBare(votee, "LYNCHED")
+            if votee != None:
+                var.LOGGER.logBare(votee, "LYNCHED")
             if del_player(cli, votee, True):
                 transition_night(cli)
 
@@ -790,7 +923,7 @@ def show_votes(cli, nick, chan, rest):
         cli.notice(nick, msg)
 
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED)
+    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     the_message = ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
                    "required to lynch, \u0002{3}\u0002 players available " +
@@ -893,23 +1026,59 @@ def stop_game(cli, winner = ""):
         if acc == "*":
             continue  # not logged in during game start
         # determine if this player's team won
-        if plr in (var.ORIGINAL_ROLES["wolf"] + var.ORIGINAL_ROLES["traitor"] +
-                   var.ORIGINAL_ROLES["werecrow"]):  # the player was wolf-aligned
+        if plr in [p for r in var.WOLFTEAM_ROLES for p in var.ORIGINAL_ROLES[r]]:  # the player was wolf-aligned
             if winner == "wolves":
                 won = True
-            elif winner == "villagers":
-                won = False
+            elif winner == "":
+                break; # abnormal game stop
             else:
-                break  # abnormal game stop
-        else:
-            if winner == "wolves":
                 won = False
-            elif winner == "villagers":
-                won = True
-            else:
+        elif plr in [p for r in var.TRUE_NEUTRAL_ROLES for p in var.ORIGINAL_ROLES[r]]:
+            # true neutral roles never have a team win, only individual wins
+            if winner == "":
                 break
+            else:
+                won = False
+        elif plr in p.ORIGINAL_ROLES["monster"]:
+            if winner == "monsters":
+                won = True
+            elif winner == "":
+                break
+            else:
+                won = False
+        else:
+            if winner == "villagers":
+                won = True
+            elif winner == "":
+                break
+            else:
+                won = False
 
-        iwon = won and plr in var.list_players()  # survived, team won = individual win
+        if plr in var.ORIGINAL_ROLES["fool"] and "@" + plr == winner:
+            iwon = True
+        elif plr in var.LOVERS and plr in var.list_players() and not winner.startswith("@") and winner != "monsters":
+            iwon = True
+        elif plr in var.ORIGINAL_ROLES["crazed shaman"] and not winner.startswith("@") and winner != "monsters":
+            iwon = True
+        elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
+            if plr in var.list_players():
+                iwon = True
+            elif var.VENGEFUL_GHOSTS[plr] == "villagers" and winner == "wolves":
+                won = True
+                iwon = True
+            elif var.VENGEFUL_GHOSTS[plr] == "wolves" and winner == "villagers":
+                won = True
+                iwon = True
+            else:
+                iwon = False
+        elif plr in var.ORIGINAL_ROLES["lycan"]:
+            if plr in var.LYCANS and winner == "wolves":
+                won = True
+            elif plr not in var.LYCANS and winner == "villagers":
+                won = True
+            iwon = won and plr in var.list_players()
+        else:
+            iwon = won and plr in var.list_players()  # survived, team won = individual win
 
         var.update_role_stats(acc, rol, won, iwon)
 
@@ -945,29 +1114,46 @@ def chk_win(cli, end_game = True):
         return False
 
 
-    lwolves = (len(var.ROLES["wolf"])+
-               len(var.ROLES["traitor"])+
-               len(var.ROLES["werecrow"]))
+    lwolves = sum([len(l) for r in var.WOLFCHAT_ROLES for l in var.ROLES[r]])
+    lrealwolves = sum([len(l) for r in var.WOLF_ROLES for l in var.ROLES[r]])
     if var.PHASE == "day":
-        lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
-        lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
+        lpl -= len([x for r in var.WOLFCHAT_ROLES for x in var.WOUNDED if x not in var.ROLES[r]])
+        lwolves -= len([x for r in var.WOLFCHAT_ROLES for x in var.WOUNDED if x in var.ROLES[r]])
 
     if lwolves == lpl / 2:
-        message = ("Game over! There are the same number of wolves as " +
-                  "uninjured villagers. The wolves overpower the villagers and win.")
-        village_win = False
+        if len(var.ROLES["monster"]) > 0:
+            plural = "s" if len(var.ROLES["monster"]) > 1 else ""
+            message = ("Game over! There are the same number of wolves as uninjured villagers. " +
+                       "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
+                       "causing the monster{0} to win.").format(plural)
+            winner = "monsters"
+        else:
+            message = "Game over! There are the same number of wolves as " +
+                      "uninjured villagers. The wolves overpower the villagers and win."
+            winner = "wolves"
     elif lwolves > lpl / 2:
-        message = ("Game over! There are more wolves than "+
-                  "uninjured villagers. The wolves overpower the villagers and win.")
-        village_win = False
-    elif (not var.ROLES["wolf"] and
-          not var.ROLES["traitor"] and
-          not var.ROLES["werecrow"]):
-        message = ("Game over! All the wolves are dead! The villagers " +
-                  "chop them up, BBQ them, and have a hearty meal.")
-        village_win = True
-    elif (not var.ROLES["wolf"] and not
-          var.ROLES["werecrow"] and var.ROLES["traitor"]):
+        if len(var.ROLES["monster"]) > 0:
+            plural = "s" if len(var.ROLES["monster"]) > 1 else ""
+            message = ("Game over! There are more wolves than uninjured villagers. " +
+                       "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
+                       "causing the monster{0} to win.").format(plural)
+            winner = "monsters"
+        else:
+            message = "Game over! There are more wolves than "+
+                      "uninjured villagers. The wolves overpower the villagers and win."
+            winner = "wolves"
+    elif lrealwolves == 0 and len(var.ROLES["traitor"]) == 0:
+        if len(var.ROLES["monster"]) > 0:
+            plural = "s" if len(var.ROLES["monster"]) > 1 else ""
+            message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
+                       "the monster{0} quickly kill the remaining villagers, " +
+                       "causing the monster{0} to win.").format(plural)
+            winner = "monsters"
+        else:
+            message = "Game over! All the wolves are dead! The villagers " +
+                      "chop them up, BBQ them, and have a hearty meal."
+            winner = "villagers"
+    elif lrealwolves == 0:
         for t in var.ROLES["traitor"]:
             var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
@@ -983,8 +1169,8 @@ def chk_win(cli, end_game = True):
     if end_game:
         cli.msg(chan, message)
         var.LOGGER.logMessage(message)
-        var.LOGGER.logBare("VILLAGERS" if village_win else "WOLVES", "WIN")
-        stop_game(cli, "villagers" if village_win else "wolves")
+        var.LOGGER.logBare(winner.upper())
+        stop_game(cli, winner)
     return True
 
 
@@ -1006,53 +1192,110 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
             #  either game ended, or a new game has started.
             return False
         cmode = []
-        if devoice:
-            cmode.append(("-v", nick))
-        var.del_player(nick)
         ret = True
-        if var.PHASE == "join":
-            # Died during the joining process as a person
-            mass_mode(cli, cmode)
-            return not chk_win(cli)
-        if var.PHASE != "join":
-            # Died during the game, so quiet!
-            if not is_fake_nick(nick):
-                cmode.append(("+q", nick+"!*@*"))
-            mass_mode(cli, cmode)
-            if nick not in var.DEAD:
-                var.DEAD.append(nick)
-            ret = not chk_win(cli, end_game)
-        if var.PHASE in ("night", "day") and ret:
-            # remove the player from variables if they're in there
-            for a,b in list(var.KILLS.items()):
-                if b == nick:
-                    del var.KILLS[a]
-                elif a == nick:
-                    del var.KILLS[a]
-            for x in (var.OBSERVED, var.HVISITED, var.GUARDED):
-                keys = list(x.keys())
-                for k in keys:
-                    if k == nick:
-                        del x[k]
-                    elif x[k] == nick:
-                        del x[k]
-            if nick in var.DISCONNECTED:
-                del var.DISCONNECTED[nick]
-        if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
-            if nick in var.VOTES.keys():
-                del var.VOTES[nick]  #  Delete other people's votes on the player
-            for k in list(var.VOTES.keys()):
-                if nick in var.VOTES[k]:
-                    var.VOTES[k].remove(nick)
-                    if not var.VOTES[k]:  # no more votes on that person
-                        del var.VOTES[k]
-                    break # can only vote once
+        if nick != None:
+            # handle roles that trigger on death
+            if nick in var.LOVERS:
+                others = copy.copy(var.LOVERS[nick])
+                var.LOVERS[nick].clear()
+                for other in others:
+                    if other not in var.list_players():
+                        continue # already died somehow
+                    var.LOVERS[other].remove(nick)
+                    if var.ROLE_REVEAL:
+                        message = ("Saddened by the loss of their lover, \u0002{0}\u0002, " +
+                                   "a \u0002{1}\u0002, commits suicide.").format(other, var.get_reveal_role(other))
+                    else:
+                        message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide".format(other)
+                    cli.message(botconfig.CHANNEL, message)
+                    var.LOGGER.logMessage(message.replace("\02", ""))
+                    var.LOGGER.logBare(other, "DEAD LOVER")
+                    del_player(cli, other, end_game = False)
+            if nick in var.ROLES["assassin"]:
+                target = var.TARGETED[nick]
+                if target != None and target in var.list_players():
+                    if var.ROLE_REVEAL:
+                        message = ("Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat. " +
+                                   "The village mourns the loss of a \u0002{2}\u0002.").format(nick, target, var.get_reveal_role(target))
+                    else:
+                        message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
+                    cli.message(botconfig.CHANNEL, message)
+                    var.LOGGER.logMessage(message.replace("\02", ""))
+                    var.LOGGER.logBare(target, "ASSASSINATED")
+                    del_player(cli, target, end_game = False)
+            if nick in var.CLONED:
+                # clone is cloning nick, so clone becomes nick's role
+                clone = var.CLONED[nick]
+                del var.CLONED[nick]
+                role = var.get_role(nick)
+                var.ROLES["clone"].remove(clone)
+                var.ROLES[role].append(clone)
+                pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
+                # if a clone is cloning a clone, clone who the old clone cloned
+                if role == "clone":
+                    for k, v in var.CLONED.items():
+                        if v == nick:
+                            var.CLONED[k] = clone
+                            pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(k))
+                            break
+            if nick in var.ROLES["vengeful ghost"]:
+                if var.PHASE == "night":
+                    var.VENGEFUL_GHOSTS[nick] = "wolves"
+                elif var.PHASE == "day":
+                    var.VENGEFUL_GHOSTS[nick] = "villagers"
+                pm(cli, nick, ("OOOooooOOOOooo! You are the \u0002vengeful ghost\u0002. It is now your job " +
+                               "to exact your revenge on the \u0002{0}\u0002 that you believed killed you").format(var.VENGEFUL_GHOSTS[nick]))
+            if nick in var.ROLES["wolf cub"]:
+                var.ANGRY_WOLVES = True
 
-            if nick in var.WOUNDED:
-                var.WOUNDED.remove(nick)
-            chk_decision(cli)
-        elif var.PHASE == "night" and ret:
-            chk_nightdone(cli)
+            if devoice:
+                cmode.append(("-v", nick))
+            var.del_player(nick)
+            if var.PHASE == "join":
+                # Died during the joining process as a person
+                mass_mode(cli, cmode)
+                return not chk_win(cli)
+            if var.PHASE != "join":
+                # Died during the game, so quiet!
+                if not is_fake_nick(nick):
+                    cmode.append(("+q", nick+"!*@*"))
+                mass_mode(cli, cmode)
+                if nick not in var.DEAD:
+                    var.DEAD.append(nick)
+                ret = not chk_win(cli, end_game)
+            if var.PHASE in ("night", "day") and ret:
+                # remove the player from variables if they're in there
+                for a,b in list(var.KILLS.items()):
+                    if b == nick:
+                        del var.KILLS[a]
+                    elif a == nick:
+                        del var.KILLS[a]
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED):
+                    keys = list(x.keys())
+                    for k in keys:
+                        if k == nick:
+                            del x[k]
+                        elif x[k] == nick:
+                            del x[k]
+                if nick in var.DISCONNECTED:
+                    del var.DISCONNECTED[nick]
+            if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
+                if nick in var.VOTES.keys():
+                    del var.VOTES[nick]  #  Delete other people's votes on the player
+                for k in list(var.VOTES.keys()):
+                    if nick in var.VOTES[k]:
+                        var.VOTES[k].remove(nick)
+                        if not var.VOTES[k]:  # no more votes on that person
+                            del var.VOTES[k]
+                        break # can only vote once
+
+                if nick in var.WOUNDED:
+                    var.WOUNDED.remove(nick)
+                if nick in var.ASLEEP:
+                    var.ASLEEP.remove(nick)
+                chk_decision(cli)
+            elif var.PHASE == "night" and ret:
+                chk_nightdone(cli)
         return ret
 
 
@@ -1089,9 +1332,13 @@ def reaper(cli, gameid):
                 for nck in to_kill:
                     if nck not in var.list_players():
                         continue
-                    cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long "+
-                                   "time and has been found dead. The survivors bury "+
-                                   "the \u0002{1}\u0002's body.").format(nck, var.get_reveal_role(nck)))
+                    if var.ROLE_REVEAL:
+                        cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long "+
+                                       "time and has been found dead. The survivors bury "+
+                                       "the \u0002{1}\u0002's body.").format(nck, var.get_reveal_role(nck)))
+                    else:
+                        cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long " +
+                                       "time and has been found dead.").format(nck))
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     if not del_player(cli, nck):
                         return
@@ -1104,15 +1351,21 @@ def reaper(cli, gameid):
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 _, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
-                    cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
-                                   "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
+                    if var.ROLE_REVEAL:
+                        cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
+                                       "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
+                    else:
+                        cli.msg(chan, ("\u0002{0}\u0002 was mauled by wild animals and has died.").format(dcedplayer))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
-                    cli.msg(chan, ("\02{0}\02, a \02{1}\02, ate some poisonous berries "+
-                                   "and has died.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
+                    if var.ROLE_REVEAL:
+                        cli.msg(chan, ("\02{0}\02, a \02{1}\02, ate some poisonous berries "+
+                                       "and has died.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
+                    else:
+                        cli.msg(chan, ("\u0002{0}\u0002 at some poisonous berries and has died.").format(dcedplayer))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False):
@@ -1230,8 +1483,14 @@ def on_nick(cli, prefix, nick):
         r = var.ROLES[var.get_role(prefix)]
         r.append(nick)
         r.remove(prefix)
+        tpls = var.get_templates(prefix)
+        for t in tpls:
+            var.ROLES[t].append(nick)
+            var.ROLES[t].remove(prefix)
 
         if var.PHASE in ("night", "day"):
+            # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
+            var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
             for k,v in var.ORIGINAL_ROLES.items():
                 if prefix in v:
                     var.ORIGINAL_ROLES[k].remove(prefix)
@@ -1243,10 +1502,7 @@ def on_nick(cli, prefix, nick):
                     del var.PLAYERS[k]
             if prefix in var.GUNNERS.keys():
                 var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
-            if prefix in var.CURSED:
-                var.CURSED.append(nick)
-                var.CURSED.remove(prefix)
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.KILLS):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.KILLS, var.TARGETED, var.CLONED):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -1260,6 +1516,36 @@ def on_nick(cli, prefix, nick):
             if prefix in var.SEEN:
                 var.SEEN.remove(prefix)
                 var.SEEN.append(nick)
+            if prefix in var.HEXED:
+                var.HEXED.remove(prefix)
+                var.HEXED.append(nick)
+            if prefix in var.ASLEEP:
+                var.ASLEEP.remove(prefix)
+                var.ASLEEP.append(nick)
+            if prefix in var.DESPERATE:
+                var.DESPERATE.remove(prefix)
+                var.DESPERATE.append(nick)
+            if prefix in var.PROTECTED:
+                var.PROTECTED.remove(prefix)
+                var.PROTECTED.append(nick)
+            if prefix in var.REVEALED:
+                var.REVEALED.remove(prefix)
+                var.REVEALED.append(nick)
+            if prefix in var.SILENCED:
+                var.SILENCED.remove(prefix)
+                var.SILENCED.append(nick)
+            if prefix in var.REVEALED_MAYORS:
+                var.REVEALED_MAYORS.remove(prefix)
+                var.REVEALED_MAYORS.append(nick)
+            if prefix in var.MATCHMAKERS:
+                var.MATCHMAKERS.remove(prefix)
+                var.MATCHMAKERS.append(nick)
+            if prefix in var.HUNTERS:
+                var.HUNTERS.remove(prefix)
+                var.HUNTERS.append(nick)
+            if prefix in var.SHAMANS:
+                var.SHAMANS.remove(prefix)
+                var.SHAMANS.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -1316,17 +1602,26 @@ def leave(cli, what, nick, why=""):
     #  the player who just quit was in the game
     killplayer = True
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
-        msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
-               "died.").format(nick, var.get_reveal_role(nick))
+        if var.ROLE_REVEAL:
+            msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
+                   "died.").format(nick, var.get_reveal_role(nick))
+        else:
+            msg = ("\02{0}\02 at some poisonous berries and has died.").format(nick)
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
-        msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
-               "\02{1}\02 meat is tasty.").format(nick, var.get_reveal_role(nick))
+        if var.ROLE_REVEAL:
+            msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
+                   "\02{1}\02 meat is tasty.").format(nick, var.get_reveal_role(nick))
+        else:
+            msg = ("\02{0}\02 was mauled by wild animals and has died.").format(nick)
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
     else:
-        msg = ("\02{0}\02 died due to falling off a cliff. The "+
-               "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_reveal_role(nick))
+        if var.ROLE_REVEAL:
+            msg = ("\02{0}\02 died due to falling off a cliff. The "+
+                   "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_reveal_role(nick))
+        else:
+            msg = ("\02{0}\02 died due to falling off a cliff.").format(nick)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
@@ -1359,8 +1654,12 @@ def leave_game(cli, nick, chan, rest):
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-    cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
-    var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
+    if var.ROLE_REVEAL:
+        cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
+        var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
+    else:
+        cli.msg(botconfig.CHANNEL, ("\02{0}\02 has died of an unknown disease.{1}").format(nick, population))
+        var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
     if var.PHASE != "join":
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
@@ -1373,12 +1672,16 @@ def begin_day(cli):
     chan = botconfig.CHANNEL
 
     # Reset nighttime variables
-    var.KILLS = {}  # nicknames of kill victim
+    var.KILLS = {}  # nicknames of kill victims (wolves only)
+    var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost/death totem)
     var.KILLER = ""  # nickname of who chose the victim
-    var.SEEN = []  # list of seers that have had visions
-    var.OBSERVED = {}  # those whom werecrows have observed
-    var.HVISITED = {}
-    var.GUARDED = {}
+    var.SEEN = []  # list of seers/oracles that have had visions
+    var.HEXED = [] # list of hags that have silenced others
+    var.SHAMANS = [] # list of shamans/crazed shamans that have acted
+    var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
+    var.HVISITED = {} # those whom harlots have visited
+    var.GUARDED = {}  # this whom guardian angels/bodyguards have guarded
+    var.PASSED = [] # hunters that have opted not to kill
     var.STARTED_DAY_PLAYERS = len(var.list_players())
 
     msg = ("The villagers must now vote for whom to lynch. "+
@@ -1430,9 +1733,9 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
-            and not var.START_WITH_DAY and var.FIRST_NIGHT and var.ROLES["seer"] and not botconfig.DEBUG_MODE):
+            and not var.START_WITH_DAY and var.FIRST_NIGHT and (var.ROLES["seer"] or var.ROLES["oracle"]) and not botconfig.DEBUG_MODE):
         cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
-        for x in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
+        for x in var.ROLES["traitor"] + [p for r in var.WOLF_ROLES for p in var.ROLES[r]]:
             if not del_player(cli, x, True):
                 return
 
@@ -1451,105 +1754,157 @@ def transition_day(cli, gameid=0):
             found[v] = 1
 
     maxc = 0
-    victim = ""
+    victims = []
+    bywolves = []
     dups = []
     for v, c in found.items():
         if c > maxc:
             maxc = c
-            victim = v
-            dups = []
+            dups = [v]
         elif c == maxc:
             dups.append(v)
 
-    if maxc:
-        if dups:
-            dups.append(victim)
+    if maxc and dups:
+        victim = random.choice(dups)
+        victims.append(victim)
+        bywolves.append(victim)
+    
+    if victims and var.ANGRY_WOLVES:
+        # they got a 2nd kill
+        del found[victims[0]]
+        maxc = 0
+        dups = []
+        for v, c in found.items():
+            if c > maxc:
+                maxc = c
+                dups = [v]
+            elif c == maxc:
+                dups.append(v)
+        if maxc and dups:
             victim = random.choice(dups)
+            victims.append(victim)
+            bywolves.append(victim)
 
+    victims += var.OTHER_KILLS.values()
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
     dead = []
-    crowonly = var.ROLES["werecrow"] and not var.ROLES["wolf"]
-    if victim:
+    for victim in victims:
         var.LOGGER.logBare(victim, "WOLVESVICTIM", *[y for x,y in var.KILLS.items() if x == victim])
     for crow, target in iter(var.OBSERVED.items()):
         if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
-            target in var.SEEN or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
+            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed all night, and you fly back to your house.").format(target))
         else:
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
-    if victim in var.GUARDED.values():
-        for gangel in var.ROLES["guardian angel"]:
-            if var.GUARDED.get(gangel) == victim:
-                dead.append(gangel)
-                message.append(("\u0002{0}\u0002 sacrificed their life to the wolves to "+
-                        "guard that of another.").format(gangel))
-                break
-        victim = ""
-    elif not victim:
-        message.append(random.choice(var.NO_VICTIMS_MESSAGES) +
-                    " All villagers, however, have survived.")
-    elif victim in var.ROLES["harlot"]:  # Attacked harlot, yay no kill
-        if var.HVISITED.get(victim):
-            message.append("The wolves' selected victim was a harlot, "+
-                           "who was not at home last night.")
-            victim = ""
-    if victim and (victim not in var.ROLES["harlot"] or   # not a harlot
-                          not var.HVISITED.get(victim)):   # harlot stayed home
-        message.append(("The dead body of \u0002{0}\u0002, a "+
-                        "\u0002{1}\u0002, is found. Those remaining mourn the "+
-                        "tragedy.").format(victim, var.get_role(victim)))
-        dead.append(victim)
-        var.LOGGER.logBare(victim, "KILLED")
-        if random.random() < 1/50:
-            message.append(random.choice(
-                ["https://i.imgur.com/nO8rZ.gif",
-                "https://i.imgur.com/uGVfZ.gif",
-                "https://i.imgur.com/mUcM09n.gif",
-                "https://i.imgur.com/P7TEGyQ.gif",
-                "https://i.imgur.com/b8HAvjL.gif",
-                "https://i.imgur.com/PIIfL15.gif"]
-                ))
 
-    if victim in var.GUNNERS.keys() and var.GUNNERS[victim]:  # victim had bullets!
-        if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-            wc = var.ROLES["werecrow"][:]
-            for crow in wc:
-                if crow in var.OBSERVED.keys():
-                    wc.remove(crow)
-            # don't kill off werecrows that observed
-            deadwolf = random.choice(var.ROLES["wolf"]+wc)
-            message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
-                            "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_role(deadwolf)))
-            var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
-            dead.append(deadwolf)
-    if victim in var.HVISITED.values():  #  victim was visited by some harlot
-        for hlt in var.HVISITED.keys():
-            if var.HVISITED[hlt] == victim:
-                message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
-                                "visiting the victim's house last night and is "+
-                                "now dead.").format(hlt))
-                dead.append(hlt)
+    vlist = copy.copy(victims)
+    for victim in vlist:
+        if victim in var.PROTECTED:
+            #could display a message here, but don't for now
+            #<some message about totem emitting a brilliant flash of light goes here>
+            break
+        elif victim in var.GUARDED.values():
+            for bodyguard in var.ROLES["bodyguard"]:
+                if var.GUARDED.get(bodyguard) == victim:
+                    # could display a message here, but don't for now
+                    #message.append(("\u0002{0}\u0002 was attacked last night, but luckily, the bodyguard was on duty.").format(victim))
+                    break
+            for gangel in var.ROLES["guardian angel"]:
+                if died and var.GUARDED.get(gangel) == victim:
+                    dead.append(gangel)
+                    message.append(("\u0002{0}\u0002 sacrificed their life to the wolves to "+
+                            "guard that of another.").format(gangel))
+                    break
+        elif victim in var.ROLES["harlot"] and victim in bywolves and var.HVISITED.get(victim):
+             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
+        else:
+            if var.ROLE_REVEAL:
+                message.append(("The dead body of \u0002{0}\u0002, a \u0002{1}\u0002, is found. " +
+                                "Those remaining mourn the tragedy.").format(victim, var.get_reveal_role(victim)))
+            else:
+                message.append(("The dead body of \u0002{0}\u0002 is found. " +
+                                "Those remaining mourn the tragedy.").format(victim))
+            dead.append(victim)
+            var.LOGGER.logBare(victim, "KILLED")
+            if random.random() < 1/50:
+                message.append(random.choice(
+                    ["https://i.imgur.com/nO8rZ.gif",
+                    "https://i.imgur.com/uGVfZ.gif",
+                    "https://i.imgur.com/mUcM09n.gif",
+                    "https://i.imgur.com/P7TEGyQ.gif",
+                    "https://i.imgur.com/b8HAvjL.gif",
+                    "https://i.imgur.com/PIIfL15.gif"]
+                    ))
+            if victim in var.GUNNERS.keys() and var.GUNNERS[victim] and victim not in var.ROLES["amnesiac"] and victim in bywolves:  # gunner was attacked by wolves and had bullets!
+                if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
+                    wc = var.ROLES["werecrow"][:]
+                    for crow in wc:
+                        if crow in var.OBSERVED.keys():
+                            wc.remove(crow)
+                    # don't kill off werecrows that observed
+                    deadwolf = random.choice(var.ROLES["wolf"]+var.ROLES["wolf cub"]+wc)
+                    if var.ROLE_REVEAL:
+                        message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
+                                        "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_reveal_role(deadwolf)))
+                    else:
+                        message.append(("Fortunately, the victim, \02{0}\02, had bullets, and "+
+                                        "\02{1}\02 was shot dead.").format(victim, deadwolf))
+                    var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
+                    dead.append(deadwolf)
+                    var.GUNNERS[victim] -= 1 # deduct the used bullet
+            if victim in var.HVISITED.values() and victim in bywolves:  #  victim was visited by some harlot and victim was attacked by wolves
+                for hlt in var.HVISITED.keys():
+                    if var.HVISITED[hlt] == victim:
+                        message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
+                                        "visiting the victim's house last night and is "+
+                                        "now dead.").format(hlt))
+                        dead.append(hlt)
+
+    if len(dead) == 0:
+        message.append(random.choice(var.NO_VICTIMS_MESSAGES) + " All villagers, however, have survived.")
+
     for harlot in var.ROLES["harlot"]:
-        if var.HVISITED.get(harlot) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
+        if var.HVISITED.get(harlot) in [p for r in var.WOLF_ROLES for p in var.ROLES[r]]:
             message.append(("\02{0}\02, a \02harlot\02, made the unfortunate mistake of "+
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
     for gangel in var.ROLES["guardian angel"]:
-        if var.GUARDED.get(gangel) in var.ROLES["wolf"]+var.ROLES["werecrow"]:
-            if victim == gangel:
+        if var.GUARDED.get(gangel) in [p for r in var.WOLF_ROLES for p in var.ROLES[r]]:
+            if gangel in dead:
                 continue # already dead.
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
-                message.append(("\02{0}\02, a \02guardian angel\02, "+
-                                "made the unfortunate mistake of guarding a wolf "+
-                                "last night, and is now dead.").format(gangel))
+                if var.ROLE_REVEAL:
+                    message.append(("\02{0}\02, a \02guardian angel\02, "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(gangel))
+                else:
+                    message.append(("\02{0}\02 "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(gangel))
                 var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
+    for bodyguard in var.ROLES["bodyguard"]:
+        if var.GUARDED.get(bodyguard) in [p for r in var.WOLF_ROLES for p in var.ROLES[r]]:
+            if bodyguard in dead:
+                continue # already dead.
+            r = random.random()
+            if r < var.BODYGUARD_DIES_CHANCE:
+                if var.ROLE_REVEAL:
+                    message.append(("\02{0}\02, a \02bodyguard\02, "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(bodyguard))
+                else:
+                    message.append(("\02{0}\02 "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(bodyguard))
+                var.LOGGER.logBare(bodyguard, "KILLEDWHENGUARDINGWOLF")
+                dead.append(bodyguard)
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
@@ -1559,35 +1914,42 @@ def transition_day(cli, gameid=0):
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
 
-    if (var.WOLF_STEALS_GUN and victim in dead and
-        victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
-        # victim has bullets
-        guntaker = random.choice(var.ROLES["wolf"] + var.ROLES["werecrow"]
-                                 + var.ROLES["traitor"])  # random looter
-        numbullets = var.GUNNERS[victim]
-        var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
-        mmsg = ("While searching {0}'s belongings, You found " +
-                "a gun loaded with 1 silver bullet! " +
-                "You may only use it during the day. " +
-                "If you shoot at a wolf, you will intentionally miss. " +
-                "If you shoot a villager, it is likely that they will be injured.")
-        mmsg = mmsg.format(victim)
-        pm(cli, guntaker, mmsg)
-        var.GUNNERS[victim] = 0  # just in case
-
+    for victim in victims:
+        if (var.WOLF_STEALS_GUN and victim in dead and victim in bywolves and
+            victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
+            # victim has bullets
+            guntaker = random.choice([p for r in var.WOLFCHAT_ROLES for p in var.ROLES[r]])  # random looter
+            numbullets = var.GUNNERS[victim]
+            var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
+            mmsg = ("While searching {0}'s belongings, You found " +
+                    "a gun loaded with 1 silver bullet! " +
+                    "You may only use it during the day. " +
+                    "If you shoot at a wolf, you will intentionally miss. " +
+                    "If you shoot a villager, it is likely that they will be injured.")
+            mmsg = mmsg.format(victim)
+            pm(cli, guntaker, mmsg)
+            var.GUNNERS[victim] = 0  # just in case
 
     begin_day(cli)
 
 
 def chk_nightdone(cli):
-    if (len(var.SEEN) >= len(var.ROLES["seer"]) and  # Seers have seen.
+    if (len(var.SEEN) >= len(var.ROLES["seer"]+var.ROLES["oracle"]) and  # Seers/oracles have seen.
         len(var.HVISITED.keys()) >= len(var.ROLES["harlot"]) and  # harlots have visited.
-        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]) and  # guardians have guarded
-        len(var.KILLS)+len(var.OBSERVED) >= len(var.ROLES["werecrow"]+var.ROLES["wolf"]) and
+        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]+var.ROLES["bodyguard"]) and  # guardians have guarded
+        len(var.KILLS.keys())+len(var.OBSERVED) >= len(var.ROLES["werecrow"]+var.ROLES["wolf"]+var.ROLES["sorcerer"]) and
+        len(var.OTHER_KILLS.keys())+len(var.PASSED) >= len(var.ROLES["hunter"]+var.VENGEFUL_GHOSTS.keys())
+        len(var.HEXED) >= len(var.ROLES["hag"]) and
+        len(var.SHAMANS) >= len(var.ROLES["shaman"]) and
+        len(var.MATCHMAKERS) >= len(var.ROLES["matchmaker"]) and
+        len(var.TARGETED.keys()) >= len(var.ROLES["assassin"]) and
+        len(var.CLONED.keys()) >= len(var.ROLES["clone"]) and
         var.PHASE == "night"):
 
         # check if wolves are actually agreeing
         if len(set(var.KILLS.values())) > 1:
+            return
+        elif var.ANGRY_WOLVES and len(set(var.KILLS.values())) > 2:
             return
 
         for x, t in var.TIMERS.items():
@@ -1623,6 +1985,11 @@ def vote(cli, nick, chann_, rest):
         cli.msg(chan, ("{0}: You are wounded and resting, "+
                       "thus you are unable to vote for the day.").format(nick))
         return
+    if nick in var.ASLEEP:
+        pm(cli, nick, "As you place your vote, your totem emits a brilliant flash of light. " +
+                      "After recovering, you notice that you are still in your bed. " +
+                      "That entire sequence of events must have just been a dream...")
+        return
 
     pl = var.list_players()
     pl_l = [x.strip().lower() for x in pl]
@@ -1644,7 +2011,10 @@ def vote(cli, nick, chann_, rest):
 
     if not var.SELF_LYNCH_ALLOWED:
         if nick == voted:
-            cli.notice(nick, "Please try to save yourself.")
+            if nick in var.ROLES["fool"]:
+                cli.notice(nick, "You may not vote yourself.")
+            else:
+                cli.notice(nick, "Please try to save yourself.")
             return
 
     lcandidates = list(var.VOTES.keys())
@@ -1711,7 +2081,7 @@ def wolfretract(cli, nick, rest):
         return
 
     role = var.get_role(nick)
-    if role not in ('wolf', 'werecrow'):
+    if role not in ("wolf", "werecrow", "hunter") or nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only retract at night.")
@@ -1722,8 +2092,10 @@ def wolfretract(cli, nick, rest):
                            "cannot turn back until day."))
             return
 
-    if nick in var.KILLS.keys():
+    if role in var.WOLF_ROLES and nick in var.KILLS.keys():
         del var.KILLS[nick]
+    elif role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
+        del var.OTHER_KILLS[nick]
     pm(cli, nick, "You have retracted your vote.")
     #var.LOGGER.logBare(nick, "RETRACT", nick)
 
@@ -1743,7 +2115,7 @@ def shoot(cli, nick, chann_, rest):
         cli.notice(nick, ("Shooting is only allowed during the day. "+
                           "Please wait patiently for morning."))
         return
-    if not (nick in var.GUNNERS.keys() or nick in var.WOLF_GUNNERS.keys()):
+    if nick in var.ROLES["amnesiac"] or not (nick in var.GUNNERS.keys() or nick in var.WOLF_GUNNERS.keys()):
         pm(cli, nick, "You don't have a gun.")
         return
     elif ((nick in var.GUNNERS.keys() and not var.GUNNERS[nick]) or
@@ -1773,7 +2145,7 @@ def shoot(cli, nick, chann_, rest):
         cli.notice(nick, "You are holding it the wrong way.")
         return
 
-    wolfshooter = nick in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]
+    wolfshooter = nick in [p for r in var.WOLFCHAT_ROLES for p in var.ROLES[r]]
 
     if wolfshooter and nick in var.WOLF_GUNNERS:
         var.WOLF_GUNNERS[nick] -= 1
@@ -1783,30 +2155,43 @@ def shoot(cli, nick, chann_, rest):
     rand = random.random()
     if nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
+    elif nick in var.ROLES["sharpshooter"]:
+        chances = var.SHARPSHOOTER_CHANCES
     else:
         chances = var.GUN_CHANCES
 
-    wolfvictim = victim in var.ROLES["wolf"]+var.ROLES["werecrow"]
+    wolfvictim = victim in [p for r in var.WOLF_ROLES for p in var.ROLES[r]]
     if rand <= chances[0] and not (wolfshooter and wolfvictim):  # didn't miss or suicide
         # and it's not a wolf shooting another wolf
 
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
         var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
+        realrole = var.get_role(victim)
         victimrole = var.get_reveal_role(victim)
-        if victimrole in ("wolf", "werecrow"):
-            cli.msg(chan, ("\u0002{0}\u0002 is a {1}, and is dying from "+
-                           "the silver bullet.").format(victim, victimrole))
-            var.LOGGER.logMessage(("{0} is a {1}, and is dying from the "+
-                            "silver bullet.").format(victim, victimrole))
+        if realrole in var.WOLF_ROLES:
+            if var.ROLE_REVEAL:
+                cli.msg(chan, ("\u0002{0}\u0002 is a {1}, and is dying from "+
+                               "the silver bullet.").format(victim, victimrole))
+                var.LOGGER.logMessage(("{0} is a {1}, and is dying from the "+
+                                "silver bullet.").format(victim, victimrole))
+            else:
+                cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
+                               "the silver bullet.").format(victim))
+                var.LOGGER.logMessage(("{0} is a wolf, and is dying from the "+
+                                "silver bullet.").format(victim))
             if not del_player(cli, victim):
                 return
-        elif random.random() <= var.MANSLAUGHTER_CHANCE:
+        elif random.random() <= chances[3]:
+            accident = "accidentally "
+            if nick in var.ROLES["sharpshooter"]:
+                accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
             cli.msg(chan, ("\u0002{0}\u0002 is a not a wolf "+
-                           "but was accidentally fatally injured.").format(victim))
-            cli.msg(chan, "The village has sacrificed a \u0002{0}\u0002.".format(victimrole))
-            var.LOGGER.logMessage("{0} is not a wolf but was accidentally fatally injured.".format(victim))
-            var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
+                           "but was {1}fatally injured.").format(victim, accident))
+            var.LOGGER.logMessage("{0} is not a wolf but was {1}fatally injured.".format(victim, accident))
+            if var.ROLE_REVEAL:
+                cli.msg(chan, "The village has sacrificed a \u0002{0}\u0002.".format(victimrole))
+                var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
             if not del_player(cli, victim):
                 return
         else:
@@ -1831,10 +2216,14 @@ def shoot(cli, nick, chann_, rest):
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter and missed!".format(nick))
         var.LOGGER.logMessage("{0} is a lousy shooter and missed!".format(nick))
     else:
-        cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
-                       "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_reveal_role(nick)))
-        var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
-                       "The village mourns a gunner-{1}.").format(nick, var.get_reveal_role(nick)))
+        if var.ROLE_REVEAL:
+            cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
+                           "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_reveal_role(nick)))
+            var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
+                           "The village mourns a gunner-{1}.").format(nick, var.get_reveal_role(nick)))
+        else:
+            cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded!").format(nick))
+            var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded!").format(nick))
         if not del_player(cli, nick):
             return  # Someone won.
 
@@ -1849,10 +2238,10 @@ def kill(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
-    if role == "traitor":
+    if role in var.WOLFCHAT_ROLES and role not in ("wolf", "werecrow"):
         return  # they do this a lot.
-    if role not in ('wolf', 'werecrow'):
-        pm(cli, nick, "Only a wolf may use this command.")
+    if role not in ("wolf", "werecrow", "hunter") or nick not in var.VENGEFUL_GHOSTS.keys():
+        pm(cli, nick, "Only a wolf, hunter, or dead vengeful ghost may use this command.")
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only kill people at night.")
@@ -1886,10 +2275,14 @@ def kill(cli, nick, rest):
     if victim == nick:
         pm(cli, nick, "Suicide is bad.  Don't do it.")
         return
-    if victim in var.ROLES["wolf"]+var.ROLES["werecrow"]+var.ROLES["traitor"]:
+    if victim in [p for r in var.WOLFCHAT_ROLES for p in var.ROLES[r]]:
         pm(cli, nick, "You may only kill villagers, not other wolves.")
         return
-    var.KILLS[nick] = victim
+    
+    if role in var.WOLF_ROLES:
+        var.KILLS[nick] = victim
+    else:
+        var.OTHER_KILLS[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
     var.LOGGER.logBare(nick, "SELECT", victim)
     chk_nightdone(cli)
@@ -1904,8 +2297,8 @@ def guard(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
-    if role != 'guardian angel':
-        pm(cli, nick, "Only a guardian angel may use this command.")
+    if role not in ("guardian angel", "bodyguard"):
+        pm(cli, nick, "Only a guardian angel or bodyguard may use this command.")
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only protect people at night.")
@@ -1917,6 +2310,10 @@ def guard(cli, nick, rest):
     if var.GUARDED.get(nick):
         pm(cli, nick, ("You are already protecting "+
                       "\u0002{0}\u0002.").format(var.GUARDED[nick]))
+        return
+    if role == "bodyguard" and var.LASTGUARDED.get(nick) == victim:
+        pm(cli, nick, ("You protected \u0002{0}\u0002 last night. " +
+                       "You cannot protect the same person two nights in a row.").format(victim))
         return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
@@ -1934,12 +2331,19 @@ def guard(cli, nick, rest):
             return
     victim = pl[pll.index(target)]
     if victim == nick:
-        var.GUARDED[nick] = None
-        pm(cli, nick, "You have chosen not to guard anyone tonight.")
+        if role == "guardian angel" or not var.BODYGUARD_CAN_GUARD_SELF:
+            var.GUARDED[nick] = None
+            del var.LASTGUARDED[nick]
+            pm(cli, nick, "You have chosen not to guard anyone tonight.")
+        elif role == "bodyguard":
+            var.GUARDED[nick] = nick
+            var.LASTGUARDED[nick] = nick
+            pm(cli, nick, "You have decided to guard yourself tonight.")
     else:
         var.GUARDED[nick] = victim
+        var.LASTGUARDED[nick] = victim
         pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
-        pm(cli, var.GUARDED[nick], "You can sleep well tonight, for a guardian angel is protecting you.")
+        pm(cli, var.GUARDED[nick], "You can sleep well tonight, for you are being protected.")
         var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
     chk_nightdone(cli)
 
@@ -1953,11 +2357,15 @@ def observe(cli, nick, rest):
     elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
-    if not var.is_role(nick, "werecrow"):
-        pm(cli, nick, "Only a werecrow may use this command.")
+    role = var.get_role(nick)
+    if role not in ("werecrow", "sorcerer"):
+        pm(cli, nick, "Only a werecrow or sorcerer may use this command.")
         return
     if var.PHASE != "night":
-        pm(cli, nick, "You may only transform into a crow at night.")
+        if role == "werecrow":
+            pm(cli, nick, "You may only transform into a crow at night.")
+        else:
+            pm(cli, nick, "You may only observe at night.")
         return
     victim = re.split(" +", rest)[0].strip().lower()
     if not victim:
@@ -1979,20 +2387,37 @@ def observe(cli, nick, rest):
             return
     victim = pl[pll.index(target)]
     if victim == nick.lower():
-        pm(cli, nick, "Instead of doing that, you should probably go kill someone.")
+        if role == "werecrow":
+            pm(cli, nick, "Instead of doing that, you should probably go kill someone.")
+        else:
+            pm(cli, nick, "That would be a waste.")
         return
     if nick in var.OBSERVED.keys():
-        pm(cli, nick, "You are already flying to \02{0}\02's house.".format(var.OBSERVED[nick]))
+        if role == "werecrow":
+            pm(cli, nick, "You are already flying to \02{0}\02's house.".format(var.OBSERVED[nick]))
+        else:
+            pm(cli, nick, "You have already observed tonight.")
         return
-    if var.get_role(victim) in ("werecrow", "traitor", "wolf"):
-        pm(cli, nick, "Flying to another wolf's house is a waste of time.")
+    if var.get_role(victim) in var.WOLFCHAT_ROLES:
+        if role == "werecrow":
+            pm(cli, nick, "Flying to another wolf's house is a waste of time.")
+        else:
+            pm(cli, nick, "Observing another wolf is a waste of time.")
         return
     var.OBSERVED[nick] = victim
     if nick in var.KILLS.keys():
         del var.KILLS[nick]
-    pm(cli, nick, ("You transform into a large crow and start your flight "+
-                   "to \u0002{0}'s\u0002 house. You will return after "+
-                  "collecting your observations when day begins.").format(victim))
+    if role == "werecrow":
+        pm(cli, nick, ("You transform into a large crow and start your flight "+
+                       "to \u0002{0}'s\u0002 house. You will return after "+
+                      "collecting your observations when day begins.").format(victim))
+    elif role == "sorcerer":
+        if var.get_role(victim) in ("seer", "oracle"):
+            pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
+                           "is a \u0002{1}\u0002!").format(victim, var.get_reveal_role(victim)))
+        else:
+            pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
+                           "does not have paranormal senses.").format(victim))
     var.LOGGER.logBare(victim, "OBSERVED", nick)
     chk_nightdone(cli)
 
@@ -2461,9 +2886,9 @@ def start(cli, nick, chann_, rest):
         cli.msg(chan, "{0}: \u0002{1}\u0002 or more players are required to play.".format(nick, var.MIN_PLAYERS))
         return
 
-    for index in range(len(var.ROLES_INDEX), -1, -1):
-        if var.ROLES_INDEX[index] < len(villagers):
-            addroles = {k:v[index] for k,v in var.ROLES_GUIDE}
+    for index in range(len(var.ROLE_INDEX), -1, -1):
+        if var.ROLE_INDEX[index] < len(villagers):
+            addroles = {k:v[index] for k,v in var.ROLE_GUIDE}
             break
     else:
         cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
@@ -2498,6 +2923,7 @@ def start(cli, nick, chann_, rest):
         if "start" in COMMANDS.keys():
             COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
 
+    var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
     var.ROLES = {}
     var.GUNNERS = {}
     var.WOLF_GUNNERS = {}
@@ -2968,7 +3394,7 @@ def timeleft_pm(cli, nick, rest):
 def listroles(cli, nick, chan, rest):
     """Display which roles are enabled and when"""
 
-    old = var.ROLES_GUIDE.get(None)
+    old = var.ROLE_GUIDE.get(None)
 
     txt = ""
 
@@ -2976,7 +3402,7 @@ def listroles(cli, nick, chan, rest):
     if pl > 0:
         txt += '{0}: There are \u0002{1}\u0002 playing. '.format(nick, pl)
 
-    for i,v in sorted({i:var.ROLES_GUIDE[i] for i in var.ROLES_GUIDE if i is not None}.items()):
+    for i,v in sorted({i:var.ROLE_GUIDE[i] for i in var.ROLE_GUIDE if i is not None}.items()):
         if (i <= pl):
             txt += BOLD
         txt += "[" + str(i) + "] "
@@ -3157,7 +3583,7 @@ def game_stats(cli, nick, chan, rest):
 def game_stats_pm(cli, nick, rest):
     game_stats(cli, nick, nick, rest)
 
-    
+
 @cmd('playerstats', 'pstats', 'player', 'p')
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
@@ -3203,7 +3629,7 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_player_totals(acc))
     else:
-        role = ' '.join(params[1:])  
+        role = ' '.join(params[1:])
 
         # Attempt to find the player's stats
         if chan == nick:
