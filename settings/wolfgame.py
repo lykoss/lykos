@@ -176,7 +176,9 @@ def plural(role):
     elif role == "person": return "people"
     else: return role + "s"
 
-def list_players(roles = ROLES.keys()):
+def list_players(roles = None):
+    if roles == None:
+        roles = ROLES.keys()
     return [p for r in roles for p in ROLES[r]]
 
 def list_players_and_roles():
@@ -421,3 +423,5 @@ def get_game_totals():
         return "No games have been played."
     else:
         return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
+
+# vim : set expandtab:sw=4:ts=4:
