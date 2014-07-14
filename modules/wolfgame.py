@@ -634,15 +634,17 @@ def stats(cli, nick, chan, rest):
 
     for role in rs:
         # only show actual roles
-        if role == "amnesiac" or role in var.TEMPLATE_RESTRICTIONS.keys():
+        if role in ("amnesiac", "village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
         count = len(var.ROLES[role])
         # TODO: should we do anything special with amnesiac counts? Right now you can pretty easily
         # figure out what role an amnesiac is by doing !stats and seeing which numbers are low
         if role == "traitor" and var.HIDDEN_TRAITOR:
             continue
-        elif role == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
-            count += len(var.ROLES["traitor"])
+        elif role == var.DEFAULT_ROLE:
+            if var.HIDDEN_TRAITOR:
+                count += len(var.ROLES["traitor"])
+            count += len(var.ROLES["amnesiac"] + var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
 
         if count > 1 or count == 0:
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
@@ -1778,6 +1780,7 @@ def transition_day(cli, gameid=0):
     var.VOTES = {}
     var.INVESTIGATED = []
     var.WOUNDED = []
+    var.SILENCED = copy.copy(var.TOBESILENCED)
     var.DAY_START_TIME = datetime.now()
     var.ANGRY_WOLVES = False
     var.DAY_COUNT += 1
@@ -1844,7 +1847,18 @@ def transition_day(cli, gameid=0):
     for monster in var.ROLES["monster"]:
         victims.remove(monster)
 
+    wolves = var.list_players(var.WOLFTEAM_ROLES)
+    villagers = var.list_players()
+    for wolf in wolves:
+        villagers.remove(wolf)
+    for ghost, target in var.VENGEFUL_GHOSTS.items():
+        if ghost not in var.OTHER_KILLS:
+            if target == "wolves":
+                var.OTHER_KILLS[ghost] = random.choice(wolves)
+            else:
+                var.OTHER_KILLS[ghost] = random.choice(villagers)
     victims += var.OTHER_KILLS.values()
+    victims = set(victims) # remove duplicates
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
@@ -1969,6 +1983,8 @@ def transition_day(cli, gameid=0):
                                     "last night, and is now dead.").format(bodyguard))
                 var.LOGGER.logBare(bodyguard, "KILLEDWHENGUARDINGWOLF")
                 dead.append(bodyguard)
+    for havetotem in var.LASTGIVEN.values():
+        message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
@@ -1998,18 +2014,17 @@ def transition_day(cli, gameid=0):
 
 
 def chk_nightdone(cli):
-    if (len(var.SEEN) >= len(var.ROLES["seer"]+var.ROLES["oracle"]) and  # Seers/oracles have seen.
-        len(var.HVISITED.keys()) >= len(var.ROLES["harlot"]) and  # harlots have visited.
-        len(var.GUARDED.keys()) >= len(var.ROLES["guardian angel"]+var.ROLES["bodyguard"]) and  # guardians have guarded
-        len(var.KILLS.keys())+len(var.OBSERVED) >= len(var.ROLES["werecrow"]+var.ROLES["wolf"]+var.ROLES["sorcerer"]) and
-        len(var.OTHER_KILLS.keys())+len(var.PASSED) >= len(var.ROLES["hunter"]+var.VENGEFUL_GHOSTS.keys())
-        len(var.HEXED) >= len(var.ROLES["hag"]) and
-        len(var.SHAMANS) >= len(var.ROLES["shaman"]) and
-        len(var.MATCHMAKERS) >= len(var.ROLES["matchmaker"]) and
-        len(var.TARGETED.keys()) >= len(var.ROLES["assassin"]) and
-        len(var.CLONED.keys()) >= len(var.ROLES["clone"]) and
-        var.PHASE == "night"):
+    actedcount  = len(var.SEEN + var.HVISITED.keys() + var.GUARDED.keys() + var.KILLS.keys() +
+                      var.OTHER_KILLS.keys() + var.OBSERVED + var.PASSED + var.HEXED +
+                      var.SHAMANS + var.MATCHMAKERS + var.TARGETED.keys() + var.CLONED.keys())
+    nightroles = var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
+                 var.ROLES["guardian angel"] + var.ROLES["bodyguard"] + var.ROLES["wolf"] +
+                 var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["clone"] +
+                 var.ROLES["hunter"] + var.VENGEFUL_GHOSTS.keys() + var.ROLES["hag"] +
+                 var.ROLES["shaman"] + var.ROLES["crazed shaman"] + var.ROLES["assassin"]
+    playercount = len([p for p in nightroles if p not in var.SILENCED])
 
+    if (var.PHASE == "night" and actedcount >= playercount):
         # check if wolves are actually agreeing
         if len(set(var.KILLS.values())) > 1:
             return
@@ -2187,6 +2202,9 @@ def shoot(cli, nick, chann_, rest):
           (nick in var.WOLF_GUNNERS.keys() and not var.WOLF_GUNNERS[nick])):
         pm(cli, nick, "You don't have any more bullets.")
         return
+    elif nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
     victim = re.split(" +",rest)[0].strip().lower()
     if not victim:
         cli.notice(nick, "Not enough parameters")
@@ -2317,6 +2335,9 @@ def kill(cli, nick, rest):
     if role == "hunter" and nick in var.HUNTERS:
         pm(cli, nick, "You have already killed someone this game.")
         return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
     pieces = [p.strip().lower() for p in re.split(" +",rest)]
     victim = pieces[0]
     victim2 = None
@@ -2390,6 +2411,7 @@ def kill(cli, nick, rest):
         var.OTHER_KILLS[nick] = victim
         if role == "hunter":
             var.HUNTERS.append(nick)
+            var.PASSED.remove(nick)
 
     if victim2 != None:
         pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be killed.".format(victim, victim2))
@@ -2417,6 +2439,9 @@ def guard(cli, nick, rest):
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only protect people at night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
         return
     victim = re.split(" +",rest)[0].strip().lower()
     if not victim:
@@ -2481,6 +2506,9 @@ def observe(cli, nick, rest):
             pm(cli, nick, "You may only transform into a crow at night.")
         else:
             pm(cli, nick, "You may only observe at night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
         return
     victim = re.split(" +", rest)[0].strip().lower()
     if not victim:
@@ -2551,6 +2579,9 @@ def investigate(cli, nick, rest):
     if var.PHASE != "day":
         pm(cli, nick, "You may only investigate people during the day.")
         return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
     if nick in var.INVESTIGATED:
         pm(cli, nick, "You may only investigate one person per round.")
         return
@@ -2603,6 +2634,9 @@ def hvisit(cli, nick, rest):
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only visit someone at night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
         return
     if var.HVISITED.get(nick):
         pm(cli, nick, ("You are already spending the night "+
@@ -2659,6 +2693,9 @@ def see(cli, nick, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only have visions at night.")
         return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
     if nick in var.SEEN:
         pm(cli, nick, "You may only have one vision per round.")
         return
@@ -2698,7 +2735,116 @@ def see(cli, nick, rest):
     var.LOGGER.logBare(victim, "SEEN", nick)
     chk_nightdone(cli)
 
+@pmcmd("give")
+def give(cli, nick, *rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    role = var.get_role(nick)
+    if role not in ("shaman", "crazed shaman"):
+        pm(cli, nick, "Only a shaman or a crazed shaman may use this command.")
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only give totems at night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
+    if nick in var.SHAMANS:
+        pm(cli, nick, "You have already given out your totem this round.")
+        return
+    victim = re.split(" +",rest)[0].strip().lower()
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+    matches = 0
+    for player in pll:
+        if victim == player:
+            target = player
+            break
+        if player.startswith(victim):
+            target = player
+            matches += 1
+    else:
+        if matches != 1:
+            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+    if var.LASTGIVEN[nick] == victim:
+        pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
+        return
+    type = ""
+    if role == "shaman":
+        type = " of " + var.TOTEMS[nick]
+    pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
+    if victim != nick:
+        pm(cli, nick, "You have been given a strange totem.")
+    totem = var.TOTEMS[nick]
+    if totem == "death":
+        var.OTHER_KILLS[nick] = victim
+    elif totem == "protection":
+        var.PROTECTED.append(victim)
+    elif totem == "revealing":
+        var.REVEALED.append(victim)
+    elif totem == "narcolepsey":
+        var.ASLEEP.append(victim)
+    elif totem == "silence":
+        var.TOBESILENCED.append(victim)
+    elif totem == "desperation":
+        var.DESPERATE.append(victim)
+    var.LASTGIVEN[nick] = victim
+    var.SHAMANS.append(nick)
+    var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
+    chk_nightdone(cli)
 
+@pmcmd("pass")
+def pass_cmd(cli, nick, *rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+
+    role = var.get_role(nick)
+    if role != "hunter":
+        pm(cli, nick, "Only a hunter may use this command.")
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only pass at night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        return
+
+    if nick in var.OTHER_KILLS.keys():
+        del var.OTHER_KILLS[nick]
+        var.HUNTERS.remove(nick)
+
+    pm(cli, nick, "You have decided to not kill anyone tonight.")
+    var.PASSED.append(nick)
+    #var.LOGGER.logBare(nick, "PASS", nick)
+    chk_nightdone(cli)
+
+@pmcmd("choose")
+def choose(cli, nick, *rest):
+    pass
+
+@pmcmd("target")
+def target(cli, nick, *rest):
+    pass
+
+@pmcmd("hex")
+def hex(cli, nick, *rest):
+    pass
+
+@pmcmd("clone")
+def clone(cli, nick, *rest):
+    pass
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
@@ -2786,7 +2932,7 @@ def transition_night(cli):
     var.PROTECTED = []
     var.DESPERATE = []
     var.REVEALED = []
-    var.SILENCED = []
+    var.TOBESILENCED = []
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
@@ -3144,20 +3290,6 @@ def transition_night(cli):
             else:
                 cli.notice(ms, "You are the \u0002mad scientist\u0002.")
 
-        for elder in var.ROLES["village elder"]:
-            if elder in var.PLAYERS and var.PLAYERS[elder]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(elder, "You are the \u0002village elder\u0002, you will likely die of old age soon.")
-            else:
-                cli.notice(drunk, "You are the \u0002village elder\u0002.")
-
-        for timelord in var.ROLES["time lord"]:
-            if timelord in var.PLAYERS and var.PLAYERS[timelord]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(timelord, ("You are the \u0002time lord\u0002. If you are lynched " +
-                                   "by the village, the day and night timers will be significantly " +
-                                   "reduced."))
-            else:
-                cli.notice(drunk, "You are the \u0002village timelord\u0002.")
-
         for minion in var.ROLES["minion"]:
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3344,6 +3476,12 @@ def start(cli, nick, chann_, rest):
     var.LOVERS = {}
     var.MATCHMAKERS = []
     var.REVEALED_MAYORS = []
+    var.SILENCED = []
+    var.TOBESILENCED = []
+    var.DESPERATE = []
+    var.REVEALED = []
+    var.ASLEEP = []
+    var.PROTECTED = []
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
 
@@ -3859,13 +3997,20 @@ def myrole(cli, nick, chan, rest):
         return
 
     ps = var.list_players()
-    if nick not in ps:
+    if nick not in ps and nick not in var.VENGEFUL_GHOSTS.keys():
         cli.notice(nick, "You're currently not playing.")
         return
 
-    pm(cli, nick, "You are a(n) \02{0}{1}\02.".format(var.get_role(nick), " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
+    role = var.get_role(nick)
+    if role in ("time lord", "village elder"):
+        role = var.DEFAULT_ROLE
+    elif role == "vengeful ghost" and nick not in var.VENGEFUL_GHOSTS.keys():
+        role = var.DEFAULT_ROLE
+    pm(cli, nick, "You are a(n) \02{0}{1}\02.".format(role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
 
     # Check for gun/bullets
+    if nick not in ps:
+        return
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
         role = "gunner"
         if nick in var.ROLES["sharpshooter"]:
