@@ -762,7 +762,7 @@ def chk_decision(cli):
             elif votee in var.REVEALED:
                 lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                         "When the villagers are able to see again, they discover that {0} has escaped! " +
-                        "The left-behind totem seems to have taken on the shape of a \u0002{1}\u0002.").format(votee, var.get_reveal_role(votee))
+                        "The left-behind totem seems to have taken on the shape of a(n) \u0002{1}\u0002.").format(votee, var.get_reveal_role(votee))
                 var.LOGGER.logBare(votee, "ACTIVATED REVEALING TOTEM")
                 votee = None
             else:
@@ -1055,7 +1055,7 @@ def stop_game(cli, winner = ""):
                 break
             else:
                 won = False
-        elif plr in p.ORIGINAL_ROLES["monster"]:
+        elif plr in var.ORIGINAL_ROLES["monster"]:
             if winner == "monsters":
                 won = True
             elif winner == "":
@@ -1859,6 +1859,7 @@ def transition_day(cli, gameid=0):
             else:
                 var.OTHER_KILLS[ghost] = random.choice(villagers)
     victims += var.OTHER_KILLS.values()
+    victims += var.DYING
     victims = set(victims) # remove duplicates
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
@@ -2015,13 +2016,14 @@ def transition_day(cli, gameid=0):
 
 
 def chk_nightdone(cli):
-    actedcount  = len(var.SEEN + var.HVISITED.keys() + var.GUARDED.keys() + var.KILLS.keys() +
-                      var.OTHER_KILLS.keys() + var.OBSERVED + var.PASSED + var.HEXED +
-                      var.SHAMANS + var.MATCHMAKERS + var.TARGETED.keys() + var.CLONED.keys())
+    actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
+                      list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
+                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
+                      var.MATCHMAKERS + list(var.TARGETED.keys()) + list(var.CLONED.keys()))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["guardian angel"] + var.ROLES["bodyguard"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["clone"] +
-                  var.ROLES["hunter"] + var.VENGEFUL_GHOSTS.keys() + var.ROLES["hag"] +
+                  var.ROLES["hunter"] + list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] +
                   var.ROLES["shaman"] + var.ROLES["crazed shaman"] + var.ROLES["assassin"])
     playercount = len([p for p in nightroles if p not in var.SILENCED])
 
@@ -2327,7 +2329,7 @@ def kill(cli, nick, rest):
         role = None
     if role in var.WOLFCHAT_ROLES and role not in ("wolf", "werecrow"):
         return  # they do this a lot.
-    if role not in ("wolf", "werecrow", "hunter") or nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in ("wolf", "werecrow", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
         pm(cli, nick, "Only a wolf, hunter, or dead vengeful ghost may use this command.")
         return
     if var.PHASE != "night":
@@ -2737,7 +2739,7 @@ def see(cli, nick, rest):
     chk_nightdone(cli)
 
 @pmcmd("give")
-def give(cli, nick, *rest):
+def give(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -2776,7 +2778,7 @@ def give(cli, nick, *rest):
             pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
             return
     victim = pl[pll.index(target)]
-    if var.LASTGIVEN[nick] == victim:
+    if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
     type = ""
@@ -2784,10 +2786,10 @@ def give(cli, nick, *rest):
         type = " of " + var.TOTEMS[nick]
     pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
     if victim != nick:
-        pm(cli, nick, "You have been given a strange totem.")
+        pm(cli, victim, "You have been given a strange totem.")
     totem = var.TOTEMS[nick]
     if totem == "death":
-        var.OTHER_KILLS[nick] = victim
+        var.DYING.append(victim)
     elif totem == "protection":
         var.PROTECTED.append(victim)
     elif totem == "revealing":
@@ -2804,7 +2806,7 @@ def give(cli, nick, *rest):
     chk_nightdone(cli)
 
 @pmcmd("pass")
-def pass_cmd(cli, nick, *rest):
+def pass_cmd(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -2832,19 +2834,19 @@ def pass_cmd(cli, nick, *rest):
     chk_nightdone(cli)
 
 @pmcmd("choose")
-def choose(cli, nick, *rest):
+def choose(cli, nick, rest):
     pass
 
 @pmcmd("target")
-def target(cli, nick, *rest):
+def target(cli, nick, rest):
     pass
 
 @pmcmd("hex")
-def hex(cli, nick, *rest):
+def hex(cli, nick, rest):
     pass
 
 @pmcmd("clone")
-def clone(cli, nick, *rest):
+def clone(cli, nick, rest):
     pass
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
@@ -2930,6 +2932,7 @@ def transition_night(cli):
     var.OBSERVED = {}  # those whom werecrows have observed
     var.HVISITED = {}
     var.ASLEEP = []
+    var.DYING = []
     var.PROTECTED = []
     var.DESPERATE = []
     var.REVEALED = []
@@ -3368,7 +3371,7 @@ def cgamemode(cli, *args):
     for arg in args:
         modeargs = arg.split("=", 1)
 
-        modeargs = map(strip, modeargs)
+        modeargs = [a.strip() for a in modeargs]
         if modeargs[0] in var.GAME_MODES.keys():
             md = modeargs.pop(0)
             try:
@@ -3421,9 +3424,9 @@ def start(cli, nick, chann_, rest):
         cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play in this game mode.".format(nick, var.MAX_PLAYERS))
         return
 
-    for index in range(len(var.ROLE_INDEX), -1, -1):
-        if var.ROLE_INDEX[index] < len(villagers):
-            addroles = {k:v[index] for k,v in var.ROLE_GUIDE}
+    for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
+        if var.ROLE_INDEX[index] <= len(villagers):
+            addroles = {k:v[index] for k,v in var.ROLE_GUIDE.items()}
             break
     else:
         cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
@@ -3483,8 +3486,10 @@ def start(cli, nick, chann_, rest):
     var.REVEALED = []
     var.ASLEEP = []
     var.PROTECTED = []
+    var.DYING = []
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
+    var.ANGRY_WOLVES = False
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -3501,12 +3506,12 @@ def start(cli, nick, chann_, rest):
             continue # sharpshooter gets applied specially
         possible = pl[:]
         for cannotbe in var.list_players(restrictions):
-            possible.removed(cannotbe)
+            possible.remove(cannotbe)
         var.ROLES[template] = random.sample(possible, len(var.ROLES[template]))
 
     # Handle gunner
     cannot_be_sharpshooter = var.list_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"])
-    for gunner in var.GUNNER_LIST:
+    for gunner in var.ROLES["gunner"]:
         if gunner in var.ROLES["village drunk"]:
             var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
         elif gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:

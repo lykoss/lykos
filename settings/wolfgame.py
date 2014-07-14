@@ -129,9 +129,9 @@ ROLE_GUIDE = {# village roles
 # If every wolf role dies, the game ends and village wins and there are no remaining traitors, the game ends and villagers win
 WOLF_ROLES     = ["wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorceror"]
+WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
-WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorceror", "minion", "cultist"]
+WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool"]
 
@@ -201,15 +201,19 @@ def get_reveal_role(nick):
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
-    tpls = get_templates(nick)
+    tpls = get_templates(pname)
     for t in tpls:
         ROLES[t].remove(pname)
 
 def get_templates(nick):
     tpl = []
     for x in TEMPLATE_RESTRICTIONS.keys():
-        if nick in ROLES[x]:
-            tpl.append(x)
+        try:
+            if nick in ROLES[x]:
+                tpl.append(x)
+        except KeyError:
+            pass
+
     return tpl
 
 class InvalidModeException(Exception): pass
@@ -227,9 +231,13 @@ class ChangedRolesMode(object):
 
     def __init__(self, arg = ""):
         self.ROLE_GUIDE = ROLE_GUIDE.copy()
+        self.ROLE_INDEX = (MIN_PLAYERS,)
         pairs = arg.split(",")
         if not pairs:
             raise InvalidModeException("Invalid syntax for mode roles.")
+        
+        for role in self.ROLE_GUIDE.keys():
+            self.ROLE_GUIDE[role] = (0,)
         for pair in pairs:
             change = pair.split(":")
             if len(change) != 2:
@@ -424,4 +432,4 @@ def get_game_totals():
     else:
         return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
 
-# vim : set expandtab:sw=4:ts=4:
+# vim: set expandtab:sw=4:ts=4:
