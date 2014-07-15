@@ -2649,11 +2649,14 @@ def fstasis(cli, nick, chan, rest):
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0].lower()
         
-        if user not in lusers:
-            pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
-            return
+        #if user not in lusers:
+        #    pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
+        #    return
         
-        cloak = lusers[user]['cloak']
+        if user in lusers:
+            cloak = lusers[user]['cloak']
+        else:
+            cloak = user
 
         if len(data) == 1:
             if cloak in var.STASISED:
