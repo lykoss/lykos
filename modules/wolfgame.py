@@ -2220,7 +2220,10 @@ def relay(cli, nick, rest):
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
 
-
+@pmcmd("")
+def ctcp_ping(cli, nick, msg):
+    if msg.startswith("\x01PING"):
+        cli.notice(nick, msg)
 
 def transition_night(cli):
     if var.PHASE == "night":
@@ -2636,7 +2639,6 @@ def on_error(cli, pfx, msg):
         restart_program(cli, "excess flood", "")
     elif msg.startswith("Closing Link:"):
         raise SystemExit
-
 
 @cmd("fstasis", admin_only=True)
 def fstasis(cli, nick, chan, rest):
