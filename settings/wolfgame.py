@@ -330,7 +330,7 @@ def get_player_totals(acc):
                 row = c.fetchone()
                 if row:
                     role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
-            c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE", (acc,))
+            c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
             row = c.fetchone()
             return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], ", ".join(role_totals))
         else:
