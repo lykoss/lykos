@@ -145,8 +145,13 @@ def connect_callback(cli):
                 cli.mode(botconfig.CHANNEL, "q")  # unquiet all
 
                 cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+
+                var.OPPED = True
             elif modeaction == "+o" and target == botconfig.NICK and var.PHASE != "none":
                 decorators.unhook(HOOKS, 294)  # forget about it
+            elif modeaction == "-o" and target == botconfig.NICK:
+                var.OPPED = False
+                cli.msg("ChanServ", "op " + botconfig.CHANNEL)
 
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
@@ -416,6 +421,10 @@ def join(cli, nick, chann_, rest):
     chan = botconfig.CHANNEL
     
     nick, _, __, cloak = parse_nick(nick)
+
+    if not var.OPPED:
+        cli.notice(nick, "Sorry, I'm not opped in {0}.".format(chan))
+        return
 
     try:
         cloak = var.USERS[nick]['cloak']
@@ -1167,6 +1176,8 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                         break
                 if nick in var.DCED_PLAYERS.keys():
                     var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
+    if nick == "ChanServ" and not var.OPPED:
+        cli.msg("ChanServ", "op " + chan)
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
