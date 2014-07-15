@@ -92,6 +92,8 @@ var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
 
+var.OPPED = False  # Keeps track of whether the bot is opped
+
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0  # 90
     var.NIGHT_TIME_WARN = 0
@@ -1176,6 +1178,8 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                         break
                 if nick in var.DCED_PLAYERS.keys():
                     var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
+    if nick == botconfig.NICK:
+        var.OPPED = False
     if nick == "ChanServ" and not var.OPPED:
         cli.msg("ChanServ", "op " + chan)
 
