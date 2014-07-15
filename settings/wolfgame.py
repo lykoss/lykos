@@ -179,7 +179,13 @@ def plural(role):
 def list_players(roles = None):
     if roles == None:
         roles = ROLES.keys()
-    return [p for r in roles for p in ROLES[r]]
+    pl = []
+    for x in roles:
+        if x != "amnesiac" and x in TEMPLATE_RESTRICTIONS.keys():
+            continue
+        for p in ROLES[x]:
+            pl.append(p)
+    return pl
 
 def list_players_and_roles():
     plr = {}
@@ -194,7 +200,7 @@ get_role = lambda plyr: list_players_and_roles()[plyr]
 
 def get_reveal_role(nick):
     if HIDDEN_TRAITOR and get_role(nick) == "traitor":
-        return var.DEFAULT_ROLE
+        return DEFAULT_ROLE
     else:
         return get_role(nick)
 
@@ -234,14 +240,14 @@ class ChangedRolesMode(object):
         self.ROLE_INDEX = (MIN_PLAYERS,)
         pairs = arg.split(",")
         if not pairs:
-            raise InvalidModeException("Invalid syntax for mode roles.")
+            raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
         
         for role in self.ROLE_GUIDE.keys():
             self.ROLE_GUIDE[role] = (0,)
         for pair in pairs:
             change = pair.split(":")
             if len(change) != 2:
-                raise InvalidModeException("Invalid syntax for mode roles.")
+                raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
             role, num = change
             try:
                 num = int(num)
