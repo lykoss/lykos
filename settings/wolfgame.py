@@ -330,9 +330,11 @@ def get_player_totals(acc):
                 row = c.fetchone()
                 if row:
                     role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
-            return "\u0002{0}\u0002's totals | {1}".format(player[0], ", ".join(role_totals))
+            c.execute("SELECT totalgames from rolestats WHERE player=? COLLATE NOCASE", (acc,))
+            row = c.fetchone()
+            return "\u0002{0}\u0002's totals | {1} (total: \u0002{2}\u0002)".format(player[0], ", ".join(role_totals), row)
         else:
-            return "{0} has not played any games.".format(acc)
+            return "\u0002{0}\u0002 has not played any games.".format(acc)
             
 def get_game_stats(size):
     with conn:
