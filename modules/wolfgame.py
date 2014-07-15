@@ -136,21 +136,18 @@ def connect_callback(cli):
         
         @hook("mode", hookid=294)
         def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
-            if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
-                
-                @hook("quietlistend", 294)
-                def on_quietlist_end(cli, svr, nick, chan, *etc):
-                    if chan == botconfig.CHANNEL:
-                        decorators.unhook(HOOKS, 294)
-                        mass_mode(cli, cmodes)
-                
-                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
-
-                cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
-
+            if modeaction == "+o" and target == botconfig.NICK:
                 var.OPPED = True
-            elif modeaction == "+o" and target == botconfig.NICK and var.PHASE != "none":
-                decorators.unhook(HOOKS, 294)  # forget about it
+
+                if var.PHASE == "none":
+                    @hook("quietlistend", 294)
+                    def on_quietlist_end(cli, svr, nick, chan, *etc):
+                        if chan == botconfig.CHANNEL:
+                            mass_mode(cli, cmodes)
+
+                    cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+
+                    cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
             elif modeaction == "-o" and target == botconfig.NICK:
                 var.OPPED = False
                 cli.msg("ChanServ", "op " + botconfig.CHANNEL)
