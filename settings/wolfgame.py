@@ -265,15 +265,47 @@ class EvilVillageMode(object):
         self.MIN_PLAYERS = 6
         self.MAX_PLAYERS = 12
         self.DEFAULT_ROLE = "cultist"
-        self.ROLE_INDEX =                (   6   ,  10   )
-        self.ROLE_GUIDE = {# village roles
-                           "oracle"    : (   1   ,   1   ),
-                           "shaman"    : (   1   ,   1   ),
-                           "bodyguard" : (   0   ,   1   ),
-                           # wolf roles
-                           "wolf"      : (   1   ,   1   ),
-                           "minion"    : (   0   ,   1   ),
-                           }
+        self.ROLE_INDEX =         (   6   ,  10   )
+        self. ROLE_GUIDE = {# village roles
+              "villager"        : (   0   ,   0   ),
+              "seer"            : (   0   ,   0   ),
+              "oracle"          : (   1   ,   1   ),
+              "village drunk"   : (   0   ,   0   ),
+              "harlot"          : (   0   ,   0   ),
+              "guardian angel"  : (   0   ,   0   ),
+              "bodyguard"       : (   0   ,   1   ),
+              "detective"       : (   0   ,   0   ),
+              "village elder"   : (   0   ,   0   ),
+              "time lord"       : (   0   ,   0   ),
+              "matchmaker"      : (   0   ,   0   ),
+              "mad scientist"   : (   0   ,   0   ),
+              "hunter"          : (   0   ,   0   ),
+              "shaman"          : (   1   ,   1   ),
+              # wolf roles
+              "wolf"            : (   1   ,   1   ),
+              "traitor"         : (   0   ,   0   ),
+              "werecrow"        : (   0   ,   0   ),
+              "cultist"         : (   0   ,   0   ),
+              "minion"          : (   0   ,   1   ),
+              "hag"             : (   0   ,   0   ),
+              "wolf cub"        : (   0   ,   0   ),
+              "sorcerer"        : (   0   ,   0   ),
+              # neutral roles
+              "lycan"           : (   0   ,   0   ),
+              "vengeful ghost"  : (   0   ,   0   ),
+              "clone"           : (   0   ,   0   ),
+              "crazed shaman"   : (   0   ,   0   ),
+              "fool"            : (   0   ,   0   ),
+              "monster"         : (   0   ,   0   ),
+              # templates
+              "cursed villager" : (   0   ,   0   ),
+              "gunner"          : (   0   ,   0   ),
+              "sharpshooter"    : (   0   ,   0   ),
+              "mayor"           : (   0   ,   0   ),
+              "assassin"        : (   0   ,   0   ),
+              "amnesiac"        : (   0   ,   0   ),
+              "bureaucrat"      : (   0   ,   0   ),
+              }
 
 # Persistence
 
