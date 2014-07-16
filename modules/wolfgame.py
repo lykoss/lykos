@@ -1142,12 +1142,14 @@ def chk_win(cli, end_game = True):
     lrealwolves = len(var.list_players(var.WOLF_ROLES)) - len(var.ROLES["wolf cub"])
     if var.PHASE == "day":
         for p in var.WOUNDED:
-            if p in var.WOLFCHAT_ROLES:
+            role = var.get_role(p)
+            if role in var.WOLFCHAT_ROLES:
                 lwolves -= 1
             else:
                 lpl -= 1
         for p in var.ASLEEP:
-            if p in var.WOLFCHAT_ROLES:
+            role = var.get_role(p)
+            if role in var.WOLFCHAT_ROLES:
                 lwolves -= 1
             else:
                 lpl -= 1
