@@ -1248,6 +1248,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                         del_player(cli, other, True, end_game = False)
                 if nick in var.ROLES["assassin"]:
                     target = var.TARGETED[nick]
+                    del var.TARGETED[nick]
                     if target != None and target in var.list_players():
                         if target in var.PROTECTED:
                             message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
