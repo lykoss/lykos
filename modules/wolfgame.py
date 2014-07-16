@@ -1903,7 +1903,8 @@ def transition_day(cli, gameid=0):
             bywolves.append(victim)
 
     for monster in var.ROLES["monster"]:
-        victims.remove(monster)
+        if monster in victims:
+            victims.remove(monster)
 
     victims += var.OTHER_KILLS.values()
     for d in var.DYING:
@@ -3292,7 +3293,7 @@ def transition_night(cli):
     numwolves = len(var.list_players(var.WOLF_ROLES))
     if var.NIGHT_COUNT >= numwolves + 1:
         for elder in var.ROLES["village elder"]:
-            var.OTHER_KILLS[elder] = elder
+            var.DYING.append(elder)
 
     # send PMs
     ps = var.list_players()
@@ -3837,7 +3838,6 @@ def start(cli, nick, chann_, rest):
             var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
             var.ROLES["gunner"].remove(gunner)
             var.ROLES["sharpshooter"].append(gunner)
-            pm(cli, "woffle", "{0} is the sharpshooter".format(gunner))
         else:
             var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
 
@@ -4775,6 +4775,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if rol in var.ROLES.keys() or rol.startswith("gunner") or rol.startswith("sharpshooter"):
             if rol.startswith("gunner") or rol.startswith("sharpshooter"):
                 rolargs = re.split(" +",rol, 1)
+                rol = rolargs[0]
                 if len(rolargs) == 2 and rolargs[1].isdigit():
                     if len(rolargs[1]) < 7:
                         var.GUNNERS[who] = int(rolargs[1])
