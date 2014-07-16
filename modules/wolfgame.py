@@ -1236,6 +1236,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                     for other in others:
                         if other not in var.list_players():
                             continue # already died somehow
+                        if nick not in var.LOVERS[other]:
+                            continue
                         var.LOVERS[other].remove(nick)
                         if var.ROLE_REVEAL:
                             role = var.get_reveal_role(other)
