@@ -3287,7 +3287,8 @@ def transition_night(cli):
 
     # convert amnesiac and kill village elder if necessary
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
-        for amn in var.ROLES["amnesiac"]:
+        amns = copy.copy(var.ROLES["amnesiac"])
+        for amn in amns:
             var.ROLES["amnesiac"].remove(amn)
             for role, plist in var.ORIGINAL_ROLES.items():
                 if amn in plist:
@@ -3637,7 +3638,7 @@ def transition_night(cli):
             else:
                 cli.notice(cultist, "You are a \u0002cultist\u0002.")
 
-    for g in tuple(var.GUNNERS.keys()):
+    for g in var.GUNNERS.keys():
         if g not in ps:
             continue
         elif not var.GUNNERS[g]:
