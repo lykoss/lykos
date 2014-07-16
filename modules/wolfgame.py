@@ -1247,26 +1247,27 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                         var.LOGGER.logBare(other, "DEAD LOVER")
                         del_player(cli, other, True, end_game = False)
                 if nick in var.ROLES["assassin"]:
-                    target = var.TARGETED[nick]
-                    del var.TARGETED[nick]
-                    if target != None and target in var.list_players():
-                        if target in var.PROTECTED:
-                            message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                       "however {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
-                            cli.msg(botconfig.CHANNEL, message)
-                            var.LOGGER.logMessage(message.replace("\02", ""))
-                        else:
-                            if var.ROLE_REVEAL:
-                                role = var.get_reveal_role(target)
-                                an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-                                message = ("Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat. " +
-                                           "The village mourns the loss of a{2} \u0002{3}\u0002.").format(nick, target, an, role)
+                    if nick in var.TARGETED:
+                        target = var.TARGETED[nick]
+                        del var.TARGETED[nick]
+                        if target != None and target in var.list_players():
+                            if target in var.PROTECTED:
+                                message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
+                                           "however {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
+                                cli.msg(botconfig.CHANNEL, message)
+                                var.LOGGER.logMessage(message.replace("\02", ""))
                             else:
-                                message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
-                            cli.msg(botconfig.CHANNEL, message)
-                            var.LOGGER.logMessage(message.replace("\02", ""))
-                            var.LOGGER.logBare(target, "ASSASSINATED")
-                            del_player(cli, target, True, end_game = False)
+                                if var.ROLE_REVEAL:
+                                    role = var.get_reveal_role(target)
+                                    an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
+                                    message = ("Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat. " +
+                                               "The village mourns the loss of a{2} \u0002{3}\u0002.").format(nick, target, an, role)
+                                else:
+                                    message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
+                                cli.msg(botconfig.CHANNEL, message)
+                                var.LOGGER.logMessage(message.replace("\02", ""))
+                                var.LOGGER.logBare(target, "ASSASSINATED")
+                                del_player(cli, target, True, end_game = False)
                 if nick in var.CLONED:
                     # clone is cloning nick, so clone becomes nick's role
                     clone = var.CLONED[nick]
