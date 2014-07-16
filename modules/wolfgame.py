@@ -3594,14 +3594,6 @@ def transition_night(cli):
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
 
-        for amn in var.ROLES["amnesiac"]:
-            if amn in var.PLAYERS and var.PLAYERS[amn]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(amn, ("You are the \u0002amnesiac\u0002, and do not remember your actual role. " +
-                              "Your memory will clear up on night {0}, at which point you will will " +
-                              "remember what role you actually are.").format(var.AMNESIAC_NIGHTS))
-            else:
-                cli.notice(amn, "You are the \u0002amnesiac\u0002.")
-
         for ms in var.ROLES["mad scientist"]:
             if ms in var.PLAYERS and var.PLAYERS[ms]["cloak"] not in var.SIMPLE_NOTIFY:
                 cli.msg(ms, ("You are the \u0002mad scientist\u0002. If you are lynched during " +
@@ -3622,7 +3614,7 @@ def transition_night(cli):
 
         villagers = copy.copy(var.ROLES["villager"])
         if var.DEFAULT_ROLE == "villager":
-            villagers += var.ROLES["time lord"] + var.ROLES["village elder"] + var.ROLES["vengeful ghost"]
+            villagers += var.ROLES["time lord"] + var.ROLES["village elder"] + var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for villager in villagers:
             if villager in var.PLAYERS and var.PLAYERS[villager]["cloak"] not in var.SIMPLE_NOTIFY:
                 cli.msg(villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
@@ -3631,7 +3623,7 @@ def transition_night(cli):
 
         cultists = copy.copy(var.ROLES["cultist"])
         if var.DEFAULT_ROLE == "cultist":
-            cultists += var.ROLES["time lord"] + var.ROLES["village elder"] + var.ROLES["vengeful ghost"]
+            cultists += var.ROLES["time lord"] + var.ROLES["village elder"] + var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for cultist in cultists:
             if cultist in var.PLAYERS and var.PLAYERS[cultist]["cloak"] not in var.SIMPLE_NOTIFY:
                 cli.msg(cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
