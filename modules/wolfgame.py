@@ -1355,7 +1355,7 @@ hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
 
 
-@cmd("quit", "leave", "q")
+@cmd("quit", "leave")
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
     if var.PHASE == "none":
