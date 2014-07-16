@@ -87,6 +87,7 @@ ROLE_GUIDE = {# village roles
               "villager"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "seer"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               "oracle"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "augur"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "village drunk"   : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               "harlot"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               "guardian angel"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
@@ -133,15 +134,15 @@ WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
-TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool"]
+TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool", "monster", "clone"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "fool"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "augur", "fool"],
                          "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan"],
                          "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan"],
                          "mayor"           : ["fool"],
-                         "assassin"        : ["seer", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
+                         "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
                          "amnesiac"        : ["villager", "cultist", "wolf", "wolf cub", "werecrow", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist"],
                          "bureaucrat"      : [],
                          }
@@ -270,6 +271,7 @@ class EvilVillageMode(object):
               "villager"        : (   0   ,   0   ),
               "seer"            : (   0   ,   0   ),
               "oracle"          : (   1   ,   1   ),
+              "augur"           : (   0   ,   0   ),
               "village drunk"   : (   0   ,   0   ),
               "harlot"          : (   0   ,   0   ),
               "guardian angel"  : (   0   ,   0   ),
