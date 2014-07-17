@@ -3326,17 +3326,22 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
-            
 
-    @cmd("revealroles", admin_only=True)
-    def revroles(cli, nick, chan, rest):
-        if var.PHASE != "none":
-            cli.msg(chan, str(var.ROLES))
-        if var.PHASE in ('night','day'):
-            cli.msg(chan, "Cursed: "+str(var.CURSED))
-            cli.msg(chan, "Gunners: "+str(list(var.GUNNERS.keys())))
-        
-        
+    @cmd('revealroles', admin_only=True)
+    def revealroles(cli, nick, chan, rest):
+        if var.PHASE == 'none':
+            cli.notice(nick, 'No game is currently running.')
+            return
+
+        s = ' | '.join('\u0002{}\u0002: {}'.format(role,', '.join(players))
+                for (role, players) in sorted(var.ROLES.items()) if players)
+
+        if chan == nick:
+            pm(cli, nick, s)
+        else:
+            cli.msg(chan, s)
+
+
     @cmd("fgame", admin_only=True)
     def game(cli, nick, chan, rest):
         pl = var.list_players()
