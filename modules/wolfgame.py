@@ -1300,6 +1300,27 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                                     var.CLONED[clone] = var.CLONED[nick]
                                     del var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
+                            elif role in var.WOLFCHAT_ROLES:
+                                pl = var.list_players(var.WOLFCHAT_ROLES)
+                                pl.remove(nick) # remove dead wolf from list
+                                for player in pl:
+                                    wolfrole = var.get_role(player)
+                                    if wolfrole in var.WOLFCHAT_ROLES:
+                                        pm(cli, player, "\u0002{}\u0002 cloned \u0002{}\u0002 and has now become a wolf!".format(clone, nick))
+                                if var.PHASE == "day":
+                                    random.shuffle(pl)
+                                    pl.remove(clone)  # remove self from list
+                                    for i, player in enumerate(pl):
+                                        wolfrole = var.get_role(player)
+                                        if wolfrole in var.WOLFCHAT_ROLES:
+                                            cursed = ""
+                                            if player in var.ROLES["cursed villager"]:
+                                                cursed = "cursed "
+                                            pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, wolfrole)
+                                        elif player in var.ROLES["cursed villager"]:
+                                            pl[i] = player + " (cursed)"
+
+                                    pm(cli, clone, "Wolves: "+", ".join(pl))
                         elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
 
@@ -3668,6 +3689,7 @@ def transition_night(cli):
                 cli.msg(clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
+            pm(cli, clone, "Players: "+", ".join(pl))
 
         for ms in var.ROLES["mad scientist"]:
             if ms in var.PLAYERS and var.PLAYERS[ms]["cloak"] not in var.SIMPLE_NOTIFY:
