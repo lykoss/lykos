@@ -1274,21 +1274,27 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                                 del_player(cli, target, True, end_game = False)
 
                 clones = copy.copy(var.ROLES["clone"])
-                for clone,target in clones.items():
-                    if nick == target and clone in var.CLONED:
-                        # clone is cloning nick, so clone becomes nick's role
-                        del var.CLONED[clone]
-                        role = var.get_role(nick)
-                        var.ROLES["clone"].remove(clone)
-                        var.ROLES[role].append(clone)
-                        pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
-                        # if a clone is cloning a clone, clone who the old clone cloned
-                        if role == "clone" and nick in var.CLONED:
-                            var.CLONED[clone] = var.CLONED[nick]
+                for clone in clones:
+                    if clone in var.CLONED:
+                        target = var.CLONED[clone]
+                        if nick == target and clone in var.CLONED:
+                            # clone is cloning nick, so clone becomes nick's role
+                            del var.CLONED[clone]
+                            role = var.get_role(nick)
+                            var.ROLES["clone"].remove(clone)
+                            var.ROLES[role].append(clone)
+                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
+                            # if a clone is cloning a clone, clone who the old clone cloned
+                            if role == "clone" and nick in var.CLONED:
+                                if var.CLONED[nick] == clone:
+                                    pm(cli, clone, "It appears that your \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.".format(nick))
+                                    del var.CLONED[nick]
+                                else:
+                                    var.CLONED[clone] = var.CLONED[nick]
+                                    del var.CLONED[nick]
+                                    pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
+                        elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
-                            pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(k))
-                    elif nick == clone and nick in var.CLONED:
-                        del var.CLONED[nick]
 
                 if nick in var.ROLES["vengeful ghost"]:
                     if var.GHOSTPHASE == "night":
@@ -2338,7 +2344,7 @@ def shoot(cli, nick, chann_, rest):
     if nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
     elif nick in var.ROLES["sharpshooter"]:
-        chances = var.SHARPSHOOTER_CHANCES
+        chances = var.SHARPSHOOTER_GUN_CHANCES
     else:
         chances = var.GUN_CHANCES
 
@@ -3881,6 +3887,7 @@ def start(cli, nick, chann_, rest):
     # Now for the templates
     for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
         if template == "sharpshooter":
+            var.ROLES["sharpshooter"] = []
             continue # sharpshooter gets applied specially
         possible = pl[:]
         for cannotbe in var.list_players(restrictions):
