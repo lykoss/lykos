@@ -1186,8 +1186,8 @@ def chk_win(cli, end_game = True):
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
             message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
-                       "the monster{0} quickly kill the remaining villagers, " +
-                       "causing the monster{0} to win.").format(plural)
+                       "the monster{0} quickly kill{1} the remaining villagers, " +
+                       "causing the monster{0} to win.").format(plural, "" if plural else "s")
             winner = "monsters"
         else:
             message = ("Game over! All the wolves are dead! The villagers " +
