@@ -1272,21 +1272,24 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                                 var.LOGGER.logMessage(message.replace("\02", ""))
                                 var.LOGGER.logBare(target, "ASSASSINATED")
                                 del_player(cli, target, True, end_game = False)
-                if nick in var.CLONED:
-                    # clone is cloning nick, so clone becomes nick's role
-                    clone = var.CLONED[nick]
-                    del var.CLONED[nick]
-                    role = var.get_role(nick)
-                    var.ROLES["clone"].remove(clone)
-                    var.ROLES[role].append(clone)
-                    pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
-                    # if a clone is cloning a clone, clone who the old clone cloned
-                    if role == "clone":
-                        for k, v in var.CLONED.items():
-                            if v == nick:
-                                var.CLONED[k] = clone
-                                pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(k))
-                                break
+
+                clones = copy.copy(var.ROLES["clone"])
+                for clone,target in clones.items():
+                    if nick == target and clone in var.CLONED:
+                        # clone is cloning nick, so clone becomes nick's role
+                        del var.CLONED[clone]
+                        role = var.get_role(nick)
+                        var.ROLES["clone"].remove(clone)
+                        var.ROLES[role].append(clone)
+                        pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
+                        # if a clone is cloning a clone, clone who the old clone cloned
+                        if role == "clone" and nick in var.CLONED:
+                            var.CLONED[clone] = var.CLONED[nick]
+                            del var.CLONED[nick]
+                            pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(k))
+                    elif nick == clone and nick in var.CLONED:
+                        del var.CLONED[nick]
+
                 if nick in var.ROLES["vengeful ghost"]:
                     if var.GHOSTPHASE == "night":
                         var.VENGEFUL_GHOSTS[nick] = "wolves"
@@ -3166,7 +3169,58 @@ def hex(cli, nick, rest):
 
 @pmcmd("clone")
 def clone(cli, nick, rest):
-    pass
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+    if nick not in var.ROLES["clone"]:
+        pm(cli, nick, "Only a clone may use this command.")
+        return
+    if var.PHASE != "night" or not var.FIRST_NIGHT:
+        pm(cli, nick, "You may only clone someone during the first night.")
+        return
+    if nick in var.CLONED.keys():
+        pm(cli, nick, "You have already chosen to clone someone.")
+        return
+    # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
+    # but just in case, it also sucks if the one night you're allowed to act is when you are
+    # silenced, so we ignore it here anyway.
+
+    pieces = [p.strip().lower() for p in re.split(" +",rest)]
+    victim = pieces[0]
+
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+
+    pl = var.list_players()
+    pll = [x.lower() for x in pl]
+
+    matches = 0
+    for player in pll:
+        if victim == player:
+            target = player
+            break
+        if player.startswith(victim):
+            target = player
+            matches += 1
+    else:
+        if matches != 1:
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            return
+    victim = pl[pll.index(target)]
+
+    if nick == victim:
+        pm(cli, nick, "You may not target yourself.")
+        return
+
+    var.CLONED[nick] = victim
+    pm(cli, nick, "You have chosen to clone \u0002{0}\u0002.".format(victim))
+
+    var.LOGGER.logBare(nick, "CLONED", victim)
+    chk_nightdone(cli)
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
