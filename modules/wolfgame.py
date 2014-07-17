@@ -1191,9 +1191,10 @@ def chk_win(cli, end_game = True):
         for t in var.ROLES["traitor"]:
             var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
-        cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
-                       'frightened as they hear a loud howl. The wolves are '+
-                       'not gone!\u0002'))
+        if var.ROLE_REVEAL:
+            cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
+                           'frightened as they hear a loud howl. The wolves are '+
+                           'not gone!\u0002'))
         var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
                                'frightened as they hear a loud howl. The wolves are '+
                                'not gone!'))
