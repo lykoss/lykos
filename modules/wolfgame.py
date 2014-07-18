@@ -1952,12 +1952,12 @@ def transition_day(cli, gameid=0):
     vlist = copy.copy(victims)
     novictmsg = True
     for victim in vlist:
-        if victim in var.PROTECTED:
+        if victim in var.PROTECTED and victim not in var.DYING:
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
                             "emitted a brilliant flash of light, blinding the attacker and " +
                             "allowing them to escape.").format(victim))
             novictmsg = False
-        elif victim in var.GUARDED.values():
+        elif victim in var.GUARDED.values() and victim not in var.DYING:
             for bodyguard in var.ROLES["bodyguard"]:
                 if var.GUARDED.get(bodyguard) == victim:
                     message.append(("\u0002{0}\u0002 was attacked last night, but luckily, the bodyguard was on duty.").format(victim))
