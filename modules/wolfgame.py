@@ -1248,6 +1248,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
         cmode = []
         ret = True
         if nick != None and nick in var.list_players():
+            nickrole = var.get_role(nick)
+            nicktpls = var.get_templates(nick)
             var.del_player(nick)
             # handle roles that trigger on death
             if var.PHASE in ("night", "day"):
@@ -1271,7 +1273,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                         var.LOGGER.logMessage(message.replace("\02", ""))
                         var.LOGGER.logBare(other, "DEAD LOVER")
                         del_player(cli, other, True, end_game = False)
-                if nick in var.ROLES["assassin"]:
+                if "assassin" in nicktpls:
                     if nick in var.TARGETED:
                         target = var.TARGETED[nick]
                         del var.TARGETED[nick]
@@ -1301,12 +1303,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                         if nick == target and clone in var.CLONED:
                             # clone is cloning nick, so clone becomes nick's role
                             del var.CLONED[clone]
-                            role = var.get_role(nick)
                             var.ROLES["clone"].remove(clone)
-                            var.ROLES[role].append(clone)
-                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(role))
+                            var.ROLES[nickrole].append(clone)
+                            # if cloning time lord or vengeful ghost, say they are villager instead
+                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(var.DEFAULT_ROLE if nickrole in ("time lord", "vengeful ghost") else nickrole))
                             # if a clone is cloning a clone, clone who the old clone cloned
-                            if role == "clone" and nick in var.CLONED:
+                            if nickrole == "clone" and nick in var.CLONED:
                                 if var.CLONED[nick] == clone:
                                     pm(cli, clone, "It appears that your \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.".format(nick))
                                     del var.CLONED[nick]
@@ -1317,14 +1319,14 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                         elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
 
-                if nick in var.ROLES["vengeful ghost"]:
+                if nickrole == "vengeful ghost":
                     if var.GHOSTPHASE == "night":
                         var.VENGEFUL_GHOSTS[nick] = "wolves"
                     elif var.GHOSTPHASE == "day":
                         var.VENGEFUL_GHOSTS[nick] = "villagers"
                     pm(cli, nick, ("OOOooooOOOOooo! You are the \u0002vengeful ghost\u0002. It is now your job " +
                                    "to exact your revenge on the \u0002{0}\u0002 that you believed killed you").format(var.VENGEFUL_GHOSTS[nick]))
-                if nick in var.ROLES["wolf cub"]:
+                if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
 
             if devoice:
