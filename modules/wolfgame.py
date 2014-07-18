@@ -3374,45 +3374,45 @@ def transition_night(cli):
     for wolf in wolves:
         normal_notify = wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_NOTIFY
         role = var.get_role(wolf)
+        cursed = "cursed " if wolf in var.ROLES["cursed villager"] else ""
 
         if normal_notify:
             if role == "wolf":
                 pm(cli, wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
             elif role == "traitor":
-                pm(cli, wolf, (('You are a \u0002{0}\u0002. You are exactly like a '+
+                pm(cli, wolf, ('You are a \u0002{0}traitor\u0002. You are exactly like a '+
                                'villager and not even a seer can see your true identity, '+
-                               'only detectives can.').format(
-                               "cursed traitor" if wolf in var.ROLES["cursed villager"] else "traitor")))
+                               'only detectives can.').format(cursed))
             elif role == "werecrow":
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002. You are able to fly at night. '+
                                'Use "kill <nick>" to kill a a villager. Alternatively, you can '+
                                'use "observe <nick>" to check if someone is in bed or not. '+
                                'Observing will prevent you from participating in a killing.'))
             elif role == "hag":
-                pm(cli, wolf, ('You are a \u0002hag\u0002. You can hex someone to prevent them ' +
+                pm(cli, wolf, ('You are a \u0002{0}hag\u0002. You can hex someone to prevent them ' +
                                'from using any special powers they may have during the next day ' +
                                'and night. Use "hex <nick>" to hex them. Only detectives can reveal ' +
-                               'your true identity, seers will see you as a regular villager.'))
+                               'your true identity, seers will see you as a regular villager.').format(cursed))
             elif role == "sorcerer":
-                pm(cli, wolf, ('You are a \u0002sorcerer\u0002. You can use "observe <nick>" to ' +
+                pm(cli, wolf, ('You are a \u0002{0}sorcerer\u0002. You can use "observe <nick>" to ' +
                                'observe someone and determine if they are the seer, oracle, or augur. ' +
                                'Only detectives can reveal your true identity, seers will see you ' +
-                               'as a regular villager.'))
+                               'as a regular villager.').format(cursed))
             elif role == "wolf cub":
                 pm(cli, wolf, ('You are a \u0002wolf cub\u0002. While you cannot kill anyone, ' +
                                'the other wolves will become enraged if you die and will get ' +
                                'two kills the following night.'))
             else:
                 # catchall in case we forgot something above
-                pm(cli, wolf, 'You are a \u0002{0}\u0002. There would normally be instructions ' +
-                              'here, but someone forgot to add them in. Please report this to ' +
-                              'the admins, you can PM me "admins" for a list of available ones.')
+                pm(cli, wolf, ('You are a \u0002{0}\u0002. There would normally be instructions ' +
+                               'here, but someone forgot to add them in. Please report this to ' +
+                               'the admins, you can PM me "admins" for a list of available ones.').format(role))
 
             if len(wolves) > 1:
                 pm(cli, wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            pm(cli, wolf, "You are a \02{0}\02.".format("cursed traitor" if role == "traitor" and wolf in var.ROLES["cursed villager"] else role))  # !simple
+            pm(cli, wolf, "You are a \02{0}{1}\02.".format(cursed, role)  # !simple
 
         pl = ps[:]
         random.shuffle(pl)
@@ -3459,7 +3459,7 @@ def transition_night(cli):
                           'Use "see <nick>" to see {2}.').format(a, role, what))
         else:
             pm(cli, seer, "You are {0} \02{1}\02.".format(a, role))  # !simple
-        pm(cli, seer, "Players: "+", ".join(pl))
+        pm(cli, seer, "Players: " + ", ".join(pl))
 
     for harlot in var.ROLES["harlot"]:
         pl = ps[:]
@@ -3472,7 +3472,7 @@ def transition_night(cli):
                              'you will die. Use visit to visit a player.'))
         else:
             cli.notice(harlot, "You are a \02harlot\02.")  # !simple
-        pm(cli, harlot, "Players: "+", ".join(pl))
+        pm(cli, harlot, "Players: " + ", ".join(pl))
 
     # the messages for angel and bodyguard are different enough to merit individual loops
     for g_angel in var.ROLES["guardian angel"]:
