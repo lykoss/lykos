@@ -2955,6 +2955,7 @@ def pass_cmd(cli, nick, rest):
     role = var.get_role(nick)
     if role != "hunter":
         pm(cli, nick, "Only a hunter may use this command.")
+        return
     if var.PHASE != "night":
         pm(cli, nick, "You may only pass at night.")
         return
