@@ -2080,7 +2080,8 @@ def transition_day(cli, gameid=0):
                 var.LOGGER.logBare(bodyguard, "KILLEDWHENGUARDINGWOLF")
                 dead.append(bodyguard)
     for havetotem in havetotem.values():
-        message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
+        if havetotem:
+            message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
