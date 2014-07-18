@@ -92,6 +92,8 @@ var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
 
+var.OPPED = False  # Keeps track of whether the bot is opped
+
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0 # 120
     var.NIGHT_TIME_WARN = 0 # 90
@@ -137,19 +139,20 @@ def connect_callback(cli):
 
         @hook("mode", hookid=294)
         def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
-            if modeaction == "+o" and target == botconfig.NICK and var.PHASE == "none":
+            if modeaction == "+o" and target == botconfig.NICK:
+                var.OPPED = True
 
-                @hook("quietlistend", 294)
-                def on_quietlist_end(cli, svr, nick, chan, *etc):
-                    if chan == botconfig.CHANNEL:
-                        decorators.unhook(HOOKS, 294)
-                        mass_mode(cli, cmodes)
+                if var.PHASE == "none":
+                    @hook("quietlistend", 294)
+                    def on_quietlist_end(cli, svr, nick, chan, *etc):
+                        if chan == botconfig.CHANNEL:
+                            mass_mode(cli, cmodes)
 
-                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
-
-                cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
-            elif modeaction == "+o" and target == botconfig.NICK and var.PHASE != "none":
-                decorators.unhook(HOOKS, 294)  # forget about it
+                    cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+                    cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+            elif modeaction == "-o" and target == botconfig.NICK:
+                var.OPPED = False
+                cli.msg("ChanServ", "op " + botconfig.CHANNEL)
 
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
@@ -415,6 +418,10 @@ def join(cli, nick, chann_, rest):
     chan = botconfig.CHANNEL
 
     nick, _, __, cloak = parse_nick(nick)
+
+    if not var.OPPED:
+        cli.notice(nick, "Sorry, I'm not opped in {0}.".format(chan))
+        return
 
     try:
         cloak = var.USERS[nick]['cloak']
@@ -1498,6 +1505,10 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                         break
                 if nick in var.DCED_PLAYERS.keys():
                     var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
+    if nick == botconfig.NICK:
+        var.OPPED = False
+    if nick == "ChanServ" and not var.OPPED:
+        cli.msg("ChanServ", "op " + chan)
 
 @cmd("goat")
 def goat(cli, nick, chan, rest):
@@ -1750,7 +1761,7 @@ hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
 
 
-@cmd("quit", "leave", "q")
+@cmd("quit", "leave")
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
     if var.PHASE == "none":
@@ -3312,7 +3323,10 @@ def relay(cli, nick, rest):
                     if (guy in var.PLAYERS and
                         var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
 
-
+@pmcmd("")
+def ctcp_ping(cli, nick, msg):
+    if msg.startswith("\x01PING"):
+        cli.notice(nick, msg)
 
 def transition_night(cli):
     if var.PHASE == "night":
@@ -4013,7 +4027,6 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-
 @cmd("fstasis", admin_only=True)
 def fstasis(cli, nick, chan, rest):
     """Admin command for removing or setting stasis penalties."""
@@ -4022,12 +4035,14 @@ def fstasis(cli, nick, chan, rest):
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0].lower()
-
-        if user not in lusers:
-            pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
-            return
-
-        cloak = lusers[user]['cloak']
+        #if user not in lusers:
+        #    pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
+        #    return
+        
+        if user in lusers:
+            cloak = lusers[user]['cloak']
+        else:
+            cloak = user
 
         if len(data) == 1:
             if cloak in var.STASISED:
@@ -4233,53 +4248,56 @@ def is_admin(cloak):
     return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak.lower(), ptn.lower())])
 
 
-@cmd("admins", "ops")
+@cmd('admins', 'ops')
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
+
     admins = []
     pl = var.list_players()
-
-    if (var.LAST_ADMINS and
-        var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. " +
-                          "Please wait a while before using it again."))
+    
+    if (chan != nick and var.LAST_ADMINS and var.LAST_ADMINS +
+            timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                          'before using it again.'))
         return
-
-    if not (var.PHASE in ("day", "night") and nick not in pl):
+        
+    if chan != nick or (var.PHASE in ('day', 'night') or nick in pl):
         var.LAST_ADMINS = datetime.now()
 
     if var.ADMIN_PINGING:
         return
+
     var.ADMIN_PINGING = True
 
-    @hook("whoreply", hookid = 4)
-    def on_whoreply(cli, server, dunno, chan, dunno1,
-                    cloak, dunno3, user, status, dunno4):
+    @hook('whoreply', hookid=4)
+    def on_whoreply(cli, server, _, chan, __, cloak, ___, user, status, ____):
         if not var.ADMIN_PINGING:
             return
-        if (is_admin(cloak) and 'G' not in status and
-            user != botconfig.NICK):
+
+        if is_admin(cloak) and 'G' not in status and user != botconfig.NICK:
             admins.append(user)
 
-    @hook("endofwho", hookid = 4)
+    @hook('endofwho', hookid=4)
     def show(*args):
         if not var.ADMIN_PINGING:
             return
+
         admins.sort(key=lambda x: x.lower())
 
         if chan == nick:
-            pm(cli, nick, "Available admins: "+" ".join(admins))
-        elif var.PHASE in ("day", "night") and nick not in pl:
-            cli.notice(nick, "Available admins: "+" ".join(admins))
+            pm(cli, nick, 'Available admins: {}'.format(', '.join(admins)))
+        elif var.PHASE in ('day', 'night') and nick not in pl:
+            cli.notice(nick, 'Available admins: {}'.format(', '.join(admins)))
         else:
-            cli.msg(chan, "Available admins: "+" ".join(admins))
+            cli.msg(chan, 'Available admins: {}'.format(', '.join(admins)))
 
         decorators.unhook(HOOKS, 4)
         var.ADMIN_PINGING = False
 
-    cli.who(chan)
+    cli.who(botconfig.CHANNEL)
 
-@pmcmd("admins", "ops")
+
+@pmcmd('admins', 'ops')
 def show_admins_pm(cli, nick, rest):
     show_admins(cli, nick, nick, rest)
 
@@ -4697,11 +4715,19 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, str(type(e))+":"+str(e))
 
 
+    @cmd('revealroles', admin_only=True)
+    def revealroles(cli, nick, chan, rest):
+        if var.PHASE == 'none':
+            cli.notice(nick, 'No game is currently running.')
+            return
 
-    @cmd("revealroles", admin_only=True)
-    def revroles(cli, nick, chan, rest):
-        if var.PHASE != "none":
-            cli.msg(chan, str(var.ROLES))
+        s = ' | '.join('\u0002{}\u0002: {}'.format(role,', '.join(players))
+                for (role, players) in sorted(var.ROLES.items()) if players)
+
+        if chan == nick:
+            pm(cli, nick, s)
+        else:
+            cli.msg(chan, s)
 
 
     @cmd("fgame", admin_only=True)
