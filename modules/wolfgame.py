@@ -638,6 +638,17 @@ def stats(cli, nick, chan, rest):
     else:
         vb = "is"
 
+    amn_roles = {}
+    for amn in var.ROLES["amnesiac"]:
+        for role in var.ORIGINAL_ROLES.keys():
+            if role in ("amnesiac", "village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
+                continue;
+            if amn in var.ORIGINAL_ROLES[role]:
+                if role in amn_roles:
+                    amn_roles[role].append(amn)
+                else:
+                    amn_roles[role] = [amn]
+
     for role in rs:
         # only show actual roles
         if role in ("amnesiac", "village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -650,7 +661,9 @@ def stats(cli, nick, chan, rest):
         elif role == var.DEFAULT_ROLE:
             if var.HIDDEN_TRAITOR:
                 count += len(var.ROLES["traitor"])
-            count += len(var.ROLES["amnesiac"] + var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+            count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+        if role in amn_roles:
+            count += len(amn_roles[role])
 
         if count > 1 or count == 0:
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
@@ -3360,7 +3373,7 @@ def transition_night(cli):
         for amn in amns:
             var.ROLES["amnesiac"].remove(amn)
             for role, plist in var.ORIGINAL_ROLES.items():
-                if amn in plist:
+                if amn in plist and role != "amnesiac":
                     var.ROLES[role].append(amn)
             pm(cli, amn, "Your amnesia clears and you now remember what you are!")
 
