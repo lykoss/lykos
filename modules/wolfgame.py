@@ -93,18 +93,18 @@ var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
 
 if botconfig.DEBUG_MODE:
-    var.NIGHT_TIME_LIMIT = 120  # 90
-    var.NIGHT_TIME_WARN = 90
-    var.DAY_TIME_LIMIT_WARN = 600
-    var.DAY_TIME_LIMIT_CHANGE = 120
-    var.SHORT_DAY_LIMIT_WARN = 400
-    var.SHORT_DAY_LIMIT_CHANGE = 120
-    var.KILL_IDLE_TIME = 0 #300
-    var.WARN_IDLE_TIME = 0 #180
+    var.NIGHT_TIME_LIMIT = 0 # 120
+    var.NIGHT_TIME_WARN = 0 # 90
+    var.DAY_TIME_LIMIT_WARN = 0 # 600
+    var.DAY_TIME_LIMIT_CHANGE = 0 # 120
+    var.SHORT_DAY_LIMIT_WARN = 0 # 400
+    var.SHORT_DAY_LIMIT_CHANGE = 0 # 120
+    var.KILL_IDLE_TIME = 0 # 300
+    var.WARN_IDLE_TIME = 0 # 180
     var.JOIN_TIME_LIMIT = 0
-    var.LEAVE_STASIS_PENALTY = 0
-    var.IDLE_STASIS_PENALTY = 0
-    var.PART_STASIS_PENALTY = 0
+    var.LEAVE_STASIS_PENALTY = 1
+    var.IDLE_STASIS_PENALTY = 1
+    var.PART_STASIS_PENALTY = 1
 
 
 def connect_callback(cli):
@@ -1235,6 +1235,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
         cmode = []
         ret = True
         if nick != None and nick in var.list_players():
+            var.del_player(nick)
             # handle roles that trigger on death
             if var.PHASE in ("night", "day"):
                 if nick in var.LOVERS:
@@ -1315,7 +1316,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
 
             if devoice:
                 cmode.append(("-v", nick))
-            var.del_player(nick)
             if var.PHASE == "join":
                 # Died during the joining process as a person
                 mass_mode(cli, cmode)
@@ -3412,7 +3412,7 @@ def transition_night(cli):
             if len(wolves) > 1:
                 pm(cli, wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            pm(cli, wolf, "You are a \02{0}{1}\02.".format(cursed, role)  # !simple
+            pm(cli, wolf, "You are a \02{0}{1}\02.".format(cursed, role))  # !simple
 
         pl = ps[:]
         random.shuffle(pl)
@@ -4864,8 +4864,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         else:
             cli.msg(chan, "Not a valid role.")
             return
-        if who in pl:
-            var.del_player(who)
+        if who in pl and rol not in var.TEMPLATE_RESTRICTIONS.keys():
+            oldrole = var.get_role(who)
+            var.ROLES[oldrole].remove(who)
         var.ROLES[rol].append(who)
         cli.msg(chan, "Operation successful.")
         if var.PHASE not in ('none','join'):
