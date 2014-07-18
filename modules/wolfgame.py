@@ -2876,7 +2876,7 @@ def see(cli, nick, rest):
     var.LOGGER.logBare(victim, "SEEN", nick)
     chk_nightdone(cli)
 
-@pmcmd("give")
+@pmcmd("give", "totem")
 def give(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
