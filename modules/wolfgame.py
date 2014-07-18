@@ -1234,7 +1234,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
             return False
         cmode = []
         ret = True
-        if nick != None:
+        if nick != None and nick in var.list_players():
             # handle roles that trigger on death
             if var.PHASE in ("night", "day"):
                 if nick in var.LOVERS:
