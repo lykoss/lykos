@@ -49,17 +49,17 @@ def main():
         handler.setFormatter(formatter)
 
     cli = IRCClient(
-        {"privmsg": modules.common.on_privmsg,
-         "notice": lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
-         "": modules.common.__unhandled__},
-        host=botconfig.HOST,
-        port=botconfig.PORT,
-        authname=botconfig.USERNAME,
-        password=botconfig.PASS,
-        nickname=botconfig.NICK,
-        sasl_auth=botconfig.SASL_AUTHENTICATION,
-        use_ssl=botconfig.USE_SSL,
-        connect_cb=modules.common.connect_callback
+                      {"privmsg": modules.common.on_privmsg,
+                       "notice": lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
+                       "": modules.common.__unhandled__},
+                     host=botconfig.HOST,
+                     port=botconfig.PORT,
+                     authname=botconfig.USERNAME,
+                     password=botconfig.PASS,
+                     nickname=botconfig.NICK,
+                     sasl_auth=botconfig.SASL_AUTHENTICATION,
+                     use_ssl=botconfig.USE_SSL,
+                     connect_cb=modules.common.connect_callback
     )
     cli.mainLoop()
 

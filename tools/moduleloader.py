@@ -10,15 +10,15 @@ for modfile in os.listdir("modules"):
         continue
     if not modfile.endswith(".py"):
         continue  # not a module
-    if not os.path.isfile("modules/" + modfile):
+    if not os.path.isfile("modules/"+modfile):
         continue  # not a file
-
+        
     modfile = modfile[:-3]
-
-    print("Loading module " + modfile)
-
-    MODULES[modfile] = getattr(__import__("modules." + modfile), modfile)
-
+    
+    print("Loading module "+modfile)
+    
+    MODULES[modfile] = getattr(__import__("modules."+modfile), modfile)
+    
 if botconfig.DEFAULT_MODULE in MODULES.keys():
     CURRENT_MODULE = botconfig.DEFAULT_MODULE.lower()
 else:

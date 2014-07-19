@@ -18,11 +18,9 @@
 import logging
 
 from oyoyo.ircevents import generated_events, protocol_events,\
-    all_events, numeric_events
+                            all_events, numeric_events
 
 # avoiding regex
-
-
 def parse_raw_irc_command(element):
     """
     This function parses a raw irc command and returns a tuple
@@ -58,13 +56,12 @@ def parse_raw_irc_command(element):
         except KeyError:
             logging.debug('unknown numeric event {0}'.format(command))
     command = command.lower()
-    if isinstance(command, bytes):
-        command = command.decode("utf_8")
+    if isinstance(command, bytes): command = command.decode("utf_8")
 
     if args[0].startswith(bytes(':', 'utf_8')):
         args = [bytes(" ", "utf_8").join(args)[1:]]
     else:
-        for idx, arg in enumerate(args):
+        for idx, arg in enumerate(args):           
             if arg.startswith(bytes(':', 'utf_8')):
                 args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
                 break
@@ -92,3 +89,4 @@ def parse_nick(name):
         return (nick, mode, rest, None)
 
     return (nick, mode, user, host)
+ 
