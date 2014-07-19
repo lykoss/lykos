@@ -141,7 +141,7 @@ numeric_events = {
     b"423": "noadmininfo",
     b"424": "fileerror",
     b"431": "nonicknamegiven",
-    b"432": "erroneusnickname", # Thiss iz how its speld in thee RFC.
+    b"432": "erroneusnickname",  # Thiss iz how its speld in thee RFC.
     b"433": "nicknameinuse",
     b"436": "nickcollision",
     b"437": "unavailresource",  # "Nick temporally unavailable"
@@ -156,7 +156,7 @@ numeric_events = {
     b"462": "alreadyregistered",
     b"463": "nopermforhost",
     b"464": "passwdmismatch",
-    b"465": "yourebannedcreep", # I love this one...
+    b"465": "yourebannedcreep",  # I love this one...
     b"466": "youwillbebanned",
     b"467": "keyset",
     b"471": "channelisfull",
@@ -208,4 +208,3 @@ protocol_events = [
 ]
 
 all_events = generated_events + protocol_events + list(numeric_events.values())
-
