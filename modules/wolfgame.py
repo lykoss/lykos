@@ -3957,6 +3957,7 @@ def start(cli, nick, chann_, rest):
         if len(possible) < len(var.ROLES[template]):
             cli.msg(chan, "Not enough valid targets for the {0} template.".format(template))
             if var.ORIGINAL_SETTINGS:
+                var.ROLES = {"person": var.ALL_PLAYERS}
                 reset_settings()
                 cli.msg(chan, "The default settings have been restored.  Please !start again.")
                 var.PHASE = "join"
