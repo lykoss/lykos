@@ -1301,26 +1301,21 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
                                     del var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
                             elif role in var.WOLFCHAT_ROLES:
-                                pl = var.list_players(var.WOLFCHAT_ROLES)
-                                pl.remove(nick) # remove dead wolf from list
-                                for player in pl:
-                                    wolfrole = var.get_role(player)
-                                    if wolfrole in var.WOLFCHAT_ROLES:
-                                        pm(cli, player, "\u0002{}\u0002 cloned \u0002{}\u0002 and has now become a wolf!".format(clone, nick))
+                                wolves = var.list_players(var.WOLFCHAT_ROLES)
+                                wolves.remove(nick) # remove dead wolf from list
+                                wolves.remove(clone) # remove self from list
+                                for wolf in wolves:
+                                    pm(cli, wolf, "\u0002{}\u0002 cloned \u0002{}\u0002 and has now become a wolf!".format(clone, nick))
                                 if var.PHASE == "day":
-                                    random.shuffle(pl)
-                                    pl.remove(clone)  # remove self from list
-                                    for i, player in enumerate(pl):
-                                        wolfrole = var.get_role(player)
-                                        if wolfrole in var.WOLFCHAT_ROLES:
-                                            cursed = ""
-                                            if player in var.ROLES["cursed villager"]:
-                                                cursed = "cursed "
-                                            pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, wolfrole)
-                                        elif player in var.ROLES["cursed villager"]:
-                                            pl[i] = player + " (cursed)"
+                                    random.shuffle(wolves)
+                                    for i, wolf in enumerate(wolves):
+                                        wolfrole = var.get_role(wolf)
+                                        cursed = ""
+                                        if wolf in var.ROLES["cursed villager"]:
+                                            cursed = "cursed "
+                                        wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfrole)
 
-                                    pm(cli, clone, "Wolves: "+", ".join(pl))
+                                    pm(cli, clone, "Wolves: " + ", ".join(wolves))
                         elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
 
@@ -1999,20 +1994,17 @@ def transition_day(cli, gameid=0):
             var.ROLES["lycan"].remove(victim)
             var.ROLES["wolf"].append(victim)
             var.LYCANS.append(victim)
-            pl = var.list_players(var.WOLFCHAT_ROLES)
-            random.shuffle(pl)
-            pl.remove(victim)  # remove self from list
-            for i, player in enumerate(pl):
-                role = var.get_role(player)
-                if role in var.WOLFCHAT_ROLES:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, role)
-                elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
+            wolves = var.list_players(var.WOLFCHAT_ROLES)
+            random.shuffle(wolves)
+            wolves.remove(victim)  # remove self from list
+            for i, wolf in enumerate(wolves):
+                role = var.get_role(wolf)
+                cursed = ""
+                if wolf in var.ROLES["cursed villager"]:
+                    cursed = "cursed "
+                wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role)
 
-            pm(cli, victim, "Wolves: "+", ".join(pl))
+            pm(cli, victim, "Wolves: " + ", ".join(wolves))
             novictmsg = False
         else:
             if var.ROLE_REVEAL:
