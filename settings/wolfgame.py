@@ -10,7 +10,7 @@ VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
 GSTATS_RATE_LIMIT = 0
 PSTATS_RATE_LIMIT = 0
-TIME_RATE_LIMIT = 60
+TIME_RATE_LIMIT = 10
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 SHARPSHOOTER_MULTIPLIER = 0.06
 MIN_PLAYERS = 4
@@ -25,11 +25,11 @@ JOIN_TIME_LIMIT = 3600
 SHORT_DAY_PLAYERS = 6 # Number of players left to have a short day
 SHORT_DAY_LIMIT_WARN = 400
 SHORT_DAY_LIMIT_CHANGE = 120
-# If time lord is lynched, the timers get set to this instead (90s day, 60s night)
-TIME_LORD_DAY_WARN = 60
-TIME_LORD_DAY_CHANGE = 30
-TIME_LORD_NIGHT_LIMIT = 60
-TIME_LORD_NIGHT_WARN = 40
+# If time lord is lynched, the timers get set to this instead (60s day, 30s night)
+TIME_LORD_DAY_WARN = 45
+TIME_LORD_DAY_CHANGE = 15
+TIME_LORD_NIGHT_LIMIT = 30
+TIME_LORD_NIGHT_WARN = 20
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PART_GRACE_TIME = 30

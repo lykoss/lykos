@@ -886,31 +886,6 @@ def chk_decision(cli):
                             var.LOGGER.logMessage(tmsg.replace("\02", ""))
                             var.LOGGER.logBare(votee, "MAD SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
-                # other
-                elif votee in var.ROLES["time lord"]:
-                    if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_WARN"] = var.DAY_TIME_LIMIT_WARN
-                    if "DAY_TIME_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_CHANGE"] = var.DAY_TIME_LIMIT_CHANGE
-                    if "SHORT_DAY_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_WARN"] = var.SHORT_DAY_LIMIT_WARN
-                    if "SHORT_DAY_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_CHANGE"] = var.SHORT_DAY_LIMIT_CHANGE
-                    if "NIGHT_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["NIGHT_TIME_LIMIT"] = var.NIGHT_TIME_LIMIT
-                    if "NIGHT_TIME_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["NIGHT_TIME_WARN"] = var.NIGHT_TIME_WARN
-                    var.DAY_TIME_LIMIT_WARN = var.TIME_LORD_DAY_WARN
-                    var.DAY_TIME_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
-                    var.SHORT_DAY_LIMIT_WARN = var.TIME_LORD_DAY_WARN
-                    var.SHORT_DAY_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
-                    var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
-                    var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
-                    aftermessage = ("Tick tock! Since the village has lynched the time lord, " +
-                                    "day will now only last {0} seconds and night will now only " +
-                                    "last {1} seconds!").format(
-                                        var.TIME_LORD_DAY_WARN + var.TIME_LORD_DAY_CHANGE,
-                                        var.TIME_LORD_NIGHT_LIMIT)
 
                 if var.ROLE_REVEAL:
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
@@ -1347,6 +1322,28 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
 
+                if nickrole == "time lord" and var.GHOSTPHASE == "day":
+                    if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_WARN"] = var.DAY_TIME_LIMIT_WARN
+                    if "DAY_TIME_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_CHANGE"] = var.DAY_TIME_LIMIT_CHANGE
+                    if "SHORT_DAY_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_WARN"] = var.SHORT_DAY_LIMIT_WARN
+                    if "SHORT_DAY_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_CHANGE"] = var.SHORT_DAY_LIMIT_CHANGE
+                    if "NIGHT_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["NIGHT_TIME_LIMIT"] = var.NIGHT_TIME_LIMIT
+                    if "NIGHT_TIME_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["NIGHT_TIME_WARN"] = var.NIGHT_TIME_WARN
+                    var.DAY_TIME_LIMIT_WARN = var.TIME_LORD_DAY_WARN
+                    var.DAY_TIME_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
+                    var.SHORT_DAY_LIMIT_WARN = var.TIME_LORD_DAY_WARN
+                    var.SHORT_DAY_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
+                    var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
+                    var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
+                    cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died during the day, " +
+                                                "day will now only last {0} seconds and night will now only " +
+                                                "last {1} seconds!").format(var.TIME_LORD_DAY_WARN + var.TIME_LORD_DAY_CHANGE, var.TIME_LORD_NIGHT_LIMIT))
                 if nickrole == "vengeful ghost":
                     if var.GHOSTPHASE == "night":
                         var.VENGEFUL_GHOSTS[nick] = "wolves"
