@@ -1243,10 +1243,6 @@ def chk_win(cli, end_game = True):
         stop_game(cli, winner)
     return True
 
-
-
-
-
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True):
     """
     Returns: False if one side won.
@@ -1815,9 +1811,6 @@ def leave_game(cli, nick, chan, rest):
 
     del_player(cli, nick)
 
-
-
-
 def begin_day(cli):
     chan = botconfig.CHANNEL
 
@@ -2172,7 +2165,6 @@ def transition_day(cli, gameid=0):
 
     begin_day(cli)
 
-
 def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
@@ -2215,8 +2207,6 @@ def chk_nightdone(cli):
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
             transition_day(cli)
-
-
 
 @cmd("lynch", "vote", "v")
 def vote(cli, nick, chann_, rest):
@@ -2293,8 +2283,6 @@ def vote(cli, nick, chann_, rest):
     var.LAST_VOTES = None # reset
 
     chk_decision(cli)
-
-
 
 @cmd("retract")
 def retract(cli, nick, chann_, rest):
@@ -2620,7 +2608,6 @@ def kill(cli, nick, rest):
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
     chk_nightdone(cli)
 
-
 @pmcmd("guard", "protect", "save")
 def guard(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -2760,7 +2747,6 @@ def observe(cli, nick, rest):
     var.LOGGER.logBare(victim, "OBSERVED", nick)
     chk_nightdone(cli)
 
-
 @pmcmd("id")
 def investigate(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -2815,8 +2801,6 @@ def investigate(cli, nick, rest):
                             "that \u0002{0}\u0002 is the detective!").format(nick))
         var.LOGGER.logBare(nick, "PAPERDROP")
 
-
-
 @pmcmd("visit")
 def hvisit(cli, nick, rest):
     if var.PHASE in ("none", "join"):
@@ -2868,11 +2852,8 @@ def hvisit(cli, nick, rest):
         var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
     chk_nightdone(cli)
 
-
 def is_fake_nick(who):
     return not(re.search("^[a-zA-Z\\\_\]\[`]([a-zA-Z0-9\\\_\]\[`]+)?", who)) or who.lower().endswith("serv")
-
-
 
 @pmcmd("see")
 def see(cli, nick, rest):
@@ -3150,6 +3131,9 @@ def target(cli, nick, rest):
     if nick not in var.ROLES["assassin"]:
         pm(cli, nick, "Only an assassin may use this command.")
         return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only target people at night.")
+        return
     if nick in var.TARGETED and var.TARGETED[nick] != None:
         pm(cli, nick, "You have already chosen a target.")
         return
@@ -3200,6 +3184,9 @@ def hex(cli, nick, rest):
         return
     if nick not in var.ROLES["hag"]:
         pm(cli, nick, "Only a hag may use this command.")
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only hex at night.")
         return
     if nick in var.HEXED:
         pm(cli, nick, "You have already hexed someone tonight.")
@@ -4100,7 +4087,7 @@ def fstasis(cli, nick, chan, rest):
         #if user not in lusers:
         #    pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
         #    return
-        
+
         if user in lusers:
             cloak = lusers[user]['cloak']
         else:
@@ -4316,13 +4303,13 @@ def show_admins(cli, nick, chan, rest):
 
     admins = []
     pl = var.list_players()
-    
+
     if (chan != nick and var.LAST_ADMINS and var.LAST_ADMINS +
             timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
         cli.notice(nick, ('This command is rate-limited. Please wait a while '
                           'before using it again.'))
         return
-        
+
     if chan != nick or (var.PHASE in ('day', 'night') or nick in pl):
         var.LAST_ADMINS = datetime.now()
 

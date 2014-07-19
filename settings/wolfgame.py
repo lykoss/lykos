@@ -242,7 +242,7 @@ class ChangedRolesMode(object):
         pairs = arg.split(",")
         if not pairs:
             raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
-        
+
         for role in self.ROLE_GUIDE.keys():
             self.ROLE_GUIDE[role] = (0,)
         for pair in pairs:
