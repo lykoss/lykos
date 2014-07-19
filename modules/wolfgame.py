@@ -2165,9 +2165,9 @@ def chk_nightdone(cli):
             else:
                 kills.add(ls)
         # check if wolves are actually agreeing
-        if not var.ANGRY_WOLVES and len(kills) > 1:
+        if not var.ANGRY_WOLVES and len(kills) != 1:
             return
-        elif var.ANGRY_WOLVES and len(kills) > 2:
+        elif var.ANGRY_WOLVES and len(kills) != 2:
             return
 
         for x, t in var.TIMERS.items():
@@ -3448,16 +3448,16 @@ def transition_night(cli):
         random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
         for i, player in enumerate(pl):
-            role = var.get_role(player)
-            if role in var.WOLFCHAT_ROLES:
+            prole = var.get_role(player)
+            if prole in var.WOLFCHAT_ROLES:
                 cursed = ""
                 if player in var.ROLES["cursed villager"]:
                     cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, role)
+                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
             elif player in var.ROLES["cursed villager"]:
                 pl[i] = player + " (cursed)"
 
-        pm(cli, wolf, "Players: "+", ".join(pl))
+        pm(cli, wolf, "Players: " + ", ".join(pl))
         if wolf in var.WOLF_GUNNERS.keys():
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
         if var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
@@ -3947,16 +3947,15 @@ def start(cli, nick, chann_, rest):
     gunner_list = copy.copy(var.ROLES["gunner"])
     num_sharpshooters = 0
     for gunner in gunner_list:
-        if num_sharpshooters < addroles["sharpshooter"]:
-            if gunner in var.ROLES["village drunk"]:
-                var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
-            elif gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
-                var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
-                var.ROLES["gunner"].remove(gunner)
-                var.ROLES["sharpshooter"].append(gunner)
-                num_sharpshooters += 1
-            else:
-                var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+        if gunner in var.ROLES["village drunk"]:
+            var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
+        elif num_sharpshooters < addroles["sharpshooter"] and gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
+            var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+            var.ROLES["gunner"].remove(gunner)
+            var.ROLES["sharpshooter"].append(gunner)
+            num_sharpshooters += 1
+        else:
+            var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
 
     while True:
         try:
