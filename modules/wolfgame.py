@@ -1868,6 +1868,7 @@ def transition_day(cli, gameid=0):
             if bodyguard not in var.GUARDED:
                 var.LASTGUARDED[bodyguard] = None
 
+    # Select a random target for vengeful ghost if they didn't kill
     wolves = var.list_players(var.WOLFTEAM_ROLES)
     villagers = var.list_players()
     for wolf in wolves:
@@ -1878,7 +1879,6 @@ def transition_day(cli, gameid=0):
                 var.OTHER_KILLS[ghost] = random.choice(wolves)
             else:
                 var.OTHER_KILLS[ghost] = random.choice(villagers)
-
 
     # Reset daytime variables
     var.VOTES = {}
@@ -1958,6 +1958,21 @@ def transition_day(cli, gameid=0):
         if d in bywolves:
             bywolves.remove(d)
     victims = set(victims) # remove duplicates
+
+    # Select a random target for assassin that isn't already going to die if they didn't target
+    pl = var.list_players()
+    for ass in var.ROLES["assassin"]:
+        if ass not in var.TARGETED:
+            ps = pl[:]
+            ps.remove(ass)
+            for victim in victims:
+                if victim in ps:
+                    ps.remove(victim)
+            if len(ps) > 0:
+                target = random.choice(ps)
+                var.TARGETED[ass] = target
+                pm(cli, ass, "Because you forgot to select a target at night, you are now targeting \u0002{0}\u0002.".format(target))
+
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
