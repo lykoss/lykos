@@ -2202,9 +2202,11 @@ def chk_nightdone(cli):
             else:
                 kills.add(ls)
         # check if wolves are actually agreeing
-        if not var.ANGRY_WOLVES and len(kills) != 1:
+        # allow len(kills) == 0 through as that means that crow was dumb and observed instead
+        # of killing or something, or weird cases where there are no wolves at night
+        if not var.ANGRY_WOLVES and len(kills) > 1:
             return
-        elif var.ANGRY_WOLVES and len(kills) != 2:
+        elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
             return
 
         for x, t in var.TIMERS.items():
