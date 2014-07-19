@@ -3944,7 +3944,8 @@ def start(cli, nick, chann_, rest):
         for x in selected:
             villagers.remove(x)
 
-    var.ROLES[var.DEFAULT_ROLE] = villagers
+    for v in villagers:
+        var.ROLES[var.DEFAULT_ROLE].append(v)
 
     # Now for the templates
     for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
