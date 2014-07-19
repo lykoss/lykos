@@ -143,7 +143,7 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "s
                          "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan"],
                          "mayor"           : ["fool"],
                          "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
-                         "amnesiac"        : ["villager", "cultist", "wolf", "wolf cub", "werecrow", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist"],
+                         "amnesiac"        : ["villager", "cultist", "wolf", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist", "vengeful ghost"],
                          "bureaucrat"      : [],
                          }
 
