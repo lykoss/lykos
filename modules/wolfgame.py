@@ -550,7 +550,7 @@ def fleave(cli, nick, chann_, rest):
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
             var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_role(a)))
-        del_player(cli, a)
+        del_player(cli, a, death_triggers = False)
 
 
 @cmd("fstart", admin_only=True)
@@ -1243,7 +1243,7 @@ def chk_win(cli, end_game = True):
         stop_game(cli, winner)
     return True
 
-def del_player(cli, nick, forced_death = False, devoice = True, end_game = True):
+def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
@@ -1264,7 +1264,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True)
             nicktpls = var.get_templates(nick)
             var.del_player(nick)
             # handle roles that trigger on death
-            if var.PHASE in ("night", "day"):
+            if death_triggers and var.PHASE in ("night", "day"):
                 if nick in var.LOVERS:
                     others = copy.copy(var.LOVERS[nick])
                     del var.LOVERS[nick][:]
@@ -1448,7 +1448,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long " +
                                        "time and has been found dead.").format(nck))
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
-                    if not del_player(cli, nck):
+                    if not del_player(cli, nck, death_triggers = False):
                         return
                 pl = var.list_players()
                 x = [a for a in to_warn if a in pl]
@@ -1466,7 +1466,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, ("\u0002{0}\u0002 was mauled by wild animals and has died.").format(dcedplayer))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
-                    if not del_player(cli, dcedplayer, devoice = False):
+                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     if var.ROLE_REVEAL:
@@ -1476,7 +1476,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, ("\u0002{0}\u0002 ate some poisonous berries and has died.").format(dcedplayer))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
-                    if not del_player(cli, dcedplayer, devoice = False):
+                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
         time.sleep(10)
 
@@ -1772,7 +1772,7 @@ def leave(cli, what, nick, why=""):
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
     if killplayer:
-        del_player(cli, nick)
+        del_player(cli, nick, death_triggers = False)
     else:
         var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
 
@@ -1809,7 +1809,7 @@ def leave_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
-    del_player(cli, nick)
+    del_player(cli, nick, death_triggers = False)
 
 def begin_day(cli):
     chan = botconfig.CHANNEL
