@@ -3681,6 +3681,8 @@ def transition_night(cli):
                 cli.msg(clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
+            else:
+                cli.notice(clone, "You are a \u0002clone\u0002")
             pm(cli, clone, "Players: "+", ".join(pl))
 
         for ms in var.ROLES["mad scientist"]:
