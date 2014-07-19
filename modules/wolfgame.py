@@ -4488,7 +4488,7 @@ def myrole(cli, nick, chan, rest):
         return
 
     role = var.get_role(nick)
-    if role in ("time lord", "village elder"):
+    if role in ("time lord", "village elder", "amnesiac"):
         role = var.DEFAULT_ROLE
     elif role == "vengeful ghost" and nick not in var.VENGEFUL_GHOSTS.keys():
         role = var.DEFAULT_ROLE
