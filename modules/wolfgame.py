@@ -3925,25 +3925,44 @@ def start(cli, nick, chann_, rest):
     # Now for the templates
     for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
         if template == "sharpshooter":
-            var.ROLES["sharpshooter"] = []
             continue # sharpshooter gets applied specially
         possible = pl[:]
         for cannotbe in var.list_players(restrictions):
             possible.remove(cannotbe)
+        if len(possible) < len(var.ROLES[template]):
+            cli.msg(chan, "Not enough valid targets for the {0} template.".format(template))
+            if var.ORIGINAL_SETTINGS:
+                reset_settings()
+                cli.msg(chan, "The default settings have been restored.  Please !start again.")
+                var.PHASE = "join"
+                return
+            else:
+                cli.msg(chan, "This role has been skipped for this game.")
+                continue
+
         var.ROLES[template] = random.sample(possible, len(var.ROLES[template]))
 
     # Handle gunner
     cannot_be_sharpshooter = var.list_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"])
     gunner_list = copy.copy(var.ROLES["gunner"])
+    num_sharpshooters = 0
     for gunner in gunner_list:
-        if gunner in var.ROLES["village drunk"]:
-            var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
-        elif gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
-            var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
-            var.ROLES["gunner"].remove(gunner)
-            var.ROLES["sharpshooter"].append(gunner)
-        else:
-            var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+        if num_sharpshooters < addroles["sharpshooter"]:
+            if gunner in var.ROLES["village drunk"]:
+                var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
+            elif gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
+                var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+                var.ROLES["gunner"].remove(gunner)
+                var.ROLES["sharpshooter"].append(gunner)
+                num_sharpshooters += 1
+            else:
+                var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+
+    while True:
+        try:
+            var.ROLES["sharpshooter"].remove(None)
+        except ValueError:
+            break
 
     var.SPECIAL_ROLES["goat herder"] = []
     if var.GOAT_HERDER:
