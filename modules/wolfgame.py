@@ -981,11 +981,29 @@ def show_votes(cli, nick, chan, rest):
 
 
 def chk_traitor(cli):
-    for tt in var.ROLES["traitor"]:
-        var.ROLES["wolf"].append(tt)
-        var.ROLES["traitor"].remove(tt)
-        pm(cli, tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
-                     'It is up to you to avenge your fallen leaders!'))
+    for wc in var.ROLES["wolf cub"]:
+        var.ROLES["wolf"].append(wc)
+        var.ROLES["wolf cub"].remove(wc)
+        var.LOGGER.logBare(wc, "GROW UP")
+        pm(cli, wc, ('You have grown up into a wolf and vowed to take revenge for your dead parents!'))
+
+    if len(var.ROLES["wolf"]) == 0:
+        for tt in var.ROLES["traitor"]:
+            var.ROLES["wolf"].append(tt)
+            var.ROLES["traitor"].remove(tt)
+            var.LOGGER.logBare(tt, "TRANSFORM")
+            pm(cli, tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
+                         'It is up to you to avenge your fallen leaders!'))
+
+        # no message if wolf cub becomes wolf for now, may want to change that in future
+        if len(var.ROLES["wolf"]) > 0:
+            if var.ROLE_REVEAL:
+                cli.msg(botconfig.CHANNEL, ('\u0002The villagers, during their celebrations, are '+
+                                            'frightened as they hear a loud howl. The wolves are '+
+                                            'not gone!\u0002'))
+            var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
+                                   'frightened as they hear a loud howl. The wolves are '+
+                                   'not gone!'))
 
 
 
@@ -1214,16 +1232,7 @@ def chk_win(cli, end_game = True):
                       "chop them up, BBQ them, and have a hearty meal.")
             winner = "villagers"
     elif lrealwolves == 0:
-        for t in var.ROLES["traitor"]:
-            var.LOGGER.logBare(t, "TRANSFORM")
         chk_traitor(cli)
-        if var.ROLE_REVEAL:
-            cli.msg(chan, ('\u0002The villagers, during their celebrations, are '+
-                           'frightened as they hear a loud howl. The wolves are '+
-                           'not gone!\u0002'))
-        var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
-                               'frightened as they hear a loud howl. The wolves are '+
-                               'not gone!'))
         return chk_win(cli, end_game)
     else:
         return False
