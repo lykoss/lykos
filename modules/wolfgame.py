@@ -1038,20 +1038,12 @@ def stop_game(cli, winner = ""):
             pass
     cli.msg(chan, " ".join(roles_msg))
 
-    reset_modes_timers(cli)
-
-    # Set temporary phase to deal with disk lag
-    var.PHASE = "writing files"
-
     plrl = []
+    winners = []
     for role,ppl in var.ORIGINAL_ROLES.items():
         for x in ppl:
             if x != None:
                 plrl.append((x, role))
-
-    var.LOGGER.saveToFile()
-
-    winners = []
     for plr, rol in plrl:
         #if plr not in var.USERS.keys():  # they died TODO: when a player leaves, count the game as lost for them
         #    if plr in var.DEAD_USERS.keys():
@@ -1064,25 +1056,21 @@ def stop_game(cli, winner = ""):
         elif plr in var.PLAYERS.keys():
             acc = var.PLAYERS[plr]["account"]
         else:
-            continue  #probably fjoin'd fake
+            acc = "*"  #probably fjoin'd fake
 
+        won = False
+        iwon = False
         # determine if this player's team won
         if plr in [p for r in var.WOLFTEAM_ROLES for p in var.ORIGINAL_ROLES[r]]:  # the player was wolf-aligned
             if winner == "wolves":
                 won = True
-            else:
-                won = False
         elif plr in [p for r in var.TRUE_NEUTRAL_ROLES for p in var.ORIGINAL_ROLES[r]]:
             # true neutral roles never have a team win (with exception of monsters), only individual wins
             if winner == "monsters" and plr in var.ORIGINAL_ROLES["monster"]:
                 won = True
-            else:
-                won = False
         else:
             if winner == "villagers":
                 won = True
-            else:
-                won = False
 
         survived = var.list_players()
         if plr.startswith("(dced)"):
@@ -1094,15 +1082,20 @@ def stop_game(cli, winner = ""):
         elif plr in var.ORIGINAL_ROLES["monster"] and plr in survived and winner == "monsters":
             iwon = True
         # del_player() doesn't get called on lynched fool, so both will survive even in that case
-        elif plr in var.LOVERS and plr in survived and var.LOVERS[plr] in survived:
+        elif plr in var.LOVERS and plr in survived:
+            for lvr in var.LOVERS[plr]:
+                if lvr in survived and not winner.startswith("@") and winner != "monsters":
+                    iwon = True
+                    break
+                elif lvr in survived and winner.startswith("@") and winner == "@" + lvr:
+                    iwon = True
+                    break
+                elif lvr in survived and winner == "monsters" and lvr in var.ORIGINAL_ROLES["monster"]:
+                    iwon = True
+                    break
+        if plr in var.ORIGINAL_ROLES["crazed shaman"]:
             if not winner.startswith("@") and winner != "monsters":
                 iwon = True
-            elif winner.startswith("@") and winner[1:] == var.LOVERS[plr]:
-                iwon = True
-            elif winner == "monsters" and var.LOVERS[plr] in var.ORIGINAL_ROLES["monster"]:
-                iwon = True
-        elif plr in var.ORIGINAL_ROLES["crazed shaman"] and not winner.startswith("@") and winner != "monsters":
-            iwon = True
         elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
             if plr in survived:
                 iwon = True
@@ -1112,8 +1105,6 @@ def stop_game(cli, winner = ""):
             elif var.VENGEFUL_GHOSTS[plr] == "wolves" and winner == "villagers":
                 won = True
                 iwon = True
-            else:
-                iwon = False
         elif plr in var.ORIGINAL_ROLES["lycan"]:
             if plr in var.LYCANS and winner == "wolves":
                 won = True
@@ -1121,33 +1112,38 @@ def stop_game(cli, winner = ""):
                 won = True
             else:
                 won = False
-            iwon = won and plr in survived
-        else:
+            if not iwon:
+                iwon = won and plr in survived
+        elif not iwon:
             iwon = won and plr in survived  # survived, team won = individual win
 
         if acc != "*":
             var.update_role_stats(acc, rol, won, iwon)
 
-        if (won or iwon) and plr.startswith("(dced)"):
-            winners.append(plr[6:])
-        else:
+        if won or iwon:
             winners.append(plr)
 
-    size = len(var.list_players()) + len(var.DEAD)
+    size = len(survived) + len(var.DEAD)
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
         var.update_game_stats(size, winner)
-        
+
     # spit out the list of winners
     winners.sort()
     if len(winners) == 1:
         cli.msg(chan, "The winner is \u0002{0}\u0002.".format(winners[0]))
     elif len(winners) == 2:
-        cli.msg(chan, "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.".format())
-    elif len(winners) == 3:
-        cli.msg(chan, "The winners are {0}, and \u0002{1}\u0002.".format(
-            ", ".join(map(lambda x: "\u0002{0}\u0002".format(x), winners[0:-1]))))
+        cli.msg(chan, "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.".format(winners[0], winners[1]))
+    elif len(winners) > 2:
+        nicklist = ["\u0002" + x + "\u0002" for x in winners[0:-1]]
+        cli.msg(chan, "The winners are {0}, and \u0002{1}\u0002.".format(", ".join(nicklist), winners[-1]))
 
+    reset_modes_timers(cli)
+
+    # Set temporary phase to deal with disk lag
+    var.PHASE = "writing files"
+
+    var.LOGGER.saveToFile()
     reset(cli)
 
     # This must be after reset(cli)
@@ -1162,19 +1158,11 @@ def stop_game(cli, winner = ""):
 
 def chk_win(cli, end_game = True):
     """ Returns True if someone won """
-
     chan = botconfig.CHANNEL
     lpl = len(var.list_players())
 
-    if lpl == 0:
-        #cli.msg(chan, "No more players remaining. Game ended.")
-        reset_modes_timers(cli)
-        reset(cli)
-        return True
-
     if var.PHASE == "join":
         return False
-
 
     lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
     lrealwolves = len(var.list_players(var.WOLF_ROLES)) - len(var.ROLES["wolf cub"])
@@ -1201,7 +1189,7 @@ def chk_win(cli, end_game = True):
     if lpl < 1:
         message = "Game over! There are no players remaining. Nobody wins."
         winner = ""
-    if lwolves == lpl / 2:
+    elif lwolves == lpl / 2:
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
             message = ("Game over! There are the same number of wolves as uninjured villagers. " +
