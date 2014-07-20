@@ -1305,11 +1305,21 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         target = var.CLONED[clone]
                         if nick == target and clone in var.CLONED:
                             # clone is cloning nick, so clone becomes nick's role
+                            # clone does NOT get any of nick's templates (gunner/assassin/etc.)
                             del var.CLONED[clone]
                             var.ROLES["clone"].remove(clone)
-                            var.ROLES[nickrole].append(clone)
+                            if nickrole == "amnesiac":
+                                # clone gets the amnesiac's real role
+                                for r in var.ORIGINAL_ROLES.keys():
+                                    if r not in var.TEMPLATE_RESTRICTIONS.keys() and nick in var.ORIGINAL_ROLES[r]:
+                                        var.ROLES[r].append(clone)
+                                        sayrole = r
+                                        break
+                            else:
+                                var.ROLES[nickrole].append(clone)
+                                sayrole = nickrole
                             # if cloning time lord or vengeful ghost, say they are villager instead
-                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(var.DEFAULT_ROLE if nickrole in ("time lord", "vengeful ghost") else nickrole))
+                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(var.DEFAULT_ROLE if sayrole in ("time lord", "vengeful ghost") else sayrole))
                             # if a clone is cloning a clone, clone who the old clone cloned
                             if nickrole == "clone" and nick in var.CLONED:
                                 if var.CLONED[nick] == clone:
@@ -1319,9 +1329,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                     var.CLONED[clone] = var.CLONED[nick]
                                     del var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
-                            elif role in var.WOLFCHAT_ROLES:
+                            elif nickrole in var.WOLFCHAT_ROLES:
                                 wolves = var.list_players(var.WOLFCHAT_ROLES)
-                                wolves.remove(nick) # remove dead wolf from list
                                 wolves.remove(clone) # remove self from list
                                 for wolf in wolves:
                                     pm(cli, wolf, "\u0002{}\u0002 cloned \u0002{}\u0002 and has now become a wolf!".format(clone, nick))
