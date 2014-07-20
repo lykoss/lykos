@@ -961,21 +961,23 @@ def chk_win(cli, end_game = True):
     if var.PHASE == "day":
         lpl -= len([x for x in var.WOUNDED if x not in var.ROLES["traitor"]])
         lwolves -= len([x for x in var.WOUNDED if x in var.ROLES["traitor"]])
-    
+    if lpl < 1:
+        message = "Game over! There are no players remaining. Nobody wins."
+        win = ""
     if lwolves == lpl / 2:
         message = ("Game over! There are the same number of wolves as " +
                   "uninjured villagers. The wolves overpower the villagers and win.")
-        village_win = False
+        win = "villagers"
     elif lwolves > lpl / 2:
         message = ("Game over! There are more wolves than "+
                   "uninjured villagers. The wolves overpower the villagers and win.")
-        village_win = False
+        win = "wolves"
     elif (not var.ROLES["wolf"] and
           not var.ROLES["traitor"] and
           not var.ROLES["werecrow"]):
         message = ("Game over! All the wolves are dead! The villagers " +
                   "chop them up, BBQ them, and have a hearty meal.")
-        village_win = True
+        win = "villagers"
     elif (not var.ROLES["wolf"] and not 
           var.ROLES["werecrow"] and var.ROLES["traitor"]):
         for t in var.ROLES["traitor"]:
@@ -993,8 +995,9 @@ def chk_win(cli, end_game = True):
     if end_game:
         cli.msg(chan, message)
         var.LOGGER.logMessage(message)
-        var.LOGGER.logBare("VILLAGERS" if village_win else "WOLVES", "WIN")
-        stop_game(cli, "villagers" if village_win else "wolves")
+        if win:
+            var.LOGGER.logBare(win.upper(), "WIN")
+        stop_game(cli, win)
     return True
 
 
@@ -1103,8 +1106,8 @@ def reaper(cli, gameid):
                                    "time and has been found dead. The survivors bury "+
                                    "the \u0002{1}\u0002's body.").format(nck, var.get_reveal_role(nck)))
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
-                    if not del_player(cli, nck):
-                        return
+                    del_player(cli, nck, end_game=False)
+                chk_win(cli)
                 pl = var.list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
