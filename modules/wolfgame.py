@@ -2036,7 +2036,7 @@ def transition_day(cli, gameid=0):
                     novictmsg = False
                     break
             for gangel in var.ROLES["guardian angel"]:
-                if died and var.GUARDED.get(gangel) == victim:
+                if var.GUARDED.get(gangel) == victim:
                     dead.append(gangel)
                     message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(gangel))
                     novictmsg = False
