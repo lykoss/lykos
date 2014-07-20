@@ -1051,6 +1051,7 @@ def stop_game(cli, winner = ""):
 
     var.LOGGER.saveToFile()
 
+    winners = []
     for plr, rol in plrl:
         #if plr not in var.USERS.keys():  # they died TODO: when a player leaves, count the game as lost for them
         #    if plr in var.DEAD_USERS.keys():
@@ -1065,40 +1066,45 @@ def stop_game(cli, winner = ""):
         else:
             continue  #probably fjoin'd fake
 
-        if acc == "*":
-            continue  # not logged in during game start
         # determine if this player's team won
         if plr in [p for r in var.WOLFTEAM_ROLES for p in var.ORIGINAL_ROLES[r]]:  # the player was wolf-aligned
             if winner == "wolves":
                 won = True
-            elif winner == "":
-                break; # abnormal game stop
             else:
                 won = False
         elif plr in [p for r in var.TRUE_NEUTRAL_ROLES for p in var.ORIGINAL_ROLES[r]]:
             # true neutral roles never have a team win (with exception of monsters), only individual wins
-            if winner == "":
-                break
-            elif winner == "monsters" and plr in var.ORIGINAL_ROLES["monster"]:
+            if winner == "monsters" and plr in var.ORIGINAL_ROLES["monster"]:
                 won = True
             else:
                 won = False
         else:
             if winner == "villagers":
                 won = True
-            elif winner == "":
-                break
             else:
                 won = False
 
-        if plr in var.ORIGINAL_ROLES["fool"] and "@" + plr == winner:
+        survived = var.list_players()
+        if plr.startswith("(dced)"):
+            # You get NOTHING! You LOSE! Good DAY, sir!
+            won = False
+            iwon = False
+        elif plr in var.ORIGINAL_ROLES["fool"] and "@" + plr == winner:
             iwon = True
-        elif plr in var.LOVERS and plr in var.list_players() and not winner.startswith("@") and winner != "monsters":
+        elif plr in var.ORIGINAL_ROLES["monster"] and plr in survived and winner == "monsters":
             iwon = True
+        # del_player() doesn't get called on lynched fool, so both will survive even in that case
+        elif plr in var.LOVERS and plr in survived and var.LOVERS[plr] in survived:
+            if not winner.startswith("@") and winner != "monsters":
+                iwon = True
+            elif winner.startswith("@") and winner[1:] == var.LOVERS[plr]:
+                iwon = True
+            elif winner == "monsters" and var.LOVERS[plr] in var.ORIGINAL_ROLES["monster"]:
+                iwon = True
         elif plr in var.ORIGINAL_ROLES["crazed shaman"] and not winner.startswith("@") and winner != "monsters":
             iwon = True
         elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
-            if plr in var.list_players():
+            if plr in survived:
                 iwon = True
             elif var.VENGEFUL_GHOSTS[plr] == "villagers" and winner == "wolves":
                 won = True
@@ -1113,15 +1119,34 @@ def stop_game(cli, winner = ""):
                 won = True
             elif plr not in var.LYCANS and winner == "villagers":
                 won = True
-            iwon = won and plr in var.list_players()
+            else:
+                won = False
+            iwon = won and plr in survived
         else:
-            iwon = won and plr in var.list_players()  # survived, team won = individual win
+            iwon = won and plr in survived  # survived, team won = individual win
 
-        var.update_role_stats(acc, rol, won, iwon)
+        if acc != "*":
+            var.update_role_stats(acc, rol, won, iwon)
+
+        if (won or iwon) and plr.startswith("(dced)"):
+            winners.append(plr[6:])
+        else:
+            winners.append(plr)
 
     size = len(var.list_players()) + len(var.DEAD)
-    if winner != "": # Only update if not an abnormal game stop
+    # Only update if someone actually won, "" indicates everyone died or abnormal game stop
+    if winner != "":
         var.update_game_stats(size, winner)
+        
+    # spit out the list of winners
+    winners.sort()
+    if len(winners) == 1:
+        cli.msg(chan, "The winner is \u0002{0}\u0002.".format(winners[0]))
+    elif len(winners) == 2:
+        cli.msg(chan, "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.".format())
+    elif len(winners) == 3:
+        cli.msg(chan, "The winners are {0}, and \u0002{1}\u0002.".format(
+            ", ".join(map(lambda x: "\u0002{0}\u0002".format(x), winners[0:-1]))))
 
     reset(cli)
 
@@ -1173,6 +1198,9 @@ def chk_win(cli, end_game = True):
             except KeyError:
                 pass
 
+    if lpl < 1:
+        message = "Game over! There are no players remaining. Nobody wins."
+        winner = ""
     if lwolves == lpl / 2:
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
