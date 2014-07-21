@@ -1106,7 +1106,7 @@ def stop_game(cli, winner = ""):
                     iwon = True
                     break
         if plr in var.ORIGINAL_ROLES["crazed shaman"]:
-            if not winner.startswith("@") and winner != "monsters":
+            if plr in survived and not winner.startswith("@") and winner != "monsters":
                 iwon = True
         elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
             if not winner.startswith("@") and winner != "monsters":
