@@ -1213,7 +1213,7 @@ def chk_win(cli, end_game = True):
             message = ("Game over! There are more wolves than "+
                       "uninjured villagers. The wolves overpower the villagers and win.")
             winner = "wolves"
-    elif lrealwolves == 0 and len(var.ROLES["traitor"]) == 0:
+    elif lrealwolves == 0 and len(var.ROLES["traitor"]) == 0 and len(var.ROLES["wolf cub"]) == 0:
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
             message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
