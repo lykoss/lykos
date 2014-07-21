@@ -813,9 +813,11 @@ def chk_decision(cli):
                     # Also kill the very last person to vote them
                     target = voters[-1]
                     if var.ROLE_REVEAL:
+                        r1 = var.get_reveal_role(target)
+                        an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
                         tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                                 "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
-                                "a \u0002{2}\u0002, has fallen over dead.").format(votee, target, var.get_reveal_role(target))
+                                "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
                     else:
                         tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                                 "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
@@ -835,10 +837,14 @@ def chk_decision(cli):
                     if target1 in var.list_players():
                         if target2 in var.list_players():
                             if var.ROLE_REVEAL:
+                                r1 = var.get_reveal_role(target)
+                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
+                                r2 = var.get_reveal_role(target2)
+                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a \u0002{2}\u0002, and \u0002{3}\u0002, a \u0002{4}\u0002, " +
-                                        "get hit by the chemicals and die.").format(votee, target1, var.get_reveal_role(target1), target2, var.get_reveal_role(target2))
+                                        "a{2} \u0002{3}\u0002, and \u0002{4}\u0002, a{5} \u0002{6}\u0002, " +
+                                        "get hit by the chemicals and die.").format(votee, target1, an1, r1, target2, an2, r2)
                             else:
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
@@ -852,9 +858,11 @@ def chk_decision(cli):
                             del_player(cli, target2, True, end_game = False)
                         else:
                             if var.ROLE_REVEAL:
+                                r1 = var.get_reveal_role(target1)
+                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a \u0002{2}\u0002 gets hit by the chemicals and dies.").format(votee, target1, var.get_reveal_role(target1))
+                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(votee, target1, an1, r1)
                             else:
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
@@ -867,9 +875,11 @@ def chk_decision(cli):
                     else:
                         if target2 in var.list_players():
                             if var.ROLE_REVEAL:
+                                r2 = var.get_reveal_role(target2)
+                                an2 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a \u0002{2}\u0002 gets hit by the chemicals and dies.").format(votee, target2, var.get_reveal_role(target2))
+                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(votee, target2, an2, r2)
                             else:
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
@@ -1322,7 +1332,10 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 var.ROLES[nickrole].append(clone)
                                 sayrole = nickrole
                             # if cloning time lord or vengeful ghost, say they are villager instead
-                            pm(cli, clone, "You are now a \u0002{0}\u0002.".format(var.DEFAULT_ROLE if sayrole in ("time lord", "vengeful ghost") else sayrole))
+                            if sayrole in ("time lord", "vengeful ghost"):
+                                sayrole = var.DEFAULT_ROLE
+                            an = "n" if sayrole[0] in ("a", "e", "i", "o", "u") else ""
+                            pm(cli, clone, "You are now a{0} \u0002{1}\u0002.".format(an, sayrole))
                             # if a clone is cloning a clone, clone who the old clone cloned
                             if nickrole == "clone" and nick in var.CLONED:
                                 if var.CLONED[nick] == clone:
@@ -2464,7 +2477,8 @@ def shoot(cli, nick, chann_, rest):
                            "but was {1}fatally injured.").format(victim, accident))
             var.LOGGER.logMessage("{0} is not a wolf but was {1}fatally injured.".format(victim, accident))
             if var.ROLE_REVEAL:
-                cli.msg(chan, "The village has sacrificed a \u0002{0}\u0002.".format(victimrole))
+                an = "n" if victimrole[0] in ("a", "e", "i", "o", "u") else ""
+                cli.msg(chan, "The village has sacrificed a{0} \u0002{1}\u0002.".format(an, victimrole))
                 var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
             if not del_player(cli, victim):
                 return
@@ -2764,8 +2778,10 @@ def observe(cli, nick, rest):
                       "collecting your observations when day begins.").format(victim))
     elif role == "sorcerer":
         if var.get_role(victim) in ("seer", "oracle", "augur"):
+            r1 = var.get_reveal_role(victim)
+            an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
-                           "is a \u0002{1}\u0002!").format(victim, var.get_reveal_role(victim)))
+                           "is a{1} \u0002{2}\u0002!").format(victim, an1, r1))
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
@@ -3709,7 +3725,7 @@ def transition_night(cli):
         if v_ghost in var.PLAYERS and var.PLAYERS[v_ghost]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(v_ghost, ('You are a \u0002vengeful ghost\u0002, sworn to take revenge on the ' +
                               '{0} that you believe killed you. You must kill one of them with ' +
-                              '"kill <nick>" tongiht. If you do not, one of them will be selected ' +
+                              '"kill <nick>" tonight. If you do not, one of them will be selected ' +
                               'at random.').format(who))
         else:
             cli.notice(v_ghost, "You are a \u0002vengeful ghost\u0002.")
