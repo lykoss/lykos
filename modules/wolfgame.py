@@ -1175,6 +1175,11 @@ def chk_win(cli, end_game = True):
     lpl = len(var.list_players())
 
     if var.PHASE == "join":
+        if lpl == 0:
+            #cli.msg(chan, "No more players remaining. Game ended.")
+            reset_modes_timers(cli)
+            reset(cli)
+            return True
         return False
 
     lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
