@@ -1041,6 +1041,8 @@ def stop_game(cli, winner = ""):
     plrl = []
     winners = []
     for role,ppl in var.ORIGINAL_ROLES.items():
+        if role in var.TEMPLATE_RESTRICTIONS.keys():
+            continue
         for x in ppl:
             if x != None:
                 plrl.append((x, role))
