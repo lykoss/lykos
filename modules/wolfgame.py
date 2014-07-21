@@ -1099,14 +1099,15 @@ def stop_game(cli, winner = ""):
             if not winner.startswith("@") and winner != "monsters":
                 iwon = True
         elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
-            if plr in survived:
-                iwon = True
-            elif var.VENGEFUL_GHOSTS[plr] == "villagers" and winner == "wolves":
-                won = True
-                iwon = True
-            elif var.VENGEFUL_GHOSTS[plr] == "wolves" and winner == "villagers":
-                won = True
-                iwon = True
+            if not winner.startswith("@") and winner != "monsters":
+                if plr in survived:
+                    iwon = True
+                elif var.VENGEFUL_GHOSTS[plr] == "villagers" and winner == "wolves":
+                    won = True
+                    iwon = True
+                elif var.VENGEFUL_GHOSTS[plr] == "wolves" and winner == "villagers":
+                    won = True
+                    iwon = True
         elif plr in var.ORIGINAL_ROLES["lycan"]:
             if plr in var.LYCANS and winner == "wolves":
                 won = True
