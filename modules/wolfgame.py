@@ -1368,7 +1368,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         elif nick == clone and nick in var.CLONED:
                             del var.CLONED[nick]
 
-                if nickrole == "time lord" and var.GHOSTPHASE == "day":
+                if nickrole == "time lord":
                     if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
                         var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_WARN"] = var.DAY_TIME_LIMIT_WARN
                     if "DAY_TIME_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
@@ -1387,7 +1387,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.SHORT_DAY_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
                     var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
                     var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
-                    cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died during the day, " +
+                    cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died, " +
                                                 "day will now only last {0} seconds and night will now only " +
                                                 "last {1} seconds!").format(var.TIME_LORD_DAY_WARN + var.TIME_LORD_DAY_CHANGE, var.TIME_LORD_NIGHT_LIMIT))
                 if nickrole == "vengeful ghost":
