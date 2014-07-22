@@ -219,7 +219,10 @@ def make_stasis(nick, penalty):
     try:
         cloak = var.USERS[nick]['cloak']
         if cloak is not None:
-            var.STASISED[cloak] += penalty
+            if penalty == 0:
+                del var.STASISED[cloak]
+            else:
+                var.STASISED[cloak] += penalty
     except KeyError:
         pass
 
