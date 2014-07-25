@@ -451,11 +451,13 @@ def get_player_totals(acc):
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
         player = c.fetchone()
         if player:
-            for role in [k.lower() for k in ROLE_GUIDE.keys()]:
-                c.execute("SELECT totalgames FROM rolestats WHERE player=? COLLATE NOCASE AND role=? COLLATE NOCASE", (acc, role))
+            c.execute("SELECT role, totalgames FROM rolestats WHERE player=? COLLATE NOCASE ORDER BY totalgames DESC", (acc,))
+            while True:
                 row = c.fetchone()
                 if row:
-                    role_totals.append("\u0002{0}\u0002: {1}".format(role, *row))
+                    role_totals.append("\u0002{0}\u0002: {1}".format(row[0], row[1]))
+                else:
+                    break
             c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
             row = c.fetchone()
             return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], ", ".join(role_totals))

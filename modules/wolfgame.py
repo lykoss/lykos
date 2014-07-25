@@ -217,7 +217,10 @@ def make_stasis(nick, penalty):
     try:
         cloak = var.USERS[nick]['cloak']
         if cloak is not None:
-            var.STASISED[cloak] += penalty
+            if penalty == 0:
+                del var.STASISED[cloak]
+            else:
+                var.STASISED[cloak] += penalty
     except KeyError:
         pass
 
@@ -1249,7 +1252,7 @@ def chk_win(cli, end_game = True):
     if end_game:
         cli.msg(chan, message)
         var.LOGGER.logMessage(message)
-        var.LOGGER.logBare(winner.upper())
+        var.LOGGER.logBare(winner.upper(), "WIN")
         stop_game(cli, winner)
     return True
 
@@ -4764,24 +4767,45 @@ def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
 
 
-@cmd("fpull", admin_only=True)
+@cmd('fpull', admin_only=True)
 def fpull(cli, nick, chan, rest):
-    output = None
-    try:
-        output = subprocess.check_output(('git', 'pull'), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        pm(cli, nick, '{0}: {1}'.format(type(e), e))
-        #raise
+    args = ['git', 'pull']
 
-    if output:
-        for line in output.splitlines():
+    if rest:
+        args += rest.split(' ')
+
+    child = subprocess.Popen(args,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    (out, err) = child.communicate()
+    ret = child.returncode
+
+    for line in (out + err).splitlines():
+        if chan == nick:
+            cli.msg(nick, line.decode('utf-8'))
+        else:
             pm(cli, nick, line.decode('utf-8'))
-    else:
-        pm(cli, nick, '(no output)')
 
-@pmcmd("fpull", admin_only=True)
+    if ret != 0:
+        if ret < 0:
+            cause = 'signal'
+        else:
+            cause = 'status'
+
+        if chan == nick:
+            cli.msg(nick, 'Process {} exited with {} {}'.format(args,
+                                                                cause,
+                                                                abs(ret)))
+        else:
+            pm(cli, nick, 'Process {} exited with {} {}'.format(args,
+                                                                cause,
+                                                                abs(ret)))
+
+
+@pmcmd('fpull', admin_only=True)
 def fpull_pm(cli, nick, rest):
     fpull(cli, nick, nick, rest)
+
 
 @pmcmd("fsend", admin_only=True)
 def fsend(cli, nick, rest):
