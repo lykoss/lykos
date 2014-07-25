@@ -1304,6 +1304,23 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                            "however {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
                                 var.LOGGER.logMessage(message.replace("\02", ""))
+                            elif target in var.GUARDED.values() and var.GHOSTPHASE == "night":
+                                for bg in var.ROLES["bodyguard"]:
+                                    if bg in var.GUARDED and var.GUARDED[bg] == target:
+                                        message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
+                                                   "however a bodyguard was on duty and able to foil the attempt.").format(nick, target)
+                                        cli.msg(botconfig.CHANNEL, message)
+                                        var.LOGGER.logMessage(message.replace("\02", ""))
+                                        break
+                                else:
+                                    for ga in var.ROLES["guardian angel"]:
+                                        if ga in var.GUARDED and var.GUARDED[ga] == target:
+                                            message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
+                                                       "however \u0002{2}\u0002, a guardian angel, sacrificed their life to protect them.").format(nick, target, ga)
+                                            cli.msg(botconfig.CHANNEL, message)
+                                            var.LOGGER.logMessage(message.replace("\02", ""))
+                                            del_player(cli, ga, True, end_game = False)
+                                            break
                             else:
                                 if var.ROLE_REVEAL:
                                     role = var.get_reveal_role(target)
@@ -2065,12 +2082,13 @@ def transition_day(cli, gameid=0):
                     message.append(("\u0002{0}\u0002 was attacked last night, but luckily, the bodyguard was on duty.").format(victim))
                     novictmsg = False
                     break
-            for gangel in var.ROLES["guardian angel"]:
-                if var.GUARDED.get(gangel) == victim:
-                    dead.append(gangel)
-                    message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(gangel))
-                    novictmsg = False
-                    break
+            else:
+                for gangel in var.ROLES["guardian angel"]:
+                    if var.GUARDED.get(gangel) == victim:
+                        dead.append(gangel)
+                        message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(gangel))
+                        novictmsg = False
+                        break
         elif victim in var.ROLES["harlot"] and victim in bywolves and var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
             novictmsg = False
