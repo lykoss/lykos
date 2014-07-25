@@ -810,23 +810,24 @@ def chk_decision(cli):
                 # roles that eliminate other players upon being lynched
                 # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
                 elif votee in var.DESPERATE:
-                    # Also kill the very last person to vote them
+                    # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
                     target = voters[-1]
-                    if var.ROLE_REVEAL:
-                        r1 = var.get_reveal_role(target)
-                        an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
-                        tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
-                                "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
-                                "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
-                    else:
-                        tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
-                                "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
-                                "has fallen over dead.").format(votee, target)
-                    var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                    var.LOGGER.logBare(votee, "ACTIVATED DESPERATION TOTEM")
-                    var.LOGGER.logBare(target, "DESPERATION TOTEM TARGET")
-                    cli.msg(botconfig.CHANNEL, tmsg)
-                    del_player(cli, target, True, end_game = False) # do not end game just yet, we have more killin's to do!
+                    if target != votee:
+                        if var.ROLE_REVEAL:
+                            r1 = var.get_reveal_role(target)
+                            an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
+                            tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                    "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
+                                    "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
+                        else:
+                            tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                    "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
+                                    "has fallen over dead.").format(votee, target)
+                        var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                        var.LOGGER.logBare(votee, "ACTIVATED DESPERATION TOTEM")
+                        var.LOGGER.logBare(target, "DESPERATION TOTEM TARGET")
+                        cli.msg(botconfig.CHANNEL, tmsg)
+                        del_player(cli, target, True, end_game = False) # do not end game just yet, we have more killin's to do!
                 if votee in var.ROLES["mad scientist"]:
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
                     # if those players are already dead, nothing happens
