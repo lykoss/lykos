@@ -1690,24 +1690,20 @@ def on_nick(cli, prefix, nick):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar[prefix]
                     del dictvar[prefix]
-            for a,b in (list(var.KILLS.items()) + list(var.LOVERS.items())):
+            for dictvar in (var.KILLS, var.LOVERS):
                 kvp = []
-                if a == prefix:
-                    a = nick
-                try:
+                for a,b in dictvar.items():
                     nl = []
                     for n in b:
                         if n == prefix:
                             n = nick
-                    nl.append(n)
-                    b = nl
-                except TypeError:
-                    if b == prefix:
-                        b = nick
-                kvp.append((a,b))
-                var.KILLS.update(kvp)
-                if prefix in var.KILLS.keys():
-                    del var.KILLS[prefix]
+                        nl.append(n)
+                    if a == prefix:
+                        a = nick
+                    kvp.append((a,nl))
+                dictvar.update(kvp)
+                if prefix in dictvar.keys():
+                    del dictvar[prefix]
             if prefix in var.SEEN:
                 var.SEEN.remove(prefix)
                 var.SEEN.append(nick)
