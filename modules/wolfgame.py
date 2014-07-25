@@ -2387,7 +2387,7 @@ def wolfretract(cli, nick, rest):
         return
 
     role = var.get_role(nick)
-    if role not in ("wolf", "werecrow", "hunter") or nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in ("wolf", "werecrow", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only retract at night.")
