@@ -1,35 +1,16 @@
-Dependencies
-------------
+This is the game bot for ##werewolf on freenode. It's a continutation of
+[lycanthrope][1], which has become inactive. We have an active community, and
+we'd love for you to join us!
 
-- Python 3.2 or higher
+# Running the bot
 
-Configuration
--------------
+If you wish to run your own copy of the bot, all you need is Python 3.2 or a
+newer version.
 
 Copy `botconfig.py.example` to `botconfig.py` and modify the settings as needed.
 If desired, edit `settings/wolfgame.py` to modify game settings.
 
-Starting the bot
-----------------
+To start the bot, run `./wolfbot.py`. You can optionally use `--debug` or
+`--verbose`.
 
-To start the bot, you can simply execute `wolfbot.py`:
-
-    $ ./wolfbot.py
-
-Debug mode can be enabled with the `--debug` argument:
-
-    $ ./wolfbot.py --debug
-
-Verbose logging can be enabled with the `--verbose` argument:
-
-    $ ./wolfbot.py --verbose
-
-Playing the game
-----------------
-
-You can find us in ``##werewolf`` on [freenode][1] <sup>[(webchat)][2]</sup>. The
-bot is running there and we have an active community. We'd love for you to join
-us!
-
-[1]: https://freenode.net/
-[2]: http://webchat.freenode.net?channels=%23%23werewolf
+[1]: https://github.com/LycanthropeTheGreat/lycanthrope
