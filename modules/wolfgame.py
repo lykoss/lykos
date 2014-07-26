@@ -1089,17 +1089,19 @@ def stop_game(cli, winner = ""):
                 won = True
 
         survived = var.list_players()
+        splr = plr
         if plr.startswith("(dced)"):
+            splr = plr[6:]
             # You get NOTHING! You LOSE! Good DAY, sir!
             won = False
             iwon = False
-        elif plr in var.ORIGINAL_ROLES["fool"] and "@" + plr == winner:
+        elif plr in var.ORIGINAL_ROLES["fool"] and "@" + splr == winner:
             iwon = True
-        elif plr in var.ORIGINAL_ROLES["monster"] and plr in survived and winner == "monsters":
+        elif plr in var.ORIGINAL_ROLES["monster"] and splr in survived and winner == "monsters":
             iwon = True
         # del_player() doesn't get called on lynched fool, so both will survive even in that case
-        elif plr in var.LOVERS and plr in survived:
-            for lvr in var.LOVERS[plr]:
+        elif splr in var.LOVERS and splr in survived:
+            for lvr in var.LOVERS[splr]:
                 if lvr in survived and not winner.startswith("@") and winner != "monsters":
                     iwon = True
                     break
@@ -1110,35 +1112,35 @@ def stop_game(cli, winner = ""):
                     iwon = True
                     break
         if plr in var.ORIGINAL_ROLES["crazed shaman"]:
-            if plr in survived and not winner.startswith("@") and winner != "monsters":
+            if splr in survived and not winner.startswith("@") and winner != "monsters":
                 iwon = True
         elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
             if not winner.startswith("@") and winner != "monsters":
                 if plr in survived:
                     iwon = True
-                elif var.VENGEFUL_GHOSTS[plr] == "villagers" and winner == "wolves":
+                elif var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
                     won = True
                     iwon = True
-                elif var.VENGEFUL_GHOSTS[plr] == "wolves" and winner == "villagers":
+                elif var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
                     won = True
                     iwon = True
         elif plr in var.ORIGINAL_ROLES["lycan"]:
-            if plr in var.LYCANS and winner == "wolves":
+            if splr in var.LYCANS and winner == "wolves":
                 won = True
-            elif plr not in var.LYCANS and winner == "villagers":
+            elif splr not in var.LYCANS and winner == "villagers":
                 won = True
             else:
                 won = False
             if not iwon:
-                iwon = won and plr in survived
+                iwon = won and splr in survived
         elif not iwon:
-            iwon = won and plr in survived  # survived, team won = individual win
+            iwon = won and splr in survived  # survived, team won = individual win
 
         if acc != "*":
             var.update_role_stats(acc, rol, won, iwon)
 
         if won or iwon:
-            winners.append(plr)
+            winners.append(splr)
 
     size = len(survived) + len(var.DEAD)
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
@@ -1366,10 +1368,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             if nickrole == "clone" and nick in var.CLONED:
                                 if var.CLONED[nick] == clone:
                                     pm(cli, clone, "It appears that your \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.".format(nick))
-                                    del var.CLONED[nick]
                                 else:
                                     var.CLONED[clone] = var.CLONED[nick]
-                                    del var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
                             elif nickrole in var.WOLFCHAT_ROLES:
                                 wolves = var.list_players(var.WOLFCHAT_ROLES)
@@ -1386,8 +1386,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfrole)
 
                                     pm(cli, clone, "Wolves: " + ", ".join(wolves))
-                        elif nick == clone and nick in var.CLONED:
-                            del var.CLONED[nick]
+                if nickrole == "clone" and nick in var.CLONED:
+                    del var.CLONED[nick]
 
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
