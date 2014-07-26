@@ -2102,6 +2102,7 @@ def transition_day(cli, gameid=0):
             random.shuffle(wolves)
             wolves.remove(victim)  # remove self from list
             for i, wolf in enumerate(wolves):
+                pm(cli, wolf, "\u0002{0}\u0002 is now a wolf!".format(victim))
                 role = var.get_role(wolf)
                 cursed = ""
                 if wolf in var.ROLES["cursed villager"]:
