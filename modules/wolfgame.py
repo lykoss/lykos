@@ -1311,18 +1311,18 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 cli.msg(botconfig.CHANNEL, message)
                                 var.LOGGER.logMessage(message.replace("\02", ""))
                             elif target in var.GUARDED.values() and var.GHOSTPHASE == "night":
-                                for bg in var.ROLES["bodyguard"]:
+                                for bg in var.ROLES["guardian angel"]:
                                     if bg in var.GUARDED and var.GUARDED[bg] == target:
                                         message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                                   "however a bodyguard was on duty and able to foil the attempt.").format(nick, target)
+                                                   "however a guardian angel was on duty and able to foil the attempt.").format(nick, target)
                                         cli.msg(botconfig.CHANNEL, message)
                                         var.LOGGER.logMessage(message.replace("\02", ""))
                                         break
                                 else:
-                                    for ga in var.ROLES["guardian angel"]:
+                                    for ga in var.ROLES["bodyguard"]:
                                         if ga in var.GUARDED and var.GUARDED[ga] == target:
                                             message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                                       "however \u0002{2}\u0002, a guardian angel, sacrificed their life to protect them.").format(nick, target, ga)
+                                                       "however \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
                                             cli.msg(botconfig.CHANNEL, message)
                                             var.LOGGER.logMessage(message.replace("\02", ""))
                                             del_player(cli, ga, True, end_game = False)
@@ -1885,7 +1885,7 @@ def begin_day(cli):
     var.SHAMANS = [] # list of shamans/crazed shamans that have acted
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
     var.HVISITED = {} # those whom harlots have visited
-    var.GUARDED = {}  # this whom guardian angels/bodyguards have guarded
+    var.GUARDED = {}  # this whom bodyguards/guardian angels have guarded
     var.PASSED = [] # hunters that have opted not to kill
     var.STARTED_DAY_PLAYERS = len(var.list_players())
 
@@ -1940,11 +1940,11 @@ def transition_day(cli, gameid=0):
             if shaman not in var.SHAMANS:
                 var.LASTGIVEN[shaman] = None
 
-    # GA doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
-    if len(var.GUARDED.keys()) < len(var.ROLES["guardian angel"] + var.ROLES["bodyguard"]):
-        for bodyguard in var.ROLES["bodyguard"]:
-            if bodyguard not in var.GUARDED:
-                var.LASTGUARDED[bodyguard] = None
+    # bodyguard doesn't have restrictions, but being checked anyway since both GA and guardian angel use var.GUARDED
+    if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] + var.ROLES["guardian angel"]):
+        for gangel in var.ROLES["guardian angel"]:
+            if gangel not in var.GUARDED:
+                var.LASTGUARDED[gangel] = None
 
     # Select a random target for vengeful ghost if they didn't kill
     wolves = var.list_players(var.WOLFTEAM_ROLES)
@@ -2077,13 +2077,13 @@ def transition_day(cli, gameid=0):
                             "allowing them to escape.").format(victim))
             novictmsg = False
         elif victim in var.GUARDED.values() and victim not in var.DYING:
-            for bodyguard in var.ROLES["bodyguard"]:
-                if var.GUARDED.get(bodyguard) == victim:
-                    message.append(("\u0002{0}\u0002 was attacked last night, but luckily, the bodyguard was on duty.").format(victim))
+            for gangel in var.ROLES["guardian angel"]:
+                if var.GUARDED.get(gangel) == victim:
+                    message.append(("\u0002{0}\u0002 was attacked last night, but luckily, the guardian angel was on duty.").format(victim))
                     novictmsg = False
                     break
             else:
-                for gangel in var.ROLES["guardian angel"]:
+                for gangel in var.ROLES["bodyguard"]:
                     if var.GUARDED.get(gangel) == victim:
                         dead.append(gangel)
                         message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(gangel))
@@ -2164,6 +2164,22 @@ def transition_day(cli, gameid=0):
                             "visiting a wolf's house last night and is "+
                             "now dead.").format(harlot))
             dead.append(harlot)
+    for gangel in var.ROLES["bodyguard"]:
+        if var.GUARDED.get(gangel) in var.list_players(var.WOLF_ROLES):
+            if gangel in dead:
+                continue # already dead.
+            r = random.random()
+            if r < var.BODYGUARD_DIES_CHANCE:
+                if var.ROLE_REVEAL:
+                    message.append(("\02{0}\02, a \02bodyguard\02, "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(gangel))
+                else:
+                    message.append(("\02{0}\02 "+
+                                    "made the unfortunate mistake of guarding a wolf "+
+                                    "last night, and is now dead.").format(gangel))
+                var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
+                dead.append(gangel)
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.list_players(var.WOLF_ROLES):
             if gangel in dead:
@@ -2180,22 +2196,6 @@ def transition_day(cli, gameid=0):
                                     "last night, and is now dead.").format(gangel))
                 var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
-    for bodyguard in var.ROLES["bodyguard"]:
-        if var.GUARDED.get(bodyguard) in var.list_players(var.WOLF_ROLES):
-            if bodyguard in dead:
-                continue # already dead.
-            r = random.random()
-            if r < var.BODYGUARD_DIES_CHANCE:
-                if var.ROLE_REVEAL:
-                    message.append(("\02{0}\02, a \02bodyguard\02, "+
-                                    "made the unfortunate mistake of guarding a wolf "+
-                                    "last night, and is now dead.").format(bodyguard))
-                else:
-                    message.append(("\02{0}\02 "+
-                                    "made the unfortunate mistake of guarding a wolf "+
-                                    "last night, and is now dead.").format(bodyguard))
-                var.LOGGER.logBare(bodyguard, "KILLEDWHENGUARDINGWOLF")
-                dead.append(bodyguard)
     for havetotem in havetotem.values():
         if havetotem:
             message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
@@ -2233,7 +2233,7 @@ def chk_nightdone(cli):
                       list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
                       list(var.TARGETED.keys()))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
-                  var.ROLES["guardian angel"] + var.ROLES["bodyguard"] + var.ROLES["wolf"] +
+                  var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
                   var.ROLES["crazed shaman"] + var.ROLES["assassin"] + var.ROLES["augur"])
@@ -2679,8 +2679,8 @@ def guard(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
-    if role not in ("guardian angel", "bodyguard"):
-        pm(cli, nick, "Only a guardian angel or bodyguard may use this command.")
+    if role not in ("bodyguard", "guardian angel"):
+        pm(cli, nick, "Only a bodyguard or guardian angel may use this command.")
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only protect people at night.")
@@ -2696,7 +2696,7 @@ def guard(cli, nick, rest):
         pm(cli, nick, ("You are already protecting "+
                       "\u0002{0}\u0002.").format(var.GUARDED[nick]))
         return
-    if role == "bodyguard" and var.LASTGUARDED.get(nick) == victim:
+    if role == "guardian angel" and var.LASTGUARDED.get(nick) == victim:
         pm(cli, nick, ("You protected \u0002{0}\u0002 last night. " +
                        "You cannot protect the same person two nights in a row.").format(victim))
         return
@@ -2716,11 +2716,11 @@ def guard(cli, nick, rest):
             return
     victim = pl[pll.index(target)]
     if victim == nick:
-        if role == "guardian angel" or not var.BODYGUARD_CAN_GUARD_SELF:
+        if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
             var.GUARDED[nick] = None
             del var.LASTGUARDED[nick]
             pm(cli, nick, "You have chosen not to guard anyone tonight.")
-        elif role == "bodyguard":
+        elif role == "guardian angel":
             var.GUARDED[nick] = nick
             var.LASTGUARDED[nick] = nick
             pm(cli, nick, "You have decided to guard yourself tonight.")
@@ -3595,42 +3595,42 @@ def transition_night(cli):
             cli.notice(harlot, "You are a \02harlot\02.")  # !simple
         pm(cli, harlot, "Players: " + ", ".join(pl))
 
-    # the messages for angel and bodyguard are different enough to merit individual loops
-    for g_angel in var.ROLES["guardian angel"]:
+    # the messages for angel and guardian angel are different enough to merit individual loops
+    for g_angel in var.ROLES["bodyguard"]:
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(g_angel)
-        chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
-
-        if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(g_angel, ('You are a \u0002guardian angel\u0002. '+
-                              'It is your job to protect the villagers. {0}If you guard '+
-                              'a victim, you will sacrifice yourself to save them. ' +
-                              'Use "guard <nick>" to guard a player.').format(warning))
-        else:
-            cli.notice(g_angel, "You are a \02guardian angel\02.")  # !simple
-        pm(cli, g_angel, "Players: " + ", ".join(pl))
-
-    for bodyguard in var.ROLES["bodyguard"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(bodyguard)
         chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
         warning = ""
         if chance > 0:
             warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
 
-        if bodyguard in var.PLAYERS and var.PLAYERS[bodyguard]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(bodyguard, ('You are a \u0002bodyguard\u0002. '+
+        if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(g_angel, ('You are a \u0002bodyguard\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
-                              'a victim, they will live. ' +
+                              'a victim, you will sacrifice yourself to save them. ' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
-            cli.notice(bodyguard, "You are a \02bodyguard\02.")  # !simple
-        pm(cli, bodyguard, "Players: " + ", ".join(pl))
+            cli.notice(g_angel, "You are a \02bodyguard\02.")  # !simple
+        pm(cli, g_angel, "Players: " + ", ".join(pl))
+
+    for gangel in var.ROLES["guardian angel"]:
+        pl = ps[:]
+        random.shuffle(pl)
+        pl.remove(gangel)
+        chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
+        warning = ""
+        if chance > 0:
+            warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
+
+        if gangel in var.PLAYERS and var.PLAYERS[gangel]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(gangel, ('You are a \u0002guardian angel\u0002. '+
+                              'It is your job to protect the villagers. {0}If you guard '+
+                              'a victim, they will live. You may not guard the same person two nights in a row.' +
+                              'Use "guard <nick>" to guard a player.').format(warning))
+        else:
+            cli.notice(gangel, "You are a \02guardian angel\02.")  # !simple
+        pm(cli, gangel, "Players: " + ", ".join(pl))
 
     for dttv in var.ROLES["detective"]:
         pl = ps[:]

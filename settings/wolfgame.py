@@ -45,7 +45,7 @@ GOAT_HERDER = True
 SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 VENGEFUL_GHOST_KNOWS_ROLES = True
-BODYGUARD_CAN_GUARD_SELF = True
+GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
 ROLE_REVEAL = True
@@ -90,8 +90,8 @@ ROLE_GUIDE = {# village roles
               "augur"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "village drunk"   : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               "harlot"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              "guardian angel"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-              "bodyguard"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "guardian angel"  : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "bodyguard"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
               "detective"       : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               "village elder"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "time lord"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
@@ -286,8 +286,8 @@ class EvilVillageMode(object):
               "augur"           : (   0   ,   0   ),
               "village drunk"   : (   0   ,   0   ),
               "harlot"          : (   0   ,   0   ),
-              "guardian angel"  : (   0   ,   0   ),
-              "bodyguard"       : (   0   ,   1   ),
+              "guardian angel"  : (   0   ,   1   ),
+              "bodyguard"       : (   0   ,   0   ),
               "detective"       : (   0   ,   0   ),
               "village elder"   : (   0   ,   0   ),
               "time lord"       : (   0   ,   0   ),
