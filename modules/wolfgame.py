@@ -743,8 +743,7 @@ def hurry_up(cli, gameid, change):
     if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
         var.LOGGER.logMessage("The sun sets.")
-        var.VOTES[maxfound[1]] = [None] * votesneeded
-        chk_decision(cli)  # Induce a lynch
+        chk_decision(cli, force = maxfound[1])  # Induce a lynch
     else:
         cli.msg(chan, ("As the sun sets, the villagers agree to "+
                       "retire to their beds and wait for morning."))
@@ -771,8 +770,8 @@ def fday(cli, nick, chan, rest):
         transition_day(cli)
 
 
-
-def chk_decision(cli):
+# Specify force = "nick" to force nick to be lynched
+def chk_decision(cli, force = ""):
     chan = botconfig.CHANNEL
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
@@ -780,7 +779,7 @@ def chk_decision(cli):
     aftermessage = None
     for votee, voters in iter(var.VOTES.items()):
         numvotes = sum([var.BUREAUCRAT_VOTES if p in var.ROLES["bureaucrat"] else 1 for p in voters])
-        if numvotes >= votesneeded:
+        if numvotes >= votesneeded or votee == force:
             # roles that prevent any lynch from happening
             if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
                 lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
