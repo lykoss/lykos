@@ -3422,6 +3422,7 @@ def transition_night(cli):
     if var.PHASE == "night":
         return
     var.PHASE = "night"
+    var.GHOSTPHASE = "night"
 
     for x, tmr in var.TIMERS.items():  # cancel daytime timer
         tmr.cancel()
