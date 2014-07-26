@@ -841,7 +841,7 @@ def chk_decision(cli):
                     if target1 in var.list_players():
                         if target2 in var.list_players():
                             if var.ROLE_REVEAL:
-                                r1 = var.get_reveal_role(target)
+                                r1 = var.get_reveal_role(target1)
                                 an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
                                 r2 = var.get_reveal_role(target2)
                                 an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
@@ -1367,7 +1367,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             # if a clone is cloning a clone, clone who the old clone cloned
                             if nickrole == "clone" and nick in var.CLONED:
                                 if var.CLONED[nick] == clone:
-                                    pm(cli, clone, "It appears that your \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.".format(nick))
+                                    pm(cli, clone, "It appears that \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.".format(nick))
                                 else:
                                     var.CLONED[clone] = var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
