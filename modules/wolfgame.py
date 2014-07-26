@@ -97,10 +97,10 @@ var.OPPED = False  # Keeps track of whether the bot is opped
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0 # 120
     var.NIGHT_TIME_WARN = 0 # 90
-    var.DAY_TIME_LIMIT_WARN = 0 # 600
-    var.DAY_TIME_LIMIT_CHANGE = 0 # 120
-    var.SHORT_DAY_LIMIT_WARN = 0 # 400
-    var.SHORT_DAY_LIMIT_CHANGE = 0 # 120
+    var.DAY_TIME_LIMIT = 0 # 720
+    var.DAY_TIME_WARN = 0 # 600
+    var.SHORT_DAY_LIMIT = 0 # 520
+    var.SHORT_DAY_WARN = 0 # 400
     var.KILL_IDLE_TIME = 0 # 300
     var.WARN_IDLE_TIME = 0 # 180
     var.JOIN_TIME_LIMIT = 0
@@ -187,7 +187,7 @@ def reset_settings():
 def reset_modes_timers(cli):
     # Reset game timers
     for x, timr in var.TIMERS.items():
-        timr.cancel()
+        timr[0].cancel()
     var.TIMERS = {}
 
     # Reset modes
@@ -451,7 +451,7 @@ def join(cli, nick, chann_, rest):
         # Set join timer
         if var.JOIN_TIME_LIMIT:
             t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
-            var.TIMERS['join'] = t
+            var.TIMERS['join'] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
             t.start()
 
@@ -713,15 +713,6 @@ def hurry_up(cli, gameid, change):
                       "time remains for them to reach a decision; if darkness falls before they have done " +
                       "so, the majority will win the vote. No one will be lynched if there " +
                       "are no votes or an even split.\02"))
-        if not var.DAY_TIME_LIMIT_CHANGE:
-            return
-        if (len(var.list_players()) <= var.SHORT_DAY_PLAYERS):
-            tmr = threading.Timer(var.SHORT_DAY_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
-        else:
-            tmr = threading.Timer(var.DAY_TIME_LIMIT_CHANGE, hurry_up, [cli, var.DAY_ID, True])
-        tmr.daemon = True
-        var.TIMERS["day"] = tmr
-        tmr.start()
         return
 
 
@@ -1389,27 +1380,27 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     del var.CLONED[nick]
 
                 if nickrole == "time lord":
-                    if "DAY_TIME_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_WARN"] = var.DAY_TIME_LIMIT_WARN
-                    if "DAY_TIME_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT_CHANGE"] = var.DAY_TIME_LIMIT_CHANGE
-                    if "SHORT_DAY_LIMIT_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_WARN"] = var.SHORT_DAY_LIMIT_WARN
-                    if "SHORT_DAY_LIMIT_CHANGE" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT_CHANGE"] = var.SHORT_DAY_LIMIT_CHANGE
+                    if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT"] = var.DAY_TIME_LIMIT
+                    if "DAY_TIME_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["DAY_TIME_WARN"] = var.DAY_TIME_WARN
+                    if "SHORT_DAY_LIMIT" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT"] = var.SHORT_DAY_LIMIT
+                    if "SHORT_DAY_WARN" not in var.ORIGINAL_SETTINGS:
+                        var.ORIGINAL_SETTINGS["SHORT_DAY_WARN"] = var.SHORT_DAY_WARN
                     if "NIGHT_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
                         var.ORIGINAL_SETTINGS["NIGHT_TIME_LIMIT"] = var.NIGHT_TIME_LIMIT
                     if "NIGHT_TIME_WARN" not in var.ORIGINAL_SETTINGS:
                         var.ORIGINAL_SETTINGS["NIGHT_TIME_WARN"] = var.NIGHT_TIME_WARN
-                    var.DAY_TIME_LIMIT_WARN = var.TIME_LORD_DAY_WARN
-                    var.DAY_TIME_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
-                    var.SHORT_DAY_LIMIT_WARN = var.TIME_LORD_DAY_WARN
-                    var.SHORT_DAY_LIMIT_CHANGE = var.TIME_LORD_DAY_CHANGE
+                    var.DAY_TIME_LIMIT = var.TIME_LORD_DAY_LIMIT
+                    var.DAY_TIME_WARN = var.TIME_LORD_DAY_WARN
+                    var.SHORT_DAY_LIMIT = var.TIME_LORD_DAY_LIMIT
+                    var.SHORT_DAY_WARN = var.TIME_LORD_DAY_WARN
                     var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
                     var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
                     cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died, " +
                                                 "day will now only last {0} seconds and night will now only " +
-                                                "last {1} seconds!").format(var.TIME_LORD_DAY_WARN + var.TIME_LORD_DAY_CHANGE, var.TIME_LORD_NIGHT_LIMIT))
+                                                "last {1} seconds!").format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
                 if nickrole == "vengeful ghost":
                     if var.GHOSTPHASE == "night":
                         var.VENGEFUL_GHOSTS[nick] = "wolves"
@@ -1895,15 +1886,28 @@ def begin_day(cli):
     var.LOGGER.logMessage(msg)
     var.LOGGER.logBare("DAY", "BEGIN")
 
-    if var.DAY_TIME_LIMIT_WARN > 0:  # Time limit enabled
-        var.DAY_ID = time.time()
+    var.DAY_ID = time.time()
+    if var.DAY_TIME_WARN > 0:
         if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            t = threading.Timer(var.SHORT_DAY_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
+            t1 = threading.Timer(var.SHORT_DAY_WARN, hurry_up, [cli, var.DAY_ID, False])
+            l = var.SHORT_DAY_WARN
         else:
-            t = threading.Timer(var.DAY_TIME_LIMIT_WARN, hurry_up, [cli, var.DAY_ID, False])
-        var.TIMERS["day_warn"] = t
-        t.daemon = True
-        t.start()
+            t1 = threading.Timer(var.DAY_TIME_WARN, hurry_up, [cli, var.DAY_ID, False])
+            l = var.DAY_TIME_WARN
+        var.TIMERS["day_warn"] = (t1, var.DAY_ID, l)
+        t1.daemon = True
+        t1.start()
+
+    if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
+        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
+            t2 = threading.Timer(var.SHORT_DAY_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+            l = var.SHORT_DAY_LIMIT
+        else:
+            t2 = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+            l = var.DAY_TIME_LIMIT
+        var.TIMERS["day"] = (t2, var.DAY_ID, l)
+        t2.daemon = True
+        t2.start()
 
 def night_warn(cli, gameid):
     if gameid != var.NIGHT_ID:
@@ -2263,7 +2267,7 @@ def chk_nightdone(cli):
             return
 
         for x, t in var.TIMERS.items():
-            t.cancel()
+            t[0].cancel()
 
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
@@ -3425,7 +3429,7 @@ def transition_night(cli):
     var.GHOSTPHASE = "night"
 
     for x, tmr in var.TIMERS.items():  # cancel daytime timer
-        tmr.cancel()
+        tmr[0].cancel()
     var.TIMERS = {}
 
     # Reset nighttime variables
@@ -3464,14 +3468,14 @@ def transition_night(cli):
     if var.NIGHT_TIME_LIMIT > 0:
         var.NIGHT_ID = time.time()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
-        var.TIMERS["night"] = t
-        var.TIMERS["night"].daemon = True
+        var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
+        t.daemon = True
         t.start()
 
     if var.NIGHT_TIME_WARN > 0:
         t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, [cli, var.NIGHT_ID])
-        var.TIMERS["night_warn"] = t2
-        var.TIMERS["night_warn"].daemon = True
+        var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
+        t2.daemon = True
         t2.start()
 
     # convert amnesiac and kill village elder if necessary
@@ -3948,7 +3952,7 @@ def start(cli, nick, chann_, rest):
 
     # Cancel join timer
     if 'join' in var.TIMERS:
-        var.TIMERS['join'].cancel()
+        var.TIMERS['join'][0].cancel()
         del var.TIMERS['join']
 
     if var.ORIGINAL_SETTINGS:  # Custom settings
@@ -4469,29 +4473,18 @@ def timeleft(cli, nick, chan, rest):
     if chan != nick:
         var.LAST_TIME = datetime.now()
 
-    if var.PHASE == "day":
-        if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            remaining = int((var.SHORT_DAY_LIMIT_WARN +
-                var.SHORT_DAY_LIMIT_CHANGE) - (datetime.now() -
-                var.DAY_START_TIME).total_seconds())
-        else:
-            remaining = int((var.DAY_TIME_LIMIT_WARN +
-                var.DAY_TIME_LIMIT_CHANGE) - (datetime.now() -
-                var.DAY_START_TIME).total_seconds())
+    if var.PHASE in var.TIMERS:
+        t = var.TIMERS[var.PHASE]
+        remaining = int((t[1] + t[2]) - time.time())
+        if var.PHASE == "day":
+            what = "sunset"
+        elif var.PHASE == "night":
+            what = "sunrise"
+        elif var.PHASE == "join":
+            what = "game is canceled"
+        msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
-        remaining = int(var.NIGHT_TIME_LIMIT - (datetime.now() -
-            var.NIGHT_START_TIME).total_seconds())
-
-    #Check if timers are actually enabled
-    if (var.PHASE == "day") and ((var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS and
-            var.SHORT_DAY_LIMIT_WARN == 0) or (var.DAY_TIME_LIMIT_WARN == 0 and
-            var.STARTED_DAY_PLAYERS > var.SHORT_DAY_PLAYERS)):
-        msg = "Day timers are currently disabled."
-    elif var.PHASE == "night" and var.NIGHT_TIME_LIMIT == 0:
-        msg = "Night timers are currently disabled."
-    else:
-        msg = "There is \x02{0[0]:0>2}:{0[1]:0>2}\x02 remaining until {1}.".format(
-            divmod(remaining, 60), "sunrise" if var.PHASE == "night" else "sunset")
+        msg = "{0} timers are currently disabled.".format(var.PHASE.capitalize())
 
     if nick == chan:
         pm(cli, nick, msg)

@@ -18,16 +18,16 @@ MAX_PLAYERS = 21
 DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
-DAY_TIME_LIMIT_WARN = 600
-DAY_TIME_LIMIT_CHANGE = 120  # seconds after DAY_TIME_LIMIT_WARN has passed
+DAY_TIME_LIMIT = 720
+DAY_TIME_WARN = 600   # should be less than DAY_TIME_LIMIT
 JOIN_TIME_LIMIT = 3600
 # May only be set if the above are also set
 SHORT_DAY_PLAYERS = 6 # Number of players left to have a short day
-SHORT_DAY_LIMIT_WARN = 400
-SHORT_DAY_LIMIT_CHANGE = 120
-# If time lord is lynched, the timers get set to this instead (60s day, 30s night)
+SHORT_DAY_LIMIT = 520
+SHORT_DAY_WARN = 400
+# If time lord dies, the timers get set to this instead (60s day, 30s night)
+TIME_LORD_DAY_LIMIT = 60
 TIME_LORD_DAY_WARN = 45
-TIME_LORD_DAY_CHANGE = 15
 TIME_LORD_NIGHT_LIMIT = 30
 TIME_LORD_NIGHT_WARN = 20
 KILL_IDLE_TIME = 300
