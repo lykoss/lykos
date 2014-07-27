@@ -1059,69 +1059,77 @@ def stop_game(cli, winner = ""):
     elif len(lovers) > 2:
         cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
 
-    plrl = []
+    plrl = {}
     winners = []
     for role,ppl in var.ORIGINAL_ROLES.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
         for x in ppl:
             if x != None:
-                plrl.append((x, role))
-    for plr, rol in plrl:
-        #if plr not in var.USERS.keys():  # they died TODO: when a player leaves, count the game as lost for them
-        #    if plr in var.DEAD_USERS.keys():
-        #        acc = var.DEAD_USERS[plr]["account"]
-        #    else:
-        #        continue  # something wrong happened
-        #else:
+                plrl[x] = role
+    for plr, rol in plrl.items():
+        orol = rol # original role, since we overwrite rol in case of clone
+        splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
         if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
             acc = var.DCED_PLAYERS[plr[6:]]["account"]
+            splr = plr[6:]
         elif plr in var.PLAYERS.keys():
             acc = var.PLAYERS[plr]["account"]
         else:
             acc = "*"  #probably fjoin'd fake
 
+        if rol == "clone":
+            # see if they became a different role
+            if splr in var.FINAL_ROLES:
+                rol = var.FINAL_ROLES[splr]
+
         won = False
         iwon = False
         # determine if this player's team won
-        if plr in [p for r in var.WOLFTEAM_ROLES for p in var.ORIGINAL_ROLES[r]]:  # the player was wolf-aligned
+        if rol in var.WOLFTEAM_ROLES:  # the player was wolf-aligned
             if winner == "wolves":
                 won = True
-        elif plr in [p for r in var.TRUE_NEUTRAL_ROLES for p in var.ORIGINAL_ROLES[r]]:
+        elif rol in var.TRUE_NEUTRAL_ROLES:
             # true neutral roles never have a team win (with exception of monsters), only individual wins
-            if winner == "monsters" and plr in var.ORIGINAL_ROLES["monster"]:
+            if winner == "monsters" and rol == "monster":
                 won = True
         else:
             if winner == "villagers":
                 won = True
 
         survived = var.list_players()
-        splr = plr
         if plr.startswith("(dced)"):
-            splr = plr[6:]
             # You get NOTHING! You LOSE! Good DAY, sir!
             won = False
             iwon = False
-        elif plr in var.ORIGINAL_ROLES["fool"] and "@" + splr == winner:
+        elif rol == "fool" and "@" + splr == winner:
             iwon = True
-        elif plr in var.ORIGINAL_ROLES["monster"] and splr in survived and winner == "monsters":
+        elif rol == "monster" and splr in survived and winner == "monsters":
             iwon = True
         # del_player() doesn't get called on lynched fool, so both will survive even in that case
         elif splr in var.LOVERS and splr in survived:
             for lvr in var.LOVERS[splr]:
+                if lvr in plrl:
+                    lvrrol = plrl[lvr]
+                elif ("(dced)" + lvr) in plrl:
+                    lvrrol = plrrl["(dced)" + lvr]
+                if lvrrol == "clone" and lvr in var.FINAL_ROLES:
+                    lvrrol = var.FINAL_ROLES[lvr]
+
                 if lvr in survived and not winner.startswith("@") and winner != "monsters":
                     iwon = True
                     break
                 elif lvr in survived and winner.startswith("@") and winner == "@" + lvr:
                     iwon = True
                     break
-                elif lvr in survived and winner == "monsters" and lvr in var.ORIGINAL_ROLES["monster"]:
+                elif lvr in survived and winner == "monsters" and lvrrol == "monster":
                     iwon = True
                     break
-        if plr in var.ORIGINAL_ROLES["crazed shaman"]:
+        if rol == "crazed shaman" or rol == "clone":
+            # For clone, this means they ended game while being clone and not some other role
             if splr in survived and not winner.startswith("@") and winner != "monsters":
                 iwon = True
-        elif plr in var.ORIGINAL_ROLES["vengeful ghost"]:
+        elif rol == "vengeful ghost":
             if not winner.startswith("@") and winner != "monsters":
                 if splr in survived:
                     iwon = True
@@ -1131,7 +1139,7 @@ def stop_game(cli, winner = ""):
                 elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
                     won = True
                     iwon = True
-        elif plr in var.ORIGINAL_ROLES["lycan"]:
+        elif rol == "lycan":
             if splr in var.LYCANS and winner == "wolves":
                 won = True
             elif splr not in var.LYCANS and winner == "villagers":
@@ -1144,7 +1152,7 @@ def stop_game(cli, winner = ""):
             iwon = won and splr in survived  # survived, team won = individual win
 
         if acc != "*":
-            var.update_role_stats(acc, rol, won, iwon)
+            var.update_role_stats(acc, orol, won, iwon)
 
         if won or iwon:
             winners.append(splr)
