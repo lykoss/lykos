@@ -1042,6 +1042,23 @@ def stop_game(cli, winner = ""):
             pass
     cli.msg(chan, " ".join(roles_msg))
 
+    done = {}
+    lovers = []
+    for lover1, llist in var.ORIGINAL_LOVERS.items():
+        for lover2 in llist:
+            # check if already said the pairing
+            if lover2 in done and lover1 in done[lover2]:
+                continue
+            lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
+            if lover1 in done:
+                done[lover1].append(lover2)
+            else:
+                done[lover1] = [lover2]
+    if len(lovers) == 1 or len(lovers) == 2:
+        cli.msg(chan, "The lovers were {0}.".format(" and ".join(lovers)))
+    elif len(lovers) > 2:
+        cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+
     plrl = []
     winners = []
     for role,ppl in var.ORIGINAL_ROLES.items():
@@ -1344,10 +1361,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 for r in var.ORIGINAL_ROLES.keys():
                                     if r not in var.TEMPLATE_RESTRICTIONS.keys() and nick in var.ORIGINAL_ROLES[r]:
                                         var.ROLES[r].append(clone)
+                                        var.FINAL_ROLES[clone] = r
                                         sayrole = r
                                         break
                             else:
                                 var.ROLES[nickrole].append(clone)
+                                var.FINAL_ROLES[clone] = nickrole
                                 sayrole = nickrole
                             # if cloning time lord or vengeful ghost, say they are villager instead
                             if sayrole in ("time lord", "vengeful ghost"):
@@ -1679,11 +1698,11 @@ def on_nick(cli, prefix, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS):
+            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar[prefix]
                     del dictvar[prefix]
-            for dictvar in (var.KILLS, var.LOVERS):
+            for dictvar in (var.KILLS, var.LOVERS, var.ORIGINAL_LOVERS):
                 kvp = []
                 for a,b in dictvar.items():
                     nl = []
@@ -3162,13 +3181,17 @@ def choose(cli, nick, rest):
     var.MATCHMAKERS.append(nick)
     if victim in var.LOVERS:
         var.LOVERS[victim].append(victim2)
+        var.ORIGINAL_LOVERS[victim].append(victim2)
     else:
         var.LOVERS[victim] = [victim2]
+        var.ORIGINAL_LOVERS[victim] = [victim2]
 
     if victim2 in var.LOVERS:
         var.LOVERS[victim2].append(victim)
+        var.ORIGINAL_LOVERS[victim2].append(victim)
     else:
         var.LOVERS[victim2] = [victim]
+        var.ORIGINAL_LOVERS[victim2] = [victim]
     pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be lovers.".format(victim, victim2))
 
     if victim in var.PLAYERS and var.PLAYERS[victim]["cloak"] not in var.SIMPLE_NOTIFY:
@@ -4008,6 +4031,8 @@ def start(cli, nick, chann_, rest):
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.ANGRY_WOLVES = False
+    var.FINAL_ROLES = {}
+    var.ORIGINAL_LOVERS = {}
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
