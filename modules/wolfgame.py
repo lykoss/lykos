@@ -1022,24 +1022,21 @@ def stop_game(cli, winner = ""):
         if len(var.ORIGINAL_ROLES[role]) == 0 or role == var.DEFAULT_ROLE:
             continue
         playersinrole = copy.copy(var.ORIGINAL_ROLES[role])
-        try:
-            for i in range(0, len(playersinrole)):
-                if playersinrole[i].startswith("(dced)"):  # don't care about it here
-                    playersinrole[i] = plr[6:]
-            if len(playersinrole) == 2:
-                msg = "The {1} were \u0002{0[0]}\u0002 and \u0002{0[1]}\u0002."
-                roles_msg.append(msg.format(playersinrole, var.plural(role)))
-            elif len(playersinrole) == 1:
-                roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(playersinrole,
-                                                                          role))
-            else:
-                msg = "The {2} were {0}, and \u0002{1}\u0002."
-                nickslist = ["\u0002"+x+"\u0002" for x in playersinrole[0:-1]]
-                roles_msg.append(msg.format(", ".join(nickslist),
-                                                      playersinrole[-1],
-                                                      var.plural(role)))
-        except:
-            pass
+        for i in range(0, len(playersinrole)):
+            if playersinrole[i].startswith("(dced)"):  # don't care about it here
+                playersinrole[i] = playersinrole[i][6:]
+        if len(playersinrole) == 2:
+            msg = "The {1} were \u0002{0[0]}\u0002 and \u0002{0[1]}\u0002."
+            roles_msg.append(msg.format(playersinrole, var.plural(role)))
+        elif len(playersinrole) == 1:
+            roles_msg.append("The {1} was \u0002{0[0]}\u0002.".format(playersinrole,
+                                                                      role))
+        else:
+            msg = "The {2} were {0}, and \u0002{1}\u0002."
+            nickslist = ["\u0002"+x+"\u0002" for x in playersinrole[0:-1]]
+            roles_msg.append(msg.format(", ".join(nickslist),
+                                                  playersinrole[-1],
+                                                  var.plural(role)))
     cli.msg(chan, " ".join(roles_msg))
 
     done = {}
