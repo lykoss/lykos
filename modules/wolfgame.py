@@ -779,7 +779,15 @@ def chk_decision(cli, force = ""):
                 var.LOGGER.logBare(votee, "MAYOR REVEALED")
                 votee = None
             elif votee in var.REVEALED:
-                role = var.get_reveal_role(votee)
+                role = var.get_role(votee)
+                if role == "amnesiac":
+                    var.ROLES["amnesiac"].remove(votee)
+                    for role, plist in var.ORIGINAL_ROLES.items():
+                        if votee in plist and role != "amnesiac":
+                            var.ROLES[role].append(votee)
+                    pm(cli, votee, "Your totem clears your amnesia and you now fully remember who you are!")
+                    role = var.get_role(votee)
+
                 an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
                 lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                         "When the villagers are able to see again, they discover that {0} has escaped! " +
@@ -3514,7 +3522,7 @@ def transition_night(cli):
             for role, plist in var.ORIGINAL_ROLES.items():
                 if amn in plist and role != "amnesiac":
                     var.ROLES[role].append(amn)
-            pm(cli, amn, "Your amnesia clears and you now remember what you are!")
+            pm(cli, amn, "Your amnesia clears and you now fully remember what you are!")
 
     numwolves = len(var.list_players(var.WOLF_ROLES))
     if var.NIGHT_COUNT >= numwolves + 1:
