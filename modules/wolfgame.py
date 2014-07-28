@@ -878,7 +878,7 @@ def chk_decision(cli, force = ""):
                         if target2 in var.list_players():
                             if var.ROLE_REVEAL:
                                 r2 = var.get_reveal_role(target2)
-                                an2 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
+                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
                                         "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(votee, target2, an2, r2)
