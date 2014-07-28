@@ -1052,7 +1052,7 @@ def stop_game(cli, winner = ""):
     for lover1, llist in var.ORIGINAL_LOVERS.items():
         for lover2 in llist:
             # check if already said the pairing
-            if lover2 in done and lover1 in done[lover2]:
+            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
                 continue
             lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
             if lover1 in done:
