@@ -2273,6 +2273,7 @@ def chk_nightdone(cli):
                   var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
                   var.ROLES["crazed shaman"] + var.ROLES["assassin"] + var.ROLES["augur"])
+    nightroles -= len(var.HUNTERS)
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
