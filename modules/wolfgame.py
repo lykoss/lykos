@@ -2273,14 +2273,20 @@ def chk_nightdone(cli):
                   var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
                   var.ROLES["crazed shaman"] + var.ROLES["assassin"] + var.ROLES["augur"])
-    nightroles -= len(var.HUNTERS)
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
-    playercount = 0
-    for p in nightroles:
-        if p not in var.SILENCED:
-            playercount += 1
+
+    for p in var.HUNTERS:
+        # only remove one instance of their name if they have used hunter ability, in case they have templates
+        # the OTHER_KILLS check ensures we only remove them if they acted in a *previous* night
+        if p in nightroles and p not in var.OTHER_KILLS:
+            nightroles.remove(p)
+
+    # but remove all instances of their name if they are silenced
+    nightroles = [p for p in nightroles if p not in var.SILENCED]
+
+    playercount = len(nightroles)
 
     if var.PHASE == "night" and actedcount >= playercount:
         # flatten var.KILLS
