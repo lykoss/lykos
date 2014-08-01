@@ -1317,7 +1317,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             message = ("Saddened by the loss of their lover, \u0002{0}\u0002, " +
                                        "a{1} \u0002{2}\u0002, commits suicide.").format(other, an, role)
                         else:
-                            message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide".format(other)
+                            message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.".format(other)
                         cli.msg(botconfig.CHANNEL, message)
                         var.LOGGER.logMessage(message.replace("\02", ""))
                         var.LOGGER.logBare(other, "DEAD LOVER")
