@@ -760,41 +760,43 @@ def chk_decision(cli):
                 transition_night(cli)
 
 
-
-@cmd("votes")
+@cmd('votes')
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
-    
-    if var.PHASE in ("none", "join"):
+
+    if var.PHASE in ('none', 'join'):
         cli.notice(nick, "No game is currently running.")
         return
-    if var.PHASE != "day":
+
+    if var.PHASE != 'day':
         cli.notice(nick, "Voting is only during the day.")
         return
-    
-    if (var.LAST_VOTES and
-        var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited." +
-                          "Please wait a while before using it again."))
-        return    
+
+    if (chan != nick and var.LAST_VOTES and var.VOTES_RATE_LIMIT and
+            var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) >
+            datetime.now()):
+        cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                          'before using it again.'))
+        return
     
     pl = var.list_players()
-    
+
     if nick in pl:
-        var.LAST_VOTES = datetime.now()    
-        
+        var.LAST_VOTES = datetime.now()
+
     if not var.VOTES.values():
-        msg = nick+": No votes yet."
+        msg = nick+ ': No votes yet.'
+
         if nick in pl:
-            var.LAST_VOTES = None # reset
+            var.LAST_VOTES = None  # reset
     else:
-        votelist = ["{0}: {1} ({2})".format(votee,
-                                            len(var.VOTES[votee]),
-                                            " ".join(var.VOTES[votee]))
+        votelist = ['{}: {} ({})'.format(votee,
+                                         len(var.VOTES[votee]),
+                                         ' '.join(var.VOTES[votee]))
                     for votee in var.VOTES.keys()]
-        msg = "{0}: {1}".format(nick, ", ".join(votelist))
-        
-    if nick in pl:
+        msg = '{}: {}'.format(nick, ', '.join(votelist))
+
+    if chan == nick or nick in pl:
         cli.msg(chan, msg)
     else:
         cli.notice(nick, msg)
@@ -802,14 +804,19 @@ def show_votes(cli, nick, chan, rest):
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
     votesneeded = avail // 2 + 1
-    the_message = ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
-                   "required to lynch, \u0002{3}\u0002 players available " +
-                   "to vote.").format(nick, len(pl), votesneeded, avail)
-    if nick in pl:
+    the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
+                   'required to lynch, \u0002{3}\u0002 players available to '
+                   'vote.').format(nick, len(pl), votesneeded, avail)
+
+    if chan == nick or nick in pl:
         cli.msg(chan, the_message)
     else:
         cli.notice(nick, the_message)
 
+
+@pmcmd('votes')
+def show_votes_pm(cli, nick, rest):
+    show_votes(cli, nick, nick, rest)
 
 
 def chk_traitor(cli):
