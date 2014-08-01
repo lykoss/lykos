@@ -968,14 +968,16 @@ def show_votes(cli, nick, chan, rest):
 
 
 def chk_traitor(cli):
-    for wc in var.ROLES["wolf cub"]:
+    wcl = copy.copy(var.ROLES["wolf cub"])
+    ttl = copy.copy(var.ROLES["traitor"])
+    for wc in wcl:
         var.ROLES["wolf"].append(wc)
         var.ROLES["wolf cub"].remove(wc)
         var.LOGGER.logBare(wc, "GROW UP")
         pm(cli, wc, ('You have grown up into a wolf and vowed to take revenge for your dead parents!'))
 
     if len(var.ROLES["wolf"]) == 0:
-        for tt in var.ROLES["traitor"]:
+        for tt in ttl:
             var.ROLES["wolf"].append(tt)
             var.ROLES["traitor"].remove(tt)
             var.LOGGER.logBare(tt, "TRANSFORM")
