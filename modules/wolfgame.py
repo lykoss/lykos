@@ -4074,7 +4074,8 @@ def start(cli, nick, chann_, rest):
             continue # sharpshooter gets applied specially
         possible = pl[:]
         for cannotbe in var.list_players(restrictions):
-            possible.remove(cannotbe)
+            if cannotbe in possible:
+                possible.remove(cannotbe)
         if len(possible) < len(var.ROLES[template]):
             cli.msg(chan, "Not enough valid targets for the {0} template.".format(template))
             if var.ORIGINAL_SETTINGS:

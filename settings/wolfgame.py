@@ -147,6 +147,9 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "s
                          "bureaucrat"      : [],
                          }
 
+# Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
+DISABLED_ROLES = ["amnesiac"]
+
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
                        "A pool of blood and wolf paw prints are found.",
                        "Traces of wolf fur are found.")
@@ -251,7 +254,9 @@ class ChangedRolesMode(object):
                 raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
             role, num = change
             try:
-                if role.lower() in self.ROLE_GUIDE:
+                if role.lower() in DISABLED_ROLES:
+                    raise InvalidModeException("The role \u0002{0}\u0002 has been disabled.".format(role))
+                elif role.lower() in self.ROLE_GUIDE:
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
                     if num.lower() == "villager" or num.lower() == "cultist":
