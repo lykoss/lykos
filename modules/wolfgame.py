@@ -1119,7 +1119,7 @@ def stop_game(cli, winner = ""):
                 if lvr in plrl:
                     lvrrol = plrl[lvr]
                 elif ("(dced)" + lvr) in plrl:
-                    lvrrol = plrrl["(dced)" + lvr]
+                    lvrrol = plrl["(dced)" + lvr]
                 if lvrrol == "clone" and lvr in var.FINAL_ROLES:
                     lvrrol = var.FINAL_ROLES[lvr]
 
