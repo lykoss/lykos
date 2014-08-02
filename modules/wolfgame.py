@@ -3886,6 +3886,8 @@ def transition_night(cli):
             continue
         elif g in var.ROLES["amnesiac"]:
             continue
+        elif var.GUNNERS[g] == 0:
+            continue
         norm_notify = g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_NOTIFY
         role = "gunner"
         if g in var.ROLES["sharpshooter"]:
