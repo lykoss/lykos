@@ -2033,7 +2033,8 @@ def transition_day(cli, gameid=0):
 
     maxc = 0
     victims = []
-    bywolves = []
+    bywolves = [] # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
+    onlybywolves = [] # wolves and nobody else targeted (needed for lycan)
     dups = []
     for v, c in found.items():
         if c > maxc:
@@ -2046,6 +2047,7 @@ def transition_day(cli, gameid=0):
         victim = random.choice(dups)
         victims.append(victim)
         bywolves.append(victim)
+        onlybywolves.append(victim)
 
     if victims and var.ANGRY_WOLVES:
         # they got a 2nd kill
@@ -2067,11 +2069,10 @@ def transition_day(cli, gameid=0):
         if monster in victims:
             victims.remove(monster)
 
-    victims += var.OTHER_KILLS.values()
-    for d in var.DYING:
+    for d in list(var.OTHER_KILLS.values()) + var.DYING:
         victims.append(d)
-        if d in bywolves:
-            bywolves.remove(d)
+        if d in onlybywolves:
+            onlybywolves.remove(d)
     victims = set(victims) # remove duplicates
 
     # Select a random target for assassin that isn't already going to die if they didn't target
@@ -2126,10 +2127,10 @@ def transition_day(cli, gameid=0):
                         message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(gangel))
                         novictmsg = False
                         break
-        elif victim in var.ROLES["harlot"] and victim in bywolves and var.HVISITED.get(victim):
+        elif victim in var.ROLES["harlot"] and victim in onlybywolves and var.HVISITED.get(victim):
             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
             novictmsg = False
-        elif victim in var.ROLES["lycan"] and victim in bywolves:
+        elif victim in var.ROLES["lycan"] and victim in onlybywolves:
             message.append("A chilling howl was heard last night, it appears there is another werewolf in our midst!")
             pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
             var.ROLES["lycan"].remove(victim)
@@ -2168,7 +2169,10 @@ def transition_day(cli, gameid=0):
                     "https://i.imgur.com/b8HAvjL.gif",
                     "https://i.imgur.com/PIIfL15.gif"]
                     ))
-            if victim in var.GUNNERS.keys() and var.GUNNERS[victim] and victim not in var.ROLES["amnesiac"] and victim in bywolves:  # gunner was attacked by wolves and had bullets!
+            if (victim in var.GUNNERS.keys() and var.GUNNERS[victim]                   # gunner attacked and has bullets
+                    and victim not in var.ROLES["amnesiac"]                            # and not amnesiac (they don't remember they have a gun)
+                    and not (victim in var.ROLES["harlot"] and victim in var.HVISITED) # and not a harlot that visited
+                    and victim in bywolves):                                           # and was attacked by wolves
                 if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                     wc = var.ROLES["werecrow"][:]
                     for crow in wc:
@@ -2241,14 +2245,10 @@ def transition_day(cli, gameid=0):
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
 
-    for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
-        del_player(cli, deadperson, end_game = False)
-    if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
-        return
-
     for victim in victims:
-        if (var.WOLF_STEALS_GUN and victim in dead and victim in bywolves and
-            victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0):
+        if (var.WOLF_STEALS_GUN and victim in dead and victim in bywolves
+                and victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0
+                and not (victim in var.ROLES["harlot"] and victim in var.HVISITED)):
             # victim has bullets
             guntaker = random.choice(var.list_players(var.WOLFCHAT_ROLES))  # random looter
             numbullets = var.GUNNERS[victim]
@@ -2261,6 +2261,11 @@ def transition_day(cli, gameid=0):
             mmsg = mmsg.format(victim)
             pm(cli, guntaker, mmsg)
             var.GUNNERS[victim] = 0  # just in case
+
+    for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
+        del_player(cli, deadperson, end_game = False)
+    if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
+        return
 
     begin_day(cli)
 
