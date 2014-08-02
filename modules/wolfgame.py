@@ -3598,7 +3598,7 @@ def transition_night(cli):
                 pl[i] = player + " (cursed)"
 
         pm(cli, wolf, "Players: " + ", ".join(pl))
-        if wolf in var.WOLF_GUNNERS.keys():
+        if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
         if var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
             pm(cli, wolf, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
