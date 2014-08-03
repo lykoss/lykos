@@ -114,6 +114,7 @@ ROLE_GUIDE = {# village roles
               "clone"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "crazed shaman"   : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "fool"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "jester"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "monster"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               # templates
               "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
@@ -134,14 +135,14 @@ WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
-TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool", "monster", "clone"]
+TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool", "jester", "monster", "clone"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "augur", "fool"],
-                         "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan"],
-                         "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan"],
-                         "mayor"           : ["fool"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "augur", "fool", "jester"],
+                         "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
+                         "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
+                         "mayor"           : ["fool", "jester"],
                          "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
                          "amnesiac"        : ["villager", "cultist", "wolf", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist", "vengeful ghost"],
                          "bureaucrat"      : [],
@@ -315,6 +316,7 @@ class EvilVillageMode(object):
               "clone"           : (   0   ,   0   ),
               "crazed shaman"   : (   0   ,   0   ),
               "fool"            : (   0   ,   0   ),
+              "jester"          : (   0   ,   0   ),
               "monster"         : (   0   ,   0   ),
               # templates
               "cursed villager" : (   0   ,   0   ),

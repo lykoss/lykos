@@ -810,7 +810,7 @@ def chk_decision(cli, force = ""):
                     return
                 # roles that eliminate other players upon being lynched
                 # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
-                elif votee in var.DESPERATE:
+                if votee in var.DESPERATE:
                     # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
                     target = voters[-1]
                     if target != votee:
@@ -898,6 +898,9 @@ def chk_decision(cli, force = ""):
                             var.LOGGER.logMessage(tmsg.replace("\02", ""))
                             var.LOGGER.logBare(votee, "MAD SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
+                # Other
+                if votee in var.ROLES["jester"]:
+                    var.JESTERS.append(votee)
 
                 if var.ROLE_REVEAL:
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
@@ -1113,7 +1116,6 @@ def stop_game(cli, winner = ""):
             iwon = True
         elif rol == "monster" and splr in survived and winner == "monsters":
             iwon = True
-        # del_player() doesn't get called on lynched fool, so both will survive even in that case
         elif splr in var.LOVERS and splr in survived:
             for lvr in var.LOVERS[splr]:
                 if lvr in plrl:
@@ -1123,13 +1125,7 @@ def stop_game(cli, winner = ""):
                 if lvrrol == "clone" and lvr in var.FINAL_ROLES:
                     lvrrol = var.FINAL_ROLES[lvr]
 
-                if lvr in survived and not winner.startswith("@") and winner != "monsters":
-                    iwon = True
-                    break
-                elif lvr in survived and winner.startswith("@") and winner == "@" + lvr:
-                    iwon = True
-                    break
-                elif lvr in survived and winner == "monsters" and lvrrol == "monster":
+                if lvr in survived and winner == "monsters" and lvrrol == "monster":
                     iwon = True
                     break
         if rol == "crazed shaman" or rol == "clone":
@@ -1155,6 +1151,8 @@ def stop_game(cli, winner = ""):
                 won = False
             if not iwon:
                 iwon = won and splr in survived
+        elif rol == "jester" and splr in var.JESTERS:
+            iwon = True
         elif not iwon:
             iwon = won and splr in survived  # survived, team won = individual win
 
@@ -3773,6 +3771,13 @@ def transition_night(cli):
         else:
             cli.notice(fool, "You are a \u0002fool\u0002.")
 
+    for jester in var.ROLES["jester"]:
+        if jester in var.PLAYERS and var.PLAYERS[jester]["cloak"] not in var.SIMPLE_NOTIFY:
+            cli.msg(jester, ('You are a \u0002jester\u0002. You will win alongside the normal winners ' +
+                             'if you are lynched during the day. You cannot otherwise win this game.'))
+        else:
+            cli.notice(jester, "You are a \u0002jester\u0002.")
+
     for monster in var.ROLES["monster"]:
         if monster in var.PLAYERS and var.PLAYERS[monster]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(monster, ('You are a \u0002monster\u0002. You cannot be killed by the wolves. ' +
@@ -4057,6 +4062,7 @@ def start(cli, nick, chann_, rest):
     var.ASLEEP = []
     var.PROTECTED = []
     var.DYING = []
+    var.JESTERS = []
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.ANGRY_WOLVES = False
