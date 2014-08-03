@@ -143,7 +143,7 @@ TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool", "jester", "mons
 TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "augur", "fool", "jester"],
                          "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
                          "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
-                         "mayor"           : ["fool", "jester"],
+                         "mayor"           : ["fool", "jester", "monster"],
                          "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
                          "amnesiac"        : ["villager", "cultist", "wolf", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist", "vengeful ghost"],
                          "bureaucrat"      : [],

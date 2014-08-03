@@ -2772,7 +2772,8 @@ def guard(cli, nick, rest):
     if victim == nick:
         if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
             var.GUARDED[nick] = None
-            del var.LASTGUARDED[nick]
+            if nick in var.LASTGUARDED:
+                del var.LASTGUARDED[nick]
             pm(cli, nick, "You have chosen not to guard anyone tonight.")
         elif role == "guardian angel":
             var.GUARDED[nick] = nick
