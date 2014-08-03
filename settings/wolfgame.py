@@ -44,6 +44,7 @@ GOAT_HERDER = True
 
 SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
+HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
 VENGEFUL_GHOST_KNOWS_ROLES = True
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
@@ -117,6 +118,7 @@ ROLE_GUIDE = {# village roles
               "fool"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "jester"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "monster"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
+              "amnesiac"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               # templates
               "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
@@ -124,7 +126,6 @@ ROLE_GUIDE = {# village roles
               "sharpshooter"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "mayor"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "assassin"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
-              "amnesiac"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               "bureaucrat"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ),
               }
 
@@ -136,7 +137,9 @@ WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
-TRUE_NEUTRAL_ROLES = ["vengeful ghost", "crazed shaman", "fool", "jester", "monster", "clone"]
+TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
+# These are the roles that will NOT be used for when amnesiac turns, everything else is fair game!
+AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
@@ -145,12 +148,11 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "s
                          "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
                          "mayor"           : ["fool", "jester", "monster"],
                          "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
-                         "amnesiac"        : ["villager", "cultist", "wolf", "minion", "matchmaker", "village elder", "time lord", "clone", "mad scientist", "vengeful ghost"],
                          "bureaucrat"      : [],
                          }
 
 # Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
-DISABLED_ROLES = ["amnesiac"]
+DISABLED_ROLES = []
 
 NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
                        "A pool of blood and wolf paw prints are found.",
@@ -187,7 +189,7 @@ def list_players(roles = None):
         roles = ROLES.keys()
     pl = []
     for x in roles:
-        if x != "amnesiac" and x in TEMPLATE_RESTRICTIONS.keys():
+        if x in TEMPLATE_RESTRICTIONS.keys():
             continue
         for p in ROLES[x]:
             pl.append(p)
@@ -196,7 +198,7 @@ def list_players(roles = None):
 def list_players_and_roles():
     plr = {}
     for x in ROLES.keys():
-        if x != "amnesiac" and x in TEMPLATE_RESTRICTIONS.keys():
+        if x in TEMPLATE_RESTRICTIONS.keys():
             continue # only get actual roles
         for p in ROLES[x]:
             plr[p] = x
@@ -207,6 +209,8 @@ get_role = lambda plyr: list_players_and_roles()[plyr]
 def get_reveal_role(nick):
     if HIDDEN_TRAITOR and get_role(nick) == "traitor":
         return DEFAULT_ROLE
+    elif HIDDEN_AMNESIAC and nick in ORIGINAL_ROLES["amnesiac"]:
+        return "amnesiac"
     else:
         return get_role(nick)
 
@@ -319,13 +323,13 @@ class EvilVillageMode(object):
               "fool"            : (   0   ,   0   ),
               "jester"          : (   0   ,   0   ),
               "monster"         : (   0   ,   0   ),
+              "amnesiac"        : (   0   ,   0   ),
               # templates
               "cursed villager" : (   0   ,   0   ),
               "gunner"          : (   0   ,   0   ),
               "sharpshooter"    : (   0   ,   0   ),
               "mayor"           : (   0   ,   0   ),
               "assassin"        : (   0   ,   0   ),
-              "amnesiac"        : (   0   ,   0   ),
               "bureaucrat"      : (   0   ,   0   ),
               }
 
