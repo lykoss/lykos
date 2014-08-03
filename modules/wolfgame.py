@@ -1125,7 +1125,13 @@ def stop_game(cli, winner = ""):
                 if lvrrol == "clone" and lvr in var.FINAL_ROLES:
                     lvrrol = var.FINAL_ROLES[lvr]
 
-                if lvr in survived and winner == "monsters" and lvrrol == "monster":
+                if lvr in survived and not winner.startswith("@") and winner != "monsters":
+                    iwon = True
+                    break
+                elif lvr in survived and winner.startswith("@") and winner == "@" + lvr and botconfig.LOVER_WINS_WITH_FOOL:
+                    iwon = True
+                    break
+                elif lvr in survived and winner == "monsters" and lvrrol == "monster":
                     iwon = True
                     break
         if rol == "crazed shaman" or rol == "clone":
