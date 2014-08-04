@@ -1080,7 +1080,7 @@ def stop_game(cli, winner = ""):
             continue
         for x in ppl:
             if x != None:
-                if x == "amnesiac" and x in var.AMNESIACS:
+                if role == "amnesiac" and x in var.AMNESIACS:
                     plrl[x] = var.FINAL_ROLES[x]
                 else:
                     plrl[x] = role
@@ -4221,6 +4221,9 @@ def start(cli, nick, chann_, rest):
     amnroles = list(var.ROLE_GUIDE.keys())
     for nope in var.AMNESIAC_BLACKLIST:
         amnroles.remove(nope)
+    for nope in var.TEMPLATE_RESTRICTIONS.keys():
+        if nope in amnroles:
+            amnroles.remove(nope)
     for amnesiac in var.ROLES["amnesiac"]:
         var.FINAL_ROLES[amnesiac] = random.choice(amnroles)
 
