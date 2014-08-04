@@ -907,7 +907,9 @@ def chk_decision(cli, force = ""):
                     var.JESTERS.append(votee)
 
                 if var.ROLE_REVEAL:
-                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
+                    rrole = var.get_reveal_role(votee)
+                    an = "n" if rrole[0] in ('a', 'e', 'i', 'o', 'u') else ""
+                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, an, rrole)
                 else:
                     lmsg = random.choice(var.LYNCH_MESSAGES_NO_REVEAL).format(votee)
             cli.msg(botconfig.CHANNEL, lmsg)
