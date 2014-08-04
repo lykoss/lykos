@@ -781,7 +781,7 @@ def show_votes(cli, nick, chan, rest):
     
     pl = var.list_players()
 
-    if nick in pl:
+    if chan != nick and nick in pl:
         var.LAST_VOTES = datetime.now()
 
     if not var.VOTES.values():
@@ -805,7 +805,7 @@ def show_votes(cli, nick, chan, rest):
     avail = len(pl) - len(var.WOUNDED)
     votesneeded = avail // 2 + 1
     the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
-                   'required to lynch, \u0002{3}\u0002 players available to '
+                   'required to lynch, \u0002{}\u0002 players available to '
                    'vote.').format(nick, len(pl), votesneeded, avail)
 
     if chan == nick or nick in pl:
