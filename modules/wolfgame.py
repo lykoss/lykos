@@ -2539,7 +2539,7 @@ def shoot(cli, nick, chann_, rest):
         cli.notice(nick, ("Shooting is only allowed during the day. "+
                           "Please wait patiently for morning."))
         return
-    if nick in var.ROLES["amnesiac"] or not (nick in var.GUNNERS.keys() or nick in var.WOLF_GUNNERS.keys()):
+    if nick not in var.GUNNERS.keys() and nick not in var.WOLF_GUNNERS.keys():
         pm(cli, nick, "You don't have a gun.")
         return
     elif ((nick in var.GUNNERS.keys() and not var.GUNNERS[nick]) or
