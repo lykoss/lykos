@@ -649,7 +649,7 @@ def stats(cli, nick, chan, rest):
 
     amn_roles = {"amnesiac": 0}
     for amn in var.ORIGINAL_ROLES["amnesiac"]:
-        if amn not in var.PLAYERS:
+        if amn not in var.list_players():
             continue
 
         amnrole = var.get_role(amn)
