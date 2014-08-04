@@ -771,7 +771,7 @@ def chk_decision(cli, force = ""):
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     aftermessage = None
-    for votee, voters in copy.copy(var.VOTES.items()):
+    for votee, voters in list(var.VOTES.items()):
         numvotes = 0
         for v in var.IMPATIENT:
             if v not in voters:
@@ -1854,6 +1854,12 @@ def on_nick(cli, prefix, nick):
             if prefix in var.TOBEMISDIRECTED:
                 var.TOBEMISDIRECTED.remove(prefix)
                 var.TOBEMISDIRECTED.append(nick)
+            if prefix in var.EXCHANGED:
+                var.EXCHANGED.remove(prefix)
+                var.EXCHANGED.append(nick)
+            if prefix in var.TOBEEXCHANGED:
+                var.TOBEEXCHANGED.remove(prefix)
+                var.TOBEEXCHANGED.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -1995,6 +2001,7 @@ def begin_day(cli):
     var.LUCKY = copy.copy(var.TOBELUCKY)
     var.DISEASED = copy.copy(var.TOBEDISEASED)
     var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
+    var.EXCHANGED = copy.copy(var.TOBEEXCHANGED)
 
     msg = ("The villagers must now vote for whom to lynch. "+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
@@ -3216,18 +3223,36 @@ def give(cli, nick, rest):
         type = " of " + var.TOTEMS[nick]
     pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
     totem = var.TOTEMS[nick]
-    if totem == "death":
+    if totem == "death" and victim not in var.DYING:
         var.DYING.append(victim)
-    elif totem == "protection":
+    elif totem == "protection" and victim not in var.PROTECTED:
         var.PROTECTED.append(victim)
-    elif totem == "revealing":
+    elif totem == "revealing" and victim not in var.REVEALED:
         var.REVEALED.append(victim)
-    elif totem == "narcolepsy":
+    elif totem == "narcolepsy" and victim not in var.ASLEEP:
         var.ASLEEP.append(victim)
-    elif totem == "silence":
+    elif totem == "silence" and victim not in var.TOBESILENCED:
         var.TOBESILENCED.append(victim)
-    elif totem == "desperation":
+    elif totem == "desperation" and victim not in var.DESPERATE:
         var.DESPERATE.append(victim)
+    elif totem == "impatience": # this totem stacks
+        var.IMPATIENT.append(victim)
+    elif totem == "pacifism": # this totem stacks
+        var.PACIFISTS.append(victim)
+    elif totem == "influence" and victim not in var.INFLUENTIAL:
+        var.INFLUENTIAL.append(victim)
+    elif totem == "exchange" and victim not in var.TOBEEXCHANGED:
+        var.TOBEEXCHANGED.append(victim)
+    elif totem == "lycanthropy" and victim not in var.TOBELYCANTHROPES:
+        var.TOBELYCANTHROPES.append(victim)
+    elif totem == "luck" and victim not in var.TOBELUCKY:
+        var.TOBELUCKY.append(victim)
+    elif totem == "pestilence" and victim not in var.TOBEDISEASED:
+        var.TOBEDISEASED.append(victim)
+    elif totem == "retribution" and victim not in var.RETRIBUTION:
+        var.RETRIBUTION.append(victim)
+    elif totem == "misdirection" and victim not in var.TOBEMISDIRECTED:
+        var.TOBEMISDIRECTED.append(victim)
     else:
         pm(cli, nick, "I don't know what to do with this totem. This is a bug, please report it to the admins.")
     var.LASTGIVEN[nick] = victim
@@ -3639,6 +3664,7 @@ def transition_night(cli):
     var.TOBEDISEASED = []
     var.RETRIBUTION = []
     var.TOBEMISDIRECTED = []
+    var.TOBEEXCHANGED = []
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
@@ -3864,7 +3890,7 @@ def transition_night(cli):
         rand = random.random()
         target = 0
         for t, c in var.TOTEM_CHANCES.items():
-            target += var.TOTEM_CHANCES[t][c[0] if role == "shaman" else c[1]]
+            target += var.TOTEM_CHANCES[t][0 if role == "shaman" else 1]
             if rand <= target:
                 var.TOTEMS[shaman] = t
                 break
@@ -4245,6 +4271,8 @@ def start(cli, nick, chann_, rest):
     var.RETRIBUTION = []
     var.MISDIRECTED = []
     var.TOBEMISDIRECTED = []
+    var.EXCHANGED = []
+    var.TOBEEXCHANGED = []
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
