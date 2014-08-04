@@ -73,10 +73,24 @@ DETECTIVE_REVEALED_CHANCE = 2/5
 SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner will become a sharpshooter instead
 
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
-BUREAUCRAT_VOTES = 2 # bureaucrat votes count for this many normal votes
 
-              #      DEATH      PROTECTION     REVEALING     NARCOLEPSY     SILENCE     DESPERATION
-TOTEM_CHANCES = (     1/6     ,     1/6     ,     1/6     ,     1/6     ,     1/6     ,     1/6     )
+#                                     SHAMAN    CRAZED SHAMAN
+TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
+                   "protection": (     1/8     ,     1/15     ),
+                      "silence": (     1/8     ,     1/15     ),
+                    "revealing": (     1/8     ,     1/15     ),
+                  "desperation": (     1/8     ,     1/15     ),
+                   "impatience": (     1/8     ,     1/15     ),
+                     "pacifism": (     1/8     ,     1/15     ),
+                    "influence": (     1/8     ,     1/15     ),
+                   "narcolepsy": (      0      ,     1/15     ),
+                     "exchange": (      0      ,     1/15     ),
+                  "lycanthropy": (      0      ,     1/15     ),
+                         "luck": (      0      ,     1/15     ),
+                   "pestilence": (      0      ,     1/15     ),
+                  "retribution": (      0      ,     1/15     ),
+                 "misdirection": (      0      ,     1/15     ),
+                }
 
 GAME_MODES = {}
 AWAY = ['services.', 'services.int']  # cloaks of people who are away.

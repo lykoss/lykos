@@ -771,8 +771,23 @@ def chk_decision(cli, force = ""):
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     aftermessage = None
-    for votee, voters in iter(var.VOTES.items()):
-        numvotes = sum([var.BUREAUCRAT_VOTES if p in var.ROLES["bureaucrat"] else 1 for p in voters])
+    for votee, voters in copy.copy(var.VOTES.items()):
+        numvotes = 0
+        for v in var.IMPATIENT:
+            if v not in voters:
+                voters.append(v)
+        for v in voters:
+            weight = 1
+            imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
+            pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
+            if pac_count > imp_count:
+                weight = 0 # more pacifists than impatience totems
+            elif imp_count == pac_count and v not in var.VOTES[votee]:
+                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
+            if v in var.ROLES["bureaucrat"] or v in var.INFLUENTIAL: # the two do not stack
+                weight *= 2
+            numvotes += weight
+
         if numvotes >= votesneeded or votee == force:
             # roles that prevent any lynch from happening
             if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
@@ -802,7 +817,7 @@ def chk_decision(cli, force = ""):
                 # roles that end the game upon being lynched
                 if votee in var.ROLES["fool"]:
                     # ends game immediately, with fool as only winner
-                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, var.get_reveal_role(votee))
+                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
                     cli.msg(botconfig.CHANNEL, lmsg)
                     var.LOGGER.logMessage(lmsg.replace("\02", ""))
                     var.LOGGER.logBare(votee, "LYNCHED")
@@ -1803,6 +1818,42 @@ def on_nick(cli, prefix, nick):
             if prefix in var.AMNESIACS:
                 var.AMNESIACS.remove(prefix)
                 var.AMNESIACS.append(nick)
+            while prefix in var.IMPATIENT:
+                var.IMPATIENT.remove(prefix)
+                var.IMPATIENT.append(nick)
+            while prefix in var.PACIFISTS:
+                var.PACIFISTS.remove(prefix)
+                var.PACIFISTS.append(nick)
+            if prefix in var.INFLUENTIAL:
+                var.INFLUENTIAL.remove(prefix)
+                var.INFLUENTIAL.append(nick)
+            if prefix in var.LYCANTHROPES:
+                var.LYCANTHROPES.remove(prefix)
+                var.LYCANTHROPES.append(nick)
+            if prefix in var.TOBELYCANTHROPES:
+                var.TOBELYCANTHROPES.remove(prefix)
+                var.TOBELYCANTHROPES.append(nick)
+            if prefix in var.LUCKY:
+                var.LUCKY.remove(prefix)
+                var.LUCKY.append(nick)
+            if prefix in var.TOBELUCKY:
+                var.TOBELUCKY.remove(prefix)
+                var.TOBELUCKY.append(nick)
+            if prefix in var.DISEASED:
+                var.DISEASED.remove(prefix)
+                var.DISEASED.append(nick)
+            if prefix in var.TOBEDISEASED:
+                var.TOBEDISEASED.remove(prefix)
+                var.TOBEDISEASED.append(nick)
+            if prefix in var.RETRIBUTION:
+                var.RETRIBUTION.remove(prefix)
+                var.RETRIBUTION.append(nick)
+            if prefix in var.MISDIRECTED:
+                var.MISDIRECTED.remove(prefix)
+                var.MISDIRECTED.append(nick)
+            if prefix in var.TOBEMISDIRECTED:
+                var.TOBEMISDIRECTED.remove(prefix)
+                var.TOBEMISDIRECTED.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -1940,6 +1991,10 @@ def begin_day(cli):
     var.PASSED = [] # hunters that have opted not to kill
     var.STARTED_DAY_PLAYERS = len(var.list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
+    var.LYCANTHROPES = copy.copy(var.TOBELYCANTHROPES)
+    var.LUCKY = copy.copy(var.TOBELUCKY)
+    var.DISEASED = copy.copy(var.TOBEDISEASED)
+    var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
 
     msg = ("The villagers must now vote for whom to lynch. "+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
@@ -3576,6 +3631,14 @@ def transition_night(cli):
     var.DESPERATE = []
     var.REVEALED = []
     var.TOBESILENCED = []
+    var.IMPATIENT = []
+    var.PACIFISTS = []
+    var.INFLUENTIAL = []
+    var.TOBELYCANTHROPES = []
+    var.TOBELUCKY = []
+    var.TOBEDISEASED = []
+    var.RETRIBUTION = []
+    var.TOBEMISDIRECTED = []
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
@@ -3797,14 +3860,13 @@ def transition_night(cli):
     for shaman in var.list_players(["shaman", "crazed shaman"]):
         pl = ps[:]
         random.shuffle(pl)
-        avail_totems = ("death", "protection", "revealing", "narcolepsy", "silence", "desperation")
         role = var.get_role(shaman)
         rand = random.random()
         target = 0
-        for i in range(0, len(avail_totems)):
-            target += var.TOTEM_CHANCES[i]
+        for t, c in var.TOTEM_CHANCES.items():
+            target += var.TOTEM_CHANCES[t][c[0] if role == "shaman" else c[1]]
             if rand <= target:
-                var.TOTEMS[shaman] = avail_totems[i]
+                var.TOTEMS[shaman] = t
                 break
         if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
@@ -3814,7 +3876,7 @@ def transition_night(cli):
                 totem = var.TOTEMS[shaman]
                 tmsg = 'You have the \u0002{0}\u0002 totem. '.format(totem)
                 if totem == "death":
-                    tmsg += 'The player who is given this totem will die tonight, unless they are being protected.'
+                    tmsg += 'The player who is given this totem will die tonight, even if they are being protected.'
                 elif totem == "protection":
                     tmsg += 'The player who is given this totem is protected from dying tonight.'
                 elif totem == "revealing":
@@ -3825,6 +3887,24 @@ def transition_night(cli):
                     tmsg += 'The player who is given this totem will be unable to use any special powers during the day tomorrow and the night after.'
                 elif totem == "desperation":
                     tmsg += 'If the player who is given this totem is lynched, the last player to vote them will also die.'
+                elif totem == "impatience":
+                    tmsg += 'The player who is given this totem is counted as voting for everyone except themselves, even if they do not !vote.'
+                elif totem == "pacifism":
+                    tmsg += 'Votes by the player who is given this totem do not count.'
+                elif totem == "influence":
+                    tmsg += 'Votes by the player who is given this totem count twice.'
+                elif totem == "exchange":
+                    tmsg += 'The first person to use a power on the player given this totem tomorrow night will have their role swapped with the recipient.'
+                elif totem == "lycanthropy":
+                    tmsg += 'If the player who is given this totem is targeted by wolves tomorrow night, they will become a wolf.'
+                elif totem == "luck":
+                    tmsg += 'If the player who is given this totem is targeted tomorrow night, one of the players adjacent to them will be targeted instead.'
+                elif totem == "pestilence":
+                    tmsg += 'If the player who is given this totem is killed by wolves tomorrow night, the wolves will not be able to kill the night after.'
+                elif totem == "retribution":
+                    tmsg += 'If the player who is given this totem will die tonight, they also kill anyone who killed them.'
+                elif totem == "misdirection":
+                    tmsg += 'If the player who is given this totem attempts to use a power the following day or night, they will target a player adjacent to their intended target instead of the player they targeted.'
                 else:
                     tmsg += 'No description for this totem is available. This is a bug, so please report this to the admins.'
                 cli.msg(shaman, tmsg)
@@ -4153,6 +4233,18 @@ def start(cli, nick, chann_, rest):
     var.ANGRY_WOLVES = False
     var.FINAL_ROLES = {}
     var.ORIGINAL_LOVERS = {}
+    var.IMPATIENT = []
+    var.PACIFISTS = []
+    var.INFLUENTIAL = []
+    var.LYCANTHROPES = []
+    var.TOBELYCANTHROPES = []
+    var.LUCKY = []
+    var.TOBELUCKY = []
+    var.DISEASED = []
+    var.TOBEDISEASED = []
+    var.RETRIBUTION = []
+    var.MISDIRECTED = []
+    var.TOBEMISDIRECTED = []
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
