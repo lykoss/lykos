@@ -1202,15 +1202,15 @@ def stop_game(cli, winner = ""):
     if winner != "":
         var.update_game_stats(size, winner)
 
-    # spit out the list of winners
-    winners.sort()
-    if len(winners) == 1:
-        cli.msg(chan, "The winner is \u0002{0}\u0002.".format(winners[0]))
-    elif len(winners) == 2:
-        cli.msg(chan, "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.".format(winners[0], winners[1]))
-    elif len(winners) > 2:
-        nicklist = ["\u0002" + x + "\u0002" for x in winners[0:-1]]
-        cli.msg(chan, "The winners are {0}, and \u0002{1}\u0002.".format(", ".join(nicklist), winners[-1]))
+        # spit out the list of winners
+        winners.sort()
+        if len(winners) == 1:
+            cli.msg(chan, "The winner is \u0002{0}\u0002.".format(winners[0]))
+        elif len(winners) == 2:
+            cli.msg(chan, "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.".format(winners[0], winners[1]))
+        elif len(winners) > 2:
+            nicklist = ["\u0002" + x + "\u0002" for x in winners[0:-1]]
+            cli.msg(chan, "The winners are {0}, and \u0002{1}\u0002.".format(", ".join(nicklist), winners[-1]))
 
     reset_modes_timers(cli)
 
@@ -1983,8 +1983,6 @@ def begin_day(cli):
     chan = botconfig.CHANNEL
 
     # Reset nighttime variables
-    var.ANGRY_WOLVES = False
-    var.DISEASED_WOLVES = False
     var.GAMEPHASE = "day"
     var.KILLS = {}  # nicknames of kill victims (wolves only)
     var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost/death totem)
@@ -2093,6 +2091,8 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
+    var.ANGRY_WOLVES = False
+    var.DISEASED_WOLVES = False
     havetotem = copy.copy(var.LASTGIVEN)
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
@@ -2379,6 +2379,7 @@ def transition_day(cli, gameid=0):
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
     for victim in dead:
+        print("bywolves = {0}, diseased = {1}".format(victim in bywolves, victim in var.DISEASED))
         if victim in bywolves and victim in var.DISEASED:
             var.DISEASED_WOLVES = True
 
