@@ -949,41 +949,43 @@ def chk_decision(cli, force = ""):
             break
 
 
-
-@cmd("votes")
+@cmd('votes')
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
 
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
-    if var.PHASE != "day":
+
+    if var.PHASE != 'day':
         cli.notice(nick, "Voting is only during the day.")
         return
 
-    if (var.LAST_VOTES and
-        var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited." +
-                          "Please wait a while before using it again."))
+    if (chan != nick and var.LAST_VOTES and var.VOTES_RATE_LIMIT and
+            var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) >
+            datetime.now()):
+        cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                          'before using it again.'))
         return
-
+    
     pl = var.list_players()
 
-    if nick in pl:
+    if chan != nick and nick in pl:
         var.LAST_VOTES = datetime.now()
 
     if not var.VOTES.values():
-        msg = nick+": No votes yet."
-        if nick in pl:
-            var.LAST_VOTES = None # reset
-    else:
-        votelist = ["{0}: {1} ({2})".format(votee,
-                                            len(var.VOTES[votee]),
-                                            " ".join(var.VOTES[votee]))
-                    for votee in var.VOTES.keys()]
-        msg = "{0}: {1}".format(nick, ", ".join(votelist))
+        msg = nick+ ': No votes yet.'
 
-    if nick in pl:
+        if nick in pl:
+            var.LAST_VOTES = None  # reset
+    else:
+        votelist = ['{}: {} ({})'.format(votee,
+                                         len(var.VOTES[votee]),
+                                         ' '.join(var.VOTES[votee]))
+                    for votee in var.VOTES.keys()]
+        msg = '{}: {}'.format(nick, ', '.join(votelist))
+
+    if chan == nick or nick in pl:
         cli.msg(chan, msg)
     else:
         cli.notice(nick, msg)
@@ -991,14 +993,19 @@ def show_votes(cli, nick, chan, rest):
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
-    the_message = ("{0}: \u0002{1}\u0002 players, \u0002{2}\u0002 votes "+
-                   "required to lynch, \u0002{3}\u0002 players available " +
-                   "to vote.").format(nick, len(pl), votesneeded, avail)
-    if nick in pl:
+    the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
+                   'required to lynch, \u0002{}\u0002 players available to '
+                   'vote.').format(nick, len(pl), votesneeded, avail)
+
+    if chan == nick or nick in pl:
         cli.msg(chan, the_message)
     else:
         cli.notice(nick, the_message)
 
+
+@pmcmd('votes')
+def show_votes_pm(cli, nick, rest):
+    show_votes(cli, nick, nick, rest)
 
 
 def chk_traitor(cli):
@@ -5432,18 +5439,23 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     @cmd("fgame", admin_only=True)
-    def game(cli, nick, chan, rest):
+    def fgame(cli, nick, chan, rest):
         pl = var.list_players()
-        if var.PHASE == "none":
-            cli.notice(nick, "No game is currently running.")
+
+        if var.PHASE == 'none':
+            cli.notice(nick, 'No game is currently running.')
             return
-        if var.PHASE != "join":
-            cli.notice(nick, "Werewolf is already in play.")
+
+        if var.PHASE != 'join':
+            cli.notice(nick, 'Werewolf is already in play.')
             return
-        if nick not in pl:
-            cli.notice(nick, "You're currently not playing.")
+
+        if nick not in pl and nick not in botconfig.ADMINS + botconfig.OWNERS:
+            cli.notice(nick, 'You\'re currently not playing.')
             return
+
         rest = rest.strip().lower()
+
         if rest:
             if cgamemode(cli, rest):
                 cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
@@ -5451,14 +5463,16 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     def fgame_help(args = ""):
         args = args.strip()
+
         if not args:
-            return "Available game mode setters: "+ ", ".join(var.GAME_MODES.keys())
+            return 'Available game mode setters: ' + ', '.join(var.GAME_MODES.keys())
         elif args in var.GAME_MODES.keys():
             return var.GAME_MODES[args].__doc__
         else:
-            return "Game mode setter {0} not found.".format(args)
+            return 'Game mode setter \u0002{}\u0002 not found.'.format(args)
 
-    game.__doc__ = fgame_help
+
+    fgame.__doc__ = fgame_help
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
