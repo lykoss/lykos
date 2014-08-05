@@ -3380,33 +3380,40 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     @cmd("fgame", admin_only=True)
-    def game(cli, nick, chan, rest):
+    def fgame(cli, nick, chan, rest):
         pl = var.list_players()
-        if var.PHASE == "none":
-            cli.notice(nick, "No game is currently running.")
+
+        if var.PHASE == 'none':
+            cli.notice(nick, 'No game is currently running.')
             return
-        if var.PHASE != "join":
-            cli.notice(nick, "Werewolf is already in play.")
+
+        if var.PHASE != 'join':
+            cli.notice(nick, 'Werewolf is already in play.')
             return
-        if nick not in pl:
-            cli.notice(nick, "You're currently not playing.")
+
+        if nick not in pl and nick not in botconfig.ADMINS + botconfig.OWNERS:
+            cli.notice(nick, 'You\'re currently not playing.')
             return
+
         rest = rest.strip().lower()
+
         if rest:
-            if cgamemode(cli, *re.split(" +",rest)):
-                cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
-                                "game settings successfully.").format(nick))
+            if cgamemode(cli, *re.split(' +', rest)):
+                cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
+                               'successfully.').format(nick))
     
-    def fgame_help(args = ""):
+    def fgame_help(args=''):
         args = args.strip()
+
         if not args:
-            return "Available game mode setters: "+ ", ".join(var.GAME_MODES.keys())
+            return 'Available game mode setters: ' + ', '.join(var.GAME_MODES.keys())
         elif args in var.GAME_MODES.keys():
             return var.GAME_MODES[args].__doc__
         else:
-            return "Game mode setter {0} not found.".format(args)
+            return 'Game mode setter \u0002{}\u0002 not found.'.format(args)
 
-    game.__doc__ = fgame_help
+
+    fgame.__doc__ = fgame_help
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
