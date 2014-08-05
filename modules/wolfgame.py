@@ -653,7 +653,9 @@ def stats(cli, nick, chan, rest):
             continue
 
         amnrole = var.get_role(amn)
-        if amnrole in ("village elder", "time lord", "vengeful ghost"):
+        if amnrole in ("village elder", "time lord"):
+            amnrole = "villager"
+        elif amnrole == "vengeful ghost":
             amnrole = var.DEFAULT_ROLE
         if amnrole != "amnesiac":
             amn_roles["amnesiac"] += 1
@@ -674,11 +676,18 @@ def stats(cli, nick, chan, rest):
         elif role == var.DEFAULT_ROLE:
             if var.HIDDEN_TRAITOR:
                 count += len(var.ROLES["traitor"])
-            count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+            if var.DEFAULT_ROLE == "villager":
+                count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+            else:
+                count += len(var.ROLES["vengeful ghost"])
+        elif role == "villager":
+            count += len(var.ROLES["village elder"] + var.ROLES["time lord"])
         if role in amn_roles:
             count += amn_roles[role]
 
         if count > 1 or count == 0:
+            if count == 0 and role not in var.ORIGINAL_ROLES:
+                continue
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
@@ -771,7 +780,8 @@ def chk_decision(cli, force = ""):
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     aftermessage = None
-    for votee, voters in list(var.VOTES.items()):
+    votelist = copy.deepcopy(var.VOTES)
+    for votee, voters in votelist.items():
         numvotes = 0
         for v in var.IMPATIENT:
             if v not in voters and v != votee:
@@ -1098,6 +1108,8 @@ def stop_game(cli, winner = ""):
         for x in ppl:
             if x != None:
                 if role == "amnesiac" and x in var.AMNESIACS:
+                    plrl[x] = var.FINAL_ROLES[x]
+                elif x in var.FINAL_ROLES: # role swap
                     plrl[x] = var.FINAL_ROLES[x]
                 else:
                     plrl[x] = role
@@ -2443,7 +2455,7 @@ def chk_nightdone(cli):
     # but remove all instances of their name if they are silenced
     nightroles = [p for p in nightroles if p not in var.SILENCED]
 
-    playercount = len(nightroles)
+    playercount = len(nightroles) + var.ACTED_EXTRA
 
     if var.PHASE == "night" and actedcount >= playercount:
         if not var.DISEASED_WOLVES:
@@ -2592,6 +2604,119 @@ def choose_target(actor, nick):
                     nick = var.ALL_PLAYERS[i]
                     break
     return nick
+
+# returns true if a swap happened
+# check for that to short-circuit the nightrole
+def check_exchange(cli, actor, nick):
+    if nick in var.EXCHANGED:
+        var.EXCHANGED.remove(nick)
+        actor_role = var.get_role(actor)
+        nick_role = var.get_role(nick)
+        
+        if actor_role == "amnesiac":
+            actor_role = var.FINAL_ROLES[actor]
+        elif actor_role == "clone":
+            actor_target = var.CLONED[actor]
+        elif actor_role in ("shaman", "crazed shaman"):
+            actor_totem = var.TOTEMS[actor]
+            del var.TOTEMS[actor]
+
+        if nick_role == "amnesiac":
+            nick_role = var.FINAL_ROLES[nick]
+        elif nick_role == "clone":
+            nick_target = var.CLONED[nick]
+        elif nick_role in ("shaman", "crazed shaman"):
+            nick_totem = var.TOTEMS[nick]
+            del var.TOTEMS[nick]
+            
+        var.FINAL_ROLES[actor] = nick_role
+        var.FINAL_ROLES[nick] = actor_role
+        var.ROLES[actor_role].append(nick)
+        var.ROLES[actor_role].remove(actor)
+        var.ROLES[nick_role].append(actor)
+        var.ROLES[nick_role].remove(nick)
+
+        actor_rev_role = actor_role
+        if actor_role == "vengeful ghost":
+            actor_rev_role = var.DEFAULT_ROLE
+        elif actor_role in ("village elder", "time lord"):
+            actor_rev_role = "villager"
+
+        nick_rev_role = nick_role
+        if nick_role == "vengeful ghost":
+            nick_rev_role = var.DEFAULT_ROLE
+        elif actor_role in ("village elder", "time lord"):
+            nick_rev_role = "villager"
+
+        # don't say who, since misdirection/luck totem may have switched it
+        # and this makes life far more interesting
+        pm(cli, actor, "You have exchanged roles with someone! You are now a \u0002{0}\u0002.".format(nick_rev_role))
+        pm(cli, nick,  "You have exchanged roles with someone! You are now a \u0002{0}\u0002.".format(actor_rev_role))
+
+        if nick_role == "clone":
+            pm(cli, actor, "You are cloning \u0002{0}\u0002.".format(nick_target))
+        elif nick_role in ("shaman", "crazed shaman"):
+            if nick_role == "shaman":
+                pm(cli, actor, "You have a \u0002{0}\u0002 totem.".format(nick_totem))
+            var.TOTEMS[actor] = nick_totem
+        elif nick_role in var.WOLFCHAT_ROLES and actor_role not in var.WOLFCHAT_ROLES:    
+            pl = var.list_players()
+            random.shuffle(pl)
+            pl.remove(actor)  # remove self from list
+            for i, player in enumerate(pl):
+                prole = var.get_role(player)
+                if prole in var.WOLFCHAT_ROLES:
+                    cursed = ""
+                    if player in var.ROLES["cursed villager"]:
+                        cursed = "cursed "
+                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                    pm(cli, player, "\u0002{0}\u0002 and \u0002{1}\u0002 have exchanged roles!".format(nick, actor))
+                elif player in var.ROLES["cursed villager"]:
+                    pl[i] = player + " (cursed)"
+
+            pm(cli, actor, "Players: " + ", ".join(pl))
+            if var.DISEASED_WOLVES:
+                pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
+            elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+                pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
+        elif nick_role == "minion":
+            wolves = var.list_players(var.WOLF_ROLES)
+            random.shuffle(wolves)
+            pm(cli, actor, "Wolves: " + ", ".join(wolves))
+
+        if actor_role == "clone":
+            pm(cli, nick, "You are cloning \u0002{0}\u0002.".format(actor_target))
+        elif actor_role in ("shaman", "crazed shaman"):
+            if actor_role == "shaman":
+                pm(cli, nick, "You have a \u0002{0}\u0002 totem.".format(actor_totem))
+            var.TOTEMS[nick] = actor_totem
+        elif actor_role in var.WOLFCHAT_ROLES and nick_role not in var.WOLFCHAT_ROLES:    
+            pl = var.list_players()
+            random.shuffle(pl)
+            pl.remove(nick)  # remove self from list
+            for i, player in enumerate(pl):
+                prole = var.get_role(player)
+                if prole in var.WOLFCHAT_ROLES:
+                    cursed = ""
+                    if player in var.ROLES["cursed villager"]:
+                        cursed = "cursed "
+                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                    pm(cli, player, "\u0002{0}\u0002 and \u0002{1}\u0002 have exchanged roles!".format(actor, nick))
+                elif player in var.ROLES["cursed villager"]:
+                    pl[i] = player + " (cursed)"
+
+            pm(cli, nick, "Players: " + ", ".join(pl))
+            if var.DISEASED_WOLVES:
+                pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
+            elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+                pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
+        elif actor_role == "minion":
+            wolves = var.list_players(var.WOLF_ROLES)
+            random.shuffle(wolves)
+            pm(cli, nick, "Wolves: " + ", ".join(wolves))
+
+        return True
+    return False
 
 @cmd("retract")
 def retract(cli, nick, chann_, rest):
@@ -2903,15 +3028,41 @@ def kill(cli, nick, rest):
                 else:
                     rv = choose_target(nick, victim)
                     rv2 = choose_target(nick, victim2)
+                    if check_exchange(cli, nick, rv):
+                        if nick in var.KILLS:
+                            del var.KILLS[nick]
+                        return
+                    if check_exchange(cli, nick, rv2):
+                        if nick in var.KILLS:
+                            del var.KILLS[nick]
+                        return
                     var.KILLS[nick] = [rv, rv2]
             else:
                 rv = choose_target(nick, victim)
+                if check_exchange(cli, nick, rv):
+                    if nick in var.KILLS:
+                        del var.KILLS[nick]
+                    return
                 var.KILLS[nick] = [rv]
         else:
             rv = choose_target(nick, victim)
+            if check_exchange(cli, nick, rv):
+                if nick in var.KILLS:
+                    del var.KILLS[nick]
+                return
             var.KILLS[nick] = rv
     else:
         rv = choose_target(nick, victim)
+        if nick not in var.VENGEFUL_GHOSTS.keys():
+            if check_exchange(cli, nick, rv):
+                if nick in var.OTHER_KILLS:
+                    var.ACTED_EXTRA += 1
+                    # don't invalidate the kill, just say we have another night actor
+                if nick in var.PASSED:
+                    var.PASSED.remove(nick)
+                if nick in var.HUNTERS:
+                    var.HUNTERS.remove(nick)
+                return
         var.OTHER_KILLS[nick] = rv
         if role == "hunter":
             var.HUNTERS.append(nick)
@@ -2984,7 +3135,18 @@ def guard(cli, nick, rest):
             var.LASTGUARDED[nick] = nick
             pm(cli, nick, "You have decided to guard yourself tonight.")
     else:
-        victim = choose_target(nick, victim)
+        victim = choose_target(nick, victim) 
+        if check_exchange(cli, nick, victim):
+            if nick in var.GUARDED:
+                if role == "bodyguard":
+                    # This shouldn't ever happen, but here just in case
+                    pm(cli, var.GUARDED[nick], "Your bodyguard seems to have disappeared...")
+                    del var.GUARDED[nick]
+                else:
+                    var.ACTED_EXTRA += 1
+            if nick in var.LASTGUARDED:
+                del var.LASTGUARDED[nick]
+            return
         var.GUARDED[nick] = victim
         var.LASTGUARDED[nick] = victim
         pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
@@ -3053,6 +3215,12 @@ def observe(cli, nick, rest):
             pm(cli, nick, "Observing another wolf is a waste of time.")
         return
     victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        if nick in var.OBSERVED:
+            del var.OBSERVED[nick]
+        if nick in var.KILLS:
+            del var.KILLS[nick]
+        return
     var.OBSERVED[nick] = victim
     if nick in var.KILLS.keys():
         del var.KILLS[nick]
@@ -3176,6 +3344,12 @@ def hvisit(cli, nick, rest):
         pm(cli, nick, "You have chosen to stay home for the night.")
     else:
         victim = choose_target(nick, victim)
+        if check_exchange(cli, nick, victim):
+            if nick in var.HVISITED:
+                # this shouldn't ever happen, but just in case
+                pm(cli, var.HVISITED[nick], "\u0002{0}\u0002 seems to have disappeared...".format(nick))
+                del var.HVISITED[nick]
+            return
         var.HVISITED[nick] = victim
         pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
                       "Have a good time!").format(var.HVISITED[nick]))
@@ -3231,6 +3405,10 @@ def see(cli, nick, rest):
         pm(cli, nick, "Seeing yourself would be a waste.")
         return
     victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        if nick in var.SEEN:
+            var.SEEN.remove(nick)
+        return
     victimrole = var.get_role(victim)
     if victimrole == "amnesiac":
         victimrole = var.FINAL_ROLES[victim]
@@ -3304,38 +3482,58 @@ def give(cli, nick, rest):
     if role == "shaman":
         type = " of " + var.TOTEMS[nick]
     victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        if nick in var.SHAMANS:
+            var.ACTED_EXTRA += 1
+            var.SHAMANS.remove(nick)
+        if nick in var.LASTGIVEN:
+            del var.LASTGIVEN[nick]
+        return
     pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
     totem = var.TOTEMS[nick]
-    if totem == "death" and victim not in var.DYING:
-        var.DYING.append(victim)
-    elif totem == "protection" and victim not in var.PROTECTED:
-        var.PROTECTED.append(victim)
-    elif totem == "revealing" and victim not in var.REVEALED:
-        var.REVEALED.append(victim)
-    elif totem == "narcolepsy" and victim not in var.ASLEEP:
-        var.ASLEEP.append(victim)
-    elif totem == "silence" and victim not in var.TOBESILENCED:
-        var.TOBESILENCED.append(victim)
-    elif totem == "desperation" and victim not in var.DESPERATE:
-        var.DESPERATE.append(victim)
+    if totem == "death":
+        if victim not in var.DYING:
+            var.DYING.append(victim)
+    elif totem == "protection":
+        if victim not in var.PROTECTED:
+            var.PROTECTED.append(victim)
+    elif totem == "revealing":
+        if victim not in var.REVEALED:
+            var.REVEALED.append(victim)
+    elif totem == "narcolepsy":
+        if victim not in var.ASLEEP:
+            var.ASLEEP.append(victim)
+    elif totem == "silence":
+        if victim not in var.TOBESILENCED:
+            var.TOBESILENCED.append(victim)
+    elif totem == "desperation":
+        if victim not in var.DESPERATE:
+            var.DESPERATE.append(victim)
     elif totem == "impatience": # this totem stacks
         var.IMPATIENT.append(victim)
     elif totem == "pacifism": # this totem stacks
         var.PACIFISTS.append(victim)
-    elif totem == "influence" and victim not in var.INFLUENTIAL:
-        var.INFLUENTIAL.append(victim)
-    elif totem == "exchange" and victim not in var.TOBEEXCHANGED:
-        var.TOBEEXCHANGED.append(victim)
-    elif totem == "lycanthropy" and victim not in var.TOBELYCANTHROPES:
-        var.TOBELYCANTHROPES.append(victim)
-    elif totem == "luck" and victim not in var.TOBELUCKY:
-        var.TOBELUCKY.append(victim)
-    elif totem == "pestilence" and victim not in var.TOBEDISEASED:
-        var.TOBEDISEASED.append(victim)
-    elif totem == "retribution" and victim not in var.RETRIBUTION:
-        var.RETRIBUTION.append(victim)
-    elif totem == "misdirection" and victim not in var.TOBEMISDIRECTED:
-        var.TOBEMISDIRECTED.append(victim)
+    elif totem == "influence":
+        if victim not in var.INFLUENTIAL:
+            var.INFLUENTIAL.append(victim)
+    elif totem == "exchange":
+        if victim not in var.TOBEEXCHANGED:
+            var.TOBEEXCHANGED.append(victim)
+    elif totem == "lycanthropy":
+        if victim not in var.TOBELYCANTHROPES:
+            var.TOBELYCANTHROPES.append(victim)
+    elif totem == "luck":
+        if victim not in var.TOBELUCKY:
+            var.TOBELUCKY.append(victim)
+    elif totem == "pestilence":
+        if victim not in var.TOBEDISEASED:
+            var.TOBEDISEASED.append(victim)
+    elif totem == "retribution":
+        if victim not in var.RETRIBUTION:
+            var.RETRIBUTION.append(victim)
+    elif totem == "misdirection":
+        if victim not in var.TOBEMISDIRECTED:
+            var.TOBEMISDIRECTED.append(victim)
     else:
         pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
     var.LASTGIVEN[nick] = victim
@@ -3527,6 +3725,10 @@ def target(cli, nick, rest):
         return
 
     victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        if nick in var.TARGETED:
+            del var.TARGETED[nick]
+        return
     var.TARGETED[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 as your target.".format(victim))
 
@@ -3582,6 +3784,11 @@ def hex(cli, nick, rest):
         return
 
     victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        if nick in var.HEXED:
+            var.HEXED.remove(nick)
+            var.ACTED_EXTRA += 1
+        return
     vrole = var.get_role(victim)
     if vrole in var.WOLFCHAT_ROLES:
         pm(cli, nick, "Hexing another wolf would be a waste.")
@@ -3754,6 +3961,7 @@ def transition_night(cli):
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
     var.TOTEMS = {}
+    var.ACTED_EXTRA = 0
 
     daydur_msg = ""
 
@@ -3788,7 +3996,9 @@ def transition_night(cli):
             var.ROLES[amnrole].append(amn)
             var.AMNESIACS.append(amn)
             showrole = amnrole
-            if showrole in ("village elder", "time lord", "vengeful ghost"):
+            if showrole in ("village elder", "time lord"):
+                showrole = "villager"
+            elif showrole == "vengeful ghost":
                 showrole = var.DEFAULT_ROLE
             pm(cli, amn, "Your amnesia clears and you now remember that you are a \u0002{0}\u0002!".format(showrole))
             if amnrole in var.WOLFCHAT_ROLES:
@@ -4214,7 +4424,7 @@ def transition_night(cli):
     var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if not var.ROLES["wolf"] + var.ROLES["werecrow"]:  # Probably something interesting going on.
+    if len(var.ROLES["wolf"] + var.ROLES["werecrow"]) == 0 or var.DISEASED_WOLVES:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
 
@@ -4365,6 +4575,7 @@ def start(cli, nick, chann_, rest):
     var.TOBEMISDIRECTED = []
     var.EXCHANGED = []
     var.TOBEEXCHANGED = []
+    var.ACTEDEXTRA = 0
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
