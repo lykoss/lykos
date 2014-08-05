@@ -113,9 +113,13 @@ def connect_callback(cli):
     prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
 
     def mustregain(cli, *blah):
+        if not botconfig.PASS:
+            return
         cli.ns_regain()                    
                     
     def mustrelease(cli, *rest):
+        if not botconfig.PASS:
+            return # prevents the bot from trying to release without a password
         cli.ns_release()
         cli.nick(botconfig.NICK)
 
