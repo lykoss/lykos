@@ -3337,7 +3337,7 @@ def give(cli, nick, rest):
     elif totem == "misdirection" and victim not in var.TOBEMISDIRECTED:
         var.TOBEMISDIRECTED.append(victim)
     else:
-        pm(cli, nick, "I don't know what to do with this totem. This is a bug, please report it to the admins.")
+        pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
     var.LASTGIVEN[nick] = victim
     var.SHAMANS.append(nick)
     var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
@@ -3981,6 +3981,10 @@ def transition_night(cli):
             if rand <= target:
                 var.TOTEMS[shaman] = t
                 break
+        else:
+            # some sort of error (floating point issues so the %ages didn't sum to 1 or something)
+            # just give them death because I'm lazy
+            var.TOTEMS[shaman] = 'death'
         if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
                              'a {1}totem each night by using "give <nick>". You may give yourself a totem, but you ' +
