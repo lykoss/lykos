@@ -1116,7 +1116,7 @@ def stop_game(cli, winner = ""):
             if x != None:
                 if role == "amnesiac" and x in var.AMNESIACS:
                     plrl[x] = var.FINAL_ROLES[x]
-                elif x in var.FINAL_ROLES: # role swap
+                elif role != "amnesiac" and x in var.FINAL_ROLES: # role swap
                     plrl[x] = var.FINAL_ROLES[x]
                 else:
                     plrl[x] = role
@@ -2110,8 +2110,6 @@ def transition_day(cli, gameid=0):
     var.DAY_START_TIME = datetime.now()
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
-    var.ANGRY_WOLVES = False
-    var.DISEASED_WOLVES = False
     havetotem = copy.copy(var.LASTGIVEN)
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
@@ -2241,6 +2239,11 @@ def transition_day(cli, gameid=0):
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
                "and search the village... ").format(min, sec)]
+
+    # This needs to go down here since having them be their night value matters above
+    var.ANGRY_WOLVES = False
+    var.DISEASED_WOLVES = False
+
     dead = []
     for victim in victims:
         var.LOGGER.logBare(victim, "VICTIM", *[y for x,y in var.KILLS.items() if x == victim])
@@ -2623,18 +2626,100 @@ def check_exchange(cli, actor, nick):
         if actor_role == "amnesiac":
             actor_role = var.FINAL_ROLES[actor]
         elif actor_role == "clone":
-            actor_target = var.CLONED[actor]
+            if actor in var.CLONED:
+                actor_target = var.CLONED[actor]
+                del var.CLONED[actor]
         elif actor_role in ("shaman", "crazed shaman"):
             actor_totem = var.TOTEMS[actor]
             del var.TOTEMS[actor]
+            if actor in var.SHAMANS:
+                var.ACTED_EXTRA += 1
+                var.SHAMANS.remove(actor)
+            if actor in var.LASTGIVEN:
+                del var.LASTGIVEN[actor]
+        elif actor_role == "wolf":
+            if actor in var.KILLS:
+                del var.KILLS[actor]
+        elif actor_role == "hunter":
+            if actor in var.OTHER_KILLS:
+                var.ACTED_EXTRA += 1
+            if actor in var.HUNTERS:
+                var.HUNTERS.remove(actor)
+            if actor in var.PASSED:
+                var.PASSED.remove(actor)
+        elif actor_role in ("bodyguard", "guardian angel"):
+            if actor in var.GUARDED:
+                if actor_role == "bodyguard":
+                    pm(cli, var.GUARDED[actor], "Your bodyguard seems to have disappeared...")
+                    del var.GUARDED[actor]
+                else:
+                    var.ACTED_EXTRA += 1
+            if actor in var.LASTGUARDED:
+                del var.LASTGUARDED[actor]
+        elif actor_role in ("werecrow", "sorcerer"):
+            if actor in var.OBSERVED:
+                del var.OBSERVED[actor]
+            if actor in var.KILLS:
+                del var.KILLS[actor]
+        elif actor_role == "harlot":
+            if actor in var.HVISITED:
+                pm(cli, var.HVISITED[actor], "\u0002{0}\u0002 seems to have disappeared...".format(actor))
+                del var.HVISITED[actor]
+        elif actor_role in ("seer", "oracle", "augur"):
+            if actor in var.SEEN:
+                var.SEEN.remove(actor)
+        elif actor_role == "hag":
+            if actor in var.HEXED:
+                var.HEXED.remove(actor)
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
         elif nick_role == "clone":
-            nick_target = var.CLONED[nick]
+            if nick in var.CLONED:
+                nick_target = var.CLONED[nick]
+                del var.CLONED[nick]
         elif nick_role in ("shaman", "crazed shaman"):
             nick_totem = var.TOTEMS[nick]
             del var.TOTEMS[nick]
+            if nick in var.SHAMANS:
+                var.ACTED_EXTRA += 1
+                var.SHAMANS.remove(nick)
+            if nick in var.LASTGIVEN:
+                del var.LASTGIVEN[nick]
+        elif nick_role == "wolf":
+            if nick in var.KILLS:
+                del var.KILLS[nick]
+        elif nick_role == "hunter":
+            if nick in var.OTHER_KILLS:
+                var.ACTED_EXTRA += 1
+            if nick in var.HUNTERS:
+                var.HUNTERS.remove(nick)
+            if nick in var.PASSED:
+                var.PASSED.remove(nick)
+        elif nick_role in ("bodyguard", "guardian angel"):
+            if nick in var.GUARDED:
+                if nick_role == "bodyguard":
+                    pm(cli, var.GUARDED[nick], "Your bodyguard seems to have disappeared...")
+                    del var.GUARDED[nick]
+                else:
+                    var.ACTED_EXTRA += 1
+            if nick in var.LASTGUARDED:
+                del var.LASTGUARDED[nick]
+        elif nick_role in ("werecrow", "sorcerer"):
+            if nick in var.OBSERVED:
+                del var.OBSERVED[nick]
+            if nick in var.KILLS:
+                del var.KILLS[nick]
+        elif nick_role == "harlot":
+            if nick in var.HVISITED:
+                pm(cli, var.HVISITED[nick], "\u0002{0}\u0002 seems to have disappeared...".format(nick))
+                del var.HVISITED[nick]
+        elif nick_role in ("seer", "oracle", "augur"):
+            if nick in var.SEEN:
+                var.SEEN.remove(nick)
+        elif nick_role == "hag":
+            if nick in var.HEXED:
+                var.HEXED.remove(nick)
             
         var.FINAL_ROLES[actor] = nick_role
         var.FINAL_ROLES[nick] = actor_role
@@ -3036,39 +3121,24 @@ def kill(cli, nick, rest):
                     rv = choose_target(nick, victim)
                     rv2 = choose_target(nick, victim2)
                     if check_exchange(cli, nick, rv):
-                        if nick in var.KILLS:
-                            del var.KILLS[nick]
                         return
                     if check_exchange(cli, nick, rv2):
-                        if nick in var.KILLS:
-                            del var.KILLS[nick]
                         return
                     var.KILLS[nick] = [rv, rv2]
             else:
                 rv = choose_target(nick, victim)
                 if check_exchange(cli, nick, rv):
-                    if nick in var.KILLS:
-                        del var.KILLS[nick]
                     return
                 var.KILLS[nick] = [rv]
         else:
             rv = choose_target(nick, victim)
             if check_exchange(cli, nick, rv):
-                if nick in var.KILLS:
-                    del var.KILLS[nick]
                 return
             var.KILLS[nick] = rv
     else:
         rv = choose_target(nick, victim)
         if nick not in var.VENGEFUL_GHOSTS.keys():
             if check_exchange(cli, nick, rv):
-                if nick in var.OTHER_KILLS:
-                    var.ACTED_EXTRA += 1
-                    # don't invalidate the kill, just say we have another night actor
-                if nick in var.PASSED:
-                    var.PASSED.remove(nick)
-                if nick in var.HUNTERS:
-                    var.HUNTERS.remove(nick)
                 return
         var.OTHER_KILLS[nick] = rv
         if role == "hunter":
@@ -3144,15 +3214,6 @@ def guard(cli, nick, rest):
     else:
         victim = choose_target(nick, victim) 
         if check_exchange(cli, nick, victim):
-            if nick in var.GUARDED:
-                if role == "bodyguard":
-                    # This shouldn't ever happen, but here just in case
-                    pm(cli, var.GUARDED[nick], "Your bodyguard seems to have disappeared...")
-                    del var.GUARDED[nick]
-                else:
-                    var.ACTED_EXTRA += 1
-            if nick in var.LASTGUARDED:
-                del var.LASTGUARDED[nick]
             return
         var.GUARDED[nick] = victim
         var.LASTGUARDED[nick] = victim
@@ -3223,10 +3284,6 @@ def observe(cli, nick, rest):
         return
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
-        if nick in var.OBSERVED:
-            del var.OBSERVED[nick]
-        if nick in var.KILLS:
-            del var.KILLS[nick]
         return
     var.OBSERVED[nick] = victim
     if nick in var.KILLS.keys():
@@ -3352,10 +3409,6 @@ def hvisit(cli, nick, rest):
     else:
         victim = choose_target(nick, victim)
         if check_exchange(cli, nick, victim):
-            if nick in var.HVISITED:
-                # this shouldn't ever happen, but just in case
-                pm(cli, var.HVISITED[nick], "\u0002{0}\u0002 seems to have disappeared...".format(nick))
-                del var.HVISITED[nick]
             return
         var.HVISITED[nick] = victim
         pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
@@ -3413,8 +3466,6 @@ def see(cli, nick, rest):
         return
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
-        if nick in var.SEEN:
-            var.SEEN.remove(nick)
         return
     victimrole = var.get_role(victim)
     if victimrole == "amnesiac":
@@ -3490,11 +3541,6 @@ def give(cli, nick, rest):
         type = " of " + var.TOTEMS[nick]
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
-        if nick in var.SHAMANS:
-            var.ACTED_EXTRA += 1
-            var.SHAMANS.remove(nick)
-        if nick in var.LASTGIVEN:
-            del var.LASTGIVEN[nick]
         return
     pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
     totem = var.TOTEMS[nick]
@@ -3732,10 +3778,7 @@ def target(cli, nick, rest):
         return
 
     victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        if nick in var.TARGETED:
-            del var.TARGETED[nick]
-        return
+    # assassin is a template so it will never get swapped, so don't check for exchanges with it
     var.TARGETED[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 as your target.".format(victim))
 
@@ -3792,9 +3835,6 @@ def hex(cli, nick, rest):
 
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
-        if nick in var.HEXED:
-            var.HEXED.remove(nick)
-            var.ACTED_EXTRA += 1
         return
     vrole = var.get_role(victim)
     if vrole in var.WOLFCHAT_ROLES:
@@ -4582,7 +4622,7 @@ def start(cli, nick, chann_, rest):
     var.TOBEMISDIRECTED = []
     var.EXCHANGED = []
     var.TOBEEXCHANGED = []
-    var.ACTEDEXTRA = 0
+    var.ACTED_EXTRA = 0
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():

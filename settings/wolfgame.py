@@ -45,6 +45,7 @@ GOAT_HERDER = True
 SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
+HIDDEN_CLONE = False
 VENGEFUL_GHOST_KNOWS_ROLES = True
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
@@ -225,6 +226,8 @@ def get_reveal_role(nick):
         return DEFAULT_ROLE
     elif HIDDEN_AMNESIAC and nick in ORIGINAL_ROLES["amnesiac"]:
         return "amnesiac"
+    elif HIDDEN_CLONE and nick in ORIGINAL_ROLES["clone"]:
+        return "clone"
     else:
         return get_role(nick)
 
