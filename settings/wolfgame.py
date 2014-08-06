@@ -46,7 +46,6 @@ SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
 HIDDEN_CLONE = False
-VENGEFUL_GHOST_KNOWS_ROLES = True
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets

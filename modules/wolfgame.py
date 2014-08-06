@@ -2140,6 +2140,7 @@ def transition_day(cli, gameid=0):
 
     maxc = 0
     victims = []
+    killers = {} # dict of victim: list of killers (for retribution totem)
     bywolves = set() # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
     onlybywolves = set() # wolves and nobody else targeted (needed for lycan)
     dups = []
@@ -2155,6 +2156,10 @@ def transition_day(cli, gameid=0):
         victims.append(victim)
         bywolves.add(victim)
         onlybywolves.add(victim)
+        if victim in killers:
+            killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
+        else:
+            killers[victim] = ["@wolves"]
 
     if victims and var.ANGRY_WOLVES:
         # they got a 2nd kill
@@ -2172,6 +2177,10 @@ def transition_day(cli, gameid=0):
             victims.append(victim)
             bywolves.add(victim)
             onlybywolves.add(victim)
+            if victim in killers:
+                killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
+            else:
+                killers[victim] = ["@wolves"]
 
     for monster in var.ROLES["monster"]:
         if monster in victims:
@@ -2183,12 +2192,29 @@ def transition_day(cli, gameid=0):
     for ghost, target in var.VENGEFUL_GHOSTS.items():
         if target == "villagers":
             victim = var.OTHER_KILLS[ghost]
+            if victim in killers:
+                killers[victim].append(ghost)
+            else:
+                killers[victim] = [ghost]
             if victim not in var.DYING: # wolf ghost killing ghost will take precedence over everything except death totem and elder
                 wolfghostvictims.append(victim)
 
-    for d in list(var.OTHER_KILLS.values()) + var.DYING:
+    for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
+        if d in killers:
+            killers[d].append(k)
+        else:
+            killers[d] = [k]
+    for d in var.DYING:
+        victims.append(d)
+        onlybywolves.discard(d)
+        for s, v in var.LASTGIVEN.items():
+            if v == d and var.TOTEMS[s] == "death":
+                if d in killers:
+                    killers[d].append(s)
+                else:
+                    killers[d] = [s]
     victims_set = set(victims) # remove duplicates
     victims_set.discard(None) # in the event that ever happens
     victims = []
@@ -2306,6 +2332,30 @@ def transition_day(cli, gameid=0):
             pm(cli, victim, "Wolves: " + ", ".join(wolves))
             novictmsg = False
         elif victim not in dead: # not already dead via some other means
+            if victim in var.RETRIBUTION:
+                loser = random.choice(killers[victim])
+                if loser == "@wolves":
+                    wolves = var.list_players(var.WOLF_ROLES)
+                    for crow in var.ROLES["werecrow"]:
+                        if crow in var.OBSERVED:
+                            wolves.remove(crow)
+                    loser = random.choice(wolves)
+                if loser in var.VENGEFUL_GHOSTS.keys():
+                    # mark ghost as being unable to kill any more
+                    var.VENGEFUL_GHOSTS[loser] = "!" + var.VENGEFUL_GHOSTS[loser]
+                    message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
+                                    "It appears that \u0002{1}\u0002's spirit was driven away by the flash.").format(victim, loser))
+                else:
+                    dead.append(loser)
+                    if var.ROLE_REVEAL:
+                        role = var.get_reveal_role(loser)
+                        an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
+                        message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
+                                        "The dead body of \u0002{1}\u0002, a{2} \u0002{3}\u0002, was found at the scene.").format(victim, loser, an, role))
+                    else:
+                        message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
+                                        "The dead body of \u0002{1}\u0002 was found at the scene.").format(victim, loser))
+                var.LOGGER.logBare(loser, "RETRIBUTION")
             if var.ROLE_REVEAL:
                 role = var.get_reveal_role(victim)
                 an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
