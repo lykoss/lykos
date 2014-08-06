@@ -784,7 +784,7 @@ def chk_decision(cli, force = ""):
     for votee, voters in votelist.items():
         numvotes = 0
         for v in var.IMPATIENT:
-            if v not in voters and v != votee:
+            if v in pl and v not in voters and v != votee:
                 voters.append(v)
         for v in voters:
             weight = 1
