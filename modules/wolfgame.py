@@ -1366,18 +1366,17 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.ROLES["clone"].remove(clone)
                             if nickrole == "amnesiac":
                                 # clone gets the amnesiac's real role
-                                for r in var.ORIGINAL_ROLES.keys():
-                                    if r not in var.TEMPLATE_RESTRICTIONS.keys() and nick in var.ORIGINAL_ROLES[r]:
-                                        var.ROLES[r].append(clone)
-                                        var.FINAL_ROLES[clone] = r
-                                        sayrole = r
-                                        break
+                                sayrole = var.FINAL_ROLES[nick]
+                                var.FINAL_ROLES[clone] = sayrole
+                                var.ROLES[sayrole].append(clone)
                             else:
                                 var.ROLES[nickrole].append(clone)
                                 var.FINAL_ROLES[clone] = nickrole
                                 sayrole = nickrole
                             # if cloning time lord or vengeful ghost, say they are villager instead
-                            if sayrole in ("time lord", "vengeful ghost"):
+                            if sayrole in ("time lord", "village elder"):
+                                sayrole = "villager"
+                            elif sayrole == "vengeful ghost":
                                 sayrole = var.DEFAULT_ROLE
                             an = "n" if sayrole[0] in ("a", "e", "i", "o", "u") else ""
                             pm(cli, clone, "You are now a{0} \u0002{1}\u0002.".format(an, sayrole))
