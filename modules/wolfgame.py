@@ -796,10 +796,12 @@ def show_votes(cli, nick, chan, rest):
                     for votee in var.VOTES.keys()]
         msg = '{}: {}'.format(nick, ', '.join(votelist))
 
-    if chan == nick or nick in pl:
-        cli.msg(chan, msg)
-    else:
+    if chan == nick:
+        pm(cli, nick, msg)
+    elif nick not in pl and var.PHASE not in ("none", "join"):
         cli.notice(nick, msg)
+    else:
+        cli.msg(chan, msg)
 
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED)
@@ -808,10 +810,12 @@ def show_votes(cli, nick, chan, rest):
                    'required to lynch, \u0002{}\u0002 players available to '
                    'vote.').format(nick, len(pl), votesneeded, avail)
 
-    if chan == nick or nick in pl:
-        cli.msg(chan, the_message)
-    else:
+    if chan == nick:
+        pm(cli, nick, the_message)
+    elif nick not in pl and var.PHASE not in ("none", "join"):
         cli.notice(nick, the_message)
+    else:
+        cli.msg(chan, the_message)
 
 
 @pmcmd('votes')
@@ -3020,6 +3024,8 @@ def timeleft(cli, nick, chan, rest):
 
     if nick == chan:
         pm(cli, nick, msg)
+    elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
+        cli.notice(nick, msg)
     else:
         cli.msg(chan, msg)
 
@@ -3055,6 +3061,8 @@ def listroles(cli, nick, chan, rest):
         old = v
     if chan == nick:
         pm(cli, nick, txt)
+    elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
+        cli.notice(nick, txt)
     else:
         cli.msg(chan, txt)
 
