@@ -2270,8 +2270,6 @@ def transition_day(cli, gameid=0):
     var.DISEASED_WOLVES = False
 
     dead = []
-    for victim in victims:
-        var.LOGGER.logBare(victim, "VICTIM", *[y for x,y in var.KILLS.items() if x == victim])
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
