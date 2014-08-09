@@ -858,75 +858,6 @@ def chk_decision(cli, force = ""):
                         var.LOGGER.logBare(target, "DESPERATION TOTEM TARGET")
                         cli.msg(botconfig.CHANNEL, tmsg)
                         del_player(cli, target, True, end_game = False, killer_role = "shaman") # do not end game just yet, we have more killin's to do!
-                if votee in var.ROLES["mad scientist"]:
-                    # kills the 2 players adjacent to them in the original players listing (in order of !joining)
-                    # if those players are already dead, nothing happens
-                    index = var.ALL_PLAYERS.index(votee)
-                    targets = []
-                    target1 = var.ALL_PLAYERS[index - 1]
-                    target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
-                    if target1 in var.list_players():
-                        if target2 in var.list_players():
-                            if var.ROLE_REVEAL:
-                                r1 = var.get_reveal_role(target1)
-                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
-                                r2 = var.get_reveal_role(target2)
-                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a{2} \u0002{3}\u0002, and \u0002{4}\u0002, a{5} \u0002{6}\u0002, " +
-                                        "get hit by the chemicals and die.").format(votee, target1, an1, r1, target2, an2, r2)
-                            else:
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
-                                        "and \u0002{2}\u0002 get hit by the chemicals and die.").format(votee, target1, target2)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
-                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
-                        else:
-                            if var.ROLE_REVEAL:
-                                r1 = var.get_reveal_role(target1)
-                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(votee, target1, an1, r1)
-                            else:
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
-                                        "gets hit by the chemicals and dies.").format(votee, target1)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
-                    else:
-                        if target2 in var.list_players():
-                            if var.ROLE_REVEAL:
-                                r2 = var.get_reveal_role(target2)
-                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(votee, target2, an2, r2)
-                            else:
-                                tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
-                                        "gets hit by the chemicals and dies.").format(votee, target2)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
-                        else:
-                            tmsg = ("While being dragged off, mad scientist \u0002{0}\u0002 throws " +
-                                    "a potent chemical concoction into the crowd. Thankfully, " +
-                                    "nobody seems to have gotten hit.").format(votee)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(votee, "MAD SCIENTIST")
-                            cli.msg(botconfig.CHANNEL, tmsg)
                 # Other
                 if votee in var.ROLES["jester"]:
                     var.JESTERS.append(votee)
@@ -1498,6 +1429,75 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                    "to exact your revenge on the \u0002{0}\u0002 that killed you").format(var.VENGEFUL_GHOSTS[nick]))
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
+                if nickrole == "mad scientist":
+                    # kills the 2 players adjacent to them in the original players listing (in order of !joining)
+                    # if those players are already dead, nothing happens
+                    index = var.ALL_PLAYERS.index(nick)
+                    targets = []
+                    target1 = var.ALL_PLAYERS[index - 1]
+                    target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
+                    if target1 in var.list_players():
+                        if target2 in var.list_players():
+                            if var.ROLE_REVEAL:
+                                r1 = var.get_reveal_role(target1)
+                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
+                                r2 = var.get_reveal_role(target2)
+                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a{2} \u0002{3}\u0002, and \u0002{4}\u0002, a{5} \u0002{6}\u0002, " +
+                                        "get hit by the chemicals and die.").format(nick, target1, an1, r1, target2, an2, r2)
+                            else:
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "and \u0002{2}\u0002 get hit by the chemicals and die.").format(nick, target1, target2)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
+                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
+                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
+                        else:
+                            if var.ROLE_REVEAL:
+                                r1 = var.get_reveal_role(target1)
+                                an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(nick, target1, an1, r1)
+                            else:
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "gets hit by the chemicals and dies.").format(nick, target1)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
+                    else:
+                        if target2 in var.list_players():
+                            if var.ROLE_REVEAL:
+                                r2 = var.get_reveal_role(target2)
+                                an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
+                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(nick, target2, an2, r2)
+                            else:
+                                tmsg = ("\u0002{0}\u0002 throws " +
+                                        "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
+                                        "gets hit by the chemicals and dies.").format(nick, target2)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
+                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
+                        else:
+                            tmsg = ("\u0002{0}\u0002 throws " +
+                                    "a potent chemical concoction into the crowd. Thankfully, " +
+                                    "nobody seems to have gotten hit.").format(nick)
+                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
+                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
+                            cli.msg(botconfig.CHANNEL, tmsg)
 
             if devoice:
                 cmode.append(("-v", nick))
