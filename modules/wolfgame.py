@@ -1256,7 +1256,7 @@ def goat(cli, nick, chan, rest):
 def fgoat(cli, nick, chan, rest):
     goatact = random.choice(['kicks', 'headbutts'])
 
-    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02'.format(
+    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
         nick, goatact, rest))
 
     var.LOGGER.logMessage('{}\'s goat walks by and {} {}.'.format(
