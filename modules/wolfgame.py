@@ -736,8 +736,23 @@ def hurry_up(cli, gameid, change):
 
     found_dup = False
     maxfound = (0, "")
-    for votee, voters in iter(var.VOTES.items()):
-        numvotes = sum([var.BUREAUCRAT_VOTES if p in var.ROLES["bureaucrat"] else 1 for p in voters])
+    votelist = copy.deepcopy(var.VOTES)
+    for votee, voters in votelist.items():
+        numvotes = 0
+        for v in var.IMPATIENT:
+            if v in pl and v not in voters and v != votee:
+                voters.append(v)
+        for v in voters:
+            weight = 1
+            imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
+            pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
+            if pac_count > imp_count:
+                weight = 0 # more pacifists than impatience totems
+            elif imp_count == pac_count and v not in var.VOTES[votee]:
+                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
+            if v in var.ROLES["bureaucrat"] or v in var.INFLUENTIAL: # the two do not stack
+                weight *= 2
+            numvotes += weight
         if numvotes > maxfound[0]:
             maxfound = (numvotes, votee)
             found_dup = False
