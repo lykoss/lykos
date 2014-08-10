@@ -1235,7 +1235,10 @@ def goat(cli, nick, chan, rest):
                                                                     victim))
     var.GOATED = True
     
-    
+@cmd("fgoat", admin_only=True)
+def fgoat(cli, nick, chan, rest):
+    var.GOATED = False
+    goat(cli, nick, chan, rest)
 
 @hook("nick")
 def on_nick(cli, prefix, nick):
