@@ -1197,52 +1197,71 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     if nick == "ChanServ" and not var.OPPED:
         cli.msg("ChanServ", "op " + chan)
 
-@cmd("goat")
+
+@cmd('goat')
 def goat(cli, nick, chan, rest):
-    """Use a goat to interact with anyone in the channel during the day"""
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
+    """Use a goat to interact with anyone in the channel during the day."""
+
+    if var.PHASE in ('none', 'join'):
+        cli.notice(nick, 'No game is currently running.')
         return
     elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
+        cli.notice(nick, 'You\'re not currently playing.')
         return
-    if var.PHASE != "day":
-        cli.notice(nick, "You can only do that in the day.")
+
+    if var.PHASE != 'day':
+        cli.notice(nick, 'You can only do that in the day.')
         return
-    if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
-        cli.notice(nick, "This can only be done once per day.")
+
+    if var.GOATED and nick not in var.SPECIAL_ROLES['goat herder']:
+        cli.notice(nick, 'This can only be done once per day.')
         return
+
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
-    rest = re.split(" +",rest)[0].strip().lower()
+    rest = re.split(' +', rest)[0].strip().lower()
+
     if not rest:
-        cli.notice(nick, "Not enough parameters.")
+        cli.notice(nick, 'Not enough parameters.')
         return
+
     matches = 0
+
     for player in ull:
         if rest == player:
             victim = player
             break
+
         if player.startswith(rest):
             victim = player
             matches += 1
     else:
         if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is not in this channel.".format(rest))
+            pm(cli, nick, '\x02{}\x02 is not in this channel.'.format(rest))
             return
+
     victim = ul[ull.index(victim)]
-    goatact = random.choice(["kicks", "headbutts"])
-    cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002's goat walks by "+
-                                "and {1} \u0002{2}\u0002.").format(nick,
-                                                                   goatact, victim))
-    var.LOGGER.logMessage("{0}'s goat walks by and {1} {2}.".format(nick, goatact,
-                                                                    victim))
+    goatact = random.choice(('kicks', 'headbutts'))
+
+    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
+        nick, goatact, victim))
+
+    var.LOGGER.logMessage('{}\'s goat walks by and {} {}.'.format(
+        nick, goatact, victim))
+
     var.GOATED = True
+
     
-@cmd("fgoat", admin_only=True)
+@cmd('fgoat', admin_only=True)
 def fgoat(cli, nick, chan, rest):
-    var.GOATED = False
-    goat(cli, nick, chan, rest)
+    goatact = random.choice(['kicks', 'headbutts'])
+
+    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'format(
+        nick, goatact, rest))
+
+    var.LOGGER.logMessage('{}\'s goat walks by and {} {}.'.format(
+        nick, goatact, rest))
+
 
 @hook("nick")
 def on_nick(cli, prefix, nick):
