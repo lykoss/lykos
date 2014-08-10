@@ -2302,7 +2302,7 @@ def transition_day(cli, gameid=0):
                         message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(bodyguard))
                         novictmsg = False
                         break
-        elif victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in dead:
+        elif victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead:
             if victim in onlybywolves:
                 message.append("The wolves' selected victim was a harlot, who was not at home last night.")
                 novictmsg = False
