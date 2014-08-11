@@ -1132,7 +1132,11 @@ def stop_game(cli, winner = ""):
                 elif lvr in survived and winner == "monsters" and lvrrol == "monster":
                     iwon = True
                     break
-        if rol == "crazed shaman" or rol == "clone":
+
+        if plr.startswith("(dced)"):
+            won = False
+            iwon = False
+        elif rol == "crazed shaman" or rol == "clone":
             # For clone, this means they ended game while being clone and not some other role
             if splr in survived and not winner.startswith("@") and winner != "monsters":
                 iwon = True
@@ -1608,6 +1612,11 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, ("\u0002{0}\u0002 didn't get out of bed for a very long " +
                                        "time and has been found dead.").format(nck))
+                    for r,rlist in var.ORIGINAL_ROLES.items():
+                        if nck in rlist:
+                            var.ORIGINAL_ROLES[r].remove(nck)
+                            var.ORIGINAL_ROLES[r].append("(dced)"+nck)
+                            break
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     if not del_player(cli, nck, death_triggers = False):
                         return
