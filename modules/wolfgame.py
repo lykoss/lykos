@@ -1219,7 +1219,7 @@ def goat(cli, nick, chan, rest):
 
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
-    rest = re.split(' +', rest)[0].strip().lower()
+    rest = rest.split(' ')[0].strip().lower()
 
     if not rest:
         cli.notice(nick, 'Not enough parameters.')
@@ -1254,6 +1254,7 @@ def goat(cli, nick, chan, rest):
     
 @cmd('fgoat', admin_only=True)
 def fgoat(cli, nick, chan, rest):
+    rest = rest.split(' ')[0].strip()
     goatact = random.choice(['kicks', 'headbutts'])
 
     cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
