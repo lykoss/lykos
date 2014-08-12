@@ -2175,17 +2175,11 @@ def transition_day(cli, gameid=0):
 
     found = {}
     for v in var.KILLS.values():
-        if var.ANGRY_WOLVES:
-            for p in v:
-                if p in found:
-                    found[p] += 1
-                else:
-                    found[p] = 1
-        else:
-            if v in found:
-                found[v] += 1
+        for p in v:
+            if p in found:
+                found[p] += 1
             else:
-                found[v] = 1
+                found[p] = 1
 
     maxc = 0
     victims = []
@@ -2498,7 +2492,6 @@ def transition_day(cli, gameid=0):
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
     for victim in dead:
-        print("bywolves = {0}, diseased = {1}".format(victim in bywolves, victim in var.DISEASED))
         if victim in bywolves and victim in var.DISEASED:
             var.DISEASED_WOLVES = True
 
@@ -3209,29 +3202,23 @@ def kill(cli, nick, rest):
         if victim in var.list_players(var.WOLFCHAT_ROLES) or victim2 in var.list_players(var.WOLFCHAT_ROLES):
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
-        if var.ANGRY_WOLVES:
-            if victim2 != None:
-                if victim == victim2:
-                    pm(cli, nick, "You should select two different players.")
-                    return
-                else:
-                    rv = choose_target(nick, victim)
-                    rv2 = choose_target(nick, victim2)
-                    if check_exchange(cli, nick, rv):
-                        return
-                    if check_exchange(cli, nick, rv2):
-                        return
-                    var.KILLS[nick] = [rv, rv2]
+        if var.ANGRY_WOLVES and victim2 != None:
+            if victim == victim2:
+                pm(cli, nick, "You should select two different players.")
+                return
             else:
                 rv = choose_target(nick, victim)
+                rv2 = choose_target(nick, victim2)
                 if check_exchange(cli, nick, rv):
                     return
-                var.KILLS[nick] = [rv]
+                if check_exchange(cli, nick, rv2):
+                    return
+                var.KILLS[nick] = [rv, rv2]
         else:
             rv = choose_target(nick, victim)
             if check_exchange(cli, nick, rv):
                 return
-            var.KILLS[nick] = rv
+            var.KILLS[nick] = [rv]
     else:
         rv = choose_target(nick, victim)
         if nick not in var.VENGEFUL_GHOSTS.keys():
