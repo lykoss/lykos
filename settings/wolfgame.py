@@ -248,6 +248,22 @@ def get_templates(nick):
 
     return tpl
 
+def break_long_message(phrases, joinstr = " "):
+    message = ""
+    count = 0
+    for phrase in phrases:
+        # IRC max is 512, but freenode splits around 380ish, make 300 to have plenty of wiggle room
+        if count + len(joinstr) + len(phrase) > 300:
+            message += "\n" + phrase
+            count = len(phrase)
+        elif message == "":
+            message = phrase
+            count = len(phrase)
+        else:
+            message += joinstr + phrase
+            count += len(joinstr) + len(phrase)
+    return message
+
 class InvalidModeException(Exception): pass
 def game_mode(name):
     def decor(c):
@@ -360,6 +376,10 @@ class RapidFireMode(object):
         self.MIN_PLAYERS = 6
         self.MAX_PLAYERS = 25
         self.SHARPSHOOTER_CHANCE = 1
+        self.DAY_TIME_LIMIT = 480
+        self.DAY_LIMIT_WARN = 360
+        self.SHORT_DAY_LIMIT = 240
+        self.SHORT_DAY_WARN = 180
         self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  22   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -368,6 +388,7 @@ class RapidFireMode(object):
             "matchmaker"        : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   2   ),
             "hunter"            : (   0   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             "augur"             : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "time lord"         : (   0   ,   0   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             # wolf roles
             "wolf"              : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   4   ),
             "wolf cub"          : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ),
@@ -550,7 +571,7 @@ def get_player_totals(acc):
                     break
             c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
             row = c.fetchone()
-            return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], ", ".join(role_totals))
+            return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], break_long_message(role_totals, ", "))
         else:
             return "\u0002{0}\u0002 has not played any games.".format(acc)
 

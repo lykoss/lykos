@@ -1038,7 +1038,9 @@ def stop_game(cli, winner = ""):
             roles_msg.append(msg.format(", ".join(nickslist),
                                                   playersinrole[-1],
                                                   var.plural(role)))
-    cli.msg(chan, " ".join(roles_msg))
+    message = ""
+    count = 0
+    cli.msg(chan, var.break_long_message(roles_msg))
 
     done = {}
     lovers = []
@@ -1970,7 +1972,8 @@ def leave(cli, what, nick, why=""):
         return
     if var.PHASE == "none":
         return
-    if nick in var.PLAYERS:
+    # only mark living players as dced, unless they were kicked
+    if nick in var.PLAYERS and (what == "kick" or nick in var.list_players()):
         # must prevent double entry in var.ORIGINAL_ROLES
         for r,rlist in var.ORIGINAL_ROLES.items():
             if nick in rlist:
