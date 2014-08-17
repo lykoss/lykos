@@ -5631,7 +5631,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("fgame", admin_only=True, raw_nick=True)
     def fgame(cli, nick, chan, rest):
-        (nick, _, __, cloak) = parse_nick(rawnick)
+        (nick, _, __, cloak) = parse_nick(nick)
 
         pl = var.list_players()
 
