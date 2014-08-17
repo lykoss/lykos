@@ -2605,7 +2605,7 @@ def chk_nightdone(cli):
         if var.PHASE == "night":  # Double check
             transition_day(cli)
 
-@cmd("nolynch", "no_lynch", "nl", "novote", "abstain")
+@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs")
 def no_lynch(cli, nick, chan, rest):
     """Allow someone to refrain from voting for the day"""
     if chan == botconfig.CHANNEL:
