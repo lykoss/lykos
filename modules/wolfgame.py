@@ -950,10 +950,10 @@ def show_votes(cli, nick, chan, rest):
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
     not_voting = len(var.NO_LYNCH)
-        if not_voting == 1:
-            plural = " has"
-        else:
-            plural = "s have"
+    if not_voting == 1:
+        plural = " has"
+    else:
+        plural = "s have"
     the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
                    'required to lynch, \u0002{}\u0002 players available to '
                    'vote. \u0002{}\u0002 player{} refrained from voting.').format(nick, len(pl), votesneeded, avail, not_voting, plural)
