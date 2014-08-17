@@ -5572,8 +5572,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, s)
 
 
-    @cmd("fgame", admin_only=True)
+    @cmd("fgame", admin_only=True, raw_nick=True)
     def fgame(cli, nick, chan, rest):
+        (nick, _, __, cloak) = parse_nick(rawnick)
+
         pl = var.list_players()
 
         if var.PHASE == 'none':
@@ -5584,7 +5586,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.notice(nick, 'Werewolf is already in play.')
             return
 
-        if nick not in pl and nick not in botconfig.ADMINS + botconfig.OWNERS:
+        if nick not in pl and cloak not in botconfig.ADMINS + botconfig.OWNERS:
             cli.notice(nick, 'You\'re currently not playing.')
             return
 
@@ -5592,10 +5594,11 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
         if rest:
             if cgamemode(cli, rest):
-                cli.msg(chan, ("\u0002{0}\u0002 has changed the "+
-                                "game settings successfully.").format(nick))
+                cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
+                                'successfully.').format(nick))
 
-    def fgame_help(args = ""):
+
+    def fgame_help(args=''):
         args = args.strip()
 
         if not args:
