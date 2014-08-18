@@ -377,7 +377,7 @@ class RapidFireMode(object):
         self.MAX_PLAYERS = 25
         self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
-        self.DAY_LIMIT_WARN = 360
+        self.DAY_TIME_WARN = 360
         self.SHORT_DAY_LIMIT = 240
         self.SHORT_DAY_WARN = 180
         self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  22   )
