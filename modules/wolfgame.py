@@ -5267,6 +5267,7 @@ def listroles(cli, nick, chan, rest):
     old = {}
     txt = ""
     index = 0
+    pl = len(var.list_players()) + len(var.DEAD)
 
     for r in var.ROLE_GUIDE.keys():
         old[r] = 0
@@ -5278,7 +5279,6 @@ def listroles(cli, nick, chan, rest):
                 index = var.ROLE_INDEX[i]
                 break
     else:
-        pl = len(var.list_players()) + len(var.DEAD)
         if pl > 0:
             txt += ' {0}: There are \u0002{1}\u0002 playing.'.format(nick, pl)
 
