@@ -4522,7 +4522,7 @@ def transition_night(cli):
                              'dies, the other will as well. You may select yourself as one ' +
                              'of the lovers. You may only select lovers during the first night.'))
             else:
-                cli.notice(mm, "You are a \u0002matchmaker\u0002")
+                cli.notice(mm, "You are a \u0002matchmaker\u0002.")
             pm(cli, mm, "Players: " + ", ".join(pl))
 
         for clone in var.ROLES["clone"]:
