@@ -5291,11 +5291,7 @@ def listroles(cli, nick, chan, rest):
                 continue
             elif var.ROLE_INDEX[i] > index:
                 break
-        if (var.ROLE_INDEX[i] <= pl):
-            txt += BOLD
-        txt += " [" + str(var.ROLE_INDEX[i]) + "] "
-        if (var.ROLE_INDEX[i] <= pl):
-            txt += BOLD
+        txt += " {0}[{1}]{0} ".format(BOLD if var.ROLE_INDEX[i] <= pl else "", str(var.ROLE_INDEX[i]))
         roles = []
         for role, amount in var.ROLE_GUIDE.items():
             direction = 1 if amount[i] > old[role] else -1
