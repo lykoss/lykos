@@ -2521,19 +2521,22 @@ def transition_day(cli, gameid=0):
 
         if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0:
             # victim has bullets
-            while True:
-                guntaker = random.choice(var.list_players(var.WOLFCHAT_ROLES))  # random looter
-                if guntaker not in dead:
-                    break
-            numbullets = var.GUNNERS[victim]
-            var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
-            mmsg = ("While searching {0}'s belongings, You found " +
-                    "a gun loaded with 1 silver bullet! " +
-                    "You may only use it during the day. " +
-                    "If you shoot at a wolf, you will intentionally miss. " +
-                    "If you shoot a villager, it is likely that they will be injured.")
-            mmsg = mmsg.format(victim)
-            pm(cli, guntaker, mmsg)
+            try:
+                while True:
+                    guntaker = random.choice(var.list_players(var.WOLFCHAT_ROLES))  # random looter
+                    if guntaker not in dead:
+                        break
+                numbullets = var.GUNNERS[victim]
+                var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
+                mmsg = ("While searching {0}'s belongings, You found " +
+                        "a gun loaded with 1 silver bullet! " +
+                        "You may only use it during the day. " +
+                        "If you shoot at a wolf, you will intentionally miss. " +
+                        "If you shoot a villager, it is likely that they will be injured.")
+                mmsg = mmsg.format(victim)
+                pm(cli, guntaker, mmsg)
+            except IndexError:
+                pass # no wolves to give gun to (they were all killed during night or something)
             var.GUNNERS[victim] = 0  # just in case
 
     for havetotem in havetotem.values():
