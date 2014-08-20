@@ -5265,28 +5265,46 @@ def listroles(cli, nick, chan, rest):
 
     old = {}
     txt = ""
+    index = 0
 
     for r in var.ROLE_GUIDE.keys():
         old[r] = 0
-
-    pl = len(var.list_players()) + len(var.DEAD)
-    if pl > 0:
-        txt += '{0}: There are \u0002{1}\u0002 playing. '.format(nick, pl)
+    rest = re.split(" +", rest.strip(), 1)[0]
+    if rest.isdigit():
+        index = int(rest)
+        for i in range(len(var.ROLE_INDEX)-1, -1, -1):
+            if var.ROLE_INDEX[i] <= index:
+                index = var.ROLE_INDEX[i]
+                break
+    else:
+        pl = len(var.list_players()) + len(var.DEAD)
+        if pl > 0:
+            txt += ' {0}: There are \u0002{1}\u0002 playing.'.format(nick, pl)
 
     for i in range(0, len(var.ROLE_INDEX)):
+        if index:
+            if var.ROLE_INDEX[i] < index:
+                continue
+            elif var.ROLE_INDEX[i] > index:
+                break
         if (var.ROLE_INDEX[i] <= pl):
             txt += BOLD
-        txt += "[" + str(var.ROLE_INDEX[i]) + "] "
+        txt += " [" + str(var.ROLE_INDEX[i]) + "] "
         if (var.ROLE_INDEX[i] <= pl):
             txt += BOLD
-        for r, l in var.ROLE_GUIDE.items():
-            if l[i] - old[r] != 0:
-                if l[i] > 1:
-                    txt += "{0}({1}), ".format(r, l[i])
-                else:
-                    txt += "{0}, ".format(r)
-            old[r] = l[i]
-        txt = txt[:-2] + " "
+        roles = []
+        for role, amount in var.ROLE_GUIDE.items():
+            direction = 1 if amount[i] > old[role] else -1
+            for j in range(old[role], amount[i], direction):
+                temp = "{0}{1}".format("-" if direction == -1 else "", role)
+                if direction == 1 and j+1 > 1:
+                    temp += "({0})".format(j+1)
+                elif j > 1:
+                    temp += "({0})".format(j)
+                roles.append(temp)
+            old[role] = amount[i]
+        txt += ", ".join(roles)
+    txt = txt[1:]
 
     if chan == nick:
         pm(cli, nick, txt)
