@@ -588,6 +588,8 @@ def stats(cli, nick, chan, rest):
         return
 
     pl = var.list_players()
+    if var.PHASE in ("night", "day"):
+        pl = [x for x in var.ALL_PLAYERS if x in pl]
 
     if nick != chan and (nick in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
@@ -599,7 +601,6 @@ def stats(cli, nick, chan, rest):
 
         var.LAST_STATS = datetime.now()
 
-    pl.sort(key=lambda x: x.lower())
     if len(pl) > 1:
         msg = '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
             len(pl), ", ".join(pl))
@@ -651,7 +652,7 @@ def stats(cli, nick, chan, rest):
 
     amn_roles = {"amnesiac": 0}
     for amn in var.ORIGINAL_ROLES["amnesiac"]:
-        if amn not in var.list_players():
+        if amn not in pl:
             continue
 
         amnrole = var.get_role(amn)
