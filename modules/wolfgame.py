@@ -3118,7 +3118,7 @@ def shoot(cli, nick, chann_, rest):
             accident = "accidentally "
             if nick in var.ROLES["sharpshooter"]:
                 accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
-            cli.msg(chan, ("\u0002{0}\u0002 is a not a wolf "+
+            cli.msg(chan, ("\u0002{0}\u0002 is not a wolf "+
                            "but was {1}fatally injured.").format(victim, accident))
             var.LOGGER.logMessage("{0} is not a wolf but was {1}fatally injured.".format(victim, accident))
             if var.ROLE_REVEAL:
