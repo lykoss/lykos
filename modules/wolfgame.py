@@ -1302,11 +1302,12 @@ def chk_win(cli, end_game = True):
         stop_game(cli, winner)
     return True
 
-def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = ""):
+def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = ""):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
     """
+
     t = time.time()  #  time
 
     var.LAST_STATS = None # reset
@@ -1318,7 +1319,11 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
             return False
         cmode = []
         ret = True
-        if nick != None and nick in var.list_players():
+        pl = var.list_players()
+        for dead in deadlist:
+            if dead in pl:
+                pl.remove(dead)
+        if nick != None and (nick == original or nick in pl):
             nickrole = var.get_role(nick)
             nicktpls = var.get_templates(nick)
             var.del_player(nick)
@@ -1381,7 +1386,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     others = copy.copy(var.LOVERS[nick])
                     del var.LOVERS[nick][:]
                     for other in others:
-                        if other not in var.list_players():
+                        if other not in pl:
                             continue # already died somehow
                         if nick not in var.LOVERS[other]:
                             continue
@@ -1396,12 +1401,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         cli.msg(botconfig.CHANNEL, message)
                         var.LOGGER.logMessage(message.replace("\02", ""))
                         var.LOGGER.logBare(other, "DEAD LOVER")
-                        del_player(cli, other, True, end_game = False, killer_role = killer_role)
+                        del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
                         target = var.TARGETED[nick]
                         del var.TARGETED[nick]
-                        if target != None and target in var.list_players():
+                        if target != None and target in pl:
                             if target in var.PROTECTED:
                                 message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
                                            "however {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
@@ -1422,7 +1427,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                                        "however \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
                                             cli.msg(botconfig.CHANNEL, message)
                                             var.LOGGER.logMessage(message.replace("\02", ""))
-                                            del_player(cli, ga, True, end_game = False, killer_role = nickrole)
+                                            del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
                                             break
                             else:
                                 if var.ROLE_REVEAL:
@@ -1435,7 +1440,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 cli.msg(botconfig.CHANNEL, message)
                                 var.LOGGER.logMessage(message.replace("\02", ""))
                                 var.LOGGER.logBare(target, "ASSASSINATED")
-                                del_player(cli, target, True, end_game = False, killer_role = nickrole)
+                                del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
 
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -1475,8 +1480,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     targets = []
                     target1 = var.ALL_PLAYERS[index - 1]
                     target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
-                    if target1 in var.list_players():
-                        if target2 in var.list_players():
+                    if target1 in pl:
+                        if target2 in pl:
                             if var.ROLE_REVEAL:
                                 r1 = var.get_reveal_role(target1)
                                 an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
@@ -1495,8 +1500,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
                             var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
+                            deadlist1 = copy.copy(deadlist)
+                            deadlist1.append(target2)
+                            deadlist2 = copy.copy(deadlist)
+                            deadlist2.append(target1)
+                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original)
+                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original)
                         else:
                             if var.ROLE_REVEAL:
                                 r1 = var.get_reveal_role(target1)
@@ -1512,9 +1521,9 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.LOGGER.logBare(nick, "MAD SCIENTIST")
                             var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist")
+                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                     else:
-                        if target2 in var.list_players():
+                        if target2 in pl:
                             if var.ROLE_REVEAL:
                                 r2 = var.get_reveal_role(target2)
                                 an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
@@ -1529,7 +1538,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.LOGGER.logBare(nick, "MAD SCIENTIST")
                             var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist")
+                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                         else:
                             tmsg = ("\u0002{0}\u0002 throws " +
                                     "a potent chemical concoction into the crowd. Thankfully, " +
@@ -2539,9 +2548,6 @@ def transition_day(cli, gameid=0):
                 pass # no wolves to give gun to (they were all killed during night or something)
             var.GUNNERS[victim] = 0  # just in case
 
-    for havetotem in havetotem.values():
-        if havetotem:
-            message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
     cli.msg(chan, "\n".join(message))
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
@@ -2549,7 +2555,19 @@ def transition_day(cli, gameid=0):
     for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
         # take a shortcut for killer_role here since vengeful ghost only cares about team and not particular roles
         # this will have to be modified to track the actual killer if that behavior changes
-        del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager")
+        # we check if they have already been killed as well since del_player could do chain reactions and we want
+        # to avoid sending duplicate messages.
+        if deadperson in var.list_players():
+            del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist = dead, original = deadperson)
+
+    message = []
+    for havetotem in havetotem.values():
+        if havetotem:
+            message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
+    cli.msg(chan, "\n".join(message))
+    for msg in message:
+        var.LOGGER.logMessage(msg.replace("\02", ""))
+    
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
 
