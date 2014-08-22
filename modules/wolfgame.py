@@ -1480,8 +1480,28 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     targets = []
                     target1 = var.ALL_PLAYERS[index - 1]
                     target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
+                    if len(var.ALL_PLAYERS) >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
+                        # determine left player
+                        i = index
+                        while True:
+                            i -= 1
+                            if i < 0:
+                                i = len(var.ALL_PLAYERS) - 1
+                            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == nick:
+                                target1 = var.ALL_PLAYERS[i]
+                                break
+                        # determine right player
+                        i = index
+                        while True:
+                            i += 1
+                            if i >= len(var.ALL_PLAYERS):
+                                i = 0
+                            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == nick:
+                                target2 = var.ALL_PLAYERS[i]
+                                break
+
                     if target1 in pl:
-                        if target2 in pl:
+                        if target2 in pl and target1 != target2:
                             if var.ROLE_REVEAL:
                                 r1 = var.get_reveal_role(target1)
                                 an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
