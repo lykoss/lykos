@@ -3034,6 +3034,8 @@ def wolfretract(cli, nick, rest):
             pm(cli, nick, ("You have already transformed into a crow, and "+
                            "cannot turn back until day."))
             return
+    elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
+        return
 
     if role in var.WOLF_ROLES and nick in var.KILLS.keys():
         del var.KILLS[nick]
@@ -3200,7 +3202,8 @@ def kill(cli, nick, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only kill people at night.")
         return
-    if role == "hunter" and nick in var.HUNTERS:
+    if role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS:
+        # they are a hunter and did not kill this night (if they killed this night, this allows them to switch)
         pm(cli, nick, "You have already killed someone this game.")
         return
     if nick in var.SILENCED:
@@ -3308,7 +3311,8 @@ def kill(cli, nick, rest):
                 return
         var.OTHER_KILLS[nick] = rv
         if role == "hunter":
-            var.HUNTERS.append(nick)
+            if nick not in var.HUNTERS:
+                var.HUNTERS.append(nick)
             if nick in var.PASSED:
                 var.PASSED.remove(nick)
 
