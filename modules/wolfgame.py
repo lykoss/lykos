@@ -5405,7 +5405,6 @@ def faftergame(cli, nick, rest):
 @cmd('fghost', admin_only=True)
 @pmcmd('fghost', admin_only=True)
 def fghost(cli, nick, *rest):
-    cli.msg(botconfig.CHANNEL, '{} is the ghost!'.format(nick))
     cli.mode(botconfig.CHANNEL, '+v', nick)
 
 
