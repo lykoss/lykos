@@ -2004,9 +2004,15 @@ def on_nick(cli, prefix, nick):
                 if cloak == clk:
                     cli.mode(chan, "+v", nick, nick+"!*@*")
                     del var.DISCONNECTED[nick]
-
-                    cli.msg(chan, ("\02{0}\02 has returned to "+
-                                   "the village.").format(nick))
+                    var.LAST_SAID_TIME[nick] = datetime.now()
+                    cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
+                    for r,rlist in var.ORIGINAL_ROLES.items():
+                        if "(dced)"+nick in rlist:
+                            rlist.remove("(dced)"+nick)
+                            rlist.append(nick)
+                            break
+                    if nick in var.DCED_PLAYERS.keys():
+                        var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
     if prefix in var.NO_LYNCH:
         var.NO_LYNCH.remove(prefix)
