@@ -5629,10 +5629,32 @@ def fpull_pm(cli, nick, rest):
     fpull(cli, nick, nick, rest)
 
 
-@pmcmd("fsend", admin_only=True)
+@pmcmd('fsend', admin_only=True)
 def fsend(cli, nick, rest):
-    print('{0} - {1} fsend - {2}'.format(time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest))
+    print('[%s] %s fsend: %s' %
+          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest))
+
     cli.send(rest)
+
+
+@pmcmd('fsay', admin_only=True)
+def fsay(cli, nick, rest):
+    rest = rest.split(' ', 1)
+
+    print('[%s] %s fsay %s: %s' %
+          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
+
+    cli.send('PRIVMSG %s :%s' % (rest[0], rest[1]))
+
+
+@pmcmd('fact', admin_only=True)
+def fact(cli, nick, rest):
+    rest = rest.split(' ', 1)
+
+    print('[%s] %s fact %s: %s' %
+          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
+
+    cli.send('PRIVMSG %s :\x01ACTION %s\x01' % (rest[0], rest[1]))
 
 
 before_debug_mode_commands = list(COMMANDS.keys())
