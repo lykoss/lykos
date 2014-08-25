@@ -5648,6 +5648,9 @@ def fsend(cli, nick, rest):
 @pmcmd('fsay', admin_only=True)
 def fsay(cli, nick, rest):
     rest = rest.split(' ', 1)
+    if len(rest) < 2:
+        pm(cli, nick, "Usage: !fsay <channel> <message>")
+        return
 
     print('[%s] %s fsay %s: %s' %
           (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
@@ -5658,6 +5661,9 @@ def fsay(cli, nick, rest):
 @pmcmd('fact', admin_only=True)
 def fact(cli, nick, rest):
     rest = rest.split(' ', 1)
+    if len(rest) < 2:
+        pm(cli, nick, "Usage: !fact <channel> <message>")
+        return
 
     print('[%s] %s fact %s: %s' %
           (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
