@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.2
+#!/usr/bin/env python3
 
 # Copyright (c) 2011 Jimmy Cao
 # Permission is hereby granted, free of charge, to any person obtaining a copy
