@@ -31,6 +31,10 @@ class UTCFormatter(logging.Formatter):
 
 
 def main():
+    if sys.version_info < (3, 2):
+        print('Python 3.2 or newer is required to run the bot.')
+        sys.exit(1)
+
     if botconfig.DEBUG_MODE:
         logging.basicConfig(level=logging.DEBUG)
         logger = logging.getLogger()
