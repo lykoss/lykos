@@ -749,7 +749,7 @@ def hurry_up(cli, gameid, change):
         for v in voters:
             weight = 1
             imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
-            pac_count = sum([1 if p == v else 0 for p in (var.PACIFISTS + var.NO_LYNCH)])
+            pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
             if pac_count > imp_count:
                 weight = 0 # more pacifists than impatience totems
             elif imp_count == pac_count and v not in var.VOTES[votee]:
@@ -798,9 +798,14 @@ def chk_decision(cli, force = ""):
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
-    not_lynching = len(var.NO_LYNCH) + len(var.PACIFISTS)
-    if not_lynching >= votesneeded:
-        cli.msg(botconfig.CHANNEL, "The villagers have agreed to refrain from lynching for today.")
+    not_lynching = set(var.NO_LYNCH)
+    for p in var.PACIFISTS:
+        if p in pl and p not in var.WOUNDED and p not in var.ASLEEP:
+            not_lynching.add(p)
+
+    # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
+    if len(not_lynching) >= math.ceil(avail / 2):
+        cli.msg(botconfig.CHANNEL, "The villagers have agreed to not lynch anybody today.")
         transition_night(cli)
         return
     aftermessage = None
@@ -808,12 +813,12 @@ def chk_decision(cli, force = ""):
     for votee, voters in votelist.items():
         numvotes = 0
         for v in var.IMPATIENT:
-            if v in pl and v not in voters and v != votee:
+            if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
                 voters.append(v)
         for v in voters:
             weight = 1
             imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
-            pac_count = sum([1 if p == v else 0 for p in (var.PACIFISTS + var.NO_LYNCH)])
+            pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
             if pac_count > imp_count:
                 weight = 0 # more pacifists than impatience totems
             elif imp_count == pac_count and v not in var.VOTES[votee]:
@@ -2669,18 +2674,15 @@ def no_lynch(cli, nick, chan, rest):
         if nick in var.WOUNDED:
             cli.msg(chan, "{0}: You are wounded and resting, thus you are unable to vote for the day.".format(nick))
             return
-        if nick in var.NO_LYNCH:
-            var.NO_LYNCH.remove(nick)
-            cli.msg(chan, "{0}: You chose to vote for someone today. You may use '{1}lynch nick'.".format(nick, botconfig.CMD_CHAR))
-            return
         candidates = var.VOTES.keys()
         for voter in list(candidates):
             if nick in var.VOTES[voter]:
                 var.VOTES[voter].remove(nick)
                 if not var.VOTES[voter]:
                     del var.VOTES[voter]
-        var.NO_LYNCH.append(nick)
-        cli.msg(chan, "{0}: You chose to vote for nobody.".format(nick))
+        if nick not in var.NO_LYNCH and nick not in var.IMPATIENT:
+            var.NO_LYNCH.append(nick)
+        cli.msg(chan, "\u0002{0}\u0002 votes to not lynch anyone today.".format(nick))
         
         chk_decision(cli)
         return
@@ -2737,7 +2739,7 @@ def vote(cli, nick, chann_, rest):
 
     if not var.SELF_LYNCH_ALLOWED:
         if nick == voted:
-            if nick in var.ROLES["fool"]:
+            if nick in var.ROLES["fool"] or nick in var.ROLES["jester"]:
                 cli.notice(nick, "You may not vote yourself.")
             else:
                 cli.notice(nick, "Please try to save yourself.")
