@@ -426,6 +426,7 @@ def join(cli, nick, chann_, rest):
 
     if not var.OPPED:
         cli.notice(nick, "Sorry, I'm not opped in {0}.".format(chan))
+        cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
 
     try:
