@@ -138,22 +138,22 @@ def connect_callback(cli):
             cmodes.append(("-v", nick))
         # devoice all on connect
 
-        @hook("mode", hookid=294)
-        def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
-            if modeaction == "+o" and target == botconfig.NICK:
-                var.OPPED = True
+    @hook("mode", hookid=294)
+    def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
+        if modeaction == "+o" and target == botconfig.NICK:
+            var.OPPED = True
 
-                if var.PHASE == "none":
-                    @hook("quietlistend", 294)
-                    def on_quietlist_end(cli, svr, nick, chan, *etc):
-                        if chan == botconfig.CHANNEL:
-                            mass_mode(cli, cmodes)
+            if var.PHASE == "none":
+                @hook("quietlistend", 294)
+                def on_quietlist_end(cli, svr, nick, chan, *etc):
+                    if chan == botconfig.CHANNEL:
+                        mass_mode(cli, cmodes)
 
-                    cli.mode(botconfig.CHANNEL, "q")  # unquiet all
-                    cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
-            elif modeaction == "-o" and target == botconfig.NICK:
-                var.OPPED = False
-                cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+                cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
+        elif modeaction == "-o" and target == botconfig.NICK:
+            var.OPPED = False
+            cli.msg("ChanServ", "op " + botconfig.CHANNEL)
 
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
