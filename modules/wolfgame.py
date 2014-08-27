@@ -5565,10 +5565,12 @@ def player_stats(cli, nick, chan, rest):
         user = nick
 
     # Find the player's account if possible
-    if user in var.USERS:
-        acc = var.USERS[user]['account']
+    luser = user.lower()
+    lusers = {k.lower(): v for k, v in var.USERS.items()}
+    if luser in lusers:
+        acc = lusers[luser]['account']
         if acc == '*':
-            if user == nick:
+            if luser == nick.lower():
                 cli.notice(nick, 'You are not identified with NickServ.')
             else:
                 cli.notice(nick, user + ' is not identified with NickServ.')
