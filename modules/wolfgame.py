@@ -229,7 +229,7 @@ def make_stasis(nick, penalty):
 @pmcmd("fdie", "fbye", admin_only=True)
 @cmd("fdie", "fbye", admin_only=True)
 def forced_exit(cli, nick, *rest):  # Admin Only
-    """Forces the bot to close"""
+    """Forces the bot to close."""
 
     if var.PHASE in ("day", "night"):
         stop_game(cli)
@@ -275,7 +275,7 @@ def pm_ping(cli, nick, rest):
 
 @cmd("ping")
 def pinger(cli, nick, chan, rest):
-    """Pings the channel to get people's attention.  Rate-Limited."""
+    """Pings the channel to get people's attention. Rate-limited."""
 
     if var.PHASE in ('night','day'):
         #cli.notice(nick, "You cannot use this command while a game is running.")
@@ -334,7 +334,7 @@ def pinger(cli, nick, chan, rest):
 @cmd("simple", raw_nick = True)
 @pmcmd("simple", raw_nick = True)
 def mark_simple_notify(cli, nick, *rest):
-    """If you want the bot to NOTICE you for every interaction"""
+    """Makes the bot NOTICE you for every interaction."""
 
     nick, _, __, cloak = parse_nick(nick)
 
@@ -370,7 +370,7 @@ if not var.OPT_IN_PING:
     @cmd("back", raw_nick=True)
     @pmcmd("back", raw_nick=True)
     def back_from_away(cli, nick, *rest):
-        """Unmarks away status"""
+        """Unsets your away status."""
         nick, _, _, cloak = parse_nick(nick)
         if cloak not in var.AWAY:
             cli.notice(nick, "You are not marked as away.")
@@ -385,10 +385,10 @@ else:  # if OPT_IN_PING setting is on
     @cmd("in", raw_nick=True)
     @pmcmd("in", raw_nick=True)
     def get_in(cli, nick, *rest):
-        """Get yourself in the ping list"""
+        """Puts yourself in the ping list."""
         nick, _, _, cloak = parse_nick(nick)
         if cloak in var.PING_IN:
-            cli.notice(nick, "You are already on the list")
+            cli.notice(nick, "You are already on the list.")
             return
         var.PING_IN.append(cloak)
         var.add_ping(cloak)
@@ -398,7 +398,7 @@ else:  # if OPT_IN_PING setting is on
     @cmd("out", raw_nick=True)
     @pmcmd("out", raw_nick=True)
     def get_out(cli, nick, *rest):
-        """Removes yourself from the ping list"""
+        """Removes yourself from the ping list."""
         nick, _, _, cloak = parse_nick(nick)
         if cloak in var.PING_IN:
             var.PING_IN.remove(cloak)
@@ -411,6 +411,7 @@ else:  # if OPT_IN_PING setting is on
 
 @cmd("fping", admin_only=True)
 def fpinger(cli, nick, chan, rest):
+    """Pings the channel to get people's attention, ignoring the rate limit."""
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
@@ -505,6 +506,7 @@ def kill_join(cli, chan):
 
 @cmd("fjoin", admin_only=True)
 def fjoin(cli, nick, chann_, rest):
+    """Forces someone to join a game."""
     noticed = False
     chan = botconfig.CHANNEL
     if not rest.strip():
@@ -532,6 +534,7 @@ def fjoin(cli, nick, chann_, rest):
 
 @cmd("fleave", "fquit", admin_only=True)
 def fleave(cli, nick, chann_, rest):
+    """Forces someone to leave the game."""
     chan = botconfig.CHANNEL
 
     if var.PHASE == "none":
@@ -561,6 +564,7 @@ def fleave(cli, nick, chann_, rest):
 
 @cmd("fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
+    """Forces the game to start immediately."""
     var.CAN_START_TIME = datetime.now()
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, chan, rest)
@@ -583,7 +587,7 @@ def on_account(cli, nick, acc):
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
-    """Display the player statistics"""
+    """Displays the player statistics."""
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -779,6 +783,7 @@ def hurry_up(cli, gameid, change):
 
 @cmd("fnight", admin_only=True)
 def fnight(cli, nick, chan, rest):
+    """Forces the day to end and night to begin."""
     if var.PHASE != "day":
         cli.notice(nick, "It is not daytime.")
     else:
@@ -787,6 +792,7 @@ def fnight(cli, nick, chan, rest):
 
 @cmd("fday", admin_only=True)
 def fday(cli, nick, chan, rest):
+    """Forces the night to end and the next day to begin."""
     if var.PHASE != "night":
         cli.notice(nick, "It is not nighttime.")
     else:
@@ -1810,6 +1816,7 @@ def goat(cli, nick, chan, rest):
 
 @cmd('fgoat', admin_only=True)
 def fgoat(cli, nick, chan, rest):
+    """Forces a goat to interact with anyone or anything, without limitations."""
     rest = rest.split(' ')[0].strip()
     goatact = random.choice(['kicks', 'headbutts'])
 
@@ -2661,7 +2668,7 @@ def chk_nightdone(cli):
 
 @cmd("nolynch", "nl", "novote", "nv", "abstain", "abs")
 def no_lynch(cli, nick, chan, rest):
-    """Allow someone to refrain from voting for the day"""
+    """Allows you to abstain from voting for the day."""
     if chan == botconfig.CHANNEL:
         if var.PHASE in ("none", "join"):
             cli.notice(nick, "No game is currently running.")
@@ -2690,7 +2697,7 @@ def no_lynch(cli, nick, chan, rest):
 
 @cmd("lynch", "vote", "v")
 def vote(cli, nick, chann_, rest):
-    """Use this to vote for a candidate to be lynched"""
+    """Use this to vote for a candidate to be lynched."""
     chan = botconfig.CHANNEL
 
     rest = re.split(" +",rest)[0].strip().lower()
@@ -3010,7 +3017,7 @@ def check_exchange(cli, actor, nick):
 
 @cmd("retract")
 def retract(cli, nick, chann_, rest):
-    """Takes back your vote during the day (for whom to lynch)"""
+    """Takes back your vote during the day (for whom to lynch)."""
 
     chan = botconfig.CHANNEL
 
@@ -3076,7 +3083,7 @@ def wolfretract(cli, nick, rest):
 
 @cmd("shoot")
 def shoot(cli, nick, chann_, rest):
-    """Use this to fire off a bullet at someone in the day if you have bullets"""
+    """Use this to fire off a bullet at someone in the day if you have bullets."""
 
     chan = botconfig.CHANNEL
     if var.PHASE in ("none", "join"):
@@ -4704,7 +4711,7 @@ def cgamemode(cli, arg):
 
 @cmd("start")
 def start(cli, nick, chann_, rest):
-    """Starts a game of Werewolf"""
+    """Starts a game of Werewolf."""
 
     chan = botconfig.CHANNEL
 
@@ -4964,7 +4971,7 @@ def on_error(cli, pfx, msg):
 
 @cmd("fstasis", admin_only=True)
 def fstasis(cli, nick, chan, rest):
-    """Admin command for removing or setting stasis penalties."""
+    """Removes or sets stasis penalties."""
     data = rest.split()
     msg = None
     if data:
@@ -5022,7 +5029,7 @@ def fstasis_pm(cli, nick, rest):
 
 @cmd("wait", "w")
 def wait(cli, nick, chann_, rest):
-    """Increase the wait time (before !start can be used)"""
+    """Increases the wait time until !start can be used."""
     pl = var.list_players()
 
     chan = botconfig.CHANNEL
@@ -5054,6 +5061,7 @@ def wait(cli, nick, chann_, rest):
 
 @cmd("fwait", admin_only=True)
 def fwait(cli, nick, chann_, rest):
+    """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
     pl = var.list_players()
 
@@ -5089,6 +5097,7 @@ def fwait(cli, nick, chann_, rest):
 
 @cmd("fstop",admin_only=True)
 def reset_game(cli, nick, chan, rest):
+    """Forces the game to stop."""
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
@@ -5107,7 +5116,7 @@ def pm_rules(cli, nick, rest):
 
 @cmd("rules")
 def show_rules(cli, nick, chan, rest):
-    """Displays the rules"""
+    """Displays the rules."""
     if var.PHASE in ("day", "night") and nick not in var.list_players():
         cli.notice(nick, var.RULES)
         return
@@ -5169,7 +5178,7 @@ def get_help(cli, rnick, rest):
 
 @cmd("help", raw_nick = True)
 def help2(cli, nick, chan, rest):
-    """Gets help"""
+    """Gets help."""
     get_help(cli, nick, rest)
 
 
@@ -5316,7 +5325,7 @@ def timeleft_pm(cli, nick, rest):
 
 @cmd("roles")
 def listroles(cli, nick, chan, rest):
-    """Display which roles are enabled and when"""
+    """Displays which roles are enabled at a certain number of players."""
 
     old = {}
     txt = ""
@@ -5370,7 +5379,7 @@ def listroles_pm(cli, nick, rest):
 
 @cmd("myrole")
 def myrole(cli, nick, chan, rest):
-    """Reminds you of which role you have."""
+    """Reminds you of your current role."""
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -5441,6 +5450,7 @@ def aftergame(cli, rawnick, rest):
 
 @cmd("faftergame", admin_only=True, raw_nick=True)
 def _faftergame(cli, nick, chan, rest):
+    """Schedules a command to run after the current game."""
     if not rest.strip():
         cli.notice(parse_nick(nick)[0], "Incorrect syntax for this command.")
         return
@@ -5456,17 +5466,18 @@ def faftergame(cli, nick, rest):
 @cmd('fghost', admin_only=True)
 @pmcmd('fghost', admin_only=True)
 def fghost(cli, nick, *rest):
+    """Voices you, allowing you to haunt the remaining players after your death."""
     cli.mode(botconfig.CHANNEL, '+v', nick)
 
 
 @cmd('funghost', admin_only=True)
 @pmcmd('funghost', admin_only=True)
 def funghost(cli, nick, *rest):
+    """Devoices you."""
     cli.mode(botconfig.CHANNEL, "-v", nick)
 
 @pmcmd("flastgame", admin_only=True, raw_nick=True)
 def flastgame(cli, nick, rest):
-    """This command may be used in the channel or in a PM, and it disables starting or joining a game. !flastgame <optional-command-after-game-ends>"""
     rawnick = nick
     nick, _, __, cloak = parse_nick(rawnick)
 
@@ -5491,6 +5502,7 @@ def flastgame(cli, nick, rest):
 
 @cmd("flastgame", admin_only=True, raw_nick=True)
 def _flastgame(cli, nick, chan, rest):
+    """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     flastgame(cli, nick, rest)
 
 
@@ -5602,6 +5614,7 @@ def player_stats_pm(cli, nick, rest):
 
 @cmd('fpull', admin_only=True)
 def fpull(cli, nick, chan, rest):
+    """Pulls from the repository to update the bot."""
     args = ['git', 'pull']
 
     if rest:
