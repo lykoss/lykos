@@ -235,9 +235,6 @@ def get_reveal_role(nick):
     else:
         return get_role(nick)
 
-def mourn(role):
-    return not (role in WOLFTEAM_ROLES or role == "monster")
-
 def del_player(pname):
     prole = get_role(pname)
     ROLES[prole].remove(pname)
