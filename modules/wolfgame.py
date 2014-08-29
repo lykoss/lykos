@@ -4796,6 +4796,8 @@ def start(cli, nick, chann_, rest):
     if var.ADMIN_TO_PING:
         if "join" in COMMANDS.keys():
             COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+        if "j" in COMMANDS.keys():
+            COMMANDS["j"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         if "start" in COMMANDS.keys():
             COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
 
