@@ -462,9 +462,9 @@ def join(cli, nick, chann_, rest):
     elif nick in pl:
         cli.notice(nick, "You're already playing!")
     elif len(pl) >= var.MAX_PLAYERS:
-        cli.notice(nick, "Too many players!  Try again next time.")
+        cli.notice(nick, "Too many players! Try again next time.")
     elif var.PHASE != "join":
-        cli.notice(nick, "Sorry but the game is already running.  Try again next time.")
+        cli.notice(nick, "Sorry, but the game is already running. Try again next time.")
     else:
 
         cli.mode(chan, "+v", nick)
@@ -1420,23 +1420,23 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         del var.TARGETED[nick]
                         if target != None and target in pl:
                             if target in var.PROTECTED:
-                                message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                           "however {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
+                                message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
+                                           "however, {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
                                 var.LOGGER.logMessage(message.replace("\02", ""))
                             elif target in var.GUARDED.values() and var.GAMEPHASE == "night":
                                 for bg in var.ROLES["guardian angel"]:
                                     if bg in var.GUARDED and var.GUARDED[bg] == target:
-                                        message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                                   "however a guardian angel was on duty and able to foil the attempt.").format(nick, target)
+                                        message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
+                                                   "however, a guardian angel was on duty and able to foil the attempt.").format(nick, target)
                                         cli.msg(botconfig.CHANNEL, message)
                                         var.LOGGER.logMessage(message.replace("\02", ""))
                                         break
                                 else:
                                     for ga in var.ROLES["bodyguard"]:
                                         if ga in var.GUARDED and var.GUARDED[ga] == target:
-                                            message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat, " +
-                                                       "however \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
+                                            message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
+                                                       "however, \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
                                             cli.msg(botconfig.CHANNEL, message)
                                             var.LOGGER.logMessage(message.replace("\02", ""))
                                             del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
@@ -1482,7 +1482,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     else:
                         var.VENGEFUL_GHOSTS[nick] = "villagers"
                     pm(cli, nick, ("OOOooooOOOOooo! You are the \u0002vengeful ghost\u0002. It is now your job " +
-                                   "to exact your revenge on the \u0002{0}\u0002 that killed you").format(var.VENGEFUL_GHOSTS[nick]))
+                                   "to exact your revenge on the \u0002{0}\u0002 that killed you.").format(var.VENGEFUL_GHOSTS[nick]))
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
                 if nickrole == "mad scientist":
@@ -1544,7 +1544,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 an1 = "n" if r1[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(nick, target1, an1, r1)
+                                        "a{2} \u0002{3}\u0002, gets hit by the chemicals and dies.").format(nick, target1, an1, r1)
                             else:
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
@@ -1561,7 +1561,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 an2 = "n" if r2[0] in ("a", "e", "i", "o", "u") else ""
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002, " +
-                                        "a{2} \u0002{3}\u0002 gets hit by the chemicals and dies.").format(nick, target2, an2, r2)
+                                        "a{2} \u0002{3}\u0002, gets hit by the chemicals and dies.").format(nick, target2, an2, r2)
                             else:
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
@@ -2425,7 +2425,7 @@ def transition_day(cli, gameid=0):
             bywolves.discard(victim)
             onlybywolves.discard(victim)
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves:
-            message.append("A chilling howl was heard last night, it appears there is another werewolf in our midst!")
+            message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
             pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
             vrole = var.get_role(victim)
             var.ROLES[vrole].remove(victim)
@@ -2576,7 +2576,7 @@ def transition_day(cli, gameid=0):
                         break
                 numbullets = var.GUNNERS[victim]
                 var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
-                mmsg = ("While searching {0}'s belongings, You found " +
+                mmsg = ("While searching {0}'s belongings, you found " +
                         "a gun loaded with 1 silver bullet! " +
                         "You may only use it during the day. " +
                         "If you shoot at a wolf, you will intentionally miss. " +
@@ -3034,7 +3034,7 @@ def retract(cli, nick, chann_, rest):
         return
     if nick in var.NO_LYNCH:
         var.NO_LYNCH.remove(nick)
-        cli.msg(chan, "\u0002{0}\u0002's mind changed and will vote for today".format(nick))
+        cli.msg(chan, "\u0002{0}\u0002 changed their mind and will vote for someone today.".format(nick))
 
     candidates = var.VOTES.keys()
     for voter in list(candidates):
@@ -3105,7 +3105,7 @@ def shoot(cli, nick, chann_, rest):
         pm(cli, nick, "You don't have any more bullets.")
         return
     elif nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     victim = re.split(" +",rest)[0].strip().lower()
     if not victim:
@@ -3379,7 +3379,7 @@ def guard(cli, nick, rest):
         pm(cli, nick, "You may only protect people at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     victim = re.split(" +",rest)[0].strip().lower()
     if not victim:
@@ -3449,7 +3449,7 @@ def observe(cli, nick, rest):
             pm(cli, nick, "You may only observe at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     victim = re.split(" +", rest)[0].strip().lower()
     if not victim:
@@ -3527,7 +3527,7 @@ def investigate(cli, nick, rest):
         pm(cli, nick, "You may only investigate people during the day.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     if nick in var.INVESTIGATED:
         pm(cli, nick, "You may only investigate one person per round.")
@@ -3585,7 +3585,7 @@ def hvisit(cli, nick, rest):
         pm(cli, nick, "You may only visit someone at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     if var.HVISITED.get(nick):
         pm(cli, nick, ("You are already spending the night "+
@@ -3643,7 +3643,7 @@ def see(cli, nick, rest):
         pm(cli, nick, "You may only have visions at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     if nick in var.SEEN:
         pm(cli, nick, "You may only have one vision per round.")
@@ -3715,7 +3715,7 @@ def give(cli, nick, rest):
         pm(cli, nick, "You may only give totems at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
@@ -3817,7 +3817,7 @@ def pass_cmd(cli, nick, rest):
         pm(cli, nick, "You may only pass at night.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
 
     if nick in var.OTHER_KILLS.keys():
@@ -3953,7 +3953,7 @@ def target(cli, nick, rest):
         pm(cli, nick, "You have already chosen a target.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     pieces = [p.strip().lower() for p in re.split(" +",rest)]
     victim = pieces[0]
@@ -4009,7 +4009,7 @@ def hex(cli, nick, rest):
         pm(cli, nick, "You have already hexed someone tonight.")
         return
     if nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers")
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
     pieces = [p.strip().lower() for p in re.split(" +",rest)]
     victim = pieces[0]
@@ -4328,7 +4328,7 @@ def transition_night(cli):
         if var.DISEASED_WOLVES:
             pm(cli, wolf, 'You are feeling ill tonight, and are unable to kill anyone.')
         elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
-            pm(cli, wolf, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
+            pm(cli, wolf, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
 
     for seer in var.list_players(["seer", "oracle", "augur"]):
         pl = ps[:]
@@ -4567,7 +4567,7 @@ def transition_night(cli):
         pl.remove(ass)
         if ass in var.PLAYERS and var.PLAYERS[ass]["cloak"] not in var.SIMPLE_NOTIFY:
             cli.msg(ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
-                          '"target <nick>", if you die you will take out your target with you. ' +
+                          '"target <nick>". If you die you will take out your target with you. ' +
                           'If your target dies you may choose another one.'))
         else:
             cli.notice(ass, "You are an \u0002assassin\u0002.")
@@ -4769,7 +4769,7 @@ def start(cli, nick, chann_, rest):
             else:
                 break
             reset_settings()
-            cli.msg(chan, "The default settings have been restored.  Please !start again.")
+            cli.msg(chan, "The default settings have been restored. Please !start again.")
             var.PHASE = "join"
             return
 
@@ -4855,7 +4855,7 @@ def start(cli, nick, chann_, rest):
             if var.ORIGINAL_SETTINGS:
                 var.ROLES = {"person": var.ALL_PLAYERS}
                 reset_settings()
-                cli.msg(chan, "The default settings have been restored.  Please !start again.")
+                cli.msg(chan, "The default settings have been restored. Please !start again.")
                 var.PHASE = "join"
                 return
             else:
