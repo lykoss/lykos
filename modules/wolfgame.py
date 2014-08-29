@@ -175,7 +175,7 @@ def mass_mode(cli, md):
         cli.mode(botconfig.CHANNEL, arg1, arg2)
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
-    if target in var.USERS and var.USERS[target]["cloak"] in var.SIMPLE_NOTIFY:
+    if target in var.USERS and var.USERS[target]["cloak"] in var.PREFER_NOTICE:
         cli.notice(target, message)
     else:
         cli.msg(target, message)
@@ -334,7 +334,7 @@ def pinger(cli, nick, chan, rest):
 @cmd("simple", raw_nick = True)
 @pmcmd("simple", raw_nick = True)
 def mark_simple_notify(cli, nick, *rest):
-    """Makes the bot NOTICE you for every interaction."""
+    """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
     nick, _, __, cloak = parse_nick(nick)
 
@@ -349,6 +349,25 @@ def mark_simple_notify(cli, nick, *rest):
     var.add_simple_rolemsg(cloak)
 
     cli.notice(nick, "You now receive simple role instructions.")
+
+@cmd("notice", raw_nick = True)
+@pmcmd("notice", raw_nick = True)
+def mark_prefer_notice(cli, nick, *rest):
+    """Makes the bot NOTICE you for every interaction."""
+
+    nick, _, __, cloak = parse_nick(nick)
+
+    if cloak in var.PREFER_NOTICE:
+        var.PREFER_NOTICE.remove(cloak)
+        var.remove_prefer_notice(cloak)
+
+        cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
+        return
+
+    var.PREFER_NOTICE.append(cloak)
+    var.add_prefer_notice(cloak)
+
+    cli.notice(nick, "The bot will now always NOTICE you.")
 
 if not var.OPT_IN_PING:
     @cmd("away", raw_nick=True)
@@ -4363,12 +4382,12 @@ def transition_night(cli):
         random.shuffle(pl)
         pl.remove(harlot)
         if harlot in var.PLAYERS and var.PLAYERS[harlot]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(harlot, ('You are a \u0002harlot\u0002. '+
+            pm(cli, harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
                              'If you visit a victim of a wolf, or visit a wolf, '+
                              'you will die. Use visit to visit a player.'))
         else:
-            cli.notice(harlot, "You are a \02harlot\02.")  # !simple
+            pm(cli, harlot, "You are a \02harlot\02.")  # !simple
         pm(cli, harlot, "Players: " + ", ".join(pl))
 
     # the messages for angel and guardian angel are different enough to merit individual loops
@@ -4382,12 +4401,12 @@ def transition_night(cli):
             warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
 
         if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(g_angel, ('You are a \u0002bodyguard\u0002. '+
+            pm(cli, g_angel, ('You are a \u0002bodyguard\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, you will sacrifice yourself to save them. ' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
-            cli.notice(g_angel, "You are a \02bodyguard\02.")  # !simple
+            pm(cli, g_angel, "You are a \02bodyguard\02.")  # !simple
         pm(cli, g_angel, "Players: " + ", ".join(pl))
 
     for gangel in var.ROLES["guardian angel"]:
@@ -4400,12 +4419,12 @@ def transition_night(cli):
             warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
 
         if gangel in var.PLAYERS and var.PLAYERS[gangel]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(gangel, ('You are a \u0002guardian angel\u0002. '+
+            pm(cli, gangel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, they will live. You may not guard the same person two nights in a row.' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
-            cli.notice(gangel, "You are a \02guardian angel\02.")  # !simple
+            pm(cli, gangel, "You are a \02guardian angel\02.")  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
 
     for dttv in var.ROLES["detective"]:
@@ -4418,20 +4437,20 @@ def transition_night(cli):
             warning = ("Each time you use your ability, you risk a {0}% chance of having " +
                        "your identity revealed to the wolves. ").format(chance)
         if dttv in var.PLAYERS and var.PLAYERS[dttv]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(dttv, ("You are a \u0002detective\u0002.\n"+
+            pm(cli, dttv, ("You are a \u0002detective\u0002.\n"+
                           "It is your job to determine all the wolves and traitors. "+
                           "Your job is during the day, and you can see the true "+
                           "identity of all players, even traitors.\n"+
                           '{0}Use "id <nick>" in PM to identify any player during the day.').format(warning))
         else:
-            cli.notice(dttv, "You are a \02detective\02.")  # !simple
+            pm(cli, dttv, "You are a \02detective\02.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
 
     for drunk in var.ROLES["village drunk"]:
         if drunk in var.PLAYERS and var.PLAYERS[drunk]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(drunk, "You have been drinking too much! You are the \u0002village drunk\u0002.")
+            pm(cli, drunk, "You have been drinking too much! You are the \u0002village drunk\u0002.")
         else:
-            cli.notice(drunk, "You are the \u0002village drunk\u0002.")
+            pm(cli, drunk, "You are the \u0002village drunk\u0002.")
 
     for shaman in var.list_players(["shaman", "crazed shaman"]):
         pl = ps[:]
@@ -4449,7 +4468,7 @@ def transition_night(cli):
             # just give them death because I'm lazy
             var.TOTEMS[shaman] = 'death'
         if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
+            pm(cli, shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
                              'a {1}totem each night by using "give <nick>". You may give yourself a totem, but you ' +
                              'may not give the same player a totem two nights in a row.').format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
             if shaman in var.ROLES["shaman"]:
@@ -4487,11 +4506,11 @@ def transition_night(cli):
                     tmsg += 'If the player who is given this totem attempts to use a power the following day or night, they will target a player adjacent to their intended target instead of the player they targeted.'
                 else:
                     tmsg += 'No description for this totem is available. This is a bug, so please report this to the admins.'
-                cli.msg(shaman, tmsg)
+                pm(cli, shaman, tmsg)
         else:
-            cli.notice(shaman, "You are a \u0002{0}\u0002.".format(role))
+            pm(cli, shaman, "You are a \u0002{0}\u0002.".format(role))
             if shaman in var.ROLES["shaman"]:
-                cli.notice(shaman, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[shaman]))
+                pm(cli, shaman, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[shaman]))
         pm(cli, shaman, "Players: " + ", ".join(pl))
 
     for hunter in var.ROLES["hunter"]:
@@ -4501,43 +4520,43 @@ def transition_night(cli):
         random.shuffle(pl)
         pl.remove(hunter)
         if hunter in var.PLAYERS and var.PLAYERS[hunter]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(hunter, ('You are a \u0002hunter\u0002. Once per game, you may kill another ' +
+            pm(cli, hunter, ('You are a \u0002hunter\u0002. Once per game, you may kill another ' +
                              'player with "kill <nick>". If you do not wish to kill anyone tonight, ' +
                              'use "pass" instead.'))
         else:
-            cli.notice(hunter, "You are a \u0002hunter\u0002.")
+            pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
     for fool in var.ROLES["fool"]:
         if fool in var.PLAYERS and var.PLAYERS[fool]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(fool, ('You are a \u0002fool\u0002. The game immediately ends with you ' +
+            pm(cli, fool, ('You are a \u0002fool\u0002. The game immediately ends with you ' +
                            'being the only winner if you are lynched during the day. You cannot ' +
                            'otherwise win this game.'))
         else:
-            cli.notice(fool, "You are a \u0002fool\u0002.")
+            pm(cli, fool, "You are a \u0002fool\u0002.")
 
     for jester in var.ROLES["jester"]:
         if jester in var.PLAYERS and var.PLAYERS[jester]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(jester, ('You are a \u0002jester\u0002. You will win alongside the normal winners ' +
+            pm(cli, jester, ('You are a \u0002jester\u0002. You will win alongside the normal winners ' +
                              'if you are lynched during the day. You cannot otherwise win this game.'))
         else:
-            cli.notice(jester, "You are a \u0002jester\u0002.")
+            pm(cli, jester, "You are a \u0002jester\u0002.")
 
     for monster in var.ROLES["monster"]:
         if monster in var.PLAYERS and var.PLAYERS[monster]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(monster, ('You are a \u0002monster\u0002. You cannot be killed by the wolves. ' +
+            pm(cli, monster, ('You are a \u0002monster\u0002. You cannot be killed by the wolves. ' +
                               'If you survive until the end of the game, you win instead of the ' +
                               'normal winners.'))
         else:
-            cli.notice(monster, "You are a \u0002monster\u0002.")
+            pm(cli, monster, "You are a \u0002monster\u0002.")
 
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and var.PLAYERS[lycan]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(lycan, ('You are a \u0002lycan\u0002. You are currently on the side of the ' +
+            pm(cli, lycan, ('You are a \u0002lycan\u0002. You are currently on the side of the ' +
                             'villagers, but will turn into a wolf if you are targeted by them ' +
                             'during the night.'))
         else:
-            cli.notice(lycan, "You are a \u0002lycan\u0002.")
+            pm(cli, lycan, "You are a \u0002lycan\u0002.")
 
     for v_ghost, who in var.VENGEFUL_GHOSTS.items():
         wolves = var.list_players(var.WOLFTEAM_ROLES)
@@ -4551,12 +4570,12 @@ def transition_night(cli):
         random.shuffle(pl)
 
         if v_ghost in var.PLAYERS and var.PLAYERS[v_ghost]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(v_ghost, ('You are a \u0002vengeful ghost\u0002, sworn to take revenge on the ' +
+            pm(cli, v_ghost, ('You are a \u0002vengeful ghost\u0002, sworn to take revenge on the ' +
                               '{0} that you believe killed you. You must kill one of them with ' +
                               '"kill <nick>" tonight. If you do not, one of them will be selected ' +
                               'at random.').format(who))
         else:
-            cli.notice(v_ghost, "You are a \u0002vengeful ghost\u0002.")
+            pm(cli, v_ghost, "You are a \u0002vengeful ghost\u0002.")
         pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
 
     for ass in var.ROLES["assassin"]:
@@ -4566,11 +4585,11 @@ def transition_night(cli):
         random.shuffle(pl)
         pl.remove(ass)
         if ass in var.PLAYERS and var.PLAYERS[ass]["cloak"] not in var.SIMPLE_NOTIFY:
-            cli.msg(ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
+            pm(cli, ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
                           '"target <nick>". If you die you will take out your target with you. ' +
                           'If your target dies you may choose another one.'))
         else:
-            cli.notice(ass, "You are an \u0002assassin\u0002.")
+            pm(cli, ass, "You are an \u0002assassin\u0002.")
         pm(cli, ass, "Players: " + ", ".join(pl))
 
     if var.FIRST_NIGHT:
@@ -4578,12 +4597,12 @@ def transition_night(cli):
             pl = ps[:]
             random.shuffle(pl)
             if mm in var.PLAYERS and var.PLAYERS[mm]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
+                pm(cli, mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
                              'to be lovers with "choose <nick1> and <nick2>". If one lover ' +
                              'dies, the other will as well. You may select yourself as one ' +
                              'of the lovers. You may only select lovers during the first night.'))
             else:
-                cli.notice(mm, "You are a \u0002matchmaker\u0002.")
+                pm(cli, mm, "You are a \u0002matchmaker\u0002.")
             pm(cli, mm, "Players: " + ", ".join(pl))
 
         for clone in var.ROLES["clone"]:
@@ -4591,29 +4610,29 @@ def transition_night(cli):
             random.shuffle(pl)
             pl.remove(clone)
             if clone in var.PLAYERS and var.PLAYERS[clone]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
+                pm(cli, clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
             else:
-                cli.notice(clone, "You are a \u0002clone\u0002")
+                pm(cli, clone, "You are a \u0002clone\u0002")
             pm(cli, clone, "Players: "+", ".join(pl))
 
         for ms in var.ROLES["mad scientist"]:
             if ms in var.PLAYERS and var.PLAYERS[ms]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(ms, ("You are the \u0002mad scientist\u0002. If you are lynched during " +
+                pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you are lynched during " +
                              "the day, you will let loose a potent chemical concoction that will " +
                              "kill the players that joined immediately before and after you if " +
                              "they are still alive."))
             else:
-                cli.notice(ms, "You are the \u0002mad scientist\u0002.")
+                pm(cli, ms, "You are the \u0002mad scientist\u0002.")
 
         for minion in var.ROLES["minion"]:
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
             if minion in var.PLAYERS and var.PLAYERS[minion]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(minion, "You are a \u0002minion\u0002. It is your job to help the wolves kill all of the villagers.")
+                pm(cli, minion, "You are a \u0002minion\u0002. It is your job to help the wolves kill all of the villagers.")
             else:
-                cli.notice(minion, "You are a \u0002minion\u0002.")
+                pm(cli, minion, "You are a \u0002minion\u0002.")
             pm(cli, minion, "Wolves: " + ", ".join(wolves))
 
         villagers = copy.copy(var.ROLES["villager"])
@@ -4622,18 +4641,18 @@ def transition_night(cli):
             villagers += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for villager in villagers:
             if villager in var.PLAYERS and var.PLAYERS[villager]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
+                pm(cli, villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
             else:
-                cli.notice(villager, "You are a \u0002villager\u0002.")
+                pm(cli, villager, "You are a \u0002villager\u0002.")
 
         cultists = copy.copy(var.ROLES["cultist"])
         if var.DEFAULT_ROLE == "cultist":
             cultists += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for cultist in cultists:
             if cultist in var.PLAYERS and var.PLAYERS[cultist]["cloak"] not in var.SIMPLE_NOTIFY:
-                cli.msg(cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
+                pm(cli, cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
             else:
-                cli.notice(cultist, "You are a \u0002cultist\u0002.")
+                pm(cli, cultist, "You are a \u0002cultist\u0002.")
 
     for g in var.GUNNERS.keys():
         if g not in ps:

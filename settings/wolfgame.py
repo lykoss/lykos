@@ -98,7 +98,8 @@ TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
 
 GAME_MODES = {}
 AWAY = ['services.', 'services.int']  # cloaks of people who are away.
-SIMPLE_NOTIFY = []  # cloaks of people who !simple, who want everything /notice'd
+SIMPLE_NOTIFY = []  # cloaks of people who !simple, who don't want detailed instructions
+PREFER_NOTICE = []  # cloaks of people who !notice, who want everything /notice'd
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
@@ -450,6 +451,8 @@ with conn:
 
     c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
 
+    c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice
+
     c.execute('SELECT * FROM away')
     for row in c:
         AWAY.append(row[0])
@@ -457,6 +460,10 @@ with conn:
     c.execute('SELECT * FROM simple_role_notify')
     for row in c:
         SIMPLE_NOTIFY.append(row[0])
+
+    c.execute('SELECT * FROM prefer_notice')
+    for row in c:
+        PREFER_NOTICE.append(row[0])
 
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
@@ -498,6 +505,14 @@ def remove_simple_rolemsg(clk):
 def add_simple_rolemsg(clk):
     with conn:
         c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
+
+def remove_prefer_notice(clk):
+    with conn:
+        c.execute('DELETE from prefer_notice where cloak=?', (clk,))
+
+def add_prefer_notice(clk):
+    with conn:
+        c.execute('INSERT into prefer_notice VALUES (?)', (clk,))
 
 def remove_ping(clk):
     with conn:
