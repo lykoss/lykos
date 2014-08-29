@@ -1465,7 +1465,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                     role = var.get_reveal_role(target)
                                     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
                                     message = ("Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat. " +
-                                               "The village mourns the loss of a{2} \u0002{3}\u0002.").format(nick, target, an, role)
+                                               "The village {2} of a{3} \u0002{4}\u0002.").format(nick, target,
+                                                       "mourns the loss" if var.mourn(role) else "celebrates the death", an, role)
                                 else:
                                     message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
@@ -2491,8 +2492,8 @@ def transition_day(cli, gameid=0):
             if var.ROLE_REVEAL:
                 role = var.get_reveal_role(victim)
                 an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-                message.append(("The dead body of \u0002{0}\u0002, a{1} \u0002{2}\u0002, is found. " +
-                                "Those remaining mourn the tragedy.").format(victim, an, role))
+                message.append(("The dead body of \u0002{0}\u0002, a{1} \u0002{2}\u0002, is found.{3}").format(victim, an, role,
+                    " Those remaining mourn the tragedy." if var.mourn(role) else ""))
             else:
                 message.append(("The dead body of \u0002{0}\u0002 is found. " +
                                 "Those remaining mourn the tragedy.").format(victim))
@@ -3225,10 +3226,13 @@ def shoot(cli, nick, chann_, rest):
         var.LOGGER.logMessage("{0} is a lousy shooter and missed!".format(nick))
     else:
         if var.ROLE_REVEAL:
+            role = var.get_reveal_role(nick)
             cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
-                           "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_reveal_role(nick)))
+                           "The village {1} a gunner-\u0002{2}\u0002's death.").format(nick,
+                               "mourns" if var.mourn(role) else "cheers on", role))
             var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
-                           "The village mourns a gunner-{1}.").format(nick, var.get_reveal_role(nick)))
+                           "The village {1} a gunner-\u0002{2}\u0002's death.").format(nick,
+                               "mourns" if var.mourn(role) else "cheers on", role))
         else:
             cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded!").format(nick))
             var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded!").format(nick))
