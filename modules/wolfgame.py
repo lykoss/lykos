@@ -4176,17 +4176,17 @@ def relay(cli, nick, rest):
                 rest = rest[7:-1]
                 mass_privmsg(cli, [guy for guy in badguys
                     if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "\02{0}\02{1}".format(nick, rest))
+                        var.PLAYERS[guy]["cloak"] not in var.PREFER_NOTICE)], "\02{0}\02{1}".format(nick, rest))
                 mass_privmsg(cli, [guy for guy in badguys
                     if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], nick+rest, True)
+                        var.PLAYERS[guy]["cloak"] in var.PREFER_NOTICE)], nick+rest, True)
             else:
                 mass_privmsg(cli, [guy for guy in badguys
                     if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] not in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest))
+                        var.PLAYERS[guy]["cloak"] not in var.PREFER_NOTICE)], "\02{0}\02 says: {1}".format(nick, rest))
                 mass_privmsg(cli, [guy for guy in badguys
                     if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] in var.SIMPLE_NOTIFY)], "\02{0}\02 says: {1}".format(nick, rest), True)
+                        var.PLAYERS[guy]["cloak"] in var.PREFER_NOTICE)], "\02{0}\02 says: {1}".format(nick, rest), True)
 
 @pmcmd("")
 def ctcp_ping(cli, nick, msg):
