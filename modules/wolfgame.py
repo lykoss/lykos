@@ -2073,27 +2073,37 @@ def leave(cli, what, nick, why=""):
 
     #  the player who just quit was in the game
     killplayer = True
+
+    population = ""
+
+    if var.PHASE == "join":
+        lpl = len(var.list_players()) - 1
+        if lpl == 0:
+            population = (" No more players remaining.")
+        else:
+            population = (" New player count: \u0002{0}\u0002").format(lpl)
+
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
         if var.ROLE_REVEAL:
             msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
-                   "died.").format(nick, var.get_reveal_role(nick))
+                   "died.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
-            msg = ("\02{0}\02 at some poisonous berries and has died.").format(nick)
+            msg = ("\02{0}\02 at some poisonous berries and has died.{1}").format(nick, population)
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
         if var.ROLE_REVEAL:
             msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
-                   "\02{1}\02 meat is tasty.").format(nick, var.get_reveal_role(nick))
+                   "\02{1}\02 meat is tasty.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
-            msg = ("\02{0}\02 was mauled by wild animals and has died.").format(nick)
+            msg = ("\02{0}\02 was mauled by wild animals and has died.{1}").format(nick, population)
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
     else:
         if var.ROLE_REVEAL:
             msg = ("\02{0}\02 died due to falling off a cliff. The "+
-                   "\02{1}\02 is lost to the ravine forever.").format(nick, var.get_reveal_role(nick))
+                   "\02{1}\02 is lost to the ravine forever.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
-            msg = ("\02{0}\02 died due to falling off a cliff.").format(nick)
+            msg = ("\02{0}\02 died due to falling off a cliff.{1}").format(nick, population)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
