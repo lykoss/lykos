@@ -1016,6 +1016,8 @@ def chk_traitor(cli):
         for tt in ttl:
             var.ROLES["wolf"].append(tt)
             var.ROLES["traitor"].remove(tt)
+            if tt in var.ROLES["cursed villager"]:
+                var.ROLES["cursed villager"].remove(tt)
             var.LOGGER.logBare(tt, "TRANSFORM")
             pm(cli, tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
                          'It is up to you to avenge your fallen leaders!'))
