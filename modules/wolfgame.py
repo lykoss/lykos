@@ -2500,25 +2500,29 @@ def transition_day(cli, gameid=0):
                         message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
                                         "The dead body of \u0002{1}\u0002 was found at the scene.").format(victim, loser))
                 var.LOGGER.logBare(loser, "RETRIBUTION")
-            if var.ROLE_REVEAL:
+            try:
                 role = var.get_reveal_role(victim)
-                an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-                message.append(("The dead body of \u0002{0}\u0002, a{1} \u0002{2}\u0002, is found. " +
-                                "Those remaining mourn the tragedy.").format(victim, an, role))
+            except KeyError:
+                pass  # Already died somehow
             else:
-                message.append(("The dead body of \u0002{0}\u0002 is found. " +
-                                "Those remaining mourn the tragedy.").format(victim))
-            dead.append(victim)
-            var.LOGGER.logBare(victim, "KILLED")
-            if random.random() < 1/50:
-                message.append(random.choice(
-                    ["https://i.imgur.com/nO8rZ.gif",
-                    "https://i.imgur.com/uGVfZ.gif",
-                    "https://i.imgur.com/mUcM09n.gif",
-                    "https://i.imgur.com/P7TEGyQ.gif",
-                    "https://i.imgur.com/b8HAvjL.gif",
-                    "https://i.imgur.com/PIIfL15.gif"]
-                    ))
+                if var.ROLE_REVEAL:
+                    an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
+                    message.append(("The dead body of \u0002{0}\u0002, a{1} \u0002{2}\u0002, is found. " +
+                                    "Those remaining mourn the tragedy.").format(victim, an, role))
+                else:
+                    message.append(("The dead body of \u0002{0}\u0002 is found. " +
+                                    "Those remaining mourn the tragedy.").format(victim))
+                dead.append(victim)
+                var.LOGGER.logBare(victim, "KILLED")
+                if random.random() < 1/50:
+                    message.append(random.choice(
+                        ["https://i.imgur.com/nO8rZ.gif",
+                        "https://i.imgur.com/uGVfZ.gif",
+                        "https://i.imgur.com/mUcM09n.gif",
+                        "https://i.imgur.com/P7TEGyQ.gif",
+                        "https://i.imgur.com/b8HAvjL.gif",
+                        "https://i.imgur.com/PIIfL15.gif"]
+                        ))
             
             if victim in var.HVISITED.values() and victim in bywolves:  #  victim was visited by some harlot and victim was attacked by wolves
                 for hlt in var.HVISITED.keys():
