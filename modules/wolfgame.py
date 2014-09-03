@@ -572,12 +572,12 @@ def fleave(cli, nick, chann_, rest):
         cli.msg(chan, ("\u0002{0}\u0002 is forcing"+
                        " \u0002{1}\u0002 to leave.").format(nick, a))
         if var.ROLE_REVEAL:
-            cli.msg(chan, "Say goodbye to the \02{0}\02.".format(var.get_role(a)))
+            cli.msg(chan, "Say goodbye to the \02{0}\02.".format(var.get_reveal_role(a)))
         if var.PHASE == "join":
             cli.msg(chan, ("New player count: \u0002{0}\u0002").format(len(var.list_players()) - 1))
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
-            var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_role(a)))
+            var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_reveal_role(a)))
         del_player(cli, a, death_triggers = False)
 
 
