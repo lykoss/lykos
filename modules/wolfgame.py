@@ -1698,8 +1698,8 @@ def reaper(cli, gameid):
                             var.ORIGINAL_ROLES[r].append("(dced)"+nck)
                             break
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
-                    if not del_player(cli, nck, death_triggers = False):
-                        return
+                    del_player(cli, nck, end_game = False, death_triggers = False)
+                chk_win(cli)
                 pl = var.list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
