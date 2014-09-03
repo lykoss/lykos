@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
@@ -100,6 +102,8 @@ GAME_MODES = {}
 AWAY = ['services.', 'services.int']  # cloaks of people who are away.
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who don't want detailed instructions
 PREFER_NOTICE = []  # cloaks of people who !notice, who want everything /notice'd
+
+STASISED = defaultdict(int)
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
@@ -453,6 +457,8 @@ with conn:
 
     c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice
 
+    c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people
+
     c.execute('SELECT * FROM away')
     for row in c:
         AWAY.append(row[0])
@@ -464,6 +470,10 @@ with conn:
     c.execute('SELECT * FROM prefer_notice')
     for row in c:
         PREFER_NOTICE.append(row[0])
+
+    c.execute('SELECT * FROM stasised')
+    for row in c:
+        STASISED[row[0]] = row[1]
 
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
@@ -521,6 +531,13 @@ def remove_ping(clk):
 def add_ping(clk):
     with conn:
         c.execute('INSERT into ping VALUES (?)', (clk,))
+
+def set_stasis(clk, games):
+    with conn:
+        if games <= 0:
+            c.execute('DELETE FROM stasised WHERE cloak=?', (clk,))
+        else:
+            c.execute('INSERT OR REPLACE INTO stasised VALUES (?,?)', (clk, games))
 
 
 def update_role_stats(acc, role, won, iwon):

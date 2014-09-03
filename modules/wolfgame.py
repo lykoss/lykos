@@ -25,7 +25,6 @@ import botconfig
 from tools.wolfgamelogger import WolfgameLogger
 from tools import decorators
 from datetime import datetime, timedelta
-from collections import defaultdict
 import threading
 import copy
 import time
@@ -86,8 +85,6 @@ var.GAME_ID = 0
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
-
-var.STASISED = defaultdict(int)
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
@@ -221,8 +218,10 @@ def make_stasis(nick, penalty):
         if cloak is not None:
             if penalty == 0:
                 del var.STASISED[cloak]
+                var.set_stasised(cloak, 0)
             else:
                 var.STASISED[cloak] += penalty
+                var.set_stasis(cloak, var.STASISED[cloak])
     except KeyError:
         pass
 
@@ -4999,6 +4998,7 @@ def start(cli, nick, chann_, rest):
 
     for cloak in list(var.STASISED.keys()):
         var.STASISED[cloak] -= 1
+        var.set_stasis(cloak, var.STASISED[cloak])
         if var.STASISED[cloak] <= 0:
             del var.STASISED[cloak]
 
@@ -5047,10 +5047,12 @@ def fstasis(cli, nick, chan, rest):
 
             if amt > 0:
                 var.STASISED[cloak] = amt
+                var.set_stasis(cloak, amt)
                 msg = "{0} ({1}) is now in stasis for {2} games.".format(data[0], cloak, amt)
             else:
                 if cloak in var.STASISED:
                     del var.STASISED[cloak]
+                    var.set_stasis(cloak, 0)
                     msg = "{0} ({1}) is no longer in stasis.".format(data[0], cloak)
                 else:
                     msg = "{0} ({1}) is not in stasis.".format(data[0], cloak)
