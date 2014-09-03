@@ -1849,8 +1849,8 @@ def fgoat(cli, nick, chan, rest):
 
 
 @hook("nick")
-def on_nick(cli, prefix, nick):
-    prefix,u,m,cloak = parse_nick(prefix)
+def on_nick(cli, oldnick, nick):
+    prefix,u,m,cloak = parse_nick(oldnick)
     chan = botconfig.CHANNEL
 
     if prefix in var.USERS:
@@ -1863,6 +1863,10 @@ def on_nick(cli, prefix, nick):
         # if prefix == k:
             # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
             # del var.DEAD_USERS[k]
+
+    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and nick.lower().find("away") > 0)) and nick not in var.DISCONNECTED.keys():
+        leave(cli, "quit", oldnick)
+        return
 
     if prefix in var.list_players() and prefix not in var.DISCONNECTED.keys():
         r = var.ROLES[var.get_role(prefix)]
