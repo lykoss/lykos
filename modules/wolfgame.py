@@ -3065,7 +3065,10 @@ def retract(cli, nick, chann_, rest):
         return
     if nick in var.NO_LYNCH:
         var.NO_LYNCH.remove(nick)
-        cli.msg(chan, "\u0002{0}\u0002 changed their mind and will vote for someone today.".format(nick))
+        cli.msg(chan, "\u0002{0}\u0002's vote was retracted.".format(nick))
+        var.LOGGER.logBare(voter, "RETRACT", nick)
+        var.LOGGER.logMessage("{0}'s vote was retracted.".format(nick))
+        var.LAST_VOTES = None # reset
 
     candidates = var.VOTES.keys()
     for voter in list(candidates):
