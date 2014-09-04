@@ -434,33 +434,38 @@ def fpinger(cli, nick, chan, rest):
     pinger(cli, nick, chan, rest)
 
 
-@cmd("join", "j", raw_nick=True)
+@cmd("join", "j")
 def join(cli, nick, chann_, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
-    pl = var.list_players()
+    join_player(cli, nick)
 
+def join_player(cli, player, who = None, forced = False):
+    if who is None:
+        who = player
+
+    pl = var.list_players()
     chan = botconfig.CHANNEL
 
-    nick, _, __, cloak = parse_nick(nick)
-
     if not var.OPPED:
-        cli.notice(nick, "Sorry, I'm not opped in {0}.".format(chan))
+        cli.notice(who, "Sorry, I'm not opped in {0}.".format(chan))
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
 
+    cloak = None
     try:
-        cloak = var.USERS[nick]['cloak']
-        if cloak is not None and cloak in var.STASISED:
-            cli.notice(nick, "Sorry, but you are in stasis for {0} games.".format(var.STASISED[cloak]))
+        cloak = var.USERS[player]['cloak']
+        if cloak is not None and cloak in var.STASISED and not forced:
+            cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
+                "you are" if player == who else player + " is", var.STASISED[cloak],
+                "s" if var.STASISED[cloak] != 1 else ""))
             return
     except KeyError:
-        cloak = None
-
+        pass
 
     if var.PHASE == "none":
 
-        cli.mode(chan, "+v", nick)
-        var.ROLES["person"].append(nick)
+        cli.mode(chan, "+v", player)
+        var.ROLES["person"].append(player)
         var.PHASE = "join"
         var.WAITED = 0
         var.GAME_ID = time.time()
@@ -468,7 +473,7 @@ def join(cli, nick, chann_, rest):
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
-                      'Type "{1}wait" to increase start wait time.').format(nick, botconfig.CMD_CHAR))
+                      'Type "{1}wait" to increase start wait time.').format(player, botconfig.CMD_CHAR))
 
         # Set join timer
         if var.JOIN_TIME_LIMIT:
@@ -477,17 +482,17 @@ def join(cli, nick, chann_, rest):
             t.daemon = True
             t.start()
 
-    elif nick in pl:
-        cli.notice(nick, "You're already playing!")
+    elif player in pl:
+        cli.notice(who, "{0}'re already playing!".format("You" if who == player else "They"))
     elif len(pl) >= var.MAX_PLAYERS:
-        cli.notice(nick, "Too many players! Try again next time.")
+        cli.notice(who, "Too many players! Try again next time.")
     elif var.PHASE != "join":
-        cli.notice(nick, "Sorry, but the game is already running. Try again next time.")
+        cli.notice(who, "Sorry, but the game is already running. Try again next time.")
     else:
 
-        cli.mode(chan, "+v", nick)
-        var.ROLES["person"].append(nick)
-        cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(nick, len(pl) + 1))
+        cli.mode(chan, "+v", player)
+        var.ROLES["person"].append(player)
+        cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
         if not cloak in var.JOINED_THIS_GAME:
             # make sure this only happens once
             var.JOINED_THIS_GAME.append(cloak)
@@ -528,7 +533,7 @@ def fjoin(cli, nick, chann_, rest):
     noticed = False
     chan = botconfig.CHANNEL
     if not rest.strip():
-        join(cli, nick, chan, "")
+        join_player(cli, nick, forced=True)
 
     for a in re.split(" +",rest):
         a = a.strip()
@@ -546,7 +551,7 @@ def fjoin(cli, nick, chann_, rest):
         if not is_fake_nick(a):
             a = ul[ull.index(a.lower())]
         if a != botconfig.NICK:
-            join(cli, a.strip(), chan, "")
+            join_player(cli, a.strip(), forced=True, who=nick)
         else:
             cli.notice(nick, "No, that won't be allowed.")
 
