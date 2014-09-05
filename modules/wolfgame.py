@@ -1870,8 +1870,9 @@ def on_nick(cli, oldnick, nick):
             # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
             # del var.DEAD_USERS[k]
 
-    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and nick.lower().find("away") > 0)) and nick not in var.DISCONNECTED.keys():
-        cli.mode(chan, "-v", nick, nick+"!*@*")
+    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
+        if var.PHASE != "join":
+            cli.mode(chan, "-v", nick)
         leave(cli, "quit", oldnick)
         return
 
