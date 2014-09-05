@@ -3021,7 +3021,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, actor, "Players: " + ", ".join(pl))
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+            elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow"):
                 pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
         elif nick_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
@@ -3052,7 +3052,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, nick, "Players: " + ", ".join(pl))
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+            elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow"):
                 pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
         elif actor_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
