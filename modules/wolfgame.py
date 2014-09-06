@@ -4647,10 +4647,10 @@ def transition_night(cli):
 
         for ms in var.ROLES["mad scientist"]:
             if ms in var.PLAYERS and var.PLAYERS[ms]["cloak"] not in var.SIMPLE_NOTIFY:
-                pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you are lynched during " +
-                             "the day, you will let loose a potent chemical concoction that will " +
-                             "kill the players that joined immediately before and after you if " +
-                             "they are still alive."))
+                pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you die for any reason " +
+                             "other than idling out or quitting, you will let loose a potent " +
+                             "chemical concoction that will kill the players that joined " +
+                             "immediately before and after you if they are still alive."))
             else:
                 pm(cli, ms, "You are the \u0002mad scientist\u0002.")
 
