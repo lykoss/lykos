@@ -4779,7 +4779,8 @@ def start(cli, nick, chann_, rest):
     var.GAME_START_TIME = now  # Only used for the idler checker
     dur = int((var.CAN_START_TIME - now).total_seconds())
     if dur > 0:
-        cli.msg(chan, "Please wait at least {0} more seconds.".format(dur))
+        plural = "" if dur == 1 else "s"
+        cli.msg(chan, "Please wait at least {0} more second{1}.".format(dur, plural))
         return
 
     if len(villagers) < var.MIN_PLAYERS:
