@@ -836,8 +836,10 @@ def chk_decision(cli, force = ""):
             not_lynching.add(p)
 
     # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
+    # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
     if len(not_lynching) >= math.ceil(avail / 2):
         cli.msg(botconfig.CHANNEL, "The villagers have agreed to not lynch anybody today.")
+        var.ABSTAINED = True
         transition_night(cli)
         return
     aftermessage = None
@@ -2720,10 +2722,16 @@ def no_lynch(cli, nick, chan, rest):
         elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
             cli.notice(nick, "You're not currently playing.")
             return
-        if var.PHASE != "day":
+        elif not var.ABSTAIN_ENABLED:
+            cli.notice(nick, "This command has been disabled by the admins.")
+            return
+        elif var.LIMIT_ABSTAIN and var.ABSTAINED:
+            cli.notice(nick, "The village has already abstained once this game and may not do so again.")
+            return
+        elif var.PHASE != "day":
             cli.notice(nick, "Lynching is only during the day. Please wait patiently for morning.")
             return
-        if nick in var.WOUNDED:
+        elif nick in var.WOUNDED:
             cli.msg(chan, "{0}: You are wounded and resting, thus you are unable to vote for the day.".format(nick))
             return
         candidates = var.VOTES.keys()
@@ -4879,6 +4887,7 @@ def start(cli, nick, chann_, rest):
     var.EXCHANGED = []
     var.TOBEEXCHANGED = []
     var.ACTED_EXTRA = 0
+    var.ABSTAINED = False
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():

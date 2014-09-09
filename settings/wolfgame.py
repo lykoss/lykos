@@ -44,6 +44,8 @@ PART_STASIS_PENALTY = 1
 
 GOAT_HERDER = True
 
+ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
+LIMIT_ABSTAIN = True # if true, village will be limited to successfully !abstaining a vote only once
 SELF_LYNCH_ALLOWED = True
 HIDDEN_TRAITOR = True
 HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after turning
