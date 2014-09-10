@@ -1705,7 +1705,6 @@ def reaper(cli, gameid):
                         if nck in rlist:
                             var.ORIGINAL_ROLES[r].remove(nck)
                             var.ORIGINAL_ROLES[r].append("(dced)"+nck)
-                            break
                     make_stasis(nck, var.IDLE_STASIS_PENALTY)
                     del_player(cli, nck, end_game = False, death_triggers = False)
                 chk_win(cli)
@@ -2160,6 +2159,10 @@ def leave_game(cli, nick, chan, rest):
         cli.msg(botconfig.CHANNEL, ("\02{0}\02 has died of an unknown disease.{1}").format(nick, population))
         var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
     if var.PHASE != "join":
+        for r, rlist in var.ORIGINAL_ROLES.items():
+            if nick in rlist:
+                var.ORIGINAL_ROLES[r].remove(nick)
+                var.ORIGINAL_ROLES[r].append("(dced)"+nick)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
     del_player(cli, nick, death_triggers = False)
