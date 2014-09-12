@@ -34,6 +34,7 @@ TIME_LORD_NIGHT_LIMIT = 30
 TIME_LORD_NIGHT_WARN = 20
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
+PM_WARN_IDLE_TIME = 240
 PART_GRACE_TIME = 30
 QUIT_GRACE_TIME = 30
 #  controls how many people it does in one /msg; only works for messages that are the same

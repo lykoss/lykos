@@ -1663,7 +1663,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
 
 def reaper(cli, gameid):
     # check to see if idlers need to be killed.
-    var.IDLE_WARNED = []
+    var.IDLE_WARNED    = set()
+    var.IDLE_WARNED_PM = set()
     chan = botconfig.CHANNEL
 
     while gameid == var.GAME_ID:
@@ -1671,9 +1672,10 @@ def reaper(cli, gameid):
             # Terminate reaper when experiencing disk lag
             if var.PHASE == "writing files":
                 return
-            if var.WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
-                to_warn = []
-                to_kill = []
+            if var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
+                to_warn    = []
+                to_warn_pm = []
+                to_kill    = []
                 for nick in var.list_players():
                     lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
@@ -1681,16 +1683,24 @@ def reaper(cli, gameid):
                                             nick not in var.IDLE_WARNED):
                         if var.WARN_IDLE_TIME:
                             to_warn.append(nick)
-                        var.IDLE_WARNED.append(nick)
+                        var.IDLE_WARNED.add(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
                             timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
+                    elif (tdiff > timedelta(seconds=var.PM_WARN_IDLE_TIME) and
+                                            nick not in var.IDLE_WARNED_PM):
+                        if var.PM_WARN_IDLE_TIME:
+                            to_warn_pm.append(nick)
+                        var.IDLE_WARNED_PM.add(nick)
+                        var.LAST_SAID_TIME[nick] = (datetime.now() -
+                            timedelta(seconds=var.PM_WARN_IDLE_TIME))
                     elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                        nick in var.IDLE_WARNED):
+                        nick in var.IDLE_WARNED and nick in var.IDLE_WARNED_PM):
                         if var.KILL_IDLE_TIME:
                             to_kill.append(nick)
                     elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
-                        nick in var.IDLE_WARNED):
-                        var.IDLE_WARNED.remove(nick)  # player saved himself from death
+                        (nick in var.IDLE_WARNED or nick in var.IDLE_WARNED_PM)):
+                        var.IDLE_WARNED.discard(nick)  # player saved themselves from death
+                        var.IDLE_WARNED_PM.discard(nick)
                 for nck in to_kill:
                     if nck not in var.list_players():
                         continue
@@ -1714,6 +1724,12 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
                                    "Please say something soon or you "+
                                    "might be declared dead.\u0002").format(", ".join(x)))
+                msg_targets    = [p for p in to_warn_pm if p in pl and var.PLAYERS[p]["cloak"] not in var.PREFER_NOTICE]
+                notice_targets = [p for p in to_warn_pm if p in pl and var.PLAYERS[p]["cloak"]     in var.PREFER_NOTICE]
+                mass_privmsg(cli, msg_targets, ("\u0002You have been idling in {0} for a while. Please say something in {0} "+
+                                                "or you will be declared dead.\u0002").format(chan))
+                mass_privmsg(cli, notice_targets, ("\u0002You have been idling in {0} for a while. Please say something in {0} "+
+                                                   "or you will be declared dead.\u0002").format(chan), True)
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 _, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
