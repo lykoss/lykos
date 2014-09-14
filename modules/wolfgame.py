@@ -3233,7 +3233,7 @@ def shoot(cli, nick, chann_, rest):
         victimrole = var.get_reveal_role(victim)
         if realrole in var.WOLF_ROLES:
             if var.ROLE_REVEAL:
-                cli.msg(chan, ("\u0002{0}\u0002 is a {1}, and is dying from "+
+                cli.msg(chan, ("\u0002{0}\u0002 is a \u0002{1}\u0002, and is dying from "+
                                "the silver bullet.").format(victim, victimrole))
                 var.LOGGER.logMessage(("{0} is a {1}, and is dying from the "+
                                 "silver bullet.").format(victim, victimrole))
