@@ -59,7 +59,7 @@ LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with the
 
 # Minimum number of players needed for mad scientist to skip over dead people when determining who is next to them
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
-MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 99 
+MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16 
 
 CARE_BOLD = False
 CARE_COLOR = False
