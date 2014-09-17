@@ -3702,7 +3702,7 @@ def hvisit(cli, nick, rest):
     chk_nightdone(cli)
 
 def is_fake_nick(who):
-    return not(re.search("^[a-zA-Z\\\_\]\[`]([a-zA-Z0-9\\\_\]\[`]+)?", who)) or who.lower().endswith("serv")
+    return re.match("[0-9]+", who)
 
 @pmcmd("see")
 def see(cli, nick, rest):
