@@ -5495,6 +5495,19 @@ def myrole(cli, nick, chan, rest):
         else:
             pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullets"))
 
+    # Remind lovers of each other
+    if nick in ps and nick in var.LOVERS:
+        message = "You are \02in love\02 with "
+        lovers = sorted(list(set(var.LOVERS[nick])))
+        if len(lovers) == 1:
+            message += lovers[0]
+        elif len(lovers) == 2:
+            message += lovers[0] + " and " + lovers[1]
+        else:
+            message += ", ".join(lovers[:-1]) + ", and " + lovers[-1]
+        message += "."
+        pm(cli, nick, message)
+
 @pmcmd("myrole")
 def myrole_pm(cli, nick, rest):
     myrole(cli, nick, "", rest)
