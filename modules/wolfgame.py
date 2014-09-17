@@ -2044,7 +2044,10 @@ def on_nick(cli, oldnick, nick):
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
                 if prefix in var.IDLE_WARNED:
                     var.IDLE_WARNED.remove(prefix)
-                    var.IDLE_WARNED.append(nick)
+                    var.IDLE_WARNED.add(nick)
+                if prefix in var.IDLE_WARNED_PM:
+                    var.IDLE_WARNED_PM.remove(prefix)
+                    var.IDLE_WARNED_PM.add(nick)
 
         if var.PHASE == "day":
             if prefix in var.WOUNDED:
