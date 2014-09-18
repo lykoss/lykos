@@ -1,1 +1,1 @@
-If you have push access, please discuss changes that significantly affect gameplay in `##werewolf-ops` before merging them to the `master` branch.
+Please discuss changes that significantly affect gameplay in `##werewolf-ops` before merging them to the `master` branch. They may be merged before a consensus is reached if there's an option to disable them. (Don't add one just for the sake of it if it doesn't make sense to.)
