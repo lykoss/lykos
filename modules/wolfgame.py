@@ -111,11 +111,6 @@ def connect_callback(cli):
     to_be_devoiced = []
     cmodes = []
 
-    @hook("quietlist", hookid=294)
-    def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
-        if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
-            cmodes.append(("-q", quieted))
-
     @hook("whospcrpl", hookid=294)
     def on_whoreply(cli, server, nick, ident, cloak, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
@@ -141,12 +136,6 @@ def connect_callback(cli):
             var.OPPED = True
 
             if var.PHASE == "none":
-                @hook("quietlistend", 294)
-                def on_quietlist_end(cli, svr, nick, chan, *etc):
-                    if chan == botconfig.CHANNEL:
-                        mass_mode(cli, cmodes)
-
-                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
                 cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
         elif modeaction == "-o" and target == botconfig.NICK:
             var.OPPED = False
@@ -193,8 +182,6 @@ def reset_modes_timers(cli):
     cmodes = []
     for plr in var.list_players():
         cmodes.append(("-v", plr))
-    for deadguy in var.DEAD:
-        cmodes.append(("-q", deadguy+"!*@*"))
     mass_mode(cli, cmodes)
 
 def reset(cli):
@@ -1615,9 +1602,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 mass_mode(cli, cmode)
                 return not chk_win(cli)
             if var.PHASE != "join":
-                # Died during the game, so quiet!
-                if not is_fake_nick(nick):
-                    cmode.append(("+q", nick+"!*@*"))
                 mass_mode(cli, cmode)
                 if nick not in var.DEAD:
                     var.DEAD.append(nick)
