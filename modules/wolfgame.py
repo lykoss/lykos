@@ -3114,6 +3114,7 @@ def retract(cli, nick, chann_, rest):
         var.LOGGER.logBare(nick, "RETRACT")
         var.LOGGER.logMessage("{0}'s vote was retracted.".format(nick))
         var.LAST_VOTES = None # reset
+        return
 
     candidates = var.VOTES.keys()
     for voter in list(candidates):
