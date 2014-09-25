@@ -172,6 +172,8 @@ def mass_mode(cli, md):
         cli.mode(botconfig.CHANNEL, arg1, arg2)
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
+    if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        return
     if target in var.USERS and var.USERS[target]["cloak"] in var.PREFER_NOTICE:
         cli.notice(target, message)
     else:
@@ -478,7 +480,7 @@ def join_player(cli, player, who = None, forced = False):
                       'Type "{1}wait" to increase start wait time.').format(player, botconfig.CMD_CHAR))
 
         # Set join timer
-        if var.JOIN_TIME_LIMIT:
+        if var.JOIN_TIME_LIMIT and not botconfig.DEBUG_MODE:
             t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
             var.TIMERS['join'] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
@@ -492,9 +494,10 @@ def join_player(cli, player, who = None, forced = False):
         cli.notice(who, "Sorry, but the game is already running. Try again next time.")
     else:
 
-        cli.mode(chan, "+v", player)
         var.ROLES["person"].append(player)
-        cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
+        if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
+            cli.mode(chan, "+v", player)
+            cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
         if not cloak in var.JOINED_THIS_GAME:
             # make sure this only happens once
             var.JOINED_THIS_GAME.append(cloak)
@@ -533,6 +536,7 @@ def kill_join(cli, chan):
 def fjoin(cli, nick, chann_, rest):
     """Forces someone to join a game."""
     noticed = False
+    fake = False
     chan = botconfig.CHANNEL
     if not rest.strip():
         join_player(cli, nick, forced=True)
@@ -552,10 +556,14 @@ def fjoin(cli, nick, chann_, rest):
                 continue
         if not is_fake_nick(a):
             a = ul[ull.index(a.lower())]
+        elif botconfig.DEBUG_MODE:
+            fake = True
         if a != botconfig.NICK:
             join_player(cli, a.strip(), forced=True, who=nick)
         else:
             cli.notice(nick, "No, that won't be allowed.")
+    if fake:
+        cli.msg(chan, "{0} used fjoin and raised the number of players to \u0002{1}\u0002".format(nick, len(var.list_players())))
 
 @cmd("fleave", "fquit", admin_only=True)
 def fleave(cli, nick, chann_, rest):
