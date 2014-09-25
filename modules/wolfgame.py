@@ -563,7 +563,7 @@ def fjoin(cli, nick, chann_, rest):
         else:
             cli.notice(nick, "No, that won't be allowed.")
     if fake:
-        cli.msg(chan, "{0} used fjoin and raised the number of players to \u0002{1}\u0002".format(nick, len(var.list_players())))
+        cli.msg(chan, "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.".format(nick, len(var.list_players())))
 
 @cmd("fleave", "fquit", admin_only=True)
 def fleave(cli, nick, chann_, rest):
