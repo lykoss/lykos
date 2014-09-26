@@ -2761,7 +2761,7 @@ def no_lynch(cli, nick, chan, rest):
             cli.notice(nick, "The village has already abstained once this game and may not do so again.")
             return
         elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
-            cli.notice(nick, "The village may not abstain on the first day")
+            cli.notice(nick, "The village may not abstain on the first day.")
             return
         elif var.PHASE != "day":
             cli.notice(nick, "Lynching is only during the day. Please wait patiently for morning.")
