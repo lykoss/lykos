@@ -5104,6 +5104,8 @@ def fstasis(cli, nick, chan, rest):
                 else:
                     cli.notice(nick, "The amount of stasis has to be a non-negative integer.")
 
+                return
+
             if amt > 0:
                 var.STASISED[cloak] = amt
                 var.set_stasis(cloak, amt)
