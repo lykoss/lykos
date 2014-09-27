@@ -5072,13 +5072,13 @@ def fstasis(cli, nick, chan, rest):
     msg = None
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
-        user = data[0].lower()
+        user = data[0]
         #if user not in lusers:
         #    pm(cli, nick, "Sorry, {0} cannot be found.".format(data[0]))
         #    return
 
-        if user in lusers:
-            cloak = lusers[user]['cloak']
+        if user.lower() in lusers:
+            cloak = lusers[user.lower()]['cloak']
         else:
             cloak = user
 
