@@ -565,42 +565,36 @@ def fjoin(cli, nick, chann_, rest):
     if fake:
         cli.msg(chan, "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.".format(nick, len(var.list_players())))
 
-
 @cmd("fleave", "fquit", admin_only=True)
-def fleave(cli, nick, chan, rest):
+def fleave(cli, nick, chann_, rest):
     """Forces someone to leave the game."""
+    chan = botconfig.CHANNEL
 
     if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-
-    for a in rest.split():
+        cli.notice(nick, "No game is running.")
+    for a in re.split(" +",rest):
+        a = a.strip()
         if not a:
             continue
-
         pl = var.list_players()
         pll = [x.lower() for x in pl]
-
         if a.lower() in pll:
             a = pl[pll.index(a.lower())]
         else:
-            cli.notice(nick, "\u0002{0}\u0002 is not currently playing.")
+            cli.msg(chan, nick+": That person is not playing.")
             return
 
         message = "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.".format(nick, a)
-        role = var.get_reveal_role(a)
-
-        if var.ROLE_REVEAL and role != "person":
-            message += " Say goodbye to the \u0002{0}\u0002.".format(role)
-
+        if var.get_role(a) != "person" and var.ROLE_REVEAL:
+            message += " Say goodbye to the \02{0}\02.".format(var.get_reveal_role(a))
         if var.PHASE == "join":
             message += " New player count: \u0002{0}\u0002".format(len(var.list_players()) - 1)
-
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
-            var.LOGGER.logMessage("Say goodbye to the {0}".format(role)
-
+            var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_reveal_role(a)))
         cli.msg(chan, message)
-        del_player(cli, a, death_triggers=False)
+
+        del_player(cli, a, death_triggers = False)
 
 
 @cmd("fstart", admin_only=True)
@@ -1749,7 +1743,7 @@ def reaper(cli, gameid):
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 _, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
-                    if var.ROLE_REVEAL:
+                    if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL:
                         cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
                                        "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
                     else:
@@ -1759,7 +1753,7 @@ def reaper(cli, gameid):
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
-                    if var.ROLE_REVEAL:
+                    if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL:
                         cli.msg(chan, ("\02{0}\02, a \02{1}\02, ate some poisonous berries "+
                                        "and has died.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
                     else:
@@ -2135,13 +2129,13 @@ def leave(cli, what, nick, why=""):
             population = (" New player count: \u0002{0}\u0002").format(lpl)
 
     if what == "part" and (not var.PART_GRACE_TIME or var.PHASE == "join"):
-        if var.ROLE_REVEAL:
+        if var.get_role(nick) != "person" and var.ROLE_REVEAL:
             msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
                    "died.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = ("\02{0}\02 at some poisonous berries and has died.{1}").format(nick, population)
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
-        if var.ROLE_REVEAL:
+        if var.get_role(nick) != "person" and var.ROLE_REVEAL:
             msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
                    "\02{1}\02 meat is tasty.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
@@ -2150,7 +2144,7 @@ def leave(cli, what, nick, why=""):
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
     else:
-        if var.ROLE_REVEAL:
+        if var.get_role(nick) != "person" and var.ROLE_REVEAL:
             msg = ("\02{0}\02 died due to falling off a cliff. The "+
                    "\02{1}\02 is lost to the ravine forever.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
@@ -2172,11 +2166,9 @@ hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
 @cmd("quit", "leave")
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
-
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
-
     elif var.PHASE == "join":
         lpl = len(var.list_players()) - 1
 
@@ -2186,30 +2178,23 @@ def leave_game(cli, nick, chan, rest):
             population = (" New player count: \u0002{0}\u0002").format(lpl)
     else:
         population = ""
-
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
         cli.notice(nick, "You're not currently playing.")
         return
-
-    role = var.get_reveal_role(nick)
-
-    if var.ROLE_REVEAL and role != "person":
-        cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002{1} has died of an unknown disease.{2}").format(nick, roletxt, population))
+    if var.get_role(nick) != "person" and var.ROLE_REVEAL:
+        cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
         var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
     else:
-        cli.msg(botconfig.CHANNEL, ("\u0002{0}\u0002 has died of an unknown disease.{1}").format(nick, population))
+        cli.msg(botconfig.CHANNEL, ("\02{0}\02 has died of an unknown disease.{1}").format(nick, population))
         var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
-
     if var.PHASE != "join":
         for r, rlist in var.ORIGINAL_ROLES.items():
             if nick in rlist:
                 var.ORIGINAL_ROLES[r].remove(nick)
-                var.ORIGINAL_ROLES[r].append("(dced)" + nick)
-
+                var.ORIGINAL_ROLES[r].append("(dced)"+nick)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
 
-    del_player(cli, nick, death_triggers=False)
-
+    del_player(cli, nick, death_triggers = False)
 
 def begin_day(cli):
     chan = botconfig.CHANNEL
