@@ -5514,7 +5514,7 @@ def myrole(cli, nick, chan, rest):
     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
     pm(cli, nick, "You are a{0} \02{1}{2}\02.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
 
-    if role == "shaman" and nick not in var.SHAMANS:
+    if role == "shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
         pm(cli, nick, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[nick]))
 
     # Check for gun/bullets
