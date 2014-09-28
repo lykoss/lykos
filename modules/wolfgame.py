@@ -6041,28 +6041,57 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, "No.")
             return
         pl = var.list_players()
-        if rol in var.ROLES.keys() or rol.startswith("gunner") or rol.startswith("sharpshooter"):
-            if rol.startswith("gunner") or rol.startswith("sharpshooter"):
-                rolargs = re.split(" +",rol, 1)
-                rol = rolargs[0]
-                if len(rolargs) == 2 and rolargs[1].isdigit():
-                    if len(rolargs[1]) < 7:
-                        var.GUNNERS[who] = int(rolargs[1])
-                        var.WOLF_GUNNERS[who] = int(rolargs[1])
+        rolargs = re.split("\s*=\s*", rol, 1)
+        rol = rolargs[0]
+        if rol[1:] in var.TEMPLATE_RESTRICTIONS.keys():
+            addrem = rol[0]
+            rol = rol[1:]
+            is_gunner = (rol == "gunner" or rol == "sharpshooter")
+            if addrem == "+" and who not in var.ROLES[rol]:
+                if is_gunner:
+                    if len(rolargs) == 2 and rolargs[1].isdigit():
+                        if len(rolargs[1]) < 7:
+                            var.GUNNERS[who] = int(rolargs[1])
+                            var.WOLF_GUNNERS[who] = int(rolargs[1])
+                        else:
+                            var.GUNNERS[who] = 999
+                            var.WOLF_GUNNERS[who] = 999
+                    elif rol == "gunner":
+                        var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                     else:
-                        var.GUNNERS[who] = 999
-                        var.WOLF_GUNNERS[who] = 999
-                elif rol.startswith("gunner"):
-                    var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+                        var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+                var.ROLES[rol].append(who)
+            elif addrem == "-" and who in var.ROLES[rol]:
+                var.ROLES[rol].remove(who)
+                if is_gunner and who in var.GUNNERS:
+                    del var.GUNNERS[who]
+            else:
+                cli.msg(chan, "Improper template modification.")
+                return
+        elif rol in var.TEMPLATE_RESTRICTIONS.keys():
+            cli.msg(chan, "Please specify \u0002+{0}\u0002 or \u0002-{0}\u0002 to add/remove this template.".format(rol))
+            return
+        elif rol in var.ROLES.keys():
+            if who in pl:
+                oldrole = var.get_role(who)
+                var.ROLES[oldrole].remove(who)
+            if rol == "shaman" or rol == "crazed shaman":
+                if len(rolargs) == 2:
+                    var.TOTEMS[who] = rolargs[1]
                 else:
-                    var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+                    rand = random.random()
+                    target = 0
+                    for t, c in var.TOTEM_CHANCES.items():
+                        target += var.TOTEM_CHANCES[t][0 if rol == "shaman" else 1]
+                        if rand <= target:
+                            var.TOTEMS[who] = t
+                            break
+                    else:
+                        var.TOTEMS[who] = 'death'
+            var.ROLES[rol].append(who)
         else:
             cli.msg(chan, "Not a valid role.")
             return
-        if who in pl and rol not in var.TEMPLATE_RESTRICTIONS.keys():
-            oldrole = var.get_role(who)
-            var.ROLES[oldrole].remove(who)
-        var.ROLES[rol].append(who)
         cli.msg(chan, "Operation successful.")
         if var.PHASE not in ('none','join'):
             chk_win(cli)
