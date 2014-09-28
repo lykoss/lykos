@@ -2133,7 +2133,7 @@ def leave(cli, what, nick, why=""):
             msg = ("\02{0}\02, a \02{1}\02, ate some poisonous berries and has "+
                    "died.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
-            msg = ("\02{0}\02 at some poisonous berries and has died.{1}").format(nick, population)
+            msg = ("\02{0}\02 ate some poisonous berries and has died.{1}").format(nick, population)
     elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
         if var.get_role(nick) != "person" and var.ROLE_REVEAL:
             msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
