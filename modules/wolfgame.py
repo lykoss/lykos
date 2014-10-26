@@ -5175,38 +5175,41 @@ def wait(cli, nick, chann_, rest):
                   "{1} seconds.").format(nick, var.EXTRA_WAIT))
 
 
-
 @cmd("fwait", admin_only=True)
-def fwait(cli, nick, chann_, rest):
+def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
     pl = var.list_players()
 
-    chan = botconfig.CHANNEL
-
-
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
         return
+
     if var.PHASE != "join":
         cli.notice(nick, "Werewolf is already in play.")
         return
 
     rest = re.split(" +", rest.strip(), 1)[0]
-    if rest and (rest.isdigit() or (rest[0] == '-' and rest[1:].isdigit())):
+
+    if rest and (rest.isdigit() or (rest[0] == "-" and rest[1:].isdigit())):
         extra = int(rest)
     else:
         extra = var.EXTRA_WAIT
 
     now = datetime.now()
+
     if now > var.CAN_START_TIME:
         var.CAN_START_TIME = now + timedelta(seconds=extra)
     else:
         var.CAN_START_TIME += timedelta(seconds=extra)
+
     var.WAITED += 1
-    cli.msg(chan, ("\u0002{0}\u0002 forcibly {2}creased the wait time by "+
-                  "{1} second{3}.").format(nick, abs(extra),
-                      ("in" if extra >= 0 else "de"), ("s" if extra != 1 else "")))
+
+    cli.msg(chan, ("\u0002{0}\u0002 forcibly {2}creased the wait time by {1} "
+                   "second{3}.").format(nick,
+                                        abs(extra),
+                                        "in" if extra >= 0 else "de",
+                                        "s" if extra != 1 else ""))
 
 
 @cmd("fstop",admin_only=True)
