@@ -5194,11 +5194,7 @@ def fwait(cli, nick, chann_, rest):
 
     rest = re.split(" +", rest.strip(), 1)[0]
     if rest and (rest.isdigit() or (rest[0] == '-' and rest[1:].isdigit())):
-        if len(rest) < 4:
-            extra = int(rest)
-        else:
-            cli.msg(chan, "{0}: We don't have all day!".format(nick))
-            return
+        extra = int(rest)
     else:
         extra = var.EXTRA_WAIT
 
