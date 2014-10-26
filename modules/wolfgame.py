@@ -4493,7 +4493,7 @@ def transition_night(cli):
         if gangel in var.PLAYERS and var.PLAYERS[gangel]["cloak"] not in var.SIMPLE_NOTIFY:
             pm(cli, gangel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
-                              'a victim, they will live. You may not guard the same person two nights in a row.' +
+                              'a victim, they will live. You may not guard the same person two nights in a row. ' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
             pm(cli, gangel, "You are a \02guardian angel\02.")  # !simple
