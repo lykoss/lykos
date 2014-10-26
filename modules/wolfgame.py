@@ -5204,8 +5204,9 @@ def fwait(cli, nick, chann_, rest):
     else:
         var.CAN_START_TIME += timedelta(seconds=extra)
     var.WAITED += 1
-    cli.msg(chan, ("\u0002{0}\u0002 forcibly increased the wait time by "+
-                  "{1} seconds.").format(nick, extra))
+    cli.msg(chan, ("\u0002{0}\u0002 forcibly {2}creased the wait time by "+
+                  "{1} second{3}.").format(nick, abs(extra),
+                      ("in" if extra >= 0 else "de"), ("s" if extra != 1 else ""))
 
 
 @cmd("fstop",admin_only=True)
