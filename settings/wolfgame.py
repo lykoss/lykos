@@ -218,8 +218,11 @@ def list_players(roles = None):
     for x in roles:
         if x in TEMPLATE_RESTRICTIONS.keys():
             continue
-        for p in ROLES[x]:
-            pl.append(p)
+        try:
+            for p in ROLES[x]:
+                pl.append(p)
+        except KeyError:
+            pass
     return pl
 
 def list_players_and_roles():
