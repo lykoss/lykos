@@ -5169,15 +5169,12 @@ def deny(cli, nick, chan, rest, allow):
                 msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
         else:
             commands = data[1:]
-            #Error here if it's not a real command
-
-            if len(commands):
-                variable[cloak] = ()
-                for command in commands:
-                    if command.startswith(botconfig.CMD_CHAR):
-                        command = command[len(botconfig.CMD_CHAR):]
-                    if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
-                        variable[cloak] += (command,)
+            variable[cloak] = ()
+            for command in commands:
+                if command.startswith(botconfig.CMD_CHAR):
+                    command = command[len(botconfig.CMD_CHAR):]
+                if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
+                    variable[cloak] += (command,)
             if len(variable[cloak]):
                 msg = "\u0002{0}\u0002 ({1}) is now {2} the following commands: {3}{4}.".format(
                     data[0], cloak, "allowed" if allow else "denied", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
@@ -5185,7 +5182,7 @@ def deny(cli, nick, chan, rest, allow):
                 del variable[cloak]
                 msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
     elif variable:
-        msg = "denied: {0}".format(", ".join(
+        msg = "{0}: {1}".format("allowed" if allow else "denied", ", ".join(
             "\u0002{0}\u0002 ({1}{2})".format(cloak, botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(denied))
             for cloak, denied in variable.items()))
     else:
