@@ -5144,6 +5144,84 @@ def fstasis_pm(cli, nick, rest):
     fstasis(cli, nick, nick, rest)
 
 
+def deny(cli, nick, chan, rest, allow):
+    data = rest.split()
+    msg = None
+
+    variable = botconfig.DENY
+    if allow:
+        variable = botconfig.ALLOW
+
+    if data:
+        lusers = {k.lower(): v for k, v in var.USERS.items()}
+        user = data[0]
+
+        if user.lower() in lusers:
+            cloak = lusers[user.lower()]["cloak"]
+        else:
+            cloak = user
+
+        if len(data) == 1:
+            if cloak in variable:
+                msg = "\u0002{0}\u0002 ({1}) is {2} the following commands: {3}.".format(
+                    data[0], cloak, "allowed" if allow else "denied", ", ".join(variable[cloak]))
+            else:
+                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
+        else:
+            commands = data[1:]
+            #Error here if it's not a real command
+
+            if len(commands):
+                variable[cloak] = ()
+                for command in commands:
+                    if command.startswith(botconfig.CMD_CHAR):
+                        command = command[len(botconfig.CMD_CHAR):]
+                    if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
+                        variable[cloak] += (command,)
+            if len(variable[cloak]):
+                msg = "\u0002{0}\u0002 ({1}) is now {2} the following commands: {3}{4}.".format(
+                    data[0], cloak, "allowed" if allow else "denied", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+            else:
+                del variable[cloak]
+                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
+    elif variable:
+        msg = "denied: {0}".format(", ".join(
+            "\u0002{0}\u0002 ({1}{2})".format(cloak, botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(denied))
+            for cloak, denied in variable.items()))
+    else:
+        msg = "Nobody is {0} commands.".format("allowed any special" if allow else "denied any")
+
+    if msg:
+        if data:
+            tokens = msg.split()
+
+            if data[0] == cloak and tokens[1] == "({0})".format(cloak):
+                # Don't show the cloak twice.
+                msg = " ".join((tokens[0], " ".join(tokens[2:])))
+
+        if chan == nick:
+            pm(cli, nick, msg)
+        else:
+            cli.msg(chan, msg)
+
+@cmd("fdeny", admin_only=True)
+def fdeny(cli, nick, chan, rest):
+    """Deny someone from using a command."""
+    deny(cli, nick, chan, rest, False)
+
+@pmcmd("fdeny", admin_only=True)
+def fdeny_pm(cli, nick, rest):
+    deny(cli, nick, nick, rest, False)
+
+@cmd("fallow", admin_only=True)
+def fdeny(cli, nick, chan, rest):
+    """Allow someone to use an admin command."""
+    deny(cli, nick, chan, rest, True)
+
+@pmcmd("fallow", admin_only=True)
+def fdeny_pm(cli, nick, rest):
+    deny(cli, nick, nick, rest, True)
+
 @cmd("wait", "w")
 def wait(cli, nick, chann_, rest):
     """Increases the wait time until !start can be used."""
