@@ -700,6 +700,8 @@ def stats(cli, nick, chan, rest):
             amnrole = "villager"
         elif amnrole == "vengeful ghost":
             amnrole = var.DEFAULT_ROLE
+        elif amnrole == "traitor" and var.HIDDEN_TRAITOR:
+            amnrole = var.DEFAULT_ROLE
         if amnrole != "amnesiac":
             amn_roles["amnesiac"] += 1
             if amnrole in amn_roles:
@@ -712,8 +714,6 @@ def stats(cli, nick, chan, rest):
         if role in ("village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
         count = len(var.ROLES[role])
-        # TODO: should we do anything special with amnesiac counts? Right now you can pretty easily
-        # figure out what role an amnesiac is by doing !stats and seeing which numbers are low
         if role == "traitor" and var.HIDDEN_TRAITOR:
             continue
         elif role == var.DEFAULT_ROLE:
@@ -729,7 +729,7 @@ def stats(cli, nick, chan, rest):
             count += amn_roles[role]
 
         if count > 1 or count == 0:
-            if count == 0 and role not in var.ORIGINAL_ROLES:
+            if count == 0 and len(var.ORIGINAL_ROLES[role]) == 0:
                 continue
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
