@@ -198,6 +198,8 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
 import botconfig
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
+botconfig.DENY = {} #these are set in here ... for now
+botconfig.ALLOW = {}
 
 # Other settings:
 
