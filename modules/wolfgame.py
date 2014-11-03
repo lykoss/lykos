@@ -5148,8 +5148,8 @@ def allow_deny(cli, nick, chan, rest, mode):
     data = rest.split()
     msg = None
 
-    mode = mode.lower()
-    assert mode in ("allow", "deny")
+    modes = ("allow", "deny")
+    assert mode in modes, "mode not in {!r}".format(modes)
 
     if mode == "allow":
         variable = botconfig.ALLOW
