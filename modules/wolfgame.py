@@ -5217,7 +5217,18 @@ def deny(cli, nick, chan, rest):
 @cmd("fallow", admin_only=True)
 def fallow(cli, nick, chan, rest):
     """Allow someone to use an admin command."""
+
     allow(cli, nick, chan, rest)
+
+    # TODO: Remove this after code to save this to the database has been
+    # implemented.
+    msg = ("\u0002Warning:\u0002 This change has not been saved to the "
+           "database. It will be lost after a restart.")
+
+    if chan == nick:
+        pm(cli, nick, msg)
+    else:
+        cli.notice(nick, msg)
 
 
 @pmcmd("fallow", admin_only=True)
@@ -5229,6 +5240,16 @@ def fallow_pm(cli, nick, rest):
 def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
     deny(cli, nick, chan, rest)
+
+    # TODO: Remove this after code to save this to the database has been
+    # implemented.
+    msg = ("\u0002Warning:\u0002 This change has not been saved to the "
+           "database. It will be lost after a restart.")
+
+    if chan == nick:
+        pm(cli, nick, msg)
+    else:
+        cli.notice(nick, msg)
 
 
 @pmcmd("fdeny", admin_only=True)
