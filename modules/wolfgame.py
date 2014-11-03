@@ -5153,7 +5153,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
     if mode == "allow":
         variable = botconfig.ALLOW
-    elif mode == "deny":
+    else:
         variable = botconfig.DENY
 
     if data:
@@ -5168,9 +5168,9 @@ def allow_deny(cli, nick, chan, rest, mode):
         if len(data) == 1:
             if cloak in variable:
                 msg = "\u0002{0}\u0002 ({1}) is {2} the following commands: {3}.".format(
-                    data[0], cloak, "allowed" if allow else "denied", ", ".join(variable[cloak]))
+                    data[0], cloak, "allowed" if mode == "allow" else "denied", ", ".join(variable[cloak]))
             else:
-                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
+                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
         else:
             commands = data[1:]
             variable[cloak] = ()
@@ -5181,16 +5181,16 @@ def allow_deny(cli, nick, chan, rest, mode):
                     variable[cloak] += (command,)
             if len(variable[cloak]):
                 msg = "\u0002{0}\u0002 ({1}) is now {2} the following commands: {3}{4}.".format(
-                    data[0], cloak, "allowed" if allow else "denied", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+                    data[0], cloak, "allowed" if mode == "allow" else "denied", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
             else:
                 del variable[cloak]
-                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if allow else "denied any")
+                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
     elif variable:
-        msg = "{0}: {1}".format("allowed" if allow else "denied", ", ".join(
+        msg = "{0}: {1}".format("allowed" if mode == "allow" else "denied", ", ".join(
             "\u0002{0}\u0002 ({1}{2})".format(cloak, botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(denied))
             for cloak, denied in variable.items()))
     else:
-        msg = "Nobody is {0} commands.".format("allowed any special" if allow else "denied any")
+        msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
 
     if msg:
         if data:
