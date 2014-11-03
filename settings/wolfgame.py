@@ -466,6 +466,10 @@ with conn:
 
     c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people
 
+    c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.DENY
+
+    c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.ALLOW
+
     c.execute('SELECT * FROM away')
     for row in c:
         AWAY.append(row[0])
@@ -481,6 +485,18 @@ with conn:
     c.execute('SELECT * FROM stasised')
     for row in c:
         STASISED[row[0]] = row[1]
+
+    c.execute('SELECT * FROM denied')
+    for row in c:
+        if row[0] not in botconfig.DENY:
+            botconfig.DENY[row[0]] = []
+        botconfig.DENY[row[0]].append(row[1])
+
+    c.execute('SELECT * FROM allowed')
+    for row in c:
+        if row[0] not in botconfig.ALLOW:
+            botconfig.ALLOW[row[0]] = []
+        botconfig.ALLOW[row[0]].append(row[1])
 
     # populate the roles table
     c.execute('DROP TABLE IF EXISTS roles')
@@ -545,6 +561,22 @@ def set_stasis(clk, games):
             c.execute('DELETE FROM stasised WHERE cloak=?', (clk,))
         else:
             c.execute('INSERT OR REPLACE INTO stasised VALUES (?,?)', (clk, games))
+
+def add_deny(clk, command):
+    with conn:
+        c.execute('INSERT OR REPLACE INTO denied VALUES (?,?)', (clk, command))
+
+def remove_deny(clk, command):
+    with conn:
+        c.execute('DELETE FROM denied WHERE cloak=? AND command=?', (clk, command))
+
+def add_allow(clk, command):
+    with conn:
+        c.execute('INSERT OR REPLACE INTO allowed VALUES (?,?)', (clk, command))
+
+def remove_allow(clk, command):
+    with conn:
+        c.execute('DELETE FROM allowed WHERE cloak=? AND command=?', (clk, command))
 
 
 def update_role_stats(acc, role, won, iwon):

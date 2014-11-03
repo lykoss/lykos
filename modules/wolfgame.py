@@ -5165,32 +5165,50 @@ def allow_deny(cli, nick, chan, rest, mode):
         else:
             cloak = user
 
-        if len(data) == 1:
+        if len(data) == 1: #list commands for a specific hostmask
             if cloak in variable:
-                msg = "\u0002{0}\u0002 ({1}) is {2} the following commands: {3}.".format(
-                    data[0], cloak, "allowed" if mode == "allow" else "denied", ", ".join(variable[cloak]))
+                msg = "\u0002{0}\u0002 ({1}) is {2} the following {3}commands: {4}.".format(
+                    data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", ", ".join(variable[cloak]))
             else:
-                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
+                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
         else:
+            if cloak not in variable:
+                variable[cloak] = []
             commands = data[1:]
-            variable[cloak] = ()
-            for command in commands:
-                if command.startswith(botconfig.CMD_CHAR):
+            for command in commands: #add or remove commands one at a time to a specific hostmask
+                if command[0] == '-': #starting with - removes
+                    rem = True
+                    command = command[1:]
+                else:
+                    rem = False
+                if command.startswith(botconfig.CMD_CHAR): #ignore command prefix
                     command = command[len(botconfig.CMD_CHAR):]
-                if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
-                    variable[cloak] += (command,)
+
+                if not rem:
+                    if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
+                        variable[cloak].append(command)
+                        if mode == "allow":
+                            var.add_allow(cloak, command)
+                        else:
+                            var.add_deny(cloak, command)
+                elif command in variable[cloak]:
+                    variable[cloak].remove(command)
+                    if mode == "allow":
+                        var.remove_allow(cloak, command)
+                    else:
+                        var.remove_deny(cloak, command)
             if len(variable[cloak]):
-                msg = "\u0002{0}\u0002 ({1}) is now {2} the following commands: {3}{4}.".format(
-                    data[0], cloak, "allowed" if mode == "allow" else "denied", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+                msg = "\u0002{0}\u0002 ({1}) is now {2} the following {3}commands: {4}{5}.".format(
+                    data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
             else:
                 del variable[cloak]
-                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
-    elif variable:
-        msg = "{0}: {1}".format("allowed" if mode == "allow" else "denied", ", ".join(
+                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
+    elif variable: #list allowed / denied commands for all hostmasks
+        msg = "{0}: {1}".format("Allowed" if mode == 'allow' else "Denied", ", ".join(
             "\u0002{0}\u0002 ({1}{2})".format(cloak, botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(denied))
             for cloak, denied in variable.items()))
-    else:
-        msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
+    else: #deny / allow is empty
+        msg = "Nobody is {0} commands.".format("allowed any special" if mode == 'allow' else "denied any")
 
     if msg:
         if data:
@@ -5217,18 +5235,7 @@ def deny(cli, nick, chan, rest):
 @cmd("fallow", admin_only=True)
 def fallow(cli, nick, chan, rest):
     """Allow someone to use an admin command."""
-
     allow(cli, nick, chan, rest)
-
-    # TODO: Remove this after code to save this to the database has been
-    # implemented.
-    msg = ("\u0002Warning:\u0002 This change has not been saved to the "
-           "database. It will be lost after a restart.")
-
-    if chan == nick:
-        pm(cli, nick, msg)
-    else:
-        cli.notice(nick, msg)
 
 
 @pmcmd("fallow", admin_only=True)
@@ -5240,16 +5247,6 @@ def fallow_pm(cli, nick, rest):
 def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
     deny(cli, nick, chan, rest)
-
-    # TODO: Remove this after code to save this to the database has been
-    # implemented.
-    msg = ("\u0002Warning:\u0002 This change has not been saved to the "
-           "database. It will be lost after a restart.")
-
-    if chan == nick:
-        pm(cli, nick, msg)
-    else:
-        cli.notice(nick, msg)
 
 
 @pmcmd("fdeny", admin_only=True)
