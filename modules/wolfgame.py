@@ -5144,13 +5144,17 @@ def fstasis_pm(cli, nick, rest):
     fstasis(cli, nick, nick, rest)
 
 
-def deny(cli, nick, chan, rest, allow):
+def allow_deny(cli, nick, chan, rest, mode):
     data = rest.split()
     msg = None
 
-    variable = botconfig.DENY
-    if allow:
+    mode = mode.lower()
+    assert mode in ("allow", "deny")
+
+    if mode == "allow":
         variable = botconfig.ALLOW
+    elif mode == "deny":
+        variable = botconfig.DENY
 
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
@@ -5201,23 +5205,36 @@ def deny(cli, nick, chan, rest, allow):
         else:
             cli.msg(chan, msg)
 
+
+def allow(cli, nick, chan, rest):
+    allow_deny(cli, nick, chan, rest, "allow")
+
+
+def deny(cli, nick, chan, rest):
+    allow_deny(cli, nick, chan, rest, "deny")
+
+
+@cmd("fallow", admin_only=True)
+def fallow(cli, nick, chan, rest):
+    """Allow someone to use an admin command."""
+    allow(cli, nick, chan, rest)
+
+
+@pmcmd("fallow", admin_only=True)
+def fallow_pm(cli, nick, rest):
+    fallow(cli, nick, nick, rest)
+
+
 @cmd("fdeny", admin_only=True)
 def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
-    deny(cli, nick, chan, rest, False)
+    deny(cli, nick, chan, rest)
+
 
 @pmcmd("fdeny", admin_only=True)
 def fdeny_pm(cli, nick, rest):
-    deny(cli, nick, nick, rest, False)
+    fdeny(cli, nick, nick, rest)
 
-@cmd("fallow", admin_only=True)
-def fdeny(cli, nick, chan, rest):
-    """Allow someone to use an admin command."""
-    deny(cli, nick, chan, rest, True)
-
-@pmcmd("fallow", admin_only=True)
-def fdeny_pm(cli, nick, rest):
-    deny(cli, nick, nick, rest, True)
 
 @cmd("wait", "w")
 def wait(cli, nick, chann_, rest):
