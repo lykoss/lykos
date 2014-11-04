@@ -566,7 +566,7 @@ def set_stasis(clk, games):
 
 def add_deny(clk, command):
     with conn:
-        c.execute('INSERT OR REPLACE INTO denied VALUES (?,?)', (clk, command))
+        c.execute('INSERT OR IGNORE INTO denied VALUES (?,?)', (clk, command))
 
 def remove_deny(clk, command):
     with conn:
@@ -574,7 +574,7 @@ def remove_deny(clk, command):
 
 def add_allow(clk, command):
     with conn:
-        c.execute('INSERT OR REPLACE INTO allowed VALUES (?,?)', (clk, command))
+        c.execute('INSERT OR IGNORE INTO allowed VALUES (?,?)', (clk, command))
 
 def remove_allow(clk, command):
     with conn:
