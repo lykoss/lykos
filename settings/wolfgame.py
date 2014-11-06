@@ -456,11 +456,12 @@ class AmnesiaMode(object):
         self.MIN_PLAYERS = 10
         self.MAX_PLAYERS = 24
         self.DEFAULT_ROLE = "cultist"
+        self.HIDDEN_AMNESIAC = False
         self.ROLE_INDEX = range(self.MIN_PLAYERS, self.MAX_PLAYERS + 1)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
-            "wolf"     : [1 for i in self.ROLE_INDEX],
-            "amnesiac" : [i - 1 for i in self.ROLE_INDEX]
+            "wolf"     : [2 for i in self.ROLE_INDEX],
+            "amnesiac" : [i - 2 for i in self.ROLE_INDEX]
             })
 
 # Persistence
