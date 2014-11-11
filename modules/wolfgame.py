@@ -5558,29 +5558,49 @@ def listroles(cli, nick, chan, rest):
     txt = ""
     index = 0
     pl = len(var.list_players()) + len(var.DEAD)
+    roleindex = var.ROLE_INDEX
+    roleguide = var.ROLE_GUIDE
 
     for r in var.ROLE_GUIDE.keys():
         old[r] = 0
-    rest = re.split(" +", rest.strip(), 1)[0]
-    if rest.isdigit():
-        index = int(rest)
-        for i in range(len(var.ROLE_INDEX)-1, -1, -1):
-            if var.ROLE_INDEX[i] <= index:
-                index = var.ROLE_INDEX[i]
-                break
-    else:
-        if pl > 0:
-            txt += ' {0}: There are \u0002{1}\u0002 playing.'.format(nick, pl)
+    rest = re.split(" +", rest.strip(), 1)
+    #prepend player count if called without any arguments
+    if not len(rest[0]) and pl > 0:
+        txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
 
-    for i in range(0, len(var.ROLE_INDEX)):
-        if index:
-            if var.ROLE_INDEX[i] < index:
-                continue
-            elif var.ROLE_INDEX[i] > index:
+    #read game mode to get roles for
+    if len(rest[0]) and not rest[0].isdigit():
+        #check for valid roleset ("roles" roleset is treated as invalid)
+        if rest[0] != "roles" and rest[0] in var.GAME_MODES.keys():
+            mode = var.GAME_MODES[rest[0]]()
+            if hasattr(mode, "ROLE_INDEX"):
+                roleindex = getattr(mode, "ROLE_INDEX")
+            if hasattr(mode, "ROLE_GUIDE"):
+                roleguide = getattr(mode, "ROLE_GUIDE")
+            rest.pop(0)
+        else:
+            txt += " {0}: {1} is not a valid roleset.".format(nick, rest[0])
+            rest = []
+            roleindex = {}
+            
+    #number of players to print the roleset for
+    if len(rest) and rest[0].isdigit():
+        index = int(rest[0])
+        for i in range(len(roleindex)-1, -1, -1):
+            if roleindex[i] <= index:
+                index = roleindex[i]
                 break
-        txt += " {0}[{1}]{0} ".format(BOLD if var.ROLE_INDEX[i] <= pl else "", str(var.ROLE_INDEX[i]))
+
+    for i in range(0, len(roleindex)):
+        #getting the roles at a specific player count
+        if index:
+            if roleindex[i] < index:
+                continue
+            elif roleindex[i] > index:
+                break
+        txt += " {0}[{1}]{0} ".format(BOLD if roleindex[i] <= pl else "", str(roleindex[i]))
         roles = []
-        for role, amount in var.ROLE_GUIDE.items():
+        for role, amount in roleguide.items():
             direction = 1 if amount[i] > old[role] else -1
             for j in range(old[role], amount[i], direction):
                 temp = "{0}{1}".format("-" if direction == -1 else "", role)
