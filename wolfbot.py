@@ -62,7 +62,7 @@ def main():
                      password=botconfig.PASS,
                      nickname=botconfig.NICK,
                      ident=botconfig.IDENT,
-                     real_name=botconfig.RNAME,
+                     real_name=botconfig.REALNAME,
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
                      connect_cb=modules.common.connect_callback

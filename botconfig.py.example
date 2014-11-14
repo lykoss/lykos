@@ -5,7 +5,7 @@ PORT = 6667
 USERNAME = ""  # for authentication, can be left blank if same as NICK
 NICK = "mywolfbot"
 IDENT = NICK
-RNAME = NICK #realname/gecos, defaults to the same as the nick
+REALNAME = NICK
 CMD_CHAR = "!"
 CHANGING_HOST_QUIT_MESSAGE = "Changing host"
 
