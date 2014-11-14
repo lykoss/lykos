@@ -191,7 +191,7 @@ class IRCClient(object):
                 self.cap("LS")
             
             self.nick(self.nickname)
-            self.user(self.nickname, self.real_name)
+            self.user(self.ident, self.real_name)
 
             if self.sasl_auth:
                 self.cap("REQ", "multi-prefix")
@@ -283,9 +283,8 @@ class IRCClient(object):
         self.msg("NickServ", "RELEASE "+self.nickname)
     def ns_regain(self):
         self.msg("NickServ", "REGAIN "+self.nickname)
-    def user(self, uname, rname):
-        self.send("USER", uname, self.host, self.host, 
-                 rname or uname)
+    def user(self, ident, rname):
+        self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
     def mainLoop(self):
         conn = self.connect()
         while True:
