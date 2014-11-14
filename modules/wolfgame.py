@@ -172,6 +172,14 @@ def mass_mode(cli, md):
         cli.mode(botconfig.CHANNEL, arg1, arg2)
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
+    if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        print("[{0}] Would send message to fake nick {1}: {2}".format(
+            time.strftime("%d/%b/%Y %H:%M:%S"),
+            target,
+            message), file=sys.stderr)
+
+        return
+
     if target in var.USERS and var.USERS[target]["cloak"] in var.PREFER_NOTICE:
         cli.notice(target, message)
     else:
