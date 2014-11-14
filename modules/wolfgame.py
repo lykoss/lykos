@@ -1183,6 +1183,7 @@ def stop_game(cli, winner = ""):
             iwon = True
         elif splr in var.LOVERS and splr in survived:
             for lvr in var.LOVERS[splr]:
+                lvrrol = "" #somehow lvrrol wasn't set and caused a crash once
                 if lvr in plrl:
                     lvrrol = plrl[lvr]
                 elif ("(dced)" + lvr) in plrl:
@@ -1624,14 +1625,15 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 # Died during the joining process as a person
                 mass_mode(cli, cmode)
                 return not chk_win(cli)
-            if var.PHASE != "join":
+            else:
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not is_fake_nick(nick):
                     cmode.append(("+q", nick+"!*@*"))
                 mass_mode(cli, cmode)
                 if nick not in var.DEAD:
                     var.DEAD.append(nick)
-                ret = not chk_win(cli, end_game)
+                if end_game:
+                    ret = not chk_win(cli, end_game)
             if var.PHASE in ("night", "day") and ret:
                 # remove the player from variables if they're in there
                 for a,b in list(var.KILLS.items()):
