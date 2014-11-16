@@ -69,10 +69,7 @@ var.PLAYERS = {}
 var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
-var.PHASE = "none"  # "join", "day", or "night"
 var.TIMERS = {}
-var.DEAD = []
-var.NO_LYNCH = []
 
 var.ORIGINAL_SETTINGS = {}
 
@@ -81,14 +78,11 @@ var.LAST_SAID_TIME = {}
 var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
-var.GAME_ID = 0
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
-
-var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
 
 var.OPPED = False  # Keeps track of whether the bot is opped
 
@@ -207,13 +201,16 @@ def reset_modes_timers(cli):
                 cmodes.append(("-q", deadguy+"!*@*"))
     mass_mode(cli, cmodes)
 
-def reset(cli):
-    var.PHASE = "none"
+def reset():
+    var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
     var.DEAD = []
     var.ROLES = {"person" : []}
-    var.JOINED_THIS_GAME = []
+    var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.NO_LYNCH = []
+    var.FGAMED = False
+    var.CURRENT_ROLESET = "default"
+    var.ROLESET_VOTES = {} #list of players who have used !game
 
     reset_settings()
 
@@ -221,6 +218,7 @@ def reset(cli):
     dict.clear(var.PLAYERS)
     dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
+reset()
 
 def make_stasis(nick, penalty):
     try:
@@ -244,7 +242,7 @@ def forced_exit(cli, nick, *rest):  # Admin Only
         stop_game(cli)
     else:
         reset_modes_timers(cli)
-        reset(cli)
+        reset()
 
     cli.quit("Forced quit from "+nick)
 
@@ -259,7 +257,7 @@ def restart_program(cli, nick, *rest):
             stop_game(cli)
         else:
             reset_modes_timers(cli)
-            reset(cli)
+            reset()
 
         cli.quit("Forced restart from "+nick)
         raise SystemExit
@@ -531,7 +529,7 @@ def kill_join(cli, chan):
     pl.sort(key=lambda x: x.lower())
     msg = 'PING! {0}'.format(", ".join(pl))
     reset_modes_timers(cli)
-    reset(cli)
+    reset()
     cli.msg(chan, msg)
     cli.msg(chan, 'The current game took too long to start and ' +
                   'has been canceled. If you are still active, ' +
@@ -1265,9 +1263,9 @@ def stop_game(cli, winner = ""):
     var.PHASE = "writing files"
 
     var.LOGGER.saveToFile()
-    reset(cli)
+    reset()
 
-    # This must be after reset(cli)
+    # This must be after reset()
     if var.AFTER_FLASTGAME:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
@@ -1286,7 +1284,7 @@ def chk_win(cli, end_game = True):
         if lpl == 0:
             #cli.msg(chan, "No more players remaining. Game ended.")
             reset_modes_timers(cli)
-            reset(cli)
+            reset()
             return True
         return False
 
@@ -4802,13 +4800,14 @@ def cgamemode(cli, arg):
     if modeargs[0] in var.GAME_MODES.keys():
         md = modeargs.pop(0)
         try:
-            gm = var.GAME_MODES[md](*modeargs)
+            gm = var.GAME_MODES[md][0](*modeargs)
             for attr in dir(gm):
                 val = getattr(gm, attr)
                 if (hasattr(var, attr) and not callable(val)
                                         and not attr.startswith("_")):
                     var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
                     setattr(var, attr, val)
+            var.CURRENT_ROLESET = md
             return True
         except var.InvalidModeException as e:
             cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
@@ -4849,8 +4848,19 @@ def start(cli, nick, chann_, rest):
         return
 
     if len(villagers) > var.MAX_PLAYERS:
-        cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play in this game mode.".format(nick, var.MAX_PLAYERS))
+        cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play.".format(nick, var.MAX_PLAYERS))
         return
+
+    if not var.FGAMED:
+        possiblerolesets = []
+        for roleset in var.GAME_MODES.keys():
+            if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
+                possiblerolesets += [roleset]*var.GAME_MODES[roleset][3]
+        for roleset in var.ROLESET_VOTES.values():
+            if roleset in possiblerolesets: #valid roleset for this number of players
+                possiblerolesets += [roleset]*5
+        print(possiblerolesets)
+        cgamemode(cli, random.choice(possiblerolesets))
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
         if var.ROLE_INDEX[index] <= len(villagers):
@@ -5352,7 +5362,7 @@ def reset_game(cli, nick, chan, rest):
         stop_game(cli)
     else:
         reset_modes_timers(cli)
-        reset(cli)
+        reset()
 
 
 @pmcmd("rules")
@@ -5586,12 +5596,14 @@ def listroles(cli, nick, chan, rest):
     #prepend player count if called without any arguments
     if not len(rest[0]) and pl > 0:
         txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
+        if var.PHASE in ["night", "day"]:
+            txt += " Using the {0} roleset.".format(var.CURRENT_ROLESET)
 
     #read game mode to get roles for
     if len(rest[0]) and not rest[0].isdigit():
         #check for valid roleset ("roles" roleset is treated as invalid)
         if rest[0] != "roles" and rest[0] in var.GAME_MODES.keys():
-            mode = var.GAME_MODES[rest[0]]()
+            mode = var.GAME_MODES[rest[0]][0]()
             if hasattr(mode, "ROLE_INDEX"):
                 roleindex = getattr(mode, "ROLE_INDEX")
             if hasattr(mode, "ROLE_GUIDE"):
@@ -5893,6 +5905,36 @@ def player_stats(cli, nick, chan, rest):
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
 
+@cmd('game', raw_nick = True)
+def game(cli, nick, chan, rest):
+    """Votes to make a specific roleset more likely."""
+
+    nick, _, __, cloak = parse_nick(nick)
+    if var.PHASE == "none":
+        cli.notice(nick, "No game is currently running.")
+        return
+    if var.PHASE != "join":
+        cli.notice(nick, "Werewolf is already in play.")
+        return
+    if nick not in var.list_players():
+        cli.notice(nick, "You're currently not playing.")
+        return
+
+    if rest:
+        roleset = rest.split(' ')[0]
+    else:
+        cli.notice(nick, "No roleset specified.")
+        return
+    
+    if roleset in var.GAME_MODES.keys():
+        if var.GAME_MODES[roleset][3] > 0:
+            var.ROLESET_VOTES[cloak] = roleset
+            cli.msg(chan, "{0} votes for the {1} roleset.".format(nick, roleset))
+        else:
+            cli.notice(nick, "You can't vote for that roleset.")
+    else:
+        cli.notice(nick, "{0} isn't a valid roleset.".format(roleset))
+
 
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
@@ -6052,6 +6094,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if cgamemode(cli, rest):
                 cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
                                 'successfully.').format(nick))
+                var.FGAMED = True
 
 
     def fgame_help(args=''):
@@ -6060,7 +6103,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if not args:
             return 'Available game mode setters: ' + ', '.join(var.GAME_MODES.keys())
         elif args in var.GAME_MODES.keys():
-            return var.GAME_MODES[args].__doc__
+            if hasattr(var.GAME_MODES[args][0], "__doc__"):
+                return var.GAME_MODES[args][0].__doc__
+            else:
+                return "Game mode {0} has no doc string".format(args)
         else:
             return 'Game mode setter \u0002{}\u0002 not found.'.format(args)
 

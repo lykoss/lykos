@@ -283,9 +283,9 @@ def break_long_message(phrases, joinstr = " "):
     return message
 
 class InvalidModeException(Exception): pass
-def game_mode(name):
+def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
-        GAME_MODES[name] = c
+        GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
 
@@ -296,7 +296,7 @@ def reset_roles(index):
     return newguide
 
 # TODO: implement more game modes
-@game_mode("roles")
+@game_mode("roles", 4, 30)
 class ChangedRolesMode(object):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
@@ -338,19 +338,19 @@ class ChangedRolesMode(object):
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
 
-@game_mode("default")
+@game_mode("default", 4, 24, 7)
 class DefaultMode(object):
+    """Default roleset."""
     def __init__(self):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
 
 # evilvillage is broken, disable for now
-#@game_mode("evilvillage")
+#@game_mode("evilvillage", 6, 18)
 class EvilVillageMode(object):
+    """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
-        self.MIN_PLAYERS = 6
-        self.MAX_PLAYERS = 18
         self.DEFAULT_ROLE = "cultist"
         self.ROLE_INDEX =         (   6   ,  10   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -368,11 +368,10 @@ class EvilVillageMode(object):
               "fool"            : (   0   ,   1   ,   1   ),
               })
 
-@game_mode("classic")
+@game_mode("classic", 4, 21, 3)
 class ClassicMode(object):
+    """Classic roleset from before all the changes."""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 21
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -390,11 +389,10 @@ class ClassicMode(object):
               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               })
 
-@game_mode("rapidfire")
+@game_mode("rapidfire", 6, 24, 2)
 class RapidFireMode(object):
+    """Many roles that lead to multiple chain deaths."""
     def __init__(self):
-        self.MIN_PLAYERS = 6
-        self.MAX_PLAYERS = 25
         self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
@@ -423,11 +421,10 @@ class RapidFireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("noreveal")
+@game_mode("noreveal", 4, 21, 2)
 class NoRevealMode(object):
+    """Roles are not normally revealed when players are lynched or die."""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 21
         self.ROLE_REVEAL = False
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -452,11 +449,10 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("amnesia")
+@game_mode("amnesia", 10, 24)
 class AmnesiaMode(object):
+    """Everyone gets assigned a random role on night 3."""
     def __init__(self):
-        self.MIN_PLAYERS = 10
-        self.MAX_PLAYERS = 24
         self.DEFAULT_ROLE = "cultist"
         self.HIDDEN_AMNESIAC = False
         self.ROLE_INDEX = range(self.MIN_PLAYERS, self.MAX_PLAYERS + 1)
