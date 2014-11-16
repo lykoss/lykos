@@ -5100,17 +5100,17 @@ def fstasis(cli, nick, chan, rest):
                 amt = int(data[1])
             except ValueError:
                 if chan == nick:
-                    pm(cli, nick, "The amount of stasis cannot be a negative integer.")
+                    pm(cli, nick, "The amount of stasis has to be a non-negative integer.")
                 else:
-                    cli.notice(nick, "The amount of stasis cannot be a negative integer.")
+                    cli.notice(nick, "The amount of stasis has to be a non-negative integer.")
 
                 return
 
             if amt < 0:
                 if chan == nick:
-                    pm(cli, nick, "The amount of stasis cannot be a negative integer.")
+                    pm(cli, nick, "The amount of stasis has to be a non-negative integer.")
                 else:
-                    cli.notice(nick, "The amount of stasis cannot be a negative integer.")
+                    cli.notice(nick, "The amount of stasis has to be a non-negative integer.")
 
                 return
 
