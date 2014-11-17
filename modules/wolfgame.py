@@ -4378,7 +4378,7 @@ def transition_night(cli):
                                'only detectives can.').format(cursed))
             elif role == "werecrow":
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002. You are able to fly at night. '+
-                               'Use "kill <nick>" to kill a a villager. Alternatively, you can '+
+                               'Use "kill <nick>" to kill a villager. Alternatively, you can '+
                                'use "observe <nick>" to check if someone is in bed or not. '+
                                'Observing will prevent you from participating in a killing.'))
             elif role == "hag":
