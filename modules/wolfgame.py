@@ -2459,7 +2459,7 @@ def transition_day(cli, gameid=0):
             if len(ps) > 0:
                 target = random.choice(ps)
                 var.TARGETED[ass] = target
-                pm(cli, ass, "Because you forgot to select a target at night, you are now targeting \u0002{0}\u0002.".format(target))
+                pm(cli, ass, "You are now targeting \u0002{0}\u0002 because you forgot to select a target at night.".format(target))
 
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
@@ -3068,7 +3068,7 @@ def check_exchange(cli, actor, nick):
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
             elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow"):
-                pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
+                pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
         elif nick_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3099,7 +3099,7 @@ def check_exchange(cli, actor, nick):
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
             elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow"):
-                pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>"')
+                pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
         elif actor_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3281,10 +3281,10 @@ def shoot(cli, nick, chann_, rest):
             if not del_player(cli, victim, killer_role = var.get_role(nick)):
                 return
         else:
-            cli.msg(chan, ("\u0002{0}\u0002 is a villager and was injured. Luckily "+
+            cli.msg(chan, ("\u0002{0}\u0002 is a villager and was injured. Luckily, "+
                           "the injury is minor and will heal after a day of "+
                           "rest.").format(victim))
-            var.LOGGER.logMessage(("{0} is a villager and was injured. Luckily "+
+            var.LOGGER.logMessage(("{0} is a villager and was injured. Luckily, "+
                           "the injury is minor and will heal after a day of "+
                           "rest.").format(victim))
             if victim not in var.WOUNDED:
@@ -3405,7 +3405,7 @@ def kill(cli, nick, rest):
         if nick in var.VENGEFUL_GHOSTS.keys():
             pm(cli, nick, "You are already dead.")
         else:
-            pm(cli, nick, "Suicide is bad. Don't do it.")
+            pm(cli, nick, "Suicide is bad. Don't do it!")
         return
 
     if nick in var.VENGEFUL_GHOSTS.keys():
@@ -4678,7 +4678,7 @@ def transition_night(cli):
                 pm(cli, mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
                              'to be lovers with "choose <nick1> and <nick2>". If one lover ' +
                              'dies, the other will as well. You may select yourself as one ' +
-                             'of the lovers. You may only select lovers during the first night.'))
+                             'of the lovers and you may only select lovers during the first night.'))
             else:
                 pm(cli, mm, "You are a \u0002matchmaker\u0002.")
             pm(cli, mm, "Players: " + ", ".join(pl))
@@ -4745,12 +4745,12 @@ def transition_night(cli):
             role = "sharpshooter"
         if norm_notify:
             if role == "gunner":
-                gun_msg = ('You are a \02{0}\02 and hold a gun that shoots special silver bullets. ' +
+                gun_msg = ('You are a \02{0}\02 that holds a gun that shoots special silver bullets. ' +
                            'You may only use it during the day by typing "{0}shoot <nick>" in channel. '.format(botconfig.CMD_CHAR) +
                            'Wolves and the crow will die instantly when shot, but anyone else will ' +
                            'likely survive. You have {1}.')
             elif role == "sharpshooter":
-                gun_msg = ('You are a \02{0}\02 and hold a gun that shoots special silver bullets. ' +
+                gun_msg = ('You are a \02{0}\02 that holds a gun that shoots special silver bullets. ' +
                            'You may only use it during the day by typing "{0}shoot <nick>" in channel. '.format(botconfig.CMD_CHAR) +
                            'Wolves and the crow will die instantly when shot, and anyone else will ' +
                            'likely die as well due to your skill with the gun. You have {1}.')
