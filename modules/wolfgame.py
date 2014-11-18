@@ -5425,7 +5425,7 @@ def is_admin(cloak):
     return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak.lower(), ptn.lower())])
 
 
-@cmd('admins', 'ops')
+@cmd("admins")
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
 
@@ -5434,11 +5434,11 @@ def show_admins(cli, nick, chan, rest):
 
     if (chan != nick and var.LAST_ADMINS and var.LAST_ADMINS +
             timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ('This command is rate-limited. Please wait a while '
-                          'before using it again.'))
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
         return
 
-    if chan != nick or (var.PHASE in ('day', 'night') or nick in pl):
+    if chan != nick or (var.PHASE in ("day", "night") or nick in pl):
         var.LAST_ADMINS = datetime.now()
 
     if var.ADMIN_PINGING:
@@ -5446,27 +5446,29 @@ def show_admins(cli, nick, chan, rest):
 
     var.ADMIN_PINGING = True
 
-    @hook('whoreply', hookid=4)
+    @hook("whoreply", hookid=4)
     def on_whoreply(cli, server, _, chan, __, cloak, ___, user, status, ____):
         if not var.ADMIN_PINGING:
             return
 
-        if is_admin(cloak) and 'G' not in status and user != botconfig.NICK:
+        if is_admin(cloak) and "G" not in status and user != botconfig.NICK:
             admins.append(user)
 
-    @hook('endofwho', hookid=4)
+    @hook("endofwho", hookid=4)
     def show(*args):
         if not var.ADMIN_PINGING:
             return
 
-        admins.sort(key=lambda x: x.lower())
+        admins.sort(key=str.lower)
+
+        msg = "Available admins: " + ", ".join(admins)
 
         if chan == nick:
-            pm(cli, nick, 'Available admins: {}'.format(', '.join(admins)))
-        elif var.PHASE in ('day', 'night') and nick not in pl:
-            cli.notice(nick, 'Available admins: {}'.format(', '.join(admins)))
+            pm(cli, nick, msg)
+        elif var.PHASE in ("day", "night") and nick not in pl:
+            cli.notice(nick, msg)
         else:
-            cli.msg(chan, 'Available admins: {}'.format(', '.join(admins)))
+            cli.msg(chan, msg)
 
         decorators.unhook(HOOKS, 4)
         var.ADMIN_PINGING = False
@@ -5474,10 +5476,9 @@ def show_admins(cli, nick, chan, rest):
     cli.who(botconfig.CHANNEL)
 
 
-@pmcmd('admins', 'ops')
+@pmcmd("admins")
 def show_admins_pm(cli, nick, rest):
     show_admins(cli, nick, nick, rest)
-
 
 
 @cmd("coin")
