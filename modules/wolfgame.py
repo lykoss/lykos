@@ -5425,7 +5425,7 @@ def is_admin(cloak):
     return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak.lower(), ptn.lower())])
 
 
-@cmd("admins")
+@cmd("admins", "ops")
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
 
@@ -5476,7 +5476,7 @@ def show_admins(cli, nick, chan, rest):
     cli.who(botconfig.CHANNEL)
 
 
-@pmcmd("admins")
+@pmcmd("admins", "ops")
 def show_admins_pm(cli, nick, rest):
     show_admins(cli, nick, nick, rest)
 
