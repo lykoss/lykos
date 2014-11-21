@@ -385,10 +385,11 @@ if not var.OPT_IN_PING:
         """Use this to activate your away status (so you aren't pinged)."""
         nick, _, _, cloak = parse_nick(nick)
         if cloak in var.AWAY:
-            var.AWAY.remove(cloak)
-            var.remove_away(cloak)
+            prefix = botconfig.CMD_CHAR
 
-            cli.notice(nick, "You are no longer marked as away.")
+            cli.notice(nick, ("You are already marked as away. Use {}back "
+                              "to unset your away status.").format(prefix))
+
             return
         var.AWAY.append(cloak)
         var.add_away(cloak)
