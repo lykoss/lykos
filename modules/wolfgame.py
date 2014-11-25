@@ -5945,7 +5945,7 @@ def fsay(cli, nick, rest):
     cli.send('PRIVMSG %s :%s' % (rest[0], rest[1]))
 
 
-@pmcmd('fact', 'faction', 'fdo', admin_only=True)
+@pmcmd('fact', admin_only=True)
 def fact(cli, nick, rest):
     rest = rest.split(' ', 1)
     if len(rest) < 2:
