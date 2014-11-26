@@ -5886,7 +5886,7 @@ def player_stats_pm(cli, nick, rest):
 @cmd('fpull', admin_only=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
-    args = ['git', 'pull']
+    args = ['git', 'pull', '--rebase=preserve']
 
     if rest:
         args += rest.split(' ')
