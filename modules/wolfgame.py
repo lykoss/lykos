@@ -5883,13 +5883,14 @@ def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
 
 
-@cmd('fpull', admin_only=True)
+@cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
-    args = ['git', 'pull', '--rebase=preserve']
+
+    args = ["git", "pull", "--rebase=preserve"]
 
     if rest:
-        args += rest.split(' ')
+        args += rest.split(" ")
 
     child = subprocess.Popen(args,
                              stdout=subprocess.PIPE,
@@ -5899,24 +5900,21 @@ def fpull(cli, nick, chan, rest):
 
     for line in (out + err).splitlines():
         if chan == nick:
-            cli.msg(nick, line.decode('utf-8'))
+            cli.msg(nick, line.decode("utf-8"))
         else:
-            pm(cli, nick, line.decode('utf-8'))
+            pm(cli, nick, line.decode("utf-8"))
 
     if ret != 0:
         if ret < 0:
-            cause = 'signal'
+            cause = "signal"
+            ret *= -1
         else:
-            cause = 'status'
+            cause = "status"
 
         if chan == nick:
-            cli.msg(nick, 'Process {} exited with {} {}'.format(args,
-                                                                cause,
-                                                                abs(ret)))
+            cli.msg(nick, "Process %s exited with %s %d" % (args, cause, ret))
         else:
-            pm(cli, nick, 'Process {} exited with {} {}'.format(args,
-                                                                cause,
-                                                                abs(ret)))
+            pm(cli, nick, "Process %s exited with %s %d" % (args, cause, ret))
 
 
 @pmcmd('fpull', admin_only=True)
