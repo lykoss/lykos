@@ -1184,6 +1184,7 @@ def stop_game(cli, winner = ""):
             iwon = False
         elif rol == "fool" and "@" + splr == winner:
             iwon = True
+            winner = "fool"
         elif rol == "monster" and splr in survived and winner == "monsters":
             iwon = True
         elif splr in var.LOVERS and splr in survived:
@@ -1245,7 +1246,7 @@ def stop_game(cli, winner = ""):
     size = len(survived) + len(var.DEAD)
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
-        var.update_game_stats(size, winner)
+        var.update_game_stats(var.CURRENT_ROLESET, size, winner)
 
         # spit out the list of winners
         winners.sort()
@@ -5810,38 +5811,45 @@ def game_stats(cli, nick, chan, rest):
     if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
             var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) >
             datetime.now()):
-        cli.notice(nick, ('This command is rate-limited. Please wait a while '
-                          'before using it again.'))
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
         return
 
     if chan != nick:
         var.LAST_GSTATS = datetime.now()
 
     if var.PHASE not in ('none', 'join'):
-        cli.notice(nick, 'Wait until the game is over to view stats.')
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+
+    roleset = var.CURRENT_ROLESET
+    rest = rest.strip().split()
+    # Check for roleset
+    if len(rest) and not rest[0].isdigit():
+        roleset = rest[0]
+        if roleset not in var.GAME_MODES.keys():
+            cli.notice(nick, "{0} is not a valid roleset".format(roleset))
+            return
+        rest.pop(0)
+    # Check for invalid input
+    if len(rest) and rest[0].isdigit() and (
+       int(rest[0]) > var.GAME_MODES[roleset][2] or int(rest[0]) < var.GAME_MODES[roleset][1]):
+        cli.notice(nick, "Please enter an integer between "+\
+                         "{0} and {1}.".format(var.GAME_MODES[roleset][1], var.GAME_MODES[roleset][2]))
         return
 
     # List all games sizes and totals if no size is given
-    if not rest:
+    if not len(rest):
         if chan == nick:
-            pm(cli, nick, var.get_game_totals())
+            pm(cli, nick, var.get_game_totals(roleset))
         else:
-            cli.msg(chan, var.get_game_totals())
-
-        return
-
-    # Check for invalid input
-    rest = rest.strip()
-    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < var.MIN_PLAYERS:
-        cli.notice(nick, ('Please enter an integer between {} and '
-                          '{}.').format(var.MIN_PLAYERS, var.MAX_PLAYERS))
-        return
-
-    # Attempt to find game stats for the given game size
-    if chan == nick:
-        pm(cli, nick, var.get_game_stats(int(rest)))
+            cli.msg(chan, var.get_game_totals(roleset))
     else:
-        cli.msg(chan, var.get_game_stats(int(rest)))
+        # Attempt to find game stats for the given game size
+        if chan == nick:
+            pm(cli, nick, var.get_game_stats(roleset, int(rest[0])))
+        else:
+            cli.msg(chan, var.get_game_stats(roleset, int(rest[0])))
 
 
 @pmcmd('gamestats', 'gstats')

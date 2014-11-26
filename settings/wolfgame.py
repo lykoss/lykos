@@ -692,8 +692,8 @@ with conn:
         'UNIQUE(player, role))'))
 
 
-    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (size SMALLINT, villagewins SMALLINT, ' +
-        'wolfwins SMALLINT, totalgames SMALLINT, UNIQUE(size))'))
+    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (roleset TEXT, size SMALLINT, villagewins SMALLINT, ' +
+        'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(roleset, size))'))
 
 
     if OPT_IN_PING:
@@ -779,24 +779,28 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
-def update_game_stats(size, winner):
+def update_game_stats(roleset, size, winner):
     with conn:
-        vwins, wwins, total = 0, 0, 0
+        vwins, wwins, mwins, fwins, total = 0, 0, 0, 0, 0
 
-        c.execute("SELECT villagewins, wolfwins, totalgames FROM gamestats "+
-                   "WHERE size=?", (size,))
+        c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, totalgames "+
+                    "FROM gamestats WHERE roleset=? AND size=?", (roleset, size))
         row = c.fetchone()
         if row:
-            vwins, wwins, total = row
+            vwins, wwins, mwins, fwins, total = row
 
         if winner == "wolves":
             wwins += 1
         elif winner == "villagers":
             vwins += 1
+        elif winner == "monsters":
+            mwins += 1
+        elif winner == "fool":
+            fwins += 1
         total += 1
 
-        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",
-                    (size, vwins, wwins, total))
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?)",
+                    (roleset, size, vwins, wwins, mwins, fwins, total))
 
 def get_player_stats(acc, role):
     if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()]:
@@ -831,27 +835,31 @@ def get_player_totals(acc):
         else:
             return "\u0002{0}\u0002 has not played any games.".format(acc)
 
-def get_game_stats(size):
+def get_game_stats(roleset, size):
     with conn:
-        for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
-            msg = "\u0002{0}\u0002 player games | Village wins: {1} (%d%%),  Wolf wins: {2} (%d%%), Total games: {3}".format(*row)
-            return msg % (round(row[1]/row[3] * 100), round(row[2]/row[3] * 100))
+        for row in c.execute("SELECT * FROM gamestats WHERE roleset=? AND size=?", (roleset, size)):
+            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[6] * 100), row[3], round(row[3]/row[6] * 100))
+            if row[4] > 0:
+                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[6] * 100))
+            if row[5] > 0:
+                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[6] * 100))
+            return msg + ", Total games: {0}".format(row[6])
         else:
             return "No stats for \u0002{0}\u0002 player games.".format(size)
 
-def get_game_totals():
+def get_game_totals(roleset):
     size_totals = []
     total = 0
     with conn:
         for size in range(MIN_PLAYERS, MAX_PLAYERS + 1):
-            c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
+            c.execute("SELECT size, totalgames FROM gamestats WHERE roleset=? AND size=?", (roleset, size))
             row = c.fetchone()
             if row:
                 size_totals.append("\u0002{0}p\u0002: {1}".format(*row))
                 total += row[1]
 
     if len(size_totals) == 0:
-        return "No games have been played."
+        return "No games have been played in the {0} roleset.".format(roleset)
     else:
         return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
 
