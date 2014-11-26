@@ -4852,15 +4852,19 @@ def start(cli, nick, chann_, rest):
         return
 
     if not var.FGAMED:
-        possiblerolesets = []
-        for roleset in var.GAME_MODES.keys():
-            if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
-                possiblerolesets += [roleset]*var.GAME_MODES[roleset][3]
+        votes = {} #key = roleset, not cloak
         for roleset in var.ROLESET_VOTES.values():
-            if roleset in possiblerolesets: #valid roleset for this number of players
-                possiblerolesets += [roleset]*5
-        print(possiblerolesets)
-        cgamemode(cli, random.choice(possiblerolesets))
+            if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
+                votes[roleset] = votes.get(roleset, 0) + 1
+        voted = [roleset for roleset in votes if votes[roleset] == max(votes.values()) and votes[roleset] > 2*len(villagers)/5]
+        if len(voted):
+            cgamemode(cli, random.choice(voted))
+        else:
+            possiblerolesets = []
+            for roleset in var.GAME_MODES.keys():
+                if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
+                    possiblerolesets += [roleset]*(var.GAME_MODES[roleset][3]+votes.get(roleset, 0)*7)
+            cgamemode(cli, random.choice(possiblerolesets))
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
         if var.ROLE_INDEX[index] <= len(villagers):
@@ -5012,7 +5016,7 @@ def start(cli, nick, chann_, rest):
        var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                   "game (a theme of Mafia).").format(", ".join(pl)))
+                   "game (a theme of Mafia). Using the \002{1}\002 roleset.").format(", ".join(pl), var.CURRENT_ROLESET))
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -5907,8 +5911,6 @@ def player_stats_pm(cli, nick, rest):
 
 @cmd('game', raw_nick = True)
 def game(cli, nick, chan, rest):
-    """Votes to make a specific roleset more likely."""
-
     nick, _, __, cloak = parse_nick(nick)
     if var.PHASE == "none":
         cli.notice(nick, "No game is currently running.")
@@ -5929,12 +5931,17 @@ def game(cli, nick, chan, rest):
     if roleset in var.GAME_MODES.keys():
         if var.GAME_MODES[roleset][3] > 0:
             var.ROLESET_VOTES[cloak] = roleset
-            cli.msg(chan, "{0} votes for the {1} roleset.".format(nick, roleset))
+            cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 roleset.".format(nick, roleset))
         else:
             cli.notice(nick, "You can't vote for that roleset.")
     else:
-        cli.notice(nick, "{0} isn't a valid roleset.".format(roleset))
+        cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(roleset))
 
+def game_help(args=''):
+    return "Votes to make a specific roleset more likely. Available game mode setters: " +\
+        ", ".join(["\002{}\002".format(roleset) if len(var.list_players()) in range(var.GAME_MODES[roleset][1], var.GAME_MODES[roleset][2]+1)
+        else roleset for roleset in var.GAME_MODES.keys() if var.GAME_MODES[roleset][3] > 0])
+game.__doc__ = game_help
 
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
