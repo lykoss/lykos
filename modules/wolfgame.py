@@ -1239,6 +1239,11 @@ def stop_game(cli, winner = ""):
 
         if acc != "*":
             var.update_role_stats(acc, orol, won, iwon)
+            for role in var.TEMPLATE_RESTRICTIONS.keys():
+                if plr in var.ORIGINAL_ROLES[role]:
+                    var.update_role_stats(acc, role, won, iwon)
+            if splr in var.LOVERS:
+                var.update_role_stats(acc, "lover", won, iwon)
 
         if won or iwon:
             winners.append(splr)

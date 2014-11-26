@@ -803,7 +803,7 @@ def update_game_stats(roleset, size, winner):
                     (roleset, size, vwins, wwins, mwins, fwins, total))
 
 def get_player_stats(acc, role):
-    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()]:
+    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
         return "No such role: {0}".format(role)
     with conn:
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
