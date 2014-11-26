@@ -345,9 +345,65 @@ class DefaultMode(object):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
+@game_mode("something", 7, 24, 3)
+class SomeMode(object):
+    """Some roleset."""
+    def __init__(self):
+        self.ROLE_INDEX =         (  8  ,  10 , 11  , 12  , 15  , 17  , 20  , 21  , 22  , 24  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+              "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "harlot"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2 ,   2  ),
+              "bodyguard"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "augur"           : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "hunter"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # wolf roles
+              "wolf"            : (  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  ,  3  ,  4  ),
+              "traitor"         : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ),
+              "wolf cub"        : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # neutral roles
+              "clone"           : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "fool"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # templates
+              "cursed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "gunner"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ),
+              "sharpshooter"    : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "mayor"           : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              })
 
-# evilvillage is broken, disable for now
-#@game_mode("evilvillage", 6, 18)
+@game_mode("potato", 7, 22, 3)
+class SomeMode2(object):
+    """Some roleset."""
+    def __init__(self):
+        self.ROLE_INDEX =         (  7  ,  8  ,  10 , 12  , 14  , 15  , 17  , 18  , 20  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+              "oracle"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "mad scientist"   : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "detective"       : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "guardian angel"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "matchmaker"      : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "harlot"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "village drunk"   : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
+              # wolf roles
+              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
+              "traitor"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "werecrow"        : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  2  ),
+              "cultist"         : (  1  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # neutral roles
+              "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "jester"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+              # templates
+              "cursed villager" : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "gunner"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "sharpshooter"    : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1   ),
+              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1   ),
+              })
+
+@game_mode("evilvillage", 6, 18)
 class EvilVillageMode(object):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
@@ -421,9 +477,40 @@ class RapidFireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
+@game_mode("drunkfire", 8, 17, 1)
+class DrunkFireMode(object):
+    """Most players get a gun, quickly shoot all the wolves!"""
+    def __init__(self):
+        self.SHARPSHOOTER_CHANCE = 1
+        self.DAY_TIME_LIMIT = 480
+        self.DAY_TIME_WARN = 360
+        self.SHORT_DAY_LIMIT = 240
+        self.SHORT_DAY_WARN = 180
+        self.NIGHT_TIME_LIMIT = 60
+        self.NIGHT_TIME_WARN = 40     #     HIT    MISS    SUICIDE   HEADSHOT
+        self.GUN_CHANCES              = (   3/7  ,  3/7  ,   1/7   ,   4/5   )
+        self.WOLF_GUN_CHANCES         = (   4/7  ,  3/7  ,   0/7   ,   1     )
+        self.ROLE_INDEX =         (   8   ,   10  ,  12   ,  14   ,  16   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   2   ,   2   ),
+            "village drunk"     : (   2   ,   3   ,   4   ,   4   ,   5   ),
+            # wolf roles
+            "wolf"              : (   1   ,   2   ,   2   ,   3   ,   3   ),
+            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   2   ),
+            "hag"               : (   0   ,   0   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "crazed shaman"     : (   0   ,   0   ,   1   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   1   ),
+            "assassin"          : (   0   ,   0   ,   0   ,   1   ,   1   ),
+            "gunner"            : (   5   ,   6   ,   7   ,   8   ,   9   ),
+            "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
+            })
+
 @game_mode("noreveal", 4, 21, 2)
 class NoRevealMode(object):
-    """Roles are not normally revealed when players are lynched or die."""
+    """Roles are not revealed when players die."""
     def __init__(self):
         self.ROLE_REVEAL = False
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
@@ -449,13 +536,38 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
+@game_mode("lycan", 7, 21, 2)
+class LycanMode(object):
+    """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
+    def __init__(self):
+        self.ROLE_INDEX =         (   7   ,   9   ,   10  ,   12  ,  15   ,  17   ,  20   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "detective"         : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "matchmaker"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            # wolf roles
+            "wolf"              : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "traitor"           : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "clone"             : (   0   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
+            "lycan"             : (   1   ,   2   ,   2   ,   3   ,   4   ,   4   ,   5   ),
+            # templates
+            "cursed villager"   : (   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            "mayor"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            })
+
 @game_mode("amnesia", 10, 24)
 class AmnesiaMode(object):
     """Everyone gets assigned a random role on night 3."""
     def __init__(self):
         self.DEFAULT_ROLE = "cultist"
         self.HIDDEN_AMNESIAC = False
-        self.ROLE_INDEX = range(self.MIN_PLAYERS, self.MAX_PLAYERS + 1)
+        self.ROLE_INDEX = range(10, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
             "wolf"     : [2 for i in self.ROLE_INDEX],
