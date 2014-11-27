@@ -5940,7 +5940,9 @@ def game(cli, nick, chan, rest):
     if rest:
         roleset = rest.split(' ')[0]
     else:
-        cli.notice(nick, "No roleset specified.")
+        rolesets = ", ".join(["\002{}\002".format(roleset) if len(var.list_players()) in range(var.GAME_MODES[roleset][1], 
+        var.GAME_MODES[roleset][2]+1) else roleset for roleset in var.GAME_MODES.keys() if var.GAME_MODES[roleset][3] > 0])
+        cli.notice(nick, "No roleset specified. Available rolesets: " + rolesets)
         return
     
     if roleset in var.GAME_MODES.keys():
