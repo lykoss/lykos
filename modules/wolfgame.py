@@ -865,7 +865,7 @@ def chk_decision(cli, force = ""):
         numvotes = 0
         for v in var.IMPATIENT:
             if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
-                voters.append(v)
+                voters = [v] + voters
         for v in voters:
             weight = 1
             imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
