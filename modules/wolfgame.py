@@ -2964,11 +2964,8 @@ def check_exchange(cli, actor, nick):
                 var.PASSED.remove(actor)
         elif actor_role in ("bodyguard", "guardian angel"):
             if actor in var.GUARDED:
-                if actor_role == "bodyguard":
-                    pm(cli, var.GUARDED[actor], "Your bodyguard seems to have disappeared...")
-                    del var.GUARDED[actor]
-                else:
-                    var.ACTED_EXTRA += 1
+                pm(cli, var.GUARDED[actor], "Your protector seems to have disappeared...")
+                del var.GUARDED[actor]
             if actor in var.LASTGUARDED:
                 del var.LASTGUARDED[actor]
         elif actor_role in ("werecrow", "sorcerer"):
@@ -3013,11 +3010,8 @@ def check_exchange(cli, actor, nick):
                 var.PASSED.remove(nick)
         elif nick_role in ("bodyguard", "guardian angel"):
             if nick in var.GUARDED:
-                if nick_role == "bodyguard":
-                    pm(cli, var.GUARDED[nick], "Your bodyguard seems to have disappeared...")
-                    del var.GUARDED[nick]
-                else:
-                    var.ACTED_EXTRA += 1
+                pm(cli, var.GUARDED[nick], "Your protector seems to have disappeared...")
+                del var.GUARDED[nick]
             if nick in var.LASTGUARDED:
                 del var.LASTGUARDED[nick]
         elif nick_role in ("werecrow", "sorcerer"):
