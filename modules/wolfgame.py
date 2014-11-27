@@ -1434,7 +1434,10 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                             cursed = "cursed "
                                         wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfrole)
 
-                                    pm(cli, clone, "Wolves: " + ", ".join(wolves))
+                                    if len(wolves):
+                                        pm(cli, clone, "Wolves: " + ", ".join(wolves))
+                                    else:
+                                        pm(cli, clone, "There are no other wolves")
 
                 if nickrole == "clone" and nick in var.CLONED:
                     del var.CLONED[nick]
@@ -2461,6 +2464,19 @@ def transition_day(cli, gameid=0):
                 target = random.choice(ps)
                 var.TARGETED[ass] = target
                 pm(cli, ass, "Because you forgot to select a target at night, you are now targeting \u0002{0}\u0002.".format(target))
+    if var.FIRST_NIGHT:
+        for clone in var.ROLES["clone"]:
+            if clone not in var.CLONED:
+                ps = pl[:]
+                ps.remove(clone)
+                for victim in victims:
+                    if victim in ps:
+                        ps.remove(victim)
+                if len(ps) > 0:
+                    target = random.choice(ps)
+                    var.CLONED[clone] = target
+                    pm(cli, clone, "Because you forgot to select someone to clone at night, you are now cloning \u0002{0}\u0002.".format(target))
+
 
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
