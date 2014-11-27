@@ -2207,6 +2207,8 @@ def leave_game(cli, nick, chan, rest):
                 var.ORIGINAL_ROLES[r].remove(nick)
                 var.ORIGINAL_ROLES[r].append("(dced)"+nick)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
+        if nick in var.PLAYERS:
+            var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
     del_player(cli, nick, death_triggers = False)
 
