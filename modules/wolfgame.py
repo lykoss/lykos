@@ -5074,10 +5074,11 @@ def start(cli, nick, chann_, rest):
         if var.STASISED[cloak] <= 0:
             del var.STASISED[cloak]
 
-    # DEATH TO IDLERS!
-    reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
-    reapertimer.daemon = True
-    reapertimer.start()
+    if not botconfig.DEBUG_MODE:
+        # DEATH TO IDLERS!
+        reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
+        reapertimer.daemon = True
+        reapertimer.start()
 
 
 
