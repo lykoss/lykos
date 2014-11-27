@@ -3504,7 +3504,7 @@ def guard(cli, nick, rest):
         if matches != 1:
             pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
             return
-    victim = pl[pll.index(target)]
+    victim = pll[pll.index(target)]
     if victim == nick:
         if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
             var.GUARDED[nick] = None
