@@ -296,11 +296,12 @@ def reset_roles(index):
     return newguide
 
 # TODO: implement more game modes
-@game_mode("roles", 4, 30)
+@game_mode("roles", 4, 35)
 class ChangedRolesMode(object):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
     def __init__(self, arg = ""):
+        self.MAX_PLAYERS = 35
         self.ROLE_GUIDE = ROLE_GUIDE.copy()
         self.ROLE_INDEX = (MIN_PLAYERS,)
         pairs = arg.split(",")
