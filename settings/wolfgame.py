@@ -578,13 +578,11 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire")
+@game_mode("aleatoire", 4, 24, 2)
 class AleatoireMode(object):
+    """Roleset created by Metacity and balanced by woffle."""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 24
-        self.SHARPSHOOTER_CHANCE = 1
-        #                                          SHAMAN    CRAZED SHAMAN
+        self.SHARPSHOOTER_CHANCE = 1          #    SHAMAN   , CRAZED SHAMAN
         self.TOTEM_CHANCES = {       "death": (     4/20    ,     1/15     ),
                                 "protection": (     8/20    ,     1/15     ),
                                    "silence": (     2/20    ,     1/15     ),
