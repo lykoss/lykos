@@ -344,7 +344,9 @@ class DefaultMode(object):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
-@game_mode("evilvillage")
+
+# evilvillage is broken, disable for now
+#@game_mode("evilvillage")
 class EvilVillageMode(object):
     def __init__(self):
         self.MIN_PLAYERS = 6
@@ -462,6 +464,61 @@ class AmnesiaMode(object):
         self.ROLE_GUIDE.update({
             "wolf"     : [2 for i in self.ROLE_INDEX],
             "amnesiac" : [i - 2 for i in self.ROLE_INDEX]
+            })
+
+
+# Credits to Metacity for designing
+# Blame arkiwitect for the name
+@game_mode("krabbypatty")
+class KrabbyPattyMode(object):
+    def __init__(self):
+        self.MIN_PLAYERS = 4
+        self.MAX_PLAYERS = 24
+        self.SHARPSHOOTER_CHANCE = 1
+        #                                          SHAMAN    CRAZED SHAMAN
+        self.TOTEM_CHANCES = {       "death": (     4/20    ,     1/15     ),
+                                "protection": (     8/20    ,     1/15     ),
+                                   "silence": (     2/20    ,     1/15     ),
+                                 "revealing": (      0      ,     1/15     ),
+                               "desperation": (     1/20    ,     1/15     ),
+                                "impatience": (      0      ,     1/15     ),
+                                  "pacifism": (      0      ,     1/15     ),
+                                 "influence": (      0      ,     1/15     ),
+                                "narcolepsy": (      0      ,     1/15     ),
+                                  "exchange": (      0      ,     1/15     ),
+                               "lycanthropy": (      0      ,     1/15     ),
+                                      "luck": (      0      ,     1/15     ),
+                                "pestilence": (     1/20    ,     1/15     ),
+                               "retribution": (     4/20    ,     1/15     ),
+                              "misdirection": (      0      ,     1/15     ),
+                             }
+        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  21   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({ # village roles
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "shaman"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "matchmaker"        : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "augur"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "time lord"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            # wolf roles
+            "wolf"              : (   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "wolf cub"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "traitor"           : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hag"               : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "vengeful ghost"    : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   2   ,   2   ),
+            "amnesiac"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "lycan"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "assassin"          : (   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "bureaucrat"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             })
 
 # Persistence
