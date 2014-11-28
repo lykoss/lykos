@@ -5948,6 +5948,10 @@ def fsay(cli, nick, rest):
         pm(cli, nick, "Usage: !fsay <channel> <message>")
         return
 
+    if rest[0] != botconfig.CHANNEL and (nick not in var.USERS or not is_admin(var.USERS[nick]["cloak"])):
+        pm(cli, nick, "You do not have permission to message this user/channel")
+        return
+
     print('[%s] %s fsay %s: %s' %
           (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
 
@@ -5959,6 +5963,10 @@ def fact(cli, nick, rest):
     rest = rest.split(' ', 1)
     if len(rest) < 2:
         pm(cli, nick, "Usage: !fact <channel> <message>")
+        return
+
+    if rest[0] != botconfig.CHANNEL and (nick not in var.USERS or not is_admin(var.USERS[nick]["cloak"])):
+        pm(cli, nick, "You do not have permission to message this user/channel")
         return
 
     print('[%s] %s fact %s: %s' %
