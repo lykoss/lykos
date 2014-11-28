@@ -1679,6 +1679,10 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.WOUNDED.remove(nick)
                 if nick in var.ASLEEP:
                     var.ASLEEP.remove(nick)
+                if nick in var.PLAYERS:
+                    cloak = var.PLAYERS[nick]["cloak"]
+                    if cloak in var.ROLESET_VOTES:
+                        del var.ROLESET_VOTES[cloak]
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
