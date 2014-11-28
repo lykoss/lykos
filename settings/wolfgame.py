@@ -467,10 +467,10 @@ class AmnesiaMode(object):
             })
 
 
-# Credits to Metacity for designing
-# Blame arkiwitect for the name
-@game_mode("krabbypatty")
-class KrabbyPattyMode(object):
+# Credits to Metacity for designing and current name
+# Blame arkiwitect for the original name of KrabbyPatty
+@game_mode("aleatoire")
+class AleatoireMode(object):
     def __init__(self):
         self.MIN_PLAYERS = 4
         self.MAX_PLAYERS = 24
