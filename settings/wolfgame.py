@@ -469,8 +469,8 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing
 # Blame arkiwitect for the name
-@game_mode("krabbypatty")
-class KrabbyPattyMode(object):
+@game_mode("aleatoire")
+class AleatoireMode(object):
     def __init__(self):
         self.MIN_PLAYERS = 4
         self.MAX_PLAYERS = 24
