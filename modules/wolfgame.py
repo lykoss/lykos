@@ -4874,7 +4874,7 @@ def start(cli, nick, chann_, rest):
         else:
             possiblegamemodes = []
             for gamemode in var.GAME_MODES.keys():
-                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
                     possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*7)
             cgamemode(cli, random.choice(possiblegamemodes))
 
@@ -5945,7 +5945,7 @@ def game(cli, nick, chan, rest):
         gamemode = rest.lower().split()[0]
     else:
         gamemodes = ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], 
-        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if var.GAME_MODES[gamemode][3] > 0])
+        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
         cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
         return
 
@@ -5953,9 +5953,9 @@ def game(cli, nick, chan, rest):
         #players can vote by only using partial name
         matches = 0
         possiblegamemode = gamemode
-        for gamemode in var.GAME_MODES.keys():
-            if gamemode.startswith(gamemode) and var.GAME_MODES[gamemode][3] > 0:
-                possiblegamemode = gamemode
+        for mode in var.GAME_MODES.keys():
+            if mode.startswith(gamemode) and mode != "roles":
+                possiblegamemode = mode
                 matches += 1
         if matches != 1:
             cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
@@ -5963,7 +5963,7 @@ def game(cli, nick, chan, rest):
         else:
             gamemode = possiblegamemode
     
-    if var.GAME_MODES[gamemode][3] > 0:
+    if gamemode != "roles":
         var.GAMEMODE_VOTES[cloak] = gamemode
         cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
     else:
@@ -5972,7 +5972,7 @@ def game(cli, nick, chan, rest):
 def game_help(args=''):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
         ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if var.GAME_MODES[gamemode][3] > 0])
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
 game.__doc__ = game_help
 
 @cmd("fpull", admin_only=True)

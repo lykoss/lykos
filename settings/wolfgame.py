@@ -296,7 +296,7 @@ def reset_roles(index):
     return newguide
 
 # TODO: implement more game modes
-@game_mode("roles", 4, 35)
+@game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(object):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
@@ -339,14 +339,14 @@ class ChangedRolesMode(object):
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
 
-@game_mode("default", 4, 24, 7)
+@game_mode("default", minp = 4, maxp = 24, likelihood = 10)
 class DefaultMode(object):
     """Default game mode."""
     def __init__(self):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
-@game_mode("foolish", 8, 24, 3)
+@game_mode("foolish", minp = 8,maxp = 24, likelihood = 7)
 class FoolishMode(object):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self):
@@ -374,7 +374,7 @@ class FoolishMode(object):
               "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("mad", 7, 22, 3)
+@game_mode("mad", minp = 7, maxp = 22, likelihood = 7)
 class MadMode(object):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self):
@@ -404,7 +404,8 @@ class MadMode(object):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("evilvillage", 6, 18)
+# evilvillage is broken, disable for now
+#@game_mode("evilvillage", minp = 6, maxp = 18)
 class EvilVillageMode(object):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
@@ -425,7 +426,7 @@ class EvilVillageMode(object):
               "fool"            : (   0   ,   1   ,   1   ),
               })
 
-@game_mode("classic", 4, 21, 3)
+@game_mode("classic", minp = 4, maxp = 21, likelihood = 4)
 class ClassicMode(object):
     """Classic game mode from before all the changes."""
     def __init__(self):
@@ -446,7 +447,7 @@ class ClassicMode(object):
               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               })
 
-@game_mode("rapidfire", 6, 24, 2)
+@game_mode("rapidfire", minp = 6, maxp = 24, likelihood = 0)
 class RapidFireMode(object):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self):
@@ -478,7 +479,7 @@ class RapidFireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("drunkfire", 8, 17, 1)
+@game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
 class DrunkFireMode(object):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self):
@@ -509,7 +510,7 @@ class DrunkFireMode(object):
             "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
             })
 
-@game_mode("noreveal", 4, 21, 2)
+@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
 class NoRevealMode(object):
     """Roles are not revealed when players die."""
     def __init__(self):
@@ -537,7 +538,7 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("lycan", 7, 21, 2)
+@game_mode("lycan", minp = 7, maxp = 21, likelihood = 2)
 class LycanMode(object):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self):
@@ -562,7 +563,7 @@ class LycanMode(object):
             "mayor"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("amnesia", 10, 24)
+@game_mode("amnesia", minp = 10, maxp = 24, likelihood = 0)
 class AmnesiaMode(object):
     """Everyone gets assigned a random role on night 3."""
     def __init__(self):
@@ -578,7 +579,7 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire", 4, 24, 2)
+@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 2)
 class AleatoireMode(object):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
