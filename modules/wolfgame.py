@@ -607,9 +607,8 @@ def fleave(cli, nick, chann_, rest):
 @cmd("fstart", admin_only=True)
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
-    var.CAN_START_TIME = datetime.now()
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, nick, chan, rest)
+    start(cli, nick, forced = True)
 
 
 
@@ -4843,9 +4842,11 @@ def cgamemode(cli, arg):
 
 
 @cmd("start")
-def start(cli, nick, chann_, rest):
+def fstart(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
+    start(cli, nick)
 
+def start(cli, nick, forced = False):
     chan = botconfig.CHANNEL
 
     villagers = var.list_players()
@@ -4857,14 +4858,14 @@ def start(cli, nick, chann_, rest):
     if var.PHASE != "join":
         cli.notice(nick, "Werewolf is already in play.")
         return
-    if nick not in villagers and nick != chan:
+    if nick not in villagers and nick != chan and not forced:
         cli.notice(nick, "You're currently not playing.")
         return
 
     now = datetime.now()
     var.GAME_START_TIME = now  # Only used for the idler checker
     dur = int((var.CAN_START_TIME - now).total_seconds())
-    if dur > 0:
+    if dur > 0 and not forced:
         plural = "" if dur == 1 else "s"
         cli.msg(chan, "Please wait at least {0} more second{1}.".format(dur, plural))
         return
