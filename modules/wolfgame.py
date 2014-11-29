@@ -1650,7 +1650,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.KILLS[a].remove(nick)
                     if a == nick or len(var.KILLS[a]) == 0:
                         del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN):
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
                     keys = list(x.keys())
                     for k in keys:
                         if k == nick:
@@ -1937,7 +1937,7 @@ def on_nick(cli, oldnick, nick):
                     del var.PLAYERS[k]
             if prefix in var.GUNNERS.keys():
                 var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -2284,32 +2284,38 @@ def transition_day(cli, gameid=0):
     var.GOATED = False
     chan = botconfig.CHANNEL
 
-    # In case people didn't act at night, clear appropriate variables
-    if len(var.SHAMANS) < len(var.ROLES["shaman"] + var.ROLES["crazed shaman"]):
-        for shaman in var.ROLES["shaman"]:
-            if shaman not in var.SHAMANS:
-                var.LASTGIVEN[shaman] = None
-        for shaman in var.ROLES["crazed shaman"]:
-            if shaman not in var.SHAMANS:
-                var.LASTGIVEN[shaman] = None
+    if not var.START_WITH_DAY or not var.FIRST_DAY:
+        # In case people didn't act at night, clear appropriate variables
+        if len(var.SHAMANS) < len(var.ROLES["shaman"] + var.ROLES["crazed shaman"]):
+            for shaman in var.ROLES["shaman"]:
+                if shaman not in var.SHAMANS:
+                    var.LASTGIVEN[shaman] = None
+            for shaman in var.ROLES["crazed shaman"]:
+                if shaman not in var.SHAMANS:
+                    var.LASTGIVEN[shaman] = None
 
-    # bodyguard doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
-    if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] + var.ROLES["guardian angel"]):
-        for gangel in var.ROLES["guardian angel"]:
-            if gangel not in var.GUARDED:
-                var.LASTGUARDED[gangel] = None
+        # bodyguard doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
+        if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] + var.ROLES["guardian angel"]):
+            for gangel in var.ROLES["guardian angel"]:
+                if gangel not in var.GUARDED:
+                    var.LASTGUARDED[gangel] = None
 
-    # Select a random target for vengeful ghost if they didn't kill
-    wolves = var.list_players(var.WOLFTEAM_ROLES)
-    villagers = var.list_players()
-    for wolf in wolves:
-        villagers.remove(wolf)
-    for ghost, target in var.VENGEFUL_GHOSTS.items():
-        if ghost not in var.OTHER_KILLS:
-            if target == "wolves":
-                var.OTHER_KILLS[ghost] = random.choice(wolves)
-            else:
-                var.OTHER_KILLS[ghost] = random.choice(villagers)
+        if len(var.HEXED) < len(var.ROLES["hag"]):
+            for hag in var.ROLES["hag"]:
+                if hag not in var.HEXED:
+                    var.LASTHEXED[hag] = None
+
+        # Select a random target for vengeful ghost if they didn't kill
+        wolves = var.list_players(var.WOLFTEAM_ROLES)
+        villagers = var.list_players()
+        for wolf in wolves:
+            villagers.remove(wolf)
+        for ghost, target in var.VENGEFUL_GHOSTS.items():
+            if ghost not in var.OTHER_KILLS:
+                if target == "wolves":
+                    var.OTHER_KILLS[ghost] = random.choice(wolves)
+                else:
+                    var.OTHER_KILLS[ghost] = random.choice(villagers)
 
     # Reset daytime variables
     var.VOTES = {}
@@ -2320,6 +2326,12 @@ def transition_day(cli, gameid=0):
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
     havetotem = copy.copy(var.LASTGIVEN)
+
+    if var.START_WITH_DAY and var.FIRST_DAY:
+        # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
+        # but this is good enough for now to prevent it from crashing
+        begin_day(cli)
+        return
 
     if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
             and not var.START_WITH_DAY and var.FIRST_NIGHT and (var.ROLES["seer"] or var.ROLES["oracle"] or var.ROLES["augur"]) and not botconfig.DEBUG_MODE):
@@ -2981,6 +2993,10 @@ def check_exchange(cli, actor, nick):
             if actor in var.SEEN:
                 var.SEEN.remove(actor)
         elif actor_role == "hag":
+            if actor in var.LASTHEXED:
+                if var.LASTHEXED[actor] in var.TOBESILENCED and actor in var.HEXED:
+                    var.TOBESILENCED.remove(var.LASTHEXED[actor])
+                del var.LASTHEXED[actor]
             if actor in var.HEXED:
                 var.HEXED.remove(actor)
 
@@ -3027,6 +3043,10 @@ def check_exchange(cli, actor, nick):
             if nick in var.SEEN:
                 var.SEEN.remove(nick)
         elif nick_role == "hag":
+            if nick in var.LASTHEXED:
+                if var.LASTHEXED[nick] in var.TOBESILENCED and nick in var.HEXED:
+                    var.TOBESILENCED.remove(var.LASTHEXED[nick])
+                del var.LASTHEXED[nick]
             if nick in var.HEXED:
                 var.HEXED.remove(nick)
             
@@ -3496,10 +3516,6 @@ def guard(cli, nick, rest):
     if var.GUARDED.get(nick):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
-    if role == "guardian angel" and var.LASTGUARDED.get(nick) == victim:
-        pm(cli, nick, ("You protected \u0002{0}\u0002 last night. " +
-                       "You cannot protect the same person two nights in a row.").format(victim))
-        return
     pl = var.list_players()
     pll = [x.lower() for x in pl]
     matches = 0
@@ -3514,7 +3530,11 @@ def guard(cli, nick, rest):
         if matches != 1:
             pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
             return
-    victim = pll[pll.index(target)]
+    victim = pl[pll.index(target)]
+    if role == "guardian angel" and var.LASTGUARDED.get(nick) == victim:
+        pm(cli, nick, ("You protected \u0002{0}\u0002 last night. " +
+                       "You cannot protect the same person two nights in a row.").format(victim))
+        return
     if victim == nick:
         if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
             var.GUARDED[nick] = None
@@ -4146,6 +4166,10 @@ def hex(cli, nick, rest):
     if nick == victim:
         pm(cli, nick, "You may not target yourself.")
         return
+    if var.LASTHEXED.get(nick) == victim:
+        pm(cli, nick, ("You hexed \u0002{0}\u0002 last night. " +
+                       "You cannot hex the same person two nights in a row.").format(victim))
+        return
 
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
@@ -4156,6 +4180,7 @@ def hex(cli, nick, rest):
         return
 
     var.HEXED.append(nick)
+    var.LASTHEXED[nick] = victim
     var.TOBESILENCED.append(victim)
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
@@ -4906,6 +4931,7 @@ def start(cli, nick, chann_, rest):
     var.CLONED = {}
     var.TARGETED = {}
     var.LASTGUARDED = {}
+    var.LASTHEXED = {}
     var.LASTGIVEN = {}
     var.LOVERS = {}
     var.MATCHMAKERS = []
@@ -4939,6 +4965,9 @@ def start(cli, nick, chann_, rest):
     var.TOBEMISDIRECTED = []
     var.EXCHANGED = []
     var.TOBEEXCHANGED = []
+    var.SHAMANS = []
+    var.HEXED = []
+    var.OTHER_KILLS = {}
     var.ACTED_EXTRA = 0
     var.ABSTAINED = False
 
