@@ -209,8 +209,8 @@ def reset():
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.NO_LYNCH = []
     var.FGAMED = False
-    var.CURRENT_ROLESET = "default"
-    var.ROLESET_VOTES = {} #list of players who have used !game
+    var.CURRENT_GAMEMODE = "default"
+    var.GAMEMODE_VOTES = {} #list of players who have used !game
 
     reset_settings()
 
@@ -1251,7 +1251,7 @@ def stop_game(cli, winner = ""):
             if won or iwon:
                 winners.append(splr)
 
-        var.update_game_stats(var.CURRENT_ROLESET, len(survived) + len(var.DEAD), winner)
+        var.update_game_stats(var.CURRENT_GAMEMODE, len(survived) + len(var.DEAD), winner)
 
         # spit out the list of winners
         winners.sort()
@@ -1681,8 +1681,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.ASLEEP.remove(nick)
                 if nick in var.PLAYERS:
                     cloak = var.PLAYERS[nick]["cloak"]
-                    if cloak in var.ROLESET_VOTES:
-                        del var.ROLESET_VOTES[cloak]
+                    if cloak in var.GAMEMODE_VOTES:
+                        del var.GAMEMODE_VOTES[cloak]
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
@@ -4819,7 +4819,7 @@ def cgamemode(cli, arg):
                                         and not attr.startswith("_")):
                     var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
                     setattr(var, attr, val)
-            var.CURRENT_ROLESET = md
+            var.CURRENT_GAMEMODE = md
             return True
         except var.InvalidModeException as e:
             cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
@@ -4864,19 +4864,19 @@ def start(cli, nick, chann_, rest):
         return
 
     if not var.FGAMED:
-        votes = {} #key = roleset, not cloak
-        for roleset in var.ROLESET_VOTES.values():
-            if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
-                votes[roleset] = votes.get(roleset, 0) + 1
-        voted = [roleset for roleset in votes if votes[roleset] == max(votes.values()) and votes[roleset] > 2*len(villagers)/5]
+        votes = {} #key = gamemode, not cloak
+        for gamemode in var.GAMEMODE_VOTES.values():
+            if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                votes[gamemode] = votes.get(gamemode, 0) + 1
+        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] > 2*len(villagers)/5]
         if len(voted):
             cgamemode(cli, random.choice(voted))
         else:
-            possiblerolesets = []
-            for roleset in var.GAME_MODES.keys():
-                if len(villagers) >= var.GAME_MODES[roleset][1] and len(villagers) <= var.GAME_MODES[roleset][2]:
-                    possiblerolesets += [roleset]*(var.GAME_MODES[roleset][3]+votes.get(roleset, 0)*7)
-            cgamemode(cli, random.choice(possiblerolesets))
+            possiblegamemodes = []
+            for gamemode in var.GAME_MODES.keys():
+                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                    possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*7)
+            cgamemode(cli, random.choice(possiblegamemodes))
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
         if var.ROLE_INDEX[index] <= len(villagers):
@@ -5028,7 +5028,7 @@ def start(cli, nick, chann_, rest):
        var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                   "game (a theme of Mafia). Using the \002{1}\002 roleset.").format(", ".join(pl), var.CURRENT_ROLESET))
+                   "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -5613,11 +5613,11 @@ def listroles(cli, nick, chan, rest):
     if not len(rest[0]) and pl > 0:
         txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
         if var.PHASE in ["night", "day"]:
-            txt += " Using the {0} roleset.".format(var.CURRENT_ROLESET)
+            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
 
     #read game mode to get roles for
     if len(rest[0]) and not rest[0].isdigit():
-        #check for valid roleset ("roles" roleset is treated as invalid)
+        #check for valid game mode ("roles" gamemode is treated as invalid)
         if rest[0] != "roles" and rest[0] in var.GAME_MODES.keys():
             mode = var.GAME_MODES[rest[0]][0]()
             if hasattr(mode, "ROLE_INDEX"):
@@ -5626,11 +5626,11 @@ def listroles(cli, nick, chan, rest):
                 roleguide = getattr(mode, "ROLE_GUIDE")
             rest.pop(0)
         else:
-            txt += " {0}: {1} is not a valid roleset.".format(nick, rest[0])
+            txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
             rest = []
             roleindex = {}
             
-    #number of players to print the roleset for
+    #number of players to print the game mode for
     if len(rest) and rest[0].isdigit():
         index = int(rest[0])
         for i in range(len(roleindex)-1, -1, -1):
@@ -5833,34 +5833,34 @@ def game_stats(cli, nick, chan, rest):
         cli.notice(nick, "Wait until the game is over to view stats.")
         return
 
-    roleset = var.CURRENT_ROLESET
+    gamemode = var.CURRENT_GAMEMODE
     rest = rest.strip().split()
-    # Check for roleset
+    # Check for gamemode
     if len(rest) and not rest[0].isdigit():
-        roleset = rest[0]
-        if roleset not in var.GAME_MODES.keys():
-            cli.notice(nick, "{0} is not a valid roleset".format(roleset))
+        gamemode = rest[0]
+        if gamemode not in var.GAME_MODES.keys():
+            cli.notice(nick, "{0} is not a valid game mode".format(gamemode))
             return
         rest.pop(0)
     # Check for invalid input
     if len(rest) and rest[0].isdigit() and (
-       int(rest[0]) > var.GAME_MODES[roleset][2] or int(rest[0]) < var.GAME_MODES[roleset][1]):
+       int(rest[0]) > var.GAME_MODES[gamemode][2] or int(rest[0]) < var.GAME_MODES[gamemode][1]):
         cli.notice(nick, "Please enter an integer between "+\
-                         "{0} and {1}.".format(var.GAME_MODES[roleset][1], var.GAME_MODES[roleset][2]))
+                         "{0} and {1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
         return
 
     # List all games sizes and totals if no size is given
     if not len(rest):
         if chan == nick:
-            pm(cli, nick, var.get_game_totals(roleset))
+            pm(cli, nick, var.get_game_totals(gamemode))
         else:
-            cli.msg(chan, var.get_game_totals(roleset))
+            cli.msg(chan, var.get_game_totals(gamemode))
     else:
         # Attempt to find game stats for the given game size
         if chan == nick:
-            pm(cli, nick, var.get_game_stats(roleset, int(rest[0])))
+            pm(cli, nick, var.get_game_stats(gamemode, int(rest[0])))
         else:
-            cli.msg(chan, var.get_game_stats(roleset, int(rest[0])))
+            cli.msg(chan, var.get_game_stats(gamemode, int(rest[0])))
 
 
 @pmcmd('gamestats', 'gstats')
@@ -5942,37 +5942,37 @@ def game(cli, nick, chan, rest):
         return
 
     if rest:
-        roleset = rest.lower().split()[0]
+        gamemode = rest.lower().split()[0]
     else:
-        rolesets = ", ".join(["\002{}\002".format(roleset) if len(var.list_players()) in range(var.GAME_MODES[roleset][1], 
-        var.GAME_MODES[roleset][2]+1) else roleset for roleset in var.GAME_MODES.keys() if var.GAME_MODES[roleset][3] > 0])
-        cli.notice(nick, "No roleset specified. Available rolesets: " + rolesets)
+        gamemodes = ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], 
+        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if var.GAME_MODES[gamemode][3] > 0])
+        cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
         return
 
-    if roleset not in var.GAME_MODES.keys():
+    if gamemode not in var.GAME_MODES.keys():
         #players can vote by only using partial name
         matches = 0
-        possibleroleset = roleset
+        possiblegamemode = gamemode
         for gamemode in var.GAME_MODES.keys():
-            if gamemode.startswith(roleset) and var.GAME_MODES[gamemode][3] > 0:
-                possibleroleset = gamemode
+            if gamemode.startswith(gamemode) and var.GAME_MODES[gamemode][3] > 0:
+                possiblegamemode = gamemode
                 matches += 1
         if matches != 1:
-            cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(roleset))
+            cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
             return
         else:
-            roleset = possibleroleset
+            gamemode = possiblegamemode
     
-    if var.GAME_MODES[roleset][3] > 0:
-        var.ROLESET_VOTES[cloak] = roleset
-        cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 roleset.".format(nick, roleset))
+    if var.GAME_MODES[gamemode][3] > 0:
+        var.GAMEMODE_VOTES[cloak] = gamemode
+        cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
     else:
-        cli.notice(nick, "You can't vote for that roleset.")
+        cli.notice(nick, "You can't vote for that game mode.")
 
 def game_help(args=''):
-    return "Votes to make a specific roleset more likely. Available game mode setters: " +\
-        ", ".join(["\002{}\002".format(roleset) if len(var.list_players()) in range(var.GAME_MODES[roleset][1], var.GAME_MODES[roleset][2]+1)
-        else roleset for roleset in var.GAME_MODES.keys() if var.GAME_MODES[roleset][3] > 0])
+    return "Votes to make a specific game mode more likely. Available game mode setters: " +\
+        ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
+        else gamemode for gamemode in var.GAME_MODES.keys() if var.GAME_MODES[gamemode][3] > 0])
 game.__doc__ = game_help
 
 @cmd("fpull", admin_only=True)
@@ -6128,19 +6128,19 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             return
 
         if rest:
-            rest = roleset = rest.lower().split()[0]
+            rest = mode = rest.lower().split()[0]
             if rest not in var.GAME_MODES.keys():
                 #players can vote by only using partial name
                 matches = 0
                 for gamemode in var.GAME_MODES.keys():
                     if gamemode.startswith(rest):
-                        roleset = gamemode
+                        mode = gamemode
                         matches += 1
                 if matches != 1:
-                    cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(rest))
+                    cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(rest))
                     return
 
-            if cgamemode(cli, roleset):
+            if cgamemode(cli, mode):
                 cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
                                 'successfully.').format(nick))
                 var.FGAMED = True
