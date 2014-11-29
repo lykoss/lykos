@@ -5942,21 +5942,32 @@ def game(cli, nick, chan, rest):
         return
 
     if rest:
-        roleset = rest.split(' ')[0]
+        roleset = rest.lower().split()[0]
     else:
         rolesets = ", ".join(["\002{}\002".format(roleset) if len(var.list_players()) in range(var.GAME_MODES[roleset][1], 
         var.GAME_MODES[roleset][2]+1) else roleset for roleset in var.GAME_MODES.keys() if var.GAME_MODES[roleset][3] > 0])
         cli.notice(nick, "No roleset specified. Available rolesets: " + rolesets)
         return
-    
-    if roleset in var.GAME_MODES.keys():
-        if var.GAME_MODES[roleset][3] > 0:
-            var.ROLESET_VOTES[cloak] = roleset
-            cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 roleset.".format(nick, roleset))
+
+    if roleset not in var.GAME_MODES.keys():
+        #players can vote by only using partial name
+        matches = 0
+        possibleroleset = roleset
+        for gamemode in var.GAME_MODES.keys():
+            if gamemode.startswith(roleset) and var.GAME_MODES[gamemode][3] > 0:
+                possibleroleset = gamemode
+                matches += 1
+        if matches != 1:
+            cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(roleset))
+            return
         else:
-            cli.notice(nick, "You can't vote for that roleset.")
+            roleset = possibleroleset
+    
+    if var.GAME_MODES[roleset][3] > 0:
+        var.ROLESET_VOTES[cloak] = roleset
+        cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 roleset.".format(nick, roleset))
     else:
-        cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(roleset))
+        cli.notice(nick, "You can't vote for that roleset.")
 
 def game_help(args=''):
     return "Votes to make a specific roleset more likely. Available game mode setters: " +\
@@ -6116,14 +6127,25 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.notice(nick, 'You\'re currently not playing.')
             return
 
-        rest = rest.strip().lower()
-
         if rest:
-            if cgamemode(cli, rest):
+            rest = roleset = rest.lower().split()[0]
+            if rest not in var.GAME_MODES.keys():
+                #players can vote by only using partial name
+                matches = 0
+                for gamemode in var.GAME_MODES.keys():
+                    if gamemode.startswith(rest):
+                        roleset = gamemode
+                        matches += 1
+                if matches != 1:
+                    cli.notice(nick, "\002{0}\002 isn't a valid roleset.".format(rest))
+                    return
+
+            if cgamemode(cli, roleset):
                 cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
                                 'successfully.').format(nick))
                 var.FGAMED = True
-
+        else:
+            cli.notice(nick, fgame.__doc__())
 
     def fgame_help(args=''):
         args = args.strip()
