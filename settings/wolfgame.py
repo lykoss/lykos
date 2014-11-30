@@ -339,7 +339,7 @@ class ChangedRolesMode(object):
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
 
-@game_mode("default", minp = 4, maxp = 24, likelihood = 10)
+@game_mode("default", minp = 4, maxp = 24, likelihood = 15)
 class DefaultMode(object):
     """Default game mode."""
     def __init__(self):
@@ -510,7 +510,7 @@ class DrunkFireMode(object):
             "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
             })
 
-@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
+@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 0)
 class NoRevealMode(object):
     """Roles are not revealed when players die."""
     def __init__(self):
@@ -538,7 +538,7 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("lycan", minp = 7, maxp = 21, likelihood = 2)
+@game_mode("lycan", minp = 7, maxp = 21, likelihood = 1)
 class LycanMode(object):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self):
@@ -579,11 +579,12 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 2)
+@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 3)
 class AleatoireMode(object):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
-        self.SHARPSHOOTER_CHANCE = 1          #    SHAMAN   , CRAZED SHAMAN
+        self.SHARPSHOOTER_CHANCE = 1
+                                              #    SHAMAN   , CRAZED SHAMAN
         self.TOTEM_CHANCES = {       "death": (     4/20    ,     1/15     ),
                                 "protection": (     8/20    ,     1/15     ),
                                    "silence": (     2/20    ,     1/15     ),
@@ -795,7 +796,7 @@ def update_game_stats(gamemode, size, winner):
             vwins += 1
         elif winner == "monsters":
             mwins += 1
-        elif winner == "fool":
+        elif winner.startswith("@"):
             fwins += 1
         total += 1
 

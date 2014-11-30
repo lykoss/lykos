@@ -1186,7 +1186,6 @@ def stop_game(cli, winner = ""):
                 iwon = False
             elif rol == "fool" and "@" + splr == winner:
                 iwon = True
-                winner = "fool"
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
             elif splr in var.LOVERS and splr in survived:
@@ -1318,7 +1317,7 @@ def chk_win(cli, end_game = True):
 
     if lpl < 1:
         message = "Game over! There are no players remaining. Nobody wins."
-        winner = ""
+        winner = "none"
     elif lwolves == lpl / 2:
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
@@ -4868,14 +4867,14 @@ def start(cli, nick, chann_, rest):
         for gamemode in var.GAMEMODE_VOTES.values():
             if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
                 votes[gamemode] = votes.get(gamemode, 0) + 1
-        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] > 2*len(villagers)/5]
+        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
         if len(voted):
             cgamemode(cli, random.choice(voted))
         else:
             possiblegamemodes = []
             for gamemode in var.GAME_MODES.keys():
                 if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
-                    possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*7)
+                    possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
             cgamemode(cli, random.choice(possiblegamemodes))
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
@@ -6128,8 +6127,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             return
 
         if rest:
-            rest = mode = rest.lower().split()[0]
-            if rest not in var.GAME_MODES.keys():
+            rest = mode = rest.strip().lower()
+            if rest not in var.GAME_MODES.keys() and not rest.startswith("roles"):
+                rest = rest.split()[0]
                 #players can vote by only using partial name
                 matches = 0
                 for gamemode in var.GAME_MODES.keys():
