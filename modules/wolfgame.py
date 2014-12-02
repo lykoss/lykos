@@ -69,10 +69,7 @@ var.PLAYERS = {}
 var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
-var.PHASE = "none"  # "join", "day", or "night"
 var.TIMERS = {}
-var.DEAD = []
-var.NO_LYNCH = []
 
 var.ORIGINAL_SETTINGS = {}
 
@@ -81,14 +78,11 @@ var.LAST_SAID_TIME = {}
 var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
-var.GAME_ID = 0
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
-
-var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
 
 var.OPPED = False  # Keeps track of whether the bot is opped
 
@@ -207,13 +201,16 @@ def reset_modes_timers(cli):
                 cmodes.append(("-q", deadguy+"!*@*"))
     mass_mode(cli, cmodes)
 
-def reset(cli):
-    var.PHASE = "none"
+def reset():
+    var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
     var.DEAD = []
     var.ROLES = {"person" : []}
-    var.JOINED_THIS_GAME = []
+    var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.NO_LYNCH = []
+    var.FGAMED = False
+    var.CURRENT_GAMEMODE = "default"
+    var.GAMEMODE_VOTES = {} #list of players who have used !game
 
     reset_settings()
 
@@ -221,6 +218,7 @@ def reset(cli):
     dict.clear(var.PLAYERS)
     dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
+reset()
 
 def make_stasis(nick, penalty):
     try:
@@ -244,7 +242,7 @@ def forced_exit(cli, nick, *rest):  # Admin Only
         stop_game(cli)
     else:
         reset_modes_timers(cli)
-        reset(cli)
+        reset()
 
     cli.quit("Forced quit from "+nick)
 
@@ -259,7 +257,7 @@ def restart_program(cli, nick, *rest):
             stop_game(cli)
         else:
             reset_modes_timers(cli)
-            reset(cli)
+            reset()
 
         cli.quit("Forced restart from "+nick)
         raise SystemExit
@@ -531,7 +529,7 @@ def kill_join(cli, chan):
     pl.sort(key=lambda x: x.lower())
     msg = 'PING! {0}'.format(", ".join(pl))
     reset_modes_timers(cli)
-    reset(cli)
+    reset()
     cli.msg(chan, msg)
     cli.msg(chan, 'The current game took too long to start and ' +
                   'has been canceled. If you are still active, ' +
@@ -1130,123 +1128,128 @@ def stop_game(cli, winner = ""):
     elif len(lovers) > 2:
         cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
 
-    plrl = {}
-    winners = []
-    for role,ppl in var.ORIGINAL_ROLES.items():
-        if role in var.TEMPLATE_RESTRICTIONS.keys():
-            continue
-        for x in ppl:
-            if x != None:
-                if role == "amnesiac" and x in var.AMNESIACS:
-                    plrl[x] = var.FINAL_ROLES[x]
-                elif role != "amnesiac" and x in var.FINAL_ROLES: # role swap
-                    plrl[x] = var.FINAL_ROLES[x]
-                else:
-                    plrl[x] = role
-    for plr, rol in plrl.items():
-        orol = rol # original role, since we overwrite rol in case of clone
-        splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
-        if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
-            acc = var.DCED_PLAYERS[plr[6:]]["account"]
-            splr = plr[6:]
-        elif plr in var.PLAYERS.keys():
-            acc = var.PLAYERS[plr]["account"]
-        else:
-            acc = "*"  #probably fjoin'd fake
-
-        if rol == "clone":
-            # see if they became a different role
-            if splr in var.FINAL_ROLES:
-                rol = var.FINAL_ROLES[splr]
-
-        won = False
-        iwon = False
-        # determine if this player's team won
-        if rol in var.WOLFTEAM_ROLES:  # the player was wolf-aligned
-            if winner == "wolves":
-                won = True
-        elif rol in var.TRUE_NEUTRAL_ROLES:
-            # true neutral roles never have a team win (with exception of monsters), only individual wins
-            if winner == "monsters" and rol == "monster":
-                won = True
-        elif rol in ("amnesiac", "vengeful ghost"):
-            if var.DEFAULT_ROLE == "villager" and winner == "villagers":
-                won = True
-            elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
-                won = True
-        else:
-            if winner == "villagers":
-                won = True
-
-        survived = var.list_players()
-        if plr.startswith("(dced)"):
-            # You get NOTHING! You LOSE! Good DAY, sir!
-            won = False
-            iwon = False
-        elif rol == "fool" and "@" + splr == winner:
-            iwon = True
-        elif rol == "monster" and splr in survived and winner == "monsters":
-            iwon = True
-        elif splr in var.LOVERS and splr in survived:
-            for lvr in var.LOVERS[splr]:
-                if lvr in plrl:
-                    lvrrol = plrl[lvr]
-                elif ("(dced)" + lvr) in plrl:
-                    lvrrol = plrl["(dced)" + lvr]
-                if lvrrol == "clone" and lvr in var.FINAL_ROLES:
-                    lvrrol = var.FINAL_ROLES[lvr]
-
-                if lvr in survived and not winner.startswith("@") and winner != "monsters":
-                    iwon = True
-                    break
-                elif lvr in survived and winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
-                    iwon = True
-                    break
-                elif lvr in survived and winner == "monsters" and lvrrol == "monster":
-                    iwon = True
-                    break
-
-        if plr.startswith("(dced)"):
-            won = False
-            iwon = False
-        elif rol == "crazed shaman" or rol == "clone":
-            # For clone, this means they ended game while being clone and not some other role
-            if splr in survived and not winner.startswith("@") and winner != "monsters":
-                iwon = True
-        elif rol == "vengeful ghost":
-            if not winner.startswith("@") and winner != "monsters":
-                if won and splr in survived:
-                    iwon = True
-                elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
-                    won = True
-                    iwon = True
-                elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
-                    won = True
-                    iwon = True
-        elif rol == "lycan" or splr in var.LYCANS:
-            if splr in var.LYCANS and winner == "wolves":
-                won = True
-            elif splr not in var.LYCANS and winner == "villagers":
-                won = True
-            else:
-                won = False
-            if not iwon:
-                iwon = won and splr in survived
-        elif rol == "jester" and splr in var.JESTERS:
-            iwon = True
-        elif not iwon:
-            iwon = won and splr in survived  # survived, team won = individual win
-
-        if acc != "*":
-            var.update_role_stats(acc, orol, won, iwon)
-
-        if won or iwon:
-            winners.append(splr)
-
-    size = len(survived) + len(var.DEAD)
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
-        var.update_game_stats(size, winner)
+        plrl = {}
+        winners = []
+        for role,ppl in var.ORIGINAL_ROLES.items():
+            if role in var.TEMPLATE_RESTRICTIONS.keys():
+                continue
+            for x in ppl:
+                if x != None:
+                    if role == "amnesiac" and x in var.AMNESIACS:
+                        plrl[x] = var.FINAL_ROLES[x]
+                    elif role != "amnesiac" and x in var.FINAL_ROLES: # role swap
+                        plrl[x] = var.FINAL_ROLES[x]
+                    else:
+                        plrl[x] = role
+        for plr, rol in plrl.items():
+            orol = rol # original role, since we overwrite rol in case of clone
+            splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
+            if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
+                acc = var.DCED_PLAYERS[plr[6:]]["account"]
+                splr = plr[6:]
+            elif plr in var.PLAYERS.keys():
+                acc = var.PLAYERS[plr]["account"]
+            else:
+                acc = "*"  #probably fjoin'd fake
+
+            if rol == "clone":
+                # see if they became a different role
+                if splr in var.FINAL_ROLES:
+                    rol = var.FINAL_ROLES[splr]
+
+            won = False
+            iwon = False
+            # determine if this player's team won
+            if rol in var.WOLFTEAM_ROLES:  # the player was wolf-aligned
+                if winner == "wolves":
+                    won = True
+            elif rol in var.TRUE_NEUTRAL_ROLES:
+                # true neutral roles never have a team win (with exception of monsters), only individual wins
+                if winner == "monsters" and rol == "monster":
+                    won = True
+            elif rol in ("amnesiac", "vengeful ghost"):
+                if var.DEFAULT_ROLE == "villager" and winner == "villagers":
+                    won = True
+                elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
+                    won = True
+            else:
+                if winner == "villagers":
+                    won = True
+
+            survived = var.list_players()
+            if plr.startswith("(dced)"):
+                # You get NOTHING! You LOSE! Good DAY, sir!
+                won = False
+                iwon = False
+            elif rol == "fool" and "@" + splr == winner:
+                iwon = True
+            elif rol == "monster" and splr in survived and winner == "monsters":
+                iwon = True
+            elif splr in var.LOVERS and splr in survived:
+                for lvr in var.LOVERS[splr]:
+                    lvrrol = "" #somehow lvrrol wasn't set and caused a crash once
+                    if lvr in plrl:
+                        lvrrol = plrl[lvr]
+                    elif ("(dced)" + lvr) in plrl:
+                        lvrrol = plrl["(dced)" + lvr]
+                    if lvrrol == "clone" and lvr in var.FINAL_ROLES:
+                        lvrrol = var.FINAL_ROLES[lvr]
+
+                    if lvr in survived and not winner.startswith("@") and winner != "monsters":
+                        iwon = True
+                        break
+                    elif lvr in survived and winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
+                        iwon = True
+                        break
+                    elif lvr in survived and winner == "monsters" and lvrrol == "monster":
+                        iwon = True
+                        break
+
+            if plr.startswith("(dced)"):
+                won = False
+                iwon = False
+            elif rol == "crazed shaman" or rol == "clone":
+                # For clone, this means they ended game while being clone and not some other role
+                if splr in survived and not winner.startswith("@") and winner != "monsters":
+                    iwon = True
+            elif rol == "vengeful ghost":
+                if not winner.startswith("@") and winner != "monsters":
+                    if won and splr in survived:
+                        iwon = True
+                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
+                        won = True
+                        iwon = True
+                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
+                        won = True
+                        iwon = True
+            elif rol == "lycan" or splr in var.LYCANS:
+                if splr in var.LYCANS and winner == "wolves":
+                    won = True
+                elif splr not in var.LYCANS and winner == "villagers":
+                    won = True
+                else:
+                    won = False
+                if not iwon:
+                    iwon = won and splr in survived
+            elif rol == "jester" and splr in var.JESTERS:
+                iwon = True
+            elif not iwon:
+                iwon = won and splr in survived  # survived, team won = individual win
+
+            if acc != "*":
+                var.update_role_stats(acc, orol, won, iwon)
+                for role in var.TEMPLATE_RESTRICTIONS.keys():
+                    if plr in var.ORIGINAL_ROLES[role]:
+                        var.update_role_stats(acc, role, won, iwon)
+                if splr in var.LOVERS:
+                    var.update_role_stats(acc, "lover", won, iwon)
+
+            if won or iwon:
+                winners.append(splr)
+
+        var.update_game_stats(var.CURRENT_GAMEMODE, len(survived) + len(var.DEAD), winner)
 
         # spit out the list of winners
         winners.sort()
@@ -1264,9 +1267,9 @@ def stop_game(cli, winner = ""):
     var.PHASE = "writing files"
 
     var.LOGGER.saveToFile()
-    reset(cli)
+    reset()
 
-    # This must be after reset(cli)
+    # This must be after reset()
     if var.AFTER_FLASTGAME:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
@@ -1285,7 +1288,7 @@ def chk_win(cli, end_game = True):
         if lpl == 0:
             #cli.msg(chan, "No more players remaining. Game ended.")
             reset_modes_timers(cli)
-            reset(cli)
+            reset()
             return True
         return False
 
@@ -1313,7 +1316,7 @@ def chk_win(cli, end_game = True):
 
     if lpl < 1:
         message = "Game over! There are no players remaining. Nobody wins."
-        winner = ""
+        winner = "none"
     elif lwolves == lpl / 2:
         if len(var.ROLES["monster"]) > 0:
             plural = "s" if len(var.ROLES["monster"]) > 1 else ""
@@ -1674,6 +1677,10 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.WOUNDED.remove(nick)
                 if nick in var.ASLEEP:
                     var.ASLEEP.remove(nick)
+                if nick in var.PLAYERS:
+                    cloak = var.PLAYERS[nick]["cloak"]
+                    if cloak in var.GAMEMODE_VOTES:
+                        del var.GAMEMODE_VOTES[cloak]
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
@@ -2202,6 +2209,8 @@ def leave_game(cli, nick, chan, rest):
                 var.ORIGINAL_ROLES[r].remove(nick)
                 var.ORIGINAL_ROLES[r].append("(dced)"+nick)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
+        if nick in var.PLAYERS:
+            var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
     del_player(cli, nick, death_triggers = False)
 
@@ -4826,13 +4835,14 @@ def cgamemode(cli, arg):
     if modeargs[0] in var.GAME_MODES.keys():
         md = modeargs.pop(0)
         try:
-            gm = var.GAME_MODES[md](*modeargs)
+            gm = var.GAME_MODES[md][0](*modeargs)
             for attr in dir(gm):
                 val = getattr(gm, attr)
                 if (hasattr(var, attr) and not callable(val)
                                         and not attr.startswith("_")):
                     var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
                     setattr(var, attr, val)
+            var.CURRENT_GAMEMODE = md
             return True
         except var.InvalidModeException as e:
             cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
@@ -4875,8 +4885,23 @@ def start(cli, nick, forced = False):
         return
 
     if len(villagers) > var.MAX_PLAYERS:
-        cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play in this game mode.".format(nick, var.MAX_PLAYERS))
+        cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play.".format(nick, var.MAX_PLAYERS))
         return
+
+    if not var.FGAMED:
+        votes = {} #key = gamemode, not cloak
+        for gamemode in var.GAMEMODE_VOTES.values():
+            if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                votes[gamemode] = votes.get(gamemode, 0) + 1
+        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
+        if len(voted):
+            cgamemode(cli, random.choice(voted))
+        else:
+            possiblegamemodes = []
+            for gamemode in var.GAME_MODES.keys():
+                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
+                    possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
+            cgamemode(cli, random.choice(possiblegamemodes))
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
         if var.ROLE_INDEX[index] <= len(villagers):
@@ -5032,7 +5057,7 @@ def start(cli, nick, forced = False):
        var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                   "game (a theme of Mafia).").format(", ".join(pl)))
+                   "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
     cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -5382,7 +5407,7 @@ def reset_game(cli, nick, chan, rest):
         stop_game(cli)
     else:
         reset_modes_timers(cli)
-        reset(cli)
+        reset()
 
 
 @pmcmd("rules")
@@ -5616,23 +5641,25 @@ def listroles(cli, nick, chan, rest):
     #prepend player count if called without any arguments
     if not len(rest[0]) and pl > 0:
         txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
+        if var.PHASE in ["night", "day"]:
+            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
 
     #read game mode to get roles for
     if len(rest[0]) and not rest[0].isdigit():
-        #check for valid roleset ("roles" roleset is treated as invalid)
+        #check for valid game mode ("roles" gamemode is treated as invalid)
         if rest[0] != "roles" and rest[0] in var.GAME_MODES.keys():
-            mode = var.GAME_MODES[rest[0]]()
+            mode = var.GAME_MODES[rest[0]][0]()
             if hasattr(mode, "ROLE_INDEX"):
                 roleindex = getattr(mode, "ROLE_INDEX")
             if hasattr(mode, "ROLE_GUIDE"):
                 roleguide = getattr(mode, "ROLE_GUIDE")
             rest.pop(0)
         else:
-            txt += " {0}: {1} is not a valid roleset.".format(nick, rest[0])
+            txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
             rest = []
             roleindex = {}
             
-    #number of players to print the roleset for
+    #number of players to print the game mode for
     if len(rest) and rest[0].isdigit():
         index = int(rest[0])
         for i in range(len(roleindex)-1, -1, -1):
@@ -5824,38 +5851,45 @@ def game_stats(cli, nick, chan, rest):
     if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
             var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) >
             datetime.now()):
-        cli.notice(nick, ('This command is rate-limited. Please wait a while '
-                          'before using it again.'))
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
         return
 
     if chan != nick:
         var.LAST_GSTATS = datetime.now()
 
     if var.PHASE not in ('none', 'join'):
-        cli.notice(nick, 'Wait until the game is over to view stats.')
+        cli.notice(nick, "Wait until the game is over to view stats.")
+        return
+
+    gamemode = var.CURRENT_GAMEMODE
+    rest = rest.strip().split()
+    # Check for gamemode
+    if len(rest) and not rest[0].isdigit():
+        gamemode = rest[0]
+        if gamemode not in var.GAME_MODES.keys():
+            cli.notice(nick, "{0} is not a valid game mode".format(gamemode))
+            return
+        rest.pop(0)
+    # Check for invalid input
+    if len(rest) and rest[0].isdigit() and (
+       int(rest[0]) > var.GAME_MODES[gamemode][2] or int(rest[0]) < var.GAME_MODES[gamemode][1]):
+        cli.notice(nick, "Please enter an integer between "+\
+                         "{0} and {1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
         return
 
     # List all games sizes and totals if no size is given
-    if not rest:
+    if not len(rest):
         if chan == nick:
-            pm(cli, nick, var.get_game_totals())
+            pm(cli, nick, var.get_game_totals(gamemode))
         else:
-            cli.msg(chan, var.get_game_totals())
-
-        return
-
-    # Check for invalid input
-    rest = rest.strip()
-    if not rest.isdigit() or int(rest) > var.MAX_PLAYERS or int(rest) < var.MIN_PLAYERS:
-        cli.notice(nick, ('Please enter an integer between {} and '
-                          '{}.').format(var.MIN_PLAYERS, var.MAX_PLAYERS))
-        return
-
-    # Attempt to find game stats for the given game size
-    if chan == nick:
-        pm(cli, nick, var.get_game_stats(int(rest)))
+            cli.msg(chan, var.get_game_totals(gamemode))
     else:
-        cli.msg(chan, var.get_game_stats(int(rest)))
+        # Attempt to find game stats for the given game size
+        if chan == nick:
+            pm(cli, nick, var.get_game_stats(gamemode, int(rest[0])))
+        else:
+            cli.msg(chan, var.get_game_stats(gamemode, int(rest[0])))
 
 
 @pmcmd('gamestats', 'gstats')
@@ -5923,6 +5957,52 @@ def player_stats(cli, nick, chan, rest):
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
 
+@cmd('game', raw_nick = True)
+def game(cli, nick, chan, rest):
+    nick, _, __, cloak = parse_nick(nick)
+    if var.PHASE == "none":
+        cli.notice(nick, "No game is currently running.")
+        return
+    if var.PHASE != "join":
+        cli.notice(nick, "Werewolf is already in play.")
+        return
+    if nick not in var.list_players():
+        cli.notice(nick, "You're currently not playing.")
+        return
+
+    if rest:
+        gamemode = rest.lower().split()[0]
+    else:
+        gamemodes = ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], 
+        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
+        cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
+        return
+
+    if gamemode not in var.GAME_MODES.keys():
+        #players can vote by only using partial name
+        matches = 0
+        possiblegamemode = gamemode
+        for mode in var.GAME_MODES.keys():
+            if mode.startswith(gamemode) and mode != "roles":
+                possiblegamemode = mode
+                matches += 1
+        if matches != 1:
+            cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
+            return
+        else:
+            gamemode = possiblegamemode
+    
+    if gamemode != "roles":
+        var.GAMEMODE_VOTES[cloak] = gamemode
+        cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
+    else:
+        cli.notice(nick, "You can't vote for that game mode.")
+
+def game_help(args=''):
+    return "Votes to make a specific game mode more likely. Available game mode setters: " +\
+        ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
+game.__doc__ = game_help
 
 @cmd("fpull", admin_only=True)
 def fpull(cli, nick, chan, rest):
@@ -6076,13 +6156,26 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.notice(nick, 'You\'re currently not playing.')
             return
 
-        rest = rest.strip().lower()
-
         if rest:
-            if cgamemode(cli, rest):
+            rest = mode = rest.strip().lower()
+            if rest not in var.GAME_MODES.keys() and not rest.startswith("roles"):
+                rest = rest.split()[0]
+                #players can vote by only using partial name
+                matches = 0
+                for gamemode in var.GAME_MODES.keys():
+                    if gamemode.startswith(rest):
+                        mode = gamemode
+                        matches += 1
+                if matches != 1:
+                    cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(rest))
+                    return
+
+            if cgamemode(cli, mode):
                 cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
                                 'successfully.').format(nick))
-
+                var.FGAMED = True
+        else:
+            cli.notice(nick, fgame.__doc__())
 
     def fgame_help(args=''):
         args = args.strip()
@@ -6090,7 +6183,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if not args:
             return 'Available game mode setters: ' + ', '.join(var.GAME_MODES.keys())
         elif args in var.GAME_MODES.keys():
-            return var.GAME_MODES[args].__doc__
+            if hasattr(var.GAME_MODES[args][0], "__doc__"):
+                return var.GAME_MODES[args][0].__doc__
+            else:
+                return "Game mode {0} has no doc string".format(args)
         else:
             return 'Game mode setter \u0002{}\u0002 not found.'.format(args)
 

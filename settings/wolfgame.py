@@ -283,9 +283,9 @@ def break_long_message(phrases, joinstr = " "):
     return message
 
 class InvalidModeException(Exception): pass
-def game_mode(name):
+def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
-        GAME_MODES[name] = c
+        GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
 
@@ -296,11 +296,12 @@ def reset_roles(index):
     return newguide
 
 # TODO: implement more game modes
-@game_mode("roles")
+@game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(object):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
     def __init__(self, arg = ""):
+        self.MAX_PLAYERS = 35
         self.ROLE_GUIDE = ROLE_GUIDE.copy()
         self.ROLE_INDEX = (MIN_PLAYERS,)
         pairs = arg.split(",")
@@ -338,19 +339,76 @@ class ChangedRolesMode(object):
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
 
-@game_mode("default")
+@game_mode("default", minp = 4, maxp = 24, likelihood = 15)
 class DefaultMode(object):
+    """Default game mode."""
     def __init__(self):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
+@game_mode("foolish", minp = 8,maxp = 24, likelihood = 7)
+class FoolishMode(object):
+    """Contains the fool, be careful not to lynch them!"""
+    def __init__(self):
+        self.ROLE_INDEX =         (  8  ,  9  ,  10 , 11  , 12  , 15  , 17  , 20  , 21  , 22  , 24  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+              "oracle"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "harlot"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2 ,   2  ),
+              "bodyguard"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "augur"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "hunter"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "shaman"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # wolf roles
+              "wolf"            : (  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  ,  3  ,  4  ),
+              "traitor"         : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ),
+              "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # neutral roles
+              "clone"           : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "fool"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # templates
+              "cursed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "gunner"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ),
+              "sharpshooter"    : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              })
+
+@game_mode("mad", minp = 7, maxp = 22, likelihood = 7)
+class MadMode(object):
+    """This game mode has mad scientist and many things that may kill you."""
+    def __init__(self):
+        self.ROLE_INDEX =         (  7  ,  8  ,  10 , 12  , 14  , 15  , 17  , 18  , 20  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+              "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "mad scientist"   : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "detective"       : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "guardian angel"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "hunter"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
+              "harlot"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "village drunk"   : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # wolf roles
+              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
+              "traitor"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "werecrow"        : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  2  ),
+              "cultist"         : (  1  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # neutral roles
+              "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "jester"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+              # templates
+              "cursed villager" : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "gunner"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "sharpshooter"    : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+              })
 
 # evilvillage is broken, disable for now
-#@game_mode("evilvillage")
+#@game_mode("evilvillage", minp = 6, maxp = 18)
 class EvilVillageMode(object):
+    """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
-        self.MIN_PLAYERS = 6
-        self.MAX_PLAYERS = 18
         self.DEFAULT_ROLE = "cultist"
         self.ROLE_INDEX =         (   6   ,  10   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -368,11 +426,10 @@ class EvilVillageMode(object):
               "fool"            : (   0   ,   1   ,   1   ),
               })
 
-@game_mode("classic")
+@game_mode("classic", minp = 4, maxp = 21, likelihood = 4)
 class ClassicMode(object):
+    """Classic game mode from before all the changes."""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 21
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -390,11 +447,10 @@ class ClassicMode(object):
               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               })
 
-@game_mode("rapidfire")
+@game_mode("rapidfire", minp = 6, maxp = 24, likelihood = 0)
 class RapidFireMode(object):
+    """Many roles that lead to multiple chain deaths."""
     def __init__(self):
-        self.MIN_PLAYERS = 6
-        self.MAX_PLAYERS = 25
         self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
@@ -423,11 +479,41 @@ class RapidFireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("noreveal")
-class NoRevealMode(object):
+@game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
+class DrunkFireMode(object):
+    """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 21
+        self.SHARPSHOOTER_CHANCE = 1
+        self.DAY_TIME_LIMIT = 480
+        self.DAY_TIME_WARN = 360
+        self.SHORT_DAY_LIMIT = 240
+        self.SHORT_DAY_WARN = 180
+        self.NIGHT_TIME_LIMIT = 60
+        self.NIGHT_TIME_WARN = 40     #     HIT    MISS    SUICIDE   HEADSHOT
+        self.GUN_CHANCES              = (   3/7  ,  3/7  ,   1/7   ,   4/5   )
+        self.WOLF_GUN_CHANCES         = (   4/7  ,  3/7  ,   0/7   ,   1     )
+        self.ROLE_INDEX =         (   8   ,   10  ,  12   ,  14   ,  16   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   2   ,   2   ),
+            "village drunk"     : (   2   ,   3   ,   4   ,   4   ,   5   ),
+            # wolf roles
+            "wolf"              : (   1   ,   2   ,   2   ,   3   ,   3   ),
+            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   2   ),
+            "hag"               : (   0   ,   0   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "crazed shaman"     : (   0   ,   0   ,   1   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   1   ),
+            "assassin"          : (   0   ,   0   ,   0   ,   1   ,   1   ),
+            "gunner"            : (   5   ,   6   ,   7   ,   8   ,   9   ),
+            "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
+            })
+
+@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 0)
+class NoRevealMode(object):
+    """Roles are not revealed when players die."""
+    def __init__(self):
         self.ROLE_REVEAL = False
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -452,14 +538,38 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("amnesia")
-class AmnesiaMode(object):
+@game_mode("lycan", minp = 7, maxp = 21, likelihood = 1)
+class LycanMode(object):
+    """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self):
-        self.MIN_PLAYERS = 10
-        self.MAX_PLAYERS = 24
+        self.ROLE_INDEX =         (   7   ,   9   ,   10  ,   12  ,  15   ,  17   ,  20   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "detective"         : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "matchmaker"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            # wolf roles
+            "wolf"              : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "traitor"           : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "clone"             : (   0   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
+            "lycan"             : (   1   ,   2   ,   2   ,   3   ,   4   ,   4   ,   5   ),
+            # templates
+            "cursed villager"   : (   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            "mayor"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            })
+
+@game_mode("amnesia", minp = 10, maxp = 24, likelihood = 0)
+class AmnesiaMode(object):
+    """Everyone gets assigned a random role on night 3."""
+    def __init__(self):
         self.DEFAULT_ROLE = "cultist"
         self.HIDDEN_AMNESIAC = False
-        self.ROLE_INDEX = range(self.MIN_PLAYERS, self.MAX_PLAYERS + 1)
+        self.ROLE_INDEX = range(10, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
             "wolf"     : [2 for i in self.ROLE_INDEX],
@@ -469,13 +579,12 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire")
+@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 3)
 class AleatoireMode(object):
+    """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
-        self.MIN_PLAYERS = 4
-        self.MAX_PLAYERS = 24
         self.SHARPSHOOTER_CHANCE = 1
-        #                                          SHAMAN    CRAZED SHAMAN
+                                              #    SHAMAN   , CRAZED SHAMAN
         self.TOTEM_CHANCES = {       "death": (     4/20    ,     1/15     ),
                                 "protection": (     8/20    ,     1/15     ),
                                    "silence": (     2/20    ,     1/15     ),
@@ -584,8 +693,8 @@ with conn:
         'UNIQUE(player, role))'))
 
 
-    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (size SMALLINT, villagewins SMALLINT, ' +
-        'wolfwins SMALLINT, totalgames SMALLINT, UNIQUE(size))'))
+    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
+        'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
 
 
     if OPT_IN_PING:
@@ -671,27 +780,31 @@ def update_role_stats(acc, role, won, iwon):
         c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
                   (acc, role, wins, iwins, total))
 
-def update_game_stats(size, winner):
+def update_game_stats(gamemode, size, winner):
     with conn:
-        vwins, wwins, total = 0, 0, 0
+        vwins, wwins, mwins, fwins, total = 0, 0, 0, 0, 0
 
-        c.execute("SELECT villagewins, wolfwins, totalgames FROM gamestats "+
-                   "WHERE size=?", (size,))
+        c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, totalgames "+
+                    "FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
         row = c.fetchone()
         if row:
-            vwins, wwins, total = row
+            vwins, wwins, mwins, fwins, total = row
 
         if winner == "wolves":
             wwins += 1
         elif winner == "villagers":
             vwins += 1
+        elif winner == "monsters":
+            mwins += 1
+        elif winner.startswith("@"):
+            fwins += 1
         total += 1
 
-        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?)",
-                    (size, vwins, wwins, total))
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?)",
+                    (gamemode, size, vwins, wwins, mwins, fwins, total))
 
 def get_player_stats(acc, role):
-    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()]:
+    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
         return "No such role: {0}".format(role)
     with conn:
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
@@ -723,27 +836,31 @@ def get_player_totals(acc):
         else:
             return "\u0002{0}\u0002 has not played any games.".format(acc)
 
-def get_game_stats(size):
+def get_game_stats(gamemode, size):
     with conn:
-        for row in c.execute("SELECT * FROM gamestats WHERE size=?", (size,)):
-            msg = "\u0002{0}\u0002 player games | Village wins: {1} (%d%%),  Wolf wins: {2} (%d%%), Total games: {3}".format(*row)
-            return msg % (round(row[1]/row[3] * 100), round(row[2]/row[3] * 100))
+        for row in c.execute("SELECT * FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size)):
+            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[6] * 100), row[3], round(row[3]/row[6] * 100))
+            if row[4] > 0:
+                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[6] * 100))
+            if row[5] > 0:
+                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[6] * 100))
+            return msg + ", Total games: {0}".format(row[6])
         else:
             return "No stats for \u0002{0}\u0002 player games.".format(size)
 
-def get_game_totals():
+def get_game_totals(gamemode):
     size_totals = []
     total = 0
     with conn:
         for size in range(MIN_PLAYERS, MAX_PLAYERS + 1):
-            c.execute("SELECT size, totalgames FROM gamestats WHERE size=?", (size,))
+            c.execute("SELECT size, totalgames FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
             row = c.fetchone()
             if row:
                 size_totals.append("\u0002{0}p\u0002: {1}".format(*row))
                 total += row[1]
 
     if len(size_totals) == 0:
-        return "No games have been played."
+        return "No games have been played in the {0} game mode.".format(gamemode)
     else:
         return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
 
