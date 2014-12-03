@@ -6051,38 +6051,49 @@ def fsend(cli, nick, rest):
     cli.send(rest)
 
 
-@pmcmd('fsay', admin_only=True)
-def fsay(cli, nick, rest):
-    rest = rest.split(' ', 1)
+def _say(cli, raw_nick, rest, command, action=False):
+    (nick, _, user, host) = parse_nick(raw_nick)
+    rest = rest.split(" ", 1)
+
     if len(rest) < 2:
-        pm(cli, nick, "Usage: !fsay <channel> <message>")
+        pm(cli, nick, "Usage: {0}{1} <target> <message>".format(
+            command, botconfig.CMD_CHAR))
+
         return
 
-    if rest[0] != botconfig.CHANNEL and (nick not in var.USERS or not is_admin(var.USERS[nick]["cloak"])):
-        pm(cli, nick, "You do not have permission to message this user/channel")
-        return
+    (target, message) = rest
 
-    print('[%s] %s fsay %s: %s' %
-          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
+    if not is_admin(host):
+        if nick not in var.USERS:
+            pm(cli, nick, "You have to be in {0} to use this command.".format(
+                botconfig.CHANNEL))
 
-    cli.send('PRIVMSG %s :%s' % (rest[0], rest[1]))
+            return
+
+        if rest[0] != botconfig.CHANNEL:
+            pm(cli, nick, ("You do not have permission to message this user "
+                           "or channel."))
+
+            return
+
+    print("[{0}] {1} ({2}@{3}) {4} {5}: {6}".format(
+        time.strftime("%Y-%m-%d %H:%M:%S%z"), nick, user, host, command,
+        target, message))
+
+    if action:
+        message = "\x01ACTION {0}\x01".format(message)
+
+    cli.send("PRIVMSG {0} :{1}".format(target, message))
 
 
-@pmcmd('fact', 'fdo', 'fme', admin_only=True)
-def fact(cli, nick, rest):
-    rest = rest.split(' ', 1)
-    if len(rest) < 2:
-        pm(cli, nick, "Usage: !fact <channel> <message>")
-        return
+@pmcmd("fsay", admin_only=True, raw_nick=True)
+def fsay(cli, raw_nick, rest):
+    _say(cli, raw_nick, rest, "fsay")
 
-    if rest[0] != botconfig.CHANNEL and (nick not in var.USERS or not is_admin(var.USERS[nick]["cloak"])):
-        pm(cli, nick, "You do not have permission to message this user/channel")
-        return
 
-    print('[%s] %s fact %s: %s' %
-          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest[0], rest[1]))
-
-    cli.send('PRIVMSG %s :\x01ACTION %s\x01' % (rest[0], rest[1]))
+@pmcmd("fact", "fdo", "fme", admin_only=True, raw_nick=True)
+def fact(cli, raw_nick, rest):
+    _say(cli, raw_nick, rest, "fact", action=True)
 
 
 before_debug_mode_commands = list(COMMANDS.keys())
