@@ -860,18 +860,33 @@ def chk_decision(cli, force = ""):
     # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
     # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
     if len(not_lynching) >= math.ceil(avail / 2):
+        for p in not_lynching:
+            if p not in var.NO_LYNCH:
+                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes to not lynch anyone today.".format(p))
         cli.msg(botconfig.CHANNEL, "The villagers have agreed to not lynch anybody today.")
         var.ABSTAINED = True
         transition_night(cli)
         return
     aftermessage = None
     votelist = copy.deepcopy(var.VOTES)
+    impatient_voters = []
     for votee, voters in votelist.items():
         numvotes = 0
+        random.shuffle(var.IMPATIENT)
         for v in var.IMPATIENT:
             if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
-                voters = [v] + voters
-        for v in voters:
+                # don't add them in if they have the same number or more of pacifism totems
+                # this matters for desperation totem on the votee
+                imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
+                pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
+                if pac_count >= imp_count:
+                    continue
+
+                # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
+                # already !vote earlier. sucks to suck. >:)
+                voters.append(v)
+                impatient_voters.append(v)
+        for v in voters[:]:
             weight = 1
             imp_count = sum([1 if p == v else 0 for p in var.IMPATIENT])
             pac_count = sum([1 if p == v else 0 for p in var.PACIFISTS])
@@ -884,6 +899,9 @@ def chk_decision(cli, force = ""):
             numvotes += weight
 
         if numvotes >= votesneeded or votee == force:
+            for p in impatient_voters:
+                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 impatiently votes for \u0002{1}\u0002.".format(p, votee))
+
             # roles that prevent any lynch from happening
             if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
                 lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
