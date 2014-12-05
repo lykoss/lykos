@@ -6012,7 +6012,7 @@ game.__doc__ = game_help
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
-    args = ["git", "pull", "--rebase=preserve"]
+    args = ["git", "pull", "--stat", "--rebase=preserve"]
 
     if rest:
         args += rest.split(" ")
