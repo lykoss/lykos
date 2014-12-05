@@ -844,10 +844,18 @@ def chk_decision(cli, force = ""):
     pl = var.list_players()
     avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
     votesneeded = avail // 2 + 1
-    not_lynching = set(var.NO_LYNCH)
+    not_lynching = var.NO_LYNCH[:]
     for p in var.PACIFISTS:
         if p in pl and p not in var.WOUNDED and p not in var.ASLEEP:
-            not_lynching.add(p)
+            not_lynching.append(p)
+
+    # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
+    for p in var.IMPATIENT:
+        if p in not_lynching:
+            not_lynching.remove(p)
+
+    # remove duplicates
+    not_lynching = set(not_lynching)
 
     # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
     # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
@@ -2818,7 +2826,7 @@ def no_lynch(cli, nick, chan, rest):
                 var.VOTES[voter].remove(nick)
                 if not var.VOTES[voter]:
                     del var.VOTES[voter]
-        if nick not in var.NO_LYNCH and nick not in var.IMPATIENT:
+        if nick not in var.NO_LYNCH:
             var.NO_LYNCH.append(nick)
         cli.msg(chan, "\u0002{0}\u0002 votes to not lynch anyone today.".format(nick))
         
