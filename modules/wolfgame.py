@@ -3961,7 +3961,8 @@ def pass_cmd(cli, nick, rest):
         var.HUNTERS.remove(nick)
 
     pm(cli, nick, "You have decided to not kill anyone tonight.")
-    var.PASSED.append(nick)
+    if nick not in var.PASSED: # Prevents multiple entries
+        var.PASSED.append(nick)
     #var.LOGGER.logBare(nick, "PASS", nick)
     chk_nightdone(cli)
 
