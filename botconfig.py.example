@@ -20,19 +20,3 @@ ALLOWED_NORMAL_MODE_COMMANDS = []  # debug mode commands to be allowed in normal
 
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")  # glob syntax supported (wildcards)
-
-# Stop editing here
-
-# Argument --debug means start in debug mode
-#          --verbose means to print a lot of stuff (when not in debug mode)
-import argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--sabotage', action='store_true')
-parser.add_argument('--verbose', action='store_true')
-
-args = parser.parse_args()
-DEBUG_MODE = args.debug if not DISABLE_DEBUG_MODE else False
-VERBOSE_MODE = args.verbose
-
-DEFAULT_MODULE = "sabotage" if args.sabotage else "wolfgame"
