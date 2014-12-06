@@ -521,6 +521,37 @@ class AleatoireMode(object):
             "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             })
 
+# Credits to Metacity for designing
+# Broken, but here anyway by order of Vgr
+            
+@game_mode("cookie")
+class CookieMode(object):
+    def __init__(self):
+        self.MIN_PLAYERS = 4
+        self.MAX_PLAYERS = 30
+        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,   9   ,  12   ,  15   ,  17   ,  19   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "shaman"            : (   0   ,   0   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "village drunk"     : (   0   ,   1   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "detective"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   2   ),
+            # wolf roles
+            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   3   ),
+            "traitor"           : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "minion"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            # neutral roles
+            "crazed shaman"     : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "monster"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "assassin"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            })
+
 # Persistence
 
 
