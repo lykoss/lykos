@@ -1318,78 +1318,82 @@ def chk_win(cli, end_game = True):
             return True
         return False
 
-    lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
-    cubs = len(var.ROLES["wolf cub"]) if "wolf cub" in var.ROLES else 0
-    lrealwolves = len(var.list_players(var.WOLF_ROLES)) - cubs
-    monsters = len(var.ROLES["monster"]) if "monster" in var.ROLES else 0
-    traitors = len(var.ROLES["traitor"]) if "traitor" in var.ROLES else 0
-    if var.PHASE == "day":
-        for p in var.WOUNDED:
-            try:
-                role = var.get_role(p)
-                if role in var.WOLFCHAT_ROLES:
-                    lwolves -= 1
-                else:
-                    lpl -= 1
-            except KeyError:
-                pass
-        for p in var.ASLEEP:
-            try:
-                role = var.get_role(p)
-                if role in var.WOLFCHAT_ROLES:
-                    lwolves -= 1
-                else:
-                    lpl -= 1
-            except KeyError:
-                pass
+    with var.GRAVEYARD_LOCK:
+        if var.PHASE not in ("day", "night"):
+            return False #some other thread already ended game probably
+        
+        lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+        cubs = len(var.ROLES["wolf cub"]) if "wolf cub" in var.ROLES else 0
+        lrealwolves = len(var.list_players(var.WOLF_ROLES)) - cubs
+        monsters = len(var.ROLES["monster"]) if "monster" in var.ROLES else 0
+        traitors = len(var.ROLES["traitor"]) if "traitor" in var.ROLES else 0
+        if var.PHASE == "day":
+            for p in var.WOUNDED:
+                try:
+                    role = var.get_role(p)
+                    if role in var.WOLFCHAT_ROLES:
+                        lwolves -= 1
+                    else:
+                        lpl -= 1
+                except KeyError:
+                    pass
+            for p in var.ASLEEP:
+                try:
+                    role = var.get_role(p)
+                    if role in var.WOLFCHAT_ROLES:
+                        lwolves -= 1
+                    else:
+                        lpl -= 1
+                except KeyError:
+                    pass
 
-    if lpl < 1:
-        message = "Game over! There are no players remaining. Nobody wins."
-        winner = "none"
-    elif lwolves == lpl / 2:
-        if monsters > 0:
-            plural = "s" if monsters > 1 else ""
-            message = ("Game over! There are the same number of wolves as uninjured villagers. " +
-                       "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
-                       "causing the monster{0} to win.").format(plural)
-            winner = "monsters"
+        if lpl < 1:
+            message = "Game over! There are no players remaining. Nobody wins."
+            winner = "none"
+        elif lwolves == lpl / 2:
+            if monsters > 0:
+                plural = "s" if monsters > 1 else ""
+                message = ("Game over! There are the same number of wolves as uninjured villagers. " +
+                           "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
+                           "causing the monster{0} to win.").format(plural)
+                winner = "monsters"
+            else:
+                message = ("Game over! There are the same number of wolves as " +
+                          "uninjured villagers. The wolves overpower the villagers and win.")
+                winner = "wolves"
+        elif lwolves > lpl / 2:
+            if monsters > 0:
+                plural = "s" if monsters > 1 else ""
+                message = ("Game over! There are more wolves than uninjured villagers. " +
+                           "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
+                           "causing the monster{0} to win.").format(plural)
+                winner = "monsters"
+            else:
+                message = ("Game over! There are more wolves than "+
+                          "uninjured villagers. The wolves overpower the villagers and win.")
+                winner = "wolves"
+        elif lrealwolves == 0 and traitors == 0 and cubs == 0:
+            if monsters > 0:
+                plural = "s" if monsters > 1 else ""
+                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
+                           "the monster{0} quickly kill{1} the remaining villagers, " +
+                           "causing the monster{0} to win.").format(plural, "" if plural else "s")
+                winner = "monsters"
+            else:
+                message = ("Game over! All the wolves are dead! The villagers " +
+                          "chop them up, BBQ them, and have a hearty meal.")
+                winner = "villagers"
+        elif lrealwolves == 0:
+            chk_traitor(cli)
+            return chk_win(cli, end_game)
         else:
-            message = ("Game over! There are the same number of wolves as " +
-                      "uninjured villagers. The wolves overpower the villagers and win.")
-            winner = "wolves"
-    elif lwolves > lpl / 2:
-        if monsters > 0:
-            plural = "s" if monsters > 1 else ""
-            message = ("Game over! There are more wolves than uninjured villagers. " +
-                       "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
-                       "causing the monster{0} to win.").format(plural)
-            winner = "monsters"
-        else:
-            message = ("Game over! There are more wolves than "+
-                      "uninjured villagers. The wolves overpower the villagers and win.")
-            winner = "wolves"
-    elif lrealwolves == 0 and traitors == 0 and cubs == 0:
-        if monsters > 0:
-            plural = "s" if monsters > 1 else ""
-            message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
-                       "the monster{0} quickly kill{1} the remaining villagers, " +
-                       "causing the monster{0} to win.").format(plural, "" if plural else "s")
-            winner = "monsters"
-        else:
-            message = ("Game over! All the wolves are dead! The villagers " +
-                      "chop them up, BBQ them, and have a hearty meal.")
-            winner = "villagers"
-    elif lrealwolves == 0:
-        chk_traitor(cli)
-        return chk_win(cli, end_game)
-    else:
-        return False
-    if end_game:
-        cli.msg(chan, message)
-        var.LOGGER.logMessage(message)
-        var.LOGGER.logBare(winner.upper(), "WIN")
-        stop_game(cli, winner)
-    return True
+            return False
+        if end_game:
+            cli.msg(chan, message)
+            var.LOGGER.logMessage(message)
+            var.LOGGER.logBare(winner.upper(), "WIN")
+            stop_game(cli, winner)
+        return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = ""):
     """
@@ -1724,8 +1728,8 @@ def reaper(cli, gameid):
 
     while gameid == var.GAME_ID:
         with var.GRAVEYARD_LOCK:
-            # Terminate reaper when experiencing disk lag
-            if var.PHASE == "writing files":
+            # Terminate reaper when game ends
+            if var.PHASE not in ("day", "night"):
                 return
             if var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
                 to_warn    = []
