@@ -98,6 +98,7 @@ def connect_callback(cli):
 
     def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
+        cli.join(botconfig.ALT_CHANNELS)
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
         cli.cap("REQ", "extended-join")

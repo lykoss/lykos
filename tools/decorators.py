@@ -27,14 +27,29 @@ def generate(fdict, permissions=True, **kwargs):
                 else:
                     nick = ""
                     cloak = ""
+                if len(largs) > 3 and largs[2]:
+                    chan = largs[2]
+                else:
+                    chan = ""
+                if not raw_nick and len(largs) > 1 and largs[1]:
+                    largs[1] = nick
+                if not permissions:
+                    return f(*largs)
+                if chan and not chan == botconfig.CHANNEL and not admin_only and not owner_only:
+                    if "" in s:
+                        return # Don't have empty commands triggering in other channels
+                    allowed = False
+                    for cmdname in s:
+                        if cmdname in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
+                            allowed = True
+                            break
+                    if not allowed:
+                        return
                 if nick in var.USERS.keys():
                     acc = var.USERS[nick]["account"]
                 else:
                     acc = None
-                if not raw_nick and len(largs) > 1 and largs[1]:
-                    largs[1] = nick
-                    #if largs[1].startswith("#"):
-                if not permissions or "" in s:
+                if "" in s:
                     return f(*largs)
                 if cloak:
                     for pattern in botconfig.DENY.keys():
