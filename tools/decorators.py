@@ -11,6 +11,7 @@
 from oyoyo.parse import parse_nick
 import fnmatch
 import botconfig
+import settings.wolfgame as var
 
 def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
@@ -26,7 +27,10 @@ def generate(fdict, permissions=True, **kwargs):
                 else:
                     nick = ""
                     cloak = ""
-                    
+                if nick in var.USERS.keys():
+                    acc = var.USERS[nick]["account"]
+                else:
+                    acc = None
                 if not raw_nick and len(largs) > 1 and largs[1]:
                     largs[1] = nick
                     #if largs[1].startswith("#"):
@@ -44,18 +48,37 @@ def generate(fdict, permissions=True, **kwargs):
                             for cmdname in s:
                                 if cmdname in botconfig.ALLOW[pattern]:
                                     return f(*largs)  # no questions
+                if acc:
+                    for pattern in botconfig.DENY_ACCOUNTS.keys():
+                        if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                            for cmdname in s:
+                                if cmdname in botconfig.DENY_ACCOUNTS[pattern]:
+                                    largs[0].notice(nick, "You do not have permission to use that command.")
+                                    return
+                    for pattern in botconfig.ALLOW_ACCOUNTS.keys():
+                        if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                            for cmdname in s:
+                                if cmdname in botconfig.ALLOW_ACCOUNTS[pattern]:
+                                    return f(*largs)
                 if owner_only:
                     if cloak and [ptn for ptn in botconfig.OWNERS 
                                   if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
-                    elif cloak:
+                    elif acc and [ptn for ptn in botconfig.OWNERS_ACCOUNTS
+                                  if fnmatch.fnmatch(acc.lower(), ptn.lower())]:
+                        return f(*largs)
+                    else:
                         largs[0].notice(nick, "You are not the owner.")
                         return
                 if admin_only:
                     if cloak and [ptn for ptn in botconfig.ADMINS+botconfig.OWNERS
                                   if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
                         return f(*largs)
-                    elif cloak:
+                    elif acc and [ptn for ptn in (botconfig.ADMINS_ACCOUNTS+
+                                  botconfig.OWNERS_ACCOUNTS) if fnmatch.fnmatch(
+                                  acc.lower(), ptn.lower())]:
+                        return f(*largs)
+                    else:
                         largs[0].notice(nick, "You are not an admin.")
                         return
                 return f(*largs)

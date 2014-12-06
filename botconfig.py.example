@@ -20,3 +20,6 @@ ALLOWED_NORMAL_MODE_COMMANDS = []  # debug mode commands to be allowed in normal
 
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # the comma is required at the end if there is one owner
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")  # glob syntax supported (wildcards)
+
+OWNERS_ACCOUNTS = ("1owner_acc",)
+ADMINS_ACCOUNTS = ("1admin_acc", "2admin_acc")

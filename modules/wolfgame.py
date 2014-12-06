@@ -5500,7 +5500,7 @@ def get_help(cli, rnick, rest):
             not fn[0].owner_only and name not in fn[0].aliases):
             fns.append("\u0002"+name+"\u0002")
     afns = []
-    if is_admin(cloak) or cloak in botconfig.OWNERS: # todo - is_owner
+    if is_admin(nick):
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
@@ -5522,9 +5522,23 @@ def on_invite(cli, nick, something, chan):
         cli.join(chan)
 
 
-def is_admin(cloak):
-    return bool([ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(cloak.lower(), ptn.lower())])
+def is_admin(nick):
+    if nick not in var.USERS.keys():
+        return False
+    if [ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(var.USERS[nick]["cloak"].lower(), ptn.lower())]:
+        return True
+    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(var.USERS[nick]["account"].lower(), ptn.lower())]:
+        return True
+    return False
 
+def is_owner(nick):
+    if nick not in var.USERS.keys():
+        return False
+    if [ptn for ptn in botconfig.OWNERS if fnmatch.fnmatch(var.USERS[nick]["cloak"].lower(), ptn.lower())]:
+        return True
+    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(var.USERS[nick]["account"].lower(), ptn.lower())]:
+        return True
+    return False
 
 @cmd("admins", "ops")
 def show_admins(cli, nick, chan, rest):
@@ -5552,7 +5566,7 @@ def show_admins(cli, nick, chan, rest):
         if not var.ADMIN_PINGING:
             return
 
-        if is_admin(cloak) and "G" not in status and user != botconfig.NICK:
+        if is_admin(user) and "G" not in status and user != botconfig.NICK:
             admins.append(user)
 
     @hook("endofwho", hookid=4)
@@ -6097,7 +6111,7 @@ def _say(cli, raw_nick, rest, command, action=False):
 
     (target, message) = rest
 
-    if not is_admin(host):
+    if not is_admin(nick):
         if nick not in var.USERS:
             pm(cli, nick, "You have to be in {0} to use this command.".format(
                 botconfig.CHANNEL))
@@ -6262,7 +6276,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         did = False
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(var.USERS[nick]["cloak"])):
+                not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -6280,7 +6294,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             #    chk_nightdone(cli)
         elif COMMANDS.get(cmd) and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(var.USERS[nick]["cloak"])):
+                not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -6319,7 +6333,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
             if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(var.USERS[nick]["cloak"])):
+                not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
@@ -6332,7 +6346,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             #    chk_nightdone(cli)
         elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
             if (COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(var.USERS[nick]["cloak"])):
+                not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
