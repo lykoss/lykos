@@ -76,22 +76,13 @@ def generate(fdict, permissions=True, **kwargs):
                                 if cmdname in botconfig.ALLOW_ACCOUNTS[pattern]:
                                     return f(*largs)
                 if owner_only:
-                    if cloak and [ptn for ptn in botconfig.OWNERS 
-                                  if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
-                        return f(*largs)
-                    elif acc and [ptn for ptn in botconfig.OWNERS_ACCOUNTS
-                                  if fnmatch.fnmatch(acc.lower(), ptn.lower())]:
+                    if var.is_owner(nick):
                         return f(*largs)
                     else:
                         largs[0].notice(nick, "You are not the owner.")
                         return
                 if admin_only:
-                    if cloak and [ptn for ptn in botconfig.ADMINS+botconfig.OWNERS
-                                  if fnmatch.fnmatch(cloak.lower(), ptn.lower())]:
-                        return f(*largs)
-                    elif acc and [ptn for ptn in (botconfig.ADMINS_ACCOUNTS+
-                                  botconfig.OWNERS_ACCOUNTS) if fnmatch.fnmatch(
-                                  acc.lower(), ptn.lower())]:
+                    if var.is_admin(nick):
                         return f(*largs)
                     else:
                         largs[0].notice(nick, "You are not an admin.")

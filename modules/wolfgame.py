@@ -44,6 +44,9 @@ COMMANDS = {}
 PM_COMMANDS = {}
 HOOKS = {}
 
+is_admin = var.is_admin
+is_owner = var.is_owner
+
 cmd = decorators.generate(COMMANDS)
 pmcmd = decorators.generate(PM_COMMANDS)
 hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
@@ -5574,24 +5577,6 @@ def pm_fpart(cli, rnick, rest):
     pm(cli, nick, "Leaving {0}".format(rest[0]))
     log_cmd(rnick, "fpart", "", rest[0])
     cli.part(rest[0])
-
-def is_admin(nick):
-    if nick not in var.USERS.keys():
-        return False
-    if [ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(var.USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
-    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(var.USERS[nick]["account"].lower(), ptn.lower())]:
-        return True
-    return False
-
-def is_owner(nick):
-    if nick not in var.USERS.keys():
-        return False
-    if [ptn for ptn in botconfig.OWNERS if fnmatch.fnmatch(var.USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
-    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(var.USERS[nick]["account"].lower(), ptn.lower())]:
-        return True
-    return False
 
 @cmd("admins", "ops")
 def show_admins(cli, nick, chan, rest):

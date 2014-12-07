@@ -195,7 +195,7 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
 
-import botconfig
+import botconfig, fnmatch
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 botconfig.DENY = {} # These are set in here ... for now
@@ -210,6 +210,24 @@ OPT_IN_PING = False  # instead of !away/!back, users can opt-in to be pinged
 PING_IN = []  # cloaks of users who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
+
+def is_admin(nick):
+    if nick not in USERS.keys():
+        return False
+    if [ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
+        return True
+    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
+        return True
+    return False
+
+def is_owner(nick):
+    if nick not in USERS.keys():
+        return False
+    if [ptn for ptn in botconfig.OWNERS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
+        return True
+    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
+        return True
+    return False
 
 def plural(role):
     if role == "wolf": return "wolves"
