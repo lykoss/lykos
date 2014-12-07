@@ -869,8 +869,8 @@ def chk_decision(cli, force = ""):
         return
     aftermessage = None
     votelist = copy.deepcopy(var.VOTES)
-    impatient_voters = []
     for votee, voters in votelist.items():
+        impatient_voters = []
         numvotes = 0
         random.shuffle(var.IMPATIENT)
         for v in var.IMPATIENT:
