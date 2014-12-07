@@ -129,8 +129,11 @@ def connect_callback(cli):
             cmodes.append(("-v", nick))
         # devoice all on connect
 
+    #bot can be tricked into thinking it's still opped by doing multiple modes at once
     @hook("mode", hookid=294)
-    def on_give_me_ops(cli, blah, blahh, modeaction, target="", *other):
+    def on_give_me_ops(cli, nick, chan, modeaction, target="", *other):
+        if chan != botconfig.CHANNEL:
+            return
         if modeaction == "+o" and target == botconfig.NICK:
             var.OPPED = True
 
@@ -326,7 +329,7 @@ def pinger(cli, nick, chan, rest):
 
         TO_PING.sort(key=lambda x: x.lower())
 
-        cli.msg(botconfig.CHANNEL, "PING! "+" ".join(TO_PING))
+        cli.msg(chan, "PING! "+" ".join(TO_PING))
         var.PINGING = False
 
         minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
@@ -335,7 +338,7 @@ def pinger(cli, nick, chan, rest):
 
         decorators.unhook(HOOKS, 800)
 
-    cli.who(botconfig.CHANNEL)
+    cli.who(chan)
 
 
 @cmd("simple", raw_nick = True)
@@ -613,8 +616,9 @@ def fstart(cli, nick, chan, rest):
 @hook("kick")
 def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
-        cli.join(botconfig.CHANNEL)
-        cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+        cli.join(chan)
+        if chan == botconfig.CHANNEL:
+            cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
 
 @hook("account")
@@ -1817,6 +1821,9 @@ def reaper(cli, gameid):
 
 @cmd("")  # update last said
 def update_last_said(cli, nick, chan, rest):
+    if chan != botconfig.CHANNEL:
+        return
+
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[nick] = datetime.now()
 
@@ -1844,6 +1851,8 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
         else:
             var.USERS[nick]["cloak"] = cloak
             var.USERS[nick]["account"] = acc
+    if chan != botconfig.CHANNEL:
+        return
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
             clk = var.DISCONNECTED[nick][0]
@@ -2147,7 +2156,7 @@ def on_nick(cli, oldnick, nick):
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
 
-    if what == "part" and why != botconfig.CHANNEL: return
+    if what in ("part", "kick") and why != botconfig.CHANNEL: return
 
     if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
         return
@@ -2209,7 +2218,7 @@ def leave(cli, what, nick, why=""):
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick, rest[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
-hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1]))
+hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 
 
 @cmd("quit", "leave")
@@ -5454,7 +5463,7 @@ def show_rules(cli, nick, chan, rest):
     if var.PHASE in ("day", "night") and nick not in var.list_players():
         cli.notice(nick, var.RULES)
         return
-    cli.msg(botconfig.CHANNEL, var.RULES)
+    cli.msg(chan, var.RULES)
     var.LOGGER.logMessage(var.RULES)
 
 
@@ -5588,7 +5597,10 @@ def show_admins(cli, nick, chan, rest):
         decorators.unhook(HOOKS, 4)
         var.ADMIN_PINGING = False
 
-    cli.who(botconfig.CHANNEL)
+    if nick == chan:
+        cli.who(botconfig.CHANNEL)
+    else:
+        cli.who(chan)
 
 
 @pmcmd("admins", "ops")
