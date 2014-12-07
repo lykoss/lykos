@@ -5541,11 +5541,39 @@ def help2(cli, nick, chan, rest):
     get_help(cli, nick, rest)
 
 
-@hook("invite", raw_nick = False, admin_only = True)
+@hook("invite")
 def on_invite(cli, nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
+        return # No questions
+    if is_admin(parse_nick(nick)[0]):
+        cli.join(chan) # Allows the bot to be present in any channel
+        log_cmd(nick, "invite", "", chan)
+    else:
+        pm(parse_nick(nick)[0], "You are not an admin.")
 
+@cmd("fpart", raw_nick=True, admin_only=True)
+def fpart(cli, rnick, chan, rest):
+    """Makes the bot forcibly leave a channel."""
+    if chan == botconfig.CHANNEL:
+        pm(cli, parse_nick(rnick)[0], "No, that won't be allowed.")
+        return
+    log_cmd(rnick, "fpart", "", chan)
+    cli.part(chan)
+
+@pmcmd("fpart", raw_nick=True, admin_only=True)
+def pm_fpart(cli, rnick, rest):
+    rest = rest.split()
+    nick = parse_nick(rnick)[0]
+    if not rest:
+        pm(cli, nick, "Usage: fpart <channel>")
+        return
+    if rest[0] == botconfig.CHANNEL:
+        pm(cli, nick, "No, that won't be allowed.")
+        return
+    pm(cli, nick, "Leaving {0}".format(rest[0]))
+    log_cmd(rnick, "fpart", "", rest[0])
+    cli.part(rest[0])
 
 def is_admin(nick):
     if nick not in var.USERS.keys():
