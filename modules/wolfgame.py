@@ -182,6 +182,22 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
     else:
         cli.msg(target, message)
 
+
+def log_cmd(raw_nick, command, args, text):
+    (nick, _, user, host) = parse_nick(raw_nick)
+
+    msg = "[{0}] {1} ({2}@{3}) {4}".format(
+        time.strftime("%Y-%m-%d %H:%M:%S%z"), nick, user, host, command)
+
+    if args:
+        msg += " {0}".format(" ".join(args))
+
+    if text:
+        msg += ": " + text
+
+    print(msg)
+
+
 def reset_settings():
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
@@ -6103,16 +6119,15 @@ def fpull_pm(cli, nick, rest):
     fpull(cli, nick, nick, rest)
 
 
-@pmcmd('fsend', admin_only=True)
-def fsend(cli, nick, rest):
-    print('[%s] %s fsend: %s' %
-          (time.strftime('%Y-%m-%dT%H:%M:%S%z'), nick, rest))
+@pmcmd("fsend", admin_only=True, raw_nick=True)
+def fsend(cli, raw_nick, rest):
+    log_cmd(raw_nick, "fsend", (), rest)
 
     cli.send(rest)
 
 
 def _say(cli, raw_nick, rest, command, action=False):
-    (nick, _, user, host) = parse_nick(raw_nick)
+    (nick, _, _, _) = parse_nick(raw_nick)
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
@@ -6136,9 +6151,7 @@ def _say(cli, raw_nick, rest, command, action=False):
 
             return
 
-    print("[{0}] {1} ({2}@{3}) {4} {5}: {6}".format(
-        time.strftime("%Y-%m-%d %H:%M:%S%z"), nick, user, host, command,
-        target, message))
+    log_cmd(raw_nick, command, (target,), message)
 
     if action:
         message = "\x01ACTION {0}\x01".format(message)
