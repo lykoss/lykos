@@ -27,7 +27,7 @@ def generate(fdict, permissions=True, **kwargs):
                 else:
                     nick = ""
                     cloak = ""
-                if len(largs) > 3 and largs[2]:
+                if len(largs) > 3 and largs[2] and largs[2][0] == "#":
                     chan = largs[2]
                 else:
                     chan = ""
