@@ -718,12 +718,11 @@ with conn:
         'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
 
 
-    if OPT_IN_PING:
-        c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
+    c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
-        c.execute('SELECT * FROM ping')
-        for row in c:
-            PING_IN.append(row[0])
+    c.execute('SELECT * FROM ping')
+    for row in c:
+        PING_IN.append(row[0])
 
 
 def remove_away(clk):
