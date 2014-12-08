@@ -615,7 +615,11 @@ def fleave(cli, nick, chann_, rest):
         if var.get_role(a) != "person" and var.ROLE_REVEAL:
             message += " Say goodbye to the \02{0}\02.".format(var.get_reveal_role(a))
         if var.PHASE == "join":
-            message += " New player count: \u0002{0}\u0002".format(len(var.list_players()) - 1)
+            lpl = len(var.list_players()) - 1
+            if lpl == 0:
+                message += " No more players remaining."
+            else:
+                message += (" New player count: \u0002{0}\u0002").format(lpl)
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
             var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_reveal_role(a)))
