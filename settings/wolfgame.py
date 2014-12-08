@@ -845,12 +845,14 @@ def get_player_totals(acc):
         player = c.fetchone()
         if player:
             c.execute("SELECT role, totalgames FROM rolestats WHERE player=? COLLATE NOCASE ORDER BY totalgames DESC", (acc,))
+            role_tmp = defaultdict(int)
             while True:
                 row = c.fetchone()
                 if row:
-                    role_totals.append("\u0002{0}\u0002: {1}".format(row[0], row[1]))
+                    role_tmp[row[0]] += row[1]
                 else:
                     break
+            role_totals = ["\u0002{0}\u0002: {1}".format(role, count) for role, count in role_tmp.items()]
             c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
             row = c.fetchone()
             return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], break_long_message(role_totals, ", "))
