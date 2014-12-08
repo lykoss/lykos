@@ -194,6 +194,14 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged.",
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
+QUIT_MESSAGES = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
+                 "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomaches.",
+                 "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
+                 "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
+QUIT_MESSAGES_RROLE = ("\u0002{0}\u0002, a \u0002{1}\u0002, suddenly falls over dead before the astonished villagers.",
+                       "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{1}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
+                       "\u0002{0}\u0002, a \u0002{1}\u0002, fell off the roof of their house and is now dead.",
+                       "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{1}\u0002, but it is too late.")
 
 import botconfig, fnmatch
 
@@ -649,6 +657,37 @@ class AleatoireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
             "bureaucrat"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
             "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            })
+
+# Credits to Metacity for designing
+# Broken, but here anyway by order of Vgr
+            
+@game_mode("cookie")
+class CookieMode(object):
+    def __init__(self):
+        self.MIN_PLAYERS = 4
+        self.MAX_PLAYERS = 30
+        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,   9   ,  12   ,  15   ,  17   ,  19   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "shaman"            : (   0   ,   0   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "village drunk"     : (   0   ,   1   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "detective"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   2   ),
+            # wolf roles
+            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   3   ),
+            "traitor"           : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "minion"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            # neutral roles
+            "crazed shaman"     : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "monster"           : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "assassin"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ,   2   ),
             })
 
 # Persistence
