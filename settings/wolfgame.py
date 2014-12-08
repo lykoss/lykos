@@ -194,6 +194,14 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged.",
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
+QUIT_MESSAGES = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
+                 "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomaches.",
+                 "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
+                 "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
+QUIT_MESSAGES_RROLE = ("\u0002{0}\u0002, a \u0002{1}\u0002, suddenly falls over dead before the astonished villagers.",
+                       "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{1}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
+                       "\u0002{0}\u0002, a \u0002{1}\u0002, fell off the roof of their house and is now dead.",
+                       "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{1}\u0002, but it is too late.")
 
 import botconfig, fnmatch
 
