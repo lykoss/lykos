@@ -658,71 +658,72 @@ class AleatoireMode(object):
 import sqlite3
 
 conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
+c = conn.cursor()
 
-with conn:
-    c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
+def init_db():
+    with conn:
+        c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
 
-    c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
+        c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
 
-    c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice
+        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice
 
-    c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people
+        c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people
 
-    c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.DENY
+        c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.DENY
 
-    c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.ALLOW
+        c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.ALLOW
 
-    c.execute('SELECT * FROM away')
-    for row in c:
-        AWAY.append(row[0])
+        c.execute('SELECT * FROM away')
+        for row in c:
+            AWAY.append(row[0])
 
-    c.execute('SELECT * FROM simple_role_notify')
-    for row in c:
-        SIMPLE_NOTIFY.append(row[0])
+        c.execute('SELECT * FROM simple_role_notify')
+        for row in c:
+            SIMPLE_NOTIFY.append(row[0])
 
-    c.execute('SELECT * FROM prefer_notice')
-    for row in c:
-        PREFER_NOTICE.append(row[0])
+        c.execute('SELECT * FROM prefer_notice')
+        for row in c:
+            PREFER_NOTICE.append(row[0])
 
-    c.execute('SELECT * FROM stasised')
-    for row in c:
-        STASISED[row[0]] = row[1]
+        c.execute('SELECT * FROM stasised')
+        for row in c:
+            STASISED[row[0]] = row[1]
 
-    c.execute('SELECT * FROM denied')
-    for row in c:
-        if row[0] not in botconfig.DENY:
-            botconfig.DENY[row[0]] = []
-        botconfig.DENY[row[0]].append(row[1])
+        c.execute('SELECT * FROM denied')
+        for row in c:
+            if row[0] not in botconfig.DENY:
+                botconfig.DENY[row[0]] = []
+            botconfig.DENY[row[0]].append(row[1])
 
-    c.execute('SELECT * FROM allowed')
-    for row in c:
-        if row[0] not in botconfig.ALLOW:
-            botconfig.ALLOW[row[0]] = []
-        botconfig.ALLOW[row[0]].append(row[1])
+        c.execute('SELECT * FROM allowed')
+        for row in c:
+            if row[0] not in botconfig.ALLOW:
+                botconfig.ALLOW[row[0]] = []
+            botconfig.ALLOW[row[0]].append(row[1])
 
-    # populate the roles table
-    c.execute('DROP TABLE IF EXISTS roles')
-    c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
+        # populate the roles table
+        c.execute('DROP TABLE IF EXISTS roles')
+        c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
 
-    for x in list(ROLE_GUIDE.keys()):
-        c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
-
-
-    c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, role TEXT, '+
-        'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
-        'UNIQUE(player, role))'))
+        for x in list(ROLE_GUIDE.keys()):
+            c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
 
 
-    c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
-        'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
+        c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, role TEXT, '+
+            'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
+            'UNIQUE(player, role))'))
 
 
-    c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
+        c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
+            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
 
-    c.execute('SELECT * FROM ping')
-    for row in c:
-        PING_IN.append(row[0])
+
+        c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
+
+        c.execute('SELECT * FROM ping')
+        for row in c:
+            PING_IN.append(row[0])
 
 
 def remove_away(clk):

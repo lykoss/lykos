@@ -87,6 +87,8 @@ var.DISCONNECTED = {}  # players who got disconnected
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
+var.init_db()
+
 var.OPPED = False  # Keeps track of whether the bot is opped
 
 if botconfig.DEBUG_MODE:
