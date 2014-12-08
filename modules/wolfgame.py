@@ -2192,10 +2192,12 @@ def leave_game(cli, nick, chan, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     if var.get_role(nick) != "person" and var.ROLE_REVEAL:
-        cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
+        lmsg = random.choice(var.QUIT_MESSAGES_RROLE).format(nick, var.get_reveal_role(nick), population)
+        cli.msg(botconfig.CHANNEL, lmsg)
         var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
     else:
-        cli.msg(botconfig.CHANNEL, ("\02{0}\02 has died of an unknown disease.{1}").format(nick, population))
+        lmsg = random.choice(var.QUIT_MESSAGES).format(nick, population)
+        cli.msg(botconfig.CHANNEL, lmsg)
         var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
     if var.PHASE != "join":
         for r, rlist in var.ORIGINAL_ROLES.items():
