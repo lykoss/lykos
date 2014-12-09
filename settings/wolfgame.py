@@ -198,10 +198,10 @@ QUIT_MESSAGES = ("\u0002{0}\u0002 suddenly falls over dead before the astonished
                  "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomaches.",
                  "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
                  "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
-QUIT_MESSAGES_RROLE = ("\u0002{0}\u0002, a \u0002{1}\u0002, suddenly falls over dead before the astonished villagers.",
-                       "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{1}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
-                       "\u0002{0}\u0002, a \u0002{1}\u0002, fell off the roof of their house and is now dead.",
-                       "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{1}\u0002, but it is too late.")
+QUIT_MESSAGES_RROLE = ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
+                       "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
+                       "\u0002{0}\u0002, a{1} \u0002{2}\u0002, fell off the roof of their house and is now dead.",
+                       "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{2}\u0002, but it is too late.")
 
 import botconfig, fnmatch
 
