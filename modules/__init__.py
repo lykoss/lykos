@@ -30,3 +30,7 @@ botconfig.DEBUG_MODE = args.debug if not botconfig.DISABLE_DEBUG_MODE else False
 botconfig.VERBOSE_MODE = args.verbose
 
 botconfig.DEFAULT_MODULE = "sabotage" if args.sabotage else "wolfgame"
+
+# Initialize Database
+
+var.init_db()

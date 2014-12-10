@@ -45,36 +45,36 @@ def generate(fdict, permissions=True, **kwargs):
                             break
                     if not allowed:
                         return
-                if nick in var.USERS.keys():
+                if nick in var.USERS.keys() and var.USERS[nick]["account"] != "*":
                     acc = var.USERS[nick]["account"]
                 else:
                     acc = None
                 if "" in s:
                     return f(*largs)
-                if cloak:
-                    for pattern in botconfig.DENY.keys():
-                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in botconfig.DENY[pattern]:
-                                    largs[0].notice(nick, "You do not have permission to use that command.")
-                                    return
-                    for pattern in botconfig.ALLOW.keys():
-                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in botconfig.ALLOW[pattern]:
-                                    return f(*largs)  # no questions
                 if acc:
-                    for pattern in botconfig.DENY_ACCOUNTS.keys():
+                    for pattern in var.DENY_ACCOUNTS.keys():
                         if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                             for cmdname in s:
-                                if cmdname in botconfig.DENY_ACCOUNTS[pattern]:
+                                if cmdname in var.DENY_ACCOUNTS[pattern]:
                                     largs[0].notice(nick, "You do not have permission to use that command.")
                                     return
-                    for pattern in botconfig.ALLOW_ACCOUNTS.keys():
+                    for pattern in var.ALLOW_ACCOUNTS.keys():
                         if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                             for cmdname in s:
-                                if cmdname in botconfig.ALLOW_ACCOUNTS[pattern]:
+                                if cmdname in var.ALLOW_ACCOUNTS[pattern]:
                                     return f(*largs)
+                if not var.ACCOUNTS_ONLY and cloak:
+                    for pattern in var.DENY.keys():
+                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                            for cmdname in s:
+                                if cmdname in var.DENY[pattern]:
+                                    largs[0].notice(nick, "You do not have permission to use that command.")
+                                    return
+                    for pattern in var.ALLOW.keys():
+                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                            for cmdname in s:
+                                if cmdname in var.ALLOW[pattern]:
+                                    return f(*largs)  # no questions
                 if owner_only:
                     if var.is_owner(nick):
                         return f(*largs)
