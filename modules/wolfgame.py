@@ -388,6 +388,9 @@ def mark_simple_notify(cli, nick, *rest):
         if acc in var.SIMPLE_NOTIFY_ACCS:
             var.SIMPLE_NOTIFY_ACCS.remove(acc)
             var.remove_simple_rolemsg_acc(acc)
+            if cloak in var.SIMPLE_NOTIFY:
+                var.SIMPLE_NOTIFY.remove(cloak)
+                var.remove_simple_rolemsg(cloak)
 
             cli.notice(nick, "You now no longer receive simple role instructions.")
             return
@@ -443,6 +446,9 @@ def mark_prefer_notice(cli, nick, *rest):
         if acc in var.PREFER_NOTICE_ACCS:
             var.PREFER_NOTICE_ACCS.remove(acc)
             var.remove_prefer_notice_acc(acc)
+            if cloak in var.PREFER_NOTICE:
+                var.PREFER_NOTICE.remove(cloak)
+                var.remove_prefer_notice(cloak)
 
             cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
             return
@@ -480,7 +486,7 @@ def away(cli, nick, *rest):
     """Use this to activate your away status (so you aren't pinged)."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
-        pm(cli, nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -521,7 +527,7 @@ def back_from_away(cli, nick, *rest):
     """Unsets your away status."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
-        pm(cli, nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -558,7 +564,7 @@ def get_in(cli, nick, *rest):
     """Puts yourself in the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
-        pm(cli, nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -594,7 +600,7 @@ def get_out(cli, nick, *rest):
     """Removes yourself from the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
-        pm(cli, nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -679,8 +685,8 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     if is_user_stasised(player)[0] and not forced:
         cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
-            "you are" if player == who else player + " is", is_user_stasised(user)[1],
-            "s" if is_user_stasised(user)[1] != 1 else ""))
+            "you are" if player == who else player + " is", is_user_stasised(player)[1],
+            "s" if is_user_stasised(player)[1] != 1 else ""))
         return
 
     if player in var.USERS:
@@ -5504,6 +5510,8 @@ def fstasis(cli, nick, chan, rest):
         else:
             cloak = user
             acc = None
+        if not acc and user in var.STASISED_ACCS:
+            acc = user
         err_msg = "The amount of stasis has to be a non-negative integer."
 
         if cloak:
@@ -5585,14 +5593,12 @@ def fstasis(cli, nick, chan, rest):
         cloakstas = dict(var.STASISED)
         accstas = dict(var.STASISED_ACCS)
         for stas in var.USERS:
-            if var.USERS[stas]["account"] in var.STASISED_ACCS:
-                stasised[var.USERS[stas]["account"]+" (Account)"] = var.STASISED_ACCS[var.USERS[stas]["account"]]
-                del accstas[var.USERS[stas]["account"]]
+            if var.USERS[stas]["account"] in accstas:
+                stasised[var.USERS[stas]["account"]+" (Account)"] = accstas.pop(var.USERS[stas]["account"])
                 if var.USERS[stas]["cloak"] in cloakstas:
                     del cloakstas[var.USERS[stas]["cloak"]]
-            elif var.USERS[stas]["cloak"] in var.STASISED:
-                stasised[var.USERS[stas]["cloak"]+" (Host)"] = var.STASISED[var.USERS[stas]["cloak"]]
-                del cloakstas[var.USERS[stas]["cloak"]]
+            elif var.USERS[stas]["cloak"] in cloakstas:
+                stasised[var.USERS[stas]["cloak"]+" (Host)"] = cloakstas.pop(var.USERS[stas]["cloak"])
         for oldcloak in cloakstas:
             stasised[oldcloak+" (Host)"] = cloakstas[oldcloak]
         for oldacc in accstas:
