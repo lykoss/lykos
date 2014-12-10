@@ -87,8 +87,6 @@ var.DISCONNECTED = {}  # players who got disconnected
 
 var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
-var.init_db()
-
 var.OPPED = False  # Keeps track of whether the bot is opped
 
 if botconfig.DEBUG_MODE:
@@ -126,7 +124,7 @@ def connect_callback(cli):
             acc = "*"
         if "+" in status:
             to_be_devoiced.append(user)
-        var.USERS[user] = dict(cloak=cloak,account=acc)
+        var.USERS[user] = dict(cloak=cloak,account=acc,inchan=True)
 
     @hook("endofwho", hookid=294)
     def afterwho(*args):
@@ -182,10 +180,11 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
 
         return
 
-    if target in var.USERS and var.USERS[target]["cloak"] in var.PREFER_NOTICE:
+    if is_user_notice(target):
         cli.notice(target, message)
-    else:
-        cli.msg(target, message)
+        return
+
+    cli.msg(target, message)
 
 
 def log_cmd(raw_nick, command, ptext, text):
@@ -231,6 +230,7 @@ def reset():
     var.DEAD = []
     var.ROLES = {"person" : []}
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
+    var.JOINED_THIS_GAME_ACCS = [] # same, except accounts
     var.NO_LYNCH = []
     var.FGAMED = False
     var.CURRENT_GAMEMODE = "default"
@@ -245,17 +245,30 @@ def reset():
 reset()
 
 def make_stasis(nick, penalty):
-    try:
-        cloak = var.USERS[nick]['cloak']
-        if cloak is not None:
-            if penalty == 0:
-                del var.STASISED[cloak]
-                var.set_stasised(cloak, 0)
-            else:
-                var.STASISED[cloak] += penalty
-                var.set_stasis(cloak, var.STASISED[cloak])
-    except KeyError:
-        pass
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return # Can't do it
+    if not acc or acc == "*":
+        acc = None
+    if not cloak and not acc:
+        return # Can't do it, either
+    if acc:
+        if penalty == 0:
+            if acc in var.STASISED_ACCS:
+                del var.STASISED_ACCS[acc]
+                var.set_stasis_acc(acc, 0)
+        else:
+            var.STASISED_ACCS[acc] += penalty
+            var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
+    if penalty == 0:
+        if cloak in var.STASISED:
+            del var.STASISED[cloak]
+            var.set_stasis(cloak, 0)
+    else:
+        var.STASISED[cloak] += penalty
+        var.set_stasis(cloak, var.STASISED[cloak])
 
 @pmcmd("fdie", "fbye", admin_only=True)
 @cmd("fdie", "fbye", admin_only=True)
@@ -333,13 +346,8 @@ def pinger(cli, nick, chan, rest):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if (all((not var.OPT_IN_PING,
-                 'G' not in status,  # not /away
-                 '+' not in status,  # not already joined (voiced)
-                 cloak not in var.STASISED, # not in stasis
-                 cloak not in var.AWAY)) or
-            all((var.OPT_IN_PING, '+' not in status,
-                 cloak in var.PING_IN))):
+        if ('G' not in status and '+' not in status and not
+            is_user_stasised(user)[0] and not is_user_away(user)):
 
             TO_PING.append(user)
 
@@ -368,18 +376,54 @@ def mark_simple_notify(cli, nick, *rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
     nick, _, __, cloak = parse_nick(nick)
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
 
-    if cloak in var.SIMPLE_NOTIFY:
-        var.SIMPLE_NOTIFY.remove(cloak)
-        var.remove_simple_rolemsg(cloak)
+    if acc: # Prioritize account
+        if acc in var.SIMPLE_NOTIFY_ACCS:
+            var.SIMPLE_NOTIFY_ACCS.remove(acc)
+            var.remove_simple_rolemsg_acc(acc)
 
-        cli.notice(nick, "You now no longer receive simple role instructions.")
+            cli.notice(nick, "You now no longer receive simple role instructions.")
+            return
+
+        var.SIMPLE_NOTIFY_ACCS.append(acc)
+        var.add_simple_rolemsg_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
         return
 
-    var.SIMPLE_NOTIFY.append(cloak)
-    var.add_simple_rolemsg(cloak)
+    else: # Not logged in, fall back to hostmask
+        if cloak in var.SIMPLE_NOTIFY:
+            var.SIMPLE_NOTIFY.remove(cloak)
+            var.remove_simple_rolemsg(cloak)
+
+            cli.notice(nick, "You now no longer receive simple role instructions.")
+            return
+
+        var.SIMPLE_NOTIFY.append(cloak)
+        var.add_simple_rolemsg(cloak)
 
     cli.notice(nick, "You now receive simple role instructions.")
+
+def is_user_simple(nick):
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return False
+    if acc and acc != "*":
+        if acc in var.SIMPLE_NOTIFY_ACCS:
+            return True
+        return False
+    elif cloak in var.SIMPLE_NOTIFY and not var.ACCOUNTS_ONLY:
+        return True
+    return False
 
 @cmd("notice", raw_nick = True)
 @pmcmd("notice", raw_nick = True)
@@ -387,78 +431,222 @@ def mark_prefer_notice(cli, nick, *rest):
     """Makes the bot NOTICE you for every interaction."""
 
     nick, _, __, cloak = parse_nick(nick)
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
 
-    if cloak in var.PREFER_NOTICE:
-        var.PREFER_NOTICE.remove(cloak)
-        var.remove_prefer_notice(cloak)
+    if acc: # Do things by account if logged in
+        if acc in var.PREFER_NOTICE_ACCS:
+            var.PREFER_NOTICE_ACCS.remove(acc)
+            var.remove_prefer_notice_acc(acc)
 
-        cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
+            cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
+            return
+
+        var.PREFER_NOTICE_ACCS.append(acc)
+        var.add_prefer_notice_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
         return
 
-    var.PREFER_NOTICE.append(cloak)
-    var.add_prefer_notice(cloak)
+    else: # Not logged in
+        if cloak in var.PREFER_NOTICE:
+            var.PREFER_NOTICE.remove(cloak)
+            var.remove_prefer_notice(cloak)
+
+            cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
+            return
+
+        var.PREFER_NOTICE.append(cloak)
+        var.add_prefer_notice(cloak)
 
     cli.notice(nick, "The bot will now always NOTICE you.")
 
-if not var.OPT_IN_PING:
-    @cmd("away", raw_nick=True)
-    @pmcmd("away", raw_nick=True)
-    def away(cli, nick, *rest):
-        """Use this to activate your away status (so you aren't pinged)."""
-        nick, _, _, cloak = parse_nick(nick)
-        if cloak in var.AWAY:
-            prefix = botconfig.CMD_CHAR
+def is_user_notice(nick):
+    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*":
+        if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
+            return True
+    if nick in var.USERS and var.USERS[nick]["cloak"] in var.PREFER_NOTICE and not var.ACCOUNTS_ONLY:
+        return True
+    return False
 
-            cli.notice(nick, ("You are already marked as away. Use {}back "
-                              "to unset your away status.").format(prefix))
+@cmd("away", raw_nick=True)
+@pmcmd("away", raw_nick=True)
+def away(cli, nick, *rest):
+    """Use this to activate your away status (so you aren't pinged)."""
+    nick, _, _, cloak = parse_nick(nick)
+    if var.OPT_IN_PING:
+        pm(cli, nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        return
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    prefix = botconfig.CMD_CHAR
+    if not acc or acc == "*":
+        acc = None
+    if acc: # Do it all by accounts if logged in
+        if acc in var.AWAY_ACCS:
+            cli.notice(nick, ("You are already marked as away. Use {0}back "
+                           "to unset your away status.").format(prefix))
 
             return
+
+        var.AWAY_ACCS.append(acc)
+        var.add_away_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    else:
+        if cloak in var.AWAY:
+            cli.notice(nick, ("You are already marked as away. Use {0}back "
+                           "to unset your away status.").format(prefix))
+
+            return
+
         var.AWAY.append(cloak)
         var.add_away(cloak)
 
-        cli.notice(nick, "You are now marked as away.")
+    cli.notice(nick, "You are now marked as away.")
 
-    @cmd("back", raw_nick=True)
-    @pmcmd("back", raw_nick=True)
-    def back_from_away(cli, nick, *rest):
-        """Unsets your away status."""
-        nick, _, _, cloak = parse_nick(nick)
+@cmd("back", raw_nick=True)
+@pmcmd("back", raw_nick=True)
+def back_from_away(cli, nick, *rest):
+    """Unsets your away status."""
+    nick, _, _, cloak = parse_nick(nick)
+    if var.OPT_IN_PING:
+        pm(cli, nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        return
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
+    if acc: # Priority to accounts
+        if acc not in var.AWAY_ACCS:
+            cli.notice(nick, "You are not marked as away.")
+            return
+
+        var.AWAY_ACCS.remove(acc)
+        var.remove_away_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    else:
         if cloak not in var.AWAY:
             cli.notice(nick, "You are not marked as away.")
             return
+
         var.AWAY.remove(cloak)
         var.remove_away(cloak)
 
-        cli.notice(nick, "You are no longer marked as away.")
+    cli.notice(nick, "You are no longer marked as away.")
 
 
-else:  # if OPT_IN_PING setting is on
-    @cmd("in", raw_nick=True)
-    @pmcmd("in", raw_nick=True)
-    def get_in(cli, nick, *rest):
-        """Puts yourself in the ping list."""
-        nick, _, _, cloak = parse_nick(nick)
+@cmd("in", raw_nick=True)
+@pmcmd("in", raw_nick=True)
+def get_in(cli, nick, *rest):
+    """Puts yourself in the ping list."""
+    nick, _, _, cloak = parse_nick(nick)
+    if not var.OPT_IN_PING:
+        pm(cli, nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        return
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
+    if acc:
+        if acc in var.PING_IN_ACCS:
+            cli.notice(nick, "You are already on the list.")
+            return
+
+        var.PING_IN_ACCS.append(acc)
+        var.add_ping_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    else:
         if cloak in var.PING_IN:
             cli.notice(nick, "You are already on the list.")
             return
+
         var.PING_IN.append(cloak)
         var.add_ping(cloak)
 
-        cli.notice(nick, "You are now on the list.")
+    cli.notice(nick, "You are now on the list.")
 
-    @cmd("out", raw_nick=True)
-    @pmcmd("out", raw_nick=True)
-    def get_out(cli, nick, *rest):
-        """Removes yourself from the ping list."""
-        nick, _, _, cloak = parse_nick(nick)
-        if cloak in var.PING_IN:
-            var.PING_IN.remove(cloak)
-            var.remove_ping(cloak)
-
-            cli.notice(nick, "You are no longer in the list.")
+@cmd("out", raw_nick=True)
+@pmcmd("out", raw_nick=True)
+def get_out(cli, nick, *rest):
+    """Removes yourself from the ping list."""
+    nick, _, _, cloak = parse_nick(nick)
+    if not var.OPT_IN_PING:
+        pm(cli, nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        return
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
+    if acc:
+        if acc not in var.PING_IN_ACCS:
+            cli.notice(nick, "You are not on the list.")
             return
-        cli.notice(nick, "You are not in the list.")
 
+        var.PING_IN_ACCS.remove(acc)
+        var.remove_ping_acc(acc)
+    elif var.ACCOUNTS_ONLY:
+        cli.notice(nick, "You are not logged in to NickServ.")
+        return
+    else:
+        if cloak not in var.PING_IN:
+            cli.notice(nick, "You are not on the list.")
+            return
+
+        var.PING_IN.remove(cloak)
+        var.remove_ping(cloak)
+
+    cli.notice(nick, "You are no longer in the list.")
+
+def is_user_away(nick):
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return False
+    if acc and acc != "*":
+        if var.OPT_IN_PING:
+            if acc in var.PING_IN_ACCS:
+                return False
+            return True
+        if acc in var.AWAY_ACCS:
+            return True
+        return False
+    if var.ACCOUNTS_ONLY:
+        return False
+
+    if var.OPT_IN_PING:
+        if cloak in var.PING_IN:
+            return False
+        return True
+    if cloak in var.AWAY:
+        return True
+    return False
 
 @cmd("fping", admin_only=True)
 def fpinger(cli, nick, chan, rest):
@@ -468,33 +656,40 @@ def fpinger(cli, nick, chan, rest):
 
 
 @cmd("join", "j")
-def join(cli, nick, chann_, rest):
+def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
-    join_player(cli, nick)
+    if var.ACCOUNTS_ONLY:
+        if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
+            cli.notice(nick, "You are not logged in to NickServ.")
+            return
+    join_player(cli, nick, chan)
 
-def join_player(cli, player, who = None, forced = False):
+def join_player(cli, player, chan, who = None, forced = False):
     if who is None:
         who = player
 
     pl = var.list_players()
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
 
     if not var.OPPED:
         cli.notice(who, "Sorry, I'm not opped in {0}.".format(chan))
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
 
-    cloak = None
-    try:
-        cloak = var.USERS[player]['cloak']
-        if cloak is not None and cloak in var.STASISED and not forced:
-            cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
-                "you are" if player == who else player + " is", var.STASISED[cloak],
-                "s" if var.STASISED[cloak] != 1 else ""))
-            return
-    except KeyError:
-        pass
+    if is_user_stasised(player)[0] and not forced:
+        cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
+            "you are" if player == who else player + " is", is_user_stasised(user)[1],
+            "s" if is_user_stasised(user)[1] != 1 else ""))
+        return
 
+    if player in var.USERS:
+        cloak = var.USERS[player]["cloak"]
+        acc = var.USERS[player]["account"]
+    else:
+        return # Not normal
+    if not acc or acc == "*":
+        acc = None
     if var.PHASE == "none":
 
         cli.mode(chan, "+v", player)
@@ -503,6 +698,8 @@ def join_player(cli, player, who = None, forced = False):
         var.WAITED = 0
         var.GAME_ID = time.time()
         var.JOINED_THIS_GAME.append(cloak)
+        if acc:
+            var.JOINED_THIS_GAME_ACCS.append(acc)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
@@ -527,9 +724,11 @@ def join_player(cli, player, who = None, forced = False):
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
             cli.mode(chan, "+v", player)
             cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
-        if not cloak in var.JOINED_THIS_GAME:
+        if not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
             # make sure this only happens once
             var.JOINED_THIS_GAME.append(cloak)
+            if acc:
+                var.JOINED_THIS_GAME_ACCS.append(acc)
             now = datetime.now()
 
             # add var.EXTRA_WAIT_JOIN to wait time
@@ -562,13 +761,12 @@ def kill_join(cli, chan):
 
 
 @cmd("fjoin", admin_only=True)
-def fjoin(cli, nick, chann_, rest):
+def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
     noticed = False
     fake = False
-    chan = botconfig.CHANNEL
     if not rest.strip():
-        join_player(cli, nick, forced=True)
+        join_player(cli, nick, chan, forced=True)
 
     for a in re.split(" +",rest):
         a = a.strip()
@@ -588,16 +786,17 @@ def fjoin(cli, nick, chann_, rest):
         elif botconfig.DEBUG_MODE:
             fake = True
         if a != botconfig.NICK:
-            join_player(cli, a.strip(), forced=True, who=nick)
+            join_player(cli, a.strip(), chan, forced=True, who=nick)
         else:
             cli.notice(nick, "No, that won't be allowed.")
     if fake:
         cli.msg(chan, "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.".format(nick, len(var.list_players())))
 
 @cmd("fleave", "fquit", admin_only=True)
-def fleave(cli, nick, chann_, rest):
+def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
 
     if var.PHASE == "none":
         cli.notice(nick, "No game is running.")
@@ -621,7 +820,7 @@ def fleave(cli, nick, chann_, rest):
             if lpl == 0:
                 message += " No more players remaining."
             else:
-                message += (" New player count: \u0002{0}\u0002").format(lpl)
+                message += " New player count: \u0002{0}\u0002".format(lpl)
         if var.PHASE in ("day", "night"):
             var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
             var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_reveal_role(a)))
@@ -634,7 +833,7 @@ def fleave(cli, nick, chann_, rest):
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
-    start(cli, nick, forced = True)
+    start(cli, nick, botconfig.CHANNEL, forced = True)
 
 
 
@@ -647,11 +846,32 @@ def on_kicked(cli, nick, chan, victim, reason):
 
 
 @hook("account")
-def on_account(cli, nick, acc):
-    nick, mode, user, cloak = parse_nick(nick)
+def on_account(cli, rnick, acc):
+    nick, mode, user, cloak = parse_nick(rnick)
+    if acc == "*" and var.LEAVE_ON_LOGOUT and var.PHASE in ("join", "day", "night") and nick in var.PLAYERS:
+        cli.mode(chan, "-v", nick)
+        leave(cli, "account", nick)
     if nick in var.USERS.keys():
         var.USERS[nick]["cloak"] = cloak
         var.USERS[nick]["account"] = acc
+    if nick in var.DISCONNECTED.keys():
+        if acc == var.DISCONNECTED[nick][0]:
+            if nick in var.USERS and var.USERS[nick]["inchan"]:
+                with var.GRAVEYARD_LOCK:
+                    clk = var.DISCONNECTED[nick][1]
+                    act = var.DISCONNECTED[nick][0]
+                    if acc == act or (cloak == clk and not var.ACCOUNTS_ONLY):
+                        cli.mode(chan, "+v", nick, nick+"!*@*")
+                        del var.DISCONNECTED[nick]
+                        var.LAST_SAID_TIME[nick] = datetime.now()
+                        cli.msg(chan, "\02{0}\02 has returned to the village.".format(nick))
+                        for r,rlist in var.ORIGINAL_ROLES.items():
+                            if "(dced)"+nick in rlist:
+                                rlist.remove("(dced)"+nick)
+                                rlist.append(nick)
+                                break
+                        if nick in var.DCED_PLAYERS.keys():
+                            var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
 @cmd("stats")
 def stats(cli, nick, chan, rest):
@@ -1812,14 +2032,11 @@ def reaper(cli, gameid):
                     cli.msg(chan, ("{0}: \u0002You have been idling for a while. "+
                                    "Please say something soon or you "+
                                    "might be declared dead.\u0002").format(", ".join(x)))
-                msg_targets    = [p for p in to_warn_pm if p in pl and var.PLAYERS[p]["cloak"] not in var.PREFER_NOTICE]
-                notice_targets = [p for p in to_warn_pm if p in pl and var.PLAYERS[p]["cloak"]     in var.PREFER_NOTICE]
+                msg_targets = [p for p in to_warn_pm if p in pl]
                 mass_privmsg(cli, msg_targets, ("\u0002You have been idling in {0} for a while. Please say something in {0} "+
-                                                "or you will be declared dead.\u0002").format(chan))
-                mass_privmsg(cli, notice_targets, ("\u0002You have been idling in {0} for a while. Please say something in {0} "+
-                                                   "or you will be declared dead.\u0002").format(chan), True)
+                                                "or you will be declared dead.\u0002").format(chan), privmsg=True)
             for dcedplayer in list(var.DISCONNECTED.keys()):
-                _, timeofdc, what = var.DISCONNECTED[dcedplayer]
+                acc, cloak, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL:
                         cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
@@ -1838,6 +2055,16 @@ def reaper(cli, gameid):
                         cli.msg(chan, ("\u0002{0}\u0002 ate some poisonous berries and has died.").format(dcedplayer))
                     if var.PHASE != "join":
                         make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
+                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
+                        return
+                elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
+                    if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL:
+                        cli.msg(chan, ("\02{0}\02 has died of a heart attack. The villagers "+
+                                       "couldn't save the \02{1}\02.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
+                    else:
+                        cli.msg(chan, ("\u0002{0}\u0002 has died of a heart attack.").format(dcedplayer))
+                    if var.PHASE != "join":
+                        make_stasis(dcedplayer, var.ACC_STASIS_PENALTY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
         time.sleep(10)
@@ -1872,16 +2099,20 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick,m,u,cloak = parse_nick(raw_nick)
     if nick != botconfig.NICK:
         if nick not in var.USERS.keys():
-            var.USERS[nick] = dict(cloak=cloak,account=acc)
+            var.USERS[nick] = dict(cloak=cloak,account=acc,inchan=chan == botconfig.CHANNEL)
         else:
             var.USERS[nick]["cloak"] = cloak
             var.USERS[nick]["account"] = acc
+            if not var.USERS[nick]["inchan"]:
+                # Will be True if the user joined the main channel, else False
+                var.USERS[nick]["inchan"] = (chan == botconfig.CHANNEL)
     if chan != botconfig.CHANNEL:
         return
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
-            clk = var.DISCONNECTED[nick][0]
-            if cloak == clk:
+            clk = var.DISCONNECTED[nick][1]
+            act = var.DISCONNECTED[nick][0]
+            if acc == act or (cloak == clk and not var.ACCOUNTS_ONLY):
                 cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
@@ -1968,10 +2199,12 @@ def fgoat(cli, nick, chan, rest):
 @hook("nick")
 def on_nick(cli, oldnick, nick):
     prefix,u,m,cloak = parse_nick(oldnick)
-    chan = botconfig.CHANNEL
 
     if prefix in var.USERS:
         var.USERS[nick] = var.USERS.pop(prefix)
+        if not var.USERS[nick]["inchan"]:
+            return
+    chan = botconfig.CHANNEL
 
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
@@ -2160,8 +2393,16 @@ def on_nick(cli, oldnick, nick):
     if var.PHASE in ("night", "day"):
         with var.GRAVEYARD_LOCK:
             if nick in var.DISCONNECTED.keys():
-                clk = var.DISCONNECTED[nick][0]
-                if cloak == clk:
+                clk = var.DISCONNECTED[nick][1]
+                act = var.DISCONNECTED[nick][0]
+                if nick in var.USERS:
+                    cloak = var.USERS[nick]["cloak"]
+                    acc = var.USERS[nick]["account"]
+                else:
+                    acc = None
+                if not acc or acc == "*":
+                    acc = None
+                if (acc and acc == act) or (cloak == clk and not var.ACCOUNTS_ONLY):
                     cli.mode(chan, "+v", nick, nick+"!*@*")
                     del var.DISCONNECTED[nick]
                     var.LAST_SAID_TIME[nick] = datetime.now()
@@ -2180,6 +2421,15 @@ def on_nick(cli, oldnick, nick):
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
+    if nick in var.USERS:
+        acc = var.USERS[nick]["account"]
+        cloak = var.USERS[nick]["cloak"]
+        if not what in ("account",):
+            var.USERS[nick]["inchan"] = False
+    else:
+        acc = None
+    if not acc or acc == "*":
+        acc = None
 
     if what in ("part", "kick") and why != botconfig.CHANNEL: return
 
@@ -2223,6 +2473,12 @@ def leave(cli, what, nick, why=""):
                    "\02{1}\02 meat is tasty.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = ("\02{0}\02 was mauled by wild animals and has died.{1}").format(nick, population)
+    elif what == "account" and (not var.ACC_GRACE_TIME or var.PHASE == "join"):
+        if var.get_role(nick) != "person" and var.ROLE_REVEAL:
+            msg = ("\02{0}\02 has died of a heart attack. The villagers couldn't "+
+                   "save the \02{1}\02.{2}").format(nick, var.get_reveal_role(nick), population)
+        else:
+            msg = ("\02{0}\02 has died of a heart attack.{1}").format(nick, population)
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
@@ -2238,7 +2494,7 @@ def leave(cli, what, nick, why=""):
     if killplayer:
         del_player(cli, nick, death_triggers = False)
     else:
-        var.DISCONNECTED[nick] = (cloak, datetime.now(), what)
+        var.DISCONNECTED[nick] = (acc, cloak, datetime.now(), what)
 
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick, rest[0]))
@@ -2893,9 +3149,10 @@ def no_lynch(cli, nick, chan, rest):
         return
 
 @cmd("lynch", "vote", "v")
-def vote(cli, nick, chann_, rest):
+def vote(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
 
     rest = re.split(" +",rest)[0].strip().lower()
 
@@ -3215,10 +3472,11 @@ def check_exchange(cli, actor, nick):
     return False
 
 @cmd("retract")
-def retract(cli, nick, chann_, rest):
+def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
 
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
@@ -3285,10 +3543,11 @@ def wolfretract(cli, nick, rest):
     #var.LOGGER.logBare(nick, "RETRACT", nick)
 
 @cmd("shoot")
-def shoot(cli, nick, chann_, rest):
+def shoot(cli, nick, chan, rest):
     """Use this to fire off a bullet at someone in the day if you have bullets."""
 
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
         return
@@ -4122,14 +4381,14 @@ def choose(cli, nick, rest):
         var.ORIGINAL_LOVERS[victim2] = [victim]
     pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be lovers.".format(victim, victim2))
 
-    if victim in var.PLAYERS and var.PLAYERS[victim]["cloak"] not in var.SIMPLE_NOTIFY:
+    if victim in var.PLAYERS and not is_user_simple(victim):
         pm(cli, victim, ("You are \u0002in love\u0002 with {0}. If that player dies for any " +
                          "reason, the pain will be too much for you to bear and you will " +
                          "commit suicide.").format(victim2))
     else:
         pm(cli, victim, "You are \u0002in love\u0002 with {0}.".format(victim2))
 
-    if victim2 in var.PLAYERS and var.PLAYERS[victim2]["cloak"] not in var.SIMPLE_NOTIFY:
+    if victim2 in var.PLAYERS and not is_user_simple(victim2):
         pm(cli, victim2, ("You are \u0002in love\u0002 with {0}. If that player dies for any " +
                          "reason, the pain will be too much for you to bear and you will " +
                          "commit suicide.").format(victim))
@@ -4336,20 +4595,43 @@ def getfeatures(cli, nick, *rest):
 
 
 
-def mass_privmsg(cli, targets, msg, notice = False):
-    while targets:
-        if len(targets) <= var.MAX_PRIVMSG_TARGETS:
-            bgs = ",".join(targets)
-            targets = ()
-        else:
-            bgs = ",".join(targets[0:var.MAX_PRIVMSG_TARGETS])
-            targets = targets[var.MAX_PRIVMSG_TARGETS:]
-        if not notice:
+def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
+    if not notice and not privmsg:
+        msg_targs = []
+        not_targs = []
+        for target in targets:
+            if is_user_notice(target):
+                not_targs.append(target)
+            else:
+                msg_targs.append(target)
+        while msg_targs:
+            if len(msg_targs) <= var.MAX_PRIVMSG_TARGETS:
+                bgs = ",".join(msg_targs)
+                msg_targs = None
+            else:
+                bgs = ",".join(msg_targs[:var.MAX_PRIVMSG_TARGETS])
+                msg_targs = msg_targs[var.MAX_PRIVMSG_TARGETS:]
             cli.msg(bgs, msg)
-        else:
+        while not_targs:
+            if len(not_targs) <= var.MAX_PRIVMSG_TARGETS:
+                bgs = ",".join(not_targs)
+                not_targs = None
+            else:
+                bgs = ",".join(not_targs[:var.MAX_PRIVMSG_TARGETS])
+                not_targs = not_targs[var.MAX_PRIVMSG_TARGETS:]
             cli.notice(bgs, msg)
-
-
+    else:
+        while targets:
+            if len(targets) <= var.MAX_PRIVMSG_TARGETS:
+                bgs = ",".join(targets)
+                targets = None
+            else:
+                bgs = ",".join(targets[:var.MAX_PRIVMSG_TARGETS])
+                target = targets[var.MAX_PRIVMSG_TARGETS:]
+            if notice:
+                cli.notice(bgs, msg)
+            else:
+                cli.msg(bgs, msg)
 
 @pmcmd("")
 def relay(cli, nick, rest):
@@ -4365,18 +4647,10 @@ def relay(cli, nick, rest):
             if rest.startswith("\01ACTION"):
                 rest = rest[7:-1]
                 mass_privmsg(cli, [guy for guy in badguys
-                    if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] not in var.PREFER_NOTICE)], "\02{0}\02{1}".format(nick, rest))
-                mass_privmsg(cli, [guy for guy in badguys
-                    if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] in var.PREFER_NOTICE)], nick+rest, True)
+                    if guy in var.PLAYERS], "\02{0}\02{1}".format(nick, rest))
             else:
                 mass_privmsg(cli, [guy for guy in badguys
-                    if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] not in var.PREFER_NOTICE)], "\02{0}\02 says: {1}".format(nick, rest))
-                mass_privmsg(cli, [guy for guy in badguys
-                    if (guy in var.PLAYERS and
-                        var.PLAYERS[guy]["cloak"] in var.PREFER_NOTICE)], "\02{0}\02 says: {1}".format(nick, rest), True)
+                    if guy in var.PLAYERS], "\02{0}\02 says: {1}".format(nick, rest))
 
 @pmcmd("")
 def ctcp_ping(cli, nick, msg):
@@ -4476,7 +4750,7 @@ def transition_night(cli):
     ps = var.list_players()
     wolves = var.list_players(var.WOLFCHAT_ROLES)
     for wolf in wolves:
-        normal_notify = wolf in var.PLAYERS and var.PLAYERS[wolf]["cloak"] not in var.SIMPLE_NOTIFY
+        normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
         role = var.get_role(wolf)
         cursed = "cursed " if wolf in var.ROLES["cursed villager"] else ""
 
@@ -4558,7 +4832,7 @@ def transition_night(cli):
         else:
             what = "??? (this is a bug, please report to admins)"
 
-        if seer in var.PLAYERS and var.PLAYERS[seer]["cloak"] not in var.SIMPLE_NOTIFY:
+        if seer in var.PLAYERS and not is_user_simple(seer):
             pm(cli, seer, ('You are {0} \u0002{1}\u0002. '+
                           'It is your job to detect the wolves, you '+
                           'may have a vision once per night. '+
@@ -4571,7 +4845,7 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(harlot)
-        if harlot in var.PLAYERS and var.PLAYERS[harlot]["cloak"] not in var.SIMPLE_NOTIFY:
+        if harlot in var.PLAYERS and not is_user_simple(harlot):
             pm(cli, harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
                              'If you visit a victim of a wolf, or visit a wolf, '+
@@ -4590,7 +4864,7 @@ def transition_night(cli):
         if chance > 0:
             warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
 
-        if g_angel in var.PLAYERS and var.PLAYERS[g_angel]["cloak"] not in var.SIMPLE_NOTIFY:
+        if g_angel in var.PLAYERS and not is_user_simple(g_angel):
             pm(cli, g_angel, ('You are a \u0002bodyguard\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, you will sacrifice yourself to save them. ' +
@@ -4608,7 +4882,7 @@ def transition_night(cli):
         if chance > 0:
             warning = "If you guard a wolf, there is a {0}% chance of you dying. ".format(chance)
 
-        if gangel in var.PLAYERS and var.PLAYERS[gangel]["cloak"] not in var.SIMPLE_NOTIFY:
+        if gangel in var.PLAYERS and not is_user_simple(gangel):
             pm(cli, gangel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, they will live. You may not guard the same person two nights in a row. ' +
@@ -4626,7 +4900,7 @@ def transition_night(cli):
         if chance > 0:
             warning = ("Each time you use your ability, you risk a {0}% chance of having " +
                        "your identity revealed to the wolves. ").format(chance)
-        if dttv in var.PLAYERS and var.PLAYERS[dttv]["cloak"] not in var.SIMPLE_NOTIFY:
+        if dttv in var.PLAYERS and not is_user_simple(dttv):
             pm(cli, dttv, ("You are a \u0002detective\u0002.\n"+
                           "It is your job to determine all the wolves and traitors. "+
                           "Your job is during the day, and you can see the true "+
@@ -4637,7 +4911,7 @@ def transition_night(cli):
         pm(cli, dttv, "Players: " + ", ".join(pl))
 
     for drunk in var.ROLES["village drunk"]:
-        if drunk in var.PLAYERS and var.PLAYERS[drunk]["cloak"] not in var.SIMPLE_NOTIFY:
+        if drunk in var.PLAYERS and not is_user_simple(drunk):
             pm(cli, drunk, "You have been drinking too much! You are the \u0002village drunk\u0002.")
         else:
             pm(cli, drunk, "You are the \u0002village drunk\u0002.")
@@ -4657,7 +4931,7 @@ def transition_night(cli):
             # some sort of error (floating point issues so the %ages didn't sum to 1 or something)
             # just give them death because I'm lazy
             var.TOTEMS[shaman] = 'death'
-        if shaman in var.PLAYERS and var.PLAYERS[shaman]["cloak"] not in var.SIMPLE_NOTIFY:
+        if shaman in var.PLAYERS and not is_user_simple(shaman):
             pm(cli, shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
                              'a {1}totem each night by using "give <nick>". You may give yourself a totem, but you ' +
                              'may not give the same player a totem two nights in a row.').format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
@@ -4709,7 +4983,7 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(hunter)
-        if hunter in var.PLAYERS and var.PLAYERS[hunter]["cloak"] not in var.SIMPLE_NOTIFY:
+        if hunter in var.PLAYERS and not is_user_simple(hunter):
             pm(cli, hunter, ('You are a \u0002hunter\u0002. Once per game, you may kill another ' +
                              'player with "kill <nick>". If you do not wish to kill anyone tonight, ' +
                              'use "pass" instead.'))
@@ -4718,7 +4992,7 @@ def transition_night(cli):
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
     for fool in var.ROLES["fool"]:
-        if fool in var.PLAYERS and var.PLAYERS[fool]["cloak"] not in var.SIMPLE_NOTIFY:
+        if fool in var.PLAYERS and not is_user_simple(fool):
             pm(cli, fool, ('You are a \u0002fool\u0002. The game immediately ends with you ' +
                            'being the only winner if you are lynched during the day. You cannot ' +
                            'otherwise win this game.'))
@@ -4726,14 +5000,14 @@ def transition_night(cli):
             pm(cli, fool, "You are a \u0002fool\u0002.")
 
     for jester in var.ROLES["jester"]:
-        if jester in var.PLAYERS and var.PLAYERS[jester]["cloak"] not in var.SIMPLE_NOTIFY:
+        if jester in var.PLAYERS and not is_user_simple(jester):
             pm(cli, jester, ('You are a \u0002jester\u0002. You will win alongside the normal winners ' +
                              'if you are lynched during the day. You cannot otherwise win this game.'))
         else:
             pm(cli, jester, "You are a \u0002jester\u0002.")
 
     for monster in var.ROLES["monster"]:
-        if monster in var.PLAYERS and var.PLAYERS[monster]["cloak"] not in var.SIMPLE_NOTIFY:
+        if monster in var.PLAYERS and not is_user_simple(monster):
             pm(cli, monster, ('You are a \u0002monster\u0002. You cannot be killed by the wolves. ' +
                               'If you survive until the end of the game, you win instead of the ' +
                               'normal winners.'))
@@ -4741,7 +5015,7 @@ def transition_night(cli):
             pm(cli, monster, "You are a \u0002monster\u0002.")
 
     for lycan in var.ROLES["lycan"]:
-        if lycan in var.PLAYERS and var.PLAYERS[lycan]["cloak"] not in var.SIMPLE_NOTIFY:
+        if lycan in var.PLAYERS and not is_user_simple(lycan):
             pm(cli, lycan, ('You are a \u0002lycan\u0002. You are currently on the side of the ' +
                             'villagers, but will turn into a wolf if you are targeted by them ' +
                             'during the night.'))
@@ -4759,7 +5033,7 @@ def transition_night(cli):
 
         random.shuffle(pl)
 
-        if v_ghost in var.PLAYERS and var.PLAYERS[v_ghost]["cloak"] not in var.SIMPLE_NOTIFY:
+        if v_ghost in var.PLAYERS and not is_user_simple(v_ghost):
             pm(cli, v_ghost, ('You are a \u0002vengeful ghost\u0002, sworn to take revenge on the ' +
                               '{0} that you believe killed you. You must kill one of them with ' +
                               '"kill <nick>" tonight. If you do not, one of them will be selected ' +
@@ -4774,7 +5048,7 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(ass)
-        if ass in var.PLAYERS and var.PLAYERS[ass]["cloak"] not in var.SIMPLE_NOTIFY:
+        if ass in var.PLAYERS and not is_user_simple(ass):
             pm(cli, ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
                           '"target <nick>". If you die you will take out your target with you. ' +
                           'If your target dies you may choose another one.'))
@@ -4786,7 +5060,7 @@ def transition_night(cli):
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
             random.shuffle(pl)
-            if mm in var.PLAYERS and var.PLAYERS[mm]["cloak"] not in var.SIMPLE_NOTIFY:
+            if mm in var.PLAYERS and not is_user_simple(mm):
                 pm(cli, mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
                              'to be lovers with "choose <nick1> and <nick2>". If one lover ' +
                              'dies, the other will as well. You may select yourself as one ' +
@@ -4799,7 +5073,7 @@ def transition_night(cli):
             pl = ps[:]
             random.shuffle(pl)
             pl.remove(clone)
-            if clone in var.PLAYERS and var.PLAYERS[clone]["cloak"] not in var.SIMPLE_NOTIFY:
+            if clone in var.PLAYERS and not is_user_simple(clone):
                 pm(cli, clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
@@ -4808,7 +5082,7 @@ def transition_night(cli):
             pm(cli, clone, "Players: "+", ".join(pl))
 
         for ms in var.ROLES["mad scientist"]:
-            if ms in var.PLAYERS and var.PLAYERS[ms]["cloak"] not in var.SIMPLE_NOTIFY:
+            if ms in var.PLAYERS and not is_user_simple(ms):
                 pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you die for any reason " +
                              "other than idling out or quitting, you will let loose a potent " +
                              "chemical concoction that will kill the players that joined " +
@@ -4819,7 +5093,7 @@ def transition_night(cli):
         for minion in var.ROLES["minion"]:
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
-            if minion in var.PLAYERS and var.PLAYERS[minion]["cloak"] not in var.SIMPLE_NOTIFY:
+            if minion in var.PLAYERS and not is_user_simple(minion):
                 pm(cli, minion, "You are a \u0002minion\u0002. It is your job to help the wolves kill all of the villagers.")
             else:
                 pm(cli, minion, "You are a \u0002minion\u0002.")
@@ -4830,7 +5104,7 @@ def transition_night(cli):
         if var.DEFAULT_ROLE == "villager":
             villagers += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for villager in villagers:
-            if villager in var.PLAYERS and var.PLAYERS[villager]["cloak"] not in var.SIMPLE_NOTIFY:
+            if villager in var.PLAYERS and not is_user_simple(villager):
                 pm(cli, villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
             else:
                 pm(cli, villager, "You are a \u0002villager\u0002.")
@@ -4839,7 +5113,7 @@ def transition_night(cli):
         if var.DEFAULT_ROLE == "cultist":
             cultists += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for cultist in cultists:
-            if cultist in var.PLAYERS and var.PLAYERS[cultist]["cloak"] not in var.SIMPLE_NOTIFY:
+            if cultist in var.PLAYERS and not is_user_simple(cultist):
                 pm(cli, cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
             else:
                 pm(cli, cultist, "You are a \u0002cultist\u0002.")
@@ -4851,7 +5125,7 @@ def transition_night(cli):
             continue
         elif var.GUNNERS[g] == 0:
             continue
-        norm_notify = g in var.PLAYERS and var.PLAYERS[g]["cloak"] not in var.SIMPLE_NOTIFY
+        norm_notify = g in var.PLAYERS and not is_user_simple(g)
         role = "gunner"
         if g in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
@@ -4922,10 +5196,11 @@ def cgamemode(cli, arg):
 @cmd("start")
 def fstart(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
-    start(cli, nick)
+    start(cli, nick, chan)
 
-def start(cli, nick, forced = False):
-    chan = botconfig.CHANNEL
+def start(cli, nick, chan, forced = False):
+    if chan != botconfig.CHANNEL:
+        return
 
     villagers = var.list_players()
     pl = villagers[:]
@@ -5191,6 +5466,12 @@ def start(cli, nick, forced = False):
         if var.STASISED[cloak] <= 0:
             del var.STASISED[cloak]
 
+    for acc in list(var.STASISED_ACCS.keys()):
+        var.STASISED_ACCS[acc] -= 1
+        var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
+        if var.STASISED_ACCS[acc] <= 0:
+            del var.STASISED_ACCS[acc]
+
     if not botconfig.DEBUG_MODE:
         # DEATH TO IDLERS!
         reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
@@ -5219,50 +5500,106 @@ def fstasis(cli, nick, chan, rest):
 
         if user.lower() in lusers:
             cloak = lusers[user.lower()]["cloak"]
+            acc = lusers[user.lower()]["account"]
         else:
             cloak = user
+            acc = None
+        err_msg = "The amount of stasis has to be a non-negative integer."
 
-        if len(data) == 1:
-            if cloak in var.STASISED:
-                plural = "" if var.STASISED[cloak] == 1 else "s"
-                msg = "\u0002{0}\u0002 ({1}) is in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, var.STASISED[cloak], plural)
-            else:
-                msg = "\u0002{0}\u0002 ({1}) is not in stasis.".format(data[0], cloak)
-        else:
-            try:
-                amt = int(data[1])
-            except ValueError:
-                if chan == nick:
-                    pm(cli, nick, "The amount of stasis has to be a non-negative integer.")
-                else:
-                    cli.notice(nick, "The amount of stasis has to be a non-negative integer.")
-
-                return
-
-            if amt < 0:
-                if chan == nick:
-                    pm(cli, nick, "The amount of stasis has to be a non-negative integer.")
-                else:
-                    cli.notice(nick, "The amount of stasis has to be a non-negative integer.")
-
-                return
-
-            if amt > 0:
-                var.STASISED[cloak] = amt
-                var.set_stasis(cloak, amt)
-                plural = "" if amt == 1 else "s"
-                msg = "\u0002{0}\u0002 ({1}) is now in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, amt, plural)
-            elif amt == 0:
+        if cloak:
+            if len(data) == 1:
                 if cloak in var.STASISED:
-                    del var.STASISED[cloak]
-                    var.set_stasis(cloak, 0)
-                    msg = "\u0002{0}\u0002 ({1}) is no longer in stasis.".format(data[0], cloak)
+                    plural = "" if var.STASISED[cloak] == 1 else "s"
+                    msg = "\u0002{0}\u0002 (Host: {1}) is in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, var.STASISED[cloak], plural)
                 else:
-                    msg = "\u0002{0}\u0002 ({1}) is not in stasis.".format(data[0], cloak)
-    elif var.STASISED:
+                    msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], cloak)
+            else:
+                try:
+                    amt = int(data[1])
+                except ValueError:
+                    if chan == nick:
+                        pm(cli, nick, err_msg)
+                    else:
+                        cli.notice(nick, err_msg)
+
+                    return
+
+                if amt < 0:
+                    if chan == nick:
+                        pm(cli, nick, err_msg)
+                    else:
+                        cli.notice(nick, err_msg)
+
+                    return
+
+                if amt > 0:
+                    var.STASISED[cloak] = amt
+                    var.set_stasis(cloak, amt)
+                    plural = "" if amt == 1 else "s"
+                    msg = "\u0002{0}\u0002 (Host: {1}) is now in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, amt, plural)
+                elif amt == 0:
+                    if cloak in var.STASISED:
+                        del var.STASISED[cloak]
+                        var.set_stasis(cloak, 0)
+                        msg = "\u0002{0}\u0002 (Host: {1}) is no longer in stasis.".format(data[0], cloak)
+                    else:
+                        msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], cloak)
+        if acc:
+            if len(data) == 1:
+                if acc in var.STASISED_ACCS:
+                    plural = "" if var.STASISED_ACCS[acc] == 1 else "s"
+                    msg = "\u0002{0}\u0002 (Account: {1}) is in stasis for \u0002{2}\u0002 game{3}.".format(data[0], acc, var.STASISED_ACCS[acc], plural)
+                else:
+                    msg = "\u0002{0}\u0002 (Account: {1}) is not in stasis.".format(data[0], acc)
+            else:
+                try:
+                    amt = int(data[1])
+                except ValueError:
+                    if chan == nick:
+                        pm(cli, nick, err_msg)
+                    else:
+                        cli.notice(nick, err_msg)
+                    return
+
+                if amt < 0:
+                    if chan == nick:
+                        pm(cli, nick, err_msg)
+                    else:
+                        cli.notice(nick, err_msg)
+                    return
+
+                if amt > 0:
+                    var.STASISED_ACCS[acc] = amt
+                    var.set_stasis_acc(acc, amt)
+                    plural = "" if amt == 1 else "s"
+                    msg = "\u0002{0}\u0002 (Account: {1}) is now in stasis for \u0002{2}\u0002 game{3}.".format(data[0], acc, amt, plural)
+                elif amt == 0:
+                    if acc in var.STASISED_ACCS:
+                        del var.STASISED_ACCS[acc]
+                        var.set_stasis_acc(acc, 0)
+                        msg = "\u0002{0}\u0002 (Account: {1}) is no longer in stasis.".format(data[0], acc)
+                    else:
+                        msg = "\u0002{0}\u0002 (Account: {1}) is not in stasis.".format(data[0], acc)
+    elif var.STASISED or var.STASISED_ACCS:
+        stasised = {}
+        cloakstas = dict(var.STASISED)
+        accstas = dict(var.STASISED_ACCS)
+        for stas in var.USERS:
+            if var.USERS[stas]["account"] in var.STASISED_ACCS:
+                stasised[var.USERS[stas]["account"]+" (Account)"] = var.STASISED_ACCS[var.USERS[stas]["account"]]
+                del accstas[var.USERS[stas]["account"]]
+                if var.USERS[stas]["cloak"] in cloakstas:
+                    del cloakstas[var.USERS[stas]["cloak"]]
+            elif var.USERS[stas]["cloak"] in var.STASISED:
+                stasised[var.USERS[stas]["cloak"]+" (Host)"] = var.STASISED[var.USERS[stas]["cloak"]]
+                del cloakstas[var.USERS[stas]["cloak"]]
+        for oldcloak in cloakstas:
+            stasised[oldcloak+" (Host)"] = cloakstas[oldcloak]
+        for oldacc in accstas:
+            stasised[oldacc+" (Account)"] = accstas[oldacc]
         msg = "Currently stasised: {0}".format(", ".join(
-            "\u0002{0}\u0002 ({1})".format(cloak, number)
-            for cloak, number in var.STASISED.items()))
+            "\u0002{0}\u0002 ({1})".format(usr, number)
+            for usr, number in stasised.items()))
     else:
         msg = "Nobody is currently stasised."
 
@@ -5270,8 +5607,9 @@ def fstasis(cli, nick, chan, rest):
         if data:
             tokens = msg.split()
 
-            if data[0] == cloak and tokens[1] == "({0})".format(cloak):
-                # Don't show the cloak twice.
+            if ((data[0] == cloak and tokens[1] == "({0})".format(cloak)) or
+                (data[0] == acc and tokens[1] == "({0})".format(acc))):
+                # Don't show the cloak/account twice.
                 msg = " ".join((tokens[0], " ".join(tokens[2:])))
 
         if chan == nick:
@@ -5279,6 +5617,26 @@ def fstasis(cli, nick, chan, rest):
         else:
             cli.msg(chan, msg)
 
+def is_user_stasised(nick):
+    """Checks if a user is in stasis. Returns a tuple of two items.
+
+    First parameter is True or False, and tells if the user is in stasis.
+    If the first parameter is False, the second will always be None.
+    If the first parameter is True, the second is an integer of the amount
+    of games the user is in stasis."""
+
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return False, None
+    if acc and acc != "*":
+        if acc in var.STASISED_ACCS:
+            return True, var.STASISED_ACCS[acc]
+        return False, None
+    if cloak in var.STASISED:
+        return True, var.STASISED[cloak]
+    return False, None
 
 @pmcmd("fstasis", admin_only=True)
 def fstasis_pm(cli, nick, rest):
@@ -5292,71 +5650,160 @@ def allow_deny(cli, nick, chan, rest, mode):
     modes = ("allow", "deny")
     assert mode in modes, "mode not in {!r}".format(modes)
 
-    if mode == "allow":
-        variable = botconfig.ALLOW
-    else:
-        variable = botconfig.DENY
-
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0]
 
         if user.lower() in lusers:
             cloak = lusers[user.lower()]["cloak"]
+            acc = lusers[user.lower()]["account"]
         else:
             cloak = user
+            acc = None
 
-        if len(data) == 1: #list commands for a specific hostmask
-            if cloak in variable:
-                msg = "\u0002{0}\u0002 ({1}) is {2} the following {3}commands: {4}.".format(
-                    data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", ", ".join(variable[cloak]))
+        if not acc or acc == "*":
+            acc = None
+
+        if acc:
+            if mode == "allow":
+                variable = var.ALLOW_ACCOUNTS
             else:
-                msg = "\u0002{0}\u0002 ({1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
-        else:
-            if cloak not in variable:
-                variable[cloak] = []
-            commands = data[1:]
-            for command in commands: #add or remove commands one at a time to a specific hostmask
-                if command[0] == '-': #starting with - removes
-                    rem = True
-                    command = command[1:]
+                variable = var.DENY_ACCOUNTS
+            if len(data) == 1:
+                if acc in variable:
+                    msg = "\u0002{0}\u0002 (Account: {1}) is {2} the following {3}commands: {4}.".format(
+                        data[0], acc, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", ", ".join(variable[acc]))
                 else:
-                    rem = False
-                if command.startswith(botconfig.CMD_CHAR): #ignore command prefix
-                    command = command[len(botconfig.CMD_CHAR):]
-
-                if not rem:
-                    if (command in COMMANDS or command in PM_COMMANDS) and command not in ["fdeny", "fallow", "exec", "eval"]:
-                        variable[cloak].append(command)
-                        if mode == "allow":
-                            var.add_allow(cloak, command)
-                        else:
-                            var.add_deny(cloak, command)
-                elif command in variable[cloak]:
-                    variable[cloak].remove(command)
-                    if mode == "allow":
-                        var.remove_allow(cloak, command)
-                    else:
-                        var.remove_deny(cloak, command)
-            if len(variable[cloak]):
-                msg = "\u0002{0}\u0002 ({1}) is now {2} the following {3}commands: {4}{5}.".format(
-                    data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+                    msg = "\u0002{0}\u0002 (Account: {1}) is not {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
             else:
-                del variable[cloak]
-                msg = "\u0002{0}\u0002 ({1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
-    elif variable: #list allowed / denied commands for all hostmasks
-        msg = "{0}: {1}".format("Allowed" if mode == 'allow' else "Denied", ", ".join(
-            "\u0002{0}\u0002 ({1}{2})".format(cloak, botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(denied))
-            for cloak, denied in variable.items()))
-    else: #deny / allow is empty
-        msg = "Nobody is {0} commands.".format("allowed any special" if mode == 'allow' else "denied any")
+                if acc not in variable:
+                    variable[acc] = []
+                commands = data[1:]
+                for command in commands: # Add or remove commands one at a time to a specific account
+                    if "-*" in commands: # Remove all
+                        for cmd in variable[acc]:
+                            if mode == "allow":
+                                var.remove_allow_acc(acc, cmd)
+                            else:
+                                var.remove_deny_acc(acc, cmd)
+                        del variable[acc]
+                        break
+                    if command[0] == "-": # Starting with - (to remove)
+                        rem = True
+                        command = command[1:]
+                    else:
+                        rem = False
+                    if command.startswith(botconfig.CMD_CHAR): # ignore command prefix
+                        command = command[len(botconfig.CMD_CHAR):]
+
+                    if not rem:
+                        if (command in COMMANDS or command in PM_COMMANDS) and command not in ("fdeny", "fallow", "exec", "eval") and command not in variable[acc]:
+                            variable[acc].append(command)
+                            if mode == "allow":
+                                var.add_allow_acc(acc, command)
+                            else:
+                                var.add_deny_acc(acc, command)
+                    elif command in variable[acc]:
+                        variable[acc].remove(command)
+                        if mode == "allow":
+                            var.remove_allow_acc(acc, command)
+                        else:
+                            var.remove_deny_acc(acc, command)
+                if acc in variable and variable[acc]:
+                    msg = "\u0002{0}\u0002 (Account: {1}) is now {2} the following {3}commands: {4}{5}.".format(
+                        data[0], acc, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[acc]))
+                else:
+                    if acc in variable:
+                        del variable[acc]
+                    msg = "\u0002{0}\u0002 (Account: {1}) is no longer {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
+        elif var.ACCOUNTS_ONLY:
+            msg = "Error: \u0002{0}\u0002 is logged in to NickServ.".format(data[0])
+
+        else:
+            if mode == "allow":
+                variable = var.ALLOW
+            else:
+                variable = var.DENY
+            if len(data) == 1: # List commands for a specific hostmask
+                if cloak in variable:
+                    msg = "\u0002{0}\u0002 (Host: {1}) is {2} the following {3}commands: {4}.".format(
+                        data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", ", ".join(variable[cloak]))
+                else:
+                    msg = "\u0002{0}\u0002 (Host: {1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
+            else:
+                if cloak not in variable:
+                    variable[cloak] = []
+                commands = data[1:]
+                for command in commands: #add or remove commands one at a time to a specific hostmask
+                    if "-*" in commands: # Remove all
+                        for cmd in variable[cloak]:
+                            if mode == "allow":
+                                var.remove_allow(cloak, cmd)
+                            else:
+                                var.remove_deny(cloak, cmd)
+                        del variable[cloak]
+                        break
+                    if command[0] == '-': #starting with - removes
+                        rem = True
+                        command = command[1:]
+                    else:
+                        rem = False
+                    if command.startswith(botconfig.CMD_CHAR): #ignore command prefix
+                        command = command[len(botconfig.CMD_CHAR):]
+
+                    if not rem:
+                        if (command in COMMANDS or command in PM_COMMANDS) and command not in ("fdeny", "fallow", "exec", "eval"):
+                            variable[cloak].append(command)
+                            if mode == "allow":
+                                var.add_allow(cloak, command)
+                            else:
+                                var.add_deny(cloak, command)
+                    elif command in variable[cloak]:
+                        variable[cloak].remove(command)
+                        if mode == "allow":
+                            var.remove_allow(cloak, command)
+                        else:
+                            var.remove_deny(cloak, command)
+                            
+                if cloak in variable and variable[cloak]:
+                    msg = "\u0002{0}\u0002 (Host: {1}) is now {2} the following {3}commands: {4}{5}.".format(
+                        data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+                else:
+                    if cloak in variable:
+                        del variable[cloak]
+                    msg = "\u0002{0}\u0002 (Host: {1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == 'allow' else "denied any")
+
+    else:
+        cmds = {}
+        if mode == "allow":
+            variable = var.ALLOW_ACCOUNTS
+        else:
+            variable = var.DENY_ACCOUNTS
+        if variable:
+            for acc, varied in variable.items():
+                cmds[acc+" (Account)"] = varied
+        if not var.ACCOUNTS_ONLY:
+            if mode == "allow":
+                variable = var.ALLOW
+            else:
+                variable = var.DENY
+            if variable:
+                for cloak, varied in variable.items():
+                    cmds[cloak+" (Host)"] = varied
+
+        if not cmds: # Deny or Allow list is empty
+            msg = "Nobody is {0} commands.".format("allowed any special" if mode == 'allow' else "denied any")
+        else:
+            msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", ", ".join("\u0002{0}\u0002 ({1}{2})".format(user,
+                botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(cmd)) for user, cmd in cmds.items()))
 
     if msg:
         if data:
             tokens = msg.split()
 
-            if data[0] == cloak and tokens[1] == "({0})".format(cloak):
-                # Don't show the cloak twice.
+            if ((data[0] == acc and tokens[1] == "({0})".format(acc)) or
+                (data[0] == cloak and tokens[1] == "({0})".format(cloak))):
+                # Don't show the cloak/account twice.
                 msg = " ".join((tokens[0], " ".join(tokens[2:])))
 
         if chan == nick:
@@ -5364,43 +5811,35 @@ def allow_deny(cli, nick, chan, rest, mode):
         else:
             cli.msg(chan, msg)
 
-
-def allow(cli, nick, chan, rest):
-    allow_deny(cli, nick, chan, rest, "allow")
-
-
-def deny(cli, nick, chan, rest):
-    allow_deny(cli, nick, chan, rest, "deny")
-
-
 @cmd("fallow", admin_only=True)
 def fallow(cli, nick, chan, rest):
     """Allow someone to use an admin command."""
-    allow(cli, nick, chan, rest)
+    allow_deny(cli, nick, chan, rest, "allow")
 
 
 @pmcmd("fallow", admin_only=True)
 def fallow_pm(cli, nick, rest):
-    fallow(cli, nick, nick, rest)
+    allow_deny(cli, nick, nick, rest, "allow")
 
 
 @cmd("fdeny", admin_only=True)
 def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
-    deny(cli, nick, chan, rest)
+    allow_deny(cli, nick, chan, rest, "deny")
 
 
 @pmcmd("fdeny", admin_only=True)
 def fdeny_pm(cli, nick, rest):
-    fdeny(cli, nick, nick, rest)
+    allow_deny(cli, nick, nick, rest, "deny")
 
 
 @cmd("wait", "w")
-def wait(cli, nick, chann_, rest):
+def wait(cli, nick, chan, rest):
     """Increases the wait time until !start can be used."""
     pl = var.list_players()
 
-    chan = botconfig.CHANNEL
+    if chan != botconfig.CHANNEL:
+        return
 
 
     if var.PHASE == "none":
@@ -5530,6 +5969,9 @@ def get_help(cli, rnick, rest):
             return
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
+        if ((name in ("away", "back") and var.OPT_IN_PING) or
+            (name in ("in", "out") and not var.OPT_IN_PING)):
+            continue
         if (name and not fn[0].admin_only and
             not fn[0].owner_only and name not in fn[0].aliases):
             fns.append("\u0002"+name+"\u0002")
@@ -5538,8 +5980,10 @@ def get_help(cli, rnick, rest):
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
+    fns.sort() # Output commands in alphabetical order
     cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:
+        afns.sort()
         cli.notice(nick, "Admin Commands: "+", ".join(afns))
 
 
@@ -5854,7 +6298,6 @@ def myrole_pm(cli, nick, rest):
 
 def aftergame(cli, rawnick, rest):
     """Schedule a command to be run after the game by someone."""
-    chan = botconfig.CHANNEL
     nick = parse_nick(rawnick)[0]
 
     rst = re.split(" +", rest)
@@ -5876,7 +6319,7 @@ def aftergame(cli, rawnick, rest):
         do_action()
         return
 
-    cli.msg(chan, ("The command \02{0}\02 has been scheduled to run "+
+    cli.msg(botconfig.CHANNEL, ("The command \02{0}\02 has been scheduled to run "+
                   "after this game by \02{1}\02.").format(cmd, nick))
     var.AFTER_FLASTGAME = do_action
 
@@ -5894,7 +6337,10 @@ def _faftergame(cli, nick, chan, rest):
 
 @pmcmd("faftergame", admin_only=True, raw_nick=True)
 def faftergame(cli, nick, rest):
-    _faftergame(cli, nick, botconfig.CHANNEL, rest)
+    if not rest.strip():
+        pm(cli, parse_nick(nick)[0], "Incorrect syntax for this command.")
+        return
+    aftergame(cli, nick, rest)
 
 
 @cmd('fghost', admin_only=True)
@@ -5932,7 +6378,7 @@ def flastgame(cli, nick, rest):
     var.ADMIN_TO_PING = nick
 
     if rest.strip():
-        aftergame(cli, rawnick, rest)
+        aftergame(cli, rawnick, botconfig.CHANNEL, rest)
 
 @cmd("flastgame", admin_only=True, raw_nick=True)
 def _flastgame(cli, nick, chan, rest):

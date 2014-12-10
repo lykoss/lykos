@@ -37,11 +37,14 @@ WARN_IDLE_TIME = 180
 PM_WARN_IDLE_TIME = 240
 PART_GRACE_TIME = 30
 QUIT_GRACE_TIME = 30
+ACC_GRACE_TIME = 30
 #  controls how many people it does in one /msg; only works for messages that are the same
 MAX_PRIVMSG_TARGETS = 4
 LEAVE_STASIS_PENALTY = 1
 IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
+ACC_STASIS_PENALTY = 1
+LEAVE_ON_LOGOUT = False # If True, the bot will consider a NickServ logout as a quit
 QUIET_DEAD_PLAYERS = False
 
 GOAT_HERDER = True
@@ -104,10 +107,16 @@ TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
 
 GAME_MODES = {}
 AWAY = ['services.', 'services.int']  # cloaks of people who are away.
+AWAY_ACCS = [] # accounts of people who are away
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who don't want detailed instructions
+SIMPLE_NOTIFY_ACCS = [] # same as above, except accounts. takes precedence
 PREFER_NOTICE = []  # cloaks of people who !notice, who want everything /notice'd
+PREFER_NOTICE_ACCS = [] # Same as above, except accounts. takes precedence
+
+ACCOUNTS_ONLY = False # If True, will use only accounts for everything
 
 STASISED = defaultdict(int)
+STASISED_ACCS = defaultdict(int)
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
@@ -198,34 +207,37 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
 import botconfig, fnmatch
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
-botconfig.DENY = {} # These are set in here ... for now
-botconfig.ALLOW = {}
+DENY = {}
+ALLOW = {}
 
-botconfig.DENY_ACCOUNTS = {}
-botconfig.ALLOW_ACCOUNTS = {}
+DENY_ACCOUNTS = {}
+ALLOW_ACCOUNTS = {}
 
 # Other settings:
 
 OPT_IN_PING = False  # instead of !away/!back, users can opt-in to be pinged
 PING_IN = []  # cloaks of users who have opted in for ping
+PING_IN_ACCS = [] # accounts of people who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
 def is_admin(nick):
     if nick not in USERS.keys():
         return False
+    if USERS[nick]["account"] != "*": # Check only account
+        if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
+            return True
     if [ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
-    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
         return True
     return False
 
 def is_owner(nick):
     if nick not in USERS.keys():
         return False
+    if USERS[nick]["account"] != "*":
+        if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
+            return True
     if [ptn for ptn in botconfig.OWNERS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
-    if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
         return True
     return False
 
@@ -662,45 +674,86 @@ c = conn.cursor()
 
 def init_db():
     with conn:
+        c = conn.cursor()
         c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
 
-        c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role
+        c.execute('CREATE TABLE IF NOT EXISTS away_accs (acc TEXT)') # accounts of people who are away
 
-        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice
+        c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role (hostmasks - backup)
 
-        c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people
+        c.execute('CREATE TABLE IF NOT EXISTS simple_role_accs (acc TEXT)') # people who understand each role (accounts - primary)
 
-        c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.DENY
+        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice (hostmasks - backup)
 
-        c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # botconfig.ALLOW
+        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice_acc (acc TEXT)') # people who prefer /notice (accounts - primary)
+
+        c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people (cloaks)
+
+        c.execute('CREATE TABLE IF NOT EXISTS stasised_accs (acc TEXT, games INTEGER, UNIQUE(acc))') # stasised people (accounts - takes precedence)
+
+        c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # DENY
+
+        c.execute('CREATE TABLE IF NOT EXISTS denied_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # DENY_ACCOUNTS
+
+        c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # ALLOW
+
+        c.execute('CREATE TABLE IF NOT EXISTS allowed_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # ALLOW_ACCOUNTS
 
         c.execute('SELECT * FROM away')
         for row in c:
             AWAY.append(row[0])
 
+        c.execute('SELECT * FROM away_accs')
+        for row in c:
+            AWAY_ACCS.append(row[0])
+
         c.execute('SELECT * FROM simple_role_notify')
         for row in c:
             SIMPLE_NOTIFY.append(row[0])
+
+        c.execute('SELECT * FROM simple_role_accs')
+        for row in c:
+            SIMPLE_NOTIFY_ACCS.append(row[0])
 
         c.execute('SELECT * FROM prefer_notice')
         for row in c:
             PREFER_NOTICE.append(row[0])
 
+        c.execute('SELECT * FROM prefer_notice_acc')
+        for row in c:
+            PREFER_NOTICE_ACCS.append(row[0])
+
         c.execute('SELECT * FROM stasised')
         for row in c:
             STASISED[row[0]] = row[1]
 
+        c.execute('SELECT * FROM stasised_accs')
+        for row in c:
+            STASISED_ACCS[row[0]] = row[1]
+
         c.execute('SELECT * FROM denied')
         for row in c:
-            if row[0] not in botconfig.DENY:
-                botconfig.DENY[row[0]] = []
-            botconfig.DENY[row[0]].append(row[1])
+            if row[0] not in DENY:
+                DENY[row[0]] = []
+            DENY[row[0]].append(row[1])
+
+        c.execute('SELECT * FROM denied_accs')
+        for row in c:
+            if row[0] not in DENY_ACCOUNTS:
+                DENY_ACCOUNTS[row[0]] = []
+            DENY[row[0]].append(row[1])
 
         c.execute('SELECT * FROM allowed')
         for row in c:
-            if row[0] not in botconfig.ALLOW:
-                botconfig.ALLOW[row[0]] = []
-            botconfig.ALLOW[row[0]].append(row[1])
+            if row[0] not in ALLOW:
+                ALLOW[row[0]] = []
+            ALLOW[row[0]].append(row[1])
+
+        c.execute('SELECT * FROM allowed_accs')
+        for row in c:
+            if row[0] not in ALLOW_ACCOUNTS:
+                ALLOW_ACCOUNTS[row[0]] = []
+            ALLOW_ACCOUNTS[row[0]].append(row[1])
 
         # populate the roles table
         c.execute('DROP TABLE IF EXISTS roles')
@@ -721,10 +774,15 @@ def init_db():
 
         c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
 
+        c.execute('CREATE TABLE IF NOT EXISTS ping_accs (acc text)')
+
         c.execute('SELECT * FROM ping')
         for row in c:
             PING_IN.append(row[0])
 
+        c.execute('SELECT * FROM ping_accs')
+        for row in c:
+            PING_IN_ACCS.append(row[0])
 
 def remove_away(clk):
     with conn:
@@ -734,6 +792,14 @@ def add_away(clk):
     with conn:
         c.execute('INSERT into away VALUES (?)', (clk,))
 
+def remove_away_acc(acc):
+    with conn:
+        c.execute('DELETE from away_accs where acc=?', (acc,))
+
+def add_away_acc(acc):
+    with conn:
+        c.execute('INSERT into away_accs VALUES (?)', (acc,))
+
 def remove_simple_rolemsg(clk):
     with conn:
         c.execute('DELETE from simple_role_notify where cloak=?', (clk,))
@@ -741,6 +807,14 @@ def remove_simple_rolemsg(clk):
 def add_simple_rolemsg(clk):
     with conn:
         c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
+
+def remove_simple_rolemsg_acc(acc):
+    with conn:
+        c.execute('DELETE from simple_role_accs where acc=?', (acc,))
+
+def add_simple_rolemsg_acc(acc):
+    with conn:
+        c.execute('INSERT into simple_role_accs VALUES (?)', (acc,))
 
 def remove_prefer_notice(clk):
     with conn:
@@ -750,6 +824,14 @@ def add_prefer_notice(clk):
     with conn:
         c.execute('INSERT into prefer_notice VALUES (?)', (clk,))
 
+def remove_prefer_notice_acc(acc):
+    with conn:
+        c.execute('DELETE from prefer_notice_acc where acc=?', (acc,))
+
+def add_prefer_notice_acc(acc):
+    with conn:
+        c.execute('INSERT into prefer_notice_acc VALUES (?)', (acc,))
+
 def remove_ping(clk):
     with conn:
         c.execute('DELETE from ping where cloak=?', (clk,))
@@ -758,12 +840,27 @@ def add_ping(clk):
     with conn:
         c.execute('INSERT into ping VALUES (?)', (clk,))
 
+def remove_ping_acc(acc):
+    with conn:
+        c.execute('DELETE from ping_accs where acc=?', (acc,))
+
+def add_ping_acc(acc):
+    with conn:
+        c.execute('INSSERT into ping_accs VALUES (?)', (acc,))
+
 def set_stasis(clk, games):
     with conn:
         if games <= 0:
             c.execute('DELETE FROM stasised WHERE cloak=?', (clk,))
         else:
             c.execute('INSERT OR REPLACE INTO stasised VALUES (?,?)', (clk, games))
+
+def set_stasis_acc(acc, games):
+    with conn:
+        if games <= 0:
+            c.execute('DELETE FROM stasised_accs WHERE acc=?', (acc,))
+        else:
+            c.execute('INSERT OR REPLACE INTO stasised_accs VALUES (?,?)', (acc, games))
 
 def add_deny(clk, command):
     with conn:
@@ -773,6 +870,14 @@ def remove_deny(clk, command):
     with conn:
         c.execute('DELETE FROM denied WHERE cloak=? AND command=?', (clk, command))
 
+def add_deny_acc(acc, command):
+    with conn:
+        c.execute('INSERT OR IGNORE INTO denied_accs VALUES (?,?)', (acc, command))
+
+def remove_deny_acc(acc, command):
+    with conn:
+        c.execute('DELETE FROM denied_accs WHERE acc=? AND command=?', (acc, command))
+
 def add_allow(clk, command):
     with conn:
         c.execute('INSERT OR IGNORE INTO allowed VALUES (?,?)', (clk, command))
@@ -781,6 +886,13 @@ def remove_allow(clk, command):
     with conn:
         c.execute('DELETE FROM allowed WHERE cloak=? AND command=?', (clk, command))
 
+def add_allow_acc(acc, command):
+    with conn:
+        c.execute('INSERT OR IGNORE INTO allowed_accs VALUES (?,?)', (acc, command))
+
+def remove_allow_acc(acc, command):
+    with conn:
+        c.execute('DELETE FROM allowed_accs WHERE acc=? AND command=?', (acc, command))
 
 def update_role_stats(acc, role, won, iwon):
     with conn:
