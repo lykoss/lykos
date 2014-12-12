@@ -332,7 +332,6 @@ def pinger(cli, nick, chan, rest):
                           "Please wait a while before using it again."))
         return
 
-    var.LAST_PING = datetime.now()
     if var.PINGING:
         return
     var.PINGING = True
@@ -358,13 +357,17 @@ def pinger(cli, nick, chan, rest):
 
         TO_PING.sort(key=lambda x: x.lower())
 
-        cli.msg(chan, "PING! "+" ".join(TO_PING))
+        if TO_PING:
+            var.LAST_PING = datetime.now()
+            cli.msg(chan, "PING! "+" ".join(TO_PING))
+
+            minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
+            if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
+               var.CAN_START_TIME = minimum
+        else:
+            cli.msg(chan, "There is noone currently available to be pinged.")
+
         var.PINGING = False
-
-        minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
-        if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
-           var.CAN_START_TIME = minimum
-
         decorators.unhook(HOOKS, 800)
 
     cli.who(chan)
