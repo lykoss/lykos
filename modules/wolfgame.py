@@ -6523,10 +6523,9 @@ def game_stats(cli, nick, chan, rest):
 
     if chan != nick:
         var.LAST_GSTATS = datetime.now()
-
-    if var.PHASE not in ('none', 'join'):
-        cli.notice(nick, "Wait until the game is over to view stats.")
-        return
+        if var.PHASE not in ('none', 'join'):
+            cli.notice(nick, "Wait until the game is over to view stats.")
+            return
 
     gamemode = var.CURRENT_GAMEMODE
     rest = rest.strip().split()
@@ -6575,10 +6574,9 @@ def player_stats(cli, nick, chan, rest):
 
     if chan != nick:
         var.LAST_PSTATS = datetime.now()
-
-    if var.PHASE not in ('none', 'join'):
-        cli.notice(nick, 'Wait until the game is over to view stats.')
-        return
+        if var.PHASE not in ('none', 'join'):
+            cli.notice(nick, 'Wait until the game is over to view stats.')
+            return
 
     params = rest.split()
 
