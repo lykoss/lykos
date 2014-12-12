@@ -846,7 +846,7 @@ def remove_ping_acc(acc):
 
 def add_ping_acc(acc):
     with conn:
-        c.execute('INSSERT into ping_accs VALUES (?)', (acc,))
+        c.execute('INSERT into ping_accs VALUES (?)', (acc,))
 
 def set_stasis(clk, games):
     with conn:
