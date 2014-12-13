@@ -695,6 +695,10 @@ def join_player(cli, player, chan, who = None, forced = False):
     if player in var.USERS:
         cloak = var.USERS[player]["cloak"]
         acc = var.USERS[player]["account"]
+    elif is_fake_nick(player) and botconfig.DEBUG_MODE:
+        # fakenick
+        cloak = None
+        acc = None
     else:
         return # Not normal
     if not acc or acc == "*":
@@ -706,7 +710,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.PHASE = "join"
         var.WAITED = 0
         var.GAME_ID = time.time()
-        var.JOINED_THIS_GAME.append(cloak)
+        if cloak:
+            var.JOINED_THIS_GAME.append(cloak)
         if acc:
             var.JOINED_THIS_GAME_ACCS.append(acc)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
@@ -733,7 +738,7 @@ def join_player(cli, player, chan, who = None, forced = False):
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
             cli.mode(chan, "+v", player)
             cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
-        if not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
+        if not is_fake_nick(player) and not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
             # make sure this only happens once
             var.JOINED_THIS_GAME.append(cloak)
             if acc:
