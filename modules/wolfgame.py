@@ -124,7 +124,12 @@ def connect_callback(cli):
             acc = "*"
         if "+" in status:
             to_be_devoiced.append(user)
-        var.USERS[user] = dict(cloak=cloak,account=acc,inchan=True)
+        newstat = ""
+        for stat in status:
+            if not stat in var.MODES_PREFIXES:
+                continue
+            newstat += var.MODES_PREFIXES[stat]
+        var.USERS[user] = dict(cloak=cloak,account=acc,inchan=True,modes=set(newstat),moded=set())
 
     @hook("endofwho", hookid=294)
     def afterwho(*args):
@@ -139,6 +144,7 @@ def connect_callback(cli):
             return
         if modeaction == "+o" and target == botconfig.NICK:
             var.OPPED = True
+            var.USERS[botconfig.NICK]["modes"].add("o")
 
             if var.PHASE == "none":
                 @hook("quietlistend", 294)
@@ -155,6 +161,49 @@ def connect_callback(cli):
 
     cli.who(botconfig.CHANNEL, "%nuhaf")
 
+@hook("mode")
+def check_for_modes(cli, rnick, chan, modeaction, *target):
+    nick = parse_nick(rnick)[0]
+    if chan != botconfig.CHANNEL:
+        return
+    oldpref = ""
+    trgt = ""
+    keeptrg = False
+    target = list(target)
+    if not target or target == [botconfig.NICK]:
+        return
+    while modeaction:
+        if len(modeaction) > 1:
+            prefix = modeaction[0]
+            change = modeaction[1]
+        else:
+            prefix = oldpref
+            change = modeaction[0]
+        if not keeptrg:
+            if target:
+                trgt = target.pop(0)
+            else:
+                trgt = "" # Last item, no target
+        keeptrg = False
+        if not prefix in ("-", "+"):
+            change = prefix
+            prefix = oldpref
+        else:
+            oldpref = prefix
+        modeaction = modeaction[modeaction.index(change)+1:]
+        if change in var.MODES_NOSET:
+            keeptrg = True
+        if prefix == "-" and change in var.MODES_ONLYSET:
+            keeptrg = True
+        if change not in var.MODES_PREFIXES.values():
+            continue
+        if trgt in var.USERS:
+            if prefix == "+":
+                var.USERS[trgt]["modes"].add(change)
+                if change in var.USERS[trgt]["moded"]:
+                    var.USERS[trgt]["moded"].remove(change)
+            elif change in var.USERS[trgt]["modes"]:
+                var.USERS[trgt]["modes"].remove(change)
 
 def mass_mode(cli, md):
     """ Example: mass_mode(cli, (('+v', 'asdf'), ('-v','wobosd'))) """
@@ -218,6 +267,14 @@ def reset_modes_timers(cli):
     cmodes = []
     for plr in var.list_players():
         cmodes.append(("-v", plr))
+    if var.AUTO_TOGGLE_MODES:
+        for plr in var.USERS:
+            if not "moded" in var.USERS[plr]:
+                continue
+            for mode in var.USERS[plr]["moded"]:
+                cmodes.append(("+"+mode, plr))
+            var.USERS[plr]["modes"].update(var.USERS[plr]["moded"])
+            var.USERS[plr]["moded"] = set()
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
             if not is_fake_nick(deadguy):
@@ -703,9 +760,15 @@ def join_player(cli, player, chan, who = None, forced = False):
         return # Not normal
     if not acc or acc == "*":
         acc = None
+    cmodes = [("+v", player)]
     if var.PHASE == "none":
 
-        cli.mode(chan, "+v", player)
+        if var.AUTO_TOGGLE_MODES and player in var.USERS and var.USERS[player]["modes"]:
+            for mode in var.USERS[player]["modes"]:
+                cmodes.append(("-"+mode, player))
+            var.USERS[player]["moded"].update(var.USERS[player]["modes"])
+            var.USERS[player]["modes"] = set()
+        mass_mode(cli, cmodes)
         var.ROLES["person"].append(player)
         var.PHASE = "join"
         var.WAITED = 0
@@ -736,7 +799,12 @@ def join_player(cli, player, chan, who = None, forced = False):
 
         var.ROLES["person"].append(player)
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
-            cli.mode(chan, "+v", player)
+            if var.AUTO_TOGGLE_MODES and var.USERS[player]["modes"]:
+                for mode in var.USERS[player]["modes"]:
+                    cmodes.append(("-"+mode, player))
+                var.USERS[player]["moded"].update(var.USERS[player]["modes"])
+                var.USERS[player]["modes"] = set()
+            mass_mode(cli, cmodes)
             cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
         if not is_fake_nick(player) and not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
             # make sure this only happens once
@@ -857,7 +925,9 @@ def on_kicked(cli, nick, chan, victim, reason):
         cli.join(chan)
         if chan == botconfig.CHANNEL:
             cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-
+    if var.AUTO_TOGGLE_MODES and victim in var.USERS:
+        var.USERS[victim]["modes"] = set()
+        var.USERS[victim]["moded"] = set()
 
 @hook("account")
 def on_account(cli, rnick, acc):
@@ -1930,6 +2000,11 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 cmode.append(("-v", nick))
             if var.PHASE == "join":
                 # Died during the joining process as a person
+                if var.AUTO_TOGGLE_MODES and nick in var.USERS and var.USERS[nick]["moded"]:
+                    for newmode in var.USERS[nick]["moded"]:
+                        cmode.append(("+"+newmode, nick))
+                    var.USERS[nick]["modes"].update(var.USERS[nick]["moded"])
+                    var.USERS[nick]["moded"] = set()
                 mass_mode(cli, cmode)
                 return not chk_win(cli)
             if var.PHASE != "join":
@@ -2113,7 +2188,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick,m,u,cloak = parse_nick(raw_nick)
     if nick != botconfig.NICK:
         if nick not in var.USERS.keys():
-            var.USERS[nick] = dict(cloak=cloak,account=acc,inchan=chan == botconfig.CHANNEL)
+            var.USERS[nick] = dict(cloak=cloak,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
         else:
             var.USERS[nick]["cloak"] = cloak
             var.USERS[nick]["account"] = acc
@@ -2505,6 +2580,9 @@ def leave(cli, what, nick, why=""):
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
     var.LOGGER.logMessage(msg.replace("\02", ""))
+    if nick in var.USERS:
+        var.USERS[nick]["modes"] = set()
+        var.USERS[nick]["moded"] = set()
     if killplayer:
         del_player(cli, nick, death_triggers = False)
     else:
@@ -4605,9 +4683,44 @@ def getfeatures(cli, nick, *rest):
                 continue
             else:
                 var.MAX_PRIVMSG_TARGETS = int(l)
-                break
+                continue
+        if r.startswith("PREFIX="):
+            prefs = r[7:]
+            chp = []
+            nlp = []
+            finder = True
+            for char in prefs:
+                if char == "(":
+                    continue
+                if char == ")":
+                    finder = False
+                    continue
+                if finder:
+                    chp.append(char)
+                else:
+                    nlp.append(char)
+            allp = zip(chp, nlp)
+            var.MODES_PREFIXES = {}
+            for combo in allp:
+                var.MODES_PREFIXES[combo[1]] = combo[0] # For some reason this needs to be backwards
+            if var.AUTO_TOGGLE_MODES:
+                tocheck = set(var.AUTO_TOGGLE_MODES)
+                var.AUTO_TOGGLE_MODES = set(var.AUTO_TOGGLE_MODES)
+                for mode in tocheck:
+                    if not mode in var.MODES_PREFIXES.keys() and not mode in var.MODES_PREFIXES.values():
+                        var.AUTO_TOGGLE_MODES.remove(mode)
+                        continue
+                    if not mode in var.MODES_PREFIXES.values():
+                        for chp in var.MODES_PREFIXES.keys():
+                            if chp == mode:
+                                var.AUTO_TOGGLE_MODES.remove(chp)
+                                var.AUTO_TOGGLE_MODES.add(var.MODES_PREFIXES[mode])
 
-
+                if "v" in var.AUTO_TOGGLE_MODES:
+                    var.AUTO_TOGGLE_MODES.remove("v")
+        if r.startswith("CHANMODES="):
+            chans = r[10:].split(",")
+            var.LISTMODES, var.MODES_ALLSET, var.MODES_ONLYSET, var.MODES_NOSET = chans
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if not notice and not privmsg:

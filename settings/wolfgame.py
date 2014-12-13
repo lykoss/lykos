@@ -46,6 +46,8 @@ PART_STASIS_PENALTY = 1
 ACC_STASIS_PENALTY = 1
 LEAVE_ON_LOGOUT = False # If True, the bot will consider a NickServ logout as a quit
 QUIET_DEAD_PLAYERS = False
+# The bot will automatically toggle those modes of people joining
+AUTO_TOGGLE_MODES = ""
 
 GOAT_HERDER = True
 
