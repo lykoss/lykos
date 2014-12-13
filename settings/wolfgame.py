@@ -108,7 +108,7 @@ TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
                 }
 
 GAME_MODES = {}
-AWAY = ['services.', 'services.int']  # cloaks of people who are away.
+AWAY = []  # cloaks of people who are away.
 AWAY_ACCS = [] # accounts of people who are away
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who don't want detailed instructions
 SIMPLE_NOTIFY_ACCS = [] # same as above, except accounts. takes precedence
