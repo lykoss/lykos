@@ -2958,8 +2958,6 @@ def transition_day(cli, gameid=0):
             if victim in onlybywolves:
                 message.append("The wolves' selected victim was a harlot, who was not at home last night.")
                 novictmsg = False
-            bywolves.discard(victim)
-            onlybywolves.discard(victim)
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves:
             message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
             pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
