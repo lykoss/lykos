@@ -6621,6 +6621,18 @@ def player_stats(cli, nick, chan, rest):
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
 
+
+@cmd("mystats", "me", "m")
+def my_stats(cli, nick, chan, rest):
+    rest = rest.split()
+    player_stats(cli, nick, chan, " ".join([nick] + rest))
+
+
+@pmcmd("mystats", "me", "m")
+def my_stats_pm(cli, nick, rest):
+    my_stats(cli, nick, nick, rest)
+
+
 @cmd('game', raw_nick = True)
 def game(cli, nick, chan, rest):
     nick, _, __, cloak = parse_nick(nick)
