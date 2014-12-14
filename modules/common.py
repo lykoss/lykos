@@ -33,7 +33,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             # Now that is always called first.
         for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
             if x and msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+1:]
+                h = msg[len(x)+len(botconfig.CMD_CHAR):]
                 if not h or h[0] == " " or not x:
                     for fn in COMMANDS.get(x,[])+(currmod.COMMANDS.get(x,[]) if currmod else []):
                         try:
@@ -48,7 +48,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     else:
         for x in set(list(PM_COMMANDS.keys()) + (list(currmod.PM_COMMANDS.keys()) if currmod else list())):
             if msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+1:]
+                h = msg[len(x)+len(botconfig.CMD_CHAR):]
             elif not x or msg.lower().startswith(x):
                 h = msg[len(x):]
             else:
