@@ -114,7 +114,7 @@ def connect_callback(cli):
             cmodes.append(("-q", quieted))
 
     @hook("whospcrpl", hookid=294)
-    def on_whoreply(cli, server, nick, ident, cloak, user, status, acc):
+    def on_whoreply(cli, server, nick, ident, cloak, _, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
         if user == botconfig.NICK:
             cli.nickname = user
@@ -159,7 +159,7 @@ def connect_callback(cli):
             cli.msg("ChanServ", "op " + botconfig.CHANNEL)
 
 
-    cli.who(botconfig.CHANNEL, "%nuhaf")
+    cli.who(botconfig.CHANNEL, "%uhsnfa")
 
 @hook("mode")
 def check_for_modes(cli, rnick, chan, modeaction, *target):

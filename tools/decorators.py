@@ -19,6 +19,8 @@ def generate(fdict, permissions=True, **kwargs):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
+                if not permissions:
+                    return f(*largs)
                 if len(largs) > 1 and largs[1]:
                     nick, _, _, cloak = parse_nick(largs[1])
 
@@ -33,8 +35,6 @@ def generate(fdict, permissions=True, **kwargs):
                     chan = ""
                 if not raw_nick and len(largs) > 1 and largs[1]:
                     largs[1] = nick
-                if not permissions:
-                    return f(*largs)
                 if chan and not chan == botconfig.CHANNEL and not admin_only and not owner_only:
                     if "" in s:
                         return # Don't have empty commands triggering in other channels
