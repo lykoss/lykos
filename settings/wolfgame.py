@@ -44,6 +44,8 @@ IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
 QUIET_DEAD_PLAYERS = False
 
+DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
+
 GOAT_HERDER = True
 
 ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day

@@ -2267,8 +2267,11 @@ def leave_game(cli, nick, chan, rest):
     if var.get_role(nick) != "person" and var.ROLE_REVEAL:
         role = var.get_reveal_role(nick)
         an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-        lmsg = random.choice(var.QUIT_MESSAGES).format(nick, an, var.get_reveal_role(nick), population)
-        cli.msg(botconfig.CHANNEL, lmsg)
+        if var.DYNQUIT_DURING_GAME:
+            lmsg = random.choice(var.QUIT_MESSAGES).format(nick, an, var.get_reveal_role(nick), population)
+            cli.msg(botconfig.CHANNEL, lmsg)
+        else:
+            cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
         var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
     else:
         lmsg = random.choice(var.QUIT_MESSAGES_NO_REVEAL).format(nick, population)
