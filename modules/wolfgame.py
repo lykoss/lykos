@@ -1986,8 +1986,16 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                    "to exact your revenge on the \u0002{0}\u0002 that killed you.").format(var.VENGEFUL_GHOSTS[nick]))
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
-                if nickrole in var.WOLF_ROLES and var.GAMEPHASE == "day":
-                    var.ALPHA_ENABLED = True
+                if nickrole in var.WOLF_ROLES:
+                    if var.GAMEPHASE == "day":
+                        var.ALPHA_ENABLED = True
+                    for bitten, days in var.BITTEN.items():
+                        brole = var.get_role(bitten)
+                        if brole not in var.WOLF_ROLES and days > 0:
+                            var.BITTEN[bitten] -= 1
+                            pm(cli, bitten, ("Upon gazing at {0}'s lifeless body, you feel a sharp pang of regret and vengeance. " +
+                                             "You quickly look away and the feelings subside...").format(nick))
+
                 if nickrole == "mad scientist":
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
                     # if those players are already dead, nothing happens
