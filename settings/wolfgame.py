@@ -171,9 +171,9 @@ ROLE_GUIDE = {# village roles
 # If every wolf role dies, the game ends and village wins and there are no remaining traitors, the game ends and villagers win
 WOLF_ROLES     = ["wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer"]
+WOLFCHAT_ROLES = ["wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
-WOLFTEAM_ROLES = ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist"]
+WOLFTEAM_ROLES = ["wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game!
@@ -300,6 +300,13 @@ def get_templates(nick):
             pass
 
     return tpl
+
+def role_order():
+    templates = list(TEMPLATE_RESTRICTIONS.keys())
+    vils = [role for role in ROLE_GUIDE.keys() if role not in WOLFTEAM_ROLES+templates]
+    vils.sort()
+    return WOLFTEAM_ROLES + vils + templates
+    
 
 def break_long_message(phrases, joinstr = " "):
     message = ""
