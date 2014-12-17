@@ -2268,14 +2268,22 @@ def leave_game(cli, nick, chan, rest):
         role = var.get_reveal_role(nick)
         an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
         if var.DYNQUIT_DURING_GAME:
-            lmsg = random.choice(var.QUIT_MESSAGES).format(nick, an, var.get_reveal_role(nick), population)
+            lmsg = random.choice(var.QUIT_MESSAGES).format(nick, an, role, population)
             cli.msg(botconfig.CHANNEL, lmsg)
         else:
-            cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, var.get_reveal_role(nick), population))
-        var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, var.get_reveal_role(nick)))
+            cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, role, population))
+        var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, role))
     else:
-        lmsg = random.choice(var.QUIT_MESSAGES_NO_REVEAL).format(nick, population)
-        cli.msg(botconfig.CHANNEL, lmsg)
+        # DYNQUIT_DURING_GAME should not have any effect during the join phase, so only check if we aren't in that
+        if var.PHASE != "join":
+            if var.DYNQUIT_DURING_GAME:
+                lmsg = random.choice(var.QUIT_MESSAGES_NO_REVEAL).format(nick, population)
+                cli.msg(botconfig.CHANNEL, lmsg)
+            else:
+                cli.msg(botconfig.CHANNEL, ("\02{0}\02 has died of an unknown disease.{1}").format(nick, population))
+        else:
+            lmsg = random.choice(var.QUIT_MESSAGES_NO_REVEAL).format(nick, population)
+            cli.msg(botconfig.CHANNEL, lmsg)
         var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
     if var.PHASE != "join":
         for r, rlist in var.ORIGINAL_ROLES.items():
