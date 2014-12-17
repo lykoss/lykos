@@ -230,7 +230,8 @@ def get_victim(cli, nick, victim, self_in_list = False):
 
     tempvictim = complete_match(victim.lower(), pll)
     if not tempvictim:
-        if nick.startswith(victim): #ensure messages about not being able to act on yourself work
+        #ensure messages about not being able to act on yourself work
+        if nick.lower().startswith(victim.lower()):
             return nick
         cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
         return
@@ -2269,9 +2270,18 @@ def goat(cli, nick, chan, rest):
         cli.notice(nick, 'This can only be done once per day.')
         return
 
-    victim = get_victim(cli, nick, rest.split(' ')[0], True)
+    ul = list(var.USERS.keys())
+    ull = [x.lower() for x in ul]
+
+    rest = re.split(" +",rest)[0]
+    if not rest:
+        cli.notice(nick, 'Not enough parameters.')
+    
+    victim = complete_match(rest, ull)
     if not victim:
+        cli.notice(nick, "\u0002{0}\u0002 is not in this channel.".format(rest))
         return
+    victim = ul[ull.index(victim)]
 
     goatact = random.choice(('kicks', 'headbutts'))
 
@@ -3654,9 +3664,9 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick, "You don't have any more bullets.")
         return
     elif nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        cli.notice(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
     if victim == nick:
@@ -3780,12 +3790,12 @@ def kill(cli, nick, rest):
     if role in ("wolf", "werecrow") and var.DISEASED_WOLVES:
         pm(cli, nick, "You are feeling ill, and are unable to kill anyone tonight.")
         return
-    pieces = rest.split(' ')
+    pieces = re.split(" +",rest)
     victim = pieces[0]
     victim2 = None
     if role in ("wolf", "werecrow") and var.ANGRY_WOLVES:
         if len(pieces) > 1:
-            if len(pieces) > 2 and pieces[1] == "and":
+            if len(pieces) > 2 and pieces[1].lower() == "and":
                 victim2 = pieces[2]
             else:
                 victim2 = pieces[1]
@@ -3796,12 +3806,7 @@ def kill(cli, nick, rest):
             pm(cli, nick, ("You have already transformed into a crow; therefore, "+
                            "you are physically unable to kill a villager."))
             return
-    allwolves = var.list_players(var.WOLFTEAM_ROLES)
-    allvills = []
-    for p in var.list_players():
-        if p not in allwolves:
-            allvills.append(p)
-    
+
     victim = get_victim(cli, nick, victim)
     if not victim:
         return
@@ -3818,6 +3823,11 @@ def kill(cli, nick, rest):
         return
 
     if nick in var.VENGEFUL_GHOSTS.keys():
+        allwolves = var.list_players(var.WOLFTEAM_ROLES)
+        allvills = []
+        for p in var.list_players():
+            if p not in allwolves:
+                allvills.append(p)
         if var.VENGEFUL_GHOSTS[nick] == "wolves" and victim not in allwolves:
             pm(cli, nick, "You must target a wolf.")
             return
@@ -3826,7 +3836,8 @@ def kill(cli, nick, rest):
             return
 
     if role in ("wolf", "werecrow"):
-        if victim in allwolves or victim2 in allwolves:
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        if victim in wolfchatwolves or victim2 in wolfchatwolves:
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
         if var.ANGRY_WOLVES and victim2 != None:
@@ -3890,7 +3901,7 @@ def guard(cli, nick, rest):
     if var.GUARDED.get(nick):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0], role != "bodyguard" and var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
     if not victim:
         return
 
@@ -3942,7 +3953,7 @@ def observe(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -4008,7 +4019,7 @@ def investigate(cli, nick, rest):
     if nick in var.INVESTIGATED:
         pm(cli, nick, "You may only investigate one person per round.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -4052,7 +4063,7 @@ def hvisit(cli, nick, rest):
         pm(cli, nick, ("You are already spending the night "+
                       "with \u0002{0}\u0002.").format(var.HVISITED[nick]))
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0], True)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
 
@@ -4066,7 +4077,7 @@ def hvisit(cli, nick, rest):
         var.HVISITED[nick] = victim
         pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
                       "Have a good time!").format(victim))
-        if nick != victim: #prevent exchange totem weirdness
+        if nick != victim: #prevent luck/misdirection totem weirdness
             pm(cli, victim, ("You are spending the night with \u0002{0}"+
                                      "\u0002. Have a good time!").format(nick))
         var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
@@ -4096,7 +4107,7 @@ def see(cli, nick, rest):
     if nick in var.SEEN:
         pm(cli, nick, "You may only have one vision per round.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -4153,7 +4164,7 @@ def give(cli, nick, rest):
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0], True)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
 
@@ -4272,10 +4283,10 @@ def choose(cli, nick, rest):
     # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
-    pieces = rest.split(' ')
+    pieces = re.split(" +",rest)
     victim = pieces[0]
     if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1] == "and":
+        if len(pieces) > 2 and pieces[1].lower() == "and":
             victim2 = pieces[2]
         else:
             victim2 = pieces[1]
@@ -4346,7 +4357,7 @@ def target(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -4382,7 +4393,7 @@ def hex(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -4431,7 +4442,7 @@ def clone(cli, nick, rest):
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
 
-    victim = get_victim(cli, nick, rest.split(' ')[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
         return
 
@@ -6339,17 +6350,6 @@ def game_stats(cli, nick, chan, rest):
             cli.msg(chan, var.get_game_stats(gamemode, int(rest[0])))
 
 
-@cmd("mystats", "me", "m")
-def my_stats(cli, nick, chan, rest):
-    rest = rest.split()
-    player_stats(cli, nick, chan, " ".join([nick] + rest))
-
-
-@pmcmd("mystats", "me", "m")
-def my_stats_pm(cli, nick, rest):
-    my_stats(cli, nick, nick, rest)
-
-
 @pmcmd('gamestats', 'gstats')
 def game_stats_pm(cli, nick, rest):
     game_stats(cli, nick, nick, rest)
@@ -6413,6 +6413,18 @@ def player_stats(cli, nick, chan, rest):
 @pmcmd('playerstats', 'pstats', 'player', 'p')
 def player_stats_pm(cli, nick, rest):
     player_stats(cli, nick, nick, rest)
+
+
+@cmd("mystats", "me", "m")
+def my_stats(cli, nick, chan, rest):
+    rest = rest.split()
+    player_stats(cli, nick, chan, " ".join([nick] + rest))
+
+
+@pmcmd("mystats", "me", "m")
+def my_stats_pm(cli, nick, rest):
+    my_stats(cli, nick, nick, rest)
+
 
 @cmd('game', raw_nick = True)
 def game(cli, nick, chan, rest):
