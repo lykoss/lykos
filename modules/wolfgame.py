@@ -23,6 +23,8 @@ from oyoyo.parse import parse_nick
 import settings.wolfgame as var
 import botconfig
 from tools.wolfgamelogger import WolfgameLogger
+import logging
+import traceback
 from tools import decorators
 from datetime import datetime, timedelta
 import threading
@@ -361,11 +363,18 @@ def make_stasis(nick, penalty):
 
 @pmcmd("fdie", "fbye", admin_only=True)
 @cmd("fdie", "fbye", admin_only=True)
-def forced_exit(cli, nick, *rest):  # Admin Only
+def forced_exit(cli, nick, chan, *rest):  # Admin Only
     """Forces the bot to close."""
 
     if var.PHASE in ("day", "night"):
-        stop_game(cli)
+        #ignore all errors that prevent the bot from stopping
+        try:
+            stop_game(cli)
+        except:
+            logging.error(traceback.format_exc())
+            cli.msg(chan, "An error has occurred and has been logged.")
+            reset_modes_timers(cli)
+            reset()
     else:
         reset_modes_timers(cli)
         reset()
@@ -376,11 +385,17 @@ def forced_exit(cli, nick, *rest):  # Admin Only
 
 @pmcmd("frestart", admin_only=True)
 @cmd("frestart", admin_only=True)
-def restart_program(cli, nick, *rest):
+def restart_program(cli, nick, chan, *rest):
     """Restarts the bot."""
     try:
         if var.PHASE in ("day", "night"):
-            stop_game(cli)
+            try:
+                stop_game(cli)
+            except:
+                logging.error(traceback.format_exc())
+                cli.msg(chan, "An error has occurred and has been logged.")
+                reset_modes_timers(cli)
+                reset()
         else:
             reset_modes_timers(cli)
             reset()
