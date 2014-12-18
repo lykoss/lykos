@@ -4490,31 +4490,13 @@ def bite_cmd(cli, nick, rest):
         pm(cli, nick, "You may only bite someone after another wolf has died during the day.")
         return
 
-
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
-    victim = pieces[0]
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
 
     if var.ANGRY_WOLVES:
         if not victim:
             pm(cli, nick, "Please choose who to bite by specifying their nick.")
             return
 
-        pl = var.list_players()
-        pll = [x.lower() for x in pl]
-
-        matches = 0
-        for player in pll:
-            if victim == player:
-                target = player
-                break
-            if player.startswith(victim):
-                target = player
-                matches += 1
-        else:
-            if matches != 1:
-                pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-                return
-        victim = pl[pll.index(target)]
         vrole = var.get_role(victim)
 
         if vrole in var.WOLFCHAT_ROLES:
