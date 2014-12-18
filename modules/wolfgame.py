@@ -1975,6 +1975,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 target2 = var.ALL_PLAYERS[i]
                                 break
 
+                    pl = var.list_players() #might be outdated if player is also assassin
                     if target1 in pl:
                         if target2 in pl and target1 != target2:
                             if var.ROLE_REVEAL:
