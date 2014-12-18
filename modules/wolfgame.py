@@ -1048,21 +1048,10 @@ def stats(cli, nick, chan, rest):
           if var.ROLES[k]]
     l2 = [k for k in var.ORIGINAL_ROLES.keys()
           if var.ORIGINAL_ROLES[k]]
-    rs = list(set(l1+l2))
+    rs = set(l1+l2)
+    rs = [role for role in var.role_order() if role in rs]
 
-    # Due to popular demand, picky ordering
-    if "wolf" in rs:
-        rs.remove("wolf")
-        rs.insert(0, "wolf")
-    if "augur" in rs:
-        rs.remove("augur")
-        rs.insert(1, "augur")
-    if "oracle" in rs:
-        rs.remove("oracle")
-        rs.insert(1, "oracle")
-    if "seer" in rs:
-        rs.remove("seer")
-        rs.insert(1, "seer")
+    # picky ordering: villager always last
     if var.DEFAULT_ROLE in rs:
         rs.remove(var.DEFAULT_ROLE)
     rs.append(var.DEFAULT_ROLE)

@@ -311,6 +311,7 @@ def get_templates(nick):
 
     return tpl
 
+#order goes: wolfteam roles, then other roles in alphabetical order, then templates
 def role_order():
     templates = list(TEMPLATE_RESTRICTIONS.keys())
     vils = [role for role in ROLE_GUIDE.keys() if role not in WOLFTEAM_ROLES+templates]
@@ -983,7 +984,11 @@ def get_player_totals(acc):
                     role_tmp[row[0]] += row[1]
                 else:
                     break
-            role_totals = ["\u0002{0}\u0002: {1}".format(role, count) for role, count in role_tmp.items()]
+            order = role_order()
+            #ordered role stats
+            role_totals = ["\u0002{0}\u0002: {1}".format(role, role_tmp[role]) for role in order if role in role_tmp]
+            #lover or any other special stats
+            role_totals += ["\u0002{0}\u0002: {1}".format(role, count) for role, count in role_tmp.items() if role not in order]
             c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
             row = c.fetchone()
             return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], break_long_message(role_totals, ", "))
