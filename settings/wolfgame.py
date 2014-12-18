@@ -49,6 +49,8 @@ QUIET_DEAD_PLAYERS = False
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
 
+DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
+
 GOAT_HERDER = True
 
 ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
@@ -205,6 +207,14 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged.",
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
+QUIT_MESSAGES= ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
+                "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
+                "\u0002{0}\u0002, a{1} \u0002{2}\u0002, fell off the roof of their house and is now dead.",
+                "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{2}\u0002, but it is too late.")
+QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
+                           "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomaches.",
+                           "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
+                           "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
 
 import botconfig, fnmatch
 
