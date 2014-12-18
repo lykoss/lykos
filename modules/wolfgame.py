@@ -205,6 +205,38 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
             elif change in var.USERS[trgt]["modes"]:
                 var.USERS[trgt]["modes"].remove(change)
 
+#completes a partial nickname or string from a list
+def complete_match(string, matches):
+    num_matches = 0
+    bestmatch = string
+    for possible in matches:
+        if string == possible:
+            return string
+        if possible.startswith(string):
+            bestmatch = possible
+            num_matches += 1
+    if num_matches != 1:
+        return None
+    else:
+        return bestmatch
+
+#wrapper around complete_match() used for roles
+def get_victim(cli, nick, victim, self_in_list = False):
+    if not victim:
+        cli.notice(cli, nick, "Not enough parameters")
+        return
+    pl = [x for x in var.list_players() if x != nick or self_in_list]
+    pll = [x.lower() for x in pl]
+
+    tempvictim = complete_match(victim.lower(), pll)
+    if not tempvictim:
+        #ensure messages about not being able to act on yourself work
+        if nick.lower().startswith(victim.lower()):
+            return nick
+        cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        return
+    return pl[pll.index(tempvictim)] #convert back to normal casing
+
 def mass_mode(cli, md):
     """ Example: mass_mode(cli, (('+v', 'asdf'), ('-v','wobosd'))) """
     lmd = len(md)  # store how many mode changes to do
@@ -2257,28 +2289,17 @@ def goat(cli, nick, chan, rest):
 
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
-    rest = rest.split(' ')[0].strip().lower()
 
+    rest = re.split(" +",rest)[0]
     if not rest:
         cli.notice(nick, 'Not enough parameters.')
+    
+    victim = complete_match(rest, ull)
+    if not victim:
+        cli.notice(nick, "\u0002{0}\u0002 is not in this channel.".format(rest))
         return
-
-    matches = 0
-
-    for player in ull:
-        if rest == player:
-            victim = player
-            break
-
-        if player.startswith(rest):
-            victim = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, '\x02{}\x02 is not in this channel.'.format(rest))
-            return
-
     victim = ul[ull.index(victim)]
+
     goatact = random.choice(('kicks', 'headbutts'))
 
     cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
@@ -3275,7 +3296,7 @@ def vote(cli, nick, chan, rest):
     if chan != botconfig.CHANNEL:
         return
 
-    rest = re.split(" +",rest)[0].strip().lower()
+    rest = re.split(" +",rest)[0].strip()
 
     if not rest:
         show_votes(cli, nick, chan, rest)
@@ -3302,23 +3323,9 @@ def vote(cli, nick, chan, rest):
     if nick in var.NO_LYNCH:
         var.NO_LYNCH.remove(nick)
 
-    pl = var.list_players()
-    pl_l = [x.strip().lower() for x in pl]
-
-    matches = 0
-    for player in pl_l:
-        if rest == player:
-            target = player
-            break
-        if player.startswith(rest):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(rest))
-            return
-
-    voted = pl[pl_l.index(target)]
+    voted = get_victim(cli, nick, rest, var.SELF_LYNCH_ALLOWED)
+    if not voted:
+        return
 
     if not var.SELF_LYNCH_ALLOWED:
         if nick == voted:
@@ -3681,38 +3688,21 @@ def shoot(cli, nick, chan, rest):
                           "Please wait patiently for morning."))
         return
     if nick not in var.GUNNERS.keys() and nick not in var.WOLF_GUNNERS.keys():
-        pm(cli, nick, "You don't have a gun.")
+        cli.notice(nick, "You don't have a gun.")
         return
     elif ((nick in var.GUNNERS.keys() and not var.GUNNERS[nick]) or
           (nick in var.WOLF_GUNNERS.keys() and not var.WOLF_GUNNERS[nick])):
-        pm(cli, nick, "You don't have any more bullets.")
+        cli.notice(nick, "You don't have any more bullets.")
         return
     elif nick in var.SILENCED:
-        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        cli.notice(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = re.split(" +",rest)[0].strip().lower()
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        cli.notice(nick, "Not enough parameters")
         return
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
     if victim == nick:
         cli.notice(nick, "You are holding it the wrong way.")
         return
-
     # get actual victim
     victim = choose_target(nick, victim)
 
@@ -3831,61 +3821,30 @@ def kill(cli, nick, rest):
     if role in ("wolf", "werecrow") and var.DISEASED_WOLVES:
         pm(cli, nick, "You are feeling ill, and are unable to kill anyone tonight.")
         return
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
+    pieces = re.split(" +",rest)
     victim = pieces[0]
     victim2 = None
     if role in ("wolf", "werecrow") and var.ANGRY_WOLVES:
-        try:
-            if pieces[1] == "and":
+        if len(pieces) > 1:
+            if len(pieces) > 2 and pieces[1].lower() == "and":
                 victim2 = pieces[2]
             else:
                 victim2 = pieces[1]
-        except IndexError:
+        else:
             victim2 = None
-    if not victim:
-        pm(cli, nick, "Not enough parameters")
-        return
     if role == "werecrow":  # Check if flying to observe
         if var.OBSERVED.get(nick):
             pm(cli, nick, ("You have already transformed into a crow; therefore, "+
                            "you are physically unable to kill a villager."))
             return
-    pl = var.list_players()
-    allwolves = var.list_players(var.WOLFTEAM_ROLES)
-    allvills = []
-    for p in pl:
-        if p not in allwolves:
-            allvills.append(p)
-    pll = [x.lower() for x in pl]
 
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
-
+    victim = get_victim(cli, nick, victim)
+    if not victim:
+        return
     if victim2 != None:
-        matches = 0
-        for player in pll:
-            if victim2 == player:
-                target = player
-                break
-            if player.startswith(victim2):
-                target = player
-                matches += 1
-        else:
-            if matches != 1:
-                pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim2))
-                return
-        victim2 = pl[pll.index(target)]
+        victim2 = get_victim(cli, nick, victim2)
+        if not victim2:
+            return
 
     if victim == nick or victim2 == nick:
         if nick in var.VENGEFUL_GHOSTS.keys():
@@ -3895,6 +3854,11 @@ def kill(cli, nick, rest):
         return
 
     if nick in var.VENGEFUL_GHOSTS.keys():
+        allwolves = var.list_players(var.WOLFTEAM_ROLES)
+        allvills = []
+        for p in var.list_players():
+            if p not in allwolves:
+                allvills.append(p)
         if var.VENGEFUL_GHOSTS[nick] == "wolves" and victim not in allwolves:
             pm(cli, nick, "You must target a wolf.")
             return
@@ -3903,7 +3867,8 @@ def kill(cli, nick, rest):
             return
 
     if role in ("wolf", "werecrow"):
-        if victim in var.list_players(var.WOLFCHAT_ROLES) or victim2 in var.list_players(var.WOLFCHAT_ROLES):
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        if victim in wolfchatwolves or victim2 in wolfchatwolves:
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
         if var.ANGRY_WOLVES and victim2 != None:
@@ -3964,28 +3929,13 @@ def guard(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = re.split(" +",rest)[0].strip().lower()
-    if not victim:
-        pm(cli, nick, "Not enough parameters")
-        return
     if var.GUARDED.get(nick):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
+    if not victim:
+        return
+
     if role == "guardian angel" and var.LASTGUARDED.get(nick) == victim:
         pm(cli, nick, ("You protected \u0002{0}\u0002 last night. " +
                        "You cannot protect the same person two nights in a row.").format(victim))
@@ -4034,26 +3984,11 @@ def observe(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = re.split(" +", rest)[0].strip().lower()
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
-    if victim == nick.lower():
+
+    if victim == nick:
         if role == "werecrow":
             pm(cli, nick, "Instead of doing that, you should probably go kill someone.")
         else:
@@ -4115,25 +4050,10 @@ def investigate(cli, nick, rest):
     if nick in var.INVESTIGATED:
         pm(cli, nick, "You may only investigate one person per round.")
         return
-    victim = re.split(" +", rest)[0].strip().lower()
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
+
     if victim == nick:
         pm(cli, nick, "Investigating yourself would be a waste.")
         return
@@ -4174,24 +4094,10 @@ def hvisit(cli, nick, rest):
         pm(cli, nick, ("You are already spending the night "+
                       "with \u0002{0}\u0002.").format(var.HVISITED[nick]))
         return
-    victim = re.split(" +",rest)[0].strip().lower()
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-    pll = [x.lower() for x in var.list_players()]
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = var.list_players()[pll.index(target)]
+
     if nick == victim:  # Staying home
         var.HVISITED[nick] = None
         pm(cli, nick, "You have chosen to stay home for the night.")
@@ -4201,8 +4107,9 @@ def hvisit(cli, nick, rest):
             return
         var.HVISITED[nick] = victim
         pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
-                      "Have a good time!").format(var.HVISITED[nick]))
-        pm(cli, var.HVISITED[nick], ("You are spending the night with \u0002{0}"+
+                      "Have a good time!").format(victim))
+        if nick != victim: #prevent luck/misdirection totem weirdness
+            pm(cli, victim, ("You are spending the night with \u0002{0}"+
                                      "\u0002. Have a good time!").format(nick))
         var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
     chk_nightdone(cli)
@@ -4231,25 +4138,10 @@ def see(cli, nick, rest):
     if nick in var.SEEN:
         pm(cli, nick, "You may only have one vision per round.")
         return
-    victim = re.split(" +",rest)[0].strip().lower()
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
+
     if victim == nick:
         pm(cli, nick, "Seeing yourself would be a waste.")
         return
@@ -4303,25 +4195,10 @@ def give(cli, nick, rest):
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
         return
-    victim = re.split(" +",rest)[0].strip().lower()
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick,"\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
+
     if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
@@ -4437,50 +4314,22 @@ def choose(cli, nick, rest):
     # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
+    pieces = re.split(" +",rest)
     victim = pieces[0]
-    try:
-        if pieces[1] == "and":
+    if len(pieces) > 1:
+        if len(pieces) > 2 and pieces[1].lower() == "and":
             victim2 = pieces[2]
         else:
             victim2 = pieces[1]
-    except IndexError:
+    else:
         victim2 = None
 
-    if not victim or not victim2:
-        pm(cli, nick, "Not enough parameters")
+    victim = get_victim(cli, nick, victim, True)
+    if not victim:
         return
-
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
-
-    matches = 0
-    for player in pll:
-        if victim2 == player:
-            target = player
-            break
-        if player.startswith(victim2):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim2))
-            return
-    victim2 = pl[pll.index(target)]
+    victim2 = get_victim(cli, nick, victim2, True)
+    if not victim2:
+        return
 
     if victim == victim2:
         pm(cli, nick, "You must choose two different people.")
@@ -4539,29 +4388,9 @@ def target(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
-    victim = pieces[0]
-
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
 
     if nick == victim:
         pm(cli, nick, "You may not target yourself.")
@@ -4595,29 +4424,9 @@ def hex(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
-    victim = pieces[0]
-
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
 
     if nick == victim:
         pm(cli, nick, "You may not target yourself.")
@@ -4664,29 +4473,9 @@ def clone(cli, nick, rest):
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
 
-    pieces = [p.strip().lower() for p in re.split(" +",rest)]
-    victim = pieces[0]
-
+    victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
-        pm(cli, nick, "Not enough parameters")
         return
-
-    pl = var.list_players()
-    pll = [x.lower() for x in pl]
-
-    matches = 0
-    for player in pll:
-        if victim == player:
-            target = player
-            break
-        if player.startswith(victim):
-            target = player
-            matches += 1
-    else:
-        if matches != 1:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
-            return
-    victim = pl[pll.index(target)]
 
     if nick == victim:
         pm(cli, nick, "You may not target yourself.")
@@ -6341,9 +6130,11 @@ def listroles(cli, nick, chan, rest):
 
     #read game mode to get roles for
     if len(rest[0]) and not rest[0].isdigit():
-        #check for valid game mode ("roles" gamemode is treated as invalid)
-        if rest[0] != "roles" and rest[0] in var.GAME_MODES.keys():
-            mode = var.GAME_MODES[rest[0]][0]()
+        gamemode = rest[0]
+        if gamemode not in var.GAME_MODES.keys():
+            gamemode = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
+        if gamemode in var.GAME_MODES.keys() and gamemode != "roles":
+            mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX"):
                 roleindex = getattr(mode, "ROLE_INDEX")
             if hasattr(mode, "ROLE_GUIDE"):
@@ -6559,12 +6350,14 @@ def game_stats(cli, nick, chan, rest):
             return
 
     gamemode = var.CURRENT_GAMEMODE
-    rest = rest.strip().split()
+    rest = rest.split()
     # Check for gamemode
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            cli.notice(nick, "{0} is not a valid game mode".format(gamemode))
+            gamemode = complete_match(gamemode, var.GAME_MODES.keys())
+        if not gamemode:
+            cli.notice(nick, "{0} is not a valid game mode".format(rest[0]))
             return
         rest.pop(0)
     # Check for invalid input
@@ -6686,18 +6479,11 @@ def game(cli, nick, chan, rest):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        #players can vote by only using partial name
-        matches = 0
-        possiblegamemode = gamemode
-        for mode in var.GAME_MODES.keys():
-            if mode.startswith(gamemode) and mode != "roles":
-                possiblegamemode = mode
-                matches += 1
-        if matches != 1:
+        match = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
+        if not match:
             cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
             return
-        else:
-            gamemode = possiblegamemode
+        gamemode = match
     
     if gamemode != "roles":
         var.GAMEMODE_VOTES[cloak] = gamemode
@@ -6872,20 +6658,15 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             return
 
         if rest:
-            rest = mode = rest.strip().lower()
+            rest = gamemode = rest.strip().lower()
             if rest not in var.GAME_MODES.keys() and not rest.startswith("roles"):
                 rest = rest.split()[0]
-                #players can vote by only using partial name
-                matches = 0
-                for gamemode in var.GAME_MODES.keys():
-                    if gamemode.startswith(rest):
-                        mode = gamemode
-                        matches += 1
-                if matches != 1:
+                gamemode = complete_match(rest, var.GAME_MODES.keys())
+                if not gamemode:
                     cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(rest))
                     return
 
-            if cgamemode(cli, mode):
+            if cgamemode(cli, gamemode):
                 cli.msg(chan, ('\u0002{}\u0002 has changed the game settings '
                                 'successfully.').format(nick))
                 var.FGAMED = True
