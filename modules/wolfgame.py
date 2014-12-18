@@ -383,9 +383,8 @@ def forced_exit(cli, nick, chan, *rest):  # Admin Only
 
 
 
-@pmcmd("frestart", admin_only=True)
 @cmd("frestart", admin_only=True)
-def restart_program(cli, nick, chan, *rest):
+def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
     try:
         if var.PHASE in ("day", "night"):
@@ -405,14 +404,18 @@ def restart_program(cli, nick, chan, *rest):
     finally:
         print("RESTARTING")
         python = sys.executable
-        if rest[-1].strip().lower() == "debugmode":
+        if rest.strip().lower() == "debugmode":
             os.execl(python, python, sys.argv[0], "--debug")
-        elif rest[-1].strip().lower() == "normalmode":
+        elif rest.strip().lower() == "normalmode":
             os.execl(python, python, sys.argv[0])
-        elif rest[-1].strip().lower() == "verbosemode":
+        elif rest.strip().lower() == "verbosemode":
             os.execl(python, python, sys.argv[0], "--verbose")
         else:
             os.execl(python, python, *sys.argv)
+
+@pmcmd("frestart", admin_only=True)
+def pm_restart_program(cli, nick, rest):
+    restart_program(cli, nick, nick, rest)
 
 
 
