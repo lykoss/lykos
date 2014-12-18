@@ -1500,7 +1500,7 @@ def stop_game(cli, winner = ""):
         for p in rolelist[role]:
             if p.startswith("(dced)"):
                 p = p[6:]
-            if p in origroles:
+            if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys():
                 playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p, 
                                         "" if prev else "was ", origroles[p]))
                 prev = True
