@@ -1481,30 +1481,27 @@ def stop_game(cli, winner = ""):
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
         for p in playerlist:
-            if p.startswith("(dced)"):  # don't care about it here
-                rolelist[role].remove(p)
+            player = p #with (dced) still in
+            if p.startswith("(dced)"):
                 p = p[6:]
-                rolelist[role].append(p)
             if p in var.FINAL_ROLES and var.FINAL_ROLES[p] != role and (role != "amnesiac" or p in var.AMNESIACS):
                 origroles[p] = role
-                rolelist[role].remove(p)
+                rolelist[role].remove(player)
                 rolelist[var.FINAL_ROLES[p]].append(p)
     prev = False
     for role in var.role_order():
-        if not rolelist[role]:
+        if len(rolelist[role]) == 0:
             continue
         playersformatted = []
-        for i in range(0, len(rolelist[role])):
-            p = rolelist[role][i]
-            #don't print default role, but if someone exchanged into villager, print what they were anyway
-            if role == var.DEFAULT_ROLE and p not in origroles:
-                continue
-            playersformatted.append("\u0002{0}\u0002".format(p))
+        for p in rolelist[role]:
+            if p.startswith("(dced)"):
+                p = p[6:]
             if p in origroles:
-                playersformatted[-1] += " ({0}{1})".format("" if prev else "was ", origroles[p])
+                playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p, 
+                                        "" if prev else "was ", origroles[p]))
                 prev = True
-        if not playersformatted:
-            continue
+            else:
+                playersformatted.append("\u0002{0}\u0002".format(p))
         if len(rolelist[role]) == 2:
             msg = "The {1} were {0[0]} and {0[1]}."
             roles_msg.append(msg.format(playersformatted, var.plural(role)))
