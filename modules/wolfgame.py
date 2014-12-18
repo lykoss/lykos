@@ -6348,6 +6348,7 @@ def game_stats(cli, nick, chan, rest):
             return
 
     gamemode = var.CURRENT_GAMEMODE
+    gamesize = None
     rest = rest.split()
     # Check for gamemode
     if len(rest) and not rest[0].isdigit():
@@ -6359,14 +6360,15 @@ def game_stats(cli, nick, chan, rest):
             return
         rest.pop(0)
     # Check for invalid input
-    if len(rest) and rest[0].isdigit() and (
-       int(rest[0]) > var.GAME_MODES[gamemode][2] or int(rest[0]) < var.GAME_MODES[gamemode][1]):
-        cli.notice(nick, "Please enter an integer between "+\
-                         "{0} and {1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
-        return
+    if len(rest) and rest[0].isdigit():
+        gamesize = int(rest[0])
+        if gamesize > var.GAME_MODES[gamemode][2] or gamesize < var.GAME_MODES[gamemode][1]:
+            cli.notice(nick, "Please enter an integer between {0} and "+\
+                             "{1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
+            return
 
     # List all games sizes and totals if no size is given
-    if not len(rest):
+    if not gamesize:
         if chan == nick:
             pm(cli, nick, var.get_game_totals(gamemode))
         else:
@@ -6374,9 +6376,9 @@ def game_stats(cli, nick, chan, rest):
     else:
         # Attempt to find game stats for the given game size
         if chan == nick:
-            pm(cli, nick, var.get_game_stats(gamemode, int(rest[0])))
+            pm(cli, nick, var.get_game_stats(gamemode, gamesize))
         else:
-            cli.msg(chan, var.get_game_stats(gamemode, int(rest[0])))
+            cli.msg(chan, var.get_game_stats(gamemode, gamesize))
 
 
 @pmcmd('gamestats', 'gstats')
