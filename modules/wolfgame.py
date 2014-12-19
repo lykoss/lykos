@@ -6145,7 +6145,7 @@ def listroles(cli, nick, chan, rest):
             txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
             rest = []
             roleindex = {}
-            
+
     #number of players to print the game mode for
     if len(rest) and rest[0].isdigit():
         index = int(rest[0])
@@ -6154,6 +6154,8 @@ def listroles(cli, nick, chan, rest):
                 index = roleindex[i]
                 break
 
+    #special ordering
+    roleguide = [(role, roleguide[role]) for role in var.role_order()]
     for i in range(0, len(roleindex)):
         #getting the roles at a specific player count
         if index:
@@ -6163,7 +6165,7 @@ def listroles(cli, nick, chan, rest):
                 break
         txt += " {0}[{1}]{0} ".format(BOLD if roleindex[i] <= pl else "", str(roleindex[i]))
         roles = []
-        for role, amount in roleguide.items():
+        for role, amount in roleguide:
             direction = 1 if amount[i] > old[role] else -1
             for j in range(old[role], amount[i], direction):
                 temp = "{0}{1}".format("-" if direction == -1 else "", role)
