@@ -6368,8 +6368,8 @@ def game_stats(cli, nick, chan, rest):
     if len(rest) and rest[0].isdigit():
         gamesize = int(rest[0])
         if gamesize > var.GAME_MODES[gamemode][2] or gamesize < var.GAME_MODES[gamemode][1]:
-            cli.notice(nick, "Please enter an integer between {0} and "+\
-                             "{1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
+            cli.notice(nick, "Please enter an integer between "+\
+                              "{0} and {1}.".format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
             return
 
     # List all games sizes and totals if no size is given
