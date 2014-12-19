@@ -2298,8 +2298,8 @@ def goat(cli, nick, chan, rest):
     rest = re.split(" +",rest)[0]
     if not rest:
         cli.notice(nick, 'Not enough parameters.')
-    
-    victim = complete_match(rest, ull)
+
+    victim = complete_match(rest.lower(), ull)
     if not victim:
         cli.notice(nick, "\u0002{0}\u0002 is not in this channel.".format(rest))
         return
