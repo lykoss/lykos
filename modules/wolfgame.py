@@ -146,7 +146,8 @@ def connect_callback(cli):
             return
         if modeaction == "+o" and target == botconfig.NICK:
             var.OPPED = True
-            var.USERS[botconfig.NICK]["modes"].add("o")
+            if botconfig.NICK in var.USERS:
+                var.USERS[botconfig.NICK]["modes"].add("o")
 
             if var.PHASE == "none":
                 @hook("quietlistend", 294)
