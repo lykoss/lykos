@@ -179,7 +179,7 @@ WOLFTEAM_ROLES = ["wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", 
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game!
-AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone"]
+AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone", "villager", "cultist"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
