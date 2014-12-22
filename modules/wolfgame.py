@@ -38,6 +38,7 @@ import math
 import fnmatch
 import random
 import subprocess
+import signal
 from imp import reload
 
 BOLD = "\u0002"
@@ -107,6 +108,16 @@ if botconfig.DEBUG_MODE:
 
 
 def connect_callback(cli):
+    def handler(signum, frame):
+        if signum in (signal.SIGINT, signal.SIGTERM):
+            forced_exit(cli, "<console>", botconfig.CHANNEL, "")
+        elif signum == signal.SIGUSR1:
+            restart_program(cli, "<console>", botconfig.CHANNEL, "")
+
+    signal.signal(signal.SIGINT, handler)
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGUSR1, handler)
+
     to_be_devoiced = []
     cmodes = []
 
@@ -362,10 +373,16 @@ def make_stasis(nick, penalty):
         var.STASISED[cloak] += penalty
         var.set_stasis(cloak, var.STASISED[cloak])
 
-@pmcmd("fdie", "fbye", admin_only=True)
-@cmd("fdie", "fbye", admin_only=True)
-def forced_exit(cli, nick, chan, *rest):  # Admin Only
+@pmcmd("fdie", "fbye", raw_nick=True)
+@cmd("fdie", "fbye", raw_nick=True)
+def forced_exit(cli, raw_nick, chan, *rest):  # Admin Only
     """Forces the bot to close."""
+
+    (nick, _, _, cloak) = parse_nick(raw_nick)
+
+    if nick != "<console>" and not var.is_admin(cloak):
+        cli.notice(nick, "You are not an admin.")
+        return
 
     if var.PHASE in ("day", "night"):
         #ignore all errors that prevent the bot from stopping
@@ -384,9 +401,16 @@ def forced_exit(cli, nick, chan, *rest):  # Admin Only
 
 
 
-@cmd("frestart", admin_only=True)
-def restart_program(cli, nick, chan, rest):
+@cmd("frestart", raw_nick=True)
+def restart_program(cli, raw_nick, chan, rest):
     """Restarts the bot."""
+
+    (nick, _, _, cloak) = parse_nick(raw_nick)
+
+    if nick != "<console>" and not var.is_admin(cloak):
+        cli.notice(nick, "You are not an admin.")
+        return
+
     try:
         if var.PHASE in ("day", "night"):
             try:
@@ -414,7 +438,7 @@ def restart_program(cli, nick, chan, rest):
         else:
             os.execl(python, python, *sys.argv)
 
-@pmcmd("frestart", admin_only=True)
+@pmcmd("frestart")
 def pm_restart_program(cli, nick, rest):
     restart_program(cli, nick, nick, rest)
 
