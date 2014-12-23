@@ -377,14 +377,12 @@ def make_stasis(nick, penalty):
         var.STASISED[cloak] += penalty
         var.set_stasis(cloak, var.STASISED[cloak])
 
-@pmcmd("fdie", "fbye", raw_nick=True)
-@cmd("fdie", "fbye", raw_nick=True)
-def forced_exit(cli, raw_nick, chan, *rest):  # Admin Only
+@pmcmd("fdie", "fbye")
+@cmd("fdie", "fbye")
+def forced_exit(cli, nick, chan, *rest):  # Admin Only
     """Forces the bot to close."""
 
-    (nick, _, _, cloak) = parse_nick(raw_nick)
-
-    if nick != "<console>" and not var.is_admin(cloak):
+    if nick != "<console>" and not is_admin(nick):
         cli.notice(nick, "You are not an admin.")
         return
 
@@ -405,13 +403,11 @@ def forced_exit(cli, raw_nick, chan, *rest):  # Admin Only
 
 
 
-@cmd("frestart", raw_nick=True)
-def restart_program(cli, raw_nick, chan, rest):
+@cmd("frestart")
+def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
-    (nick, _, _, cloak) = parse_nick(raw_nick)
-
-    if nick != "<console>" and not var.is_admin(cloak):
+    if nick != "<console>" and not is_admin(nick):
         cli.notice(nick, "You are not an admin.")
         return
 
