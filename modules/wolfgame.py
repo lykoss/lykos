@@ -241,7 +241,7 @@ def complete_match(string, matches):
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, self_in_list = False):
     if not victim:
-        cli.notice(cli, nick, "Not enough parameters")
+        cli.notice(nick, "Not enough parameters")
         return
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
@@ -3725,7 +3725,7 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick, "You don't have any more bullets.")
         return
     elif nick in var.SILENCED:
-        cli.notice(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        cli.notice(nick, "You have been silenced, and are unable to use any special powers.")
         return
     victim = get_victim(cli, nick, re.split(" +",rest)[0])
     if not victim:
