@@ -113,10 +113,14 @@ def connect_callback(cli):
             forced_exit(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == signal.SIGUSR1:
             restart_program(cli, "<console>", botconfig.CHANNEL, "")
+        elif signum == signal.SIGUSR2:
+            print("Scheduling aftergame restart")
+            aftergame(cli, "<console>", "frestart")
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGUSR1, handler)
+    signal.signal(signal.SIGUSR2, handler)
 
     to_be_devoiced = []
     cmodes = []
