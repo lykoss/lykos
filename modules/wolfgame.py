@@ -92,6 +92,9 @@ var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 var.OPPED = False  # Keeps track of whether the bot is opped
 
+var.BITTEN = {}
+var.BITTEN_ROLES = {}
+
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0 # 120
     var.NIGHT_TIME_WARN = 0 # 90
@@ -1085,12 +1088,6 @@ def stats(cli, nick, chan, rest):
     rs.append(var.DEFAULT_ROLE)
 
 
-    firstcount = len(var.ROLES[rs[0]])
-    if firstcount > 1 or not firstcount:
-        vb = "are"
-    else:
-        vb = "is"
-
     amn_roles = {"amnesiac": 0}
     for amn in var.ORIGINAL_ROLES["amnesiac"]:
         if amn not in pl:
@@ -1110,6 +1107,14 @@ def stats(cli, nick, chan, rest):
             else:
                 amn_roles[amnrole] = -1
 
+    bitten_roles = {}
+    for bitten, role in var.BITTEN_ROLES.items():
+        if role in bitten_roles:
+            bitten_roles[role] += 1
+        else:
+            bitten_roles[role] = 1
+
+    vb = "are"
     for role in rs:
         # only show actual roles
         if role in ("village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -1117,17 +1122,42 @@ def stats(cli, nick, chan, rest):
         count = len(var.ROLES[role])
         if role == "traitor" and var.HIDDEN_TRAITOR:
             continue
+        elif role == "lycan":
+            count += len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
+            count += bitten_roles["lycan"] if "lycan" in bitten_roles else 0
         elif role == var.DEFAULT_ROLE:
             if var.HIDDEN_TRAITOR:
                 count += len(var.ROLES["traitor"])
+                count += bitten_roles["traitor"] if "traitor" in bitten_roles else 0
             if var.DEFAULT_ROLE == "villager":
                 count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+                count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
+                count += bitten_roles["village elder"] if "village elder" in bitten_roles else 0
+                count += bitten_roles["time lord"] if "time lord" in bitten_roles else 0
+                count += bitten_roles["vengeful ghost"] if "vengeful ghost" in bitten_roles else 0
             else:
                 count += len(var.ROLES["vengeful ghost"])
+                count += bitten_roles["vengeful ghost"] if "vengeful ghost" in bitten_roles else 0
+            count += bitten_roles[var.DEFAULT_ROLE] if var.DEFAULT_ROLE in bitten_roles else 0
         elif role == "villager":
             count += len(var.ROLES["village elder"] + var.ROLES["time lord"])
+            count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
+            count += bitten_roles["villager"] if "villager" in bitten_roles else 0
+            count += bitten_roles["village elder"] if "village elder" in bitten_roles else 0
+            count += bitten_roles["time lord"] if "time lord" in bitten_roles else 0
+        elif role == "wolf":
+            count -= sum(bitten_roles.values())
+        else:
+            count += bitten_roles[role] if role in bitten_roles else 0
+
         if role in amn_roles:
             count += amn_roles[role]
+
+        if role == rs[0]:
+            if count == 1:
+                vb = "is"
+            else:
+                vb = "are"
 
         if count > 1 or count == 0:
             if count == 0 and len(var.ORIGINAL_ROLES[role]) == 0:
@@ -1980,6 +2010,16 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                    "to exact your revenge on the \u0002{0}\u0002 that killed you.").format(var.VENGEFUL_GHOSTS[nick]))
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
+                if nickrole in var.WOLF_ROLES:
+                    if var.GAMEPHASE == "day":
+                        var.ALPHA_ENABLED = True
+                    for bitten, days in var.BITTEN.items():
+                        brole = var.get_role(bitten)
+                        if brole not in var.WOLF_ROLES and days > 0:
+                            var.BITTEN[bitten] -= 1
+                            pm(cli, bitten, ("Upon gazing at {0}'s lifeless body, you feel a sharp pang of regret and vengeance. " +
+                                             "You quickly look away and the feelings subside...").format(nick))
+
                 if nickrole == "mad scientist":
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
                     # if those players are already dead, nothing happens
@@ -2398,9 +2438,7 @@ def on_nick(cli, oldnick, nick):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS[k]
                     del var.PLAYERS[k]
-            if prefix in var.GUNNERS.keys():
-                var.GUNNERS[nick] = var.GUNNERS.pop(prefix)
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.BITE_PREFERENCES, var.BITTEN_ROLES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -2411,7 +2449,7 @@ def on_nick(cli, oldnick, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES):
+            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.DOCTORS):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar[prefix]
                     del dictvar[prefix]
@@ -2522,6 +2560,15 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.TOBEEXCHANGED:
                 var.TOBEEXCHANGED.remove(prefix)
                 var.TOBEEXCHANGED.append(nick)
+            if prefix in var.IMMUNIZED:
+                var.IMMUNIZED.remove(prefix)
+                var.IMMUNIZED.add(nick)
+            if prefix in var.CURED_LYCANS:
+                var.CURED_LYCANS.remove(prefix)
+                var.CURED_LYCANS.append(nick)
+            if prefix in var.ALPHA_WOLVES:
+                var.ALPHA_WOLVES.remove(prefix)
+                var.ALPHA_WOLVES.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -2847,6 +2894,13 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
+    # determine if we need to play the new wolf message due to bitten people
+    new_wolf = False
+    for (p, v) in var.BITTEN.items():
+        if v <= 0:
+            new_wolf = True
+            break
+
     found = {}
     for v in var.KILLS.values():
         for p in v:
@@ -2857,6 +2911,7 @@ def transition_day(cli, gameid=0):
 
     maxc = 0
     victims = []
+    bitten = []
     killers = {} # dict of victim: list of killers (for retribution totem)
     bywolves = set() # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
     onlybywolves = set() # wolves and nobody else targeted (needed for lycan)
@@ -2898,6 +2953,37 @@ def transition_day(cli, gameid=0):
                 killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
             else:
                 killers[victim] = ["@wolves"]
+
+    if var.ALPHA_ENABLED: # check for bites
+        for (alpha, desired) in var.BITE_PREFERENCES.items():
+            if len(bywolves) == 0:
+                # nobody to bite, so let them do it again in the future
+                var.ALPHA_WOLVES.remove(alpha)
+            if len(bywolves) == 1:
+                target = tuple(bywolves)[0]
+            elif desired in bywolves:
+                target = desired
+            else:
+                target = random.choice(tuple(bywolves))
+            pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
+            targetrole = var.get_role(target)
+            # do the usual checks; we can only bite those that would otherwise die
+            # (e.g. block it on visiting harlot, GA/bodyguard, and protection totem)
+            # also if a lycan is bitten, just turn them into a wolf immediately
+            if (target not in var.PROTECTED
+                    and target not in var.GUARDED.values()
+                    and (target not in var.ROLES["harlot"] or not var.HVISITED.get(target))
+                    and target not in var.ROLES["lycan"]
+                    and target not in var.LYCANTHROPES
+                    and target not in var.IMMUNIZED):
+                var.BITTEN[target] = var.ALPHA_WOLF_NIGHTS
+                bitten.append(target)
+                victims.remove(target)
+                bywolves.remove(target)
+                onlybywolves.remove(target)
+                killers[target].remove("@wolves")
+
+    var.BITE_PREFERENCES = {}
 
     for monster in var.ROLES["monster"]:
         if monster in victims:
@@ -2999,6 +3085,7 @@ def transition_day(cli, gameid=0):
     # This needs to go down here since having them be their night value matters above
     var.ANGRY_WOLVES = False
     var.DISEASED_WOLVES = False
+    var.ALPHA_ENABLED = False
 
     dead = []
     for crow, target in iter(var.OBSERVED.items()):
@@ -3014,6 +3101,10 @@ def transition_day(cli, gameid=0):
 
     vlist = copy.copy(victims)
     novictmsg = True
+    if new_wolf:
+        message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
+        novictmsg = False
+
     for victim in vlist:
         if victim in var.PROTECTED and victim not in var.DYING:
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
@@ -3036,7 +3127,7 @@ def transition_day(cli, gameid=0):
         elif victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves:
             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
             novictmsg = False
-        elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves:
+        elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves and victim not in var.IMMUNIZED:
             message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
             pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
             vrole = var.get_role(victim)
@@ -3203,6 +3294,14 @@ def transition_day(cli, gameid=0):
     for msg in message:
         var.LOGGER.logMessage(msg.replace("\02", ""))
 
+    for chump in var.BITTEN.keys():
+        if chump not in dead and var.get_role(chump) not in var.WOLF_ROLES:
+            pm(cli, chump, get_bitten_message(chump))
+
+    for chump in bitten:
+        if chump not in dead and chump not in var.WOLF_ROLES:
+            pm(cli, chump, "You woke up today feeling light-headed, and you notice some odd bite marks on your neck...")
+
     for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
         # take a shortcut for killer_role here since vengeful ghost only cares about team and not particular roles
         # this will have to be modified to track the actual killer if that behavior changes
@@ -3232,7 +3331,7 @@ def chk_nightdone(cli):
                       list(var.TARGETED.keys()))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
-                  var.ROLES["werecrow"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
+                  var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
                   var.ROLES["crazed shaman"] + var.ROLES["assassin"] + var.ROLES["augur"])
     if var.FIRST_NIGHT:
@@ -3240,7 +3339,7 @@ def chk_nightdone(cli):
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
 
     if var.DISEASED_WOLVES:
-        nightroles = [p for p in nightroles if p not in var.ROLES["wolf"]]
+        nightroles = [p for p in nightroles if p not in var.ROLES["wolf"] and p not in var.ROLES["alpha wolf"]]
 
     for p in var.HUNTERS:
         # only remove one instance of their name if they have used hunter ability, in case they have templates
@@ -3485,6 +3584,17 @@ def check_exchange(cli, actor, nick):
                 del var.LASTHEXED[actor]
             if actor in var.HEXED:
                 var.HEXED.remove(actor)
+        elif actor_role == "doctor":
+            if nick_role == "doctor":
+                temp_immunizations = var.DOCTORS[actor]
+                var.DOCTORS[actor] = var.DOCTORS[nick]
+                var.DOCTORS[nick] = temp_immunizations
+            else:
+                var.DOCTORS[nick] = var.DOCTORS[actor]
+                del var.DOCTORS[actor]
+        elif actor_role == "alpha wolf":
+            if actor in var.ALPHA_WOLVES:
+                var.ALPHA_WOLVES.remove(actor)
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
@@ -3535,6 +3645,15 @@ def check_exchange(cli, actor, nick):
                 del var.LASTHEXED[nick]
             if nick in var.HEXED:
                 var.HEXED.remove(nick)
+        elif nick_role == "doctor":
+            # Both being doctors is handled above
+            if actor_role != "doctor":
+                var.DOCTORS[actor] = var.DOCTORS[nick]
+                del var.DOCTORS[nick]
+        elif nick_role == "alpha wolf":
+            if nick in var.ALPHA_WOLVES:
+                var.ALPHA_WOLVES.remove(nick)
+
             
         var.FINAL_ROLES[actor] = nick_role
         var.FINAL_ROLES[nick] = actor_role
@@ -3542,6 +3661,10 @@ def check_exchange(cli, actor, nick):
         var.ROLES[actor_role].remove(actor)
         var.ROLES[nick_role].append(actor)
         var.ROLES[nick_role].remove(nick)
+        if actor in var.BITTEN_ROLES.keys():
+            var.BITTEN_ROLES[actor] = nick_role
+        if nick in var.BITTEN_ROLES.keys():
+            var.BITTEN_ROLES[nick] = actor_role
 
         actor_rev_role = actor_role
         if actor_role == "vengeful ghost":
@@ -3582,10 +3705,15 @@ def check_exchange(cli, actor, nick):
                     pl[i] = player + " (cursed)"
 
             pm(cli, actor, "Players: " + ", ".join(pl))
+            angry_alpha = ''
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow"):
+            elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow", "alpha wolf"):
                 pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
+                angry_alpha = ' <nick>'
+            if var.ALPHA_ENABLED and actor_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
+                pm(cli, actor, ('You may use "bite{0}" tonight in order to turn the wolves\' target into a wolf instead of killing them. ' +
+                                'They will turn into a wolf in {1} night{2}.').format(angry_alpha, var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
         elif nick_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3613,10 +3741,15 @@ def check_exchange(cli, actor, nick):
                     pl[i] = player + " (cursed)"
 
             pm(cli, nick, "Players: " + ", ".join(pl))
+            angry_alpha = ''
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow"):
+            elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow", "alpha wolf"):
                 pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
+                angry_alpha = ' <nick>'
+            if var.ALPHA_ENABLED and nick_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
+                pm(cli, nick, ('You may use "bite{0}" tonight in order to turn the wolves\' target into a wolf instead of killing them. ' +
+                               'They will turn into a wolf in {1} night{2}.').format(angry_alpha, var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
         elif actor_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3675,7 +3808,7 @@ def wolfretract(cli, nick, rest):
         return
 
     role = var.get_role(nick)
-    if role not in ("wolf", "werecrow", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only retract at night.")
@@ -3688,12 +3821,23 @@ def wolfretract(cli, nick, rest):
     elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
         return
 
-    if role in var.WOLF_ROLES and nick in var.KILLS.keys():
+    what = re.split(" +",rest)[0].strip().lower()
+    if not what or what not in ("kill", "bite"):
+        what = "kill"
+
+    if what == "kill" and role in var.WOLF_ROLES and nick in var.KILLS.keys():
         del var.KILLS[nick]
-    elif role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
+        pm(cli, nick, "You have retracted your kill.")
+    elif what == "kill" and role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
         del var.OTHER_KILLS[nick]
         var.HUNTERS.remove(nick)
-    pm(cli, nick, "You have retracted your vote.")
+        pm(cli, nick, "You have retracted your kill.")
+    elif what == "bite" and role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
+        del var.BITE_PREFERENCES[nick]
+        var.ALPHA_WOLVES.remove(nick)
+        pm(cli, nick, "You have decided to not bite anyone tonight.")
+    else:
+        pm(cli, nick, "You have not chosen to {0} anyone yet.".format(what))
     #var.LOGGER.logBare(nick, "RETRACT", nick)
 
 @cmd("shoot")
@@ -3829,9 +3973,9 @@ def kill(cli, nick, rest):
         role = var.get_role(nick)
     except KeyError:
         role = None
-    if role in var.WOLFCHAT_ROLES and role not in ("wolf", "werecrow"):
+    if role in var.WOLFCHAT_ROLES and role not in ("wolf", "werecrow", "alpha wolf"):
         return  # they do this a lot.
-    if role not in ("wolf", "werecrow", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
         pm(cli, nick, "Only a wolf, hunter, or dead vengeful ghost may use this command.")
         return
     if var.PHASE != "night":
@@ -3844,13 +3988,13 @@ def kill(cli, nick, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    if role in ("wolf", "werecrow") and var.DISEASED_WOLVES:
+    if role in ("wolf", "werecrow", "alpha wolf") and var.DISEASED_WOLVES:
         pm(cli, nick, "You are feeling ill, and are unable to kill anyone tonight.")
         return
     pieces = re.split(" +",rest)
     victim = pieces[0]
     victim2 = None
-    if role in ("wolf", "werecrow") and var.ANGRY_WOLVES:
+    if role in ("wolf", "werecrow", "alpha wolf") and var.ANGRY_WOLVES:
         if len(pieces) > 1:
             if len(pieces) > 2 and pieces[1].lower() == "and":
                 victim2 = pieces[2]
@@ -3892,7 +4036,7 @@ def kill(cli, nick, rest):
             pm(cli, nick, "You must target a villager.")
             return
 
-    if role in ("wolf", "werecrow"):
+    if role in ("wolf", "werecrow", "alpha wolf"):
         wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
         if victim in wolfchatwolves or victim2 in wolfchatwolves:
             pm(cli, nick, "You may only kill villagers, not other wolves.")
@@ -3933,7 +4077,7 @@ def kill(cli, nick, rest):
     else:
         pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
         var.LOGGER.logBare(nick, "SELECT", victim)
-        if var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+        if var.ANGRY_WOLVES and role in ("wolf", "werecrow", "alpha wolf"):
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
     chk_nightdone(cli)
 
@@ -4200,7 +4344,9 @@ def see(cli, nick, rest):
     var.LOGGER.logBare(victim, "SEEN", nick)
     chk_nightdone(cli)
 
-@pmcmd("give", "totem")
+# this is exactly why we should have classes; both shamans and doctors make sense to use "give" but
+# a doctor could immunize someone with !totem and a shaman could totem someone with !immunize...
+@pmcmd("give", "totem", "immunize", "immunise")
 def give(cli, nick, rest):
     if var.PHASE in ("none", "join"):
         cli.notice(nick, "No game is currently running.")
@@ -4209,11 +4355,14 @@ def give(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
-    if role not in ("shaman", "crazed shaman"):
-        pm(cli, nick, "Only a shaman or a crazed shaman may use this command.")
+    if role not in ("shaman", "crazed shaman", "doctor"):
+        pm(cli, nick, "Only a shaman, crazed shaman, or doctor may use this command.")
         return
-    if var.PHASE != "night":
+    if var.PHASE != "night" and role in ("shaman", "crazed shaman"):
         pm(cli, nick, "You may only give totems at night.")
+        return
+    elif var.PHASE != "day" and role == "doctor":
+        pm(cli, nick, "You may only immunize people during the day.")
         return
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
@@ -4221,70 +4370,174 @@ def give(cli, nick, rest):
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
         return
+    elif nick in var.DOCTORS and var.DOCTORS[nick] == 0:
+        pm(cli, nick, "You have run out of immunizations.")
+        return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
+    if role in ("shaman", "crazed shaman"):
+        if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
+            pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
+            return
+        type = ""
+        if role == "shaman":
+            type = " of " + var.TOTEMS[nick]
+        victim = choose_target(nick, victim)
+        if check_exchange(cli, nick, victim):
+            return
+        pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
+        totem = var.TOTEMS[nick]
+        if totem == "death":
+            if victim not in var.DYING:
+                var.DYING.append(victim)
+        elif totem == "protection":
+            if victim not in var.PROTECTED:
+                var.PROTECTED.append(victim)
+        elif totem == "revealing":
+            if victim not in var.REVEALED:
+                var.REVEALED.append(victim)
+        elif totem == "narcolepsy":
+            if victim not in var.ASLEEP:
+                var.ASLEEP.append(victim)
+        elif totem == "silence":
+            if victim not in var.TOBESILENCED:
+                var.TOBESILENCED.append(victim)
+        elif totem == "desperation":
+            if victim not in var.DESPERATE:
+                var.DESPERATE.append(victim)
+        elif totem == "impatience": # this totem stacks
+            var.IMPATIENT.append(victim)
+        elif totem == "pacifism": # this totem stacks
+            var.PACIFISTS.append(victim)
+        elif totem == "influence":
+            if victim not in var.INFLUENTIAL:
+                var.INFLUENTIAL.append(victim)
+        elif totem == "exchange":
+            if victim not in var.TOBEEXCHANGED:
+                var.TOBEEXCHANGED.append(victim)
+        elif totem == "lycanthropy":
+            if victim not in var.TOBELYCANTHROPES:
+                var.TOBELYCANTHROPES.append(victim)
+        elif totem == "luck":
+            if victim not in var.TOBELUCKY:
+                var.TOBELUCKY.append(victim)
+        elif totem == "pestilence":
+            if victim not in var.TOBEDISEASED:
+                var.TOBEDISEASED.append(victim)
+        elif totem == "retribution":
+            if victim not in var.RETRIBUTION:
+                var.RETRIBUTION.append(victim)
+        elif totem == "misdirection":
+            if victim not in var.TOBEMISDIRECTED:
+                var.TOBEMISDIRECTED.append(victim)
+        else:
+            pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
+        var.LASTGIVEN[nick] = victim
+        var.SHAMANS.append(nick)
+        var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
+        chk_nightdone(cli)
+    elif role == "doctor":
+        victim = choose_target(nick, victim)
+        if check_exchange(cli, nick, victim):
+            return
+        pm(cli, nick, "You have given an immunization to \u0002{0}\u0002.".format(victim))
+        if var.get_role(victim) == "lycan":
+            lycan_message = ("You feel as if a curse has been lifted from you... It seems that your lycanthropy is cured " +
+                             "and you will no longer become a werewolf if targeted by the wolves!")
+            var.ROLES["lycan"].remove(victim)
+            var.ROLES["villager"].append(victim)
+            var.FINAL_ROLES[victim] = "villager"
+            var.CURED_LYCANS.append(victim)
+            var.IMMUNIZED.add(victim)
+        elif victim in var.BITTEN:
+            # fun fact: immunizations in real life are done by injecting a small amount of (usually neutered) virus into the person
+            # so that their immune system can fight it off and build up antibodies. This doesn't work very well if that person is
+            # currently afflicted with the virus however, as you're just adding more virus to the mix...
+            # naturally, we would want to mimic that behavior here, and what better way of indicating that things got worse than
+            # by making the turning happen a night earlier? :)
+            var.BITTEN[victim] -= 1
+            lycan_message = ("You have a brief flashback to your dream last night. " +
+                             "The event quickly subsides, but a lingering thought remains in your mind...")
+        else:
+            lycan_message = "You don't feel any different..."
+            var.IMMUNIZED.add(victim)
+        pm(cli, victim, ("You feel a sharp prick in the back of your arm and temporarily black out. " +
+                         "When you come to, you notice an empty syringe lying on the ground. {0}").format(lycan_message))
+        var.DOCTORS[nick] -= 1
 
-    if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
-        pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
-        return
-    type = ""
-    if role == "shaman":
-        type = " of " + var.TOTEMS[nick]
-    victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        return
-    pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
-    totem = var.TOTEMS[nick]
-    if totem == "death":
-        if victim not in var.DYING:
-            var.DYING.append(victim)
-    elif totem == "protection":
-        if victim not in var.PROTECTED:
-            var.PROTECTED.append(victim)
-    elif totem == "revealing":
-        if victim not in var.REVEALED:
-            var.REVEALED.append(victim)
-    elif totem == "narcolepsy":
-        if victim not in var.ASLEEP:
-            var.ASLEEP.append(victim)
-    elif totem == "silence":
-        if victim not in var.TOBESILENCED:
-            var.TOBESILENCED.append(victim)
-    elif totem == "desperation":
-        if victim not in var.DESPERATE:
-            var.DESPERATE.append(victim)
-    elif totem == "impatience": # this totem stacks
-        var.IMPATIENT.append(victim)
-    elif totem == "pacifism": # this totem stacks
-        var.PACIFISTS.append(victim)
-    elif totem == "influence":
-        if victim not in var.INFLUENTIAL:
-            var.INFLUENTIAL.append(victim)
-    elif totem == "exchange":
-        if victim not in var.TOBEEXCHANGED:
-            var.TOBEEXCHANGED.append(victim)
-    elif totem == "lycanthropy":
-        if victim not in var.TOBELYCANTHROPES:
-            var.TOBELYCANTHROPES.append(victim)
-    elif totem == "luck":
-        if victim not in var.TOBELUCKY:
-            var.TOBELUCKY.append(victim)
-    elif totem == "pestilence":
-        if victim not in var.TOBEDISEASED:
-            var.TOBEDISEASED.append(victim)
-    elif totem == "retribution":
-        if victim not in var.RETRIBUTION:
-            var.RETRIBUTION.append(victim)
-    elif totem == "misdirection":
-        if victim not in var.TOBEMISDIRECTED:
-            var.TOBEMISDIRECTED.append(victim)
+
+def get_bitten_message(nick):
+    time_left = var.BITTEN[nick]
+    message = ''
+    if time_left <= 1:
+        message = ("You had the same dream again, but this time YOU were the pursuer. You smell fear from your quarry " +
+                   "as you give an exhilerating chase, going only half your speed in order to draw out the fun. " +
+                   "Suddenly your prey trips over a rock and falls down, allowing you to close in the remaining distance. " +
+                   "You savor the fear in their eyes briefly before you raise your claw to deal a killing blow. " +
+                   "Right before it connects, you wake up.")
+    elif time_left == 2:
+        message = ("You dreamt of running through the woods outside the village at night, wind blowing across your " +
+                   "face as you weave between the pines. Suddenly you hear a rustling sound as a monstrous creature " +
+                   "jumps out at you - a werewolf! You start running as fast as you can, you soon feel yourself falling " +
+                   "down as you trip over a rock. You look up helplessly as the werewolf catches up to you, " +
+                   "then wake up screaming.")
     else:
-        pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
-    var.LASTGIVEN[nick] = victim
-    var.SHAMANS.append(nick)
-    var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
-    chk_nightdone(cli)
+        message = ("You had a strange dream last night; a person was running away from something through a forest. " +
+                   "They tripped and fell over a rock as a shadow descended upon them. Before you could actually see " +
+                   "who or what the pursuer was, you woke with a start.")
+    return message
+
+@pmcmd("bite")
+def bite_cmd(cli, nick, rest):
+    if var.PHASE in ("none", "join"):
+        cli.notice(nick, "No game is currently running.")
+        return
+    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
+        return
+
+    role = var.get_role(nick)
+    if role != "alpha wolf":
+        pm(cli, nick, "Only an alpha wolf may use this command.")
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only bite at night.")
+        return
+    if nick in var.ALPHA_WOLVES and nick not in var.BITE_PREFERENCES:
+        pm(cli, nick, "You have already bitten someone this game.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        return
+    if not var.ALPHA_ENABLED:
+        pm(cli, nick, "You may only bite someone after another wolf has died during the day.")
+        return
+
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+
+    if var.ANGRY_WOLVES:
+        if not victim:
+            pm(cli, nick, "Please choose who to bite by specifying their nick.")
+            return
+
+        vrole = var.get_role(victim)
+
+        if vrole in var.WOLFCHAT_ROLES:
+            pm(cli, nick, "You may not bite other wolves.")
+            return
+
+    if nick not in var.ALPHA_WOLVES:
+        var.ALPHA_WOLVES.append(nick)
+    # this means that if victim is chosen by wolves, they will get bitten
+    # if victim isn't chosen, then a target is chosen at random from the victims
+    # (really only matters if wolves are angry; since there's only one target otherwise)
+    var.BITE_PREFERENCES[nick] = victim
+
+    if victim:
+        pm(cli, nick, "You have chosen to bite \u0002{0}\u0002. If that player is not selected to be killed, you will bite one of the wolf targets at random instead.".format(victim))
+    else:
+        pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
 
 @pmcmd("pass")
 def pass_cmd(cli, nick, rest):
@@ -4694,6 +4947,33 @@ def transition_night(cli):
         t2.daemon = True
         t2.start()
 
+    # convert bitten people to wolves, and advance bite stage
+    bittencopy = copy.copy(var.BITTEN)
+    for chump in bittencopy:
+        var.BITTEN[chump] -= 1
+        # short-circuit if they are already a wolf
+        # this makes playing the day transition message easier since we can keep
+        # var.BITTEN around for a day after they turn
+        chumprole = var.get_role(chump)
+        
+        if chumprole in var.WOLF_ROLES:
+            del var.BITTEN[chump]
+            continue
+
+        if var.BITTEN[chump] <= 0:
+            # now a wolf
+            pm(cli, chump, ("As you prepare for bed, you watch in horror as your body starts growing a coat of fur! " +
+                            "Sudden realization hits you as you grin with your now muzzled face; that mysterious bite " +
+                            "earlier slowly changed you into a werewolf! You feel bigger, stronger, faster, and ready to " +
+                            "seize the night as you stealthily exit your home and search for the rest of your pack..."))
+            var.BITTEN_ROLES[chump] = chumprole
+            var.ROLES[chumprole].remove(chump)
+            var.ROLES["wolf"].append(chump)
+            var.FINAL_ROLES[chump] = "wolf"
+            for wolf in var.list_players(var.WOLFCHAT_ROLES):
+                if wolf != chump:
+                    pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002wolf\u0002!".format(chump))
+
     # convert amnesiac and kill village elder if necessary
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amns = copy.copy(var.ROLES["amnesiac"])
@@ -4752,16 +5032,23 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002wolf cub\u0002. While you cannot kill anyone, ' +
                                'the other wolves will become enraged if you die and will get ' +
                                'two kills the following night.'))
+            elif role == "alpha wolf":
+                pm(cli, wolf, ('You are an \u0002alpha wolf\u0002. Once per game following the death of another wolf ' +
+                               'during the day, you can choose to bite the wolves\' next target to turn ' +
+                               'them into a wolf instead of killing them. Kill villagers by using '
+                               '"kill <nick>" and "bite" to use your once-per-game bite power.'))
             else:
                 # catchall in case we forgot something above
-                pm(cli, wolf, ('You are a \u0002{0}\u0002. There would normally be instructions ' +
+                an = 'n' if role[0] in ('a', 'e', 'i', 'o', 'u') else ''
+                pm(cli, wolf, ('You are a{0} \u0002{1}\u0002. There would normally be instructions ' +
                                'here, but someone forgot to add them in. Please report this to ' +
-                               'the admins, you can PM me "admins" for a list of available ones.').format(role))
+                               'the admins, you can PM me "admins" for a list of available ones.').format(an, role))
 
             if len(wolves) > 1:
                 pm(cli, wolf, 'Also, if you PM me, your message will be relayed to other wolves.')
         else:
-            pm(cli, wolf, "You are a \02{0}{1}\02.".format(cursed, role))  # !simple
+            an = 'n' if cursed == '' and role[0] in ('a', 'e', 'i', 'o', 'u') else ''
+            pm(cli, wolf, "You are a{0} \02{1}{2}\02.".format(an, cursed, role))  # !simple
 
         pl = ps[:]
         random.shuffle(pl)
@@ -4779,10 +5066,15 @@ def transition_night(cli):
         pm(cli, wolf, "Players: " + ", ".join(pl))
         if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
+        angry_alpha = ''
         if var.DISEASED_WOLVES:
             pm(cli, wolf, 'You are feeling ill tonight, and are unable to kill anyone.')
-        elif var.ANGRY_WOLVES and role in ("wolf", "werecrow"):
+        elif var.ANGRY_WOLVES and role in ("wolf", "werecrow", "alpha wolf"):
             pm(cli, wolf, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
+            angry_alpha = ' <nick>'
+        if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
+            pm(cli, wolf, ('You may use "bite{0}" tonight in order to turn the wolves\' target into a wolf instead of killing them. ' +
+                           'They will turn into a wolf in {1} night{2}.').format(angry_alpha, var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
 
     for seer in var.list_players(["seer", "oracle", "augur"]):
         pl = ps[:]
@@ -4962,6 +5254,19 @@ def transition_night(cli):
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
+    for doctor in var.ROLES["doctor"]:
+        if var.DOCTORS[doctor] > 0: # has immunizations remaining
+            pl = ps[:]
+            random.shuffle(pl)
+            if doctor in var.PLAYERS and not is_user_simple(doctor):
+                pm(cli, doctor, ('You are a \u0002doctor\u0002. You can give out immunizations to ' +
+                                 'villagers by using "give <nick>" in PM during the daytime. ' +
+                                 'An immunized villager will die instead of turning into a wolf due to the ' +
+                                 'alpha wolf\'s or lycan\'s power.'))
+            else:
+                pm(cli, doctor, "You are a \u0002doctor\u0002.")
+            pm(cli, doctor, 'You have \u0002{0}\u0002 immunization{1}.'.format(var.DOCTORS[doctor], 's' if var.DOCTORS[doctor] > 1 else ''))
+
     for fool in var.ROLES["fool"]:
         if fool in var.PLAYERS and not is_user_simple(fool):
             pm(cli, fool, ('You are a \u0002fool\u0002. The game immediately ends with you ' +
@@ -5131,7 +5436,7 @@ def transition_night(cli):
     var.LOGGER.logBare("NIGHT", "BEGIN")
 
     # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if len(var.ROLES["wolf"] + var.ROLES["werecrow"]) == 0 or var.DISEASED_WOLVES:  # Probably something interesting going on.
+    if len(var.list_players(var.WOLF_ROLES)) - len(var.ROLES["wolf cub"]) == 0 or var.DISEASED_WOLVES:  # Probably something interesting going on.
         chk_nightdone(cli)
         chk_traitor(cli)
 
@@ -5310,6 +5615,14 @@ def start(cli, nick, chan, forced = False):
     var.OTHER_KILLS = {}
     var.ACTED_EXTRA = 0
     var.ABSTAINED = False
+    var.DOCTORS = {}
+    var.IMMUNIZED = set()
+    var.CURED_LYCANS = []
+    var.ALPHA_WOLVES = []
+    var.ALPHA_ENABLED = False
+    var.BITTEN = {}
+    var.BITE_PREFERENCES = {}
+    var.BITTEN_ROLES = {}
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -5386,6 +5699,10 @@ def start(cli, nick, chan, forced = False):
             amnroles.remove(nope)
     for amnesiac in var.ROLES["amnesiac"]:
         var.FINAL_ROLES[amnesiac] = random.choice(amnroles)
+
+    # Handle doctor
+    for doctor in var.ROLES["doctor"]:
+        var.DOCTORS[doctor] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(pl))
 
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)

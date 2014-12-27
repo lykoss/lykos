@@ -90,6 +90,9 @@ DETECTIVE_REVEALED_CHANCE = 2/5
 SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner will become a sharpshooter instead
 
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
+ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many nights (note the night they are bitten is considered night 1)
+
+DOCTOR_IMMUNIZATION_MULTIPLIER = 0.17 # ceil(num_players * multiplier) = number of immunizations
 
 #                                     SHAMAN    CRAZED SHAMAN
 TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
@@ -141,6 +144,7 @@ ROLE_GUIDE = {# village roles
               "mad scientist"   : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "hunter"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "doctor"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # wolf roles
               "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  ),
               "traitor"         : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
@@ -150,6 +154,7 @@ ROLE_GUIDE = {# village roles
               "hag"             : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
               "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "alpha wolf"      : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # neutral roles
               "lycan"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
@@ -171,23 +176,23 @@ ROLE_GUIDE = {# village roles
 
 # Harlot dies when visiting, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
 # If every wolf role dies, the game ends and village wins and there are no remaining traitors, the game ends and villagers win
-WOLF_ROLES     = ["wolf", "werecrow", "wolf cub"]
+WOLF_ROLES     = ["wolf", "alpha wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = ["wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer"]
+WOLFCHAT_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
-WOLFTEAM_ROLES = ["wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", "minion", "cultist"]
+WOLFTEAM_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game!
-AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone", "villager", "cultist"]
+AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : ["wolf", "wolf cub", "werecrow", "seer", "oracle", "augur", "fool", "jester", "mad scientist"],
-                         "gunner"          : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
-                         "sharpshooter"    : ["wolf", "traitor", "werecrow", "hag", "wolf cub", "sorcerer", "minion", "cultist", "fool", "lycan", "jester"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "augur", "fool", "jester", "mad scientist"],
+                         "gunner"          : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
+                         "sharpshooter"    : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "mayor"           : ["fool", "jester", "monster"],
-                         "assassin"        : ["seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "wolf", "werecrow", "wolf cub", "traitor", "lycan"],
+                         "assassin"        : WOLF_ROLES + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "lycan", "doctor"],
                          "bureaucrat"      : [],
                          }
 
@@ -299,6 +304,10 @@ def del_player(pname):
     tpls = get_templates(pname)
     for t in tpls:
         ROLES[t].remove(pname)
+    if pname in BITTEN:
+        del BITTEN[pname]
+    if pname in BITTEN_ROLES:
+        del BITTEN_ROLES[pname]
 
 def get_templates(nick):
     tpl = []
@@ -392,14 +401,14 @@ class ChangedRolesMode(object):
             except ValueError:
                 raise InvalidModeException("A bad value was used in mode roles.")
 
-@game_mode("default", minp = 4, maxp = 24, likelihood = 15)
+@game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(object):
     """Default game mode."""
     def __init__(self):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
-@game_mode("foolish", minp = 8,maxp = 24, likelihood = 7)
+@game_mode("foolish", minp = 8,maxp = 24, likelihood = 8)
 class FoolishMode(object):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self):
@@ -427,7 +436,7 @@ class FoolishMode(object):
               "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("mad", minp = 7, maxp = 22, likelihood = 7)
+@game_mode("mad", minp = 7, maxp = 22, likelihood = 8)
 class MadMode(object):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self):
@@ -632,7 +641,7 @@ class AmnesiaMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 3)
+@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 4)
 class AleatoireMode(object):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
@@ -681,6 +690,34 @@ class AleatoireMode(object):
             "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
             "bureaucrat"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
             "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            })
+
+@game_mode("alpha", minp = 4, maxp = 24, likelihood = 5)
+class AlphaMode(object):
+    """Features the alpha wolf who can turn other people into wolves, be careful whom you trust!"""
+    def __init__(self):
+        self.ROLE_INDEX =         (   4   ,   6   ,   7   ,   8   ,  10   ,  11   ,  12   ,  14   ,  15   ,  17   ,  18   ,  20   ,  21   ,  24   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            #village roles
+            "oracle"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "matchmaker"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "village drunk"     : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "doctor"            : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "harlot"            : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "augur"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            # wolf roles
+            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   3   ,   4   ,   5   ),
+            "alpha wolf"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "traitor"           : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "lycan"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "clone"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            # templates
+            "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
+            "gunner"            : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
 # Persistence
