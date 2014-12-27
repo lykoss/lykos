@@ -2959,6 +2959,7 @@ def transition_day(cli, gameid=0):
             if len(bywolves) == 0:
                 # nobody to bite, so let them do it again in the future
                 var.ALPHA_WOLVES.remove(alpha)
+                continue
             if len(bywolves) == 1:
                 target = tuple(bywolves)[0]
             elif desired in bywolves:
