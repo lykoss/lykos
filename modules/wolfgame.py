@@ -4323,7 +4323,7 @@ def see(cli, nick, rest):
     if victimrole == "amnesiac":
         victimrole = var.FINAL_ROLES[victim]
     if role in ("seer", "oracle"):
-        if victimrole in ("wolf", "werecrow", "monster", "mad scientist", "wolf cub") or victim in var.ROLES["cursed villager"]:
+        if victimrole in var.WOLF_ROLES+["monster", "mad scientist"] or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
         elif victimrole in ("traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester"):
             victimrole = var.DEFAULT_ROLE
