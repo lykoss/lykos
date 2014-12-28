@@ -174,8 +174,8 @@ ROLE_GUIDE = {# village roles
               "bureaucrat"      : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               }
 
-# Harlot dies when visiting, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
-# If every wolf role dies, the game ends and village wins and there are no remaining traitors, the game ends and villagers win
+# Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
+# If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
 WOLF_ROLES     = ["wolf", "alpha wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
 WOLFCHAT_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer"]
@@ -183,7 +183,7 @@ WOLFCHAT_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag"
 WOLFTEAM_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", "minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
-# These are the roles that will NOT be used for when amnesiac turns, everything else is fair game!
+# These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also appended if not in this list)
 AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to

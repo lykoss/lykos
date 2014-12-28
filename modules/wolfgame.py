@@ -3906,7 +3906,7 @@ def shoot(cli, nick, chan, rest):
             if var.ROLE_REVEAL:
                 cli.msg(chan, ("\u0002{0}\u0002 is a{1} \u0002{2}\u0002, and is dying from "+
                                "the silver bullet.").format(victim,an, victimrole))
-                var.LOGGER.logMessage(("{0} is a{1} {2}, and is dying f rom the "+
+                var.LOGGER.logMessage(("{0} is a{1} {2}, and is dying from the "+
                                 "silver bullet.").format(victim, an, victimrole))
             else:
                 cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
