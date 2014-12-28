@@ -213,11 +213,11 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
 QUIT_MESSAGES= ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
-                "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomaches.",
+                "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomachs.",
                 "\u0002{0}\u0002, a{1} \u0002{2}\u0002, fell off the roof of their house and is now dead.",
                 "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{2}\u0002, but it is too late.")
 QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
-                           "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomaches.",
+                           "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomachs.",
                            "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
 
@@ -259,9 +259,9 @@ def is_owner(nick):
     return False
 
 def plural(role):
-    if role == "wolf": return "wolves"
-    elif role == "person": return "people"
-    else: return role + "s"
+    bits = role.split()
+    bits[-1] = {"person": "people", "wolf": "wolves"}.get(bits[-1], bits[-1] + "s")
+    return " ".join(bits) 
 
 def list_players(roles = None):
     if roles == None:

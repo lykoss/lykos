@@ -3901,12 +3901,13 @@ def shoot(cli, nick, chan, rest):
         var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
         realrole = var.get_role(victim)
         victimrole = var.get_reveal_role(victim)
+        an = "n" if victimrole[0] in ('a', 'e', 'i', 'o', 'u') else ""
         if realrole in var.WOLF_ROLES:
             if var.ROLE_REVEAL:
-                cli.msg(chan, ("\u0002{0}\u0002 is a \u0002{1}\u0002, and is dying from "+
-                               "the silver bullet.").format(victim, victimrole))
-                var.LOGGER.logMessage(("{0} is a {1}, and is dying from the "+
-                                "silver bullet.").format(victim, victimrole))
+                cli.msg(chan, ("\u0002{0}\u0002 is a{1} \u0002{2}\u0002, and is dying from "+
+                               "the silver bullet.").format(victim,an, victimrole))
+                var.LOGGER.logMessage(("{0} is a{1} {2}, and is dying f rom the "+
+                                "silver bullet.").format(victim, an, victimrole))
             else:
                 cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
                                "the silver bullet.").format(victim))
@@ -3922,7 +3923,6 @@ def shoot(cli, nick, chan, rest):
                            "but was {1}fatally injured.").format(victim, accident))
             var.LOGGER.logMessage("{0} is not a wolf but was {1}fatally injured.".format(victim, accident))
             if var.ROLE_REVEAL:
-                an = "n" if victimrole[0] in ("a", "e", "i", "o", "u") else ""
                 cli.msg(chan, "The village has sacrificed a{0} \u0002{1}\u0002.".format(an, victimrole))
                 var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
             if not del_player(cli, victim, killer_role = var.get_role(nick)):
