@@ -111,19 +111,26 @@ if botconfig.DEBUG_MODE:
 
 
 def connect_callback(cli):
-    def handler(signum, frame):
+    SIGUSR1 = getattr(signal, "SIGUSR1", None)
+    SIGUSR2 = getattr(signal, "SIGUSR2", None)
+
+    def sighandler(signum, frame):
         if signum in (signal.SIGINT, signal.SIGTERM):
             forced_exit(cli, "<console>", botconfig.CHANNEL, "")
-        elif signum == signal.SIGUSR1:
+        elif signum == SIGUSR1:
             restart_program(cli, "<console>", botconfig.CHANNEL, "")
-        elif signum == signal.SIGUSR2:
+        elif signum == SIGUSR2:
             print("Scheduling aftergame restart")
             aftergame(cli, "<console>", "frestart")
 
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-    signal.signal(signal.SIGUSR1, handler)
-    signal.signal(signal.SIGUSR2, handler)
+    signal.signal(signal.SIGINT, sighandler)
+    signal.signal(signal.SIGTERM, sighandler)
+
+    if SIGUSR1:
+        signal.signal(SIGUSR1, sighandler)
+
+    if SIGUSR2:
+        signal.signal(SIGUSR2, sighandler)
 
     to_be_devoiced = []
     cmodes = []
