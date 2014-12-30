@@ -3542,7 +3542,7 @@ def check_exchange(cli, actor, nick):
             if actor in var.CLONED:
                 actor_target = var.CLONED[actor]
                 del var.CLONED[actor]
-        elif actor_role in ("shaman", "crazed shaman"):
+        elif actor_role in var.TOTEM_ORDER:
             actor_totem = var.TOTEMS[actor]
             del var.TOTEMS[actor]
             if actor in var.SHAMANS:
@@ -3603,7 +3603,7 @@ def check_exchange(cli, actor, nick):
             if nick in var.CLONED:
                 nick_target = var.CLONED[nick]
                 del var.CLONED[nick]
-        elif nick_role in ("shaman", "crazed shaman"):
+        elif nick_role in var.TOTEM_ORDER:
             nick_totem = var.TOTEMS[nick]
             del var.TOTEMS[nick]
             if nick in var.SHAMANS:
@@ -3686,7 +3686,7 @@ def check_exchange(cli, actor, nick):
 
         if nick_role == "clone":
             pm(cli, actor, "You are cloning \u0002{0}\u0002.".format(nick_target))
-        elif nick_role in ("shaman", "crazed shaman"):
+        elif nick_role in var.TOTEM_ORDER:
             if nick_role == "shaman":
                 pm(cli, actor, "You have a \u0002{0}\u0002 totem.".format(nick_totem))
             var.TOTEMS[actor] = nick_totem
@@ -3722,7 +3722,7 @@ def check_exchange(cli, actor, nick):
 
         if actor_role == "clone":
             pm(cli, nick, "You are cloning \u0002{0}\u0002.".format(actor_target))
-        elif actor_role in ("shaman", "crazed shaman"):
+        elif actor_role in var.TOTEM_ORDER:
             if actor_role == "shaman":
                 pm(cli, nick, "You have a \u0002{0}\u0002 totem.".format(actor_totem))
             var.TOTEMS[nick] = actor_totem
@@ -4356,10 +4356,10 @@ def give(cli, nick, rest):
         cli.notice(nick, "You're not currently playing.")
         return
     role = var.get_role(nick)
-    if role not in ("shaman", "crazed shaman", "doctor"):
+    if role not in var.TOTEM_ORDER + ("doctor",): # still need to fix that message
         pm(cli, nick, "Only a shaman, crazed shaman, or doctor may use this command.")
         return
-    if var.PHASE != "night" and role in ("shaman", "crazed shaman"):
+    if var.PHASE != "night" and role in var.TOTEM_ORDER:
         pm(cli, nick, "You may only give totems at night.")
         return
     elif var.PHASE != "day" and role == "doctor":
@@ -4377,7 +4377,7 @@ def give(cli, nick, rest):
     victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
-    if role in ("shaman", "crazed shaman"):
+    if role in var.TOTEM_ORDER:
         if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
             pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
             return
@@ -5180,26 +5180,29 @@ def transition_night(cli):
         else:
             pm(cli, drunk, "You are the \u0002village drunk\u0002.")
 
-    for shaman in var.list_players(["shaman", "crazed shaman"]):
+    max_totems = {}
+    for sham in var.TOTEM_ORDER:
+        max_totems[sham] = 0
+    for ix in range(0, len(var.TOTEM_ORDER)):
+        for c in var.TOTEM_CHANCES.values():
+            max_totems[var.TOTEM_ORDER[ix]] += c[ix]
+    for shaman in var.list_players(var.TOTEM_ORDER):
         pl = ps[:]
         random.shuffle(pl)
         role = var.get_role(shaman)
-        rand = random.random()
+        indx = var.TOTEM_ORDER.index(role)
         target = 0
-        for t, c in var.TOTEM_CHANCES.items():
-            target += var.TOTEM_CHANCES[t][0 if role == "shaman" else 1]
+        rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
+        for t in var.TOTEM_CHANCES.keys():
+            target += var.TOTEM_CHANCES[t][indx]
             if rand <= target:
                 var.TOTEMS[shaman] = t
                 break
-        else:
-            # some sort of error (floating point issues so the %ages didn't sum to 1 or something)
-            # just give them death because I'm lazy
-            var.TOTEMS[shaman] = 'death'
         if shaman in var.PLAYERS and not is_user_simple(shaman):
             pm(cli, shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
                              'a {1}totem each night by using "give <nick>". You may give yourself a totem, but you ' +
                              'may not give the same player a totem two nights in a row.').format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
-            if shaman in var.ROLES["shaman"]:
+            if role != "crazed shaman":
                 totem = var.TOTEMS[shaman]
                 tmsg = 'You have the \u0002{0}\u0002 totem. '.format(totem)
                 if totem == "death":

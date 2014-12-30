@@ -94,22 +94,22 @@ ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many 
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.17 # ceil(num_players * multiplier) = number of immunizations
 
-#                                     SHAMAN    CRAZED SHAMAN
-TOTEM_CHANCES = {       "death": (     1/8     ,     1/15     ),
-                   "protection": (     1/8     ,     1/15     ),
-                      "silence": (     1/8     ,     1/15     ),
-                    "revealing": (     1/8     ,     1/15     ),
-                  "desperation": (     1/8     ,     1/15     ),
-                   "impatience": (     1/8     ,     1/15     ),
-                     "pacifism": (     1/8     ,     1/15     ),
-                    "influence": (     1/8     ,     1/15     ),
-                   "narcolepsy": (      0      ,     1/15     ),
-                     "exchange": (      0      ,     1/15     ),
-                  "lycanthropy": (      0      ,     1/15     ),
-                         "luck": (      0      ,     1/15     ),
-                   "pestilence": (      0      ,     1/15     ),
-                  "retribution": (      0      ,     1/15     ),
-                 "misdirection": (      0      ,     1/15     ),
+TOTEM_ORDER   =                  (   "shaman"  , "crazed shaman" )
+TOTEM_CHANCES = {       "death": (      1      ,        1        ),
+                   "protection": (      1      ,        1        ),
+                      "silence": (      1      ,        1        ),
+                    "revealing": (      1      ,        1        ),
+                  "desperation": (      1      ,        1        ),
+                   "impatience": (      1      ,        1        ),
+                     "pacifism": (      1      ,        1        ),
+                    "influence": (      1      ,        1        ),
+                   "narcolepsy": (      0      ,        1        ),
+                     "exchange": (      0      ,        1        ),
+                  "lycanthropy": (      0      ,        1        ),
+                         "luck": (      0      ,        1        ),
+                   "pestilence": (      0      ,        1        ),
+                  "retribution": (      0      ,        1        ),
+                 "misdirection": (      0      ,        1        ),
                 }
 
 GAME_MODES = {}
@@ -647,21 +647,21 @@ class AleatoireMode(object):
     def __init__(self):
         self.SHARPSHOOTER_CHANCE = 1
                                               #    SHAMAN   , CRAZED SHAMAN
-        self.TOTEM_CHANCES = {       "death": (     4/20    ,     1/15     ),
-                                "protection": (     8/20    ,     1/15     ),
-                                   "silence": (     2/20    ,     1/15     ),
-                                 "revealing": (      0      ,     1/15     ),
-                               "desperation": (     1/20    ,     1/15     ),
-                                "impatience": (      0      ,     1/15     ),
-                                  "pacifism": (      0      ,     1/15     ),
-                                 "influence": (      0      ,     1/15     ),
-                                "narcolepsy": (      0      ,     1/15     ),
-                                  "exchange": (      0      ,     1/15     ),
-                               "lycanthropy": (      0      ,     1/15     ),
-                                      "luck": (      0      ,     1/15     ),
-                                "pestilence": (     1/20    ,     1/15     ),
-                               "retribution": (     4/20    ,     1/15     ),
-                              "misdirection": (      0      ,     1/15     ),
+        self.TOTEM_CHANCES = {       "death": (      4      ,      1      ),
+                                "protection": (      8      ,      1      ),
+                                   "silence": (      2      ,      1      ),
+                                 "revealing": (      0      ,      1      ),
+                               "desperation": (      1      ,      1      ),
+                                "impatience": (      0      ,      1      ),
+                                  "pacifism": (      0      ,      1      ),
+                                 "influence": (      0      ,      1      ),
+                                "narcolepsy": (      0      ,      1      ),
+                                  "exchange": (      0      ,      1      ),
+                               "lycanthropy": (      0      ,      1      ),
+                                      "luck": (      0      ,      1      ),
+                                "pestilence": (      1      ,      1      ),
+                               "retribution": (      4      ,      1      ),
+                              "misdirection": (      0      ,      1      ),
                              }
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  21   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
