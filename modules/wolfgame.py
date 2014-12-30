@@ -6908,7 +6908,7 @@ def _say(cli, raw_nick, rest, command, action=False):
 
     if len(rest) < 2:
         pm(cli, nick, "Usage: {0}{1} <target> <message>".format(
-            command, botconfig.CMD_CHAR))
+            botconfig.CMD_CHAR, command))
 
         return
 
