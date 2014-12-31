@@ -15,7 +15,8 @@ import settings.wolfgame as var
 
 def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
-    def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, hookid=-1):
+    def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, chan=True, pm=False,
+                game=False, join=False, none=False, playing=False, roles=(), hookid=-1):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
@@ -29,13 +30,15 @@ def generate(fdict, permissions=True, **kwargs):
                 else:
                     nick = ""
                     cloak = ""
-                if len(largs) > 3 and largs[2] and largs[2][0] == "#":
-                    chan = largs[2]
-                else:
-                    chan = ""
                 if not raw_nick and len(largs) > 1 and largs[1]:
                     largs[1] = nick
-                if chan and not chan == botconfig.CHANNEL and not admin_only and not owner_only:
+                if nick == "<console>":
+                    return f(*largs) # special case; no questions
+                if not pm and largs[2] == nick: # PM command
+                    return
+                if not chan and largs[2] != nick: # channel command
+                    return
+                if largs[2].startswith("#") and largs[2] != botconfig.CHANNEL and not admin_only and not owner_only:
                     if "" in s:
                         return # Don't have empty commands triggering in other channels
                     allowed = False
@@ -51,6 +54,33 @@ def generate(fdict, permissions=True, **kwargs):
                     acc = None
                 if "" in s:
                     return f(*largs)
+                if game and var.PHASE not in ("day", "night") + (("join",) if join else ()):
+                    largs[0].notice(nick, "No game is currently running.")
+                    return
+                if ((join and none and var.PHASE not in ("join", "none"))
+                        or (none and not join and var.PHASE != "none")):
+                    largs[0].notice(nick, "Sorry, but the game is already running. Try again next time.")
+                    return
+                if join and not none:
+                    if var.PHASE == "none":
+                        largs[0].notice(nick, "No game is currently running.")
+                        return
+                    if var.PHASE != "join" and not game:
+                        largs[0].notice(nick, "Werewolf is already in play.")
+                        return
+                if playing and nick not in var.list_players() or nick in var.DISCONNECTED.keys():
+                    cli.notice(nick, "You're not currently playing.")
+                    return
+                if roles:
+                    for role in roles:
+                        if nick in var.ROLES[role]:
+                            break
+                    else:
+                        if len(roles) == 1:
+                            var.pm(largs[0], nick, "Only a{0} {1} may use this command.".format("n" if roles[0][0] in "aeiou" else "", roles[0]))
+                        else:
+                            var.pm(largs[0], nick, "Only a{0} {1} or {2} may use this command.".format("n" if roles[0][0] in "aeiou" else "", ", ".join(roles[:-1]), roles[-1]))
+                        return
                 if acc:
                     for pattern in var.DENY_ACCOUNTS.keys():
                         if fnmatch.fnmatch(acc.lower(), pattern.lower()):
@@ -105,6 +135,13 @@ def generate(fdict, permissions=True, **kwargs):
             innerf.owner_only = owner_only
             innerf.raw_nick = raw_nick
             innerf.admin_only = admin_only
+            innerf.chan = chan
+            innerf.pm = pm
+            innerf.none = none
+            innerf.join = join
+            innerf.game = game
+            innerf.playing = playing
+            innerf.roles = roles
             innerf.hookid = hookid
             innerf.__doc__ = f.__doc__
             return innerf

@@ -33,25 +33,23 @@ import time
 import re
 import sys
 import os
-import imp
 import math
-import fnmatch
 import random
 import subprocess
 import signal
-from imp import reload
 
 BOLD = "\u0002"
 
 COMMANDS = {}
-PM_COMMANDS = {}
 HOOKS = {}
 
+pm = var.pm
+is_user_notice = var.is_user_notice
+is_fake_nick = var.is_fake_nick
 is_admin = var.is_admin
 is_owner = var.is_owner
 
 cmd = decorators.generate(COMMANDS)
-pmcmd = decorators.generate(PM_COMMANDS)
 hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 # Game Logic Begins:
@@ -281,22 +279,6 @@ def mass_mode(cli, md):
         arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
         cli.mode(botconfig.CHANNEL, arg1, arg2)
 
-def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
-    if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        print("[{0}] Would send message to fake nick {1}: {2}".format(
-            time.strftime("%d/%b/%Y %H:%M:%S"),
-            target,
-            message), file=sys.stderr)
-
-        return
-
-    if is_user_notice(target):
-        cli.notice(target, message)
-        return
-
-    cli.msg(target, message)
-
-
 def log_cmd(raw_nick, command, ptext, text):
     (nick, _, user, host) = parse_nick(raw_nick)
 
@@ -388,14 +370,9 @@ def make_stasis(nick, penalty):
         var.STASISED[cloak] += penalty
         var.set_stasis(cloak, var.STASISED[cloak])
 
-@pmcmd("fdie", "fbye")
-@cmd("fdie", "fbye")
-def forced_exit(cli, nick, chan, *rest):  # Admin Only
+@cmd("fdie", "fbye", admin_only=True, pm=True)
+def forced_exit(cli, nick, chan, rest):  # Admin Only
     """Forces the bot to close."""
-
-    if nick != "<console>" and not is_admin(nick):
-        cli.notice(nick, "You are not an admin.")
-        return
 
     if var.PHASE in ("day", "night"):
         #ignore all errors that prevent the bot from stopping
@@ -414,13 +391,9 @@ def forced_exit(cli, nick, chan, *rest):  # Admin Only
 
 
 
-@cmd("frestart")
+@cmd("frestart", admin_only=True, pm=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
-
-    if nick != "<console>" and not is_admin(nick):
-        cli.notice(nick, "You are not an admin.")
-        return
 
     try:
         if var.PHASE in ("day", "night"):
@@ -449,22 +422,11 @@ def restart_program(cli, nick, chan, rest):
         else:
             os.execl(python, python, *sys.argv)
 
-@pmcmd("frestart")
-def pm_restart_program(cli, nick, rest):
-    restart_program(cli, nick, nick, rest)
-
-
-
-@pmcmd("ping")
-def pm_ping(cli, nick, rest):
-    pm(cli, nick, 'Pong!')
-
-
-@cmd("ping")
+@cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
     """Pings the channel to get people's attention. Rate-limited."""
 
-    if var.PHASE in ('night','day'):
+    if var.PHASE in ('night','day') or chan == nick: # PM
         #cli.notice(nick, "You cannot use this command while a game is running.")
         cli.notice(nick, 'Pong!')
         return
@@ -516,9 +478,8 @@ def pinger(cli, nick, chan, rest):
     cli.who(chan)
 
 
-@cmd("simple", raw_nick = True)
-@pmcmd("simple", raw_nick = True)
-def mark_simple_notify(cli, nick, *rest):
+@cmd("simple", raw_nick=True, pm=True)
+def mark_simple_notify(cli, nick, chan, rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
     nick, _, __, cloak = parse_nick(nick)
@@ -574,9 +535,8 @@ def is_user_simple(nick):
         return True
     return False
 
-@cmd("notice", raw_nick = True)
-@pmcmd("notice", raw_nick = True)
-def mark_prefer_notice(cli, nick, *rest):
+@cmd("notice", raw_nick=True, pm=True)
+def mark_prefer_notice(cli, nick, chan, rest):
     """Makes the bot NOTICE you for every interaction."""
 
     nick, _, __, cloak = parse_nick(nick)
@@ -618,17 +578,8 @@ def mark_prefer_notice(cli, nick, *rest):
 
     cli.notice(nick, "The bot will now always NOTICE you.")
 
-def is_user_notice(nick):
-    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*":
-        if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
-            return True
-    if nick in var.USERS and var.USERS[nick]["cloak"] in var.PREFER_NOTICE and not var.ACCOUNTS_ONLY:
-        return True
-    return False
-
-@cmd("away", raw_nick=True)
-@pmcmd("away", raw_nick=True)
-def away(cli, nick, *rest):
+@cmd("away", raw_nick=True, pm=True)
+def away(cli, nick, chan, rest):
     """Use this to activate your away status (so you aren't pinged)."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
@@ -667,9 +618,8 @@ def away(cli, nick, *rest):
 
     cli.notice(nick, "You are now marked as away.")
 
-@cmd("back", raw_nick=True)
-@pmcmd("back", raw_nick=True)
-def back_from_away(cli, nick, *rest):
+@cmd("back", raw_nick=True, pm=True)
+def back_from_away(cli, nick, chan, rest):
     """Unsets your away status."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
@@ -704,9 +654,8 @@ def back_from_away(cli, nick, *rest):
     cli.notice(nick, "You are no longer marked as away.")
 
 
-@cmd("in", raw_nick=True)
-@pmcmd("in", raw_nick=True)
-def get_in(cli, nick, *rest):
+@cmd("in", raw_nick=True, pm=True)
+def get_in(cli, nick, chan, rest):
     """Puts yourself in the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
@@ -740,9 +689,8 @@ def get_in(cli, nick, *rest):
 
     cli.notice(nick, "You are now on the list.")
 
-@cmd("out", raw_nick=True)
-@pmcmd("out", raw_nick=True)
-def get_out(cli, nick, *rest):
+@cmd("out", raw_nick=True, pm=True)
+def get_out(cli, nick, chan, rest):
     """Removes yourself from the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
@@ -807,7 +755,7 @@ def fpinger(cli, nick, chan, rest):
     pinger(cli, nick, chan, rest)
 
 
-@cmd("join", "j")
+@cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     if var.ACCOUNTS_ONLY:
@@ -928,7 +876,7 @@ def kill_join(cli, chan):
     var.LOGGER.logMessage('Game canceled.')
 
 
-@cmd("fjoin", admin_only=True)
+@cmd("fjoin", admin_only=True, none=True, join=True)
 def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
     noticed = False
@@ -960,14 +908,12 @@ def fjoin(cli, nick, chan, rest):
     if fake:
         cli.msg(chan, "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.".format(nick, len(var.list_players())))
 
-@cmd("fleave", "fquit", admin_only=True)
+@cmd("fleave", "fquit", admin_only=True, join=True, game=True)
 def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
     if chan != botconfig.CHANNEL:
         return
 
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is running.")
     for a in re.split(" +",rest):
         a = a.strip()
         if not a:
@@ -997,13 +943,11 @@ def fleave(cli, nick, chan, rest):
         del_player(cli, a, death_triggers = False)
 
 
-@cmd("fstart", admin_only=True)
+@cmd("fstart", admin_only=True, join=True)
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to start.".format(nick))
     start(cli, nick, botconfig.CHANNEL, forced = True)
-
-
 
 @hook("kick")
 def on_kicked(cli, nick, chan, victim, reason):
@@ -1043,12 +987,9 @@ def on_account(cli, rnick, acc):
                         if nick in var.DCED_PLAYERS.keys():
                             var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
-@cmd("stats")
+@cmd("stats", pm=True, game=True, join=True)
 def stats(cli, nick, chan, rest):
     """Displays the player statistics."""
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
 
     pl = var.list_players()
     if var.PHASE in ("night", "day"):
@@ -1187,12 +1128,6 @@ def stats(cli, nick, chan, rest):
         else:
             cli.notice(nick, stats_mssg)
 
-@pmcmd("stats")
-def stats_pm(cli, nick, rest):
-    stats(cli, nick, nick, rest)
-
-
-
 def hurry_up(cli, gameid, change):
     if var.PHASE != "day": return
     if gameid:
@@ -1271,7 +1206,6 @@ def fday(cli, nick, chan, rest):
         cli.notice(nick, "It is not nighttime.")
     else:
         transition_day(cli)
-
 
 # Specify force = "nick" to force nick to be lynched
 def chk_decision(cli, force = ""):
@@ -1417,14 +1351,9 @@ def chk_decision(cli, force = ""):
                 transition_night(cli)
             break
 
-
-@cmd('votes')
+@cmd("votes", pm=True, game=True)
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
-
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
 
     if var.PHASE != 'day':
         cli.notice(nick, "Voting is only during the day.")
@@ -1479,12 +1408,6 @@ def show_votes(cli, nick, chan, rest):
         cli.notice(nick, the_message)
     else:
         cli.msg(chan, the_message)
-
-
-@pmcmd('votes')
-def show_votes_pm(cli, nick, rest):
-    show_votes(cli, nick, nick, rest)
-
 
 def chk_traitor(cli):
     wcl = copy.copy(var.ROLES["wolf cub"])
@@ -2346,16 +2269,9 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
         cli.msg("ChanServ", "op " + chan)
 
 
-@cmd('goat')
+@cmd("goat", game=True, playing=True)
 def goat(cli, nick, chan, rest):
     """Use a goat to interact with anyone in the channel during the day."""
-
-    if var.PHASE in ('none', 'join'):
-        cli.notice(nick, 'No game is currently running.')
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, 'You\'re not currently playing.')
-        return
 
     if var.PHASE != 'day':
         cli.notice(nick, 'You can only do that in the day.')
@@ -2388,7 +2304,7 @@ def goat(cli, nick, chan, rest):
 
     var.GOATED = True
 
-@cmd('fgoat', admin_only=True)
+@cmd("fgoat", admin_only=True)
 def fgoat(cli, nick, chan, rest):
     """Forces a goat to interact with anyone or anything, without limitations."""
     rest = rest.split(' ')[0].strip()
@@ -2717,13 +2633,10 @@ hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 
 
-@cmd("quit", "leave")
+@cmd("quit", "leave", join=True, game=True, playing=True)
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif var.PHASE == "join":
+    if var.PHASE == "join":
         lpl = len(var.list_players()) - 1
 
         if lpl == 0:
@@ -2736,9 +2649,6 @@ def leave_game(cli, nick, chan, rest):
             cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
             return
         population = ""
-    if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
-        cli.notice(nick, "You're not currently playing.")
-        return
     if var.get_role(nick) != "person" and var.ROLE_REVEAL:
         role = var.get_reveal_role(nick)
         an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
@@ -3390,17 +3300,11 @@ def chk_nightdone(cli):
         if var.PHASE == "night":  # Double check
             transition_day(cli)
 
-@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs")
+@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", game=True, playing=True)
 def no_lynch(cli, nick, chan, rest):
     """Allows you to abstain from voting for the day."""
     if chan == botconfig.CHANNEL:
-        if var.PHASE in ("none", "join"):
-            cli.notice(nick, "No game is currently running.")
-            return
-        elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-            cli.notice(nick, "You're not currently playing.")
-            return
-        elif not var.ABSTAIN_ENABLED:
+        if not var.ABSTAIN_ENABLED:
             cli.notice(nick, "This command has been disabled by the admins.")
             return
         elif var.LIMIT_ABSTAIN and var.ABSTAINED:
@@ -3428,7 +3332,7 @@ def no_lynch(cli, nick, chan, rest):
         chk_decision(cli)
         return
 
-@cmd("lynch", "vote", "v")
+@cmd("lynch", "vote", "v", game=True, playing=True)
 def vote(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
     if chan != botconfig.CHANNEL:
@@ -3438,12 +3342,6 @@ def vote(cli, nick, chan, rest):
 
     if not rest:
         show_votes(cli, nick, chan, rest)
-        return
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
         return
     if var.PHASE != "day":
         cli.notice(nick, ("Lynching is only allowed during the day. "+
@@ -3771,18 +3669,45 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract")
+@cmd("retract", pm=True, game=True, playing=True)
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
-    if chan != botconfig.CHANNEL:
+    if not chan in (botconfig.CHANNEL, nick):
         return
 
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
+    if chan == nick: # PM, use different code
+        role = var.get_role(nick)
+        if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
+            return
+        if var.PHASE != "night":
+            pm(cli, nick, "You may only retract at night.")
+            return
+        if role == "werecrow":  # Check if already observed
+            if var.OBSERVED.get(nick):
+                pm(cli, nick, ("You have already transformed into a crow, and "+
+                               "cannot turn back until day."))
+                return
+        elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
+            return
+
+        what = re.split(" +",rest)[0].strip().lower()
+        if not what or what not in ("kill", "bite"):
+            what = "kill"
+
+        if what == "kill" and role in var.WOLF_ROLES and nick in var.KILLS.keys():
+            del var.KILLS[nick]
+            pm(cli, nick, "You have retracted your kill.")
+        elif what == "kill" and role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
+            del var.OTHER_KILLS[nick]
+            var.HUNTERS.remove(nick)
+            pm(cli, nick, "You have retracted your kill.")
+        elif what == "bite" and role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
+            del var.BITE_PREFERENCES[nick]
+            var.ALPHA_WOLVES.remove(nick)
+            pm(cli, nick, "You have decided to not bite anyone tonight.")
+        else:
+            pm(cli, nick, "You have not chosen to {0} anyone yet.".format(what))
         return
 
     if var.PHASE != "day":
@@ -3811,59 +3736,11 @@ def retract(cli, nick, chan, rest):
     else:
         cli.notice(nick, "You haven't voted yet.")
 
-@pmcmd("retract")
-def wolfretract(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-
-    role = var.get_role(nick)
-    if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
-        return
-    if var.PHASE != "night":
-        pm(cli, nick, "You may only retract at night.")
-        return
-    if role == "werecrow":  # Check if already observed
-        if var.OBSERVED.get(nick):
-            pm(cli, nick, ("You have already transformed into a crow, and "+
-                           "cannot turn back until day."))
-            return
-    elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
-        return
-
-    what = re.split(" +",rest)[0].strip().lower()
-    if not what or what not in ("kill", "bite"):
-        what = "kill"
-
-    if what == "kill" and role in var.WOLF_ROLES and nick in var.KILLS.keys():
-        del var.KILLS[nick]
-        pm(cli, nick, "You have retracted your kill.")
-    elif what == "kill" and role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
-        del var.OTHER_KILLS[nick]
-        var.HUNTERS.remove(nick)
-        pm(cli, nick, "You have retracted your kill.")
-    elif what == "bite" and role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
-        del var.BITE_PREFERENCES[nick]
-        var.ALPHA_WOLVES.remove(nick)
-        pm(cli, nick, "You have decided to not bite anyone tonight.")
-    else:
-        pm(cli, nick, "You have not chosen to {0} anyone yet.".format(what))
-    #var.LOGGER.logBare(nick, "RETRACT", nick)
-
-@cmd("shoot")
+@cmd("shoot", game=True, playing=True)
 def shoot(cli, nick, chan, rest):
     """Use this to fire off a bullet at someone in the day if you have bullets."""
 
     if chan != botconfig.CHANNEL:
-        return
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
         return
 
     if var.PHASE != "day":
@@ -3974,12 +3851,9 @@ def shoot(cli, nick, chan, rest):
 
 
 
-@pmcmd("kill")
-def kill(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
+@cmd("kill", chan=False, pm=True, game=True)
+def kill(cli, nick, chan, rest):
+    if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
     try:
@@ -4094,18 +3968,8 @@ def kill(cli, nick, rest):
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
     chk_nightdone(cli)
 
-@pmcmd("guard", "protect", "save")
-def guard(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    role = var.get_role(nick)
-    if role not in ("bodyguard", "guardian angel"):
-        pm(cli, nick, "Only a bodyguard or guardian angel may use this command.")
-        return
+@cmd("guard", "protect", "save", chan=False, pm=True, game=False, playing=True, roles=("bodyguard", "guardian angel"))
+def guard(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only protect people at night.")
         return
@@ -4146,18 +4010,8 @@ def guard(cli, nick, rest):
 
 
 
-@pmcmd("observe")
-def observe(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    role = var.get_role(nick)
-    if role not in ("werecrow", "sorcerer"):
-        pm(cli, nick, "Only a werecrow or sorcerer may use this command.")
-        return
+@cmd("observe", chan=False, pm=True, game=True, playing=True, roles=("werecrow", "sorcerer"))
+def observe(cli, nick, chan, rest):
     if var.PHASE != "night":
         if role == "werecrow":
             pm(cli, nick, "You may only transform into a crow at night.")
@@ -4213,17 +4067,8 @@ def observe(cli, nick, rest):
     var.LOGGER.logBare(victim, "OBSERVED", nick)
     chk_nightdone(cli)
 
-@pmcmd("id")
-def investigate(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if not var.is_role(nick, "detective"):
-        pm(cli, nick, "Only a detective may use this command.")
-        return
+@cmd("id", chan=False, pm=True, game=True, playing=True, roles=("detective",))
+def investigate(cli, nick, chan, rest):
     if var.PHASE != "day":
         pm(cli, nick, "You may only investigate people during the day.")
         return
@@ -4256,17 +4101,8 @@ def investigate(cli, nick, rest):
                             "that \u0002{0}\u0002 is the detective!").format(nick))
         var.LOGGER.logBare(nick, "PAPERDROP")
 
-@pmcmd("visit")
-def hvisit(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if not var.is_role(nick, "harlot"):
-        pm(cli, nick, "Only a harlot may use this command.")
-        return
+@cmd("visit", chan=False, pm=True, game=True, playing=True, roles=("harlot",))
+def hvisit(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only visit someone at night.")
         return
@@ -4297,21 +4133,9 @@ def hvisit(cli, nick, rest):
         var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
     chk_nightdone(cli)
 
-def is_fake_nick(who):
-    return re.match("[0-9]+", who)
-
-@pmcmd("see")
-def see(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
+@cmd("see", chan=False, pm=True, game=True, playing=True, roles=("seer", "oracle", "augur"))
+def see(cli, nick, chan, rest):
     role = var.get_role(nick)
-    if role not in ("seer", "oracle", "augur"):
-        pm(cli, nick, "Only a seer, oracle, or augur may use this command.")
-        return
     if var.PHASE != "night":
         pm(cli, nick, "You may only have visions at night.")
         return
@@ -4332,19 +4156,23 @@ def see(cli, nick, rest):
     if check_exchange(cli, nick, victim):
         return
     victimrole = var.get_role(victim)
-    if victimrole == "amnesiac":
-        victimrole = var.FINAL_ROLES[victim]
     if role in ("seer", "oracle"):
-        if victimrole in var.WOLF_ROLES+["monster", "mad scientist"] or victim in var.ROLES["cursed villager"]:
+        if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
-        elif victimrole in ("traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester"):
+        elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
+            if var.DEFAULT_SEEN_AS_VILL:
+                victimrole = "villager"
         elif role == "oracle": # Oracles never see specific roles, only generalizations
             victimrole = var.DEFAULT_ROLE
+            if var.DEFAULT_SEEN_AS_VILL:
+                victimrole = "villager"
         pm(cli, nick, ("You have a vision; in this vision, "+
                         "you see that \u0002{0}\u0002 is a "+
                         "\u0002{1}\u0002!").format(victim, victimrole))
     elif role == "augur":
+        if victimrole == "amnesiac":
+            victimrole = var.FINAL_ROLES[victim]
         aura = "blue"
         if victimrole in var.WOLFTEAM_ROLES:
             aura = "red"
@@ -4357,25 +4185,18 @@ def see(cli, nick, rest):
     var.LOGGER.logBare(victim, "SEEN", nick)
     chk_nightdone(cli)
 
-# this is exactly why we should have classes; both shamans and doctors make sense to use "give" but
-# a doctor could immunize someone with !totem and a shaman could totem someone with !immunize...
-@pmcmd("give", "totem", "immunize", "immunise")
-def give(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
+@cmd("give", chan=False, pm=True, game=True, playing=True, roles=var.TOTEM_ORDER+("doctor",))
+def give(cli, nick, chan, rest):
     role = var.get_role(nick)
-    if role not in var.TOTEM_ORDER + ("doctor",): # still need to fix that message
-        pm(cli, nick, "Only a shaman, crazed shaman, or doctor may use this command.")
-        return
-    if var.PHASE != "night" and role in var.TOTEM_ORDER:
+    if role in var.TOTEM_ORDER:
+        totem(cli, nick, chan, rest)
+    elif role == "doctor":
+        immunize(cli, nick, chan, rest)
+
+@cmd("totem", chan=False, pm=True, game=True, playing=True, roles=var.TOTEM_ORDER)
+def totem(cli, nick, chan, rest):
+    if var.PHASE != "night":
         pm(cli, nick, "You may only give totems at night.")
-        return
-    elif var.PHASE != "day" and role == "doctor":
-        pm(cli, nick, "You may only immunize people during the day.")
         return
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
@@ -4383,102 +4204,111 @@ def give(cli, nick, rest):
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
         return
-    elif nick in var.DOCTORS and var.DOCTORS[nick] == 0:
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
+    if not victim:
+        return
+    if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
+        pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
+        return
+    type = ""
+    if role != "crazed shaman":
+        type = " of " + var.TOTEMS[nick]
+    victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        return
+    pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
+    totem = var.TOTEMS[nick]
+    if totem == "death":
+        if victim not in var.DYING:
+            var.DYING.append(victim)
+    elif totem == "protection":
+        if victim not in var.PROTECTED:
+            var.PROTECTED.append(victim)
+    elif totem == "revealing":
+        if victim not in var.REVEALED:
+            var.REVEALED.append(victim)
+    elif totem == "narcolepsy":
+        if victim not in var.ASLEEP:
+            var.ASLEEP.append(victim)
+    elif totem == "silence":
+        if victim not in var.TOBESILENCED:
+            var.TOBESILENCED.append(victim)
+    elif totem == "desperation":
+        if victim not in var.DESPERATE:
+            var.DESPERATE.append(victim)
+    elif totem == "impatience": # this totem stacks
+        var.IMPATIENT.append(victim)
+    elif totem == "pacifism": # this totem stacks
+        var.PACIFISTS.append(victim)
+    elif totem == "influence":
+        if victim not in var.INFLUENTIAL:
+            var.INFLUENTIAL.append(victim)
+    elif totem == "exchange":
+        if victim not in var.TOBEEXCHANGED:
+            var.TOBEEXCHANGED.append(victim)
+    elif totem == "lycanthropy":
+        if victim not in var.TOBELYCANTHROPES:
+            var.TOBELYCANTHROPES.append(victim)
+    elif totem == "luck":
+        if victim not in var.TOBELUCKY:
+            var.TOBELUCKY.append(victim)
+    elif totem == "pestilence":
+        if victim not in var.TOBEDISEASED:
+            var.TOBEDISEASED.append(victim)
+    elif totem == "retribution":
+        if victim not in var.RETRIBUTION:
+            var.RETRIBUTION.append(victim)
+    elif totem == "misdirection":
+        if victim not in var.TOBEMISDIRECTED:
+            var.TOBEMISDIRECTED.append(victim)
+    else:
+        pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
+    var.LASTGIVEN[nick] = victim
+    var.SHAMANS.append(nick)
+    var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
+    chk_nightdone(cli)
+
+@cmd("immunize", "immunise", chan=False, pm=True, game=True, playing=True, roles=("doctor",))
+def immunize(cli, nick, chan, rest):
+    if var.PHASE != "day":
+        pm(cli, nick, "You may only immunize people during the day.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        return
+    if nick in var.DOCTORS and var.DOCTORS[nick] == 0:
         pm(cli, nick, "You have run out of immunizations.")
         return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
-    if role in var.TOTEM_ORDER:
-        if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
-            pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
-            return
-        type = ""
-        if role == "shaman":
-            type = " of " + var.TOTEMS[nick]
-        victim = choose_target(nick, victim)
-        if check_exchange(cli, nick, victim):
-            return
-        pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
-        totem = var.TOTEMS[nick]
-        if totem == "death":
-            if victim not in var.DYING:
-                var.DYING.append(victim)
-        elif totem == "protection":
-            if victim not in var.PROTECTED:
-                var.PROTECTED.append(victim)
-        elif totem == "revealing":
-            if victim not in var.REVEALED:
-                var.REVEALED.append(victim)
-        elif totem == "narcolepsy":
-            if victim not in var.ASLEEP:
-                var.ASLEEP.append(victim)
-        elif totem == "silence":
-            if victim not in var.TOBESILENCED:
-                var.TOBESILENCED.append(victim)
-        elif totem == "desperation":
-            if victim not in var.DESPERATE:
-                var.DESPERATE.append(victim)
-        elif totem == "impatience": # this totem stacks
-            var.IMPATIENT.append(victim)
-        elif totem == "pacifism": # this totem stacks
-            var.PACIFISTS.append(victim)
-        elif totem == "influence":
-            if victim not in var.INFLUENTIAL:
-                var.INFLUENTIAL.append(victim)
-        elif totem == "exchange":
-            if victim not in var.TOBEEXCHANGED:
-                var.TOBEEXCHANGED.append(victim)
-        elif totem == "lycanthropy":
-            if victim not in var.TOBELYCANTHROPES:
-                var.TOBELYCANTHROPES.append(victim)
-        elif totem == "luck":
-            if victim not in var.TOBELUCKY:
-                var.TOBELUCKY.append(victim)
-        elif totem == "pestilence":
-            if victim not in var.TOBEDISEASED:
-                var.TOBEDISEASED.append(victim)
-        elif totem == "retribution":
-            if victim not in var.RETRIBUTION:
-                var.RETRIBUTION.append(victim)
-        elif totem == "misdirection":
-            if victim not in var.TOBEMISDIRECTED:
-                var.TOBEMISDIRECTED.append(victim)
-        else:
-            pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
-        var.LASTGIVEN[nick] = victim
-        var.SHAMANS.append(nick)
-        var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
-        chk_nightdone(cli)
-    elif role == "doctor":
-        victim = choose_target(nick, victim)
-        if check_exchange(cli, nick, victim):
-            return
-        pm(cli, nick, "You have given an immunization to \u0002{0}\u0002.".format(victim))
-        if var.get_role(victim) == "lycan":
-            lycan_message = ("You feel as if a curse has been lifted from you... It seems that your lycanthropy is cured " +
-                             "and you will no longer become a werewolf if targeted by the wolves!")
-            var.ROLES["lycan"].remove(victim)
-            var.ROLES["villager"].append(victim)
-            var.FINAL_ROLES[victim] = "villager"
-            var.CURED_LYCANS.append(victim)
-            var.IMMUNIZED.add(victim)
-        elif victim in var.BITTEN:
-            # fun fact: immunizations in real life are done by injecting a small amount of (usually neutered) virus into the person
-            # so that their immune system can fight it off and build up antibodies. This doesn't work very well if that person is
-            # currently afflicted with the virus however, as you're just adding more virus to the mix...
-            # naturally, we would want to mimic that behavior here, and what better way of indicating that things got worse than
-            # by making the turning happen a night earlier? :)
-            var.BITTEN[victim] -= 1
-            lycan_message = ("You have a brief flashback to your dream last night. " +
-                             "The event quickly subsides, but a lingering thought remains in your mind...")
-        else:
-            lycan_message = "You don't feel any different..."
-            var.IMMUNIZED.add(victim)
-        pm(cli, victim, ("You feel a sharp prick in the back of your arm and temporarily black out. " +
-                         "When you come to, you notice an empty syringe lying on the ground. {0}").format(lycan_message))
-        var.DOCTORS[nick] -= 1
-
+    victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        return
+    pm(cli, nick, "You have given an immunization to \u0002{0}\u0002.".format(victim))
+    if var.get_role(victim) == "lycan":
+        lycan_message = ("You feel as if a curse has been lifted from you... It seems that your lycanthropy is cured " +
+                         "and you will no longer become a werewolf if targeted by the wolves!")
+        var.ROLES["lycan"].remove(victim)
+        var.ROLES["villager"].append(victim)
+        var.FINAL_ROLES[victim] = "villager"
+        var.CURED_LYCANS.append(victim)
+        var.IMMUNIZED.add(victim)
+    elif victim in var.BITTEN:
+        # fun fact: immunizations in real life are done by injecting a small amount of (usually neutered) virus into the person
+        # so that their immune system can fight it off and build up antibodies. This doesn't work very well if that person is
+        # currently afflicted with the virus however, as you're just adding more virus to the mix...
+        # naturally, we would want to mimic that behavior here, and what better way of indicating that things got worse than
+        # by making the turning happen a night earlier? :)
+        var.BITTEN[victim] -= 1
+        lycan_message = ("You have a brief flashback to your dream last night. " +
+                         "The event quickly subsides, but a lingering thought remains in your mind...")
+    else:
+        lycan_message = "You don't feel any different..."
+        var.IMMUNIZED.add(victim)
+    pm(cli, victim, ("You feel a sharp prick in the back of your arm and temporarily black out. " +
+                     "When you come to, you notice an empty syringe lying on the ground. {0}").format(lycan_message))
+    var.DOCTORS[nick] -= 1
 
 def get_bitten_message(nick):
     time_left = var.BITTEN[nick]
@@ -4501,19 +4331,8 @@ def get_bitten_message(nick):
                    "who or what the pursuer was, you woke with a start.")
     return message
 
-@pmcmd("bite")
-def bite_cmd(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-
-    role = var.get_role(nick)
-    if role != "alpha wolf":
-        pm(cli, nick, "Only an alpha wolf may use this command.")
-        return
+@cmd("bite", chan=False, pm=True, game=True, playing=True, roles=("alpha wolf",))
+def bite_cmd(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only bite at night.")
         return
@@ -4552,19 +4371,8 @@ def bite_cmd(cli, nick, rest):
     else:
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
 
-@pmcmd("pass")
-def pass_cmd(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-
-    role = var.get_role(nick)
-    if role != "hunter":
-        pm(cli, nick, "Only a hunter may use this command.")
-        return
+@cmd("pass", chan=False, pm=True, game=True, playing=True, roles=("hunter",))
+def pass_cmd(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only pass at night.")
         return
@@ -4582,21 +4390,8 @@ def pass_cmd(cli, nick, rest):
     #var.LOGGER.logBare(nick, "PASS", nick)
     chk_nightdone(cli)
 
-@pmcmd("choose", "match")
-def choose(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    try:
-        role = var.get_role(nick)
-    except KeyError:
-        role = None
-    if role != "matchmaker":
-        pm(cli, nick, "Only a matchmaker may use this command.")
-        return
+@cmd("choose", "match", chan=False, pm=True, game=True, playing=True, roles=("matchmaker",))
+def choose(cli, nick, chan, rest):
     if var.PHASE != "night" or not var.FIRST_NIGHT:
         pm(cli, nick, "You may only choose lovers during the first night.")
         return
@@ -4660,17 +4455,8 @@ def choose(cli, nick, rest):
     var.LOGGER.logBare(victim, "LOVERS", victim2)
     chk_nightdone(cli)
 
-@pmcmd("target")
-def target(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if nick not in var.ROLES["assassin"]:
-        pm(cli, nick, "Only an assassin may use this command.")
-        return
+@cmd("target", chan=False, pm=True, game=True, playing=True, roles=("assassin",))
+def target(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only target people at night.")
         return
@@ -4696,17 +4482,8 @@ def target(cli, nick, rest):
     var.LOGGER.logBare(nick, "TARGETED", victim)
     chk_nightdone(cli)
 
-@pmcmd("hex")
-def hex(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if nick not in var.ROLES["hag"]:
-        pm(cli, nick, "Only a hag may use this command.")
-        return
+@cmd("hex", chan=False, pm=True, game=True, playing=True, roles=("hag",))
+def hex(cli, nick, chan, rest):
     if var.PHASE != "night":
         pm(cli, nick, "You may only hex at night.")
         return
@@ -4744,17 +4521,8 @@ def hex(cli, nick, rest):
     var.LOGGER.logBare(nick, "HEXED", victim)
     chk_nightdone(cli)
 
-@pmcmd("clone")
-def clone(cli, nick, rest):
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
-    elif nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, "You're not currently playing.")
-        return
-    if nick not in var.ROLES["clone"]:
-        pm(cli, nick, "Only a clone may use this command.")
-        return
+@cmd("clone", chan=False, pm=True, game=True, playing=True, roles=("clone",))
+def clone(cli, nick, chan, rest):
     if var.PHASE != "night" or not var.FIRST_NIGHT:
         pm(cli, nick, "You may only clone someone during the first night.")
         return
@@ -4870,9 +4638,12 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
             else:
                 cli.msg(bgs, msg)
 
-@pmcmd("")
-def relay(cli, nick, rest):
+@cmd("", chan=False, pm=True)
+def relay(cli, nick, chan, rest):
     """Let the wolves talk to each other through the bot"""
+    if rest.startswith("\x01PING"):
+        cli.notice(nick, rest)
+        return
     if var.PHASE not in ("night", "day"):
         return
 
@@ -4888,11 +4659,6 @@ def relay(cli, nick, rest):
             else:
                 mass_privmsg(cli, [guy for guy in badguys
                     if guy in var.PLAYERS], "\02{0}\02 says: {1}".format(nick, rest))
-
-@pmcmd("")
-def ctcp_ping(cli, nick, msg):
-    if msg.startswith("\x01PING"):
-        cli.notice(nick, msg)
 
 def transition_night(cli):
     if var.PHASE == "night":
@@ -5485,7 +5251,7 @@ def cgamemode(cli, arg):
         cli.msg(chan, "Mode \u0002{0}\u0002 not found.".format(modeargs[0]))
 
 
-@cmd("start")
+@cmd("start", join=True)
 def fstart(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
     start(cli, nick, chan)
@@ -5800,7 +5566,7 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-@cmd("fstasis", admin_only=True)
+@cmd("fstasis", admin_only=True, pm=True)
 def fstasis(cli, nick, chan, rest):
     """Removes or sets stasis penalties."""
 
@@ -5950,11 +5716,6 @@ def is_user_stasised(nick):
     if cloak in var.STASISED:
         return True, var.STASISED[cloak]
     return False, None
-
-@pmcmd("fstasis", admin_only=True)
-def fstasis_pm(cli, nick, rest):
-    fstasis(cli, nick, nick, rest)
-
 
 def allow_deny(cli, nick, chan, rest, mode):
     data = rest.split()
@@ -6124,42 +5885,22 @@ def allow_deny(cli, nick, chan, rest, mode):
         else:
             cli.msg(chan, msg)
 
-@cmd("fallow", admin_only=True)
+@cmd("fallow", admin_only=True, pm=True)
 def fallow(cli, nick, chan, rest):
     """Allow someone to use an admin command."""
     allow_deny(cli, nick, chan, rest, "allow")
 
-
-@pmcmd("fallow", admin_only=True)
-def fallow_pm(cli, nick, rest):
-    allow_deny(cli, nick, nick, rest, "allow")
-
-
-@cmd("fdeny", admin_only=True)
+@cmd("fdeny", admin_only=True, pm=True)
 def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
     allow_deny(cli, nick, chan, rest, "deny")
 
-
-@pmcmd("fdeny", admin_only=True)
-def fdeny_pm(cli, nick, rest):
-    allow_deny(cli, nick, nick, rest, "deny")
-
-
-@cmd("wait", "w")
+@cmd("wait", "w", join=True)
 def wait(cli, nick, chan, rest):
     """Increases the wait time until !start can be used."""
     pl = var.list_players()
 
     if chan != botconfig.CHANNEL:
-        return
-
-
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-    if var.PHASE != "join":
-        cli.notice(nick, "Werewolf is already in play.")
         return
     if nick not in pl:
         cli.notice(nick, "You're currently not playing.")
@@ -6178,19 +5919,11 @@ def wait(cli, nick, chan, rest):
                   "{1} seconds.").format(nick, var.EXTRA_WAIT))
 
 
-@cmd("fwait", admin_only=True)
+@cmd("fwait", admin_only=True, join=True)
 def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
     pl = var.list_players()
-
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-
-    if var.PHASE != "join":
-        cli.notice(nick, "Werewolf is already in play.")
-        return
 
     rest = re.split(" +", rest.strip(), 1)[0]
 
@@ -6215,12 +5948,9 @@ def fwait(cli, nick, chan, rest):
                                         "s" if extra != 1 else ""))
 
 
-@cmd("fstop",admin_only=True)
+@cmd("fstop", admin_only=True, game=True, join=True)
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
     var.LOGGER.logMessage("{0} has forced the game to stop.".format(nick))
     if var.PHASE != "join":
@@ -6229,23 +5959,17 @@ def reset_game(cli, nick, chan, rest):
         reset_modes_timers(cli)
         reset()
 
-
-@pmcmd("rules")
-def pm_rules(cli, nick, rest):
-    cli.notice(nick, var.RULES)
-
-@cmd("rules")
+@cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
-    if var.PHASE in ("day", "night") and nick not in var.list_players():
+    if (var.PHASE in ("day", "night") and nick not in var.list_players()) or nick == chan:
         cli.notice(nick, var.RULES)
         return
     cli.msg(chan, var.RULES)
     var.LOGGER.logMessage(var.RULES)
 
-
-@pmcmd("help", raw_nick = True)
-def get_help(cli, rnick, rest):
+@cmd("help", raw_nick=True, pm=True)
+def get_help(cli, rnick, chan, rest):
     """Gets help."""
     nick, mode, user, cloak = parse_nick(rnick)
     fns = []
@@ -6256,37 +5980,42 @@ def get_help(cli, rnick, rest):
     rest = splitted[0] if splitted else ""
     found = False
     if cname:
-        for c in (COMMANDS,PM_COMMANDS):
-            if cname in c.keys():
-                found = True
-                for fn in c[cname]:
-                    if fn.__doc__:
-                        if callable(fn.__doc__):
-                            pm(cli, nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
-                            if nick == botconfig.CHANNEL:
-                                var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
-                        else:
-                            pm(cli, nick, botconfig.CMD_CHAR+cname+": "+fn.__doc__)
-                            if nick == botconfig.CHANNEL:
-                                var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
-                        return
+        if cname in COMMANDS.keys():
+            found = True
+            for fn in COMMANDS[cname]:
+                if fn.__doc__:
+                    if callable(fn.__doc__):
+                        msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest)
+                        if nick == botconfig.CHANNEL:
+                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
                     else:
-                        continue
+                        msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__
+                        if nick == botconfig.CHANNEL:
+                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
+                    if chan == nick:
+                        pm(cli, nick, msg)
+                    else:
+                        cli.notice(nick, msg)
+                    return
                 else:
                     continue
-        else:
-            if not found:
-                pm(cli, nick, "Command not found.")
             else:
-                pm(cli, nick, "Documentation for this command is not available.")
-            return
+                if not found:
+                    msg = "Command not found."
+                else:
+                    msg = "Documentation for this command is not available."
+                if chan == nick:
+                    pm(cli, nick, msg)
+                else:
+                    cli.notice(nick, msg)
+                return
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
         if ((name in ("away", "back") and var.OPT_IN_PING) or
             (name in ("in", "out") and not var.OPT_IN_PING)):
             continue
-        if (name and not fn[0].admin_only and
-            not fn[0].owner_only and name not in fn[0].aliases):
+        if (name and not fn[0].admin_only and not fn[0].owner_only and name not
+            in fn[0].aliases and fn[0].chan):
             fns.append("\u0002"+name+"\u0002")
     afns = []
     if is_admin(nick):
@@ -6299,14 +6028,6 @@ def get_help(cli, rnick, rest):
         afns.sort()
         cli.notice(nick, "Admin Commands: "+", ".join(afns))
 
-
-
-@cmd("help", raw_nick = True)
-def help2(cli, nick, chan, rest):
-    """Gets help."""
-    get_help(cli, nick, rest)
-
-
 @hook("invite")
 def on_invite(cli, nick, something, chan):
     if chan == botconfig.CHANNEL:
@@ -6318,30 +6039,27 @@ def on_invite(cli, nick, something, chan):
     else:
         pm(parse_nick(nick)[0], "You are not an admin.")
 
-@cmd("fpart", raw_nick=True, admin_only=True)
+@cmd("fpart", raw_nick=True, admin_only=True, pm=True)
 def fpart(cli, rnick, chan, rest):
     """Makes the bot forcibly leave a channel."""
+    nick = parse_nick(rnick)[0]
+    if nick == chan:
+        rest = rest.split()
+        if not rest:
+            pm(cli, nick, "Usage: fpart <channel>")
+            return
+        if rest[0] == botconfig.CHANNEL:
+            pm(cli, nick, "No, that won't be allowed.")
+            return
+        chan = rest[0]
+        pm(cli, nick, "Leaving "+ chan)
     if chan == botconfig.CHANNEL:
-        pm(cli, parse_nick(rnick)[0], "No, that won't be allowed.")
+        cli.notice(nick, "No, that won't be allowed.")
         return
     log_cmd(rnick, "fpart", "", chan)
     cli.part(chan)
 
-@pmcmd("fpart", raw_nick=True, admin_only=True)
-def pm_fpart(cli, rnick, rest):
-    rest = rest.split()
-    nick = parse_nick(rnick)[0]
-    if not rest:
-        pm(cli, nick, "Usage: fpart <channel>")
-        return
-    if rest[0] == botconfig.CHANNEL:
-        pm(cli, nick, "No, that won't be allowed.")
-        return
-    pm(cli, nick, "Leaving {0}".format(rest[0]))
-    log_cmd(rnick, "fpart", "", rest[0])
-    cli.part(rest[0])
-
-@cmd("admins", "ops")
+@cmd("admins", "ops", pm=True)
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
 
@@ -6394,12 +6112,6 @@ def show_admins(cli, nick, chan, rest):
     else:
         cli.who(chan)
 
-
-@pmcmd("admins", "ops")
-def show_admins_pm(cli, nick, rest):
-    show_admins(cli, nick, nick, rest)
-
-
 @cmd("coin")
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
@@ -6435,13 +6147,9 @@ def pony(cli, nick, chan, rest):
     cli.msg(chan, cmsg)
     var.LOGGER.logMessage(cmsg)
 
-@cmd("time")
+@cmd("time", pm=True, game=True)
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
-
-    if var.PHASE not in ("day", "night"):
-        cli.notice(nick, "No game is currently running.")
-        return
 
     if (chan != nick and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
@@ -6472,11 +6180,7 @@ def timeleft(cli, nick, chan, rest):
     else:
         cli.msg(chan, msg)
 
-@pmcmd("time")
-def timeleft_pm(cli, nick, rest):
-    timeleft(cli, nick, nick, rest)
-
-@cmd("roles")
+@cmd("roles", pm=True)
 def listroles(cli, nick, chan, rest):
     """Displays which roles are enabled at a certain number of players."""
 
@@ -6552,16 +6256,9 @@ def listroles(cli, nick, chan, rest):
     else:
         cli.msg(chan, txt)
 
-@pmcmd("roles")
-def listroles_pm(cli, nick, rest):
-    listroles(cli, nick, nick, rest)
-
-@cmd("myrole")
+@cmd("myrole", pm=True, game=True)
 def myrole(cli, nick, chan, rest):
     """Reminds you of your current role."""
-    if var.PHASE in ("none", "join"):
-        cli.notice(nick, "No game is currently running.")
-        return
 
     ps = var.list_players()
     if nick not in ps and nick not in var.VENGEFUL_GHOSTS.keys():
@@ -6576,7 +6273,7 @@ def myrole(cli, nick, chan, rest):
     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
     pm(cli, nick, "You are a{0} \02{1}{2}\02.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
 
-    if role == "shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
+    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
         pm(cli, nick, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[nick]))
 
     # Check for gun/bullets
@@ -6609,12 +6306,12 @@ def myrole(cli, nick, chan, rest):
         message += "."
         pm(cli, nick, message)
 
-@pmcmd("myrole")
-def myrole_pm(cli, nick, rest):
-    myrole(cli, nick, "", rest)
-
-def aftergame(cli, rawnick, rest):
-    """Schedule a command to be run after the game by someone."""
+@cmd("faftergame", admin_only=True, raw_nick=True, pm=True)
+def aftergame(cli, rawnick, chan, rest):
+    """Schedule a command to be run after the current game."""
+    if not rest.strip():
+        cli.notice(parse_nick(nick)[0], "Incorrect syntax for this command.")
+        return
     nick = parse_nick(rawnick)[0]
 
     rst = re.split(" +", rest)
@@ -6640,43 +6337,20 @@ def aftergame(cli, rawnick, rest):
                   "after this game by \02{1}\02.").format(cmd, nick))
     var.AFTER_FLASTGAME = do_action
 
-
-
-@cmd("faftergame", admin_only=True, raw_nick=True)
-def _faftergame(cli, nick, chan, rest):
-    """Schedules a command to run after the current game."""
-    if not rest.strip():
-        cli.notice(parse_nick(nick)[0], "Incorrect syntax for this command.")
-        return
-    aftergame(cli, nick, rest)
-
-
-
-@pmcmd("faftergame", admin_only=True, raw_nick=True)
-def faftergame(cli, nick, rest):
-    if not rest.strip():
-        pm(cli, parse_nick(nick)[0], "Incorrect syntax for this command.")
-        return
-    aftergame(cli, nick, rest)
-
-
-@cmd('fghost', admin_only=True)
-@pmcmd('fghost', admin_only=True)
-def fghost(cli, nick, *rest):
+@cmd("fghost", admin_only=True, pm=True)
+def fghost(cli, nick, chan, rest):
     """Voices you, allowing you to haunt the remaining players after your death."""
     cli.mode(botconfig.CHANNEL, '+v', nick)
 
-
-@cmd('funghost', admin_only=True)
-@pmcmd('funghost', admin_only=True)
-def funghost(cli, nick, *rest):
+@cmd("funghost", admin_only=True, pm=True)
+def funghost(cli, nick, chan, rest):
     """Devoices you."""
     cli.mode(botconfig.CHANNEL, "-v", nick)
 
-@pmcmd("flastgame", admin_only=True, raw_nick=True)
-def flastgame(cli, nick, rest):
-    rawnick = nick
-    nick, _, __, cloak = parse_nick(rawnick)
+@cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
+def flastgame(cli, nick, chan, rest):
+    """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
+    nick, _, __, cloak = parse_nick(nick)
 
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
@@ -6697,13 +6371,7 @@ def flastgame(cli, nick, rest):
     if rest.strip():
         aftergame(cli, rawnick, botconfig.CHANNEL, rest)
 
-@cmd("flastgame", admin_only=True, raw_nick=True)
-def _flastgame(cli, nick, chan, rest):
-    """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
-    flastgame(cli, nick, rest)
-
-
-@cmd('gamestats', 'gstats')
+@cmd("gamestats", "gstats", pm=True)
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
     if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
@@ -6752,13 +6420,7 @@ def game_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_game_stats(gamemode, gamesize))
 
-
-@pmcmd('gamestats', 'gstats')
-def game_stats_pm(cli, nick, rest):
-    game_stats(cli, nick, nick, rest)
-
-
-@cmd('playerstats', 'pstats', 'player', 'p')
+@cmd("playerstats", "pstats", "player", "p", pm=True)
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
@@ -6812,35 +6474,14 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, var.get_player_stats(acc, role))
 
-
-@pmcmd('playerstats', 'pstats', 'player', 'p')
-def player_stats_pm(cli, nick, rest):
-    player_stats(cli, nick, nick, rest)
-
-
-@cmd("mystats", "me", "m")
+@cmd("mystats", "me", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
     rest = rest.split()
     player_stats(cli, nick, chan, " ".join([nick] + rest))
 
-
-@pmcmd("mystats", "me", "m")
-def my_stats_pm(cli, nick, rest):
-    my_stats(cli, nick, nick, rest)
-
-
-@cmd('game', raw_nick = True)
+@cmd("game", raw_nick=True, join=True, playing=True)
 def game(cli, nick, chan, rest):
     nick, _, __, cloak = parse_nick(nick)
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-    if var.PHASE != "join":
-        cli.notice(nick, "Werewolf is already in play.")
-        return
-    if nick not in var.list_players():
-        cli.notice(nick, "You're currently not playing.")
-        return
 
     if rest:
         gamemode = rest.lower().split()[0]
@@ -6873,7 +6514,7 @@ def game_help(args=''):
         else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
 game.__doc__ = game_help
 
-@cmd("fpull", admin_only=True)
+@cmd("fpull", admin_only=True, pm=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
@@ -6906,18 +6547,11 @@ def fpull(cli, nick, chan, rest):
         else:
             pm(cli, nick, "Process %s exited with %s %d" % (args, cause, ret))
 
-
-@pmcmd('fpull', admin_only=True)
-def fpull_pm(cli, nick, rest):
-    fpull(cli, nick, nick, rest)
-
-
-@pmcmd("fsend", admin_only=True, raw_nick=True)
-def fsend(cli, raw_nick, rest):
+@cmd("fsend", admin_only=True, raw_nick=True, pm=True)
+def fsend(cli, raw_nick, chan, rest):
     log_cmd(raw_nick, "fsend", "", rest)
 
     cli.send(rest)
-
 
 def _say(cli, raw_nick, rest, command, action=False):
     nick = parse_nick(raw_nick)[0]
@@ -6952,60 +6586,38 @@ def _say(cli, raw_nick, rest, command, action=False):
     cli.send("PRIVMSG {0} :{1}".format(target, message))
 
 
-@pmcmd("fsay", admin_only=True, raw_nick=True)
-def fsay(cli, raw_nick, rest):
+@cmd("fsay", admin_only=True, raw_nick=True, pm=True)
+def fsay(cli, raw_nick, chan, rest):
     _say(cli, raw_nick, rest, "fsay")
 
-
-@pmcmd("fact", "fdo", "fme", admin_only=True, raw_nick=True)
-def fact(cli, raw_nick, rest):
+@cmd("fact", "fdo", "fme", admin_only=True, raw_nick=True, pm=True)
+def fact(cli, raw_nick, chan, rest):
     _say(cli, raw_nick, rest, "fact", action=True)
 
-
 before_debug_mode_commands = list(COMMANDS.keys())
-before_debug_mode_pmcommands = list(PM_COMMANDS.keys())
 
 if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
-    @cmd("eval", owner_only = True)
-    @pmcmd("eval", owner_only = True)
-    def pyeval(cli, nick, *rest):
-        rest = list(rest)
-        if len(rest) == 2:
-            chan = rest.pop(0)
-        else:
-            chan = nick
+    @cmd("eval", owner_only=True, pm=True)
+    def pyeval(cli, nick, chan, rest):
         try:
-            a = str(eval(rest[0]))
+            a = str(eval(rest))
             if len(a) < 500:
                 cli.msg(chan, a)
             else:
-                cli.msg(chan, a[0:500])
+                cli.msg(chan, a[:500])
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
-
-
-    @cmd("exec", owner_only = True)
-    @pmcmd("exec", owner_only = True)
-    def py(cli, nick, *rest):
-        rest = list(rest)
-        if len(rest) == 2:
-            chan = rest.pop(0)
-        else:
-            chan = nick
+    @cmd("exec", owner_only=True, pm=True)
+    def py(cli, nick, chan, rest):
         try:
-            exec(rest[0])
+            exec(rest)
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
-
-    @cmd('revealroles', admin_only=True)
+    @cmd("revealroles", admin_only=True, pm=True, join=True, game=True)
     def revealroles(cli, nick, chan, rest):
-        if var.PHASE == 'none':
-            cli.notice(nick, 'No game is currently running.')
-            return
-
         s = ' | '.join('\u0002{}\u0002: {}'.format(role,', '.join(players))
                 for (role, players) in sorted(var.ROLES.items()) if players)
 
@@ -7015,22 +6627,14 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, s)
 
 
-    @cmd("fgame", admin_only=True, raw_nick=True)
+    @cmd("fgame", admin_only=True, raw_nick=True, join=True)
     def fgame(cli, nick, chan, rest):
-        (nick, _, __, cloak) = parse_nick(nick)
+        nick = parse_nick(nick)[0]
 
         pl = var.list_players()
 
-        if var.PHASE == 'none':
-            cli.notice(nick, 'No game is currently running.')
-            return
-
-        if var.PHASE != 'join':
-            cli.notice(nick, 'Werewolf is already in play.')
-            return
-
-        if nick not in pl and cloak not in botconfig.ADMINS + botconfig.OWNERS:
-            cli.notice(nick, 'You\'re currently not playing.')
+        if nick not in pl and not is_admin(nick):
+            cli.notice(nick, "You're not currently playing.")
             return
 
         if rest:
@@ -7067,7 +6671,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
-    @cmd("force", admin_only=True)
+    @cmd("force", admin_only=True, game=True)
     def forcepm(cli, nick, chan, rest):
         rst = re.split(" +",rest)
         if len(rst) < 2:
@@ -7085,37 +6689,19 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
             else:
                 who = ul[ull.index(who.lower())]
-        cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
+        comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         did = False
-        if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
-            if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and
+        if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
+            if (COMMANDS[comm][0].admin_only and nick in var.USERS and
                 not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
 
-            for fn in PM_COMMANDS[cmd]:
+            for fn in COMMANDS[comm]:
                 if fn.raw_nick:
                     continue
-                fn(cli, who, " ".join(rst))
-                did = True
-            if did:
-                cli.msg(chan, "Operation successful.")
-            else:
-                cli.msg(chan, "Not possible with this command.")
-            #if var.PHASE == "night":   <-  Causes problems with night starting twice.
-            #    chk_nightdone(cli)
-        elif COMMANDS.get(cmd) and not COMMANDS[cmd][0].owner_only:
-            if (COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(nick)):
-                # Not a full admin
-                cli.notice(nick, "Only full admins can force an admin-only command.")
-                return
-
-            for fn in COMMANDS[cmd]:
-                if fn.raw_nick:
-                    continue
-                fn(cli, who, chan, " ".join(rst))
+                fn(cli, who, who, " ".join(rst))
                 did = True
             if did:
                 cli.msg(chan, "Operation successful.")
@@ -7143,30 +6729,17 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         else:
             tgt = var.ROLES[who]
 
-        cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-        if PM_COMMANDS.get(cmd) and not PM_COMMANDS[cmd][0].owner_only:
-            if (PM_COMMANDS[cmd][0].admin_only and nick in var.USERS and
+        comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
+        if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
+            if (COMMANDS[comm][0].admin_only and nick in var.USERS and
                 not is_admin(nick)):
                 # Not a full admin
                 cli.notice(nick, "Only full admins can force an admin-only command.")
                 return
 
-            for fn in PM_COMMANDS[cmd]:
+            for fn in COMMANDS[comm]:
                 for guy in tgt[:]:
-                    fn(cli, guy, " ".join(rst))
-            cli.msg(chan, "Operation successful.")
-            #if var.PHASE == "night":   <-  Causes problems with night starting twice.
-            #    chk_nightdone(cli)
-        elif cmd.lower() in COMMANDS.keys() and not COMMANDS[cmd][0].owner_only:
-            if (COMMANDS[cmd][0].admin_only and nick in var.USERS and
-                not is_admin(nick)):
-                # Not a full admin
-                cli.notice(nick, "Only full admins can force an admin-only command.")
-                return
-
-            for fn in COMMANDS[cmd]:
-                for guy in tgt[:]:
-                    fn(cli, guy, chan, " ".join(rst))
+                    fn(cli, guy, guy, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
@@ -7228,19 +6801,25 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if who in pl:
                 oldrole = var.get_role(who)
                 var.ROLES[oldrole].remove(who)
-            if rol == "shaman" or rol == "crazed shaman":
+            if rol in var.TOTEM_ORDER:
                 if len(rolargs) == 2:
                     var.TOTEMS[who] = rolargs[1]
                 else:
-                    rand = random.random()
-                    target = 0
-                    for t, c in var.TOTEM_CHANCES.items():
-                        target += var.TOTEM_CHANCES[t][0 if rol == "shaman" else 1]
-                        if rand <= target:
-                            var.TOTEMS[who] = t
-                            break
-                    else:
-                        var.TOTEMS[who] = 'death'
+                    max_totems = {}
+                    for sham in var.TOTEM_ORDER:
+                        max_totems[sham] = 0
+                    for ix in range(len(var.TOTEM_ORDER)):
+                        for c in var.TOTEM_CHANCES.values():
+                            max_totems[var.TOTEM_ORDER[ix]] += c[ix]
+                    for shaman in var.list_players(var.TOTEM_ORDER):
+                        indx = var.TOTEM_ORDER.index(rol)
+                        target = 0
+                        rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
+                        for t in var.TOTEM_CHANCES.keys():
+                            target += var.TOTEM_CHANCES[t][indx]
+                            if rand <= target:
+                                var.TOTEMS[shaman] = t
+                                break
             var.ROLES[rol].append(who)
         else:
             cli.msg(chan, "Not a valid role.")
@@ -7255,9 +6834,5 @@ if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
         if (comd not in before_debug_mode_commands and
             comd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
             del COMMANDS[comd]
-    for pmcomd in list(PM_COMMANDS.keys()):
-        if (pmcomd not in before_debug_mode_pmcommands and
-            pmcomd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
-            del PM_COMMANDS[pmcomd]
 
 # vim: set expandtab:sw=4:ts=4:

@@ -66,6 +66,7 @@ START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
 ROLE_REVEAL = True
 LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
+DEFAULT_SEEN_AS_VILL = True # non-wolves are seen as villager regardless of the default role
 
 # Minimum number of players needed for mad scientist to skip over dead people when determining who is next to them
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
@@ -180,13 +181,17 @@ ROLE_GUIDE = {# village roles
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
 WOLF_ROLES     = ["wolf", "alpha wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer"]
+WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
-WOLFTEAM_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "traitor", "hag", "sorcerer", "minion", "cultist"]
+WOLFTEAM_ROLES = WOLFCHAT_ROLES + ["minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also appended if not in this list)
 AMNESIAC_BLACKLIST = ["monster", "amnesiac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist"]
+# These roles are seen as wolf by the seer/oracle
+SEEN_WOLF = WOLF_ROLES + ["monster", "mad scientist"]
+# These are seen as the default role (or villager) when seen by seer
+SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
@@ -223,7 +228,7 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
 
-import botconfig, fnmatch
+import botconfig, fnmatch, sys, time, re
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 DENY = {}
@@ -239,6 +244,32 @@ PING_IN = []  # cloaks of users who have opted in for ping
 PING_IN_ACCS = [] # accounts of people who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
+
+def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
+    if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        print("[{0}] Would send message to fake nick {1}: {2}".format(
+            time.strftime("%d/%b/%Y %H:%M:%S"),
+            target,
+            message), file=sys.stderr)
+
+        return
+
+    if is_user_notice(target):
+        cli.notice(target, message)
+        return
+
+    cli.msg(target, message)
+
+def is_user_notice(nick):
+    if nick in USERS and USERS[nick]["account"] and USERS[nick]["account"] != "*":
+        if USERS[nick]["account"] in PREFER_NOTICE_ACCS:
+            return True
+    if nick in USERS and USERS[nick]["cloak"] in PREFER_NOTICE and not ACCOUNTS_ONLY:
+        return True
+    return False
+
+def is_fake_nick(who):
+    return re.match("[0-9]+", who)
 
 def is_admin(nick):
     if nick not in USERS.keys():
