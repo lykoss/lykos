@@ -63,6 +63,7 @@ var.LAST_ADMINS = None
 var.LAST_GSTATS = None
 var.LAST_PSTATS = None
 var.LAST_TIME = None
+var.LAST_START = {}
 
 var.USERS = {}
 
@@ -5486,6 +5487,14 @@ def fstart(cli, nick, chan, rest):
     start(cli, nick, chan)
 
 def start(cli, nick, chan, forced = False):
+    if (var.LAST_START and nick in var.LAST_START and var.LAST_START[nick] +
+            timedelta(seconds=var.START_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
+        return
+
+    var.LAST_START[nick] = datetime.now()
+
     if chan != botconfig.CHANNEL:
         return
 
