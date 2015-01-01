@@ -39,6 +39,7 @@ PM_WARN_IDLE_TIME = 240
 PART_GRACE_TIME = 30
 QUIT_GRACE_TIME = 30
 ACC_GRACE_TIME = 30
+START_QUIT_DELAY = 10
 #  controls how many people it does in one /msg; only works for messages that are the same
 MAX_PRIVMSG_TARGETS = 4
 LEAVE_STASIS_PENALTY = 1
