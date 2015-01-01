@@ -6850,6 +6850,10 @@ def game(cli, nick, chan, rest):
         cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
         return
 
+    if var.FGAMED:
+        cli.notice(nick, "A game mode has already been forced by an admin.")
+        return
+
     if gamemode not in var.GAME_MODES.keys():
         match = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
         if not match:
