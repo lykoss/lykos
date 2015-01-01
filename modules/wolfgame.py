@@ -2731,9 +2731,9 @@ def leave_game(cli, nick, chan, rest):
         else:
             population = (" New player count: \u0002{0}\u0002").format(lpl)
     else:
-        dur = (datetime.now() - var.GAME_START_TIME).total_seconds()
-        if var.START_QUIT_DELAY and dur < var.START_QUIT_DELAY:
-            cli.notice(nick, "The game already started!")
+        dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
+        if var.START_QUIT_DELAY and dur:
+            cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
             return
         population = ""
     if nick not in var.list_players() or nick in var.DISCONNECTED.keys():  # not playing
