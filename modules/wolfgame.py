@@ -583,7 +583,8 @@ def away(cli, nick, chan, rest):
     """Use this to activate your away status (so you aren't pinged)."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
-        cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        if not rest: # don't want to trigger on unrelated messages
+            cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -623,7 +624,8 @@ def back_from_away(cli, nick, chan, rest):
     """Unsets your away status."""
     nick, _, _, cloak = parse_nick(nick)
     if var.OPT_IN_PING:
-        cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
+        if not rest:
+            cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -659,7 +661,8 @@ def get_in(cli, nick, chan, rest):
     """Puts yourself in the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
-        cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        if not rest:
+            cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -694,7 +697,8 @@ def get_out(cli, nick, chan, rest):
     """Removes yourself from the ping list."""
     nick, _, _, cloak = parse_nick(nick)
     if not var.OPT_IN_PING:
-        cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
+        if not rest:
+            cli.notice(nick, "Please use {0}away and {0}back to mark yourself as away or back.".format(botconfig.CMD_CHAR))
         return
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -3860,9 +3864,10 @@ def kill(cli, nick, chan, rest):
         role = var.get_role(nick)
     except KeyError:
         role = None
-    if role in var.WOLFCHAT_ROLES and role not in ("wolf", "werecrow", "alpha wolf"):
+    wolfroles = var.WOLF_ROLES - ["wolf cub"]
+    if role in var.WOLFCHAT_ROLES and role not in wolfroles:
         return  # they do this a lot.
-    if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in wolfroles + ["hunter"] and nick not in var.VENGEFUL_GHOSTS.keys():
         pm(cli, nick, "Only a wolf, hunter, or dead vengeful ghost may use this command.")
         return
     if var.PHASE != "night":
@@ -3875,13 +3880,13 @@ def kill(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    if role in ("wolf", "werecrow", "alpha wolf") and var.DISEASED_WOLVES:
+    if role in wolfroles and var.DISEASED_WOLVES:
         pm(cli, nick, "You are feeling ill, and are unable to kill anyone tonight.")
         return
     pieces = re.split(" +",rest)
     victim = pieces[0]
     victim2 = None
-    if role in ("wolf", "werecrow", "alpha wolf") and var.ANGRY_WOLVES:
+    if role in wolfroles and var.ANGRY_WOLVES:
         if len(pieces) > 1:
             if len(pieces) > 2 and pieces[1].lower() == "and":
                 victim2 = pieces[2]
@@ -3923,7 +3928,7 @@ def kill(cli, nick, chan, rest):
             pm(cli, nick, "You must target a villager.")
             return
 
-    if role in ("wolf", "werecrow", "alpha wolf"):
+    if role in wolfroles:
         wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
         if victim in wolfchatwolves or victim2 in wolfchatwolves:
             pm(cli, nick, "You may only kill villagers, not other wolves.")
@@ -3964,7 +3969,7 @@ def kill(cli, nick, chan, rest):
     else:
         pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
         var.LOGGER.logBare(nick, "SELECT", victim)
-        if var.ANGRY_WOLVES and role in ("wolf", "werecrow", "alpha wolf"):
+        if var.ANGRY_WOLVES and role in wolfroles:
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
     chk_nightdone(cli)
 
