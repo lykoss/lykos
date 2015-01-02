@@ -5978,12 +5978,11 @@ def get_help(cli, rnick, chan, rest):
     splitted = re.split(" +", rest, 1)
     cname = splitted.pop(0)
     rest = splitted[0] if splitted else ""
-    found = False
     if cname:
         if cname in COMMANDS.keys():
-            found = True
             for fn in COMMANDS[cname]:
                 if fn.__doc__:
+                    got = True
                     if callable(fn.__doc__):
                         msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest)
                         if nick == botconfig.CHANNEL:
@@ -5998,17 +5997,22 @@ def get_help(cli, rnick, chan, rest):
                         cli.notice(nick, msg)
                     return
                 else:
+                    got = False
                     continue
             else:
-                if not found:
-                    msg = "Command not found."
+                if got:
+                    return
+                elif chan == nick:
+                    pm(cli, nick, "Documentation for this command is not available.")
                 else:
-                    msg = "Documentation for this command is not available."
-                if chan == nick:
-                    pm(cli, nick, msg)
-                else:
-                    cli.notice(nick, msg)
-                return
+                    cli.notice(nick, "Documentation for this command is not available.")
+
+        elif chan == nick:
+            pm(cli, nick, "Command not found.")
+        else:
+            cli.notice(nick, "Command not found.")
+        return
+
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
         if ((name in ("away", "back") and var.OPT_IN_PING) or
