@@ -4804,6 +4804,10 @@ def transition_night(cli):
         for elder in var.ROLES["village elder"]:
             var.DYING.append(elder)
 
+    # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
+    if chk_win(cli):
+        return
+
     # send PMs
     ps = var.list_players()
     wolves = var.list_players(var.WOLFCHAT_ROLES)
@@ -5268,11 +5272,6 @@ def transition_night(cli):
     cli.msg(chan, dmsg)
     var.LOGGER.logMessage(dmsg.replace("\02", ""))
     var.LOGGER.logBare("NIGHT", "BEGIN")
-
-    # cli.msg(chan, "DEBUG: "+str(var.ROLES))
-    if len(var.list_players(var.WOLF_ROLES)) - len(var.ROLES["wolf cub"]) == 0 or var.DISEASED_WOLVES:  # Probably something interesting going on.
-        chk_nightdone(cli)
-        chk_traitor(cli)
 
 
 
