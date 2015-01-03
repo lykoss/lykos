@@ -199,7 +199,7 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "au
                          "gunner"          : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "sharpshooter"    : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "mayor"           : ["fool", "jester", "monster"],
-                         "assassin"        : WOLF_ROLES + list(TOTEM_ORDER) + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "fool", "mayor", "lycan", "doctor"],
+                         "assassin"        : WOLF_ROLES + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan"],
                          "bureaucrat"      : [],
                          }
 

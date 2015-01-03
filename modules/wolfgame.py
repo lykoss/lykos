@@ -5134,13 +5134,22 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(ass)
-        if ass in var.PLAYERS and not is_user_simple(ass):
-            pm(cli, ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
-                          '"target <nick>". If you die you will take out your target with you. ' +
-                          'If your target dies you may choose another one.'))
+        role = var.get_role(ass)
+        if role == "village drunk":
+            var.TARGETED[ass] = random.choice(pl)
+            message = ("You are an \u0002assassin\u0002. In your drunken stupor you have selected " +
+                       "\u0002{0}\u0002 as your target.").format(var.TARGETED[ass])
+            if ass in var.PLAYERS and not is_user_simple(ass):
+                message += " If you die you will take out your target with you."
+            pm(cli, ass, message)
         else:
-            pm(cli, ass, "You are an \u0002assassin\u0002.")
-        pm(cli, ass, "Players: " + ", ".join(pl))
+            if ass in var.PLAYERS and not is_user_simple(ass):
+                pm(cli, ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
+                              '"target <nick>". If you die you will take out your target with you. ' +
+                              'If your target dies you may choose another one.'))
+            else:
+                pm(cli, ass, "You are an \u0002assassin\u0002.")
+            pm(cli, ass, "Players: " + ", ".join(pl))
 
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
