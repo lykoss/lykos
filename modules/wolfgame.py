@@ -3884,11 +3884,11 @@ def kill(cli, nick, chan, rest):
         role = var.get_role(nick)
     except KeyError:
         role = None
-    wolfroles = var.WOLF_ROLES - ["wolf cub"]
+    wolfroles = list(var.WOLF_ROLES)
+    wolfroles.remove("wolf cub")
     if role in var.WOLFCHAT_ROLES and role not in wolfroles:
         return  # they do this a lot.
     if role not in wolfroles + ["hunter"] and nick not in var.VENGEFUL_GHOSTS.keys():
-        pm(cli, nick, "Only a wolf, hunter, or dead vengeful ghost may use this command.")
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only kill people at night.")
@@ -4239,7 +4239,7 @@ def totem(cli, nick, chan, rest):
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
     type = ""
-    if role != "crazed shaman":
+    if var.get_role(nick) != "crazed shaman":
         type = " of " + var.TOTEMS[nick]
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
@@ -6713,7 +6713,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if not who or who == botconfig.NICK:
             cli.msg(chan, "That won't work.")
             return
-        if not is_fake_nick(who):
+        if not is_fake_nick(who) and who != "*":
             ul = list(var.USERS.keys())
             ull = [u.lower() for u in ul]
             if who.lower() not in ull:
@@ -6721,6 +6721,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
             else:
                 who = ul[ull.index(who.lower())]
+        if who == "*":
+            who = var.list_players()
+        else:
+            who = [who]
         comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         did = False
         if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
@@ -6731,10 +6735,14 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
 
             for fn in COMMANDS[comm]:
-                if fn.raw_nick:
-                    continue
-                fn(cli, who, who, " ".join(rst))
-                did = True
+                for guy in who:
+                    if fn.raw_nick:
+                        continue
+                    if fn.chan:
+                        fn(cli, guy, chan, " ".join(rst))
+                    else:
+                        fn(cli, guy, guy, " ".join(rst))
+                    did = True
             if did:
                 cli.msg(chan, "Operation successful.")
             else:
@@ -6752,7 +6760,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         who = rst.pop(0).strip().lower()
         who = who.replace("_", " ")
 
-        if (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
+        if who == "*": # wildcard match
+            tgt = var.list_players()
+        elif (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
             or var.PHASE in ("none", "join")):
             cli.msg(chan, nick+": invalid role")
             return
@@ -6771,7 +6781,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
             for fn in COMMANDS[comm]:
                 for guy in tgt[:]:
-                    fn(cli, guy, guy, " ".join(rst))
+                    if fn.chan:
+                        fn(cli, guy, chan, " ".join(rst))
+                    else:
+                        fn(cli, guy, guy, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
