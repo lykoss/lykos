@@ -591,10 +591,10 @@ def mark_prefer_notice(cli, nick, chan, rest):
     cli.notice(nick, "The bot will now always NOTICE you.")
 
 def is_user_notice(nick):
-    if nick in USERS and USERS[nick]["account"] and USERS[nick]["account"] != "*":
-        if USERS[nick]["account"] in PREFER_NOTICE_ACCS:
+    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*":
+        if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
             return True
-    if nick in USERS and USERS[nick]["cloak"] in PREFER_NOTICE and not ACCOUNTS_ONLY:
+    if nick in var.USERS and var.USERS[nick]["cloak"] in var.PREFER_NOTICE and not var.ACCOUNTS_ONLY:
         return True
     return False
 
