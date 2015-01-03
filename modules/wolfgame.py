@@ -43,9 +43,6 @@ BOLD = "\u0002"
 COMMANDS = {}
 HOOKS = {}
 
-pm = var.pm
-is_user_notice = var.is_user_notice
-is_fake_nick = var.is_fake_nick
 is_admin = var.is_admin
 is_owner = var.is_owner
 
@@ -278,6 +275,21 @@ def mass_mode(cli, md):
         arg1 = "".join(z[0])
         arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
         cli.mode(botconfig.CHANNEL, arg1, arg2)
+
+def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
+    if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        print("[{0}] Would send message to fake nick {1}: {2}".format(
+            time.strftime("%d/%b/%Y %H:%M:%S"),
+            target,
+            message), file=sys.stderr)
+
+        return
+
+    if is_user_notice(target):
+        cli.notice(target, message)
+        return
+
+    cli.msg(target, message)
 
 def log_cmd(raw_nick, command, ptext, text):
     (nick, _, user, host) = parse_nick(raw_nick)
@@ -577,6 +589,14 @@ def mark_prefer_notice(cli, nick, chan, rest):
         var.add_prefer_notice(cloak)
 
     cli.notice(nick, "The bot will now always NOTICE you.")
+
+def is_user_notice(nick):
+    if nick in USERS and USERS[nick]["account"] and USERS[nick]["account"] != "*":
+        if USERS[nick]["account"] in PREFER_NOTICE_ACCS:
+            return True
+    if nick in USERS and USERS[nick]["cloak"] in PREFER_NOTICE and not ACCOUNTS_ONLY:
+        return True
+    return False
 
 @cmd("away", raw_nick=True, pm=True)
 def away(cli, nick, chan, rest):
@@ -4137,6 +4157,9 @@ def hvisit(cli, nick, chan, rest):
                                      "\u0002. Have a good time!").format(nick))
         var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
     chk_nightdone(cli)
+
+def is_fake_nick(who):
+    return re.match("[0-9]+", who)
 
 @cmd("see", chan=False, pm=True, game=True, playing=True, roles=("seer", "oracle", "augur"))
 def see(cli, nick, chan, rest):

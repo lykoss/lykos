@@ -76,10 +76,6 @@ def generate(fdict, permissions=True, **kwargs):
                         if nick in var.ROLES[role]:
                             break
                     else:
-                        if len(roles) == 1:
-                            var.pm(largs[0], nick, "Only a{0} {1} may use this command.".format("n" if roles[0][0] in "aeiou" else "", roles[0]))
-                        else:
-                            var.pm(largs[0], nick, "Only a{0} {1} or {2} may use this command.".format("n" if roles[0][0] in "aeiou" else "", ", ".join(roles[:-1]), roles[-1]))
                         return
                 if acc:
                     for pattern in var.DENY_ACCOUNTS.keys():

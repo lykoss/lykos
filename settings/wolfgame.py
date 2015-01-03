@@ -245,32 +245,6 @@ PING_IN_ACCS = [] # accounts of people who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
-def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
-    if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        print("[{0}] Would send message to fake nick {1}: {2}".format(
-            time.strftime("%d/%b/%Y %H:%M:%S"),
-            target,
-            message), file=sys.stderr)
-
-        return
-
-    if is_user_notice(target):
-        cli.notice(target, message)
-        return
-
-    cli.msg(target, message)
-
-def is_user_notice(nick):
-    if nick in USERS and USERS[nick]["account"] and USERS[nick]["account"] != "*":
-        if USERS[nick]["account"] in PREFER_NOTICE_ACCS:
-            return True
-    if nick in USERS and USERS[nick]["cloak"] in PREFER_NOTICE and not ACCOUNTS_ONLY:
-        return True
-    return False
-
-def is_fake_nick(who):
-    return re.match("[0-9]+", who)
-
 def is_admin(nick):
     if nick not in USERS.keys():
         return False
