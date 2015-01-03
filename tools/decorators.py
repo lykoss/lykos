@@ -69,7 +69,7 @@ def generate(fdict, permissions=True, **kwargs):
                         largs[0].notice(nick, "Werewolf is already in play.")
                         return
                 if playing and nick not in var.list_players() or nick in var.DISCONNECTED.keys():
-                    cli.notice(nick, "You're not currently playing.")
+                    largs[0].notice(nick, "You're not currently playing.")
                     return
                 if roles:
                     for role in roles:

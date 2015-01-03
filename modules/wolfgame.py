@@ -4004,6 +4004,7 @@ def guard(cli, nick, chan, rest):
     if var.GUARDED.get(nick):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
+    role = var.get_role(nick)
     victim = get_victim(cli, nick, re.split(" +",rest)[0], role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
     if not victim:
         return
@@ -4037,6 +4038,7 @@ def guard(cli, nick, chan, rest):
 
 @cmd("observe", chan=False, pm=True, game=True, playing=True, roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
+    role = var.get_role(nick)
     if var.PHASE != "night":
         if role == "werecrow":
             pm(cli, nick, "You may only transform into a crow at night.")
