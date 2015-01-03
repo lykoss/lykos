@@ -179,7 +179,7 @@ ROLE_GUIDE = {# village roles
 
 # Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
-WOLF_ROLES     = ["wolf", "alpha wolf", "werecrow", "wolf cub"]
+WOLF_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
 WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
@@ -199,7 +199,7 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "au
                          "gunner"          : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "sharpshooter"    : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "mayor"           : ["fool", "jester", "monster"],
-                         "assassin"        : WOLF_ROLES + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "shaman", "crazed shaman", "fool", "mayor", "lycan", "doctor"],
+                         "assassin"        : WOLF_ROLES + list(TOTEM_ORDER) + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "village drunk", "hunter", "fool", "mayor", "lycan", "doctor"],
                          "bureaucrat"      : [],
                          }
 
@@ -228,7 +228,7 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.")
 
-import botconfig, fnmatch, sys, time, re
+import botconfig, fnmatch
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 DENY = {}
