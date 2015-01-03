@@ -5824,7 +5824,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                         command = command[len(botconfig.CMD_CHAR):]
 
                     if not rem:
-                        if (command in COMMANDS or command in PM_COMMANDS) and command not in ("fdeny", "fallow", "exec", "eval") and command not in variable[acc]:
+                        if command in COMMANDS and command not in ("fdeny", "fallow", "exec", "eval") and command not in variable[acc]:
                             variable[acc].append(command)
                             if mode == "allow":
                                 var.add_allow_acc(acc, command)
@@ -5879,7 +5879,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                         command = command[len(botconfig.CMD_CHAR):]
 
                     if not rem:
-                        if (command in COMMANDS or command in PM_COMMANDS) and command not in ("fdeny", "fallow", "exec", "eval"):
+                        if command in COMMANDS and command not in ("fdeny", "fallow", "exec", "eval"):
                             variable[cloak].append(command)
                             if mode == "allow":
                                 var.add_allow(cloak, command)
@@ -6366,22 +6366,19 @@ def myrole(cli, nick, chan, rest):
 @cmd("faftergame", admin_only=True, raw_nick=True, pm=True)
 def aftergame(cli, rawnick, chan, rest):
     """Schedule a command to be run after the current game."""
-    if not rest.strip():
-        cli.notice(parse_nick(nick)[0], "Incorrect syntax for this command.")
-        return
     nick = parse_nick(rawnick)[0]
+    if not rest.strip():
+        cli.notice(nick, "Incorrect syntax for this command.")
+        return
 
     rst = re.split(" +", rest)
     cmd = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1).strip()
 
-    if cmd in PM_COMMANDS.keys():
-        def do_action():
-            for fn in PM_COMMANDS[cmd]:
-                fn(cli, rawnick, " ".join(rst))
-    elif cmd in COMMANDS.keys():
+    if cmd in COMMANDS.keys():
         def do_action():
             for fn in COMMANDS[cmd]:
-                fn(cli, rawnick, botconfig.CHANNEL, " ".join(rst))
+                chan = botconfig.CHANNEL if fn.chan else nick
+                fn(cli, rawnick, nick, " ".join(rst))
     else:
         cli.notice(nick, "That command was not found.")
         return
