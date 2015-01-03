@@ -2,13 +2,15 @@
 
 import botconfig
 from tools import decorators
-import logging
 import tools.moduleloader as ld
 import traceback
 from settings import common as var
 from base64 import b64encode
 from oyoyo.parse import parse_nick
 import imp
+from tools import logger
+
+log = logger("errors.log")
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -31,7 +33,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                 if botconfig.DEBUG_MODE:
                     raise
                 else:
-                    logging.error(traceback.format_exc())
+                    log(traceback.format_exc())
                     cli.msg(chan, "An error has occurred and has been logged.")
 
     for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
@@ -51,7 +53,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     if botconfig.DEBUG_MODE:
                         raise
                     else:
-                        logging.error(traceback.format_exc())
+                        log(traceback.format_exc())
                         cli.msg(chan, "An error has occurred and has been logged.")
     
 def __unhandled__(cli, prefix, cmd, *args):
@@ -68,12 +70,10 @@ def __unhandled__(cli, prefix, cmd, *args):
                 if botconfig.DEBUG_MODE:
                     raise e
                 else:
-                    logging.error(traceback.format_exc())
+                    log(traceback.format_exc())
                     cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
-    else:
-        logging.debug('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8')
-                                                              for arg in args
-                                                              if isinstance(arg, bytes)]))
+    elif botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
+        log('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8') for arg in args if isinstance(arg, bytes)]), write=False)
 
     
 COMMANDS = {}
@@ -155,8 +155,6 @@ def connect_callback(cli):
 @hook("ping")
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)
-    
-    
 
 if botconfig.DEBUG_MODE:
     @cmd("module", admin_only = True)

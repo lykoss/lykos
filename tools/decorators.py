@@ -12,6 +12,9 @@ from oyoyo.parse import parse_nick
 import fnmatch
 import botconfig
 import settings.wolfgame as var
+from tools import logger
+
+adminlog = logger(None, write=False)
 
 def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
@@ -20,6 +23,7 @@ def generate(fdict, permissions=True, **kwargs):
         def dec(f):
             def innerf(*args):
                 largs = list(args)
+                rawnick = largs[1]
                 if not permissions:
                     return f(*largs)
                 if len(largs) > 1 and largs[1]:
@@ -88,6 +92,7 @@ def generate(fdict, permissions=True, **kwargs):
                         if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in var.ALLOW_ACCOUNTS[pattern]:
+                                    adminlog(rawnick, s[0], largs[2], largs[3])
                                     return f(*largs)
                 if not var.ACCOUNTS_ONLY and cloak:
                     for pattern in var.DENY.keys():
@@ -100,15 +105,18 @@ def generate(fdict, permissions=True, **kwargs):
                         if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in var.ALLOW[pattern]:
+                                    adminlog(rawnick, s[0], largs[2], largs[3])
                                     return f(*largs)  # no questions
                 if owner_only:
                     if var.is_owner(nick):
+                        adminlog(rawnick, s[0], largs[2], largs[3])
                         return f(*largs)
                     else:
                         largs[0].notice(nick, "You are not the owner.")
                         return
                 if admin_only:
                     if var.is_admin(nick):
+                        adminlog(rawnick, s[0], largs[2], largs[3])
                         return f(*largs)
                     else:
                         largs[0].notice(nick, "You are not an admin.")

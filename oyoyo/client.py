@@ -14,7 +14,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import logging
 import socket
 import time
 import threading
@@ -111,6 +110,7 @@ class IRCClient(object):
         self.sasl_auth = False
         self.use_ssl = False
         self.lock = threading.RLock()
+        self.stream_handler = lambda output, level=None: print(output)
         
         self.tokenbucket = TokenBucket(23, 1.73)
 
@@ -153,7 +153,7 @@ class IRCClient(object):
                                                                    for arg in args]), i))
 
             msg = bytes(" ", "utf_8").join(bargs)
-            logging.info('---> send {0}'.format(str(msg)[1:]))
+            self.stream_handler('---> send {0}'.format(str(msg)[1:]))
             
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
@@ -170,7 +170,7 @@ class IRCClient(object):
 
         """
         try:
-            logging.info('connecting to {0}:{1}'.format(self.host, self.port))
+            self.stream_handler('connecting to {0}:{1}'.format(self.host, self.port))
             retries = 0
             while True:
                 try:
@@ -178,7 +178,7 @@ class IRCClient(object):
                     break
                 except socket.error as e:
                     retries += 1
-                    logging.warning('Error: {0}'.format(e))
+                    self.stream_handler('Error: {0}'.format(e), level="warning")
                     if retries > 3:
                         break
             if not self.blocking:
@@ -227,8 +227,8 @@ class IRCClient(object):
                             enc = "latin1"
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
                     
-                        logging.debug("processCommand ({2}){0}({1})".format(command,
-                                                       fargs, prefix))
+                        self.stream_handler("processCommand ({2}){0}({1})".format(command,
+                                                       fargs, prefix), level="debug")
                         try:
                             largs = list(args)
                             if prefix is not None:
@@ -245,7 +245,7 @@ class IRCClient(object):
                 yield True
         finally:
             if self.socket: 
-                logging.info('closing socket')
+                self.stream_handler('closing socket')
                 self.socket.close()
                 yield False
     def msg(self, user, msg):

@@ -15,4 +15,4 @@ botconfig.py
 *.sqlite3
 
 # Log files
-errors.log
+*.log

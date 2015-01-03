@@ -18,39 +18,18 @@
 # THE SOFTWARE.
 
 from oyoyo.client import IRCClient
-import logging
 import botconfig
 import time
 import traceback
 import modules.common
 import sys
-
-
-class UTCFormatter(logging.Formatter):
-    converter = time.gmtime
+import tools
 
 
 def main():
     if sys.version_info < (3, 2):
         print('Python 3.2 or newer is required to run the bot.')
         sys.exit(1)
-
-    if botconfig.DEBUG_MODE:
-        logging.basicConfig(level=logging.DEBUG)
-        logger = logging.getLogger()
-    else:
-        logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler("errors.log")
-        fh.setLevel(logging.WARNING)
-        logger.addHandler(fh)
-        if botconfig.VERBOSE_MODE:
-            hdlr = logging.StreamHandler(sys.stdout)
-            hdlr.setLevel(logging.DEBUG)
-            logger.addHandler(hdlr)
-    formatter = UTCFormatter('[%(asctime)s] %(message)s', '%d/%b/%Y %H:%M:%S')
-    for handler in logger.handlers:
-        handler.setFormatter(formatter)
 
     cli = IRCClient(
                       {"privmsg": modules.common.on_privmsg,
@@ -65,7 +44,8 @@ def main():
                      real_name=botconfig.REALNAME,
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
-                     connect_cb=modules.common.connect_callback
+                     connect_cb=modules.common.connect_callback,
+                     stream_handler=tools.stream,
     )
     cli.mainLoop()
 
@@ -74,4 +54,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        logging.error(traceback.format_exc())
+        tools.logger("errors.log")(traceback.format_exc())
