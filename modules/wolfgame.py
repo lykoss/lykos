@@ -6377,8 +6377,7 @@ def aftergame(cli, rawnick, chan, rest):
     if cmd in COMMANDS.keys():
         def do_action():
             for fn in COMMANDS[cmd]:
-                chan = botconfig.CHANNEL if fn.chan else nick
-                fn(cli, rawnick, nick, " ".join(rst))
+                fn(cli, rawnick, chan if fn.chan else nick, " ".join(rst))
     else:
         cli.notice(nick, "That command was not found.")
         return
