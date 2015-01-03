@@ -5064,6 +5064,39 @@ def transition_night(cli):
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
+
+    for ms in var.ROLES["mad scientist"]:
+        index = var.ALL_PLAYERS.index(ms)
+        targets = []
+        target1 = var.ALL_PLAYERS[index - 1]
+        target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
+        if len(var.ALL_PLAYERS) >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
+            # determine left player
+            i = index
+            while True:
+                i -= 1
+                if i < 0:
+                    i = len(var.ALL_PLAYERS) - 1
+                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                    target1 = var.ALL_PLAYERS[i]
+                    break
+            # determine right player
+            i = index
+            while True:
+                i += 1
+                if i >= len(var.ALL_PLAYERS):
+                    i = 0
+                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                    target2 = var.ALL_PLAYERS[i]
+                    break
+        targets = "\u0002{0}\u0002 and \u0002{1}\u0002".format(target1, target2)
+        if ms in var.PLAYERS and not is_user_simple(ms):
+            pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you die, " +
+                         "you will let loose a potent chemical concoction that " +
+                         "will kill {0} if they are still alive.".format(targets)))
+        else:
+            pm(cli, ms, "You are the \u0002mad scientist\u0002. Targets: {0}".format(targets))
+
     for doctor in var.ROLES["doctor"]:
         if var.DOCTORS[doctor] > 0: # has immunizations remaining
             pl = ps[:]
@@ -5166,15 +5199,6 @@ def transition_night(cli):
             else:
                 pm(cli, clone, "You are a \u0002clone\u0002")
             pm(cli, clone, "Players: "+", ".join(pl))
-
-        for ms in var.ROLES["mad scientist"]:
-            if ms in var.PLAYERS and not is_user_simple(ms):
-                pm(cli, ms, ("You are the \u0002mad scientist\u0002. If you die for any reason " +
-                             "other than idling out or quitting, you will let loose a potent " +
-                             "chemical concoction that will kill the players that joined " +
-                             "immediately before and after you if they are still alive."))
-            else:
-                pm(cli, ms, "You are the \u0002mad scientist\u0002.")
 
         for minion in var.ROLES["minion"]:
             wolves = var.list_players(var.WOLF_ROLES)
