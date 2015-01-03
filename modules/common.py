@@ -7,6 +7,7 @@ import tools.moduleloader as ld
 import traceback
 from settings import common as var
 from base64 import b64encode
+from oyoyo.parse import parse_nick
 import imp
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
@@ -18,51 +19,40 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
                     (chan == botconfig.NICK and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
-           
-    if chan != botconfig.NICK:  #not a PM
-        if currmod and "" in currmod.COMMANDS.keys():
-            for fn in currmod.COMMANDS[""]:
+
+    if chan == botconfig.NICK:
+        chan = parse_nick(rawnick)[0]
+
+    if currmod and "" in currmod.COMMANDS.keys():
+        for fn in currmod.COMMANDS[""]:
+            try:
+                fn(cli, rawnick, chan, msg)
+            except:
+                if botconfig.DEBUG_MODE:
+                    raise
+                else:
+                    logging.error(traceback.format_exc())
+                    cli.msg(chan, "An error has occurred and has been logged.")
+
+    for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
+        if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
+            break # channel message but no prefix; ignore
+        if msg.lower().startswith(botconfig.CMD_CHAR+x):
+            h = msg[len(x)+len(botconfig.CMD_CHAR):]
+        elif not x or msg.lower().startswith(x):
+            h = msg[len(x):]
+        else:
+            continue
+        if not h or h[0] == " ":
+            for fn in COMMANDS.get(x, []) + (currmod.COMMANDS.get(x, []) if currmod else []):
                 try:
-                    fn(cli, rawnick, chan, msg)
-                except Exception as e:
+                    fn(cli, rawnick, chan, h.lstrip())
+                except:
                     if botconfig.DEBUG_MODE:
-                        raise e
+                        raise
                     else:
                         logging.error(traceback.format_exc())
                         cli.msg(chan, "An error has occurred and has been logged.")
-            # Now that is always called first.
-        for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
-            if x and msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+len(botconfig.CMD_CHAR):]
-                if not h or h[0] == " " or not x:
-                    for fn in COMMANDS.get(x,[])+(currmod.COMMANDS.get(x,[]) if currmod else []):
-                        try:
-                            fn(cli, rawnick, chan, h.lstrip())
-                        except Exception as e:
-                            if botconfig.DEBUG_MODE:
-                                raise e
-                            else:
-                                logging.error(traceback.format_exc())
-                                cli.msg(chan, "An error has occurred and has been logged.")
-            
-    else:
-        for x in set(list(PM_COMMANDS.keys()) + (list(currmod.PM_COMMANDS.keys()) if currmod else list())):
-            if msg.lower().startswith(botconfig.CMD_CHAR+x):
-                h = msg[len(x)+len(botconfig.CMD_CHAR):]
-            elif not x or msg.lower().startswith(x):
-                h = msg[len(x):]
-            else:
-                continue
-            if not h or h[0] == " " or not x:
-                for fn in PM_COMMANDS.get(x, [])+(currmod.PM_COMMANDS.get(x,[]) if currmod else []):
-                    try:
-                        fn(cli, rawnick, h.lstrip())
-                    except Exception as e:
-                        if botconfig.DEBUG_MODE:
-                            raise e
-                        else:
-                            logging.error(traceback.format_exc())
-                            cli.msg(chan, "An error has occurred and has been logged.")
     
 def __unhandled__(cli, prefix, cmd, *args):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -87,11 +77,9 @@ def __unhandled__(cli, prefix, cmd, *args):
 
     
 COMMANDS = {}
-PM_COMMANDS = {}
 HOOKS = {}
 
 cmd = decorators.generate(COMMANDS)
-pmcmd = decorators.generate(PM_COMMANDS)
 hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 def connect_callback(cli):
