@@ -22,8 +22,6 @@
 from oyoyo.parse import parse_nick
 import settings.wolfgame as var
 import botconfig
-from tools.wolfgamelogger import WolfgameLogger
-import logging
 import traceback
 from tools import decorators
 from datetime import datetime, timedelta
@@ -40,6 +38,7 @@ import signal
 from tools import logger
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
+errlog = logger("errors.log")
 
 BOLD = "\u0002"
 
@@ -86,8 +85,6 @@ var.GRAVEYARD_LOCK = threading.RLock()
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
-
-var.LOGGER = WolfgameLogger(var.LOG_FILENAME, var.BARE_LOG_FILENAME)
 
 var.OPPED = False  # Keeps track of whether the bot is opped
 
@@ -374,7 +371,7 @@ def forced_exit(cli, nick, chan, rest):  # Admin Only
         try:
             stop_game(cli)
         except:
-            logging.error(traceback.format_exc())
+            errlog(traceback.format_exc())
             cli.msg(chan, "An error has occurred and has been logged.")
             reset_modes_timers(cli)
             reset()
@@ -395,7 +392,7 @@ def restart_program(cli, nick, chan, rest):
             try:
                 stop_game(cli)
             except:
-                logging.error(traceback.format_exc())
+                errlog(traceback.format_exc())
                 cli.msg(chan, "An error has occurred and has been logged.")
                 reset_modes_timers(cli)
                 reset()
@@ -880,7 +877,6 @@ def kill_join(cli, chan):
     cli.msg(chan, 'The current game took too long to start and ' +
                   'has been canceled. If you are still active, ' +
                   'please join again to start a new game.')
-    var.LOGGER.logMessage('Game canceled.')
 
 
 @cmd("fjoin", admin_only=True, none=True, join=True)
@@ -942,9 +938,6 @@ def fleave(cli, nick, chan, rest):
                 message += " No more players remaining."
             else:
                 message += " New player count: \u0002{0}\u0002".format(lpl)
-        if var.PHASE in ("day", "night"):
-            var.LOGGER.logMessage("{0} is forcing {1} to leave.".format(nick, a))
-            var.LOGGER.logMessage("Say goodbye to the {0}".format(var.get_reveal_role(a)))
         cli.msg(chan, message)
 
         del_player(cli, a, death_triggers = False)
@@ -1023,7 +1016,6 @@ def stats(cli, nick, chan, rest):
     else:
         if nick in pl or var.PHASE == "join":
             cli.msg(chan, msg)
-            var.LOGGER.logMessage(msg.replace("\02", ""))
         else:
             cli.notice(nick, msg)
 
@@ -1131,7 +1123,6 @@ def stats(cli, nick, chan, rest):
     else:
         if nick in pl or var.PHASE == "join":
             cli.msg(chan, stats_mssg)
-            var.LOGGER.logMessage(stats_mssg.replace("\02", ""))
         else:
             cli.notice(nick, stats_mssg)
 
@@ -1185,13 +1176,10 @@ def hurry_up(cli, gameid, change):
             found_dup = True
     if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
-        var.LOGGER.logMessage("The sun sets.")
         chk_decision(cli, force = maxfound[1])  # Induce a lynch
     else:
         cli.msg(chan, ("As the sun sets, the villagers agree to "+
                       "retire to their beds and wait for morning."))
-        var.LOGGER.logMessage(("As the sun sets, the villagers agree to "+
-                               "retire to their beds and wait for morning."))
         transition_night(cli)
 
 
@@ -1283,7 +1271,6 @@ def chk_decision(cli, force = ""):
                 lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
                         "are the \u0002mayor\u0002. The village agrees to let them live for now.").format(votee)
                 var.REVEALED_MAYORS.append(votee)
-                var.LOGGER.logBare(votee, "MAYOR REVEALED")
                 votee = None
             elif votee in var.REVEALED:
                 role = var.get_role(votee)
@@ -1300,7 +1287,6 @@ def chk_decision(cli, force = ""):
                 lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                         "When the villagers are able to see again, they discover that {0} has escaped! " +
                         "The left-behind totem seems to have taken on the shape of a{1} \u0002{2}\u0002.").format(votee, an, role)
-                var.LOGGER.logBare(votee, "ACTIVATED REVEALING TOTEM")
                 votee = None
             else:
                 # roles that end the game upon being lynched
@@ -1308,12 +1294,8 @@ def chk_decision(cli, force = ""):
                     # ends game immediately, with fool as only winner
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
                     cli.msg(botconfig.CHANNEL, lmsg)
-                    var.LOGGER.logMessage(lmsg.replace("\02", ""))
-                    var.LOGGER.logBare(votee, "LYNCHED")
                     message = "Game over! The fool has been lynched, causing them to win."
                     cli.msg(botconfig.CHANNEL, message)
-                    var.LOGGER.logMessage(message)
-                    var.LOGGER.logBare(votee, "FOOL WIN")
                     stop_game(cli, "@" + votee)
                     return
                 # roles that eliminate other players upon being lynched
@@ -1332,9 +1314,6 @@ def chk_decision(cli, force = ""):
                             tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                                     "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
                                     "has fallen over dead.").format(votee, target)
-                        var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                        var.LOGGER.logBare(votee, "ACTIVATED DESPERATION TOTEM")
-                        var.LOGGER.logBare(target, "DESPERATION TOTEM TARGET")
                         cli.msg(botconfig.CHANNEL, tmsg)
                         del_player(cli, target, True, end_game = False, killer_role = "shaman") # do not end game just yet, we have more killin's to do!
                 # Other
@@ -1348,12 +1327,8 @@ def chk_decision(cli, force = ""):
                 else:
                     lmsg = random.choice(var.LYNCH_MESSAGES_NO_REVEAL).format(votee)
             cli.msg(botconfig.CHANNEL, lmsg)
-            var.LOGGER.logMessage(lmsg.replace("\02", ""))
             if aftermessage != None:
                 cli.msg(botconfig.CHANNEL, aftermessage)
-                var.LOGGER.logMessage(aftermessage.replace("\02", ""))
-            if votee != None:
-                var.LOGGER.logBare(votee, "LYNCHED")
             if del_player(cli, votee, True, killer_role = "villager"):
                 transition_night(cli)
             break
@@ -1422,7 +1397,6 @@ def chk_traitor(cli):
     for wc in wcl:
         var.ROLES["wolf"].append(wc)
         var.ROLES["wolf cub"].remove(wc)
-        var.LOGGER.logBare(wc, "GROW UP")
         pm(cli, wc, ('You have grown up into a wolf and vowed to take revenge for your dead parents!'))
 
     if len(var.ROLES["wolf"]) == 0:
@@ -1431,7 +1405,6 @@ def chk_traitor(cli):
             var.ROLES["traitor"].remove(tt)
             if tt in var.ROLES["cursed villager"]:
                 var.ROLES["cursed villager"].remove(tt)
-            var.LOGGER.logBare(tt, "TRANSFORM")
             pm(cli, tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
                          'It is up to you to avenge your fallen leaders!'))
 
@@ -1441,11 +1414,6 @@ def chk_traitor(cli):
                 cli.msg(botconfig.CHANNEL, ('\u0002The villagers, during their celebrations, are '+
                                             'frightened as they hear a loud howl. The wolves are '+
                                             'not gone!\u0002'))
-            var.LOGGER.logMessage(('The villagers, during their celebrations, are '+
-                                   'frightened as they hear a loud howl. The wolves are '+
-                                   'not gone!'))
-
-
 
 def stop_game(cli, winner = ""):
     chan = botconfig.CHANNEL
@@ -1468,10 +1436,6 @@ def stop_game(cli, winner = ""):
                                                                      daymin, daysec,
                                                                      nitemin, nitesec)
     cli.msg(chan, gameend_msg)
-    var.LOGGER.logMessage(gameend_msg.replace("\02", "")+"\n")
-    var.LOGGER.logBare("DAY", "TIME", str(var.DAY_TIMEDELTA.seconds))
-    var.LOGGER.logBare("NIGHT", "TIME", str(var.NIGHT_TIMEDELTA.seconds))
-    var.LOGGER.logBare("GAME", "TIME", str(total.seconds))
 
     roles_msg = []
 
@@ -1668,10 +1632,6 @@ def stop_game(cli, winner = ""):
 
     reset_modes_timers(cli)
 
-    # Set temporary phase to deal with disk lag
-    var.PHASE = "writing files"
-
-    var.LOGGER.saveToFile()
     reset()
 
     # This must be after reset()
@@ -1769,8 +1729,6 @@ def chk_win(cli, end_game = True):
             return False
         if end_game:
             cli.msg(chan, message)
-            var.LOGGER.logMessage(message)
-            var.LOGGER.logBare(winner.upper(), "WIN")
             stop_game(cli, winner)
         return True
 
@@ -1874,8 +1832,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         else:
                             message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.".format(other)
                         cli.msg(botconfig.CHANNEL, message)
-                        var.LOGGER.logMessage(message.replace("\02", ""))
-                        var.LOGGER.logBare(other, "DEAD LOVER")
                         del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
@@ -1886,14 +1842,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
                                            "however, {1}'s totem emits a brilliant flash of light, causing the attempt to miss.").format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
-                                var.LOGGER.logMessage(message.replace("\02", ""))
                             elif target in var.GUARDED.values() and var.GAMEPHASE == "night":
                                 for bg in var.ROLES["guardian angel"]:
                                     if bg in var.GUARDED and var.GUARDED[bg] == target:
                                         message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
                                                    "however, a guardian angel was on duty and able to foil the attempt.").format(nick, target)
                                         cli.msg(botconfig.CHANNEL, message)
-                                        var.LOGGER.logMessage(message.replace("\02", ""))
                                         break
                                 else:
                                     for ga in var.ROLES["bodyguard"]:
@@ -1901,7 +1855,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                             message = ("Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; " +
                                                        "however, \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
                                             cli.msg(botconfig.CHANNEL, message)
-                                            var.LOGGER.logMessage(message.replace("\02", ""))
                                             del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
                                             break
                             else:
@@ -1913,8 +1866,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 else:
                                     message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
-                                var.LOGGER.logMessage(message.replace("\02", ""))
-                                var.LOGGER.logBare(target, "ASSASSINATED")
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
 
                 if nickrole == "time lord":
@@ -2001,10 +1952,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "and \u0002{2}\u0002 get hit by the chemicals and die.").format(nick, target1, target2)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
-                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
                             deadlist1 = copy.copy(deadlist)
                             deadlist1.append(target2)
@@ -2023,9 +1970,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "gets hit by the chemicals and dies.").format(nick, target1)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target1, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                     else:
@@ -2040,17 +1984,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 tmsg = ("\u0002{0}\u0002 throws " +
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "gets hit by the chemicals and dies.").format(nick, target2)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
-                            var.LOGGER.logBare(target2, "DIED FROM SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                         else:
                             tmsg = ("\u0002{0}\u0002 throws " +
                                     "a potent chemical concoction into the crowd. Thankfully, " +
                                     "nobody seems to have gotten hit.").format(nick)
-                            var.LOGGER.logMessage(tmsg.replace("\02", ""))
-                            var.LOGGER.logBare(nick, "MAD SCIENTIST")
                             cli.msg(botconfig.CHANNEL, tmsg)
 
             if devoice:
@@ -2225,9 +2164,6 @@ def update_last_said(cli, nick, chan, rest):
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[nick] = datetime.now()
 
-    if var.PHASE not in ("none", "join"):
-        var.LOGGER.logChannelMessage(nick, rest)
-
     fullstring = "".join(rest)
     if var.CARE_BOLD and BOLD in fullstring:
         if var.KILL_BOLD:
@@ -2306,9 +2242,6 @@ def goat(cli, nick, chan, rest):
     cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
         nick, goatact, victim))
 
-    var.LOGGER.logMessage('{}\'s goat walks by and {} {}.'.format(
-        nick, goatact, victim))
-
     var.GOATED = True
 
 @cmd("fgoat", admin_only=True)
@@ -2319,10 +2252,6 @@ def fgoat(cli, nick, chan, rest):
 
     cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
         nick, goatact, rest))
-
-    var.LOGGER.logMessage('{}\'s goat walks by and {} {}.'.format(
-        nick, goatact, rest))
-
 
 @hook("nick")
 def on_nick(cli, oldnick, nick):
@@ -2625,7 +2554,6 @@ def leave(cli, what, nick, why=""):
             msg = ("\02{0}\02 died due to falling off a cliff.{1}").format(nick, population)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
-    var.LOGGER.logMessage(msg.replace("\02", ""))
     if nick in var.USERS:
         var.USERS[nick]["modes"] = set()
         var.USERS[nick]["moded"] = set()
@@ -2664,7 +2592,6 @@ def leave_game(cli, nick, chan, rest):
             cli.msg(botconfig.CHANNEL, lmsg)
         else:
             cli.msg(botconfig.CHANNEL, ("\02{0}\02, a \02{1}\02, has died of an unknown disease.{2}").format(nick, role, population))
-        var.LOGGER.logMessage(("{0}, a {1}, has died of an unknown disease.").format(nick, role))
     else:
         # DYNQUIT_DURING_GAME should not have any effect during the join phase, so only check if we aren't in that
         if var.PHASE != "join" and not var.DYNQUIT_DURING_GAME:
@@ -2672,7 +2599,6 @@ def leave_game(cli, nick, chan, rest):
         else:
             lmsg = random.choice(var.QUIT_MESSAGES_NO_REVEAL).format(nick) + population
             cli.msg(botconfig.CHANNEL, lmsg)
-        var.LOGGER.logMessage(("{0} has died of an unknown disease.").format(nick))
     if var.PHASE != "join":
         for r, rlist in var.ORIGINAL_ROLES.items():
             if nick in rlist:
@@ -2711,8 +2637,6 @@ def begin_day(cli):
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
            'are required to lynch.').format(botconfig.CMD_CHAR, len(var.list_players()) // 2 + 1)
     cli.msg(chan, msg)
-    var.LOGGER.logMessage(msg)
-    var.LOGGER.logBare("DAY", "BEGIN")
 
     var.DAY_ID = time.time()
     if var.DAY_TIME_WARN > 0:
@@ -3101,7 +3025,6 @@ def transition_day(cli, gameid=0):
                     else:
                         message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
                                         "The dead body of \u0002{1}\u0002 was found at the scene.").format(victim, loser))
-                var.LOGGER.logBare(loser, "RETRIBUTION")
             if var.ROLE_REVEAL:
                 role = var.get_reveal_role(victim)
                 an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
@@ -3111,7 +3034,6 @@ def transition_day(cli, gameid=0):
                 message.append(("The dead body of \u0002{0}\u0002 is found. " +
                                 "Those remaining mourn the tragedy.").format(victim))
             dead.append(victim)
-            var.LOGGER.logBare(victim, "KILLED")
             if random.random() < 1/50:
                 message.append(random.choice(
                     ["https://i.imgur.com/nO8rZ.gif",
@@ -3157,7 +3079,6 @@ def transition_day(cli, gameid=0):
                     message.append(("\02{0}\02 "+
                                     "made the unfortunate mistake of guarding a wolf "+
                                     "last night, and is now dead.").format(bodyguard))
-                var.LOGGER.logBare(bodyguard, "KILLEDWHENGUARDINGWOLF")
                 dead.append(bodyguard)
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.list_players(var.WOLF_ROLES) and gangel not in dead:
@@ -3173,7 +3094,6 @@ def transition_day(cli, gameid=0):
                     message.append(("\02{0}\02 "+
                                     "made the unfortunate mistake of guarding a wolf "+
                                     "last night, and is now dead.").format(gangel))
-                var.LOGGER.logBare(gangel, "KILLEDWHENGUARDINGWOLF")
                 dead.append(gangel)
 
     for victim in list(dead):
@@ -3192,7 +3112,6 @@ def transition_day(cli, gameid=0):
                     else:
                         message.append(("Fortunately, \02{0}\02 had bullets and "+
                                         "\02{1}\02 was shot dead.").format(victim, deadwolf))
-                    var.LOGGER.logBare(deadwolf, "KILLEDBYGUNNER")
                     dead.append(deadwolf)
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
@@ -3221,8 +3140,6 @@ def transition_day(cli, gameid=0):
             var.GUNNERS[victim] = 0  # just in case
 
     cli.msg(chan, "\n".join(message))
-    for msg in message:
-        var.LOGGER.logMessage(msg.replace("\02", ""))
 
     for chump in var.BITTEN.keys():
         if chump not in dead and var.get_role(chump) not in var.WOLF_ROLES:
@@ -3245,8 +3162,6 @@ def transition_day(cli, gameid=0):
         if havetotem:
             message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
     cli.msg(chan, "\n".join(message))
-    for msg in message:
-        var.LOGGER.logMessage(msg.replace("\02", ""))
     
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
@@ -3391,8 +3306,6 @@ def vote(cli, nick, chan, rest):
         var.VOTES[voted].append(nick)
     cli.msg(chan, ("\u0002{0}\u0002 votes for "+
                    "\u0002{1}\u0002.").format(nick, voted))
-    var.LOGGER.logMessage("{0} votes for {1}.".format(nick, voted))
-    var.LOGGER.logBare(voted, "VOTED", nick)
 
     var.LAST_VOTES = None # reset
 
@@ -3724,8 +3637,6 @@ def retract(cli, nick, chan, rest):
     if nick in var.NO_LYNCH:
         var.NO_LYNCH.remove(nick)
         cli.msg(chan, "\u0002{0}\u0002's vote was retracted.".format(nick))
-        var.LOGGER.logBare(nick, "RETRACT")
-        var.LOGGER.logMessage("{0}'s vote was retracted.".format(nick))
         var.LAST_VOTES = None # reset
         return
 
@@ -3736,8 +3647,6 @@ def retract(cli, nick, chan, rest):
             if not var.VOTES[voter]:
                 del var.VOTES[voter]
             cli.msg(chan, "\u0002{0}\u0002's vote was retracted.".format(nick))
-            var.LOGGER.logBare(voter, "RETRACT", nick)
-            var.LOGGER.logMessage("{0}'s vote was retracted.".format(nick))
             var.LAST_VOTES = None # reset
             break
     else:
@@ -3794,7 +3703,6 @@ def shoot(cli, nick, chan, rest):
 
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
-        var.LOGGER.logMessage("{0} shoots {1} with a silver bullet!".format(nick, victim))
         realrole = var.get_role(victim)
         victimrole = var.get_reveal_role(victim)
         an = "n" if victimrole[0] in ('a', 'e', 'i', 'o', 'u') else ""
@@ -3802,13 +3710,9 @@ def shoot(cli, nick, chan, rest):
             if var.ROLE_REVEAL:
                 cli.msg(chan, ("\u0002{0}\u0002 is a{1} \u0002{2}\u0002, and is dying from "+
                                "the silver bullet.").format(victim,an, victimrole))
-                var.LOGGER.logMessage(("{0} is a{1} {2}, and is dying from the "+
-                                "silver bullet.").format(victim, an, victimrole))
             else:
                 cli.msg(chan, ("\u0002{0}\u0002 is a wolf, and is dying from "+
                                "the silver bullet.").format(victim))
-                var.LOGGER.logMessage(("{0} is a wolf, and is dying from the "+
-                                "silver bullet.").format(victim))
             if not del_player(cli, victim, killer_role = var.get_role(nick)):
                 return
         elif random.random() <= chances[3]:
@@ -3817,17 +3721,12 @@ def shoot(cli, nick, chan, rest):
                 accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
             cli.msg(chan, ("\u0002{0}\u0002 is not a wolf "+
                            "but was {1}fatally injured.").format(victim, accident))
-            var.LOGGER.logMessage("{0} is not a wolf but was {1}fatally injured.".format(victim, accident))
             if var.ROLE_REVEAL:
                 cli.msg(chan, "The village has sacrificed a{0} \u0002{1}\u0002.".format(an, victimrole))
-                var.LOGGER.logMessage("The village has sacrificed a {0}.".format(victimrole))
             if not del_player(cli, victim, killer_role = var.get_role(nick)):
                 return
         else:
             cli.msg(chan, ("\u0002{0}\u0002 is a villager and was injured. Luckily "+
-                          "the injury is minor and will heal after a day of "+
-                          "rest.").format(victim))
-            var.LOGGER.logMessage(("{0} is a villager and was injured. Luckily "+
                           "the injury is minor and will heal after a day of "+
                           "rest.").format(victim))
             if victim not in var.WOUNDED:
@@ -3843,16 +3742,12 @@ def shoot(cli, nick, chan, rest):
             chk_win(cli)
     elif rand <= chances[0] + chances[1]:
         cli.msg(chan, "\u0002{0}\u0002 is a lousy shooter and missed!".format(nick))
-        var.LOGGER.logMessage("{0} is a lousy shooter and missed!".format(nick))
     else:
         if var.ROLE_REVEAL:
             cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded! "+
                            "The village mourns a gunner-\u0002{1}\u0002.").format(nick, var.get_reveal_role(nick)))
-            var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded! "+
-                           "The village mourns a gunner-{1}.").format(nick, var.get_reveal_role(nick)))
         else:
             cli.msg(chan, ("Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded!").format(nick))
-            var.LOGGER.logMessage(("Oh no! {0}'s gun was poorly maintained and has exploded!").format(nick))
         if not del_player(cli, nick, killer_role = "villager"): # blame explosion on villager's shoddy gun construction or something
             return  # Someone won.
 
@@ -3967,11 +3862,8 @@ def kill(cli, nick, chan, rest):
 
     if victim2 != None:
         pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be killed.".format(victim, victim2))
-        var.LOGGER.logBare(nick, "SELECT", victim)
-        var.LOGGER.logBare(nick, "SELECT", victim2)
     else:
         pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
-        var.LOGGER.logBare(nick, "SELECT", victim)
         if var.ANGRY_WOLVES and role in wolfroles:
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
     debuglog(nick, role, "kill", victim, var.get_role(victim), victim2, var.get_role(victim2) if victim2 else "")
@@ -4015,7 +3907,6 @@ def guard(cli, nick, chan, rest):
         var.LASTGUARDED[nick] = victim
         pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
         pm(cli, var.GUARDED[nick], "You can sleep well tonight, for you are being protected.")
-        var.LOGGER.logBare(var.GUARDED[nick], "GUARDED", nick)
     debuglog(nick, role, "guard", victim, var.get_role(victim))
     chk_nightdone(cli)
 
@@ -4076,7 +3967,6 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
-    var.LOGGER.logBare(victim, "OBSERVED", nick)
     debuglog(nick, role, "observe", victim, vrole)
     chk_nightdone(cli)
 
@@ -4107,14 +3997,12 @@ def investigate(cli, nick, chan, rest):
     pm(cli, nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
                    " is a... \u0002{1}\u0002!").format(victim, vrole))
     debuglog(nick, var.get_role(nick), "id", victim, vrole)
-    var.LOGGER.logBare(victim, "INVESTIGATED", nick)
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
         for badguy in var.list_players(var.WOLFCHAT_ROLES):
             pm(cli, badguy, ("Someone accidentally drops a paper. The paper reveals "+
                             "that \u0002{0}\u0002 is the detective!").format(nick))
         debuglog(nick, "paperdrop", " ".join(var.list_players(var.WOLFCHAT_ROLES)))
-        var.LOGGER.logBare(nick, "PAPERDROP")
 
 @cmd("visit", chan=False, pm=True, game=True, playing=True, roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
@@ -4145,7 +4033,6 @@ def hvisit(cli, nick, chan, rest):
         if nick != victim: #prevent luck/misdirection totem weirdness
             pm(cli, victim, ("You are spending the night with \u0002{0}"+
                                      "\u0002. Have a good time!").format(nick))
-        var.LOGGER.logBare(var.HVISITED[nick], "VISITED", nick)
     debuglog(nick, var.get_role(nick), "visited", victim, var.get_role(victim))
     chk_nightdone(cli)
 
@@ -4204,7 +4091,6 @@ def see(cli, nick, chan, rest):
                        "you see that \u0002{0}\u0002 exudes " +
                        "a \u0002{1}\u0002 aura!").format(victim, aura))
     var.SEEN.append(nick)
-    var.LOGGER.logBare(victim, "SEEN", nick)
     vrole = var.get_role(victim)
     debuglog(nick, role, "see", victim, victimrole, vrole if vrole != "amnesiac" else var.FINAL_ROLES[victim])
     chk_nightdone(cli)
@@ -4289,7 +4175,6 @@ def totem(cli, nick, chan, rest):
         pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
     var.LASTGIVEN[nick] = victim
     var.SHAMANS.append(nick)
-    var.LOGGER.logBare(victim, "GIVEN TOTEM", nick)
     debuglog(nick, var.get_role(nick), "totem", victim, totem)
     chk_nightdone(cli)
 
@@ -4414,7 +4299,6 @@ def pass_cmd(cli, nick, chan, rest):
     pm(cli, nick, "You have decided to not kill anyone tonight.")
     if nick not in var.PASSED: # Prevents multiple entries
         var.PASSED.append(nick)
-    #var.LOGGER.logBare(nick, "PASS", nick)
     debuglog(nick, var.get_role(nick), "pass")
     chk_nightdone(cli)
 
@@ -4480,7 +4364,6 @@ def choose(cli, nick, chan, rest):
     else:
         pm(cli, victim2, "You are \u0002in love\u0002 with {0}.".format(victim))
 
-    var.LOGGER.logBare(victim, "LOVERS", victim2)
     debuglog(nick, var.get_role(nick), "match", victim, var.get_role(victim), victim2, var.get_role(victim2))
     chk_nightdone(cli)
 
@@ -4508,7 +4391,6 @@ def target(cli, nick, chan, rest):
     var.TARGETED[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 as your target.".format(victim))
 
-    var.LOGGER.logBare(nick, "TARGETED", victim)
     debuglog(nick, var.get_template(nick), victim, var.get_role(victim))
     chk_nightdone(cli)
 
@@ -4548,7 +4430,6 @@ def hex(cli, nick, chan, rest):
     var.TOBESILENCED.append(victim)
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
-    var.LOGGER.logBare(nick, "HEXED", victim)
     debuglog(nick, var.get_role(nick), "hex", victim, var.get_role(victim))
     chk_nightdone(cli)
 
@@ -4575,7 +4456,6 @@ def clone(cli, nick, chan, rest):
     var.CLONED[nick] = victim
     pm(cli, nick, "You have chosen to clone \u0002{0}\u0002.".format(victim))
 
-    var.LOGGER.logBare(nick, "CLONED", victim)
     debuglog(nick, var.get_role(nick), "clone", victim, var.get_role(victim))
     chk_nightdone(cli)
 
@@ -5311,8 +5191,6 @@ def transition_night(cli):
         dmsg = (dmsg + " If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
-    var.LOGGER.logMessage(dmsg.replace("\02", ""))
-    var.LOGGER.logBare("NIGHT", "BEGIN")
     debuglog("begin night")
 
 
@@ -5595,12 +5473,6 @@ def start(cli, nick, chan, forced = False):
 
     var.LAST_PING = None
 
-    var.LOGGER.log("Game Start")
-    var.LOGGER.logBare("GAME", "BEGIN", nick)
-    var.LOGGER.logBare(str(len(pl)), "PLAYERCOUNT")
-
-    var.LOGGER.log("***")
-    var.LOGGER.log("ROLES: ")
     roles = copy.copy(var.ROLES)
     for rol in roles:
         r = []
@@ -5610,17 +5482,6 @@ def start(cli, nick, chan, forced = False):
                 rwu += rw[1:]
             r.append(rwu)
         r = " ".join(r)
-        try:
-            var.LOGGER.log("{0}: {1}".format(r, ", ".join(var.ROLES[rol])))
-            for plr in var.ROLES[rol]:
-                var.LOGGER.logBare(plr, "ROLE", rol)
-        except TypeError:
-            var.ROLES[rol] = []
-
-    if var.GUNNERS:
-        var.LOGGER.log("Villagers With Bullets: "+", ".join([x+"("+str(y)+")" for x,y in var.GUNNERS.items()]))
-
-    var.LOGGER.log("***")
 
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
 
@@ -6046,7 +5907,6 @@ def fwait(cli, nick, chan, rest):
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
-    var.LOGGER.logMessage("{0} has forced the game to stop.".format(nick))
     if var.PHASE != "join":
         stop_game(cli)
     else:
@@ -6060,7 +5920,6 @@ def show_rules(cli, nick, chan, rest):
         cli.notice(nick, var.RULES)
         return
     cli.msg(chan, var.RULES)
-    var.LOGGER.logMessage(var.RULES)
 
 @cmd("help", raw_nick=True, pm=True)
 def get_help(cli, rnick, chan, rest):
@@ -6079,12 +5938,8 @@ def get_help(cli, rnick, chan, rest):
                     got = True
                     if callable(fn.__doc__):
                         msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest)
-                        if nick == botconfig.CHANNEL:
-                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest))
                     else:
                         msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__
-                        if nick == botconfig.CHANNEL:
-                            var.LOGGER.logMessage(botconfig.CMD_CHAR+cname+": "+fn.__doc__)
                     if chan == nick:
                         pm(cli, nick, msg)
                     else:
@@ -6224,7 +6079,6 @@ def coin(cli, nick, chan, rest):
         return
 
     cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
-    var.LOGGER.logMessage("{0} tosses a coin into the air...".format(nick))
     coin = random.choice(["heads", "tails"])
     specialty = random.randrange(0,10)
     if specialty == 0:
@@ -6233,7 +6087,6 @@ def coin(cli, nick, chan, rest):
         coin = botconfig.NICK
     cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
-    var.LOGGER.logMessage(cmsg)
 
 @cmd("pony")
 def pony(cli, nick, chan, rest):
@@ -6244,11 +6097,9 @@ def pony(cli, nick, chan, rest):
         return
 
     cli.msg(chan, "\2{0}\2 tosses a pony into the air...".format(nick))
-    var.LOGGER.logMessage("{0} tosses a pony into the air...".format(nick))
     pony = random.choice(["hoof", "plot"])
     cmsg = "The pony lands on \2{0}\2.".format(pony)
     cli.msg(chan, cmsg)
-    var.LOGGER.logMessage(cmsg)
 
 @cmd("time", pm=True, game=True)
 def timeleft(cli, nick, chan, rest):

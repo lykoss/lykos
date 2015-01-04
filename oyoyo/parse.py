@@ -15,10 +15,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import logging
-
 from oyoyo.ircevents import generated_events, protocol_events,\
                             all_events, numeric_events
+
+from tools import logger # external dependency
+
+log = logger(None, None, None)
 
 # avoiding regex
 def parse_raw_irc_command(element):
@@ -54,7 +56,7 @@ def parse_raw_irc_command(element):
         try:
             command = numeric_events[command]
         except KeyError:
-            logging.debug('unknown numeric event {0}'.format(command))
+            log('unknown numeric event {0}'.format(command))
     command = command.lower()
     if isinstance(command, bytes): command = command.decode("utf_8")
 

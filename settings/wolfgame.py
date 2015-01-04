@@ -77,9 +77,6 @@ CARE_COLOR = False
 KILL_COLOR = False
 KILL_BOLD = False
 
-LOG_FILENAME = ""
-BARE_LOG_FILENAME = ""
-
                          #       HIT    MISS    SUICIDE   HEADSHOT
 GUN_CHANCES              =   (   5/7  ,  1/7  ,   1/7   ,   2/5   )
 WOLF_GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   ,   2/5   )

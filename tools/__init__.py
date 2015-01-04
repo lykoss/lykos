@@ -1,5 +1,18 @@
 import botconfig
+import datetime
 import time
+
+def get_timestamp():
+    """Returns a timestamp with timezone + offset from UTC."""
+    if botconfig.USE_UTC:
+        return datetime.datetime.utcnow().strftime("[%Y-%m-%d] (%H:%M:%S) UTC +0000 ")
+    utctime = datetime.datetime.utcnow().strftime("%H")
+    nowtime = datetime.datetime.now().strftime("%H")
+    offset = "+" if int(utctime) > int(nowtime) else "-"
+    tz = str(time.timezone // 36)
+    if len(tz) == 3:
+        tz = "0" + tz
+    return time.strftime("[%Y-%m-%d] (%H:%M:%S) %Z {0}{1} ").upper().format(offset, tz)
 
 def logger(file, write=True, display=True):
     def log(*output, write=write, display=display):
@@ -8,7 +21,7 @@ def logger(file, write=True, display=True):
             write = True
         if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:
             display = True
-        timestamp = time.strftime("[%Y-%m-%d] (%H:%M:%S) %z ").upper()
+        timestamp = get_timestamp()
         if display:
             print(timestamp + output)
         if write and file is not None:

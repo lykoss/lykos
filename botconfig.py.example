@@ -27,3 +27,5 @@ ADMINS_ACCOUNTS = ("1admin_acc", "2admin_acc")
 ALT_CHANNELS = ""
 
 ALLOWED_ALT_CHANNELS_COMMANDS = []
+
+USE_UTC = True # if True, will use the UTC time, else the local time
