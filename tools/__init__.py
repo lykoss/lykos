@@ -20,6 +20,8 @@ def get_timestamp():
     return tmf.format(tzname=tz, tzoffset=offset).upper()
 
 def logger(file, write=True, display=True):
+    if file is not None:
+        open(file, "a").close() # create the file if it doesn't exist
     def log(*output, write=write, display=display):
         output = " ".join([str(x) for x in output])
         if botconfig.DEBUG_MODE:

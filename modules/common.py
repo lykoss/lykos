@@ -11,6 +11,7 @@ import imp
 from tools import logger
 
 log = logger("errors.log")
+alog = logger(None)
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -73,7 +74,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                     log(traceback.format_exc())
                     cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
     elif botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
-        log('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8') for arg in args if isinstance(arg, bytes)]), write=False)
+        alog('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8') for arg in args if isinstance(arg, bytes)]))
 
     
 COMMANDS = {}

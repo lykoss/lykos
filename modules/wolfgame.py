@@ -278,6 +278,7 @@ def mass_mode(cli, md):
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        debuglog("would message fake nick {0}: {1}".format(target, message))
         return
 
     if is_user_notice(target):
@@ -5416,6 +5417,7 @@ def start(cli, nick, chan, forced = False):
                 return
             else:
                 cli.msg(chan, "This role has been skipped for this game.")
+                var.ROLES[template] = []
                 continue
 
         var.ROLES[template] = random.sample(possible, len(var.ROLES[template]))
