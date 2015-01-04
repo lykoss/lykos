@@ -5,14 +5,19 @@ import time
 def get_timestamp():
     """Returns a timestamp with timezone + offset from UTC."""
     if botconfig.USE_UTC:
-        return datetime.datetime.utcnow().strftime("[%Y-%m-%d] (%H:%M:%S) UTC +0000 ")
+        tmf = datetime.datetime.utcnow().strftime(botconfig.TIMESTAMP_FORMAT)
+        if tmf[-1] != " ":
+            tmf += " "
+        return tmf.format(tzname="UTC", tzoffset="+0000")
+    tmf = time.strftime(botconfig.TIMESTAMP_FORMAT)
+    if tmf[-1] != " ":
+        tmf += " "
+    tz = time.strftime("%Z")
     utctime = datetime.datetime.utcnow().strftime("%H")
     nowtime = datetime.datetime.now().strftime("%H")
-    offset = "+" if int(utctime) > int(nowtime) else "-"
-    tz = str(time.timezone // 36)
-    if len(tz) == 3:
-        tz = "0" + tz
-    return time.strftime("[%Y-%m-%d] (%H:%M:%S) %Z {0}{1} ").upper().format(offset, tz)
+    offset = "-" if int(utctime) > int(nowtime) else "+"
+    offset += str(time.timezone // 36).zfill(4)
+    return tmf.format(tzname=tz, tzoffset=offset).upper()
 
 def logger(file, write=True, display=True):
     def log(*output, write=write, display=display):
