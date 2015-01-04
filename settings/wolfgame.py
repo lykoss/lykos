@@ -95,7 +95,7 @@ SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner wil
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many nights (note the night they are bitten is considered night 1)
 
-DOCTOR_IMMUNIZATION_MULTIPLIER = 0.17 # ceil(num_players * multiplier) = number of immunizations
+DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
 TOTEM_ORDER   =                  (   "shaman"  , "crazed shaman" )
 TOTEM_CHANCES = {       "death": (      1      ,        1        ),
