@@ -5059,7 +5059,7 @@ def transition_night(cli):
         else:
             pm(cli, v_ghost, "You are a \u0002vengeful ghost\u0002.")
         pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
-        debuglog("GHOST: {0} (Targets: {1}) Players: {2}".format(v_ghost, who.capitalize(), ", ".join(pl)))
+        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(pl)))
 
     for ass in var.ROLES["assassin"]:
         if ass in var.TARGETED and var.TARGETED[ass] != None:
