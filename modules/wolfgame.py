@@ -235,14 +235,14 @@ def complete_match(string, matches):
     bestmatch = string
     for possible in matches:
         if string == possible:
-            return string
+            return string, 1
         if possible.startswith(string):
             bestmatch = possible
             num_matches += 1
     if num_matches != 1:
-        return None
+        return None, num_matches
     else:
-        return bestmatch
+        return bestmatch, 1
 
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, self_in_list = False):
@@ -252,10 +252,10 @@ def get_victim(cli, nick, victim, self_in_list = False):
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
 
-    tempvictim = complete_match(victim.lower(), pll)
+    tempvictim, num_matches = complete_match(victim.lower(), pll)
     if not tempvictim:
         #ensure messages about not being able to act on yourself work
-        if nick.lower().startswith(victim.lower()):
+        if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
         cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
         return
