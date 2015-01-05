@@ -1591,7 +1591,7 @@ def stop_game(cli, winner = ""):
                 # true neutral roles never have a team win (with exception of monsters), only individual wins
                 if winner == "monsters" and rol == "monster":
                     won = True
-            elif rol in ("amnesiac", "vengeful ghost"):
+            elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
                 if var.DEFAULT_ROLE == "villager" and winner == "villagers":
                     won = True
                 elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
