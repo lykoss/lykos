@@ -278,7 +278,7 @@ def mass_mode(cli, md):
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        debuglog("would message fake nick {0}: {1}".format(target, message))
+        debuglog("Would message fake nick {0}: {1}".format(target, message))
         return
 
     if is_user_notice(target):
@@ -3867,7 +3867,9 @@ def kill(cli, nick, chan, rest):
         pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
         if var.ANGRY_WOLVES and role in wolfroles:
             pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
-    debuglog(nick, role, "kill", victim, var.get_role(victim), victim2, var.get_role(victim2) if victim2 else "")
+    debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
+    if victim2:
+        debuglog("{0} ({1}) KILL : {2} ({3})".format(nick, role, victim2, var.get_role(victim2)))
     chk_nightdone(cli)
 
 @cmd("guard", "protect", "save", chan=False, pm=True, game=False, playing=True, roles=("bodyguard", "guardian angel"))
@@ -3908,7 +3910,7 @@ def guard(cli, nick, chan, rest):
         var.LASTGUARDED[nick] = victim
         pm(cli, nick, "You are protecting \u0002{0}\u0002 tonight. Farewell!".format(var.GUARDED[nick]))
         pm(cli, var.GUARDED[nick], "You can sleep well tonight, for you are being protected.")
-    debuglog(nick, role, "guard", victim, var.get_role(victim))
+    debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 
@@ -3968,7 +3970,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
-    debuglog(nick, role, "observe", victim, vrole)
+    debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, vrole))
     chk_nightdone(cli)
 
 @cmd("id", chan=False, pm=True, game=True, playing=True, roles=("detective",))
@@ -3997,13 +3999,13 @@ def investigate(cli, nick, chan, rest):
         vrole = var.FINAL_ROLES[victim]
     pm(cli, nick, ("The results of your investigation have returned. \u0002{0}\u0002"+
                    " is a... \u0002{1}\u0002!").format(victim, vrole))
-    debuglog(nick, var.get_role(nick), "id", victim, vrole)
+    debuglog("{0} ({1}) ID: {2} ({3})".format(nick, var.get_role(nick), victim, vrole))
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
         for badguy in var.list_players(var.WOLFCHAT_ROLES):
             pm(cli, badguy, ("Someone accidentally drops a paper. The paper reveals "+
                             "that \u0002{0}\u0002 is the detective!").format(nick))
-        debuglog(nick, "paperdrop", " ".join(var.list_players(var.WOLFCHAT_ROLES)))
+        debuglog("{0} ({1}) PAPERDROP: {2}".format(nick, var.get_role(nick), " ".join(var.list_players(var.WOLFCHAT_ROLES))))
 
 @cmd("visit", chan=False, pm=True, game=True, playing=True, roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
@@ -4034,7 +4036,7 @@ def hvisit(cli, nick, chan, rest):
         if nick != victim: #prevent luck/misdirection totem weirdness
             pm(cli, victim, ("You are spending the night with \u0002{0}"+
                                      "\u0002. Have a good time!").format(nick))
-    debuglog(nick, var.get_role(nick), "visited", victim, var.get_role(victim))
+    debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 def is_fake_nick(who):
@@ -4063,6 +4065,7 @@ def see(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     victimrole = var.get_role(victim)
+    vrole = victimrole # keep a copy for logging
     if role == "seer":
         if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
@@ -4073,6 +4076,7 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, ("You have a vision; in this vision, "+
                         "you see that \u0002{0}\u0002 is a "+
                         "\u0002{1}\u0002!").format(victim, victimrole))
+        debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
         if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
@@ -4080,6 +4084,7 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, ("Your paranormal senses are tingling! "+
                         "The spirits tell you that \u0002{0}\u0002 is {1}"+
                         "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002 ", BOLD if iswolf else ""))
+        debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":
         if victimrole == "amnesiac":
             victimrole = var.FINAL_ROLES[victim]
@@ -4091,9 +4096,8 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, ("You have a vision; in this vision, " +
                        "you see that \u0002{0}\u0002 exudes " +
                        "a \u0002{1}\u0002 aura!").format(victim, aura))
+        debuglog("{0} ({1}) SEE: {2} ({3}) as {4} ({5} aura)".format(nick, role, victim, vrole, victimrole, aura))
     var.SEEN.append(nick)
-    vrole = var.get_role(victim)
-    debuglog(nick, role, "see", victim, victimrole, vrole if vrole != "amnesiac" else var.FINAL_ROLES[victim])
     chk_nightdone(cli)
 
 @cmd("give", chan=False, pm=True, game=True, playing=True, roles=var.TOTEM_ORDER+("doctor",))
@@ -4122,7 +4126,8 @@ def totem(cli, nick, chan, rest):
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
     type = ""
-    if var.get_role(nick) != "crazed shaman":
+    role = var.get_role(nick)
+    if role != "crazed shaman":
         type = " of " + var.TOTEMS[nick]
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
@@ -4176,7 +4181,7 @@ def totem(cli, nick, chan, rest):
         pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
     var.LASTGIVEN[nick] = victim
     var.SHAMANS.append(nick)
-    debuglog(nick, var.get_role(nick), "totem", victim, totem)
+    debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, totem))
     chk_nightdone(cli)
 
 @cmd("immunize", "immunise", chan=False, pm=True, game=True, playing=True, roles=("doctor",))
@@ -4197,7 +4202,9 @@ def immunize(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     pm(cli, nick, "You have given an immunization to \u0002{0}\u0002.".format(victim))
+    lycan = False
     if var.get_role(victim) == "lycan":
+        lycan = True
         lycan_message = ("You feel as if a curse has been lifted from you... It seems that your lycanthropy is cured " +
                          "and you will no longer become a werewolf if targeted by the wolves!")
         var.ROLES["lycan"].remove(victim)
@@ -4220,7 +4227,7 @@ def immunize(cli, nick, chan, rest):
     pm(cli, victim, ("You feel a sharp prick in the back of your arm and temporarily black out. " +
                      "When you come to, you notice an empty syringe lying on the ground. {0}").format(lycan_message))
     var.DOCTORS[nick] -= 1
-    debuglog(nick, var.get_role(nick), "immunize", victim, "lycan" if victim in var.CURED_LYCANS else var.get_role(victim))
+    debuglog("{0} ({1}) IMMUNIZE: {2} ({3})".format(nick, var.get_role(nick), victim, "lycan" if lycan else var.get_role(victim)))
 
 def get_bitten_message(nick):
     time_left = var.BITTEN[nick]
@@ -4282,7 +4289,7 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You have chosen to bite \u0002{0}\u0002. If that player is not selected to be killed, you will bite one of the wolf targets at random instead.".format(victim))
     else:
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
-    debuglog(nick, var.get_role(nick), "bite", victim, vrole)
+    debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), victim if victim else "wolves' target", vrole if vrole else "unknown"))
 
 @cmd("pass", chan=False, pm=True, game=True, playing=True, roles=("hunter",))
 def pass_cmd(cli, nick, chan, rest):
@@ -4300,7 +4307,7 @@ def pass_cmd(cli, nick, chan, rest):
     pm(cli, nick, "You have decided to not kill anyone tonight.")
     if nick not in var.PASSED: # Prevents multiple entries
         var.PASSED.append(nick)
-    debuglog(nick, var.get_role(nick), "pass")
+    debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
     chk_nightdone(cli)
 
 @cmd("choose", "match", chan=False, pm=True, game=True, playing=True, roles=("matchmaker",))
@@ -4365,7 +4372,7 @@ def choose(cli, nick, chan, rest):
     else:
         pm(cli, victim2, "You are \u0002in love\u0002 with {0}.".format(victim))
 
-    debuglog(nick, var.get_role(nick), "match", victim, var.get_role(victim), victim2, var.get_role(victim2))
+    debuglog("{0} ({1}) MATCH: {2} ({3}) + {4} ({5})".format(nick, var.get_role(nick), victim, var.get_role(victim), victim2, var.get_role(victim2)))
     chk_nightdone(cli)
 
 @cmd("target", chan=False, pm=True, game=True, playing=True, roles=("assassin",))
@@ -4392,7 +4399,7 @@ def target(cli, nick, chan, rest):
     var.TARGETED[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 as your target.".format(victim))
 
-    debuglog(nick, var.get_template(nick), victim, var.get_role(victim))
+    debuglog("{0} ({1}-{2}) TARGET: {3} ({4})".format(nick, var.get_template(nick), var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("hex", chan=False, pm=True, game=True, playing=True, roles=("hag",))
@@ -4431,7 +4438,7 @@ def hex(cli, nick, chan, rest):
     var.TOBESILENCED.append(victim)
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
-    debuglog(nick, var.get_role(nick), "hex", victim, var.get_role(victim))
+    debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("clone", chan=False, pm=True, game=True, playing=True, roles=("clone",))
@@ -4457,7 +4464,7 @@ def clone(cli, nick, chan, rest):
     var.CLONED[nick] = victim
     pm(cli, nick, "You have chosen to clone \u0002{0}\u0002.".format(victim))
 
-    debuglog(nick, var.get_role(nick), "clone", victim, var.get_role(victim))
+    debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
@@ -4665,7 +4672,7 @@ def transition_night(cli):
             for wolf in var.list_players(var.WOLFCHAT_ROLES):
                 if wolf != chump:
                     pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002wolf\u0002!".format(chump))
-            debuglog(chump, chumprole, "turned wolf")
+            debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
 
     # convert amnesiac and kill village elder if necessary
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
@@ -4684,13 +4691,13 @@ def transition_night(cli):
             if amnrole in var.WOLFCHAT_ROLES:
                 for wolf in var.list_players(var.WOLFCHAT_ROLES):
                     pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
-            debuglog(amn, amnrole, "remember", showrole)
+            debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     numwolves = len(var.list_players(var.WOLF_ROLES))
     if var.NIGHT_COUNT >= numwolves + 1:
         for elder in var.ROLES["village elder"]:
             var.DYING.append(elder)
-            debuglog(elder, "elder death")
+            debuglog(elder, "ELDER DEATH")
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
     if chk_win(cli):
@@ -4749,7 +4756,6 @@ def transition_night(cli):
             an = 'n' if cursed == '' and role[0] in ('a', 'e', 'i', 'o', 'u') else ''
             pm(cli, wolf, "You are a{0} \02{1}{2}\02.".format(an, cursed, role))  # !simple
 
-        debuglog(wolf, cursed + " " + role if cursed else role)
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
@@ -4803,7 +4809,6 @@ def transition_night(cli):
         else:
             pm(cli, seer, "You are {0} \02{1}\02.".format(a, role))  # !simple
         pm(cli, seer, "Players: " + ", ".join(pl))
-        debuglog(seer, role)
 
     for harlot in var.ROLES["harlot"]:
         pl = ps[:]
@@ -4817,7 +4822,6 @@ def transition_night(cli):
         else:
             pm(cli, harlot, "You are a \02harlot\02.")  # !simple
         pm(cli, harlot, "Players: " + ", ".join(pl))
-        debuglog(harlot, "harlot")
 
     # the messages for angel and guardian angel are different enough to merit individual loops
     for g_angel in var.ROLES["bodyguard"]:
@@ -4837,7 +4841,6 @@ def transition_night(cli):
         else:
             pm(cli, g_angel, "You are a \02bodyguard\02.")  # !simple
         pm(cli, g_angel, "Players: " + ", ".join(pl))
-        debuglog(g_angel, "bodyguard")
 
     for gangel in var.ROLES["guardian angel"]:
         pl = ps[:]
@@ -4856,7 +4859,6 @@ def transition_night(cli):
         else:
             pm(cli, gangel, "You are a \02guardian angel\02.")  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
-        debuglog(gangel, "guardian angel")
 
     for dttv in var.ROLES["detective"]:
         pl = ps[:]
@@ -4876,14 +4878,12 @@ def transition_night(cli):
         else:
             pm(cli, dttv, "You are a \02detective\02.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
-        debuglog(dttv, "detective")
 
     for drunk in var.ROLES["village drunk"]:
         if drunk in var.PLAYERS and not is_user_simple(drunk):
             pm(cli, drunk, "You have been drinking too much! You are the \u0002village drunk\u0002.")
         else:
             pm(cli, drunk, "You are the \u0002village drunk\u0002.")
-        debuglog(drunk, "village drunk")
 
     max_totems = {}
     for sham in var.TOTEM_ORDER:
@@ -4948,7 +4948,6 @@ def transition_night(cli):
             if role != "crazed shaman":
                 pm(cli, shaman, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[shaman]))
         pm(cli, shaman, "Players: " + ", ".join(pl))
-        debuglog(shaman, role, var.TOTEMS[shaman])
 
     for hunter in var.ROLES["hunter"]:
         if hunter in var.HUNTERS:
@@ -4963,7 +4962,6 @@ def transition_night(cli):
         else:
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
-        debuglog(hunter, "hunter")
 
 
     for ms in var.ROLES["mad scientist"]:
@@ -4997,7 +4995,6 @@ def transition_night(cli):
                          "will kill {0} if they are still alive.".format(targets)))
         else:
             pm(cli, ms, "You are the \u0002mad scientist\u0002. Targets: {0}".format(targets))
-        debuglog(ms, "mad scientist", target1, target2)
 
     for doctor in var.ROLES["doctor"]:
         if var.DOCTORS[doctor] > 0: # has immunizations remaining
@@ -5011,7 +5008,6 @@ def transition_night(cli):
             else:
                 pm(cli, doctor, "You are a \u0002doctor\u0002.")
             pm(cli, doctor, 'You have \u0002{0}\u0002 immunization{1}.'.format(var.DOCTORS[doctor], 's' if var.DOCTORS[doctor] > 1 else ''))
-            debuglog(doctor, "doctor")
 
     for fool in var.ROLES["fool"]:
         if fool in var.PLAYERS and not is_user_simple(fool):
@@ -5020,7 +5016,6 @@ def transition_night(cli):
                            'otherwise win this game.'))
         else:
             pm(cli, fool, "You are a \u0002fool\u0002.")
-        debuglog(fool, "fool")
 
     for jester in var.ROLES["jester"]:
         if jester in var.PLAYERS and not is_user_simple(jester):
@@ -5028,7 +5023,6 @@ def transition_night(cli):
                              'if you are lynched during the day. You cannot otherwise win this game.'))
         else:
             pm(cli, jester, "You are a \u0002jester\u0002.")
-        debuglog(jester, "jester")
 
     for monster in var.ROLES["monster"]:
         if monster in var.PLAYERS and not is_user_simple(monster):
@@ -5037,7 +5031,6 @@ def transition_night(cli):
                               'normal winners.'))
         else:
             pm(cli, monster, "You are a \u0002monster\u0002.")
-        debuglog(monster, "monster")
 
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and not is_user_simple(lycan):
@@ -5046,7 +5039,6 @@ def transition_night(cli):
                             'during the night.'))
         else:
             pm(cli, lycan, "You are a \u0002lycan\u0002.")
-        debuglog(lycan, "lycan")
 
     for v_ghost, who in var.VENGEFUL_GHOSTS.items():
         wolves = var.list_players(var.WOLFTEAM_ROLES)
@@ -5067,7 +5059,7 @@ def transition_night(cli):
         else:
             pm(cli, v_ghost, "You are a \u0002vengeful ghost\u0002.")
         pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
-        debuglog(v_ghost, "vengeful ghost", who)
+        debuglog("GHOST: {0} (Targets: {1}) Players: {2}".format(v_ghost, who.capitalize(), " ".join(pl)))
 
     for ass in var.ROLES["assassin"]:
         if ass in var.TARGETED and var.TARGETED[ass] != None:
@@ -5091,7 +5083,6 @@ def transition_night(cli):
             else:
                 pm(cli, ass, "You are an \u0002assassin\u0002.")
             pm(cli, ass, "Players: " + ", ".join(pl))
-            debuglog(ass, "assassin")
 
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
@@ -5105,7 +5096,6 @@ def transition_night(cli):
             else:
                 pm(cli, mm, "You are a \u0002matchmaker\u0002.")
             pm(cli, mm, "Players: " + ", ".join(pl))
-            debuglog(mm, "matchmaker")
 
         for clone in var.ROLES["clone"]:
             pl = ps[:]
@@ -5118,7 +5108,6 @@ def transition_night(cli):
             else:
                 pm(cli, clone, "You are a \u0002clone\u0002")
             pm(cli, clone, "Players: "+", ".join(pl))
-            debuglog(clone, "clone")
 
         for minion in var.ROLES["minion"]:
             wolves = var.list_players(var.WOLF_ROLES)
@@ -5128,7 +5117,6 @@ def transition_night(cli):
             else:
                 pm(cli, minion, "You are a \u0002minion\u0002.")
             pm(cli, minion, "Wolves: " + ", ".join(wolves))
-            debuglog(minion, "minion", " ".join(wolves))
 
         villagers = copy.copy(var.ROLES["villager"])
         villagers += var.ROLES["time lord"] + var.ROLES["village elder"]
@@ -5139,7 +5127,6 @@ def transition_night(cli):
                 pm(cli, villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
             else:
                 pm(cli, villager, "You are a \u0002villager\u0002.")
-            debuglog(villager, "villager")
 
         cultists = copy.copy(var.ROLES["cultist"])
         if var.DEFAULT_ROLE == "cultist":
@@ -5149,7 +5136,6 @@ def transition_night(cli):
                 pm(cli, cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
             else:
                 pm(cli, cultist, "You are a \u0002cultist\u0002.")
-            debuglog(cultist, "cultist")
 
     for g in var.GUNNERS.keys():
         if g not in ps:
@@ -5183,7 +5169,6 @@ def transition_night(cli):
             continue
 
         pm(cli, g, gun_msg)
-        debuglog(g, "gunner", var.GUNNERS[g])
 
     dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions.")
@@ -5192,7 +5177,7 @@ def transition_night(cli):
         dmsg = (dmsg + " If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
-    debuglog("begin night")
+    debuglog("BEGIN NIGHT")
 
 
 
@@ -5486,6 +5471,11 @@ def start(cli, nick, chan, forced = False):
         r = " ".join(r)
 
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
+
+    debuglog("ROLES:", " | ".join("\u0002{0}\u0002: {1}".format(role, ", ".join(players))
+        for role, players in sorted(var.ROLES.items()) if players and role not in var.TEMPLATE_RESTRICTIONS.keys()))
+    debuglog("TEMPLATES:", " | ".join("\u0002{0}\u0002: {1}".format(tmplt, ", ".join(players))
+        for tmplt, players in sorted(var.ROLES.items()) if players and role in var.TEMPLATE_RESTRICTIONS.keys()))
 
     var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
@@ -5996,7 +5986,7 @@ def on_invite(cli, nick, something, chan):
         return # No questions
     if is_admin(parse_nick(nick)[0]):
         cli.join(chan) # Allows the bot to be present in any channel
-        debuglog(nick, "invite", chan, display=True)
+        debuglog(nick, "INVITE", chan, display=True)
     else:
         pm(parse_nick(nick)[0], "You are not an admin.")
 
