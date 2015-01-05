@@ -2312,7 +2312,7 @@ def goat(cli, nick, chan, rest):
     if not rest:
         cli.notice(nick, 'Not enough parameters.')
 
-    victim = complete_match(rest.lower(), ull)
+    victim, _ = complete_match(rest.lower(), ull)
     if not victim:
         cli.notice(nick, "\u0002{0}\u0002 is not in this channel.".format(rest))
         return
@@ -6270,7 +6270,7 @@ def listroles(cli, nick, chan, rest):
     if len(rest[0]) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            gamemode = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
+            gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
         if gamemode in var.GAME_MODES.keys() and gamemode != "roles":
             mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX"):
@@ -6456,7 +6456,7 @@ def game_stats(cli, nick, chan, rest):
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            gamemode = complete_match(gamemode, var.GAME_MODES.keys())
+            gamemode, _ = complete_match(gamemode, var.GAME_MODES.keys())
         if not gamemode:
             cli.notice(nick, "{0} is not a valid game mode".format(rest[0]))
             return
@@ -6558,7 +6558,7 @@ def game(cli, nick, chan, rest):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        match = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
+        match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
         if not match:
             cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
             return
@@ -6703,7 +6703,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             rest = gamemode = rest.strip().lower()
             if rest not in var.GAME_MODES.keys() and not rest.startswith("roles"):
                 rest = rest.split()[0]
-                gamemode = complete_match(rest, var.GAME_MODES.keys())
+                gamemode, _ = complete_match(rest, var.GAME_MODES.keys())
                 if not gamemode:
                     cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(rest))
                     return
