@@ -4005,7 +4005,7 @@ def investigate(cli, nick, chan, rest):
         for badguy in var.list_players(var.WOLFCHAT_ROLES):
             pm(cli, badguy, ("Someone accidentally drops a paper. The paper reveals "+
                             "that \u0002{0}\u0002 is the detective!").format(nick))
-        debuglog("{0} ({1}) PAPERDROP: {2}".format(nick, var.get_role(nick), " ".join(var.list_players(var.WOLFCHAT_ROLES))))
+        debuglog("{0} ({1}) PAPER DROP".format(nick, var.get_role(nick)))
 
 @cmd("visit", chan=False, pm=True, game=True, playing=True, roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
@@ -5059,7 +5059,7 @@ def transition_night(cli):
         else:
             pm(cli, v_ghost, "You are a \u0002vengeful ghost\u0002.")
         pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
-        debuglog("GHOST: {0} (Targets: {1}) Players: {2}".format(v_ghost, who.capitalize(), " ".join(pl)))
+        debuglog("GHOST: {0} (Targets: {1}) Players: {2}".format(v_ghost, who.capitalize(), ", ".join(pl)))
 
     for ass in var.ROLES["assassin"]:
         if ass in var.TARGETED and var.TARGETED[ass] != None:
