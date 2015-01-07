@@ -5853,7 +5853,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                         del variable[acc]
                     msg = "\u0002{0}\u0002 (Account: {1}) is no longer {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
         elif var.ACCOUNTS_ONLY:
-            msg = "Error: \u0002{0}\u0002 is logged in to NickServ.".format(data[0])
+            msg = "Error: \u0002{0}\u0002 is not logged in to NickServ.".format(data[0])
 
         else:
             if mode == "allow":
