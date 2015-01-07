@@ -6513,9 +6513,9 @@ def player_stats(cli, nick, chan, rest):
         acc = lusers[luser]['account']
         if acc == '*':
             if luser == nick.lower():
-                cli.notice(nick, 'You are not identified with NickServ.')
+                cli.notice(nick, 'You are not logged in to NickServ.')
             else:
-                cli.notice(nick, user + ' is not identified with NickServ.')
+                cli.notice(nick, user + ' is not logged in to NickServ.')
 
             return
     else:
