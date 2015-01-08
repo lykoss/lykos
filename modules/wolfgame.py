@@ -5319,8 +5319,9 @@ def fstart(cli, nick, chan, rest):
     start(cli, nick, chan)
 
 def start(cli, nick, chan, forced = False):
-    if (var.LAST_START and nick in var.LAST_START and var.LAST_START[nick] +
-            timedelta(seconds=var.START_RATE_LIMIT) > datetime.now()):
+    if (not forced and var.LAST_START and nick in var.LAST_START and
+            var.LAST_START[nick] + timedelta(seconds=var.START_RATE_LIMIT) >
+            datetime.now()):
         cli.notice(nick, ("This command is rate-limited. Please wait a while "
                           "before using it again."))
         return
