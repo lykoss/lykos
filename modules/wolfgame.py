@@ -1296,6 +1296,8 @@ def chk_decision(cli, force = ""):
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
                     cli.msg(botconfig.CHANNEL, lmsg)
                     message = "Game over! The fool has been lynched, causing them to win."
+                    debuglog("WIN: fool")
+                    debuglog("PLAYERS: {0}".format(votee))
                     cli.msg(botconfig.CHANNEL, message)
                     stop_game(cli, "@" + votee)
                     return
@@ -1399,6 +1401,7 @@ def chk_traitor(cli):
         var.ROLES["wolf"].append(wc)
         var.ROLES["wolf cub"].remove(wc)
         pm(cli, wc, ('You have grown up into a wolf and vowed to take revenge for your dead parents!'))
+        debuglog(wc, "WOLF CUB GROW UP")
 
     if len(var.ROLES["wolf"]) == 0:
         for tt in ttl:
@@ -1408,6 +1411,7 @@ def chk_traitor(cli):
                 var.ROLES["cursed villager"].remove(tt)
             pm(cli, tt, ('HOOOOOOOOOWL. You have become... a wolf!\n'+
                          'It is up to you to avenge your fallen leaders!'))
+            debuglog(tt, "TRAITOR TURNING")
 
         # no message if wolf cub becomes wolf for now, may want to change that in future
         if len(var.ROLES["wolf"]) > 0:
@@ -1731,6 +1735,19 @@ def chk_win(cli, end_game = True):
         if end_game:
             cli.msg(chan, message)
             stop_game(cli, winner)
+            players = []
+            if winner == "monsters":
+                for plr in var.ROLES["monster"]:
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            elif winner == "wolves":
+                for plr in var.list_players(var.WOLFTEAM_ROLES):
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            elif winner == "villagers":
+                vroles = [role for role in var.ROLES.keys() if var.ROLES[role] and role not in (var.WOLFTEAM_ROLES + var.TRUE_NEUTRAL_ROLES + list(var.TEMPLATE_RESTRICTIONS.keys()))]
+                for plr in var.list_players(vroles):
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            debuglog("WIN:", winner)
+            debuglog("PLAYERS:", ", ".join(players))
         return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = ""):
@@ -1779,6 +1796,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 var.ROLES[nickrole].append(clone)
                                 var.FINAL_ROLES[clone] = nickrole
                                 sayrole = nickrole
+                            debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, sayrole))
                             # if cloning time lord or vengeful ghost, say they are villager instead
                             if sayrole in ("time lord", "village elder"):
                                 sayrole = "villager"
@@ -1793,6 +1811,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 else:
                                     var.CLONED[clone] = var.CLONED[nick]
                                     pm(cli, clone, "You will now be cloning \u0002{0}\u0002 if they die.".format(var.CLONED[clone]))
+                                    debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, var.CLONED[clone], var.get_role(var.CLONED[clone])))
                             elif nickrole in var.WOLFCHAT_ROLES:
                                 wolves = var.list_players(var.WOLFCHAT_ROLES)
                                 wolves.remove(clone) # remove self from list
@@ -1833,6 +1852,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         else:
                             message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.".format(other)
                         cli.msg(botconfig.CHANNEL, message)
+                        debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(other, var.get_role(other), nick, var.get_role(nick)))
                         del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
@@ -1867,6 +1887,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 else:
                                     message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
+                                debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, var.get_role(nick), target, var.get_role(target)))
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
 
                 if nickrole == "time lord":
@@ -1891,6 +1912,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died, " +
                                                 "day will now only last {0} seconds and night will now only " +
                                                 "last {1} seconds!").format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
+                    debuglog("TIME LORD TRIGGER:", nick)
                 if nickrole == "vengeful ghost":
                     if killer_role in var.WOLFTEAM_ROLES:
                         var.VENGEFUL_GHOSTS[nick] = "wolves"
@@ -1898,6 +1920,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         var.VENGEFUL_GHOSTS[nick] = "villagers"
                     pm(cli, nick, ("OOOooooOOOOooo! You are the \u0002vengeful ghost\u0002. It is now your job " +
                                    "to exact your revenge on the \u0002{0}\u0002 that killed you.").format(var.VENGEFUL_GHOSTS[nick]))
+                    debuglog(nick, "VENGEFUL GHOST", var.VENGEFUL_GHOSTS[nick])
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
                 if nickrole in var.WOLF_ROLES:
@@ -1954,6 +1977,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "and \u0002{2}\u0002 get hit by the chemicals and die.").format(nick, target1, target2)
                             cli.msg(botconfig.CHANNEL, tmsg)
+                            debuglog(nick, "MAD SCIENTIST KILL: {0} ({1}) - {2} ({3})".format(target1, var.get_role(target1), target2, var.get_role(target2)))
                             deadlist1 = copy.copy(deadlist)
                             deadlist1.append(target2)
                             deadlist2 = copy.copy(deadlist)
@@ -1972,6 +1996,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "gets hit by the chemicals and dies.").format(nick, target1)
                             cli.msg(botconfig.CHANNEL, tmsg)
+                            debuglog(nick, "MAD SCIENTIST KILL: {0} ({1})".format(target1, var.get_role(target1)))
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                     else:
                         if target2 in pl:
@@ -1986,12 +2011,14 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         "a potent chemical concoction into the crowd. \u0002{1}\u0002 " +
                                         "gets hit by the chemicals and dies.").format(nick, target2)
                             cli.msg(botconfig.CHANNEL, tmsg)
+                            debuglog(nick, "MAD SCIENTIST KILL: {0} ({1})".format(target2, var.get_role(target2)))
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
                         else:
                             tmsg = ("\u0002{0}\u0002 throws " +
                                     "a potent chemical concoction into the crowd. Thankfully, " +
                                     "nobody seems to have gotten hit.").format(nick)
                             cli.msg(botconfig.CHANNEL, tmsg)
+                            debuglog(nick, "MAD SCIENTIST KILL FAIL")
 
             if devoice:
                 cmode.append(("-v", nick))
