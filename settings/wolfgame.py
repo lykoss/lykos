@@ -805,7 +805,7 @@ def init_db():
         for row in c:
             if row[0] not in DENY_ACCOUNTS:
                 DENY_ACCOUNTS[row[0]] = []
-            DENY[row[0]].append(row[1])
+            DENY_ACCOUNTS[row[0]].append(row[1])
 
         c.execute('SELECT * FROM allowed')
         for row in c:
