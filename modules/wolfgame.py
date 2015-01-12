@@ -3356,17 +3356,17 @@ def no_lynch(cli, nick, chan, rest):
         chk_decision(cli)
         return
 
-@cmd("lynch", "vote", "v", game=True, playing=True)
+@cmd("lynch", "vote", "v", game=True, playing=True, pm=True)
 def vote(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
+    if not rest:
+        show_votes(cli, nick, chan, rest)
+        return
     if chan != botconfig.CHANNEL:
         return
 
     rest = re.split(" +",rest)[0].strip()
 
-    if not rest:
-        show_votes(cli, nick, chan, rest)
-        return
     if var.PHASE != "day":
         cli.notice(nick, ("Lynching is only allowed during the day. "+
                           "Please wait patiently for morning."))
