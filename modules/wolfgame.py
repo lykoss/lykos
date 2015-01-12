@@ -5277,8 +5277,10 @@ def transition_night(cli):
         pm(cli, g, gun_msg)
 
     dmsg = (daydur_msg + "It is now nighttime. All players "+
-                   "check for PMs from me for instructions. "+
-                   "If you did not receive one, simply sit back, "+
+                   "check for PMs from me for instructions.")
+
+    if not var.FIRST_NIGHT:
+        dmsg = (dmsg + " If you did not receive one, simply sit back, "+
                    "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
     var.LOGGER.logMessage(dmsg.replace("\02", ""))
