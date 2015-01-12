@@ -4202,7 +4202,7 @@ def see(cli, nick, chan, rest):
             iswolf = True
         pm(cli, nick, ("Your paranormal senses are tingling! "+
                         "The spirits tell you that \u0002{0}\u0002 is {1}"+
-                        "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002", BOLD if iswolf else ""))
+                        "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002 ", BOLD if iswolf else ""))
     elif role == "augur":
         if victimrole == "amnesiac":
             victimrole = var.FINAL_ROLES[victim]
