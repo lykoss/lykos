@@ -6090,10 +6090,16 @@ def get_help(cli, rnick, chan, rest):
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
     fns.sort() # Output commands in alphabetical order
-    cli.notice(nick, "Commands: "+", ".join(fns))
+    if chan == nick:
+        pm(cli, nick, "Commands: "+", ".join(fns))
+    else:
+        cli.notice(nick, "Commands: "+", ".join(fns))
     if afns:
         afns.sort()
-        cli.notice(nick, "Admin Commands: "+", ".join(afns))
+        if chan == nick:
+            pm(cli, nick, "Admin Commands: "+", ".join(afns))
+        else:
+            cli.notice(nick, "Admin Commands: "+", ".join(afns))
 
 @hook("invite")
 def on_invite(cli, nick, something, chan):
