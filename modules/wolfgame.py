@@ -4186,20 +4186,23 @@ def see(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     victimrole = var.get_role(victim)
-    if role in ("seer", "oracle"):
+    if role == "seer":
         if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
             if var.DEFAULT_SEEN_AS_VILL:
                 victimrole = "villager"
-        elif role == "oracle": # Oracles never see specific roles, only generalizations
-            victimrole = var.DEFAULT_ROLE
-            if var.DEFAULT_SEEN_AS_VILL:
-                victimrole = "villager"
         pm(cli, nick, ("You have a vision; in this vision, "+
                         "you see that \u0002{0}\u0002 is a "+
                         "\u0002{1}\u0002!").format(victim, victimrole))
+    elif role == "oracle":
+        iswolf = False
+        if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
+            iswolf = True
+        pm(cli, nick, ("Your paranormal senses are tingling! "+
+                        "The spirits tell you that \u0002{0}\u0002 is {1}"+
+                        "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002", BOLD if iswolf else ""))
     elif role == "augur":
         if victimrole == "amnesiac":
             victimrole = var.FINAL_ROLES[victim]
