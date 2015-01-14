@@ -23,7 +23,7 @@ def logger(file, write=True, display=True):
     if file is not None:
         open(file, "a").close() # create the file if it doesn't exist
     def log(*output, write=write, display=display):
-        output = " ".join([str(x) for x in output])
+        output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\x02", "") # remove bold
         if botconfig.DEBUG_MODE:
             write = True
         if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:

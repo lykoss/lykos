@@ -5499,10 +5499,13 @@ def start(cli, nick, chan, forced = False):
 
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
 
-    debuglog("ROLES:", " | ".join("\u0002{0}\u0002: {1}".format(role, ", ".join(players))
+    debuglog("ROLES:", " | ".join("{0}: {1}".format(role, ", ".join(players))
         for role, players in sorted(var.ROLES.items()) if players and role not in var.TEMPLATE_RESTRICTIONS.keys()))
-    debuglog("TEMPLATES:", " | ".join("\u0002{0}\u0002: {1}".format(tmplt, ", ".join(players))
-        for tmplt, players in sorted(var.ROLES.items()) if players and role in var.TEMPLATE_RESTRICTIONS.keys()))
+    templates = " | ".join("{0}: {1}".format(tmplt, ", ".join(players))
+        for tmplt, players in sorted(var.ROLES.items()) if players and tmplt in var.TEMPLATE_RESTRICTIONS.keys())
+    if not templates:
+        templates = "None"
+    debuglog("TEMPLATES:", templates)
 
     var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
