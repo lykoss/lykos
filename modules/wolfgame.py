@@ -265,13 +265,13 @@ def get_victim(cli, nick, victim, self_in_list = False):
 def mass_mode(cli, md):
     """ Example: mass_mode(cli, (('+v', 'asdf'), ('-v','wobosd'))) """
     lmd = len(md)  # store how many mode changes to do
-    for start_i in range(0, lmd, 4):  # 4 mode-changes at a time
-        if start_i + 4 > lmd:  # If this is a remainder (mode-changes < 4)
+    for start_i in range(0, lmd, var.MODELIMIT):  # 4 mode-changes at a time
+        if start_i + var.MODELIMIT > lmd:  # If this is a remainder (mode-changes < 4)
             z = list(zip(*md[start_i:]))  # zip this remainder
-            ei = lmd % 4  # len(z)
+            ei = lmd % var.MODELIMIT  # len(z)
         else:
-            z = list(zip(*md[start_i:start_i+4])) # zip four
-            ei = 4 # len(z)
+            z = list(zip(*md[start_i:start_i+var.MODELIMIT])) # zip four
+            ei = var.MODELIMIT # len(z)
         # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
         arg1 = "".join(z[0])
         arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
@@ -4547,6 +4547,11 @@ def getfeatures(cli, nick, *rest):
         if r.startswith("CHANMODES="):
             chans = r[10:].split(",")
             var.LISTMODES, var.MODES_ALLSET, var.MODES_ONLYSET, var.MODES_NOSET = chans
+        if r.startswith("MODES="):
+            try:
+                var.MODELIMIT = int(r[6:])
+            except ValueError:
+                pass
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if not notice and not privmsg:

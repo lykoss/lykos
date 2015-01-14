@@ -43,6 +43,8 @@ ACC_GRACE_TIME = 30
 START_QUIT_DELAY = 10
 #  controls how many people it does in one /msg; only works for messages that are the same
 MAX_PRIVMSG_TARGETS = 4
+# how many mode values can be specified at once; used only as fallback
+MODELIMIT = 3
 LEAVE_STASIS_PENALTY = 1
 IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
