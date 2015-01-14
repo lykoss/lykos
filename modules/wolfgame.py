@@ -3283,8 +3283,8 @@ def no_lynch(cli, nick, chan, rest):
         chk_decision(cli)
         return
 
-@cmd("lynch", "vote", "v", game=True, playing=True, pm=True)
-def vote(cli, nick, chan, rest):
+@cmd("lynch", game=True, playing=True, pm=True)
+def lynch(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
     if not rest:
         show_votes(cli, nick, chan, rest)
@@ -6489,6 +6489,17 @@ def game_help(args=''):
         ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
         else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
 game.__doc__ = game_help
+
+
+@cmd("vote", "v", raw_nick=True, pm=True)
+def vote(cli, raw_nick, chan, rest):
+    nick = parse_nick(raw_nick)[0]
+
+    if var.PHASE == "join" and chan != nick:
+        return game(cli, raw_nick, chan, rest)
+    else:
+        return lynch(cli, nick, chan, rest)
+
 
 @cmd("fpull", admin_only=True, pm=True)
 def fpull(cli, nick, chan, rest):
