@@ -5872,15 +5872,12 @@ def fdeny(cli, nick, chan, rest):
     """Deny someone from using a command."""
     allow_deny(cli, nick, chan, rest, "deny")
 
-@cmd("wait", "w", join=True)
+@cmd("wait", "w", join=True, playing=True)
 def wait(cli, nick, chan, rest):
     """Increases the wait time until !start can be used."""
     pl = var.list_players()
 
     if chan != botconfig.CHANNEL:
-        return
-    if nick not in pl:
-        cli.notice(nick, "You're currently not playing.")
         return
     if var.WAITED >= var.MAXIMUM_WAITED:
         cli.msg(chan, "Limit has already been reached for extending the wait time.")
