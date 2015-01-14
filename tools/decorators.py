@@ -92,7 +92,8 @@ def generate(fdict, permissions=True, **kwargs):
                         if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in var.ALLOW_ACCOUNTS[pattern]:
-                                    adminlog(largs[2], rawnick, s[0], largs[3])
+                                    if admin_only or owner_only:
+                                        adminlog(largs[2], rawnick, s[0], largs[3])
                                     return f(*largs)
                 if not var.ACCOUNTS_ONLY and cloak:
                     for pattern in var.DENY.keys():
@@ -105,7 +106,8 @@ def generate(fdict, permissions=True, **kwargs):
                         if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                             for cmdname in s:
                                 if cmdname in var.ALLOW[pattern]:
-                                    adminlog(largs[2], rawnick, s[0], largs[3])
+                                    if admin_only or owner_only:
+                                        adminlog(largs[2], rawnick, s[0], largs[3])
                                     return f(*largs)  # no questions
                 if owner_only:
                     if var.is_owner(nick):
