@@ -61,6 +61,7 @@ var.LAST_GSTATS = None
 var.LAST_PSTATS = None
 var.LAST_TIME = None
 var.LAST_START = {}
+var.LAST_WAIT = {}
 
 var.USERS = {}
 
@@ -5879,11 +5880,17 @@ def wait(cli, nick, chan, rest):
 
     if chan != botconfig.CHANNEL:
         return
+    if (var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
+            timedelta(seconds=var.WAIT_RATE_LIMIT) > datetime.now()):
+        cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                          "before using it again."))
+        return
     if var.WAITED >= var.MAXIMUM_WAITED:
         cli.msg(chan, "Limit has already been reached for extending the wait time.")
         return
 
     now = datetime.now()
+    var.LAST_WAIT[nick] = now
     if now > var.CAN_START_TIME:
         var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
     else:
