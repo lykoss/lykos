@@ -367,6 +367,26 @@ def make_stasis(nick, penalty):
         var.STASISED[cloak] += penalty
         var.set_stasis(cloak, var.STASISED[cloak])
 
+@cmd("fsync", admin_only=True, pm=True)
+def fsync(cli, nick, chan, rest):
+    """Makes the bot apply the currently appropriate channel modes."""
+    sync_modes(cli)
+
+def sync_modes(cli):
+    voices = []
+    pl = var.list_players()
+    for nick, u in var.USERS.items():
+        if nick in pl and 'v' not in u.get('modes', set()):
+            voices.append(("+v", nick))
+        elif nick not in pl and 'v' in u.get('modes', set()):
+            voices.append(("-v", nick))
+    if var.PHASE in ("day", "night"):
+        other = ["+m"]
+    else:
+        other = ["-m"]
+
+    mass_mode(cli, voices, other)
+
 @cmd("fdie", "fbye", admin_only=True, pm=True)
 def forced_exit(cli, nick, chan, rest):  # Admin Only
     """Forces the bot to close."""
