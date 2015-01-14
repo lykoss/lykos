@@ -175,10 +175,9 @@ def connect_callback(cli):
                 @hook("quietlistend", 294)
                 def on_quietlist_end(cli, svr, nick, chan, *etc):
                     if chan == botconfig.CHANNEL:
-                        mass_mode(cli, cmodes)
+                        mass_mode(cli, cmodes, ["-m"])
 
                 cli.mode(botconfig.CHANNEL, "q")  # unquiet all
-                cli.mode(botconfig.CHANNEL, "-m")  # remove -m mode from channel
         elif modeaction == "-o" and target == botconfig.NICK:
             var.OPPED = False
             cli.msg("ChanServ", "op " + botconfig.CHANNEL)
@@ -262,20 +261,25 @@ def get_victim(cli, nick, victim, self_in_list = False):
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
-def mass_mode(cli, md):
-    """ Example: mass_mode(cli, (('+v', 'asdf'), ('-v','wobosd'))) """
-    lmd = len(md)  # store how many mode changes to do
-    for start_i in range(0, lmd, var.MODELIMIT):  # 4 mode-changes at a time
-        if start_i + var.MODELIMIT > lmd:  # If this is a remainder (mode-changes < 4)
-            z = list(zip(*md[start_i:]))  # zip this remainder
-            ei = lmd % var.MODELIMIT  # len(z)
-        else:
-            z = list(zip(*md[start_i:start_i+var.MODELIMIT])) # zip four
-            ei = var.MODELIMIT # len(z)
-        # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
-        arg1 = "".join(z[0])
-        arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
-        cli.mode(botconfig.CHANNEL, arg1, arg2)
+def mass_mode(cli, md_param, md_plain):
+    """ Example: mass_mode(cli, [('+v', 'asdf'), ('-v','wobosd')], ['-m']) """
+    lmd = len(md_param)  # store how many mode changes to do
+    if md_param:
+        for start_i in range(0, lmd, var.MODELIMIT):  # 4 mode-changes at a time
+            if start_i + var.MODELIMIT > lmd:  # If this is a remainder (mode-changes < 4)
+                z = list(zip(*md_param[start_i:]))  # zip this remainder
+                ei = lmd % var.MODELIMIT  # len(z)
+            else:
+                z = list(zip(*md_param[start_i:start_i+var.MODELIMIT])) # zip four
+                ei = var.MODELIMIT # len(z)
+            # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
+            arg1 = "".join(md_plain) + "".join(z[0])
+            print("".join(md_plain))
+            print("".join(z[0]))
+            arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
+            cli.mode(botconfig.CHANNEL, arg1, arg2)
+    else:
+            cli.mode(botconfig.CHANNEL, "".join(md_plain))
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -300,7 +304,6 @@ def reset_modes_timers(cli):
     var.TIMERS = {}
 
     # Reset modes
-    cli.mode(botconfig.CHANNEL, "-m")
     cmodes = []
     for plr in var.list_players():
         cmodes.append(("-v", plr))
@@ -316,7 +319,7 @@ def reset_modes_timers(cli):
         for deadguy in var.DEAD:
             if not is_fake_nick(deadguy):
                 cmodes.append(("-q", deadguy+"!*@*"))
-    mass_mode(cli, cmodes)
+    mass_mode(cli, cmodes, ["-m"])
 
 def reset():
     var.PHASE = "none" # "join", "day", or "night"
@@ -808,7 +811,7 @@ def join_player(cli, player, chan, who = None, forced = False):
                 cmodes.append(("-"+mode, player))
             var.USERS[player]["moded"].update(var.USERS[player]["modes"])
             var.USERS[player]["modes"] = set()
-        mass_mode(cli, cmodes)
+        mass_mode(cli, cmodes, [])
         var.ROLES["person"].append(player)
         var.PHASE = "join"
         var.WAITED = 0
@@ -844,7 +847,7 @@ def join_player(cli, player, chan, who = None, forced = False):
                     cmodes.append(("-"+mode, player))
                 var.USERS[player]["moded"].update(var.USERS[player]["modes"])
                 var.USERS[player]["modes"] = set()
-            mass_mode(cli, cmodes)
+            mass_mode(cli, cmodes, [])
             cli.msg(chan, '\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.'.format(player, len(pl) + 1))
         if not is_fake_nick(player) and not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
             # make sure this only happens once
@@ -2030,13 +2033,13 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         cmode.append(("+"+newmode, nick))
                     var.USERS[nick]["modes"].update(var.USERS[nick]["moded"])
                     var.USERS[nick]["moded"] = set()
-                mass_mode(cli, cmode)
+                mass_mode(cli, cmode, [])
                 return not chk_win(cli)
             if var.PHASE != "join":
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not is_fake_nick(nick):
                     cmode.append(("+q", nick+"!*@*"))
-                mass_mode(cli, cmode)
+                mass_mode(cli, cmode, [])
                 if nick not in var.DEAD:
                     var.DEAD.append(nick)
                 ret = not chk_win(cli, end_game)
