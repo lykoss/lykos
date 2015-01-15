@@ -17,20 +17,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import sys
+if sys.version_info < (3, 2):
+    print('Python 3.2 or newer is required to run the bot.')
+    sys.exit(1)
+
 from oyoyo.client import IRCClient
 import botconfig
 import time
 import traceback
 import modules.common
-import sys
 import tools
 
 
 def main():
-    if sys.version_info < (3, 2):
-        print('Python 3.2 or newer is required to run the bot.')
-        sys.exit(1)
-
     cli = IRCClient(
                       {"privmsg": modules.common.on_privmsg,
                        "notice": lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
