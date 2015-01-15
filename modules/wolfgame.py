@@ -1774,6 +1774,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 pl.remove(dead)
         if nick != None and (nick == original or nick in pl):
             nickrole = var.get_role(nick)
+            nrole = nickrole
             nicktpls = var.get_templates(nick)
             var.del_player(nick)
             # handle roles that trigger on death
@@ -1853,7 +1854,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         else:
                             message = "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.".format(other)
                         cli.msg(botconfig.CHANNEL, message)
-                        debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(other, var.get_role(other), nick, var.get_role(nick)))
+                        debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(other, var.get_role(other), nick, nrole))
                         del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
@@ -1888,7 +1889,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 else:
                                     message = "Before dying, \u0002{0}\u0002 quickly slits \u0002{1}\u0002's throat.".format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
-                                debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, var.get_role(nick), target, var.get_role(target)))
+                                debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, nrole, target, var.get_role(target)))
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
 
                 if nickrole == "time lord":
@@ -4427,7 +4428,7 @@ def target(cli, nick, chan, rest):
     var.TARGETED[nick] = victim
     pm(cli, nick, "You have selected \u0002{0}\u0002 as your target.".format(victim))
 
-    debuglog("{0} ({1}-{2}) TARGET: {3} ({4})".format(nick, var.get_template(nick), var.get_role(nick), victim, var.get_role(victim)))
+    debuglog("{0} ({1}-{2}) TARGET: {3} ({4})".format(nick, "-".join(var.get_templates(nick)), var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("hex", chan=False, pm=True, game=True, playing=True, roles=("hag",))
