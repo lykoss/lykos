@@ -1,2 +1,0 @@
-@wolfbot.py
-@pause
