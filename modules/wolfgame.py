@@ -6655,8 +6655,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
-    @cmd("force", admin_only=True, game=True)
-    def forcepm(cli, nick, chan, rest):
+    @cmd("force", admin_only=True)
+    def force(cli, nick, chan, rest):
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
@@ -6665,46 +6665,38 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if not who or who == botconfig.NICK:
             cli.msg(chan, "That won't work.")
             return
-        if not is_fake_nick(who) and who != "*":
-            ul = list(var.USERS.keys())
-            ull = [u.lower() for u in ul]
-            if who.lower() not in ull:
-                cli.msg(chan, "This can only be done on fake nicks.")
-                return
-            else:
-                who = ul[ull.index(who.lower())]
         if who == "*":
             who = var.list_players()
         else:
-            who = [who]
+            if not is_fake_nick(who) and who != "*":
+                ul = list(var.USERS.keys())
+                ull = [u.lower() for u in ul]
+                if who.lower() not in ull:
+                    cli.msg(chan, "This can only be done on players in the channel or fake nicks.")
+                    return
+                else:
+                    who = [ul[ull.index(who.lower())]]
         comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-        did = False
         if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
-            if (COMMANDS[comm][0].admin_only and nick in var.USERS and
-                not is_admin(nick)):
-                # Not a full admin
-                cli.notice(nick, "Only full admins can force an admin-only command.")
-                return
-
             for fn in COMMANDS[comm]:
-                for guy in who:
-                    if fn.raw_nick:
-                        continue
+                if fn.owner_only:
+                    continue
+                if fn.admin_only and nick in var.USERS and not is_admin(nick):
+                    # Not a full admin
+                    cli.notice(nick, "Only full admins can force an admin-only command.")
+                    continue
+                for user in who:
                     if fn.chan:
-                        fn(cli, guy, chan, " ".join(rst))
+                        fn(cli, user, chan, " ".join(rst))
                     else:
-                        fn(cli, guy, guy, " ".join(rst))
-                    did = True
-            if did:
-                cli.msg(chan, "Operation successful.")
-            else:
-                cli.msg(chan, "Not possible with this command.")
+                        fn(cli, user, user, " ".join(rst))
+            cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
 
 
     @cmd("rforce", admin_only=True)
-    def rforcepm(cli, nick, chan, rest):
+    def rforce(cli, nick, chan, rest):
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
@@ -6725,18 +6717,18 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
         comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
-            if (COMMANDS[comm][0].admin_only and nick in var.USERS and
-                not is_admin(nick)):
-                # Not a full admin
-                cli.notice(nick, "Only full admins can force an admin-only command.")
-                return
-
             for fn in COMMANDS[comm]:
-                for guy in tgt[:]:
+                if fn.owner_only:
+                    continue
+                if fn.admin_only and nick in var.USERS and not is_admin(nick):
+                    # Not a full admin
+                    cli.notice(nick, "Only full admins can force an admin-only command.")
+                    continue
+                for user in tgt[:]:
                     if fn.chan:
-                        fn(cli, guy, chan, " ".join(rst))
+                        fn(cli, user, chan, " ".join(rst))
                     else:
-                        fn(cli, guy, guy, " ".join(rst))
+                        fn(cli, user, user, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
