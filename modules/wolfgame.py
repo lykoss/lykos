@@ -5582,6 +5582,13 @@ def fstasis(cli, nick, chan, rest):
                         cli.notice(nick, err_msg)
 
                     return
+                except OverflowError:
+                    if chan == nick:
+                        pm(cli, nick, "That number is too big.")
+                    else:
+                        cli.notice(nick, "That number is too big.")
+
+                    return
 
                 if amt < 0:
                     if chan == nick:
