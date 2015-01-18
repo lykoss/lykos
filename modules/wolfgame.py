@@ -5582,13 +5582,6 @@ def fstasis(cli, nick, chan, rest):
                         cli.notice(nick, err_msg)
 
                     return
-                except OverflowError:
-                    if chan == nick:
-                        pm(cli, nick, "That number is too big.")
-                    else:
-                        cli.notice(nick, "That number is too big.")
-
-                    return
 
                 if amt < 0:
                     if chan == nick:
@@ -5597,6 +5590,8 @@ def fstasis(cli, nick, chan, rest):
                         cli.notice(nick, err_msg)
 
                     return
+                elif amt > 2**31-1:
+                    amt = 2**31-1
 
                 if amt > 0:
                     var.STASISED[cloak] = amt
@@ -5633,6 +5628,8 @@ def fstasis(cli, nick, chan, rest):
                     else:
                         cli.notice(nick, err_msg)
                     return
+                elif amt > 2**31-1:
+                    amt = 2**31-1
 
                 if amt > 0:
                     var.STASISED_ACCS[acc] = amt
