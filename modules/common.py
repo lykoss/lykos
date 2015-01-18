@@ -148,7 +148,7 @@ def connect_callback(cli):
         @hook("907")
         def on_failure_auth(cli, *etc):
             cli.quit()
-            print("Authentication failed.  Did you fill the account name "+
+            alog("Authentication failed.  Did you fill the account name "+
                   "in botconfig.USERNAME if it's different from the bot nick?")
                
         

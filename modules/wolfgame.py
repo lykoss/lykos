@@ -39,6 +39,7 @@ from tools import logger
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
 errlog = logger("errors.log")
+plog = logger(None) #use this instead of print so that logs have timestamps
 
 BOLD = "\u0002"
 
@@ -117,7 +118,7 @@ def connect_callback(cli):
         elif signum == SIGUSR1:
             restart_program(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == SIGUSR2:
-            print("Scheduling aftergame restart")
+            plog("Scheduling aftergame restart")
             aftergame(cli, "<console>", "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
@@ -405,7 +406,7 @@ def restart_program(cli, nick, chan, rest):
         cli.quit("Forced restart from "+nick)
         raise SystemExit
     finally:
-        print("RESTARTING")
+        plog("RESTARTING")
         python = sys.executable
         if rest.strip().lower() == "debugmode":
             os.execl(python, python, sys.argv[0], "--debug")
