@@ -1,5 +1,6 @@
 import os
 import botconfig
+from tools import logger
 
 MODULES = {}
 
@@ -15,7 +16,7 @@ for modfile in os.listdir("modules"):
         
     modfile = modfile[:-3]
     
-    print("Loading module "+modfile)
+    logger(None)("Loading module "+modfile)
     
     MODULES[modfile] = getattr(__import__("modules."+modfile), modfile)
     
