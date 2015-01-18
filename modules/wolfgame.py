@@ -3998,7 +3998,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
-    debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, vrole))
+    debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("id", chan=False, pm=True, game=True, playing=True, roles=("detective",))
