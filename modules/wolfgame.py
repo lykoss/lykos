@@ -5166,7 +5166,7 @@ def transition_night(cli):
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
             else:
-                pm(cli, clone, "You are a \u0002clone\u0002")
+                pm(cli, clone, "You are a \u0002clone\u0002.")
             pm(cli, clone, "Players: "+", ".join(pl))
 
         for minion in var.ROLES["minion"]:
