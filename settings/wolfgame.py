@@ -195,7 +195,7 @@ SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "vil
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "augur", "fool", "jester", "mad scientist"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "augur", "fool", "jester", "mad scientist", "monster"],
                          "gunner"          : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "sharpshooter"    : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
                          "mayor"           : ["fool", "jester", "monster"],
