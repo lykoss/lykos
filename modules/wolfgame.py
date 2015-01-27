@@ -1443,10 +1443,9 @@ def chk_traitor(cli):
 
         # no message if wolf cub becomes wolf for now, may want to change that in future
         if len(var.ROLES["wolf"]) > 0:
-            if var.ROLE_REVEAL:
-                cli.msg(botconfig.CHANNEL, ('\u0002The villagers, during their celebrations, are '+
-                                            'frightened as they hear a loud howl. The wolves are '+
-                                            'not gone!\u0002'))
+            cli.msg(botconfig.CHANNEL, ('\u0002The villagers, during their celebrations, are '+
+                                        'frightened as they hear a loud howl. The wolves are '+
+                                        'not gone!\u0002'))
 
 def stop_game(cli, winner = ""):
     chan = botconfig.CHANNEL
