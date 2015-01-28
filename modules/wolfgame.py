@@ -847,7 +847,7 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
                       'Type "{1}join" to join. Type "{1}start" to start the game. '+
-                      'Type "{1}wait" to increase start wait time.').format(player, botconfig.CMD_CHAR))
+                      'Type "{1}wait" to increase the start wait time.').format(player, botconfig.CMD_CHAR))
 
         # Set join timer
         if var.JOIN_TIME_LIMIT and not botconfig.DEBUG_MODE:
