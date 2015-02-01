@@ -1621,9 +1621,16 @@ def stop_game(cli, winner = ""):
                     elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
                         won = True
                         iwon = True
+                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "!villagers" and winner == "wolves":
+                        # Starts with ! if they were driven off by retribution totem
+                        won = True
+                        iwon = False
                     elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
                         won = True
                         iwon = True
+                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "!wolves" and winner == "villagers":
+                        won = True
+                        iwon = False
                     else:
                         won = False
                         iwon = False
@@ -2770,6 +2777,8 @@ def transition_day(cli, gameid=0):
         for wolf in wolves:
             villagers.remove(wolf)
         for ghost, target in var.VENGEFUL_GHOSTS.items():
+            if target[0] == "!":
+                continue
             if ghost not in var.OTHER_KILLS:
                 if target == "wolves":
                     var.OTHER_KILLS[ghost] = random.choice(wolves)
@@ -3824,6 +3833,9 @@ def kill(cli, nick, chan, rest):
     if role in var.WOLFCHAT_ROLES and role not in wolfroles:
         return  # they do this a lot.
     if role not in wolfroles + ["hunter"] and nick not in var.VENGEFUL_GHOSTS.keys():
+        return
+    if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
+        # ghost was driven away by retribution
         return
     if var.PHASE != "night":
         pm(cli, nick, "You may only kill people at night.")
@@ -5102,6 +5114,8 @@ def transition_night(cli):
             pm(cli, lycan, "You are a \u0002lycan\u0002.")
 
     for v_ghost, who in var.VENGEFUL_GHOSTS.items():
+        if who[0] == "!":
+            continue
         wolves = var.list_players(var.WOLFTEAM_ROLES)
         if who == "wolves":
             pl = wolves
