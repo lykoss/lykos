@@ -247,24 +247,42 @@ PING_IN_ACCS = [] # accounts of people who have opted in for ping
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
-def is_admin(nick):
-    if nick not in USERS.keys():
-        return False
-    if USERS[nick]["account"] != "*": # Check only account
-        if [ptn for ptn in botconfig.OWNERS_ACCOUNTS+botconfig.ADMINS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
-            return True
-    if [ptn for ptn in botconfig.OWNERS+botconfig.ADMINS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
+def is_admin(nick, cloak=None, acc=None):
+    if nick in USERS.keys():
+        if not cloak:
+            cloak = USERS[nick]["cloak"]
+        if not acc:
+            acc = USERS[nick]["account"]
+
+    if acc and acc != "*":
+        for pattern in set(botconfig.OWNERS_ACCOUNTS + botconfig.ADMINS_ACCOUNTS):
+            if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                return True
+
+    if cloak:
+        for pattern in set(botconfig.OWNERS + botconfig.ADMINS):
+            if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                return True
+
     return False
 
-def is_owner(nick):
-    if nick not in USERS.keys():
-        return False
-    if USERS[nick]["account"] != "*":
-        if [ptn for ptn in botconfig.OWNERS_ACCOUNTS if fnmatch.fnmatch(USERS[nick]["account"].lower(), ptn.lower())]:
-            return True
-    if [ptn for ptn in botconfig.OWNERS if fnmatch.fnmatch(USERS[nick]["cloak"].lower(), ptn.lower())]:
-        return True
+def is_owner(nick, cloak=None, acc=None):
+    if nick in USERS.keys():
+        if not cloak:
+            cloak = USERS[nick]["cloak"]
+        if not acc:
+            acc = USERS[nick]["account"]
+
+    if acc and acc != "*":
+        for pattern in botconfig.OWNERS_ACCOUNTS:
+            if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                return True
+
+    if cloak:
+        for pattern in botconfig.OWNERS:
+            if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                return True
+
     return False
 
 def plural(role):

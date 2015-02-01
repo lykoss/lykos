@@ -110,14 +110,14 @@ def generate(fdict, permissions=True, **kwargs):
                                         adminlog(largs[2], rawnick, s[0], largs[3])
                                     return f(*largs)  # no questions
                 if owner_only:
-                    if var.is_owner(nick):
+                    if var.is_owner(nick, cloak):
                         adminlog(largs[2], rawnick, s[0], largs[3])
                         return f(*largs)
                     else:
                         largs[0].notice(nick, "You are not the owner.")
                         return
                 if admin_only:
-                    if var.is_admin(nick):
+                    if var.is_admin(nick, cloak):
                         adminlog(largs[2], rawnick, s[0], largs[3])
                         return f(*largs)
                     else:

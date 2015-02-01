@@ -6048,7 +6048,7 @@ def get_help(cli, rnick, chan, rest):
             in fn[0].aliases and fn[0].chan):
             fns.append("\u0002"+name+"\u0002")
     afns = []
-    if is_admin(nick):
+    if is_admin(nick, cloak):
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("\u0002"+name+"\u0002")
@@ -6069,7 +6069,7 @@ def on_invite(cli, nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
         return # No questions
-    if is_admin(parse_nick(nick)[0]):
+    if is_admin(*parse_nick(nick)[:4:3]):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
     else:
@@ -6590,7 +6590,7 @@ def fsend(cli, nick, chan, rest):
     cli.send(rest)
 
 def _say(cli, raw_nick, rest, command, action=False):
-    nick = parse_nick(raw_nick)[0]
+    nick, cloak = parse_nick(raw_nick)[:4:3]
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
@@ -6601,7 +6601,7 @@ def _say(cli, raw_nick, rest, command, action=False):
 
     (target, message) = rest
 
-    if not is_admin(nick):
+    if not is_admin(nick, cloak):
         if nick not in var.USERS:
             pm(cli, nick, "You have to be in {0} to use this command.".format(
                 botconfig.CHANNEL))
