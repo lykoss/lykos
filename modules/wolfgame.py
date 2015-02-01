@@ -1575,9 +1575,8 @@ def stop_game(cli, winner = ""):
                     won = True
                 elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
                     won = True
-            else:
-                if winner == "villagers":
-                    won = True
+            elif winner == "villagers":
+                won = True
 
             survived = var.list_players()
             if plr.startswith("(dced)"):
@@ -1625,6 +1624,9 @@ def stop_game(cli, winner = ""):
                     elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
                         won = True
                         iwon = True
+                    else:
+                        won = False
+                        iwon = False
             elif rol == "lycan" or splr in var.LYCANS:
                 if splr in var.LYCANS and winner == "wolves":
                     won = True
