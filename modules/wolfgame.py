@@ -1811,6 +1811,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
             nickrole = var.get_role(nick)
             nicktpls = var.get_templates(nick)
             var.del_player(nick)
+            if nick in pl:
+                pl.remove(nick)
             # handle roles that trigger on death
             # clone happens regardless of death_triggers being true or not
             if var.PHASE in ("night", "day"):
@@ -1890,6 +1892,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         cli.msg(botconfig.CHANNEL, message)
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(other, var.get_role(other), nick, nickrole))
                         del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original)
+                        pl.remove(other)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
                         target = var.TARGETED[nick]
@@ -1913,6 +1916,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                                        "however, \u0002{2}\u0002, a bodyguard, sacrificed their life to protect them.").format(nick, target, ga)
                                             cli.msg(botconfig.CHANNEL, message)
                                             del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
+                                            pl.remove(ga)
                                             break
                             else:
                                 if var.ROLE_REVEAL:
@@ -1925,6 +1929,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 cli.msg(botconfig.CHANNEL, message)
                                 debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, nickrole, target, var.get_role(target)))
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original)
+                                pl.remove(target)
 
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -1996,7 +2001,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 target2 = var.ALL_PLAYERS[i]
                                 break
 
-                    pl = var.list_players() #might be outdated if player is also assassin
                     if target1 in pl:
                         if target2 in pl and target1 != target2:
                             if var.ROLE_REVEAL:
@@ -2020,6 +2024,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             deadlist2.append(target1)
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original)
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original)
+                            pl.remove(target1)
+                            pl.remove(target2)
                         else:
                             if var.ROLE_REVEAL:
                                 r1 = var.get_reveal_role(target1)
@@ -2034,6 +2040,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, var.get_role(target1)))
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
+                            pl.remove(target1)
                     else:
                         if target2 in pl:
                             if var.ROLE_REVEAL:
@@ -2049,6 +2056,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, var.get_role(target2)))
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original)
+                            pl.remove(target2)
                         else:
                             tmsg = ("\u0002{0}\u0002 throws " +
                                     "a potent chemical concoction into the crowd. Thankfully, " +
