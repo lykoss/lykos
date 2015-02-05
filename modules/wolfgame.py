@@ -6073,11 +6073,12 @@ def get_help(cli, rnick, chan, rest):
             cli.notice(nick, "Admin Commands: "+", ".join(afns))
 
 @hook("invite")
-def on_invite(cli, nick, something, chan):
+def on_invite(cli, raw_nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
         return # No questions
-    if is_admin(*parse_nick(nick)[:4:3]):
+    (nick, _, _, cloak) = parse_nick(raw_nick)
+    if is_admin(nick, cloak):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
     else:
@@ -6598,7 +6599,7 @@ def fsend(cli, nick, chan, rest):
     cli.send(rest)
 
 def _say(cli, raw_nick, rest, command, action=False):
-    nick, cloak = parse_nick(raw_nick)[:4:3]
+    (nick, _, _, cloak) = parse_nick(raw_nick)
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
