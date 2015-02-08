@@ -3034,7 +3034,10 @@ def transition_day(cli, gameid=0):
         novictmsg = False
 
     for victim in vlist:
-        if victim in var.PROTECTED and victim not in var.DYING:
+        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves:
+            message.append("The wolves' selected victim was a harlot, who was not at home last night.")
+            novictmsg = False
+        elif victim in var.PROTECTED and victim not in var.DYING:
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
                             "emitted a brilliant flash of light, blinding the attacker and " +
                             "allowing them to escape.").format(victim))
@@ -3052,9 +3055,6 @@ def transition_day(cli, gameid=0):
                         message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(bodyguard))
                         novictmsg = False
                         break
-        elif victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves:
-            message.append("The wolves' selected victim was a harlot, who was not at home last night.")
-            novictmsg = False
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves and victim not in var.IMMUNIZED:
             message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
             pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
