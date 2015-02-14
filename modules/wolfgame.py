@@ -1769,8 +1769,6 @@ def chk_win(cli, end_game = True):
         else:
             return False
         if end_game:
-            cli.msg(chan, message)
-            stop_game(cli, winner)
             players = []
             if winner == "monsters":
                 for plr in var.ROLES["monster"]:
@@ -1784,6 +1782,8 @@ def chk_win(cli, end_game = True):
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
+            cli.msg(chan, message)
+            stop_game(cli, winner)
         return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = ""):
