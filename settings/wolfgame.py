@@ -1,4 +1,5 @@
 from collections import defaultdict
+import math
 
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
@@ -664,6 +665,18 @@ class AmnesiaMode(object):
             "amnesiac" : [i - 2 for i in self.ROLE_INDEX]
             })
 
+@game_mode("valentines", minp = 8, maxp = 24, likelihood = 0)
+class MatchmakerMode(object):
+    """Love is in the air!"""
+    def __init__(self):
+        self.ROLE_INDEX = range(8, 25)
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            "wolf"          : [math.ceil((i ** 1.4) * 0.06) for i in self.ROLE_INDEX],
+            "matchmaker"    : [i - math.ceil((i ** 1.4) * 0.06) - (1 if i >= 12 else 0) - (1 if i >= 18 else 0) for i in self.ROLE_INDEX],
+            "monster"       : [(1 if i >= 12 else 0) for i in self.ROLE_INDEX],
+            "mad scientist" : [(1 if i >= 18 else 0) for i in self.ROLE_INDEX]
+            })
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
@@ -744,6 +757,7 @@ class AlphaMode(object):
             # templates
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
             })
+
 
 # Persistence
 
