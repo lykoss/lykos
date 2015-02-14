@@ -6735,6 +6735,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     return
                 else:
                     who = [ul[ull.index(who.lower())]]
+            else:
+                who = [who]
         comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
             for fn in COMMANDS[comm]:
