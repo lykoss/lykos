@@ -75,6 +75,7 @@ var.PLAYERS = {}
 var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
+var.PINGING_IFS = False
 var.TIMERS = {}
 
 var.ORIGINAL_SETTINGS = {}
@@ -332,6 +333,7 @@ def reset():
     var.ROLES = {"person" : []}
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.JOINED_THIS_GAME_ACCS = [] # same, except accounts
+    var.PING_JOIN_TIMER = 0
     var.NO_LYNCH = []
     var.FGAMED = False
     var.CURRENT_GAMEMODE = "default"
@@ -343,6 +345,7 @@ def reset():
     dict.clear(var.PLAYERS)
     dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
+
 reset()
 
 def make_stasis(nick, penalty):
@@ -463,7 +466,7 @@ def pinger(cli, nick, chan, rest):
     var.PINGING = True
     TO_PING = []
 
-
+    pl = len(var.list_players())
 
     @hook("whoreply", hookid=800)
     def on_whoreply(cli, server, dunno, chan, dunno1,
@@ -471,15 +474,20 @@ def pinger(cli, nick, chan, rest):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if ('G' not in status and '+' not in status and not
-            is_user_stasised(user)[0] and not is_user_away(user)):
-
-            TO_PING.append(user)
-
+        if ('G' not in status and '+' not in status and not is_user_stasised(user)[0]):
+            acc = var.USERS[user]["account"]
+            if not is_user_away(user):
+                TO_PING.append(user)
+            elif acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= pl:
+                TO_PING.append(user)
+            elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= pl:
+                TO_PING.append(user)
 
     @hook("endofwho", hookid=800)
     def do_ping(*args):
         if not var.PINGING: return
+
+        TO_PING = list(set(TO_PING)) # prevents duplicate entries
 
         TO_PING.sort(key=lambda x: x.lower())
 
@@ -787,12 +795,12 @@ def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
-@cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
+@cmd("pingif", "pingme", "pingat", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference."""
     if not rest or (rest.isdigit() and int(rest) == 0):
         if is_user_altpinged(nick)[0]:
-            msg = "Your ping preferences have been removed (Was {0}).".format(is_user_altpinged(nick)[1])
+            msg = "Your ping preferences have been removed (was {0}).".format(is_user_altpinged(nick)[1])
             if chan == nick:
                 pm(cli, nick, msg)
             else:
@@ -810,7 +818,17 @@ def altpinger(cli, nick, chan, rest):
                 cli.notice(nick, "You do not have any preferences set.")
     elif rest.isdigit():
         rest = int(rest)
-        if is_user_altpinged(nick)[0]:
+        if rest >= var.MAX_PLAYERS:
+            if chan == nick:
+                pm(cli, nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS-1))
+            else:
+                cli.notice(nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS-1))
+        elif is_user_altpinged(nick)[1] == rest:
+            if chan == nick:
+                pm(cli, nick, "Your ping preferences are already set to {0}.".format(rest))
+            else:
+                cli.notice(nick, "Your ping preferences are already set to {0}.".format(rest))
+        elif is_user_altpinged(nick)[0]:
             msg = "Your ping preferences have been changed from {0} to {1}.".format(is_user_altpinged(nick)[1], rest)
             if chan == nick:
                 pm(cli, nick, msg)
@@ -824,7 +842,7 @@ def altpinger(cli, nick, chan, rest):
                 cli.notice(nick, "Your ping preferences have been set to {0}.".format(rest))
             toggle_altpinged_status(nick, rest)
     else:
-        cli.notice(nick, "You need to enter a positive number.")
+        cli.notice(nick, "You need to enter a non-negative integer.")
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
@@ -881,6 +899,86 @@ def toggle_altpinged_status(nick, value, old=None):
                     if cloak in var.PING_IF_NUMS[old]:
                         var.PING_IF_NUMS[old].remove(cloak)
 
+@cmd("pingpref", "pingprefs", "prefping", pm=True) # need a better name
+def toggle_altping_prefs(cli, nick, chan, rest):
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else: # something not right
+        if chan == nick:
+            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        else: # former message: "You won the lottery! This is a bug though, so report it to the admins."
+            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+    if acc and acc != "*":
+        if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "all":
+            msg = "You will now only get pinged by {0}ping when your preferred amount of players is reached."
+            var.PING_PREFS_ACCS[acc] = "none"
+            var.set_ping_pref_acc(acc, "none")
+        else:
+            msg = "You will now get pinged when your preferred amount of players is reached."
+            var.PING_PREFS_ACCS[acc] = "all"
+            var.set_ping_pref_acc(acc, "all")
+    elif var.ACCOUNTS_ONLY:
+        msg = "You are not logged in to NickServ."
+    else:
+        if cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "all":
+            msg = "You will now only get pinged by {0}ping when your preferred amount of players is reached."
+            var.PING_PREFS[cloak] = "none"
+            var.set_ping_pref(cloak, "none")
+        else:
+            msg = "You will now get pinged when your preferred amount of players is reached."
+            var.PING_PREFS[cloak] = "all"
+            var.set_ping_pref(cloak, "all")
+
+    if chan == nick:
+        pm(cli, nick, msg.format(botconfig.CMD_CHAR))
+    else:
+        cli.notice(nick, msg.format(botconfig.CMD_CHAR))
+
+def join_timer_handler(cli):
+    while var.PHASE == "join":
+        with var.GRAVEYARD_LOCK:
+            if var.PING_JOIN_TIMER and var.PING_JOIN_TIMER + timedelta(seconds=10) <= datetime.now():
+                to_ping = set() # this ensures we don't have any duplicate
+                pl = var.list_players()
+
+                if len(pl) in var.PING_IF_NUMS_ACCS or (not var.ACCOUNTS_ONLY and len(pl) in var.PING_IF_NUMS):
+                    var.PINGING_IFS = True
+                    checker = []
+                    chk_acc = []
+
+                    for num in var.PING_IF_NUMS:
+                        if num <= len(pl):
+                            checker.extend(var.PING_IF_NUMS[num])
+
+                    for num in var.PING_IF_NUMS_ACCS:
+                        if num <= len(pl):
+                            chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+
+                    @hook("whospcrpl", hookid=387)
+                    def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+                        if ('G' in status or '+' in status or is_user_stasised(user)[0] or
+                                not var.PINGING_IFS or user == botconfig.NICK):
+                            return
+                        if acc and acc != "*":
+                            if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] == "all":
+                                to_ping.add(user)
+
+                        elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] == "all":
+                            to_ping.add(user)
+
+                    @hook("endofwho", hookid=387)
+                    def fetch_altpingers(*stuff):
+                        var.PINGING_IFS = False
+                        var.PING_JOIN_TIMER = 0
+                        decorators.unhook(HOOKS, 387)
+                        if to_ping:
+                            cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+
+                    cli.who(botconfig.CHANNEL, "%nushaf")
+
+        time.sleep(5)
+
 @cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
@@ -933,6 +1031,10 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.PHASE = "join"
         var.WAITED = 0
         var.GAME_ID = time.time()
+        var.PING_JOIN_TIMER = datetime.now()
+        join_pinger = threading.Thread(None, join_timer_handler, args=(cli,))
+        join_pinger.daemon = True
+        join_pinger.start()
         if cloak:
             var.JOINED_THIS_GAME.append(cloak)
         if acc:
@@ -987,33 +1089,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.LAST_GSTATS = None
         var.LAST_PSTATS = None
         var.LAST_TIME = None
-
-    to_ping = set() # this ensures we don't have duplicates
-    players = len(pl) + 1
-    if players in var.PING_IF_NUMS_ACCS or (not var.ACCOUNTS_ONLY and players in var.PING_IF_NUMS):
-        var.PINGING_IFS = True
-        checker = var.PING_IF_NUMS[players] if players in var.PING_IF_NUMS else ()
-        chk_acc = var.PING_IF_NUMS_ACCS[players] if players in var.PING_IF_NUMS_ACCS else ()
-
-        @hook("whospcrpl", hookid=387)
-        def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
-            if user in (player, who, botconfig.NICK) or user in pl:
-                return
-            if 'G' in status or '+' in status or is_user_stasised(user)[0] or not var.PINGING_IFS:
-                return
-            if acc in chk_acc:
-                to_ping.add(user)
-            elif not var.ACCOUNTS_ONLY and cloak in checker:
-                to_ping.add(user)
-
-        @hook("endofwho", hookid=387)
-        def actually_pingem(*stuff):
-            if not to_ping:
-                return
-            cli.msg(chan, "PING! {0} players! ".format(players) + " ".join(to_ping))
-            decorators.unhook(HOOKS, 387)
-
-        cli.who(chan, "%nushaf")
+        with var.GRAVEYARD_LOCK:
+            var.PING_JOIN_TIMER = datetime.now()
 
 def kill_join(cli, chan):
     pl = var.list_players()
