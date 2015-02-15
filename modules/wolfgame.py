@@ -787,6 +787,99 @@ def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
+@cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
+def altpinger(cli, nick, chan, rest):
+    """Pings you when the number of players reaches your preference."""
+    if not rest or (rest.isdigit() and int(rest) == 0):
+        if is_user_altpinged(nick)[0]:
+            msg = "Your ping preferences have been removed (Was {0}).".format(is_user_altpinged(nick)[1])
+            if chan == nick:
+                pm(cli, nick, msg)
+            else:
+                cli.notice(nick, msg)
+            toggle_altpinged_status(nick, 0, is_user_altpinged(nick)[1])
+        elif not rest:
+            if chan == nick:
+                pm(cli, nick, "You need to enter a number.")
+            else:
+                cli.notice(nick, "You need to enter a number.")
+        else:
+            if chan == nick:
+                pm(cli, nick, "You do not have any preferences set.")
+            else:
+                cli.notice(nick, "You do not have any preferences set.")
+    elif rest.isdigit():
+        rest = int(rest)
+        if is_user_altpinged(nick)[0]:
+            msg = "Your ping preferences have been changed from {0} to {1}.".format(is_user_altpinged(nick)[1], rest)
+            if chan == nick:
+                pm(cli, nick, msg)
+            else:
+                cli.notice(nick, msg)
+            toggle_altpinged_status(nick, rest, is_user_altpinged(nick)[1])
+        else:
+            if chan == nick:
+                pm(cli, nick, "Your ping preferences have been set to {0}.".format(rest))
+            else:
+                cli.notice(nick, "Your ping preferences have been set to {0}.".format(rest))
+            toggle_altpinged_status(nick, rest)
+    else:
+        cli.notice(nick, "You need to enter a positive number.")
+
+def is_user_altpinged(nick):
+    if nick in var.USERS.keys():
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return False, None
+    if acc and acc != "*":
+        if acc in var.PING_IF_PREFS_ACCS.keys():
+            return True, var.PING_IF_PREFS_ACCS[acc]
+    elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
+        return True, var.PING_IF_PREFS[cloak]
+    return False, None
+
+def toggle_altpinged_status(nick, value, old=None):
+    # nick should be in var.USERS; if not, let the error propagate
+    cloak = var.USERS[nick]["cloak"]
+    acc = var.USERS[nick]["account"]
+    if value == 0:
+        if acc and acc != "*":
+            if acc in var.PING_IF_PREFS_ACCS.keys():
+                del var.PING_IF_PREFS_ACCS[acc]
+                var.set_ping_if_status_acc(acc, 0)
+                if old is not None:
+                    if old in var.PING_IF_NUMS_ACCS.keys():
+                        if acc in var.PING_IF_NUMS_ACCS[old]:
+                            var.PING_IF_NUMS_ACCS[old].remove(acc)
+        if not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
+            del var.PING_IF_PREFS[cloak]
+            var.set_ping_if_status(cloak, 0)
+            if old is not None:
+                if old in var.PING_IF_NUMS.keys():
+                    if cloak in var.PING_IF_NUMS[old]:
+                        var.PING_IF_NUMS[old].remove(cloak)
+    else:
+        if acc and acc != "*":
+            var.PING_IF_PREFS_ACCS[acc] = value
+            var.set_ping_if_status_acc(acc, value)
+            if value not in var.PING_IF_NUMS_ACCS.keys():
+                var.PING_IF_NUMS_ACCS[value] = []
+            var.PING_IF_NUMS_ACCS[value].append(acc)
+            if old is not None:
+                if old in var.PING_IF_NUMS_ACCS.keys():
+                    if acc in var.PING_IF_NUMS_ACCS[old]:
+                        var.PING_IF_NUMS_ACCS[old].remove(acc)
+        elif not var.ACCOUNTS_ONLY:
+            var.PING_IF_PREFS[cloak] = value
+            var.set_ping_if_status(cloak, value)
+            if value not in var.PING_IF_NUMS.keys():
+                var.PING_IF_NUMS[value] = []
+            var.PING_IF_NUMS[value].append(cloak)
+            if old is not None:
+                if old in var.PING_IF_NUMS.keys():
+                    if cloak in var.PING_IF_NUMS[old]:
+                        var.PING_IF_NUMS[old].remove(cloak)
 
 @cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
@@ -895,6 +988,32 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.LAST_PSTATS = None
         var.LAST_TIME = None
 
+    to_ping = set() # this ensures we don't have duplicates
+    players = len(pl) + 1
+    if players in var.PING_IF_NUMS_ACCS or (not var.ACCOUNTS_ONLY and players in var.PING_IF_NUMS):
+        var.PINGING_IFS = True
+        checker = var.PING_IF_NUMS[players] if players in var.PING_IF_NUMS else ()
+        chk_acc = var.PING_IF_NUMS_ACCS[players] if players in var.PING_IF_NUMS_ACCS else ()
+
+        @hook("whospcrpl", hookid=387)
+        def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+            if user in (player, who, botconfig.NICK) or user in pl:
+                return
+            if 'G' in status or '+' in status or is_user_stasised(user)[0] or not var.PINGING_IFS:
+                return
+            if acc in chk_acc:
+                to_ping.add(user)
+            elif not var.ACCOUNTS_ONLY and cloak in checker:
+                to_ping.add(user)
+
+        @hook("endofwho", hookid=387)
+        def actually_pingem(*stuff):
+            if not to_ping:
+                return
+            cli.msg(chan, "PING! {0} players! ".format(players) + " ".join(to_ping))
+            decorators.unhook(HOOKS, 387)
+
+        cli.who(chan, "%nushaf")
 
 def kill_join(cli, chan):
     pl = var.list_players()
