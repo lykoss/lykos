@@ -334,6 +334,8 @@ def reset():
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.JOINED_THIS_GAME_ACCS = [] # same, except accounts
     var.PING_JOIN_TIMER = 0
+    var.PINGED_ALREADY = []
+    var.PINGED_ALREADY_ACCS = []
     var.NO_LYNCH = []
     var.FGAMED = False
     var.CURRENT_GAMEMODE = "default"
@@ -487,8 +489,6 @@ def pinger(cli, nick, chan, rest):
     @hook("endofwho", hookid=800)
     def do_ping(*args):
         if not var.PINGING: return
-
-        TO_PING = list(set(TO_PING)) # prevents duplicate entries
 
         TO_PING.sort(key=lambda x: x.lower())
 
@@ -842,7 +842,7 @@ def altpinger(cli, nick, chan, rest):
             else:
                 cli.notice(nick, "Your ping preferences are already set to {0}.".format(rest))
         elif altpinged:
-            msg = "Your ping preferences have been changed from {0} to {1}.".format(altpinged, rest)
+            msg = "Your ping preferences have been changed from {0} to {1}.".format(players, rest)
             if chan == nick:
                 pm(cli, nick, msg)
             else:
@@ -957,40 +957,57 @@ def join_timer_handler(cli):
                 to_ping = set() # this ensures we don't have any duplicate
                 pl = var.list_players()
 
-                if len(pl) in var.PING_IF_NUMS_ACCS or (not var.ACCOUNTS_ONLY and len(pl) in var.PING_IF_NUMS):
-                    var.PINGING_IFS = True
-                    checker = []
-                    chk_acc = []
+                var.PINGING_IFS = True
+                checker = []
+                chk_acc = []
 
+                for num in var.PING_IF_NUMS_ACCS:
+                    if num <= len(pl):
+                        chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+
+                if not var.ACCOUNTS_ONLY:
                     for num in var.PING_IF_NUMS:
                         if num <= len(pl):
                             checker.extend(var.PING_IF_NUMS[num])
 
-                    for num in var.PING_IF_NUMS_ACCS:
-                        if num <= len(pl):
-                            chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+                for acc in chk_acc[:]:
+                    if acc in var.PINGED_ALREADY_ACCS:
+                        chk_acc.remove(acc)
 
-                    @hook("whospcrpl", hookid=387)
-                    def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
-                        if ('G' in status or '+' in status or is_user_stasised(user)[0] or
-                                not var.PINGING_IFS or user == botconfig.NICK):
-                            return
-                        if acc and acc != "*":
-                            if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] == "all":
-                                to_ping.add(user)
+                for cloak in checker[:]:
+                    if cloak in var.PINGED_ALREADY:
+                        checker.remove(cloak)
 
-                        elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] == "all":
+                if not chk_acc and not checker:
+                    var.PINGING_IFS = False
+                    var.PING_JOIN_TIMER = 0
+                    return
+
+                @hook("whospcrpl", hookid=387)
+                def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+                    if ('G' in status or '+' in status or is_user_stasised(user)[0] or
+                            not var.PINGING_IFS or user == botconfig.NICK or user in pl):
+
+                        return
+
+                    if acc and acc != "*":
+                        if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] == "all":
                             to_ping.add(user)
+                            var.PINGED_ALREADY_ACCS.append(acc)
 
-                    @hook("endofwho", hookid=387)
-                    def fetch_altpingers(*stuff):
-                        var.PINGING_IFS = False
-                        var.PING_JOIN_TIMER = 0
-                        decorators.unhook(HOOKS, 387)
-                        if to_ping:
-                            cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+                    elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] == "all":
+                        to_ping.add(user)
+                        var.PINGED_ALREADY.append(cloak)
 
-                    cli.who(botconfig.CHANNEL, "%nushaf")
+                @hook("endofwho", hookid=387)
+                def fetch_altpingers(*stuff):
+                    var.PINGING_IFS = False
+                    var.PING_JOIN_TIMER = 0
+                    decorators.unhook(HOOKS, 387)
+                    if to_ping:
+                        cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+
+                cli.who(botconfig.CHANNEL, "%nushaf")
 
         time.sleep(5)
 
@@ -1047,6 +1064,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.WAITED = 0
         var.GAME_ID = time.time()
         var.PING_JOIN_TIMER = datetime.now()
+        var.PINGED_ALREADY_ACCS = []
+        var.PINGED_ALREADY = []
         join_pinger = threading.Thread(None, join_timer_handler, args=(cli,))
         join_pinger.daemon = True
         join_pinger.start()
