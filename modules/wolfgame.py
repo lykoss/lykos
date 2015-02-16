@@ -466,7 +466,7 @@ def pinger(cli, nick, chan, rest):
     var.PINGING = True
     TO_PING = []
 
-    pl = len(var.list_players())
+
 
     @hook("whoreply", hookid=800)
     def on_whoreply(cli, server, dunno, chan, dunno1,
@@ -476,11 +476,12 @@ def pinger(cli, nick, chan, rest):
 
         if ('G' not in status and '+' not in status and not is_user_stasised(user)[0]):
             acc = var.USERS[user]["account"]
+            lenp = len(var.list_players())
             if not is_user_away(user):
                 TO_PING.append(user)
-            elif acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= pl:
+            elif acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= lenp:
                 TO_PING.append(user)
-            elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= pl:
+            elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= lenp:
                 TO_PING.append(user)
 
     @hook("endofwho", hookid=800)
@@ -798,14 +799,26 @@ def fpinger(cli, nick, chan, rest):
 @cmd("pingif", "pingme", "pingat", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference."""
-    if not rest or (rest.isdigit() and int(rest) == 0):
-        if is_user_altpinged(nick)[0]:
-            msg = "Your ping preferences have been removed (was {0}).".format(is_user_altpinged(nick)[1])
+    altpinged, players = is_user_altpinged(nick)
+    if not rest:
+        if altpinged:
+            msg = "Your ping preferences are currently set to {0}.".format(players)
+        else:
+            msg = "You do not have any ping preferences currently set."
+
+        if chan == nick:
+            pm(cli, nick, msg)
+        else:
+            cli.notice(nick, msg)
+
+    elif rest.isdigit() and int(rest) == 0:
+        if altpinged:
+            msg = "Your ping preferences have been removed (was {0}).".format(players)
             if chan == nick:
                 pm(cli, nick, msg)
             else:
                 cli.notice(nick, msg)
-            toggle_altpinged_status(nick, 0, is_user_altpinged(nick)[1])
+            toggle_altpinged_status(nick, 0, players)
         elif not rest:
             if chan == nick:
                 pm(cli, nick, "You need to enter a number.")
@@ -818,23 +831,23 @@ def altpinger(cli, nick, chan, rest):
                 cli.notice(nick, "You do not have any preferences set.")
     elif rest.isdigit():
         rest = int(rest)
-        if rest >= var.MAX_PLAYERS:
+        if rest > 999:
             if chan == nick:
-                pm(cli, nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS-1))
+                pm(cli, nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
             else:
-                cli.notice(nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS-1))
-        elif is_user_altpinged(nick)[1] == rest:
+                cli.notice(nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
+        elif players == rest:
             if chan == nick:
                 pm(cli, nick, "Your ping preferences are already set to {0}.".format(rest))
             else:
                 cli.notice(nick, "Your ping preferences are already set to {0}.".format(rest))
-        elif is_user_altpinged(nick)[0]:
-            msg = "Your ping preferences have been changed from {0} to {1}.".format(is_user_altpinged(nick)[1], rest)
+        elif altpinged:
+            msg = "Your ping preferences have been changed from {0} to {1}.".format(altpinged, rest)
             if chan == nick:
                 pm(cli, nick, msg)
             else:
                 cli.notice(nick, msg)
-            toggle_altpinged_status(nick, rest, is_user_altpinged(nick)[1])
+            toggle_altpinged_status(nick, rest, players)
         else:
             if chan == nick:
                 pm(cli, nick, "Your ping preferences have been set to {0}.".format(rest))
@@ -849,16 +862,18 @@ def is_user_altpinged(nick):
         cloak = var.USERS[nick]["cloak"]
         acc = var.USERS[nick]["account"]
     else:
-        return False, None
+        return (False, None)
     if acc and acc != "*":
         if acc in var.PING_IF_PREFS_ACCS.keys():
-            return True, var.PING_IF_PREFS_ACCS[acc]
+            return (True, var.PING_IF_PREFS_ACCS[acc])
     elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
-        return True, var.PING_IF_PREFS[cloak]
-    return False, None
+        return (True, var.PING_IF_PREFS[cloak])
+    return (False, None)
 
 def toggle_altpinged_status(nick, value, old=None):
-    # nick should be in var.USERS; if not, let the error propagate
+    # nick should be in var.USERS if not fake; if not, let the error propagate
+    if is_fake_nick(nick):
+        return # don't blow up on fake nicks
     cloak = var.USERS[nick]["cloak"]
     acc = var.USERS[nick]["account"]
     if value == 0:
