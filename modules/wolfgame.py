@@ -481,9 +481,11 @@ def pinger(cli, nick, chan, rest):
             lenp = len(var.list_players())
             if not is_user_away(user):
                 TO_PING.append(user)
-            elif acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= lenp:
+            elif (acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= lenp
+                  and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] in ("ping", "all")):
                 TO_PING.append(user)
-            elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= lenp:
+            elif (not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= lenp
+                  and cloak in var.PING_PREFS and var.PING_PREFS[cloak] in ("ping", "all")):
                 TO_PING.append(user)
 
     @hook("endofwho", hookid=800)
@@ -796,66 +798,126 @@ def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
-@cmd("pingif", "pingme", "pingat", pm=True)
+@cmd("pingif", "pingme", "pingat", "pingpref", "ping-if", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference."""
     altpinged, players = is_user_altpinged(nick)
-    if not rest:
-        if altpinged:
-            msg = "Your ping preferences are currently set to {0}.".format(players)
-        else:
-            msg = "You do not have any ping preferences currently set."
-
+    rest = rest.split()
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    elif is_fake_nick(nick):
+        return # just ignore it
+    else:
         if chan == nick:
-            pm(cli, nick, msg)
-        else:
-            cli.notice(nick, msg)
+            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        else: # former message: "You won the lottery! This is a bug though, so report it to the admins."
+            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        return
 
-    elif rest.isdigit() and int(rest) == 0:
+    msg = []
+    pref_mean = {"once": "pinged immediately",
+                 "ping": "added automatically to the {0}ping list",
+                 "all" : "pinged immediately and added to the {0}ping list"}
+
+    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
+        msg.append("You are not logged in to NickServ.")
+
+    elif not rest:
         if altpinged:
-            msg = "Your ping preferences have been removed (was {0}).".format(players)
-            if chan == nick:
-                pm(cli, nick, msg)
-            else:
-                cli.notice(nick, msg)
+            msg.append("Your ping preferences are currently set to {0}.".format(players))
+            if acc and acc != "*" and acc in var.PING_PREFS_ACCS:
+                msg.append("When your desired player count is reached, you will be {0}.".format(pref_mean[var.PING_PREFS_ACCS[acc]]))
+            elif not var.ACCOUNTS_ONLY and cloak in var.PING_PREFS:
+                msg.append("When your desired player count is reached, you will be {0}.".format(pref_mean[var.PING_PREFS[cloak]]))
+        else:
+            msg.append("You do not have any ping preferences currently set.")
+
+    elif (rest[0].isdigit() and int(rest[0]) == 0) or (len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0):
+        if altpinged:
+            msg.append("Your ping preferences have been removed (was {0}).".format(players))
             toggle_altpinged_status(nick, 0, players)
         elif not rest:
-            if chan == nick:
-                pm(cli, nick, "You need to enter a number.")
-            else:
-                cli.notice(nick, "You need to enter a number.")
+            msg.append("You need to enter a number.")
         else:
-            if chan == nick:
-                pm(cli, nick, "You do not have any preferences set.")
-            else:
-                cli.notice(nick, "You do not have any preferences set.")
-    elif rest.isdigit():
-        rest = int(rest)
-        if rest > 999:
-            if chan == nick:
-                pm(cli, nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
-            else:
-                cli.notice(nick, "Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
-        elif players == rest:
-            if chan == nick:
-                pm(cli, nick, "Your ping preferences are already set to {0}.".format(rest))
-            else:
-                cli.notice(nick, "Your ping preferences are already set to {0}.".format(rest))
+            msg.append("You do not have any preferences set.")
+
+    elif rest[0].isdigit() or (len(rest) > 1 and rest[1].isdigit()):
+        if rest[0].isdigit():
+            num = int(rest[0])
+        else:
+            num = int(rest[1])
+        if num > 999:
+            msg.append("Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
+        elif players == num:
+            msg.append("Your ping preferences are already set to {0}.".format(num))
         elif altpinged:
-            msg = "Your ping preferences have been changed from {0} to {1}.".format(players, rest)
-            if chan == nick:
-                pm(cli, nick, msg)
-            else:
-                cli.notice(nick, msg)
-            toggle_altpinged_status(nick, rest, players)
+            msg.append("Your ping preferences have been changed from {0} to {1}.".format(players, num))
+            toggle_altpinged_status(nick, num, players)
         else:
-            if chan == nick:
-                pm(cli, nick, "Your ping preferences have been set to {0}.".format(rest))
+            msg.append("Your ping preferences have been set to {0}.".format(num))
+            toggle_altpinged_status(nick, num)
+
+    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
+        pass # we've taken care of this above already
+
+    elif rest and not rest[0].isdigit() or len(rest) > 1:
+        if rest[0].isdigit():
+            pref = rest[1]
+        else:
+            pref = rest[0]
+
+        if pref.lower() in ("once", "one", "first", "onjoin"):
+            if acc and acc != "*":
+                if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "once":
+                    msg.append("You are already set to be pinged once when your desired player count is reached.")
+                else:
+                    msg.append("You will now get pinged once when your preferred amount of players is reached.")
+                    var.PING_PREFS_ACCS[acc] = "once"
+                    var.set_ping_pref_acc(acc, "once")
+            elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "once":
+                msg.append("You are already set to be pinged once when your desired player count is reached.")
             else:
-                cli.notice(nick, "Your ping preferences have been set to {0}.".format(rest))
-            toggle_altpinged_status(nick, rest)
+                msg.append("You will now get pinged once when your preferred amount of players is reached.")
+                var.PING_PREFS[cloak] = "once"
+                var.set_ping_pref(cloak, "once")
+
+        elif pref.lower() in ("ondemand", "ping", botconfig.CMD_CHAR + "ping"):
+            if acc and acc != "*":
+                if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "ping":
+                    msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
+                else:
+                    msg.append("You will now be added to the {0}ping list when enough players have joined.")
+                    var.PING_PREFS_ACCS[acc] = "ping"
+                    var.set_ping_pref_acc(acc, "ping")
+            elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "ping":
+                msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
+            else:
+                msg.append("You will now be added to the {0}ping list when enough players have joined.")
+                var.PING_PREFS[cloak] = "ping"
+                var.set_ping_pref(cloak, "ping")
+
+        elif pref.lower() in ("all", "always"):
+            if acc and acc != "*":
+                if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "all":
+                    msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
+                else:
+                    msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                    var.PING_PREFS_ACCS[acc] = "all"
+                    var.set_ping_pref_acc(acc, "all")
+            elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "all":
+                msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
+            else:
+                msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                var.PING_PREFS[cloak] = "all"
+                var.set_ping_pref(cloak, "all")
+        else:
+            msg.append("Unrecognized preference.")
+
+    if chan == nick:
+        pm(cli, nick, "\n".join(msg).format(botconfig.CMD_CHAR))
     else:
-        cli.notice(nick, "You need to enter a non-negative integer.")
+        cli.notice(nick, "\n".join(msg).format(botconfig.CMD_CHAR))
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
@@ -871,9 +933,9 @@ def is_user_altpinged(nick):
     return (False, None)
 
 def toggle_altpinged_status(nick, value, old=None):
-    # nick should be in var.USERS if not fake; if not, let the error propagate
     if is_fake_nick(nick):
         return # don't blow up on fake nicks
+    # nick should be in var.USERS if not fake; if not, let the error propagate
     cloak = var.USERS[nick]["cloak"]
     acc = var.USERS[nick]["account"]
     if value == 0:
@@ -896,6 +958,9 @@ def toggle_altpinged_status(nick, value, old=None):
         if acc and acc != "*":
             var.PING_IF_PREFS_ACCS[acc] = value
             var.set_ping_if_status_acc(acc, value)
+            if acc not in var.PING_PREFS_ACCS:
+                var.PING_PREFS_ACCS[acc] = "once"
+                var.set_ping_pref_acc(acc, "once")
             if value not in var.PING_IF_NUMS_ACCS.keys():
                 var.PING_IF_NUMS_ACCS[value] = []
             var.PING_IF_NUMS_ACCS[value].append(acc)
@@ -906,6 +971,9 @@ def toggle_altpinged_status(nick, value, old=None):
         elif not var.ACCOUNTS_ONLY:
             var.PING_IF_PREFS[cloak] = value
             var.set_ping_if_status(cloak, value)
+            if cloak not in var.PING_PREFS:
+                var.PING_PREFS[cloak] = "once"
+                var.set_ping_pref(cloak, "once")
             if value not in var.PING_IF_NUMS.keys():
                 var.PING_IF_NUMS[value] = []
             var.PING_IF_NUMS[value].append(cloak)
@@ -914,47 +982,11 @@ def toggle_altpinged_status(nick, value, old=None):
                     if cloak in var.PING_IF_NUMS[old]:
                         var.PING_IF_NUMS[old].remove(cloak)
 
-@cmd("pingpref", "pingprefs", "prefping", pm=True) # need a better name
-def toggle_altping_prefs(cli, nick, chan, rest):
-    if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
-        acc = var.USERS[nick]["account"]
-    else: # something not right
-        if chan == nick:
-            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
-        else: # former message: "You won the lottery! This is a bug though, so report it to the admins."
-            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
-    if acc and acc != "*":
-        if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "all":
-            msg = "You will now only get pinged by {0}ping when your preferred amount of players is reached."
-            var.PING_PREFS_ACCS[acc] = "none"
-            var.set_ping_pref_acc(acc, "none")
-        else:
-            msg = "You will now get pinged when your preferred amount of players is reached."
-            var.PING_PREFS_ACCS[acc] = "all"
-            var.set_ping_pref_acc(acc, "all")
-    elif var.ACCOUNTS_ONLY:
-        msg = "You are not logged in to NickServ."
-    else:
-        if cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "all":
-            msg = "You will now only get pinged by {0}ping when your preferred amount of players is reached."
-            var.PING_PREFS[cloak] = "none"
-            var.set_ping_pref(cloak, "none")
-        else:
-            msg = "You will now get pinged when your preferred amount of players is reached."
-            var.PING_PREFS[cloak] = "all"
-            var.set_ping_pref(cloak, "all")
-
-    if chan == nick:
-        pm(cli, nick, msg.format(botconfig.CMD_CHAR))
-    else:
-        cli.notice(nick, msg.format(botconfig.CMD_CHAR))
-
 def join_timer_handler(cli):
     while var.PHASE == "join":
         with var.GRAVEYARD_LOCK:
             if var.PING_JOIN_TIMER and var.PING_JOIN_TIMER + timedelta(seconds=10) <= datetime.now():
-                to_ping = set() # this ensures we don't have any duplicate
+                to_ping = []
                 pl = var.list_players()
 
                 var.PINGING_IFS = True
@@ -991,12 +1023,12 @@ def join_timer_handler(cli):
                         return
 
                     if acc and acc != "*":
-                        if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] == "all":
-                            to_ping.add(user)
+                        if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] in ("once", "all"):
+                            to_ping.append(user)
                             var.PINGED_ALREADY_ACCS.append(acc)
 
-                    elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] == "all":
-                        to_ping.add(user)
+                    elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] in ("once", "all"):
+                        to_ping.append(user)
                         var.PINGED_ALREADY.append(cloak)
 
                 @hook("endofwho", hookid=387)
@@ -1005,6 +1037,7 @@ def join_timer_handler(cli):
                     var.PING_JOIN_TIMER = 0
                     decorators.unhook(HOOKS, 387)
                     if to_ping:
+                        to_ping.sort(key=lambda x: x.lower())
                         cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
 
                 cli.who(botconfig.CHANNEL, "%nushaf")
