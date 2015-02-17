@@ -800,7 +800,7 @@ def fpinger(cli, nick, chan, rest):
 
 @cmd("pingif", "pingme", "pingat", "pingpref", "ping-if", pm=True)
 def altpinger(cli, nick, chan, rest):
-    """Pings you when the number of players reaches your preference."""
+    """Pings you when the number of players reaches your preference. Usage: 'pingif <players> [once|ping|always]'"""
     altpinged, players = is_user_altpinged(nick)
     rest = rest.split()
     if nick in var.USERS:
@@ -912,7 +912,7 @@ def altpinger(cli, nick, chan, rest):
                 var.PING_PREFS[cloak] = "all"
                 var.set_ping_pref(cloak, "all")
         else:
-            msg.append("Unrecognized preference.")
+            msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
 
     if chan == nick:
         pm(cli, nick, "\n".join(msg).format(botconfig.CMD_CHAR))
