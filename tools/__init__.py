@@ -2,6 +2,10 @@ import botconfig
 import datetime
 import time
 
+# replace characters that can't be encoded with '?'
+# since windows likes to use weird encodings by default
+utf8stdout = open(1, 'w', errors="replace", closefd=False) # stdout
+
 def get_timestamp():
     """Returns a timestamp with timezone + offset from UTC."""
     if botconfig.USE_UTC:
@@ -30,7 +34,7 @@ def logger(file, write=True, display=True):
             display = True
         timestamp = get_timestamp()
         if display:
-            print(timestamp + output)
+            print(timestamp + output, file=utf8stdout)
         if write and file is not None:
             with open(file, "a") as f:
                 f.seek(0, 2)
