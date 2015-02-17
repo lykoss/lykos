@@ -2910,6 +2910,9 @@ def transition_day(cli, gameid=0):
                 bywolves.remove(target)
                 onlybywolves.remove(target)
                 killers[target].remove("@wolves")
+            else:
+                # bite was unsuccessful, let them try again
+                var.ALPHA_WOLVES.remove(alpha)
 
     var.BITE_PREFERENCES = {}
 
@@ -4342,14 +4345,17 @@ def bite_cmd(cli, nick, chan, rest):
         return
 
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-
-    vrole = var.get_role(victim)
+    vrole = None
+    # also mark the victim as the kill target
+    if victim:
+        kill(cli, nick, chan, rest)
 
     if var.ANGRY_WOLVES:
         if not victim:
             pm(cli, nick, "Please choose who to bite by specifying their nick.")
             return
 
+        vrole = var.get_role(victim)
         if vrole in var.WOLFCHAT_ROLES:
             pm(cli, nick, "You may not bite other wolves.")
             return
