@@ -991,6 +991,7 @@ def on_kicked(cli, nick, chan, victim, reason):
 @hook("account")
 def on_account(cli, rnick, acc):
     nick, mode, user, cloak = parse_nick(rnick)
+    chan = botconfig.CHANNEL
     if acc == "*" and var.LEAVE_ON_LOGOUT and var.PHASE in ("join", "day", "night") and nick in var.PLAYERS:
         cli.mode(chan, "-v", nick)
         leave(cli, "account", nick)
