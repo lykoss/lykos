@@ -476,15 +476,16 @@ def pinger(cli, nick, chan, rest):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if ('G' not in status and '+' not in status and not is_user_stasised(user)[0]):
+        pl = var.list_players()
+
+        if 'G' not in status and not is_user_stasised(user)[0] and user not in pl:
             acc = var.USERS[user]["account"]
-            lenp = len(var.list_players())
             if not is_user_away(user):
                 TO_PING.append(user)
-            elif (acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= lenp
+            elif (acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= len(pl)
                   and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] in ("ping", "all")):
                 TO_PING.append(user)
-            elif (not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= lenp
+            elif (not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= len(pl)
                   and cloak in var.PING_PREFS and var.PING_PREFS[cloak] in ("ping", "all")):
                 TO_PING.append(user)
 
@@ -815,15 +816,19 @@ def altpinger(cli, nick, chan, rest):
             cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
         return
 
+    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
+        if chan == nick:
+            pm(cli, nick, "You are not logged in to NickServ.")
+        else:
+            cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
     msg = []
     pref_mean = {"once": "pinged immediately",
                  "ping": "added automatically to the {0}ping list",
                  "all" : "pinged immediately and added to the {0}ping list"}
 
-    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        msg.append("You are not logged in to NickServ.")
-
-    elif not rest:
+    if not rest:
         if altpinged:
             msg.append("Your ping preferences are currently set to {0}.".format(players))
             if acc and acc != "*" and acc in var.PING_PREFS_ACCS:
@@ -846,7 +851,7 @@ def altpinger(cli, nick, chan, rest):
         else:
             num = int(rest[1])
         if num > 999:
-            msg.append("Please select a number between 0 and {0}.".format(var.MAX_PLAYERS))
+            msg.append("That number is too large.")
         elif players == num:
             msg.append("Your ping preferences are already set to {0}.".format(num))
         elif altpinged:
@@ -856,10 +861,7 @@ def altpinger(cli, nick, chan, rest):
             msg.append("Your ping preferences have been set to {0}.".format(num))
             toggle_altpinged_status(nick, num)
 
-    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        pass # we've taken care of this above already
-
-    elif rest and not rest[0].isdigit() or len(rest) > 1:
+    if rest and not rest[0].isdigit() or len(rest) > 1:
         if rest[0].isdigit():
             pref = rest[1]
         else:
@@ -909,7 +911,7 @@ def altpinger(cli, nick, chan, rest):
                 msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
                 var.PING_PREFS[cloak] = "all"
                 var.set_ping_pref(cloak, "all")
-        else:
+        elif not msg: # only warn if there was no message to avoid false positives
             msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
 
     if chan == nick:
@@ -1015,8 +1017,8 @@ def join_timer_handler(cli):
 
                 @hook("whospcrpl", hookid=387)
                 def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
-                    if ('G' in status or '+' in status or is_user_stasised(user)[0] or
-                            not var.PINGING_IFS or user == botconfig.NICK or user in pl):
+                    if ('G' in status or is_user_stasised(user)[0] or not var.PINGING_IFS or
+                        user == botconfig.NICK or user in pl):
 
                         return
 
