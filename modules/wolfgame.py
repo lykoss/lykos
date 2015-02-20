@@ -6194,7 +6194,7 @@ def pony(cli, nick, chan, rest):
     cmsg = "The pony lands on \2{0}\2.".format(pony)
     cli.msg(chan, cmsg)
 
-@cmd("time", pm=True, game=True)
+@cmd("time", pm=True, game=True, join=True)
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
 
