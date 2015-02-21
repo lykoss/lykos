@@ -888,30 +888,30 @@ def altpinger(cli, nick, chan, rest):
             elif pref.lower() in ("ondemand", "ping", botconfig.CMD_CHAR + "ping"):
                 if acc and acc != "*":
                     if var.PING_PREFS_ACCS.get(acc) == "ping":
-                        msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
+                        msg.append("You are already set to be added to the ping list when enough players have joined.")
                     else:
-                        msg.append("You will now be added to the {0}ping list when enough players have joined.")
+                        msg.append("You will now be added to the ping list when enough players have joined.")
                         var.PING_PREFS_ACCS[acc] = "ping"
                         var.set_ping_pref_acc(acc, "ping")
                 elif var.PING_PREFS.get(cloak) == "ping":
-                    msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
+                    msg.append("You are already set to be added to the ping list when enough players have joined.")
                 else:
-                    msg.append("You will now be added to the {0}ping list when enough players have joined.")
+                    msg.append("You will now be added to the ping list when enough players have joined.")
                     var.PING_PREFS[cloak] = "ping"
                     var.set_ping_pref(cloak, "ping")
 
             elif pref.lower() in ("all", "always"):
                 if acc and acc != "*":
                     if var.PING_PREFS_ACCS.get(acc) == "all":
-                        msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
+                        msg.append("You are already set to be added to the ping list as well as being pinged immediately when enough players have joined.")
                     else:
-                        msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                        msg.append("You will now be added to the ping list as well as being pinged immediately when your preferred amount of players is reached.")
                         var.PING_PREFS_ACCS[acc] = "all"
                         var.set_ping_pref_acc(acc, "all")
                 elif var.PING_PREFS.get(cloak) == "all":
-                    msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
+                    msg.append("You are already set to be added to the ping list as well as being pinged immediately when enough players have joined.")
                 else:
-                    msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                    msg.append("You will now be added to the ping list as well as being pinged immediately when your preferred amount of players is reached.")
                     var.PING_PREFS[cloak] = "all"
                     var.set_ping_pref(cloak, "all")
 
@@ -919,9 +919,9 @@ def altpinger(cli, nick, chan, rest):
                 msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
 
     if chan == nick:
-        pm(cli, nick, "\n".join(msg).format(botconfig.CMD_CHAR))
+        pm(cli, nick, "\n".join(msg))
     else:
-        cli.notice(nick, "\n".join(msg).format(botconfig.CMD_CHAR))
+        cli.notice(nick, "\n".join(msg))
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
