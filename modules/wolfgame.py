@@ -483,11 +483,11 @@ def pinger(cli, nick, chan, rest):
             acc = var.USERS[user]["account"]
             if not is_user_away(user):
                 TO_PING.append(user)
-            elif (acc != "*" and acc in var.PING_IF_PREFS_ACCS and var.PING_IF_PREFS_ACCS[acc] <= len(pl)
-                  and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] in ("ping", "all")):
+            elif (acc != "*" and var.PING_IF_PREFS_ACCS.get(acc, 999) <= len(pl)
+                  and var.PING_PREFS_ACCS.get(acc) in ("ping", "all")):
                 TO_PING.append(user)
-            elif (not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS and var.PING_IF_PREFS[cloak] <= len(pl)
-                  and cloak in var.PING_PREFS and var.PING_PREFS[cloak] in ("ping", "all")):
+            elif (not var.ACCOUNTS_ONLY and var.PING_IF_PREFS.get(cloak, 999) <= len(pl)
+                  and var.PING_PREFS.get(cloak) in ("ping", "all")):
                 TO_PING.append(user)
 
     @hook("endofwho", hookid=800)
@@ -872,13 +872,13 @@ def altpinger(cli, nick, chan, rest):
         with var.WARNING_LOCK:
             if pref.lower() in ("once", "one", "first", "onjoin"):
                 if acc and acc != "*":
-                    if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "once":
+                    if var.PING_PREFS_ACCS.get(acc) == "once":
                         msg.append("You are already set to be pinged once when your desired player count is reached.")
                     else:
                         msg.append("You will now get pinged once when your preferred amount of players is reached.")
                         var.PING_PREFS_ACCS[acc] = "once"
                         var.set_ping_pref_acc(acc, "once")
-                elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "once":
+                elif var.PING_PREFS.get(cloak) == "once":
                     msg.append("You are already set to be pinged once when your desired player count is reached.")
                 else:
                     msg.append("You will now get pinged once when your preferred amount of players is reached.")
@@ -887,13 +887,13 @@ def altpinger(cli, nick, chan, rest):
 
             elif pref.lower() in ("ondemand", "ping", botconfig.CMD_CHAR + "ping"):
                 if acc and acc != "*":
-                    if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "ping":
+                    if var.PING_PREFS_ACCS.get(acc) == "ping":
                         msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
                     else:
                         msg.append("You will now be added to the {0}ping list when enough players have joined.")
                         var.PING_PREFS_ACCS[acc] = "ping"
                         var.set_ping_pref_acc(acc, "ping")
-                elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "ping":
+                elif var.PING_PREFS.get(cloak) == "ping":
                     msg.append("You are already set to be added to the {0}ping list when enough players have joined.")
                 else:
                     msg.append("You will now be added to the {0}ping list when enough players have joined.")
@@ -902,13 +902,13 @@ def altpinger(cli, nick, chan, rest):
 
             elif pref.lower() in ("all", "always"):
                 if acc and acc != "*":
-                    if acc in var.PING_PREFS_ACCS.keys() and var.PING_PREFS_ACCS[acc] == "all":
+                    if var.PING_PREFS_ACCS.get(acc) == "all":
                         msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
                     else:
                         msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
                         var.PING_PREFS_ACCS[acc] = "all"
                         var.set_ping_pref_acc(acc, "all")
-                elif cloak in var.PING_PREFS.keys() and var.PING_PREFS[cloak] == "all":
+                elif var.PING_PREFS.get(cloak) == "all":
                     msg.append("You are already set to be added to the {0}ping list as well as being pinged immediately when enough players have joined.")
                 else:
                     msg.append("You will now be added to the {0}ping list as well as being pinged immediately when your preferred amount of players is reached.")
@@ -1028,11 +1028,11 @@ def join_timer_handler(cli):
                 return
 
             if acc and acc != "*":
-                if acc in chk_acc and acc in var.PING_PREFS_ACCS and var.PING_PREFS_ACCS[acc] in ("once", "all"):
+                if acc in chk_acc and var.PING_PREFS_ACCS.get(acc) in ("once", "all"):
                     to_ping.append(user)
                     var.PINGED_ALREADY_ACCS.append(acc)
 
-            elif not var.ACCOUNTS_ONLY and cloak in checker and cloak in var.PING_PREFS and var.PING_PREFS[cloak] in ("once", "all"):
+            elif not var.ACCOUNTS_ONLY and cloak in checker and var.PING_PREFS.get(cloak) in ("once", "all"):
                 to_ping.append(user)
                 var.PINGED_ALREADY.append(cloak)
 
