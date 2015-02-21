@@ -72,8 +72,6 @@ def __unhandled__(cli, prefix, cmd, *args):
                 else:
                     log(traceback.format_exc())
                     cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
-    elif botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
-        alog('Unhandled command {0}({1})'.format(cmd, [arg.decode('utf_8') for arg in args if isinstance(arg, bytes)]))
 
     
 COMMANDS = {}
