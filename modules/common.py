@@ -4,7 +4,6 @@ import botconfig
 from tools import decorators
 import tools.moduleloader as ld
 import traceback
-from settings import common as var
 from base64 import b64encode
 from oyoyo.parse import parse_nick
 import imp
