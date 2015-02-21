@@ -75,6 +75,7 @@ var.PLAYERS = {}
 var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
+var.PINGING_IFS = False
 var.TIMERS = {}
 
 var.ORIGINAL_SETTINGS = {}
@@ -84,6 +85,7 @@ var.LAST_SAID_TIME = {}
 var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
+var.WARNING_LOCK = threading.RLock()
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
@@ -303,9 +305,10 @@ def reset_settings():
 
 def reset_modes_timers(cli):
     # Reset game timers
-    for x, timr in var.TIMERS.items():
-        timr[0].cancel()
-    var.TIMERS = {}
+    with var.WARNING_LOCK: # make sure it isn't being used by the ping join handler
+        for x, timr in var.TIMERS.items():
+            timr[0].cancel()
+        var.TIMERS = {}
 
     # Reset modes
     cmodes = []
@@ -332,6 +335,8 @@ def reset():
     var.ROLES = {"person" : []}
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.JOINED_THIS_GAME_ACCS = [] # same, except accounts
+    var.PINGED_ALREADY = []
+    var.PINGED_ALREADY_ACCS = []
     var.NO_LYNCH = []
     var.FGAMED = False
     var.CURRENT_GAMEMODE = "default"
@@ -343,6 +348,7 @@ def reset():
     dict.clear(var.PLAYERS)
     dict.clear(var.DCED_PLAYERS)
     dict.clear(var.DISCONNECTED)
+
 reset()
 
 def make_stasis(nick, penalty):
@@ -471,11 +477,18 @@ def pinger(cli, nick, chan, rest):
         if not var.PINGING: return
         if user in (botconfig.NICK, nick): return  # Don't ping self.
 
-        if ('G' not in status and '+' not in status and not
-            is_user_stasised(user)[0] and not is_user_away(user)):
+        pl = var.list_players()
 
-            TO_PING.append(user)
-
+        if 'G' not in status and not is_user_stasised(user)[0] and user not in pl:
+            acc = var.USERS[user]["account"]
+            if not is_user_away(user):
+                TO_PING.append(user)
+            elif (acc != "*" and var.PING_IF_PREFS_ACCS.get(acc, 999) <= len(pl)
+                  and var.PING_PREFS_ACCS.get(acc) in ("ping", "all")):
+                TO_PING.append(user)
+            elif (not var.ACCOUNTS_ONLY and var.PING_IF_PREFS.get(cloak, 999) <= len(pl)
+                  and var.PING_PREFS.get(cloak) in ("ping", "all")):
+                TO_PING.append(user)
 
     @hook("endofwho", hookid=800)
     def do_ping(*args):
@@ -787,6 +800,259 @@ def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
+@cmd("pingif", "pingme", "pingat", "pingpref", "ping-if", pm=True)
+def altpinger(cli, nick, chan, rest):
+    """Pings you when the number of players reaches your preference. Usage: 'pingif <players> [once|ping|always]'"""
+    altpinged, players = is_user_altpinged(nick)
+    rest = rest.split()
+    if nick in var.USERS:
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    elif is_fake_nick(nick):
+        return # just ignore it
+    else:
+        if chan == nick:
+            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        else: # former message: "You won the lottery! This is a bug though, so report it to the admins."
+            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        return
+
+    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
+        if chan == nick:
+            pm(cli, nick, "You are not logged in to NickServ.")
+        else:
+            cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    msg = []
+    pref_mean = {"once": "pinged immediately",
+                 "ping": "added automatically to the ping list",
+                 "all" : "pinged immediately and added to the ping list"}
+
+    if not rest:
+        if altpinged:
+            msg.append("Your ping preferences are currently set to {0}.".format(players))
+            with var.WARNING_LOCK:
+                if acc and acc != "*" and acc in var.PING_PREFS_ACCS:
+                    msg.append("When your desired player count is reached, you will be {0}.".format(pref_mean[var.PING_PREFS_ACCS[acc]]))
+                elif not var.ACCOUNTS_ONLY and cloak in var.PING_PREFS:
+                    msg.append("When your desired player count is reached, you will be {0}.".format(pref_mean[var.PING_PREFS[cloak]]))
+        else:
+            msg.append("You do not have any ping preferences currently set.")
+
+    elif (rest[0].isdigit() and int(rest[0]) == 0) or (len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0):
+        if altpinged:
+            msg.append("Your ping preferences have been removed (was {0}).".format(players))
+            toggle_altpinged_status(nick, 0, players)
+        else:
+            msg.append("You do not have any preferences set.")
+
+    elif rest[0].isdigit() or (len(rest) > 1 and rest[1].isdigit()):
+        if rest[0].isdigit():
+            num = int(rest[0])
+        else:
+            num = int(rest[1])
+        if num > 999:
+            msg.append("That number is too large.")
+        elif players == num:
+            msg.append("Your ping preferences are already set to {0}.".format(num))
+        elif altpinged:
+            msg.append("Your ping preferences have been changed from {0} to {1}.".format(players, num))
+            toggle_altpinged_status(nick, num, players)
+        else:
+            msg.append("Your ping preferences have been set to {0}.".format(num))
+            toggle_altpinged_status(nick, num)
+
+    if rest and not rest[0].isdigit() or len(rest) > 1:
+        if rest[0].isdigit():
+            pref = rest[1]
+        else:
+            pref = rest[0]
+
+        with var.WARNING_LOCK:
+            if pref.lower() in ("once", "one", "first", "onjoin"):
+                if acc and acc != "*":
+                    if var.PING_PREFS_ACCS.get(acc) == "once":
+                        msg.append("You are already set to be pinged once when your desired player count is reached.")
+                    else:
+                        msg.append("You will now get pinged once when your preferred amount of players is reached.")
+                        var.PING_PREFS_ACCS[acc] = "once"
+                        var.set_ping_pref_acc(acc, "once")
+                elif var.PING_PREFS.get(cloak) == "once":
+                    msg.append("You are already set to be pinged once when your desired player count is reached.")
+                else:
+                    msg.append("You will now get pinged once when your preferred amount of players is reached.")
+                    var.PING_PREFS[cloak] = "once"
+                    var.set_ping_pref(cloak, "once")
+
+            elif pref.lower() in ("ondemand", "ping", botconfig.CMD_CHAR + "ping"):
+                if acc and acc != "*":
+                    if var.PING_PREFS_ACCS.get(acc) == "ping":
+                        msg.append("You are already set to be added to the ping list when enough players have joined.")
+                    else:
+                        msg.append("You will now be added to the ping list when enough players have joined.")
+                        var.PING_PREFS_ACCS[acc] = "ping"
+                        var.set_ping_pref_acc(acc, "ping")
+                elif var.PING_PREFS.get(cloak) == "ping":
+                    msg.append("You are already set to be added to the ping list when enough players have joined.")
+                else:
+                    msg.append("You will now be added to the ping list when enough players have joined.")
+                    var.PING_PREFS[cloak] = "ping"
+                    var.set_ping_pref(cloak, "ping")
+
+            elif pref.lower() in ("all", "always"):
+                if acc and acc != "*":
+                    if var.PING_PREFS_ACCS.get(acc) == "all":
+                        msg.append("You are already set to be added to the ping list as well as being pinged immediately when enough players have joined.")
+                    else:
+                        msg.append("You will now be added to the ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                        var.PING_PREFS_ACCS[acc] = "all"
+                        var.set_ping_pref_acc(acc, "all")
+                elif var.PING_PREFS.get(cloak) == "all":
+                    msg.append("You are already set to be added to the ping list as well as being pinged immediately when enough players have joined.")
+                else:
+                    msg.append("You will now be added to the ping list as well as being pinged immediately when your preferred amount of players is reached.")
+                    var.PING_PREFS[cloak] = "all"
+                    var.set_ping_pref(cloak, "all")
+
+            elif not msg: # only warn if there was no message to avoid false positives
+                msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
+
+    if chan == nick:
+        pm(cli, nick, "\n".join(msg))
+    else:
+        cli.notice(nick, "\n".join(msg))
+
+def is_user_altpinged(nick):
+    if nick in var.USERS.keys():
+        cloak = var.USERS[nick]["cloak"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return (False, None)
+    if acc and acc != "*":
+        if acc in var.PING_IF_PREFS_ACCS.keys():
+            return (True, var.PING_IF_PREFS_ACCS[acc])
+    elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
+        return (True, var.PING_IF_PREFS[cloak])
+    return (False, None)
+
+def toggle_altpinged_status(nick, value, old=None):
+    if is_fake_nick(nick):
+        return # don't blow up on fake nicks
+    # nick should be in var.USERS if not fake; if not, let the error propagate
+    cloak = var.USERS[nick]["cloak"]
+    acc = var.USERS[nick]["account"]
+    if value == 0:
+        if acc and acc != "*":
+            if acc in var.PING_IF_PREFS_ACCS.keys():
+                del var.PING_IF_PREFS_ACCS[acc]
+                var.set_ping_if_status_acc(acc, 0)
+                if old is not None:
+                    with var.WARNING_LOCK:
+                        if old in var.PING_IF_NUMS_ACCS.keys():
+                            if acc in var.PING_IF_NUMS_ACCS[old]:
+                                var.PING_IF_NUMS_ACCS[old].remove(acc)
+        if not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
+            del var.PING_IF_PREFS[cloak]
+            var.set_ping_if_status(cloak, 0)
+            if old is not None:
+                with var.WARNING_LOCK:
+                    if old in var.PING_IF_NUMS.keys():
+                        if cloak in var.PING_IF_NUMS[old]:
+                            var.PING_IF_NUMS[old].remove(cloak)
+    else:
+        if acc and acc != "*":
+            var.PING_IF_PREFS_ACCS[acc] = value
+            var.set_ping_if_status_acc(acc, value)
+            if acc not in var.PING_PREFS_ACCS:
+                var.PING_PREFS_ACCS[acc] = "once"
+                var.set_ping_pref_acc(acc, "once")
+            with var.WARNING_LOCK:
+                if value not in var.PING_IF_NUMS_ACCS.keys():
+                    var.PING_IF_NUMS_ACCS[value] = []
+                var.PING_IF_NUMS_ACCS[value].append(acc)
+                if old is not None:
+                    if old in var.PING_IF_NUMS_ACCS.keys():
+                        if acc in var.PING_IF_NUMS_ACCS[old]:
+                            var.PING_IF_NUMS_ACCS[old].remove(acc)
+        elif not var.ACCOUNTS_ONLY:
+            var.PING_IF_PREFS[cloak] = value
+            var.set_ping_if_status(cloak, value)
+            if cloak not in var.PING_PREFS:
+                var.PING_PREFS[cloak] = "once"
+                var.set_ping_pref(cloak, "once")
+            with var.WARNING_LOCK:
+                if value not in var.PING_IF_NUMS.keys():
+                    var.PING_IF_NUMS[value] = []
+                var.PING_IF_NUMS[value].append(cloak)
+                if old is not None:
+                    if old in var.PING_IF_NUMS.keys():
+                        if cloak in var.PING_IF_NUMS[old]:
+                            var.PING_IF_NUMS[old].remove(cloak)
+
+def join_timer_handler(cli):
+    with var.WARNING_LOCK:
+        var.PINGING_IFS = True
+        to_ping = []
+        pl = var.list_players()
+
+        checker = []
+        chk_acc = []
+
+        for num in var.PING_IF_NUMS_ACCS:
+            if num <= len(pl):
+                chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+
+        if not var.ACCOUNTS_ONLY:
+            for num in var.PING_IF_NUMS:
+                if num <= len(pl):
+                    checker.extend(var.PING_IF_NUMS[num])
+
+        for acc in chk_acc[:]:
+            if acc in var.PINGED_ALREADY_ACCS:
+                chk_acc.remove(acc)
+
+        for cloak in checker[:]:
+            if cloak in var.PINGED_ALREADY:
+                checker.remove(cloak)
+
+        if not chk_acc and not checker:
+            var.PINGING_IFS = False
+            return
+
+        @hook("whospcrpl", hookid=387)
+        def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+            if ('G' in status or is_user_stasised(user)[0] or not var.PINGING_IFS or
+                user == botconfig.NICK or user in pl):
+
+                return
+
+            if acc and acc != "*":
+                if acc in chk_acc and var.PING_PREFS_ACCS.get(acc) in ("once", "all"):
+                    to_ping.append(user)
+                    var.PINGED_ALREADY_ACCS.append(acc)
+
+            elif not var.ACCOUNTS_ONLY and cloak in checker and var.PING_PREFS.get(cloak) in ("once", "all"):
+                to_ping.append(user)
+                var.PINGED_ALREADY.append(cloak)
+
+        @hook("endofwho", hookid=387)
+        def fetch_altpingers(*stuff):
+            # fun fact: if someone joined 10 seconds after someone else, the bot would break.
+            # effectively, the join would delete join_pinger from var.TIMERS and this function
+            # here would be reached before it was created again, thus erroring and crashing.
+            # this is one of the multiple reasons we need unit testing
+            # I was lucky to catch this in testing, as it requires precise timing
+            # it only failed if a join happened while this outer func had started
+            # possible underlying bugs were squashed with the proper use of a reentrant lock
+            del var.TIMERS['join_pinger']
+            var.PINGING_IFS = False
+            decorators.unhook(HOOKS, 387)
+            if to_ping:
+                to_ping.sort(key=lambda x: x.lower())
+                cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+
+        cli.who(botconfig.CHANNEL, "%nushaf")
 
 @cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
@@ -840,6 +1106,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.PHASE = "join"
         var.WAITED = 0
         var.GAME_ID = time.time()
+        var.PINGED_ALREADY_ACCS = []
+        var.PINGED_ALREADY = []
         if cloak:
             var.JOINED_THIS_GAME.append(cloak)
         if acc:
@@ -895,6 +1163,14 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.LAST_PSTATS = None
         var.LAST_TIME = None
 
+    with var.WARNING_LOCK:
+        if 'join_pinger' in var.TIMERS:
+            var.TIMERS['join_pinger'][0].cancel()
+
+        t = threading.Timer(10, join_timer_handler, (cli,))
+        var.TIMERS['join_pinger'] = (t, time.time(), 10)
+        t.daemon = True
+        t.start()
 
 def kill_join(cli, chan):
     pl = var.list_players()
@@ -5368,11 +5644,6 @@ def start(cli, nick, chan, forced = False):
         cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
         return
 
-    # Cancel join timer
-    if 'join' in var.TIMERS:
-        var.TIMERS['join'][0].cancel()
-        del var.TIMERS['join']
-
     if var.ORIGINAL_SETTINGS:  # Custom settings
         while True:
             wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
@@ -5521,6 +5792,12 @@ def start(cli, nick, chan, forced = False):
     var.SPECIAL_ROLES["goat herder"] = []
     if var.GOAT_HERDER:
        var.SPECIAL_ROLES["goat herder"] = [ nick ]
+
+    with var.WARNING_LOCK: # cancel timers
+        for name in ("join", "join_pinger"):
+            if name in var.TIMERS:
+                var.TIMERS[name][0].cancel()
+                del var.TIMERS[name]
 
     cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
                    "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
