@@ -826,8 +826,8 @@ def altpinger(cli, nick, chan, rest):
 
     msg = []
     pref_mean = {"once": "pinged immediately",
-                 "ping": "added automatically to the {0}ping list",
-                 "all" : "pinged immediately and added to the {0}ping list"}
+                 "ping": "added automatically to the ping list",
+                 "all" : "pinged immediately and added to the ping list"}
 
     if not rest:
         if altpinged:
