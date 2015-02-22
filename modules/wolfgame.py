@@ -840,7 +840,8 @@ def altpinger(cli, nick, chan, rest):
         else:
             msg.append("You do not have any ping preferences currently set.")
 
-    elif (rest[0].isdigit() and int(rest[0]) == 0) or (len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0):
+    elif ((rest[0].isdigit() and int(rest[0]) == 0) or (len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0) or
+          rest[0] in ("off", "never")):
         if altpinged:
             msg.append("Your ping preferences have been removed (was {0}).".format(players))
             toggle_altpinged_status(nick, 0, players)
