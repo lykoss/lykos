@@ -800,7 +800,7 @@ def fpinger(cli, nick, chan, rest):
     var.LAST_PING = None
     pinger(cli, nick, chan, rest)
 
-@cmd("pingif", "pingme", "pingat", "pingpref", "ping-if", pm=True)
+@cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference. Usage: 'pingif <players> [once|ping|always]'"""
     altpinged, players = is_user_altpinged(nick)
