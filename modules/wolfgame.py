@@ -1021,6 +1021,7 @@ def join_timer_handler(cli):
 
     if not chk_acc and not checker:
         var.PINGING_IFS = False
+        var.WARNING_LOCK.release()
         return
 
     @hook("whospcrpl", hookid=387)
