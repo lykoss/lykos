@@ -993,68 +993,70 @@ def toggle_altpinged_status(nick, value, old=None):
                             var.PING_IF_NUMS[old].remove(cloak)
 
 def join_timer_handler(cli):
-    with var.WARNING_LOCK:
-        var.PINGING_IFS = True
-        to_ping = []
-        pl = var.list_players()
+    var.WARNING_LOCK.acquire() # need to do this instead of the context manager
 
-        checker = []
-        chk_acc = []
+    var.PINGING_IFS = True
+    to_ping = []
+    pl = var.list_players()
 
-        for num in var.PING_IF_NUMS_ACCS:
+    checker = []
+    chk_acc = []
+
+    for num in var.PING_IF_NUMS_ACCS:
+        if num <= len(pl):
+            chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+
+    if not var.ACCOUNTS_ONLY:
+        for num in var.PING_IF_NUMS:
             if num <= len(pl):
-                chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+                checker.extend(var.PING_IF_NUMS[num])
 
-        if not var.ACCOUNTS_ONLY:
-            for num in var.PING_IF_NUMS:
-                if num <= len(pl):
-                    checker.extend(var.PING_IF_NUMS[num])
+    for acc in chk_acc[:]:
+        if acc in var.PINGED_ALREADY_ACCS:
+            chk_acc.remove(acc)
 
-        for acc in chk_acc[:]:
-            if acc in var.PINGED_ALREADY_ACCS:
-                chk_acc.remove(acc)
+    for cloak in checker[:]:
+        if cloak in var.PINGED_ALREADY:
+            checker.remove(cloak)
 
-        for cloak in checker[:]:
-            if cloak in var.PINGED_ALREADY:
-                checker.remove(cloak)
+    if not chk_acc and not checker:
+        var.PINGING_IFS = False
+        return
 
-        if not chk_acc and not checker:
-            var.PINGING_IFS = False
+    @hook("whospcrpl", hookid=387)
+    def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+        if ('G' in status or is_user_stasised(user)[0] or not var.PINGING_IFS or
+            user == botconfig.NICK or user in pl):
+
             return
 
-        @hook("whospcrpl", hookid=387)
-        def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
-            if ('G' in status or is_user_stasised(user)[0] or not var.PINGING_IFS or
-                user == botconfig.NICK or user in pl):
-
-                return
-
-            if acc and acc != "*":
-                if acc in chk_acc and var.PING_PREFS_ACCS.get(acc) in ("once", "all"):
-                    to_ping.append(user)
-                    var.PINGED_ALREADY_ACCS.append(acc)
-
-            elif not var.ACCOUNTS_ONLY and cloak in checker and var.PING_PREFS.get(cloak) in ("once", "all"):
+        if acc and acc != "*":
+            if acc in chk_acc and var.PING_PREFS_ACCS.get(acc) in ("once", "all"):
                 to_ping.append(user)
-                var.PINGED_ALREADY.append(cloak)
+                var.PINGED_ALREADY_ACCS.append(acc)
 
-        @hook("endofwho", hookid=387)
-        def fetch_altpingers(*stuff):
-            # fun fact: if someone joined 10 seconds after someone else, the bot would break.
-            # effectively, the join would delete join_pinger from var.TIMERS and this function
-            # here would be reached before it was created again, thus erroring and crashing.
-            # this is one of the multiple reasons we need unit testing
-            # I was lucky to catch this in testing, as it requires precise timing
-            # it only failed if a join happened while this outer func had started
-            # possible underlying bugs were squashed with the proper use of a reentrant lock
-            del var.TIMERS['join_pinger']
-            var.PINGING_IFS = False
-            decorators.unhook(HOOKS, 387)
-            if to_ping:
-                to_ping.sort(key=lambda x: x.lower())
-                cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+        elif not var.ACCOUNTS_ONLY and cloak in checker and var.PING_PREFS.get(cloak) in ("once", "all"):
+            to_ping.append(user)
+            var.PINGED_ALREADY.append(cloak)
 
-        cli.who(botconfig.CHANNEL, "%nushaf")
+    @hook("endofwho", hookid=387)
+    def fetch_altpingers(*stuff):
+        # fun fact: if someone joined 10 seconds after someone else, the bot would break.
+        # effectively, the join would delete join_pinger from var.TIMERS and this function
+        # here would be reached before it was created again, thus erroring and crashing.
+        # this is one of the multiple reasons we need unit testing
+        # I was lucky to catch this in testing, as it requires precise timing
+        # it only failed if a join happened while this outer func had started
+        # possible underlying bugs were squashed with the proper use of a reentrant lock
+        del var.TIMERS['join_pinger']
+        var.PINGING_IFS = False
+        decorators.unhook(HOOKS, 387)
+        if to_ping:
+            to_ping.sort(key=lambda x: x.lower())
+            cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+        var.WARNING_LOCK.release()
+
+    cli.who(botconfig.CHANNEL, "%nushaf")
 
 @cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
