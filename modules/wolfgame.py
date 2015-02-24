@@ -94,6 +94,7 @@ var.OPPED = False  # Keeps track of whether the bot is opped
 
 var.BITTEN = {}
 var.BITTEN_ROLES = {}
+var.VENGEFUL_GHOSTS = {}
 
 if botconfig.DEBUG_MODE:
     var.NIGHT_TIME_LIMIT = 0 # 120
@@ -6945,6 +6946,18 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("revealroles", admin_only=True, pm=True, join=True, game=True)
     def revealroles(cli, nick, chan, rest):
+        if not botconfig.DEBUG_MODE:
+            # if allowed in normal games, restrict it so that it can only be used by dead players and
+            # non-players (don't allow active vengeful ghosts either).
+            # also don't allow in-channel (e.g. make it pm only)
+            if chan != nick:
+                return
+            elif nick in var.list_players():
+                return
+            elif nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != '!':
+                return
+
+
         s = ' | '.join('\u0002{}\u0002: {}'.format(role,', '.join(players))
                 for (role, players) in sorted(var.ROLES.items()) if players)
 
