@@ -1127,10 +1127,13 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     elif player in pl:
         cli.notice(who, "{0}'re already playing!".format("You" if who == player else "They"))
+        return
     elif len(pl) >= var.MAX_PLAYERS:
         cli.notice(who, "Too many players! Try again next time.")
+        return
     elif var.PHASE != "join":
         cli.notice(who, "Sorry, but the game is already running. Try again next time.")
+        return
     else:
 
         var.ROLES["person"].append(player)
