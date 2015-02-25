@@ -6957,6 +6957,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
             elif nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
                 return
+            elif nick in var.USERS and var.USERS[nick]["cloak"] in [var.USERS[player]["cloak"] for player in pl if player in var.USERS]:
+                return
             elif nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != '!':
                 return
 
