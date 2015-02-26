@@ -5186,7 +5186,8 @@ def transition_night(cli):
             pm(cli, harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
                              'If you visit a victim of a wolf, or visit a wolf, '+
-                             'you will die. Use visit to visit a player.'))
+                             'you will die. You may stay home by visiting yourself. ' +
+                             'Use "visit <nick>" to visit a player.'))
         else:
             pm(cli, harlot, "You are a \02harlot\02.")  # !simple
         pm(cli, harlot, "Players: " + ", ".join(pl))
@@ -5205,6 +5206,7 @@ def transition_night(cli):
             pm(cli, g_angel, ('You are a \u0002bodyguard\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, you will sacrifice yourself to save them. ' +
+                              'Selecting yourself will make you not guard for tonight. ' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
             pm(cli, g_angel, "You are a \02bodyguard\02.")  # !simple
@@ -5213,7 +5215,9 @@ def transition_night(cli):
     for gangel in var.ROLES["guardian angel"]:
         pl = ps[:]
         random.shuffle(pl)
-        pl.remove(gangel)
+        if gangel in var.LASTGUARDED:
+            if var.LASTGUARDED[gangel] in pl:
+                pl.remove(var.LASTGUARDED[gangel])
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
         warning = ""
         if chance > 0:
@@ -5223,7 +5227,7 @@ def transition_night(cli):
             pm(cli, gangel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, they will live. You may not guard the same person two nights in a row. ' +
-                              'Use "guard <nick>" to guard a player.').format(warning))
+                              'You may also guard yourself. Use "guard <nick>" to guard a player.').format(warning))
         else:
             pm(cli, gangel, "You are a \02guardian angel\02.")  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
@@ -5262,6 +5266,9 @@ def transition_night(cli):
     for shaman in var.list_players(var.TOTEM_ORDER):
         pl = ps[:]
         random.shuffle(pl)
+        if shaman in var.LASTGIVEN:
+            if var.LASTGIVEN[shaman] in pl:
+                pl.remove(var.LASTGIVEN[shaman])
         role = var.get_role(shaman)
         indx = var.TOTEM_ORDER.index(role)
         target = 0
