@@ -4968,12 +4968,12 @@ def relay(cli, nick, chan, rest):
         return
     if var.PHASE not in ("night", "day"):
         return
-
-    if rest.startswith("\01ACTION"):
-        rest = rest[7:-1]
-        wolfchat(cli, nick, "\02{0}\02{1}".format(nick, rest))
-    else:
-        wolfchat(cli, nick, "\02{0}\02 says: {1}".format(nick, rest))
+    if nick in var.list_players() and var.get_role(nick) in var.WOLFCHAT_ROLES:
+        if rest.startswith("\01ACTION"):
+            rest = rest[7:-1]
+            wolfchat(cli, nick, "\02{0}\02{1}".format(nick, rest))
+        else:
+            wolfchat(cli, nick, "\02{0}\02 says: {1}".format(nick, rest))
 
 def wolfchat(cli, sender, msg):
     badguys = var.list_players(var.WOLFCHAT_ROLES)
