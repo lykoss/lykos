@@ -5215,6 +5215,10 @@ def transition_night(cli):
     for gangel in var.ROLES["guardian angel"]:
         pl = ps[:]
         random.shuffle(pl)
+        gself = "You may also guard yourself. "
+        if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
+            pl.remove(gangel)
+            gself = ""
         if gangel in var.LASTGUARDED:
             if var.LASTGUARDED[gangel] in pl:
                 pl.remove(var.LASTGUARDED[gangel])
@@ -5227,7 +5231,7 @@ def transition_night(cli):
             pm(cli, gangel, ('You are a \u0002guardian angel\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, they will live. You may not guard the same person two nights in a row. ' +
-                              'You may also guard yourself. Use "guard <nick>" to guard a player.').format(warning))
+                              '{1}Use "guard <nick>" to guard a player.').format(warning, gself))
         else:
             pm(cli, gangel, "You are a \02guardian angel\02.")  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
