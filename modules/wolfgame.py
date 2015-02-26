@@ -290,7 +290,7 @@ def mass_mode(cli, md_param, md_plain):
 
 def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        debuglog("Would message fake nick {0}: {1}".format(target, message))
+        debuglog("Would message fake nick {0}: {1!r}".format(target, message))
         return
 
     if is_user_notice(target):
