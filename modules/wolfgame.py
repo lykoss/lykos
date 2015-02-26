@@ -1297,7 +1297,7 @@ def on_account(cli, rnick, acc):
                         if nick in var.DCED_PLAYERS.keys():
                             var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
-@cmd("stats", pm=True, game=True, join=True)
+@cmd("stats", "players", pm=True, game=True, join=True)
 def stats(cli, nick, chan, rest):
     """Displays the player statistics."""
 
