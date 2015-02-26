@@ -1315,14 +1315,35 @@ def stats(cli, nick, chan, rest):
 
         var.LAST_STATS = datetime.now()
 
-    if len(pl) > 1:
-        msg = '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
+    _nick = nick + ": "
+    if nick == chan:
+        _nick = ""
+
+    if chan == nick and nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+        ps = pl[:]
+        random.shuffle(ps)
+        for i, player in enumerate(ps):
+            prole = var.get_role(player)
+            if prole in var.WOLFCHAT_ROLES:
+                cursed = ""
+                if player in var.ROLES["cursed villager"]:
+                    cursed = "cursed "
+                ps[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+            elif player in var.ROLES["cursed villager"]:
+                ps[i] = player + " (cursed)"
+        msg = '\u0002{0}\u0002 players: {1}'.format(len(pl), ", ".join(ps))
+
+    elif len(pl) > 1:
+        msg = '{0}\u0002{1}\u0002 players: {2}'.format(_nick,
             len(pl), ", ".join(pl))
     else:
-        msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
+        msg = '{0}\u00021\u0002 player: {1}'.format(_nick, pl[0])
 
     if nick == chan:
-        pm(cli, nick, msg)
+        if nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+            wolfchat(cli, None, msg)
+        else:
+            pm(cli, nick, msg)
     else:
         if nick in pl or var.PHASE == "join":
             cli.msg(chan, msg)
@@ -1423,13 +1444,16 @@ def stats(cli, nick, chan, rest):
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
-    stats_mssg =  "{0}: It is currently {4}. There {3} {1}, and {2}.".format(nick,
+    stats_mssg =  "{0}It is currently {4}. There {3} {1}, and {2}.".format(_nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
                                                         vb,
                                                         var.PHASE)
     if nick == chan:
-        pm(cli, nick, stats_mssg)
+        if nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+            wolfchat(cli, None, stats_mssg)
+        else:
+            pm(cli, nick, stats_mssg)
     else:
         if nick in pl or var.PHASE == "join":
             cli.msg(chan, stats_mssg)
@@ -1662,11 +1686,15 @@ def show_votes(cli, nick, chan, rest):
     
     pl = var.list_players()
 
+    _nick = nick + ": "
+    if chan == nick:
+        _nick = ""
+
     if chan != nick and nick in pl:
         var.LAST_VOTES = datetime.now()
 
     if not var.VOTES.values():
-        msg = nick+ ': No votes yet.'
+        msg = _nick + 'No votes yet.'
 
         if nick in pl:
             var.LAST_VOTES = None  # reset
@@ -1675,10 +1703,13 @@ def show_votes(cli, nick, chan, rest):
                                          len(var.VOTES[votee]),
                                          ' '.join(var.VOTES[votee]))
                     for votee in var.VOTES.keys()]
-        msg = '{}: {}'.format(nick, ', '.join(votelist))
+        msg = '{}{}'.format(_nick, ', '.join(votelist))
 
     if chan == nick:
-        pm(cli, nick, msg)
+        if nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+            wolfchat(cli, None, msg)
+        else:
+            pm(cli, nick, msg)
     elif nick not in pl and var.PHASE not in ("none", "join"):
         cli.notice(nick, msg)
     else:
@@ -1692,12 +1723,15 @@ def show_votes(cli, nick, chan, rest):
         plural = " has"
     else:
         plural = "s have"
-    the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
+    the_message = ('{}\u0002{}\u0002 players, \u0002{}\u0002 votes '
                    'required to lynch, \u0002{}\u0002 players available to '
-                   'vote. \u0002{}\u0002 player{} refrained from voting.').format(nick, len(pl), votesneeded, avail, not_voting, plural)
+                   'vote. \u0002{}\u0002 player{} refrained from voting.').format(_nick, len(pl), votesneeded, avail, not_voting, plural)
 
     if chan == nick:
-        pm(cli, nick, the_message)
+        if nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+            wolfchat(cli, None, the_message)
+        else:
+            pm(cli, nick, the_message)
     elif nick not in pl and var.PHASE not in ("none", "join"):
         cli.notice(nick, the_message)
     else:
@@ -4935,18 +4969,20 @@ def relay(cli, nick, chan, rest):
     if var.PHASE not in ("night", "day"):
         return
 
+    if rest.startswith("\01ACTION"):
+        rest = rest[7:-1]
+        wolfchat(cli, nick, "\02{0}\02{1}".format(nick, rest))
+    else:
+        wolfchat(cli, nick, "\02{0}\02 says: {1}".format(nick, rest))
+
+def wolfchat(cli, sender, msg):
     badguys = var.list_players(var.WOLFCHAT_ROLES)
     if len(badguys) > 1:
-        if nick in badguys:
-            badguys.remove(nick)  #  remove self from list
+        if sender in badguys:
+            badguys.remove(sender)
 
-            if rest.startswith("\01ACTION"):
-                rest = rest[7:-1]
-                mass_privmsg(cli, [guy for guy in badguys
-                    if guy in var.PLAYERS], "\02{0}\02{1}".format(nick, rest))
-            else:
-                mass_privmsg(cli, [guy for guy in badguys
-                    if guy in var.PLAYERS], "\02{0}\02 says: {1}".format(nick, rest))
+        mass_privmsg(cli, [guy for guy in badguys
+            if guy in var.PLAYERS], msg)
 
 def transition_night(cli):
     if var.PHASE == "night":
@@ -6526,6 +6562,9 @@ def listroles(cli, nick, chan, rest):
     old = {}
     txt = ""
     index = 0
+    _nick = nick + ": "
+    if chan == nick:
+        _nick = ""
     pl = len(var.list_players()) + len(var.DEAD)
     roleindex = var.ROLE_INDEX
     roleguide = var.ROLE_GUIDE
@@ -6535,7 +6574,7 @@ def listroles(cli, nick, chan, rest):
     rest = re.split(" +", rest.strip(), 1)
     #prepend player count if called without any arguments
     if not len(rest[0]) and pl > 0:
-        txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
+        txt += " {0}There {1} \u0002{2}\u0002 playing.".format(_nick, "is" if pl == 1 else "are", pl)
         if var.PHASE in ["night", "day"]:
             txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
 
@@ -6552,7 +6591,7 @@ def listroles(cli, nick, chan, rest):
                 roleguide = getattr(mode, "ROLE_GUIDE")
             rest.pop(0)
         else:
-            txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
+            txt += " {0}{1} is not a valid game mode.".format(_nick, rest[0])
             rest = []
             roleindex = {}
 
@@ -6589,7 +6628,10 @@ def listroles(cli, nick, chan, rest):
     txt = txt[1:]
 
     if chan == nick:
-        pm(cli, nick, txt)
+        if nick in var.list_players() and var.get_role(nick) in var.WOLFCHAT_ROLES:
+            wolfchat(cli, None, txt)
+        else:
+            pm(cli, nick, txt)
     elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
         cli.notice(nick, txt)
     else:
