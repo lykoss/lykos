@@ -1315,11 +1315,29 @@ def stats(cli, nick, chan, rest):
 
         var.LAST_STATS = datetime.now()
 
-    if len(pl) > 1:
-        msg = '{0}: \u0002{1}\u0002 players: {2}'.format(nick,
+    _nick = nick + ": "
+    if nick == chan:
+        _nick = ""
+
+    if chan == nick and nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+        ps = pl[:]
+        random.shuffle(ps)
+        for i, player in enumerate(ps):
+            prole = var.get_role(player)
+            if prole in var.WOLFCHAT_ROLES:
+                cursed = ""
+                if player in var.ROLES["cursed villager"]:
+                    cursed = "cursed "
+                ps[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+            elif player in var.ROLES["cursed villager"]:
+                ps[i] = player + " (cursed)"
+        msg = '\u0002{0}\u0002 players: {1}'.format(len(pl), ", ".join(ps))
+
+    elif len(pl) > 1:
+        msg = '{0}\u0002{1}\u0002 players: {2}'.format(_nick,
             len(pl), ", ".join(pl))
     else:
-        msg = '{0}: \u00021\u0002 player: {1}'.format(nick, pl[0])
+        msg = '{0}\u00021\u0002 player: {1}'.format(_nick, pl[0])
 
     if nick == chan:
         pm(cli, nick, msg)
@@ -1423,7 +1441,7 @@ def stats(cli, nick, chan, rest):
             message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", var.plural(role)))
         else:
             message.append("\u0002{0}\u0002 {1}".format(count, role))
-    stats_mssg =  "{0}: It is currently {4}. There {3} {1}, and {2}.".format(nick,
+    stats_mssg =  "{0}It is currently {4}. There {3} {1}, and {2}.".format(_nick,
                                                         ", ".join(message[0:-1]),
                                                         message[-1],
                                                         vb,
@@ -1662,11 +1680,15 @@ def show_votes(cli, nick, chan, rest):
     
     pl = var.list_players()
 
+    _nick = nick + ": "
+    if chan == nick:
+        _nick = ""
+
     if chan != nick and nick in pl:
         var.LAST_VOTES = datetime.now()
 
     if not var.VOTES.values():
-        msg = nick+ ': No votes yet.'
+        msg = _nick + 'No votes yet.'
 
         if nick in pl:
             var.LAST_VOTES = None  # reset
@@ -1675,7 +1697,7 @@ def show_votes(cli, nick, chan, rest):
                                          len(var.VOTES[votee]),
                                          ' '.join(var.VOTES[votee]))
                     for votee in var.VOTES.keys()]
-        msg = '{}: {}'.format(nick, ', '.join(votelist))
+        msg = '{}{}'.format(_nick, ', '.join(votelist))
 
     if chan == nick:
         pm(cli, nick, msg)
@@ -1692,9 +1714,9 @@ def show_votes(cli, nick, chan, rest):
         plural = " has"
     else:
         plural = "s have"
-    the_message = ('{}: \u0002{}\u0002 players, \u0002{}\u0002 votes '
+    the_message = ('{}\u0002{}\u0002 players, \u0002{}\u0002 votes '
                    'required to lynch, \u0002{}\u0002 players available to '
-                   'vote. \u0002{}\u0002 player{} refrained from voting.').format(nick, len(pl), votesneeded, avail, not_voting, plural)
+                   'vote. \u0002{}\u0002 player{} refrained from voting.').format(_nick, len(pl), votesneeded, avail, not_voting, plural)
 
     if chan == nick:
         pm(cli, nick, the_message)
