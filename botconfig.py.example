@@ -34,4 +34,4 @@ USE_UTC = True # if True, will use the UTC time, else the local time
 TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
 
 # If enabled, when an exception is caught, the bot will post it to termbin.com and post the link to the channel.
-PASTEBIN_TRACEBACKS = True
+PASTEBIN_ERRORS = True
