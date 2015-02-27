@@ -430,34 +430,38 @@ def forced_exit(cli, nick, chan, rest):
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
-    try:
-        if var.PHASE in ("day", "night"):
-            try:
-                stop_game(cli)
-            except:
-                errlog(traceback.format_exc())
-                url = pastebin(traceback.format_exc())
-                cli.msg(chan, "An error has occurred and has been logged.{0}"
-                    .format((" " + url) if url else ""))
-                reset_modes_timers(cli)
-                reset()
-        else:
-            reset_modes_timers(cli)
-            reset()
+    if var.PHASE in ("day", "night"):
+        try:
+            stop_game(cli)
+        except Exception:
+            notify_error(cli, chan, errlog)
 
-        cli.quit("Forced restart from "+nick)
-        raise SystemExit
-    finally:
-        plog("RESTARTING")
-        python = sys.executable
-        if rest.strip().lower() == "debugmode":
-            os.execl(python, python, sys.argv[0], "--debug")
-        elif rest.strip().lower() == "normalmode":
-            os.execl(python, python, sys.argv[0], "--normal")
-        elif rest.strip().lower() == "verbosemode":
-            os.execl(python, python, sys.argv[0], "--verbose")
-        else:
-            os.execl(python, python, *sys.argv)
+    try:
+        reset_modes_timers(cli)
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        reset()
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        cli.quit("Forced restart from {0}".format(nick))
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    plog("RESTARTING")
+    python = sys.executable
+    if rest.strip().lower() == "debugmode":
+        os.execl(python, python, sys.argv[0], "--debug")
+    elif rest.strip().lower() == "normalmode":
+        os.execl(python, python, sys.argv[0], "--normal")
+    elif rest.strip().lower() == "verbosemode":
+        os.execl(python, python, sys.argv[0], "--verbose")
+    else:
+        os.execl(python, python, *sys.argv)
+
 
 @cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
