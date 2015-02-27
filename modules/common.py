@@ -8,9 +8,24 @@ from base64 import b64encode
 from oyoyo.parse import parse_nick
 import imp
 from tools import logger
+import socket
 
 log = logger("errors.log")
 alog = logger(None)
+
+
+def pastebin(s):
+    if not botconfig.PASTEBIN_ERRORS:
+        return
+
+    try:
+        with socket.socket() as sock:
+            sock.connect(("termbin.com", 9999))
+            sock.send(s.encode("utf-8", "replace") + b"\n")
+            return sock.recv(1024).decode("utf-8")
+    except socket.error:
+        log(traceback.format_exc())
+
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -34,7 +49,11 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     raise
                 else:
                     log(traceback.format_exc())
-                    cli.msg(chan, "An error has occurred and has been logged.")
+                    url = pastebin(traceback.format_exc())
+                    cli.msg(chan,
+                            "An error has occurred and has been logged.{0}"
+                                .format((" " + url) if url else ""))
+
 
     for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
@@ -54,7 +73,11 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                         raise
                     else:
                         log(traceback.format_exc())
-                        cli.msg(chan, "An error has occurred and has been logged.")
+                        url = pastebin(traceback.format_exc())
+                        cli.msg(chan,
+                                "An error has occurred and has been logged.{0}"
+                                    .format((" " + url) if url else ""))
+
     
 def __unhandled__(cli, prefix, cmd, *args):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
@@ -71,7 +94,11 @@ def __unhandled__(cli, prefix, cmd, *args):
                     raise e
                 else:
                     log(traceback.format_exc())
-                    cli.msg(botconfig.CHANNEL, "An error has occurred and has been logged.")
+                    url = pastebin(traceback.format_exc())
+                    cli.msg(botconfig.CHANNEL,
+                            "An error has occurred and has been logged.{0}"
+                                .format((" " + url) if url else ""))
+
 
     
 COMMANDS = {}

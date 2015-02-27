@@ -408,7 +408,9 @@ def forced_exit(cli, nick, chan, rest):  # Admin Only
             stop_game(cli)
         except:
             errlog(traceback.format_exc())
-            cli.msg(chan, "An error has occurred and has been logged.")
+            url = pastebin(traceback.format_exc())
+            cli.msg(chan, "An error has occurred and has been logged.{0}"
+                .format((" " + url) if url else ""))
             reset_modes_timers(cli)
             reset()
     else:
@@ -416,7 +418,6 @@ def forced_exit(cli, nick, chan, rest):  # Admin Only
         reset()
 
     cli.quit("Forced quit from "+nick)
-
 
 
 @cmd("frestart", admin_only=True, pm=True)
@@ -429,7 +430,9 @@ def restart_program(cli, nick, chan, rest):
                 stop_game(cli)
             except:
                 errlog(traceback.format_exc())
-                cli.msg(chan, "An error has occurred and has been logged.")
+                url = pastebin(traceback.format_exc())
+                cli.msg(chan, "An error has occurred and has been logged.{0}"
+                    .format((" " + url) if url else ""))
                 reset_modes_timers(cli)
                 reset()
         else:
