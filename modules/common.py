@@ -15,7 +15,7 @@ alog = logger(None)
 
 
 def pastebin(s):
-    if not botconfig.PASTEBIN_ERRORS:
+    if not botconfig.PASTEBIN_TRACEBACK:
         return
 
     try:

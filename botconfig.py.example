@@ -33,5 +33,5 @@ USE_UTC = True # if True, will use the UTC time, else the local time
 # %Y is the year with century, %y is the year without, %m is the month, %d the day, %H hour, %M minute and %S seconds
 TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
 
-# If enabled, when there's an error, the bot will post it to termbin.com and post the link to the channel.
-PASTEBIN_ERRORS = True
+# If enabled, when an exception is caught, the bot will post it to termbin.com and post the link to the channel.
+PASTEBIN_TRACEBACKS = True
