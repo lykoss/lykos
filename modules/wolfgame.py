@@ -415,11 +415,6 @@ def forced_exit(cli, nick, chan, rest):
         notify_error(cli, chan, errlog)
 
     try:
-        assert(1 == 2)
-    except Exception:
-        notify_error(cli, chan, errlog)
-
-    try:
         reset()
     except Exception:
         notify_error(cli, chan, errlog)
