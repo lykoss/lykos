@@ -7000,7 +7000,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
-    @cmd("revealroles", admin_only=True, pm=True, join=True, game=True)
+    @cmd("revealroles", admin_only=True, pm=True, game=True)
     def revealroles(cli, nick, chan, rest):
         if not botconfig.DEBUG_MODE:
             # if allowed in normal games, restrict it so that it can only be used by dead players and
@@ -7018,14 +7018,56 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             elif nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != '!':
                 return
 
+        output = []
+        for role in var.role_order():
+            if role in var.ROLES and var.ROLES[role]:
+                # make a copy since this list is modified
+                nicks = copy.copy(var.ROLES[role])
+                # go through each nick, adding extra info if necessary
+                for i in range(len(nicks)):
+                    nick = nicks[i]
+                    if role == "assassin" and nick in var.TARGETED:
+                        nicks[i] += " (targeting {0})".format(var.TARGETED[nick])
+                    elif role in var.TOTEM_ORDER and nick in var.TOTEMS:
+                        if nick in var.SHAMANS or var.PHASE == "day":
+                            if nick in var.LASTGIVEN and var.LASTGIVEN[nick] != None:
+                                nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nick], var.LASTGIVEN[nick])
+                        else:
+                            nicks[i] += " (has {0} totem)".format(var.TOTEMS[nick])
+                    elif role == "clone" and nick in var.CLONED:
+                        nicks[i] += " (cloned {0})".format(var.CLONED[nick])
+                    # print out how many bullets gunners / wolf gunners have
+                    if nick in var.GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
+                        nicks[i] += " (gunner with {0} bullets)".format(var.GUNNERS[nick])
+                output.append("\u0002{0}\u0002: {1}".format(role, ', '.join(nicks)))
 
-        s = ' | '.join('\u0002{}\u0002: {}'.format(role,', '.join(players))
-                for (role, players) in sorted(var.ROLES.items()) if players)
+        # print out lovers too
+        done = {}
+        lovers = []
+        for lover1, llist in var.LOVERS.items():
+            for lover2 in llist:
+                # check if already said the pairing
+                if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
+                    continue
+                lovers.append("{0}/{1}".format(lover1, lover2))
+                if lover1 in done:
+                    done[lover1].append(lover2)
+                else:
+                    done[lover1] = [lover2]
+        if len(lovers) == 1 or len(lovers) == 2:
+            output.append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
+        elif len(lovers) > 2:
+            output.append("\u0002lovers\u0002: {0}, and {1}".format(', '.join(lovers[0:-1]), lovers[-1]))
+
+        # print out vengeful ghosts, also vengeful ghosts that were driven away by 'retribution' totem
+        if var.VENGEFUL_GHOSTS:
+            output.append("\u0002dead vengeful ghost\u0002: {0}".format(', '.join(["{0} ({1})".format(
+             nick, team.replace("!", "driven away, ")) for (nick,team) in var.VENGEFUL_GHOSTS.items()])))
 
         if chan == nick:
-            pm(cli, nick, s)
+            pm(cli, nick, ' | '.join(output))
         else:
-            cli.msg(chan, s)
+            cli.msg(chan, ' | '.join(output))
 
 
     @cmd("fgame", admin_only=True, raw_nick=True, join=True)
