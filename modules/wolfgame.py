@@ -398,26 +398,37 @@ def sync_modes(cli):
 
     mass_mode(cli, voices, other)
 
+
 @cmd("fdie", "fbye", admin_only=True, pm=True)
-def forced_exit(cli, nick, chan, rest):  # Admin Only
+def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
     if var.PHASE in ("day", "night"):
-        #ignore all errors that prevent the bot from stopping
         try:
             stop_game(cli)
-        except:
-            errlog(traceback.format_exc())
-            url = pastebin(traceback.format_exc())
-            cli.msg(chan, "An error has occurred and has been logged.{0}"
-                .format((" " + url) if url else ""))
-            reset_modes_timers(cli)
-            reset()
-    else:
-        reset_modes_timers(cli)
-        reset()
+        except Exception:
+            notify_error(cli, chan, errlog)
 
-    cli.quit("Forced quit from "+nick)
+    try:
+        reset_modes_timers(cli)
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        assert(1 == 2)
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        reset()
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        cli.quit("Forced quit from {0}".format(nick))
+    except Exception:
+        notify_error(cli, chan, errlog)
+        sys.exit()
 
 
 @cmd("frestart", admin_only=True, pm=True)

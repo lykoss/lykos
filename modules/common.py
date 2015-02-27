@@ -14,22 +14,33 @@ log = logger("errors.log")
 alog = logger(None)
 
 
-def pastebin(s):
-    if not botconfig.PASTEBIN_TRACEBACK:
-        return
+def notify_error(cli, chan, target_logger):
+    msg = "An error has occurred and has been logged."
 
-    try:
-        with socket.socket() as sock:
-            sock.connect(("termbin.com", 9999))
-            sock.send(s.encode("utf-8", "replace") + b"\n")
-            return sock.recv(1024).decode("utf-8")
-    except socket.error:
-        log(traceback.format_exc())
+    tb = traceback.format_exc()
+
+    target_logger(tb)
+
+    if botconfig.PASTEBIN_ERRORS:
+        try:
+            with socket.socket() as sock:
+                sock.connect(("termbin.com", 9999))
+                sock.send(tb.encode("utf-8", "replace") + b"\n")
+                url = sock.recv(1024).decode("utf-8")
+        except socket.error:
+            target_logger(traceback.format_exc())
+        else:
+            msg += " "
+            msg += url
+
+    cli.msg(chan, msg)
 
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
     
+    currmod.notify_error = notify_error
+
     if botconfig.IGNORE_HIDDEN_COMMANDS and (chan.startswith("@#") or chan.startswith("+#")):
         return
     
@@ -44,15 +55,11 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         for fn in currmod.COMMANDS[""]:
             try:
                 fn(cli, rawnick, chan, msg)
-            except:
+            except Exception:
                 if botconfig.DEBUG_MODE:
                     raise
                 else:
-                    log(traceback.format_exc())
-                    url = pastebin(traceback.format_exc())
-                    cli.msg(chan,
-                            "An error has occurred and has been logged.{0}"
-                                .format((" " + url) if url else ""))
+                    notify_error(cli, chan, log)
 
 
     for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
@@ -68,15 +75,11 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             for fn in COMMANDS.get(x, []) + (currmod.COMMANDS.get(x, []) if currmod else []):
                 try:
                     fn(cli, rawnick, chan, h.lstrip())
-                except:
+                except Exception:
                     if botconfig.DEBUG_MODE:
                         raise
                     else:
-                        log(traceback.format_exc())
-                        url = pastebin(traceback.format_exc())
-                        cli.msg(chan,
-                                "An error has occurred and has been logged.{0}"
-                                    .format((" " + url) if url else ""))
+                        notify_error(cli, chan, log)
 
     
 def __unhandled__(cli, prefix, cmd, *args):
@@ -93,12 +96,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                 if botconfig.DEBUG_MODE:
                     raise e
                 else:
-                    log(traceback.format_exc())
-                    url = pastebin(traceback.format_exc())
-                    cli.msg(botconfig.CHANNEL,
-                            "An error has occurred and has been logged.{0}"
-                                .format((" " + url) if url else ""))
-
+                    notify_error(cli, chan, log)
 
     
 COMMANDS = {}
