@@ -7016,22 +7016,25 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if role in var.ROLES and var.ROLES[role]:
                 # make a copy since this list is modified
                 nicks = copy.copy(var.ROLES[role])
-                # go through each nick, adding extra info if necessary
+                # go through each nickname, adding extra info if necessary
                 for i in range(len(nicks)):
-                    nick = nicks[i]
-                    if role == "assassin" and nick in var.TARGETED:
-                        nicks[i] += " (targeting {0})".format(var.TARGETED[nick])
-                    elif role in var.TOTEM_ORDER and nick in var.TOTEMS:
-                        if nick in var.SHAMANS or var.PHASE == "day":
-                            if nick in var.LASTGIVEN and var.LASTGIVEN[nick] != None:
-                                nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nick], var.LASTGIVEN[nick])
+                    nickname = nicks[i]
+                    if role == "assassin" and nickname in var.TARGETED:
+                        nicks[i] += " (targeting {0})".format(var.TARGETED[nickname])
+                    elif role in var.TOTEM_ORDER and nickname in var.TOTEMS:
+                        if nickname in var.SHAMANS or var.PHASE == "day":
+                            if nickname in var.LASTGIVEN and var.LASTGIVEN[nickname] != None:
+                                nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
                         else:
-                            nicks[i] += " (has {0} totem)".format(var.TOTEMS[nick])
+                            nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
                     elif role == "clone" and nick in var.CLONED:
-                        nicks[i] += " (cloned {0})".format(var.CLONED[nick])
-                    # print out how many bullets gunners / wolf gunners have
-                    if nick in var.GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
-                        nicks[i] += " (gunner with {0} bullets)".format(var.GUNNERS[nick])
+                        nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
+                    # print how many bullets normal gunners have
+                    elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
+                        nicks[i] += " ({0} bullet{1})".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s")
+                    # print out how many bullets wolf gunners have
+                    if nickname in var.WOLF_GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
+                        nicks[i] += " (wolf gunner with {0} bullet{1})".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s")
                 output.append("\u0002{0}\u0002: {1}".format(role, ', '.join(nicks)))
 
         # print out lovers too
@@ -7055,7 +7058,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         # print out vengeful ghosts, also vengeful ghosts that were driven away by 'retribution' totem
         if var.VENGEFUL_GHOSTS:
             output.append("\u0002dead vengeful ghost\u0002: {0}".format(', '.join(["{0} ({1})".format(
-             nick, team.replace("!", "driven away, ")) for (nick,team) in var.VENGEFUL_GHOSTS.items()])))
+             nickname, team.replace("!", "driven away, ")) for (nickname,team) in var.VENGEFUL_GHOSTS.items()])))
 
         if chan == nick:
             pm(cli, nick, ' | '.join(output))
