@@ -4924,6 +4924,8 @@ def getfeatures(cli, nick, *rest):
                 var.MODELIMIT = int(r[6:])
             except ValueError:
                 pass
+        if r.startswith("STATUSMSG="):
+            var.STATUSMSG_PREFIXES = list(r.split("=")[1])
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if not notice and not privmsg:
