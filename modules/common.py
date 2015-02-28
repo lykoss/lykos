@@ -95,7 +95,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                 if botconfig.DEBUG_MODE:
                     raise e
                 else:
-                    notify_error(cli, chan, log)
+                    notify_error(cli, botconfig.CHANNEL, log)
 
     
 COMMANDS = {}
