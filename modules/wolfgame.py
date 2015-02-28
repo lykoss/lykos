@@ -7064,6 +7064,15 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002dead vengeful ghost\u0002: {0}".format(', '.join(["{0} ({1})".format(
              nickname, team.replace("!", "driven away, ")) for (nickname,team) in var.VENGEFUL_GHOSTS.items()])))
 
+        #show bitten users + days until turning
+        if var.BITTEN: # and sum(var.BITTEN.values()) > 0:
+            output.append("\u0002bitten:\u0002 {0}".format(', '.join(["{0} ({1} day{2} until transformation)".format(
+             nickname, days, "" if days == 1 else "s") for (nickname,days) in var.BITTEN.items()])))
+
+        #show who got immunized
+        if var.IMMUNIZED:
+            output.append("\u0002immunized:\u0002 {0}".format(', '.join(var.IMMUNIZED)))
+
         if chan == nick:
             pm(cli, nick, ' | '.join(output))
         else:
