@@ -1064,7 +1064,8 @@ def join_timer_handler(cli):
             decorators.unhook(HOOKS, 387)
             if to_ping:
                 to_ping.sort(key=lambda x: x.lower())
-                cli.msg(botconfig.CHANNEL, "PING! {0} players! {1}".format(len(pl), " ".join(to_ping)))
+                cli.msg(botconfig.CHANNEL, "PING! {0} player{1}! {2}".format(
+                    len(pl), "" if len(pl) == 1 else "s", " ".join(to_ping)))
 
         cli.who(botconfig.CHANNEL, "%nushaf")
 
