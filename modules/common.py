@@ -21,7 +21,9 @@ def notify_error(cli, chan, target_logger):
 
     target_logger(tb)
 
-    if botconfig.PASTEBIN_ERRORS:
+    cli.msg(chan, msg)
+
+    if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
         try:
             with socket.socket() as sock:
                 sock.connect(("termbin.com", 9999))
@@ -30,10 +32,7 @@ def notify_error(cli, chan, target_logger):
         except socket.error:
             target_logger(traceback.format_exc())
         else:
-            msg += " "
-            msg += url
-
-    cli.msg(chan, msg)
+            cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
 
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
@@ -110,6 +109,7 @@ def connect_callback(cli):
     def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
         cli.join(botconfig.ALT_CHANNELS)
+        cli.join(",".join(chan.lstrip("@+") for chan in botconfig.DEV_CHANNEL.split(",")))
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
         cli.cap("REQ", "extended-join")
