@@ -1727,9 +1727,11 @@ def show_votes(cli, nick, chan, rest):
         plural = " has"
     else:
         plural = "s have"
-    the_message = ('{}\u0002{}\u0002 players, \u0002{}\u0002 votes '
-                   'required to lynch, \u0002{}\u0002 players available to '
-                   'vote. \u0002{}\u0002 player{} refrained from voting.').format(_nick, len(pl), votesneeded, avail, not_voting, plural)
+    the_message = ("{}\u0002{}\u0002 players, \u0002{}\u0002 votes "
+                   "required to lynch, \u0002{}\u0002 players available to "
+                   "vote.").format(_nick, len(pl), votesneeded, avail)
+    if var.ABSTAIN_ENABLED:
+        the_message += " \u0002{}\u0002 player{} refrained from voting.".format(not_voting, plural)
 
     if chan == nick:
         pm(cli, nick, the_message)
@@ -3620,7 +3622,7 @@ def no_lynch(cli, nick, chan, rest):
     """Allows you to abstain from voting for the day."""
     if chan == botconfig.CHANNEL:
         if not var.ABSTAIN_ENABLED:
-            cli.notice(nick, "This command has been disabled by the admins.")
+            cli.notice(nick, "This command has been disabled.")
             return
         elif var.LIMIT_ABSTAIN and var.ABSTAINED:
             cli.notice(nick, "The village has already abstained once this game and may not do so again.")
