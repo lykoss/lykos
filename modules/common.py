@@ -9,6 +9,7 @@ from oyoyo.parse import parse_nick
 import imp
 from tools import logger
 import socket
+import settings.wolfgame as var
 
 log = logger("errors.log")
 alog = logger(None)
@@ -37,11 +38,14 @@ def notify_error(cli, chan, target_logger):
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
-    
-    currmod.notify_error = notify_error
 
-    if botconfig.IGNORE_HIDDEN_COMMANDS and (chan.startswith("@#") or chan.startswith("+#")):
-        return
+    try:
+        prefixes = getattr(var, "STATUSMSG_PREFIXES")
+    except AttributeError:
+        pass
+    else:
+        if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes.keys():
+            return
     
     if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
                     (chan == botconfig.NICK and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
@@ -109,7 +113,7 @@ def connect_callback(cli):
     def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
         cli.join(botconfig.ALT_CHANNELS)
-        cli.join(",".join(chan.lstrip("@+") for chan in botconfig.DEV_CHANNEL.split(",")))
+        cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES.keys())) for chan in botconfig.DEV_CHANNEL.split(",")))
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
         cli.cap("REQ", "extended-join")
