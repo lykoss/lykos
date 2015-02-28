@@ -44,7 +44,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     except AttributeError:
         pass
     else:
-        if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes.keys():
+        if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes:
             return
     
     if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
@@ -113,7 +113,7 @@ def connect_callback(cli):
     def prepare_stuff(*args):    
         cli.join(botconfig.CHANNEL)
         cli.join(botconfig.ALT_CHANNELS)
-        cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES.keys())) for chan in botconfig.DEV_CHANNEL.split(",")))
+        cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(",")))
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
         
         cli.cap("REQ", "extended-join")
