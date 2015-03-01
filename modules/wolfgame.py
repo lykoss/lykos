@@ -7034,6 +7034,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                             nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
                     elif role == "clone" and nick in var.CLONED:
                         nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
+                    elif role == "amnesiac" and nickname in var.FINAL_ROLES:
+                        nicks[i] += " (will become {0})".format(var.FINAL_ROLES[nickname])
                     # print how many bullets normal gunners have
                     elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
                         nicks[i] += " ({0} bullet{1})".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s")
