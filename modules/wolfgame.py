@@ -7032,7 +7032,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                                 nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
                         else:
                             nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
-                    elif role == "clone" and nick in var.CLONED:
+                    elif role == "clone" and nickname in var.CLONED:
                         nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
                     elif role == "amnesiac" and nickname in var.FINAL_ROLES:
                         nicks[i] += " (will become {0})".format(var.FINAL_ROLES[nickname])
