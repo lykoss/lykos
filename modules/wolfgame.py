@@ -451,26 +451,53 @@ def restart_program(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
-    msg = "Forced restart from {0}"
+    msg = "Forced restart from {0}".format(nick)
+    rest = rest.strip()
+    mode = None
 
-    if rest.strip():
-        msg += " ({1})"
+    if rest:
+        args = rest.split()
+        first_arg = args[0].lower()
+
+        if first_arg.endswith("mode") and first_arg != "mode":
+            mode = first_arg.replace("mode", "")
+
+            VALID_MODES = ("normal", "verbose", "debug")
+
+            if mode not in VALID_MODES:
+                err_msg = ("\u0002{0}\u0002 is not a valid mode. Valid "
+                           "modes are: {1}").format(mode, ", ".join(VALID_MODES))
+
+                if chan == nick:
+                    pm(cli, nick, err_msg)
+                else:
+                    cli.notice(nick, err_msg)
+
+                return
+
+            msg += " in {0} mode".format(mode)
+            rest = " ".join(args[1:])
+
+    if rest:
+        msg += " ({0})".format(rest)
 
     try:
-        cli.quit(msg.format(nick, rest.strip()))
+        #cli.quit(msg.format(nick, rest.strip()))
+        cli.msg(chan, msg.format(nick, rest.strip()))
     except Exception:
         notify_error(cli, chan, errlog)
 
     plog("RESTARTING")
+
     python = sys.executable
-    if rest.strip().lower() == "debugmode":
-        os.execl(python, python, sys.argv[0], "--debug")
-    elif rest.strip().lower() == "normalmode":
-        os.execl(python, python, sys.argv[0], "--normal")
-    elif rest.strip().lower() == "verbosemode":
-        os.execl(python, python, sys.argv[0], "--verbose")
+
+    if mode:
+        #os.execl(python, python, sys.argv[0], "--{0}".format(mode))
+        cli.msg(chan, "{0}".format(((python, python, sys.argv[0], "--{0}".format(mode)))))
     else:
-        os.execl(python, python, *sys.argv)
+        #os.execl(python, python, *sys.argv)
+        cli.msg(chan, "{0}".format(tuple([python, python] + sys.argv)))
+
 
 
 @cmd("ping", pm=True)
