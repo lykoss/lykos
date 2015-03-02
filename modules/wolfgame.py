@@ -419,8 +419,13 @@ def forced_exit(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
+    msg = "Forced quit from {0}"
+
+    if rest.strip():
+        msg += " ({1})"
+
     try:
-        cli.quit("Forced quit from {0}".format(nick))
+        cli.quit(msg.format(nick, rest.strip()))
     except Exception:
         notify_error(cli, chan, errlog)
         sys.exit()
@@ -446,8 +451,13 @@ def restart_program(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
+    msg = "Forced restart from {0}"
+
+    if rest.strip():
+        msg += " ({1})"
+
     try:
-        cli.quit("Forced restart from {0}".format(nick))
+        cli.quit(msg.format(nick, rest.strip()))
     except Exception:
         notify_error(cli, chan, errlog)
 
