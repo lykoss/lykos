@@ -482,8 +482,7 @@ def restart_program(cli, nick, chan, rest):
         msg += " ({0})".format(rest)
 
     try:
-        #cli.quit(msg.format(nick, rest.strip()))
-        cli.msg(chan, msg.format(nick, rest.strip()))
+        cli.quit(msg.format(nick, rest.strip()))
     except Exception:
         notify_error(cli, chan, errlog)
 
@@ -492,11 +491,9 @@ def restart_program(cli, nick, chan, rest):
     python = sys.executable
 
     if mode:
-        #os.execl(python, python, sys.argv[0], "--{0}".format(mode))
-        cli.msg(chan, "{0}".format(((python, python, sys.argv[0], "--{0}".format(mode)))))
+        os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
-        #os.execl(python, python, *sys.argv)
-        cli.msg(chan, "{0}".format(tuple([python, python] + sys.argv)))
+        os.execl(python, python, *sys.argv)
 
 
 
