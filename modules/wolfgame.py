@@ -3162,13 +3162,6 @@ def transition_day(cli, gameid=0):
         begin_day(cli)
         return
 
-    if (not len(var.SEEN)+len(var.KILLS)+len(var.OBSERVED) # neither seer nor wolf acted
-            and not var.START_WITH_DAY and var.FIRST_NIGHT and (var.ROLES["seer"] or var.ROLES["oracle"] or var.ROLES["augur"]) and not botconfig.DEBUG_MODE):
-        cli.msg(botconfig.CHANNEL, "\02The wolves all die of a mysterious plague.\02")
-        for x in var.ROLES["traitor"] + var.list_players(var.WOLF_ROLES):
-            if not del_player(cli, x, True, death_triggers = False):
-                return
-
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
     var.NIGHT_TIMEDELTA += td
