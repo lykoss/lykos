@@ -612,7 +612,7 @@ class DrunkFireMode(object):
             "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
             })
 
-@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 0)
+@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
 class NoRevealMode(object):
     """Roles are not revealed when players die."""
     def __init__(self):
@@ -639,7 +639,7 @@ class NoRevealMode(object):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("lycan", minp = 7, maxp = 21, likelihood = 1)
+@game_mode("lycan", minp = 7, maxp = 21, likelihood = 6)
 class LycanMode(object):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self):
