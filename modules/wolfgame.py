@@ -7091,7 +7091,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
         # print out vengeful ghosts, also vengeful ghosts that were driven away by 'retribution' totem
         if var.VENGEFUL_GHOSTS:
-            output.append("\u0002dead vengeful ghost\u0002: {0}".format(', '.join(["{0} ({1})".format(
+            output.append("\u0002dead vengeful ghost\u0002: {0}".format(', '.join(["{0} (against {1})".format(
              nickname, team.replace("!", "driven away, ")) for (nickname,team) in var.VENGEFUL_GHOSTS.items()])))
 
         #show bitten users + days until turning
