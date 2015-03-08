@@ -3556,7 +3556,9 @@ def transition_day(cli, gameid=0):
                     if guntaker not in dead:
                         break
                 numbullets = var.GUNNERS[victim]
-                var.WOLF_GUNNERS[guntaker] = 1  # transfer bullets a wolf
+                if guntaker not in var.WOLF_GUNNERS:
+                    var.WOLF_GUNNERS[guntaker] = 0
+                var.WOLF_GUNNERS[guntaker] += 1  # transfer bullets a wolf
                 mmsg = ("While searching {0}'s belongings, you found " +
                         "a gun loaded with 1 silver bullet! " +
                         "You may only use it during the day. " +
@@ -4096,7 +4098,8 @@ def shoot(cli, nick, chan, rest):
         cli.notice(nick, "You don't have a gun.")
         return
     elif ((nick in var.GUNNERS.keys() and not var.GUNNERS[nick]) or
-          (nick in var.WOLF_GUNNERS.keys() and not var.WOLF_GUNNERS[nick])):
+         ((nick not in var.GUNNERS.keys() or not var.GUNNERS[nick]) and
+          nick in var.WOLF_GUNNERS.keys() and not var.WOLF_GUNNERS[nick])):
         cli.notice(nick, "You don't have any more bullets.")
         return
     elif nick in var.SILENCED:
@@ -4113,7 +4116,7 @@ def shoot(cli, nick, chan, rest):
 
     wolfshooter = nick in var.list_players(var.WOLFCHAT_ROLES)
 
-    if wolfshooter and nick in var.WOLF_GUNNERS:
+    if wolfshooter and nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
         var.WOLF_GUNNERS[nick] -= 1
     else:
         var.GUNNERS[nick] -= 1
