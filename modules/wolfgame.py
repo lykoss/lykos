@@ -5117,15 +5117,21 @@ def transition_night(cli):
             var.ROLES["amnesiac"].remove(amn)
             var.ROLES[amnrole].append(amn)
             var.AMNESIACS.append(amn)
+            if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
+                continue
             showrole = amnrole
             if showrole in ("village elder", "time lord"):
                 showrole = "villager"
             elif showrole == "vengeful ghost":
                 showrole = var.DEFAULT_ROLE
-            pm(cli, amn, "Your amnesia clears and you now remember that you are a \u0002{0}\u0002!".format(showrole))
+            n = ""
+            if showrole[0] in "aeiou":
+                n = "n"
+            pm(cli, amn, "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!".format(n, showrole))
             if amnrole in var.WOLFCHAT_ROLES:
                 for wolf in var.list_players(var.WOLFCHAT_ROLES):
-                    pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
+                    if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
+                        pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
             debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     numwolves = len(var.list_players(var.WOLF_ROLES))
