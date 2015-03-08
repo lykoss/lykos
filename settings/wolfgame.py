@@ -382,9 +382,9 @@ def break_long_message(phrases, joinstr = " "):
     return message
 
 class InvalidModeException(Exception): pass
-def game_mode(name, minp, maxp, likelihood = 0):
+def game_mode(name, minp, maxp, likelihood = 0, conceal_roles = False):
     def decor(c):
-        GAME_MODES[name] = (c, minp, maxp, likelihood)
+        GAME_MODES[name] = (c, minp, maxp, likelihood, conceal_roles)
         return c
     return decor
 
@@ -690,7 +690,7 @@ class MatchmakerMode(object):
             "mad scientist" : [(1 if i >= 18 else 0) for i in self.ROLE_INDEX]
             })
 
-@game_mode("random", minp = 8, maxp = 24, likelihood = 0)
+@game_mode("random", minp = 8, maxp = 24, likelihood = 0, conceal_roles = True)
 class RandomMode(object):
     """Completely random and hidden roles."""
     def __init__(self):

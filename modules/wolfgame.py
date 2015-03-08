@@ -1396,7 +1396,7 @@ def stats(cli, nick, chan, rest):
         else:
             cli.notice(nick, msg)
 
-    if var.PHASE == "join" or not var.ROLE_REVEAL:
+    if var.PHASE == "join" or not var.ROLE_REVEAL or var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
         return
 
     message = []
@@ -6639,17 +6639,21 @@ def listroles(cli, nick, chan, rest):
         old[r] = 0
     rest = re.split(" +", rest.strip(), 1)
     #prepend player count if called without any arguments
-    if not len(rest[0]) and pl > 0:
+    if var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
+        txt += " {0}: {1}roles was disabled for this game mode.".format(nick, botconfig.CMD_CHAR)
+        rest = []
+        roleindex = {}
+    elif not len(rest[0]) and pl > 0:
         txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
         if var.PHASE in ["night", "day"]:
             txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
 
     #read game mode to get roles for
-    if len(rest[0]) and not rest[0].isdigit():
+    elif len(rest[0]) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
             gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
-        if gamemode in var.GAME_MODES.keys() and gamemode != "roles":
+        if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and not var.GAME_MODES[gamemode][4]:
             mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX"):
                 roleindex = getattr(mode, "ROLE_INDEX")
@@ -6657,12 +6661,15 @@ def listroles(cli, nick, chan, rest):
                 roleguide = getattr(mode, "ROLE_GUIDE")
             rest.pop(0)
         else:
-            txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
+            if var.GAME_MODES[gamemode][4]:
+                txt += " {0}: {1}roles was disabled for this game mode.".format(nick, botconfig.CMD_CHAR)
+            else:
+                txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
             rest = []
             roleindex = {}
 
     #number of players to print the game mode for
-    if len(rest) and rest[0].isdigit():
+    elif len(rest) and rest[0].isdigit():
         index = int(rest[0])
         for i in range(len(roleindex)-1, -1, -1):
             if roleindex[i] <= index:
