@@ -5907,6 +5907,9 @@ def start(cli, nick, chan, forced = False):
     # Handle doctor
     for doctor in var.ROLES["doctor"]:
         var.DOCTORS[doctor] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(pl))
+    for amn in var.FINAL_ROLES:
+        if var.FINAL_ROLES[amn] == "doctor":
+            var.DOCTORS[amn] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(pl))
 
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
