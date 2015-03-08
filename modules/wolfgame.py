@@ -332,6 +332,7 @@ def reset_modes_timers(cli):
 def reset():
     var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
+    var.RESTART_TRIES = 0
     var.DEAD = []
     var.ROLES = {"person" : []}
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
@@ -1800,8 +1801,10 @@ def chk_traitor(cli):
                                         'frightened as they hear a loud howl. The wolves are '+
                                         'not gone!\u0002'))
 
-def stop_game(cli, winner = ""):
+def stop_game(cli, winner = "", abort = False):
     chan = botconfig.CHANNEL
+    if abort:
+        cli.msg(chan, "The role attribution failed 3 times. Game was canceled.")
     if var.DAY_START_TIME:
         now = datetime.now()
         td = now - var.DAY_START_TIME
@@ -1820,7 +1823,9 @@ def stop_game(cli, winner = ""):
                    "\u0002{4:0>2}:{5:0>2}\u0002 was night. ").format(tmin, tsec,
                                                                      daymin, daysec,
                                                                      nitemin, nitesec)
-    cli.msg(chan, gameend_msg)
+
+    if not abort:
+        cli.msg(chan, gameend_msg)
 
     roles_msg = []
 
@@ -1863,24 +1868,25 @@ def stop_game(cli, winner = ""):
                                                   var.plural(role)))
     message = ""
     count = 0
-    cli.msg(chan, var.break_long_message(roles_msg))
+    if not abort:
+        cli.msg(chan, var.break_long_message(roles_msg))
 
-    done = {}
-    lovers = []
-    for lover1, llist in var.ORIGINAL_LOVERS.items():
-        for lover2 in llist:
-            # check if already said the pairing
-            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                continue
-            lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
-            if lover1 in done:
-                done[lover1].append(lover2)
-            else:
-                done[lover1] = [lover2]
-    if len(lovers) == 1 or len(lovers) == 2:
-        cli.msg(chan, "The lovers were {0}.".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+        done = {}
+        lovers = []
+        for lover1, llist in var.ORIGINAL_LOVERS.items():
+            for lover2 in llist:
+                # check if already said the pairing
+                if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
+                    continue
+                lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
+                if lover1 in done:
+                    done[lover1].append(lover2)
+                else:
+                    done[lover1] = [lover2]
+        if len(lovers) == 1 or len(lovers) == 2:
+            cli.msg(chan, "The lovers were {0}.".format(" and ".join(lovers)))
+        elif len(lovers) > 2:
+            cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
 
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
@@ -5142,6 +5148,10 @@ def transition_night(cli):
             var.DYING.append(elder)
             debuglog(elder, "ELDER DEATH")
 
+    if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
+        start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE)
+        return
+
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
     if chk_win(cli):
         return
@@ -5669,15 +5679,22 @@ def fstart(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
     start(cli, nick, chan)
 
-def start(cli, nick, chan, forced = False):
+def start(cli, nick, chan, forced = False, restart = ""):
     if (not forced and var.LAST_START and nick in var.LAST_START and
             var.LAST_START[nick] + timedelta(seconds=var.START_RATE_LIMIT) >
-            datetime.now()):
+            datetime.now() and not restart):
         cli.notice(nick, ("This command is rate-limited. Please wait a while "
                           "before using it again."))
         return
 
-    var.LAST_START[nick] = datetime.now()
+    if restart:
+        var.RESTART_TRIES += 1
+    if var.RESTART_TRIES > 3:
+        stop_game(cli, abort=True)
+        return
+
+    if not restart:
+        var.LAST_START[nick] = datetime.now()
 
     if chan != botconfig.CHANNEL:
         return
@@ -5685,46 +5702,51 @@ def start(cli, nick, chan, forced = False):
     villagers = var.list_players()
     pl = villagers[:]
 
-    if var.PHASE == "none":
-        cli.notice(nick, "No game is currently running.")
-        return
-    if var.PHASE != "join":
-        cli.notice(nick, "Werewolf is already in play.")
-        return
-    if nick not in villagers and nick != chan and not forced:
-        cli.notice(nick, "You're currently not playing.")
-        return
+    if not restart:
+        if var.PHASE == "none":
+            cli.notice(nick, "No game is currently running.")
+            return
+        if var.PHASE != "join":
+            cli.notice(nick, "Werewolf is already in play.")
+            return
+        if nick not in villagers and nick != chan and not forced:
+            cli.notice(nick, "You're currently not playing.")
+            return
 
-    now = datetime.now()
-    var.GAME_START_TIME = now  # Only used for the idler checker
-    dur = int((var.CAN_START_TIME - now).total_seconds())
-    if dur > 0 and not forced:
-        plural = "" if dur == 1 else "s"
-        cli.msg(chan, "Please wait at least {0} more second{1}.".format(dur, plural))
-        return
+        now = datetime.now()
+        var.GAME_START_TIME = now  # Only used for the idler checker
+        dur = int((var.CAN_START_TIME - now).total_seconds())
+        if dur > 0 and not forced:
+            plural = "" if dur == 1 else "s"
+            cli.msg(chan, "Please wait at least {0} more second{1}.".format(dur, plural))
+            return
 
-    if len(villagers) < var.MIN_PLAYERS:
-        cli.msg(chan, "{0}: \u0002{1}\u0002 or more players are required to play.".format(nick, var.MIN_PLAYERS))
-        return
+        if len(villagers) < var.MIN_PLAYERS:
+            cli.msg(chan, "{0}: \u0002{1}\u0002 or more players are required to play.".format(nick, var.MIN_PLAYERS))
+            return
 
-    if len(villagers) > var.MAX_PLAYERS:
-        cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play.".format(nick, var.MAX_PLAYERS))
-        return
+        if len(villagers) > var.MAX_PLAYERS:
+            cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play.".format(nick, var.MAX_PLAYERS))
+            return
 
-    if not var.FGAMED:
-        votes = {} #key = gamemode, not cloak
-        for gamemode in var.GAMEMODE_VOTES.values():
-            if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
-                votes[gamemode] = votes.get(gamemode, 0) + 1
-        voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
-        if len(voted):
-            cgamemode(cli, random.choice(voted))
-        else:
-            possiblegamemodes = []
-            for gamemode in var.GAME_MODES.keys():
-                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
-                    possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
-            cgamemode(cli, random.choice(possiblegamemodes))
+        if not var.FGAMED:
+            votes = {} #key = gamemode, not cloak
+            for gamemode in var.GAMEMODE_VOTES.values():
+                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
+                    votes[gamemode] = votes.get(gamemode, 0) + 1
+            voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
+            if len(voted):
+                cgamemode(cli, random.choice(voted))
+            else:
+                possiblegamemodes = []
+                for gamemode in var.GAME_MODES.keys():
+                    if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
+                        possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
+                cgamemode(cli, random.choice(possiblegamemodes))
+
+    else:
+        cgamemode(cli, restart)
+        var.GAME_ID = time.time() # restart reaper timer
 
     for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
         if var.ROLE_INDEX[index] <= len(villagers):
@@ -5734,7 +5756,7 @@ def start(cli, nick, chan, forced = False):
         cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
         return
 
-    if var.ORIGINAL_SETTINGS:  # Custom settings
+    if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         while True:
             wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
             if len(villagers) < (sum(addroles.values()) - sum([addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys()])):
@@ -5752,7 +5774,7 @@ def start(cli, nick, chan, forced = False):
             return
 
 
-    if var.ADMIN_TO_PING:
+    if var.ADMIN_TO_PING and not restart:
         if "join" in COMMANDS.keys():
             COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         if "j" in COMMANDS.keys():
@@ -5760,7 +5782,8 @@ def start(cli, nick, chan, forced = False):
         if "start" in COMMANDS.keys():
             COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
 
-    var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
+    if not restart: # will already be stored if restarting
+        var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
     var.ROLES = {}
     var.GUNNERS = {}
     var.WOLF_GUNNERS = {}
@@ -5879,9 +5902,10 @@ def start(cli, nick, chan, forced = False):
         except ValueError:
             break
 
-    var.SPECIAL_ROLES["goat herder"] = []
-    if var.GOAT_HERDER:
-       var.SPECIAL_ROLES["goat herder"] = [ nick ]
+    if not restart:
+        var.SPECIAL_ROLES["goat herder"] = []
+        if var.GOAT_HERDER:
+            var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger"):
@@ -5889,9 +5913,10 @@ def start(cli, nick, chan, forced = False):
                 var.TIMERS[name][0].cancel()
                 del var.TIMERS[name]
 
-    cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                   "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
-    cli.mode(chan, "+m")
+    if not restart:
+        cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
+                       "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
+        cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
 
@@ -5940,6 +5965,8 @@ def start(cli, nick, chan, forced = False):
         templates = "None"
     debuglog("TEMPLATES:", templates)
 
+    if restart:
+        var.PHASE = None # allow transition_* to run properly if game was restarted on first night
     var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
         var.GAMEPHASE = "night"
