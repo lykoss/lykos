@@ -38,7 +38,7 @@ def logger(file, write=True, display=True):
         if display:
             print(timestamp + output, file=utf8stdout)
         if write and file is not None:
-            with open(file, "a") as f:
+            with open(file, "a", errors="replace") as f:
                 f.seek(0, 2)
                 f.write(timestamp + output + "\n")
 
