@@ -6,22 +6,24 @@ import time
 # since windows likes to use weird encodings by default
 utf8stdout = open(1, 'w', errors="replace", closefd=False) # stdout
 
-def get_timestamp():
-    """Returns a timestamp with timezone + offset from UTC."""
-    if botconfig.USE_UTC:
-        tmf = datetime.datetime.utcnow().strftime(botconfig.TIMESTAMP_FORMAT)
-        if tmf[-1] != " ":
-            tmf += " "
-        return tmf.format(tzname="UTC", tzoffset="+0000")
-    tmf = time.strftime(botconfig.TIMESTAMP_FORMAT)
-    if tmf[-1] != " ":
-        tmf += " "
-    tz = time.strftime("%Z")
-    utctime = datetime.datetime.utcnow().strftime("%H")
-    nowtime = datetime.datetime.now().strftime("%H")
-    offset = "-" if int(utctime) > int(nowtime) else "+"
-    offset += str(time.timezone // 36).zfill(4)
-    return tmf.format(tzname=tz, tzoffset=offset).upper()
+def get_timestamp(use_utc=None, ts_format=None):
+    """Return a timestamp with timezone + offset from UTC."""
+    if use_utc is None:
+        use_utc = botconfig.USE_UTC
+    if ts_format is None:
+        ts_format = botconfig.TIMESTAMP_FORMAT
+    if use_utc:
+        tmf = datetime.datetime.utcnow().strftime(ts_format)
+        tz = "UTC"
+        offset = "+0000"
+    else:
+        tmf = time.strftime(ts_format)
+        tz = time.tzname[0]
+        offset = "+"
+        if datetime.datetime.utcnow().hour > datetime.datetime.now().hour:
+            offset = "-"
+        offset += str(time.timezone // 36).zfill(4)
+    return tmf.format(tzname=tz, tzoffset=offset).strip().upper() + " "
 
 def logger(file, write=True, display=True):
     if file is not None:
