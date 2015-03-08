@@ -4620,6 +4620,8 @@ def immunize(cli, nick, chan, rest):
     if nick in var.DOCTORS and var.DOCTORS[nick] == 0:
         pm(cli, nick, "You have run out of immunizations.")
         return
+    if not nick in var.DOCTORS: # something with amnesiac or clone or exchange totem
+        var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(var.ALL_PLAYERS))
     victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
