@@ -5449,7 +5449,7 @@ def transition_night(cli):
             pm(cli, ms, "You are the \u0002mad scientist\u0002. Targets: {0}".format(targets))
 
     for doctor in var.ROLES["doctor"]:
-        if var.DOCTORS[doctor] > 0: # has immunizations remaining
+        if doctor in var.DOCTORS and var.DOCTORS[doctor] > 0: # has immunizations remaining
             pl = ps[:]
             random.shuffle(pl)
             if doctor in var.PLAYERS and not is_user_simple(doctor):
