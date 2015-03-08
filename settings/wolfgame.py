@@ -690,6 +690,20 @@ class MatchmakerMode(object):
             "mad scientist" : [(1 if i >= 18 else 0) for i in self.ROLE_INDEX]
             })
 
+@game_mode("random", minp = 8, maxp = 24, likelihood = 0)
+class RandomMode(object):
+    """Completely random and hidden roles."""
+    def __init__(self):
+        self.AMNESIAC_NIGHTS = 1
+        self.AMNESIAC_BLACKLIST = ["villager", "cultist", "amnesiac"]
+        self.ROLE_REVEAL = False
+        self.ROLE_INDEX = range(8, 25)
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            "wolf"     : [1 for i in self.ROLE_INDEX],
+            "amnesiac" : [i - 1 for i in self.ROLE_INDEX],
+            })
+
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
 @game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 4)
