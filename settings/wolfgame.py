@@ -231,7 +231,9 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.",
                            "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.")
 
-import botconfig, fnmatch
+import botconfig
+import fnmatch
+import random
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 DENY = {}
@@ -696,12 +698,15 @@ class RandomMode(object):
     def __init__(self):
         self.AMNESIAC_NIGHTS = 1
         self.AMNESIAC_BLACKLIST = ["villager", "cultist", "amnesiac"]
-        self.ROLE_REVEAL = False
+        self.ROLE_REVEAL = random.choice((True, False))
+        self.TEMPLATE_RESTRICTIONS = {template: [] for template in TEMPLATE_RESTRICTIONS}
         self.ROLE_INDEX = range(8, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
-            "wolf"     : [1 for i in self.ROLE_INDEX],
-            "amnesiac" : [i - 1 for i in self.ROLE_INDEX],
+            "wolf"       : [1 for i in self.ROLE_INDEX],
+            "amnesiac"   : [i - 1 for i in self.ROLE_INDEX],
+            "gunner"     : [random.randint(0, i) for i in self.ROLE_INDEX],
+            "assassin"   : [random.randrange(i // 2) for i in self.ROLE_INDEX],
             })
 
 # Credits to Metacity for designing and current name
