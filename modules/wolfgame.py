@@ -6516,10 +6516,10 @@ def wiki(cli, nick, chan, rest):
                 [x.lower() for x in match.group(1).replace(" ", "-") if x in string.ascii_letters+"-"]))
     if nick == chan:
         pm(cli, nick, wikilink)
-        pm(cli, nick, match.group(2))
+        pm(cli, nick, var.break_long_message(match.group(2).split()))
     else:
         cli.msg(chan, wikilink)
-        cli.notice(nick, match.group(2))
+        cli.notice(nick, var.break_long_message(match.group(2).split()))
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
