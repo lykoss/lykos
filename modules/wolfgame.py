@@ -2884,7 +2884,7 @@ def on_nick(cli, oldnick, nick):
                 var.WOUNDED.append(nick)
             if prefix in var.INVESTIGATED:
                 var.INVESTIGATED.remove(prefix)
-                var.INVESTIGATED.append(prefix)
+                var.INVESTIGATED.append(nick)
             if prefix in var.VOTES:
                 var.VOTES[nick] = var.VOTES.pop(prefix)
             for v in var.VOTES.values():
