@@ -6658,10 +6658,12 @@ def listroles(cli, nick, chan, rest):
             gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
         if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and not var.GAME_MODES[gamemode][4]:
             mode = var.GAME_MODES[gamemode][0]()
-            if hasattr(mode, "ROLE_INDEX"):
+            if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = getattr(mode, "ROLE_INDEX")
-            if hasattr(mode, "ROLE_GUIDE"):
                 roleguide = getattr(mode, "ROLE_GUIDE")
+            elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
+                roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
+                roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
             rest.pop(0)
         else:
             if gamemode in var.GAME_MODES and var.GAME_MODES[gamemode][4]:
