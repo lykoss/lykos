@@ -29,6 +29,7 @@ import threading
 import copy
 import time
 import re
+import string
 import sys
 import os
 import math
@@ -36,6 +37,7 @@ import random
 import subprocess
 import signal
 from tools import logger
+import urllib.request
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
 errlog = logger("errors.log")
@@ -6493,6 +6495,31 @@ def get_help(cli, rnick, chan, rest):
             pm(cli, nick, "Admin Commands: "+", ".join(afns))
         else:
             cli.notice(nick, "Admin Commands: "+", ".join(afns))
+
+@cmd("wiki", pm=True)
+def wiki(cli, nick, chan, rest):
+    """Prints information on roles from the wiki."""
+    page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode('ascii', errors='replace')
+    if not page:
+        cli.notice(nick, "Could not open https://github.com/lykoss/lykos/wiki")
+        return
+    #look for exact match first, then for a partial match
+    match = re.search("^##+ ({0})$\r?\n\r?\n^(.*)$".format(rest.strip()), page, re.MULTILINE + re.IGNORECASE)
+    if not match:
+        match = re.search("^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(rest.strip()), page, re.MULTILINE + re.IGNORECASE)
+    if not match:
+        cli.notice(nick, "Could not find information on that role in https://github.com/lykoss/lykos/wiki")
+        return
+
+    #wiki links only have lowercase aschii chars, and spaces are replaced with a dash
+    wikilink = "https://github.com/lykoss/lykos/wiki#{0}".format(''.join(
+                [x.lower() for x in match.group(1).replace(" ", "-") if x in string.ascii_letters+"-"]))
+    if nick == chan:
+        pm(cli, nick, wikilink)
+        pm(cli, nick, match.group(2))
+    else:
+        cli.msg(chan, wikilink)
+        cli.notice(nick, match.group(2))
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
