@@ -6664,7 +6664,7 @@ def listroles(cli, nick, chan, rest):
                 roleguide = getattr(mode, "ROLE_GUIDE")
             rest.pop(0)
         else:
-            if var.GAME_MODES[gamemode][4]:
+            if gamemode in var.GAME_MODES and var.GAME_MODES[gamemode][4]:
                 txt += " {0}: {1}roles was disabled for this game mode.".format(nick, botconfig.CMD_CHAR)
             else:
                 txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
