@@ -705,8 +705,8 @@ class RandomMode(object):
         self.ROLE_GUIDE.update({
             "wolf"       : [1 for i in self.ROLE_INDEX],
             "amnesiac"   : [i - 1 for i in self.ROLE_INDEX],
-            "gunner"     : [random.randrange(math.ceil((i ** 1.4) / 4)) for i in self.ROLE_INDEX],
-            "assassin"   : [random.randrange(math.ceil((i ** 1.4) / 8)) for i in self.ROLE_INDEX],
+            "gunner"     : [random.randrange(int(i ** 1.2 / 4)) for i in self.ROLE_INDEX],
+            "assassin"   : [random.randrange(int(i ** 1.2 / 8)) for i in self.ROLE_INDEX],
             })
 
 # Credits to Metacity for designing and current name
