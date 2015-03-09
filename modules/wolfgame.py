@@ -2450,7 +2450,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.KILLS[a].remove(nick)
                     if a == nick or len(var.KILLS[a]) == 0:
                         del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.OTHER_KILLS):
                     keys = list(x.keys())
                     for k in keys:
                         if k == nick:
@@ -2459,6 +2459,13 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             del x[k]
                 if nick in var.DISCONNECTED:
                     del var.DISCONNECTED[nick]
+            if var.PHASE == "night":
+                # remove players from night variables
+                # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
+                # if these aren't cleared properly night may end prematurely
+                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED, var.SHAMANS):
+                    if nick in x:
+                        x.remove(nick)
             if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
                 if nick in var.VOTES.keys():
                     del var.VOTES[nick]  #  Delete other people's votes on the player
@@ -2477,7 +2484,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.ASLEEP.remove(nick)
                 if nick in var.PLAYERS:
                     cloak = var.PLAYERS[nick]["cloak"]
-                    if cloak in var.GAMEMODE_VOTES:
+                    if cloak in var.GAMEMODE_VOTES
+:
                         del var.GAMEMODE_VOTES[cloak]
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
@@ -3047,7 +3055,7 @@ def begin_day(cli):
     # Reset nighttime variables
     var.GAMEPHASE = "day"
     var.KILLS = {}  # nicknames of kill victims (wolves only)
-    var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost/death totem)
+    var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost)
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers/oracles/augurs that have had visions
     var.HEXED = [] # list of hags that have silenced others
