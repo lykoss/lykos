@@ -2871,10 +2871,10 @@ def on_nick(cli, oldnick, nick):
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
-                if prefix in var.IDLE_WARNED:
+                if hasattr(var, "IDLE_WARNED") and prefix in var.IDLE_WARNED:
                     var.IDLE_WARNED.remove(prefix)
                     var.IDLE_WARNED.add(nick)
-                if prefix in var.IDLE_WARNED_PM:
+                if hasattr(var, "IDLE_WARNED_PM") and prefix in var.IDLE_WARNED_PM:
                     var.IDLE_WARNED_PM.remove(prefix)
                     var.IDLE_WARNED_PM.add(nick)
 
