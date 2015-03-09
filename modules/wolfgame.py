@@ -3603,13 +3603,12 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
-                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
-                      list(var.TARGETED.keys()))
+                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS)
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
-                  var.ROLES["crazed shaman"] + var.ROLES["assassin"] + var.ROLES["augur"])
+                  var.ROLES["crazed shaman"] + var.ROLES["augur"])
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
@@ -3629,6 +3628,12 @@ def chk_nightdone(cli):
     playercount = len(nightroles) + var.ACTED_EXTRA
 
     if var.PHASE == "night" and actedcount >= playercount:
+        # check for assassins that have not yet targeted
+        # must be handled separately because assassin only acts on nights when their target is dead
+        # and silenced assassin shouldn't add to actedcount
+        for ass in var.ROLES["assassin"]:
+            if ass not in var.TARGETED and ass not in var.SILENCED:
+                return
         if not var.DISEASED_WOLVES:
             # flatten var.KILLS
             kills = set()
