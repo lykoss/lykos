@@ -2426,6 +2426,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
             if devoice:
                 cmode.append(("-v", nick))
             if var.PHASE == "join":
+                if nick in var.GAMEMODE_VOTES:
+                    del var.GAMEMODE_VOTES[nick]
                 # Died during the joining process as a person
                 if var.AUTO_TOGGLE_MODES and nick in var.USERS and var.USERS[nick]["moded"]:
                     for newmode in var.USERS[nick]["moded"]:
@@ -2482,11 +2484,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.WOUNDED.remove(nick)
                 if nick in var.ASLEEP:
                     var.ASLEEP.remove(nick)
-                if nick in var.PLAYERS:
-                    cloak = var.PLAYERS[nick]["cloak"]
-                    if cloak in var.GAMEMODE_VOTES
-:
-                        del var.GAMEMODE_VOTES[cloak]
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
@@ -2891,6 +2888,11 @@ def on_nick(cli, oldnick, nick):
                 if prefix in v:
                     v.remove(prefix)
                     v.append(nick)
+
+        if var.PHASE == "join":
+            if prefix in var.GAMEMODE_VOTES:
+                var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES[prefix]
+                del var.GAMEMODE_VOTES[prefix]
 
     # Check if he was DC'ed
     if var.PHASE in ("night", "day"):
@@ -6968,7 +6970,7 @@ def game(cli, nick, chan, rest):
         gamemode = match
     
     if gamemode != "roles":
-        var.GAMEMODE_VOTES[cloak] = gamemode
+        var.GAMEMODE_VOTES[nick] = gamemode
         cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
     else:
         cli.notice(nick, "You can't vote for that game mode.")
