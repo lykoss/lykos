@@ -149,6 +149,7 @@ def generate(fdict, permissions=True, **kwargs):
             innerf.playing = playing
             innerf.roles = roles
             innerf.hookid = hookid
+            innerf.aftergame = False
             innerf.__doc__ = f.__doc__
             return innerf
             

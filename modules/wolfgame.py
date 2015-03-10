@@ -422,13 +422,15 @@ def forced_exit(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
-    msg = "Forced quit from {0}"
+    msg = "{0} quit from {1}"
 
     if rest.strip():
-        msg += " ({1})"
+        msg += " ({2})"
 
     try:
-        cli.quit(msg.format(nick, rest.strip()))
+        cli.quit(msg.format("Scheduled" if forced_exit.aftergame else "Forced",
+                            nick,
+                            rest.strip()))
     except Exception:
         notify_error(cli, chan, errlog)
         sys.exit()
@@ -454,7 +456,9 @@ def restart_program(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
-    msg = "Forced restart from {0}".format(nick)
+    msg = "{0} restart from {1}".format(
+        "Scheduled" if restart_program.aftergame else "Forced", nick)
+
     rest = rest.strip()
     mode = None
 
@@ -6818,7 +6822,9 @@ def aftergame(cli, rawnick, chan, rest):
     if cmd in COMMANDS.keys():
         def do_action():
             for fn in COMMANDS[cmd]:
+                fn.aftergame = True
                 fn(cli, rawnick, botconfig.CHANNEL if fn.chan else nick, " ".join(rst))
+                fn.aftergame = False
     else:
         cli.notice(nick, "That command was not found.")
         return
