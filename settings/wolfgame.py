@@ -697,8 +697,11 @@ class RandomMode(object):
     """Completely random and hidden roles."""
     def __init__(self):
         self.AMNESIAC_NIGHTS = 1
-        self.AMNESIAC_BLACKLIST = ["villager", "cultist", "amnesiac"]
-        self.ROLE_REVEAL = random.choice((True, False))
+        self.AMNESIAC_BLACKLIST = ["cultist"]
+        self.LOVER_WINS_WITH_FOOL = True
+        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
+        self.ALPHA_WOLF_NIGHTS = 2
+        self.ROLE_REVEAL = False
         self.TEMPLATE_RESTRICTIONS = {template: [] for template in TEMPLATE_RESTRICTIONS}
         self.ROLE_INDEX = range(8, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -708,6 +711,24 @@ class RandomMode(object):
             "gunner"     : [random.randrange(int(i ** 1.2 / 4)) for i in self.ROLE_INDEX],
             "assassin"   : [random.randrange(int(i ** 1.2 / 8)) for i in self.ROLE_INDEX],
             })
+
+        self.TOTEM_CHANCES = { #  shaman , crazed
+                        "death": (   8   ,   1   ),
+                   "protection": (   6   ,   1   ),
+                      "silence": (   4   ,   1   ),
+                    "revealing": (   2   ,   1   ),
+                  "desperation": (   4   ,   1   ),
+                   "impatience": (   7   ,   1   ),
+                     "pacifism": (   7   ,   1   ),
+                    "influence": (   7   ,   1   ),
+                   "narcolepsy": (   4   ,   1   ),
+                     "exchange": (   1   ,   1   ),
+                  "lycanthropy": (   1   ,   1   ),
+                         "luck": (   6   ,   1   ),
+                   "pestilence": (   3   ,   1   ),
+                  "retribution": (   5   ,   1   ),
+                 "misdirection": (   6   ,   1   ),
+                            }
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
