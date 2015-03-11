@@ -5945,7 +5945,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
 
     # Handle amnesiac
-    amnroles = list(var.ROLE_GUIDE.keys() - [var.DEFAULT_ROLE])
+    amnroles = list(var.ROLE_GUIDE.keys() - [var.DEFAULT_ROLE, "amnesiac"])
     for nope in var.AMNESIAC_BLACKLIST:
         if nope in amnroles:
             amnroles.remove(nope)
