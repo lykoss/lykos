@@ -1117,8 +1117,7 @@ def join(cli, nick, chan, rest):
         if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
             cli.notice(nick, "You are not logged in to NickServ.")
             return
-    join_player(cli, nick, chan)
-    if rest and not var.FGAMED:
+    if join_player(cli, nick, chan) and rest and not var.FGAMED:
         gamemode = rest.lower().split()[0]
         if gamemode not in var.GAME_MODES.keys():
             match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
@@ -1240,6 +1239,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.TIMERS['join_pinger'] = (t, time.time(), 10)
         t.daemon = True
         t.start()
+
+    return True
 
 def kill_join(cli, chan):
     pl = var.list_players()
