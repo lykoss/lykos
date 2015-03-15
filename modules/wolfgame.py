@@ -1118,6 +1118,16 @@ def join(cli, nick, chan, rest):
             cli.notice(nick, "You are not logged in to NickServ.")
             return
     join_player(cli, nick, chan)
+    if rest and not var.FGAMED:
+        gamemode = rest.lower().split()[0]
+        if gamemode not in var.GAME_MODES.keys():
+            match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
+            if not match:
+                return
+            gamemode = match
+        if gamemode != "roles":
+            var.GAMEMODE_VOTES[nick] = gamemode
+            cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
 
 def join_player(cli, player, chan, who = None, forced = False):
     if who is None:
