@@ -6979,10 +6979,8 @@ def my_stats(cli, nick, chan, rest):
     rest = rest.split()
     player_stats(cli, nick, chan, " ".join([nick] + rest))
 
-@cmd("game", raw_nick=True, join=True, playing=True)
+@cmd("game", join=True, playing=True)
 def game(cli, nick, chan, rest):
-    nick, _, __, cloak = parse_nick(nick)
-
     if rest:
         gamemode = rest.lower().split()[0]
     else:
