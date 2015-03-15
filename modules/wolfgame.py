@@ -7024,12 +7024,10 @@ def game_help(args=''):
 game.__doc__ = game_help
 
 
-@cmd("vote", "v", raw_nick=True, pm=True)
-def vote(cli, raw_nick, chan, rest):
-    nick = parse_nick(raw_nick)[0]
-
+@cmd("vote", "v", pm=True)
+def vote(cli, nick, chan, rest):
     if var.PHASE == "join" and chan != nick:
-        return game(cli, raw_nick, chan, rest)
+        return game(cli, nick, chan, rest)
     elif rest:
         return lynch(cli, nick, chan, rest)
     else:
