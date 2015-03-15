@@ -7030,9 +7030,10 @@ def vote(cli, raw_nick, chan, rest):
 
     if var.PHASE == "join" and chan != nick:
         return game(cli, raw_nick, chan, rest)
-    else:
+    elif rest:
         return lynch(cli, nick, chan, rest)
-
+    else:
+        return show_votes(cli, nick, chan, rest)
 
 @cmd("fpull", admin_only=True, pm=True)
 def fpull(cli, nick, chan, rest):
