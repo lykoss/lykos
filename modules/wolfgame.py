@@ -5534,8 +5534,8 @@ def transition_night(cli):
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and not is_user_simple(lycan):
             pm(cli, lycan, ('You are a \u0002lycan\u0002. You are currently on the side of the ' +
-                            'villagers, but will turn into a wolf if you are targeted by them ' +
-                            'during the night.'))
+                            'villagers, but will turn into a wolf instead of dying if you are ' +
+                            'targeted by the wolves during the night.'))
         else:
             pm(cli, lycan, "You are a \u0002lycan\u0002.")
 
