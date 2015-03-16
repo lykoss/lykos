@@ -855,6 +855,13 @@ def init_db():
 
         c.execute('CREATE TABLE IF NOT EXISTS ping_prefs_accs (acc TEXT, pref TEXT)') # ping-if prefs (accounts - primary)
 
+        c.execute('PRAGMA table_info(pre_restart_state)')
+        try:
+            next(c)
+        except StopIteration:
+            c.execute('CREATE TABLE pre_restart_state (players TEXT)')
+            c.execute('INSERT INTO pre_restart_state (players) VALUES (NULL)')
+
         c.execute('SELECT * FROM away')
         for row in c:
             AWAY.append(row[0])

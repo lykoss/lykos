@@ -38,6 +38,7 @@ import subprocess
 import signal
 from tools import logger
 import urllib.request
+import sqlite3
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
 errlog = logger("errors.log")
@@ -163,9 +164,19 @@ def connect_callback(cli):
 
     @hook("endofwho", hookid=294)
     def afterwho(*args):
+        # Devoice all on connect
         for nick in to_be_devoiced:
             cmodes.append(("-v", nick))
-        # devoice all on connect
+
+        # If the bot was restarted in the middle of the join phase, ping players that were joined.
+        with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
+            c = conn.cursor()
+            c.execute("SELECT players FROM pre_restart_state")
+            players = c.fetchone()[0]
+            if players:
+                cli.msg(botconfig.CHANNEL, "PING! {0}".format(players))
+                c.execute("UPDATE pre_restart_state SET players = NULL")
+
 
     #bot can be tricked into thinking it's still opped by doing multiple modes at once
     @hook("mode", hookid=294)
@@ -448,6 +459,15 @@ def restart_program(cli, nick, chan, rest):
 
     try:
         reset_modes_timers(cli)
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
+        with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
+            c = conn.cursor()
+            players = var.list_players()
+            if players:
+                c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
     except Exception:
         notify_error(cli, chan, errlog)
 
