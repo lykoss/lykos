@@ -1749,66 +1749,85 @@ def chk_decision(cli, force = ""):
                 transition_night(cli)
             break
 
-@cmd("votes", pm=True, game=True)
+@cmd("votes", pm=True, game=True, join=True)
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
 
-    if var.PHASE != 'day':
+    pl = var.list_players()
+    if var.PHASE == "join":
+        #get gamemode votes in a dict (key = mode, value = number of votes)
+        gamemode_votes = {}
+        for vote in var.GAMEMODE_VOTES.values():
+            gamemode_votes[vote] = gamemode_votes.get(vote, 0) + 1
+
+        votelist = []
+        majority = False
+        for gamemode,num_votes in sorted(gamemode_votes.items(), key=lambda x: x[1], reverse=True):
+            #bold the game mode if: we have the right number of players, another game mode doesn't already have the majority, and this gamemode can be picked randomly or has the majority
+            if (len(pl) >= var.GAME_MODES[gamemode][1] and len(pl) <= var.GAME_MODES[gamemode][2] and
+               (not majority or num_votes >= len(pl)/2) and (var.GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl)/2)):
+                votelist.append("\u0002{0}\u0002: {1}".format(gamemode, num_votes))
+                if num_votes >= len(pl)/2:
+                    majority = True
+            else:
+                votelist.append("{0}: {1}".format(gamemode, num_votes))
+        the_message = ", ".join(votelist)
+        if len(pl) >= var.MIN_PLAYERS:
+            the_message += "{0}Votes needed for a majority: {1}".format("; " if votelist else "", int(math.ceil(len(pl)/2)))
+    elif var.PHASE == "night":
         cli.notice(nick, "Voting is only during the day.")
         return
-
-    if (chan != nick and var.LAST_VOTES and var.VOTES_RATE_LIMIT and
-            var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) >
-            datetime.now()):
-        cli.notice(nick, ('This command is rate-limited. Please wait a while '
-                          'before using it again.'))
-        return
-    
-    pl = var.list_players()
-
-    _nick = nick + ": "
-    if chan == nick:
-        _nick = ""
-
-    if chan != nick and nick in pl:
-        var.LAST_VOTES = datetime.now()
-
-    if not var.VOTES.values():
-        msg = _nick + 'No votes yet.'
-
-        if nick in pl:
-            var.LAST_VOTES = None  # reset
     else:
-        votelist = ['{}: {} ({})'.format(votee,
-                                         len(var.VOTES[votee]),
-                                         ' '.join(var.VOTES[votee]))
-                    for votee in var.VOTES.keys()]
-        msg = '{}{}'.format(_nick, ', '.join(votelist))
+        if (chan != nick and var.LAST_VOTES and var.VOTES_RATE_LIMIT and
+                var.LAST_VOTES + timedelta(seconds=var.VOTES_RATE_LIMIT) >
+                datetime.now()):
+            cli.notice(nick, ('This command is rate-limited. Please wait a while '
+                              'before using it again.'))
+            return
 
-    if chan == nick:
-        pm(cli, nick, msg)
-    elif nick not in pl and var.PHASE not in ("none", "join"):
-        cli.notice(nick, msg)
-    else:
-        cli.msg(chan, msg)
+        _nick = nick + ": "
+        if chan == nick:
+            _nick = ""
 
-    pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
-    votesneeded = avail // 2 + 1
-    not_voting = len(var.NO_LYNCH)
-    if not_voting == 1:
-        plural = " has"
-    else:
-        plural = "s have"
-    the_message = ("{}\u0002{}\u0002 players, \u0002{}\u0002 votes "
-                   "required to lynch, \u0002{}\u0002 players available to "
-                   "vote.").format(_nick, len(pl), votesneeded, avail)
-    if var.ABSTAIN_ENABLED:
-        the_message += " \u0002{}\u0002 player{} refrained from voting.".format(not_voting, plural)
+        if chan != nick and nick in pl:
+            var.LAST_VOTES = datetime.now()
+
+        if not var.VOTES.values():
+            msg = _nick + 'No votes yet.'
+
+            if nick in pl:
+                var.LAST_VOTES = None  # reset
+        else:
+            votelist = ['{}: {} ({})'.format(votee,
+                                             len(var.VOTES[votee]),
+                                             ' '.join(var.VOTES[votee]))
+                        for votee in var.VOTES.keys()]
+            msg = '{}{}'.format(_nick, ', '.join(votelist))
+
+        if chan == nick:
+            pm(cli, nick, msg)
+        elif nick not in pl and var.PHASE not in ("none", "join"):
+            cli.notice(nick, msg)
+        else:
+            cli.msg(chan, msg)
+
+        pl = var.list_players()
+        avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
+        votesneeded = avail // 2 + 1
+        not_voting = len(var.NO_LYNCH)
+        if not_voting == 1:
+            plural = " has"
+        else:
+            plural = "s have"
+        the_message = ("{}\u0002{}\u0002 players, \u0002{}\u0002 votes "
+                       "required to lynch, \u0002{}\u0002 players available to "
+                       "vote.").format(_nick, len(pl), votesneeded, avail)
+        if var.ABSTAIN_ENABLED:
+            the_message += " \u0002{}\u0002 player{} refrained from voting.".format(not_voting, plural)
 
     if chan == nick:
         pm(cli, nick, the_message)
-    elif nick not in pl and var.PHASE not in ("none", "join"):
+    elif nick not in pl and var.PHASE != "join":
         cli.notice(nick, the_message)
     else:
         cli.msg(chan, the_message)
