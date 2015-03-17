@@ -6719,14 +6719,15 @@ def listroles(cli, nick, chan, rest):
         old[r] = 0
     rest = re.split(" +", rest.strip(), 1)
     #prepend player count if called without any arguments
-    if var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
-        txt += " {0}: {1}roles was disabled for this game mode.".format(nick, botconfig.CMD_CHAR)
-        rest = []
-        roleindex = {}
-    elif not len(rest[0]) and pl > 0:
-        txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
-        if var.PHASE in ["night", "day"]:
-            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
+    if not len(rest[0]) and pl > 0:
+        if var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
+            txt += " {0}: {1}roles was disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE)
+            rest = []
+            roleindex = {}
+        else:
+            txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
+            if var.PHASE in ["night", "day"]:
+                txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
 
     #read game mode to get roles for
     elif len(rest[0]) and not rest[0].isdigit():
@@ -6744,7 +6745,7 @@ def listroles(cli, nick, chan, rest):
             rest.pop(0)
         else:
             if gamemode in var.GAME_MODES and var.GAME_MODES[gamemode][4]:
-                txt += " {0}: {1}roles was disabled for this game mode.".format(nick, botconfig.CMD_CHAR)
+                txt += " {0}: {1}roles was disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode)
             else:
                 txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
             rest = []
