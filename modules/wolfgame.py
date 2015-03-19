@@ -1925,8 +1925,6 @@ def stop_game(cli, winner = "", abort = False):
     message = ""
     count = 0
     if not abort:
-        cli.msg(chan, var.break_long_message(roles_msg))
-
         done = {}
         lovers = []
         for lover1, llist in var.ORIGINAL_LOVERS.items():
@@ -1940,9 +1938,11 @@ def stop_game(cli, winner = "", abort = False):
                 else:
                     done[lover1] = [lover2]
         if len(lovers) == 1 or len(lovers) == 2:
-            cli.msg(chan, "The lovers were {0}.".format(" and ".join(lovers)))
+            roles_msg.append("The lovers were {0}.".format(" and ".join(lovers)))
         elif len(lovers) > 2:
-            cli.msg(chan, "The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+            roles_msg.append("The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+
+        cli.msg(chan, var.break_long_message(roles_msg))
 
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
