@@ -1165,10 +1165,13 @@ def get_player_totals(acc):
         if player:
             c.execute("SELECT role, totalgames FROM rolestats WHERE player=? COLLATE NOCASE ORDER BY totalgames DESC", (acc,))
             role_tmp = defaultdict(int)
+            totalgames = 0
             while True:
                 row = c.fetchone()
                 if row:
                     role_tmp[row[0]] += row[1]
+                    if row[0] not in TEMPLATE_RESTRICTIONS and row[0] != "lover":
+                        totalgames += row[1]
                 else:
                     break
             order = role_order()
@@ -1176,9 +1179,7 @@ def get_player_totals(acc):
             role_totals = ["\u0002{0}\u0002: {1}".format(role, role_tmp[role]) for role in order if role in role_tmp]
             #lover or any other special stats
             role_totals += ["\u0002{0}\u0002: {1}".format(role, count) for role, count in role_tmp.items() if role not in order]
-            c.execute("SELECT SUM(totalgames) from rolestats WHERE player=? COLLATE NOCASE AND role!='cursed villager' AND role!='gunner'", (acc,))
-            row = c.fetchone()
-            return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], row[0], break_long_message(role_totals, ", "))
+            return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], totalgames, break_long_message(role_totals, ", "))
         else:
             return "\u0002{0}\u0002 has not played any games.".format(acc)
 
