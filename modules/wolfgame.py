@@ -5234,9 +5234,10 @@ def transition_night(cli):
 
     numwolves = len(var.list_players(var.WOLF_ROLES))
     if var.NIGHT_COUNT >= numwolves + 1:
-        for elder in var.ROLES["village elder"]:
-            var.DYING.append(elder)
-            debuglog(elder, "ELDER DEATH")
+        if "village elder" in var.ROLES:
+            for elder in var.ROLES["village elder"]:
+                var.DYING.append(elder)
+                debuglog(elder, "ELDER DEATH")
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
         start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE)
