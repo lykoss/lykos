@@ -2368,6 +2368,18 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died, " +
                                                 "day will now only last {0} seconds and night will now only " +
                                                 "last {1} seconds!").format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
+                    if var.PHASE == "day" and not botconfig.DEBUG_MODE:
+                        var.TIMERS["day"][0].cancel()
+                        if var.TIMERS["day_warn"][0].isAlive():
+                            var.TIMERS["day_warn"][0].cancel()
+                        t = threading.Timer(var.TIME_LORD_DAY_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+                        var.TIMERS["day"] = (t, time.time(), var.TIME_LORD_DAY_LIMIT)
+                        t.daemon = True
+                        t.start()
+                        tw = threading.Timer(var.TIME_LORD_DAY_WARN, hurry_up, [cli, var.DAY_ID, False])
+                        var.TIMERS["day_warn"] = (tw, time.time(), var.TIME_LORD_DAY_WARN)
+                        tw.daemon = True
+                        tw.start()
                     debuglog(nick, "(time lord) TRIGGER")
                 if nickrole == "vengeful ghost":
                     if killer_role in var.WOLFTEAM_ROLES:
