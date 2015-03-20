@@ -2739,11 +2739,15 @@ def goat(cli, nick, chan, rest):
 @cmd("fgoat", admin_only=True)
 def fgoat(cli, nick, chan, rest):
     """Forces a goat to interact with anyone or anything, without limitations."""
-    rest = rest.split(' ')[0].strip()
+    nick_ = rest.split(' ')[0].strip()
+    ul = list(var.USERS.keys())
+    if nick_.lower() in [x.lower() for x in ul]:
+        togoat = nick_
+    else:
+        togoat = rest
     goatact = random.choice(['kicks', 'headbutts'])
 
-    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(
-        nick, goatact, rest))
+    cli.msg(chan, '\x02{}\x02\'s goat walks by and {} \x02{}\x02.'.format(nick, goatact, togoat))
 
 @hook("nick")
 def on_nick(cli, oldnick, nick):
