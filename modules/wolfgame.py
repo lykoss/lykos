@@ -6911,8 +6911,13 @@ def aftergame(cli, rawnick, chan, rest):
         do_action()
         return
 
+    fullcmd = cmd
+    if rst:
+        fullcmd += " "
+        fullcmd += " ".join(rst)
+
     cli.msg(botconfig.CHANNEL, ("The command \02{0}\02 has been scheduled to run "+
-                  "after this game by \02{1}\02.").format(cmd, nick))
+                  "after this game by \02{1}\02.").format(fullcmd, nick))
     var.AFTER_FLASTGAME = do_action
 
 @cmd("fghost", admin_only=True, pm=True)
