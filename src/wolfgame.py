@@ -124,6 +124,7 @@ if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIME_LORD:
     var.TIME_LORD_NIGHT_LIMIT = 0 # 30
     var.TIME_LORD_NIGHT_WARN = 0 # 20
 
+plog("Loading Werewolf IRC bot")
 
 def connect_callback(cli):
     SIGUSR1 = getattr(signal, "SIGUSR1", None)
