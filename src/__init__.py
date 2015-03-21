@@ -1,6 +1,6 @@
 import argparse
 import botconfig
-from settings import wolfgame as var
+from src import settings as var
 
 # Todo: Allow game modes to be set via config
 
