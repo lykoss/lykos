@@ -6916,9 +6916,9 @@ def funghost(cli, nick, chan, rest):
     cli.mode(botconfig.CHANNEL, "-v", nick)
 
 @cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
-def flastgame(cli, nick, chan, rest):
+def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
-    nick, _, __, cloak = parse_nick(nick)
+    nick, _, __, cloak = parse_nick(rawnick)
 
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
