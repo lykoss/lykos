@@ -2107,10 +2107,20 @@ def chk_win(cli, end_game = True):
 
     if var.PHASE == "join":
         if lpl == 0:
-            #cli.msg(chan, "No more players remaining. Game ended.")
             reset_modes_timers(cli)
+
             reset()
+
+            # This must be after reset()
+            if var.AFTER_FLASTGAME:
+                var.AFTER_FLASTGAME()
+                var.AFTER_FLASTGAME = None
+            if var.ADMIN_TO_PING:  # It was an flastgame
+                cli.msg(chan, "PING! " + var.ADMIN_TO_PING)
+                var.ADMIN_TO_PING = None
+
             return True
+
         return False
 
     with var.GRAVEYARD_LOCK:
