@@ -20,10 +20,10 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from oyoyo.parse import parse_nick
-import settings.wolfgame as var
+import src.settings as var
 import botconfig
 import traceback
-from tools import decorators
+from src import decorators
 from datetime import datetime, timedelta
 import threading
 import copy
@@ -36,7 +36,7 @@ import math
 import random
 import subprocess
 import signal
-from tools import logger
+from src import logger
 import urllib.request
 import sqlite3
 

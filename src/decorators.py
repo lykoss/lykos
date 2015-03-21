@@ -11,8 +11,8 @@
 from oyoyo.parse import parse_nick
 import fnmatch
 import botconfig
-import settings.wolfgame as var
-from tools import logger
+import src.settings as var
+from src import logger
 
 adminlog = logger(None)
 

@@ -26,15 +26,15 @@ from oyoyo.client import IRCClient
 import botconfig
 import time
 import traceback
-import modules.common
-import tools
+import src
+from src import handler
 
 
 def main():
     cli = IRCClient(
-                      {"privmsg": modules.common.on_privmsg,
-                       "notice": lambda a, b, c, d: modules.common.on_privmsg(a, b, c, d, True),
-                       "": modules.common.__unhandled__},
+                      {"privmsg": handler.on_privmsg,
+                       "notice": lambda a, b, c, d: handler.on_privmsg(a, b, c, d, True),
+                       "": handler.unhandled},
                      host=botconfig.HOST,
                      port=botconfig.PORT,
                      authname=botconfig.USERNAME,
@@ -44,8 +44,8 @@ def main():
                      real_name=botconfig.REALNAME,
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
-                     connect_cb=modules.common.connect_callback,
-                     stream_handler=tools.stream,
+                     connect_cb=handler.connect_callback,
+                     stream_handler=src.stream,
     )
     cli.mainLoop()
 
@@ -54,4 +54,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        tools.logger("errors.log")(traceback.format_exc())
+        src.logger("errors.log")(traceback.format_exc())
