@@ -7104,10 +7104,11 @@ game.__doc__ = game_help
 
 @cmd("vote", "v", pm=True)
 def vote(cli, nick, chan, rest):
-    if var.PHASE == "join" and chan != nick:
-        return game(cli, nick, chan, rest)
-    elif rest:
-        return lynch(cli, nick, chan, rest)
+    if rest:
+        if var.PHASE == "join" and chan != nick:
+            return game(cli, nick, chan, rest)
+        else:
+            return lynch(cli, nick, chan, rest)
     else:
         return show_votes(cli, nick, chan, rest)
 
