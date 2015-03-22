@@ -699,6 +699,7 @@ class RandomMode(object):
     """Completely random and hidden roles."""
     def __init__(self):
         self.AMNESIAC_NIGHTS = 1
+        self.IGNORE_NO_WOLF = True
         self.AMNESIAC_BLACKLIST = ["cultist"]
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
@@ -708,8 +709,7 @@ class RandomMode(object):
         self.ROLE_INDEX = range(8, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
-            "wolf"       : [1 for i in self.ROLE_INDEX],
-            "amnesiac"   : [i - 1 for i in self.ROLE_INDEX],
+            "amnesiac"   : [i for i in self.ROLE_INDEX],
             "gunner"     : [random.randrange(int(i ** 1.2 / 4)) for i in self.ROLE_INDEX],
             "assassin"   : [random.randrange(int(i ** 1.2 / 8)) for i in self.ROLE_INDEX],
             })
