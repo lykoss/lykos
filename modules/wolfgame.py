@@ -2384,19 +2384,35 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     cli.msg(botconfig.CHANNEL, ("Tick tock! Since the time lord has died, " +
                                                 "day will now only last {0} seconds and night will now only " +
                                                 "last {1} seconds!").format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
-                    if var.PHASE == "day" and not botconfig.DEBUG_MODE:
+                    if var.GAMEPHASE == "day" and timeleft_internal("day") > var.DAY_TIME_LIMIT and var.DAY_TIME_LIMIT > 0:
                         if "day" in var.TIMERS:
                             var.TIMERS["day"][0].cancel()
-                        if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
-                            var.TIMERS["day_warn"][0].cancel()
-                        t = threading.Timer(var.TIME_LORD_DAY_LIMIT, hurry_up, [cli, var.DAY_ID, True])
-                        var.TIMERS["day"] = (t, time.time(), var.TIME_LORD_DAY_LIMIT)
+                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+                        var.TIMERS["day"] = (t, time.time(), var.DAY_TIME_LIMIT)
                         t.daemon = True
                         t.start()
-                        tw = threading.Timer(var.TIME_LORD_DAY_WARN, hurry_up, [cli, var.DAY_ID, False])
-                        var.TIMERS["day_warn"] = (tw, time.time(), var.TIME_LORD_DAY_WARN)
-                        tw.daemon = True
-                        tw.start()
+                        # Don't duplicate warnings, e.g. only set the warn timer if a warning was not already given
+                        if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
+                            var.TIMERS["day_warn"][0].cancel()
+                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [cli, var.DAY_ID, False])
+                            var.TIMERS["day_warn"] = (t, time.time(), var.DAY_TIME_WARN)
+                            t.daemon = True
+                            t.start()
+                    elif var.GAMEPHASE == "night" and timeleft_internal("night") > var.NIGHT_TIME_LIMIT and var.NIGHT_TIME_LIMIT > 0:
+                        if "night" in var.TIMERS:
+                            var.TIMERS["night"][0].cancel()
+                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [cli, var.NIGHT_ID, True])
+                        var.TIMERS["night"] = (t, time.time(), var.NIGHT_TIME_LIMIT)
+                        t.daemon = True
+                        t.start()
+                        # Don't duplicate warnings, e.g. only set the warn timer if a warning was not already given
+                        if "night_warn" in var.TIMERS and var.TIMERS["night_warn"][0].isAlive():
+                            var.TIMERS["night_warn"][0].cancel()
+                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [cli, var.NIGHT_ID, False])
+                            var.TIMERS["night_warn"] = (t, time.time(), var.NIGHT_TIME_WARN)
+                            t.daemon = True
+                            t.start()
+
                     debuglog(nick, "(time lord) TRIGGER")
                 if nickrole == "vengeful ghost":
                     if killer_role in var.WOLFTEAM_ROLES:
@@ -6738,8 +6754,7 @@ def timeleft(cli, nick, chan, rest):
         var.LAST_TIME = datetime.now()
 
     if var.PHASE in var.TIMERS:
-        t = var.TIMERS[var.PHASE]
-        remaining = int((t[1] + t[2]) - time.time())
+        remaining = timeleft_internal(var.PHASE)
         if var.PHASE == "day":
             what = "sunset"
         elif var.PHASE == "night":
@@ -6756,6 +6771,9 @@ def timeleft(cli, nick, chan, rest):
         cli.notice(nick, msg)
     else:
         cli.msg(chan, msg)
+
+def timeleft_internal(phase):
+    return int((var.TIMERS[phase][1] + var.TIMERS[phase][2]) - time.time()) if phase in var.TIMERS else -1
 
 @cmd("roles", pm=True)
 def listroles(cli, nick, chan, rest):
