@@ -267,9 +267,12 @@ def complete_match(string, matches):
         return bestmatch, 1
 
 #wrapper around complete_match() used for roles
-def get_victim(cli, nick, victim, self_in_list = False):
+def get_victim(cli, nick, victim, in_chan, self_in_list = False):
     if not victim:
-        pm(cli, nick, "Not enough parameters")
+        if in_chan:
+            cli.notice(nick, "Not enough parameters.")
+        else:
+            pm(cli, nick, "Not enough parameters")
         return
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
@@ -279,7 +282,10 @@ def get_victim(cli, nick, victim, self_in_list = False):
         #ensure messages about not being able to act on yourself work
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
-        pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        if in_chan:
+            cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        else:
+            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
@@ -3809,7 +3815,7 @@ def lynch(cli, nick, chan, rest):
     if nick in var.NO_LYNCH:
         var.NO_LYNCH.remove(nick)
 
-    voted = get_victim(cli, nick, rest, var.SELF_LYNCH_ALLOWED)
+    voted = get_victim(cli, nick, rest, True, var.SELF_LYNCH_ALLOWED)
     if not voted:
         return
 
@@ -4202,7 +4208,7 @@ def shoot(cli, nick, chan, rest):
     elif nick in var.SILENCED:
         cli.notice(nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
     if not victim:
         return
     if victim == nick:
@@ -4330,11 +4336,11 @@ def kill(cli, nick, chan, rest):
                            "you are physically unable to kill a villager."))
             return
 
-    victim = get_victim(cli, nick, victim)
+    victim = get_victim(cli, nick, victim, False)
     if not victim:
         return
     if victim2 != None:
-        victim2 = get_victim(cli, nick, victim2)
+        victim2 = get_victim(cli, nick, victim2, False)
         if not victim2:
             return
 
@@ -4415,7 +4421,7 @@ def guard(cli, nick, chan, rest):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
     role = var.get_role(nick)
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
     if not victim:
         return
 
@@ -4458,7 +4464,7 @@ def observe(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
@@ -4515,7 +4521,7 @@ def investigate(cli, nick, chan, rest):
     if nick in var.INVESTIGATED:
         pm(cli, nick, "You may only investigate one person per round.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
@@ -4550,7 +4556,7 @@ def hvisit(cli, nick, chan, rest):
         pm(cli, nick, ("You are already spending the night "+
                       "with \u0002{0}\u0002.").format(var.HVISITED[nick]))
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
         return
 
@@ -4585,7 +4591,7 @@ def see(cli, nick, chan, rest):
     if nick in var.SEEN:
         pm(cli, nick, "You may only have one vision per round.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
@@ -4650,7 +4656,7 @@ def totem(cli, nick, chan, rest):
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
         return
     if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
@@ -4728,7 +4734,7 @@ def immunize(cli, nick, chan, rest):
         return
     if not nick in var.DOCTORS: # something with amnesiac or clone or exchange totem
         var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(var.ALL_PLAYERS))
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
         return
     victim = choose_target(nick, victim)
@@ -4798,7 +4804,7 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You may only bite someone after another wolf has died during the day.")
         return
 
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, False)
     vrole = None
     # also mark the victim as the kill target
     if victim:
@@ -4867,10 +4873,10 @@ def choose(cli, nick, chan, rest):
     else:
         victim2 = None
 
-    victim = get_victim(cli, nick, victim, True)
+    victim = get_victim(cli, nick, victim, False, True)
     if not victim:
         return
-    victim2 = get_victim(cli, nick, victim2, True)
+    victim2 = get_victim(cli, nick, victim2, False, True)
     if not victim2:
         return
 
@@ -4922,7 +4928,7 @@ def target(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
@@ -4949,7 +4955,7 @@ def hex(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
@@ -4989,7 +4995,7 @@ def clone(cli, nick, chan, rest):
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
 
-    victim = get_victim(cli, nick, re.split(" +",rest)[0])
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
 
