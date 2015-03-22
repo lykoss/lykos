@@ -99,19 +99,30 @@ var.BITTEN = {}
 var.BITTEN_ROLES = {}
 var.VENGEFUL_GHOSTS = {}
 
-if botconfig.DEBUG_MODE:
+if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.NIGHT_TIME_LIMIT = 0 # 120
     var.NIGHT_TIME_WARN = 0 # 90
     var.DAY_TIME_LIMIT = 0 # 720
     var.DAY_TIME_WARN = 0 # 600
     var.SHORT_DAY_LIMIT = 0 # 520
     var.SHORT_DAY_WARN = 0 # 400
+
+if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER:
     var.KILL_IDLE_TIME = 0 # 300
     var.WARN_IDLE_TIME = 0 # 180
-    var.JOIN_TIME_LIMIT = 0
-    var.LEAVE_STASIS_PENALTY = 1
-    var.IDLE_STASIS_PENALTY = 1
-    var.PART_STASIS_PENALTY = 1
+    var.JOIN_TIME_LIMIT = 0 # 3600
+
+if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS:
+    var.LEAVE_STASIS_PENALTY = 0
+    var.IDLE_STASIS_PENALTY = 0
+    var.PART_STASIS_PENALTY = 0
+    var.ACC_STASIS_PENALTY = 0
+
+if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIME_LORD:
+    var.TIME_LORD_DAY_LIMIT = 0 # 60
+    var.TIME_LORD_DAY_WARN = 0 # 45
+    var.TIME_LORD_NIGHT_LIMIT = 0 # 30
+    var.TIME_LORD_NIGHT_WARN = 0 # 20
 
 
 def connect_callback(cli):
@@ -1209,7 +1220,7 @@ def join_player(cli, player, chan, who = None, forced = False):
                       'Type "{1}wait" to increase the start wait time.').format(player, botconfig.CMD_CHAR))
 
         # Set join timer
-        if var.JOIN_TIME_LIMIT and not botconfig.DEBUG_MODE:
+        if var.JOIN_TIME_LIMIT > 0:
             t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
             var.TIMERS['join'] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
