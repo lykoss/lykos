@@ -5869,7 +5869,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             if len(villagers) < (sum(addroles.values()) - sum([addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys()])):
                 cli.msg(chan, "There are too few players in the "+
                               "game to use the custom roles.")
-            elif not wvs:
+            elif not wvs and not var.IGNORE_NO_WOLF:
                 cli.msg(chan, "There has to be at least one wolf!")
             elif wvs > (len(villagers) / 2):
                 cli.msg(chan, "Too many wolves.")
