@@ -269,7 +269,7 @@ def complete_match(string, matches):
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, self_in_list = False):
     if not victim:
-        cli.notice(nick, "Not enough parameters")
+        pm(cli, nick, "Not enough parameters")
         return
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
@@ -279,7 +279,7 @@ def get_victim(cli, nick, victim, self_in_list = False):
         #ensure messages about not being able to act on yourself work
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
-        cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+        pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
