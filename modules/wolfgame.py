@@ -2385,8 +2385,9 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                                 "day will now only last {0} seconds and night will now only " +
                                                 "last {1} seconds!").format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
                     if var.PHASE == "day" and not botconfig.DEBUG_MODE:
-                        var.TIMERS["day"][0].cancel()
-                        if var.TIMERS["day_warn"][0].isAlive():
+                        if "day" in var.TIMERS:
+                            var.TIMERS["day"][0].cancel()
+                        if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
                             var.TIMERS["day_warn"][0].cancel()
                         t = threading.Timer(var.TIME_LORD_DAY_LIMIT, hurry_up, [cli, var.DAY_ID, True])
                         var.TIMERS["day"] = (t, time.time(), var.TIME_LORD_DAY_LIMIT)
