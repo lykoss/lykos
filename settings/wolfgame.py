@@ -537,7 +537,7 @@ class EvilVillageMode(object):
               "fool"            : (   0   ,   1   ,   1   ),
               })
 
-@game_mode("classic", minp = 4, maxp = 21, likelihood = 4)
+@game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
 class ClassicMode(object):
     """Classic game mode from before all the changes."""
     def __init__(self):
