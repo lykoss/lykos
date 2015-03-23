@@ -3591,12 +3591,12 @@ def transition_day(cli, gameid=0):
             dead.append(victim)
             if random.random() < 1/50:
                 message.append(random.choice(
-                    ["https://i.imgur.com/nO8rZ.gif",
-                    "https://i.imgur.com/uGVfZ.gif",
-                    "https://i.imgur.com/mUcM09n.gif",
-                    "https://i.imgur.com/P7TEGyQ.gif",
-                    "https://i.imgur.com/b8HAvjL.gif",
-                    "https://i.imgur.com/PIIfL15.gif"]
+                    ["https://i.imgur.com/nO8rZ.gifv",
+                    "https://i.imgur.com/uGVfZ.gifv",
+                    "https://i.imgur.com/mUcM09n.gifv",
+                    "https://i.imgur.com/P7TEGyQ.gifv",
+                    "https://i.imgur.com/b8HAvjL.gifv",
+                    "https://i.imgur.com/PIIfL15.gifv"]
                     ))
             
             if victim in var.HVISITED.values() and victim in bywolves:  #  victim was visited by some harlot and victim was attacked by wolves
