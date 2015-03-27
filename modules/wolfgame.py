@@ -3923,11 +3923,14 @@ def choose_target(actor, nick):
 # returns true if a swap happened
 # check for that to short-circuit the nightrole
 def check_exchange(cli, actor, nick):
+    #some roles can act on themselves, ignore this
+    if actor == nick:
+        return False
     if nick in var.EXCHANGED:
         var.EXCHANGED.remove(nick)
         actor_role = var.get_role(actor)
         nick_role = var.get_role(nick)
-        
+
         if actor_role == "amnesiac":
             actor_role = var.FINAL_ROLES[actor]
         elif actor_role == "clone":
@@ -4047,7 +4050,7 @@ def check_exchange(cli, actor, nick):
             if nick in var.ALPHA_WOLVES:
                 var.ALPHA_WOLVES.remove(nick)
 
-            
+
         var.FINAL_ROLES[actor] = nick_role
         var.FINAL_ROLES[nick] = actor_role
         var.ROLES[actor_role].append(nick)
