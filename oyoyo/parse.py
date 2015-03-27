@@ -59,7 +59,7 @@ def parse_raw_irc_command(element):
     if args[0].startswith(bytes(':', 'utf_8')):
         args = [bytes(" ", "utf_8").join(args)[1:]]
     else:
-        for idx, arg in enumerate(args):           
+        for idx, arg in enumerate(args):
             if arg.startswith(bytes(':', 'utf_8')):
                 args = args[:idx] + [bytes(" ", 'utf_8').join(args[idx:])[1:]]
                 break
@@ -87,4 +87,4 @@ def parse_nick(name):
         return (nick, mode, rest, None)
 
     return (nick, mode, user, host)
- 
+

@@ -46,7 +46,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     else:
         if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes:
             return
-    
+
     if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
                     (chan == botconfig.NICK and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
@@ -84,7 +84,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     else:
                         notify_error(cli, chan, log)
 
-    
+
 def __unhandled__(cli, prefix, cmd, *args):
     currmod = ld.MODULES[ld.CURRENT_MODULE]
 
@@ -101,7 +101,7 @@ def __unhandled__(cli, prefix, cmd, *args):
                 else:
                     notify_error(cli, botconfig.CHANNEL, log)
 
-    
+
 COMMANDS = {}
 HOOKS = {}
 
@@ -110,29 +110,29 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 def connect_callback(cli):
 
-    def prepare_stuff(*args):    
+    def prepare_stuff(*args):
         cli.join(botconfig.CHANNEL)
         cli.join(botconfig.ALT_CHANNELS)
         cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(",")))
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
-        
+
         cli.cap("REQ", "extended-join")
         cli.cap("REQ", "account-notify")
-        
+
         try:
             ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
         except AttributeError:
             pass # no connect_callback for this one
-        
+
         cli.nick(botconfig.NICK)  # very important (for regain/release)
-        
+
     prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
 
     def mustregain(cli, *blah):
         if not botconfig.PASS:
             return
-        cli.ns_regain()                    
-                    
+        cli.ns_regain()
+
     def mustrelease(cli, *rest):
         if not botconfig.PASS:
             return # prevents the bot from trying to release without a password
@@ -144,13 +144,13 @@ def connect_callback(cli):
     def must_use_temp_nick(cli, *etc):
         cli.nick(botconfig.NICK+"_")
         cli.user(botconfig.NICK, "")
-        
+
         decorators.unhook(HOOKS, 239)
         hook("unavailresource")(mustrelease)
         hook("nicknameinuse")(mustregain)
-        
+
     if botconfig.SASL_AUTHENTICATION:
-    
+
         @hook("authenticate")
         def auth_plus(cli, something, plus):
             if plus == "+":
@@ -158,16 +158,16 @@ def connect_callback(cli):
                 pass_b = bytes(botconfig.PASS, "utf-8")
                 secrt_msg = b'\0'.join((nick_b, nick_b, pass_b))
                 cli.send("AUTHENTICATE " + b64encode(secrt_msg).decode("utf-8"))
-    
+
         @hook("cap")
         def on_cap(cli, svr, mynick, ack, cap):
             if ack.upper() == "ACK" and "sasl" in cap:
                 cli.send("AUTHENTICATE PLAIN")
-                
+
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
             cli.cap("END")
-            
+
         @hook("904")
         @hook("905")
         @hook("906")
@@ -176,9 +176,9 @@ def connect_callback(cli):
             cli.quit()
             alog("Authentication failed.  Did you fill the account name "+
                   "in botconfig.USERNAME if it's different from the bot nick?")
-               
-        
-        
+
+
+
 @hook("ping")
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)

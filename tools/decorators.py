@@ -152,12 +152,12 @@ def generate(fdict, permissions=True, **kwargs):
             innerf.aftergame = False
             innerf.__doc__ = f.__doc__
             return innerf
-            
+
         return dec
-        
+
     return lambda *args, **kwarargs: cmd(*args, **kwarargs) if kwarargs else cmd(*args, **kwargs)
-    
-    
+
+
 def unhook(hdict, hookid):
     for cmd in list(hdict.keys()):
         for x in hdict[cmd]:

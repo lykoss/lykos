@@ -82,7 +82,7 @@ DISABLE_DEBUG_MODE_STASIS = True
 
 # Minimum number of players needed for mad scientist to skip over dead people when determining who is next to them
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
-MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16 
+MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16
 
 CARE_BOLD = False
 CARE_COLOR = False
@@ -308,7 +308,7 @@ def is_owner(nick, cloak=None, acc=None):
 def plural(role):
     bits = role.split()
     bits[-1] = {"person": "people", "wolf": "wolves"}.get(bits[-1], bits[-1] + "s")
-    return " ".join(bits) 
+    return " ".join(bits)
 
 def list_players(roles = None):
     if roles == None:
@@ -373,7 +373,7 @@ def role_order():
     vils = [role for role in ROLE_GUIDE.keys() if role not in WOLFTEAM_ROLES+templates]
     vils.sort()
     return WOLFTEAM_ROLES + vils + templates
-    
+
 
 def break_long_message(phrases, joinstr = " "):
     message = ""

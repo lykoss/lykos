@@ -1924,7 +1924,7 @@ def stop_game(cli, winner = "", abort = False):
             if p.startswith("(dced)"):
                 p = p[6:]
             if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys():
-                playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p, 
+                playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p,
                                         "" if prev else "was ", origroles[p]))
                 prev = True
             else:
@@ -2143,7 +2143,7 @@ def chk_win(cli, end_game = True):
     with var.GRAVEYARD_LOCK:
         if var.PHASE not in ("day", "night"):
             return False #some other thread already ended game probably
-        
+
         lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
         cubs = len(var.ROLES["wolf cub"]) if "wolf cub" in var.ROLES else 0
         lrealwolves = len(var.list_players(var.WOLF_ROLES)) - cubs
@@ -3598,7 +3598,7 @@ def transition_day(cli, gameid=0):
                     "https://i.imgur.com/b8HAvjL.gifv",
                     "https://i.imgur.com/PIIfL15.gifv"]
                     ))
-            
+
             if victim in var.HVISITED.values() and victim in bywolves:  #  victim was visited by some harlot and victim was attacked by wolves
                 for hlt in var.HVISITED.keys():
                     if var.HVISITED[hlt] == victim:
@@ -3719,7 +3719,7 @@ def transition_day(cli, gameid=0):
         if havetotem:
             message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
     cli.msg(chan, "\n".join(message))
-    
+
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
 
@@ -3812,7 +3812,7 @@ def no_lynch(cli, nick, chan, rest):
         if nick not in var.NO_LYNCH:
             var.NO_LYNCH.append(nick)
         cli.msg(chan, "\u0002{0}\u0002 votes to not lynch anyone today.".format(nick))
-        
+
         chk_decision(cli)
         return
 
@@ -4085,7 +4085,7 @@ def check_exchange(cli, actor, nick):
             if nick_role == "shaman":
                 pm(cli, actor, "You have a \u0002{0}\u0002 totem.".format(nick_totem))
             var.TOTEMS[actor] = nick_totem
-        elif nick_role in var.WOLFCHAT_ROLES and actor_role not in var.WOLFCHAT_ROLES:    
+        elif nick_role in var.WOLFCHAT_ROLES and actor_role not in var.WOLFCHAT_ROLES:
             pl = var.list_players()
             random.shuffle(pl)
             pl.remove(actor)  # remove self from list
@@ -4121,7 +4121,7 @@ def check_exchange(cli, actor, nick):
             if actor_role == "shaman":
                 pm(cli, nick, "You have a \u0002{0}\u0002 totem.".format(actor_totem))
             var.TOTEMS[nick] = actor_totem
-        elif actor_role in var.WOLFCHAT_ROLES and nick_role not in var.WOLFCHAT_ROLES:    
+        elif actor_role in var.WOLFCHAT_ROLES and nick_role not in var.WOLFCHAT_ROLES:
             pl = var.list_players()
             random.shuffle(pl)
             pl.remove(nick)  # remove self from list
@@ -4471,7 +4471,7 @@ def guard(cli, nick, chan, rest):
             var.LASTGUARDED[nick] = nick
             pm(cli, nick, "You have decided to guard yourself tonight.")
     else:
-        victim = choose_target(nick, victim) 
+        victim = choose_target(nick, victim)
         if check_exchange(cli, nick, victim):
             return
         var.GUARDED[nick] = victim
@@ -5234,7 +5234,7 @@ def transition_night(cli):
         # this makes playing the day transition message easier since we can keep
         # var.BITTEN around for a day after they turn
         chumprole = var.get_role(chump)
-        
+
         if chumprole in var.WOLF_ROLES:
             del var.BITTEN[chump]
             continue
@@ -6417,7 +6417,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                             var.remove_allow(cloak, command)
                         else:
                             var.remove_deny(cloak, command)
-                            
+
                 if cloak in variable and variable[cloak]:
                     msg = "\u0002{0}\u0002 (Host: {1}) is now {2} the following {3}commands: {4}{5}.".format(
                         data[0], cloak, "allowed" if mode == 'allow' else "denied", "special " if mode == 'allow' else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
@@ -7106,7 +7106,7 @@ def game(cli, nick, chan, rest):
     if rest:
         gamemode = rest.lower().split()[0]
     else:
-        gamemodes = ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], 
+        gamemodes = ", ".join(["\002{}\002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1],
         var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"])
         cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
         return
@@ -7121,7 +7121,7 @@ def game(cli, nick, chan, rest):
             cli.notice(nick, "\002{0}\002 is not a valid game mode.".format(gamemode))
             return
         gamemode = match
-    
+
     if gamemode != "roles":
         var.GAMEMODE_VOTES[nick] = gamemode
         cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))

@@ -21,12 +21,12 @@ import traceback
 import sys
 import ssl
 
-from oyoyo.parse import parse_raw_irc_command    
+from oyoyo.parse import parse_raw_irc_command
 
 # Adapted from http://code.activestate.com/recipes/511490-implementation-of-the-token-bucket-algorithm/
 class TokenBucket(object):
     """An implementation of the token bucket algorithm.
-    
+
     >>> bucket = TokenBucket(80, 0.5)
     >>> bucket.consume(1)
     """
@@ -54,9 +54,9 @@ class TokenBucket(object):
             self._tokens = min(self.capacity, self._tokens + delta)
         self.timestamp = now
         return self._tokens
-    
-    
-    
+
+
+
 def add_commands(d):
     def dec(cls):
         for c in d:
@@ -78,25 +78,25 @@ class IRCClient(object):
     """
 
     def __init__(self, cmd_handler, **kwargs):
-        """ the first argument should be an object with attributes/methods named 
-        as the irc commands. You may subclass from one of the classes in 
-        oyoyo.cmdhandler for convenience but it is not required. The 
-        methods should have arguments (prefix, args). prefix is 
+        """ the first argument should be an object with attributes/methods named
+        as the irc commands. You may subclass from one of the classes in
+        oyoyo.cmdhandler for convenience but it is not required. The
+        methods should have arguments (prefix, args). prefix is
         normally the sender of the command. args is a list of arguments.
-        Its recommened you subclass oyoyo.cmdhandler.DefaultCommandHandler, 
-        this class provides defaults for callbacks that are required for 
+        Its recommened you subclass oyoyo.cmdhandler.DefaultCommandHandler,
+        this class provides defaults for callbacks that are required for
         normal IRC operation.
 
         all other arguments should be keyword arguments. The most commonly
         used will be nick, host and port. You can also specify an "on connect"
         callback. ( check the source for others )
 
-        Warning: By default this class will not block on socket operations, this 
+        Warning: By default this class will not block on socket operations, this
         means if you use a plain while loop your app will consume 100% cpu.
-        To enable blocking pass blocking=True. 
+        To enable blocking pass blocking=True.
         """
-        
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.nickname = ""
         self.hostmask = ""
         self.ident = ""
@@ -111,12 +111,12 @@ class IRCClient(object):
         self.use_ssl = False
         self.lock = threading.RLock()
         self.stream_handler = lambda output, level=None: print(output)
-        
+
         self.tokenbucket = TokenBucket(23, 1.73)
 
         self.__dict__.update(kwargs)
         self.command_handler = cmd_handler
-        
+
         if self.use_ssl:
             self.socket = ssl.wrap_socket(self.socket)
 
@@ -124,8 +124,8 @@ class IRCClient(object):
 
     def send(self, *args, **kwargs):
         """ send a message to the connected server. all arguments are joined
-        with a space for convenience, for example the following are identical 
-        
+        with a space for convenience, for example the following are identical
+
         >>> cli.send("JOIN " + some_room)
         >>> cli.send("JOIN", some_room)
 
@@ -134,7 +134,7 @@ class IRCClient(object):
           the 'encoding' keyword argument (default 'utf8').
         In python 3, all args must be of type str or bytes, *BUT* if they are
           str they will be converted to bytes with the encoding specified by the
-          'encoding' keyword argument (default 'utf8'). 
+          'encoding' keyword argument (default 'utf8').
         """
         with self.lock:
             # Convert all args to bytes if not already
@@ -154,14 +154,14 @@ class IRCClient(object):
 
             msg = bytes(" ", "utf_8").join(bargs)
             self.stream_handler('---> send {0}'.format(str(msg)[1:]))
-            
+
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
             self.socket.send(msg + bytes("\r\n", "utf_8"))
 
     def connect(self):
-        """ initiates the connection to the server set in self.host:self.port 
-        and returns a generator object. 
+        """ initiates the connection to the server set in self.host:self.port
+        and returns a generator object.
 
         >>> cli = IRCClient(my_handler, host="irc.freenode.net", port=6667)
         >>> g = cli.connect()
@@ -183,32 +183,32 @@ class IRCClient(object):
                         break
             if not self.blocking:
                 self.socket.setblocking(0)
-            
+
             if not self.sasl_auth:
-                self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname, 
+                self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname,
                     self.password if self.password else "NOPASS"))
             else:
                 self.cap("LS")
-            
+
             self.nick(self.nickname)
             self.user(self.ident, self.real_name)
 
             if self.sasl_auth:
                 self.cap("REQ", "multi-prefix")
                 self.cap("REQ", "sasl")
-            
+
             if self.connect_cb:
                 try:
                     self.connect_cb(self)
                 except Exception as e:
                     traceback.print_exc()
                     raise e
-            
+
             buffer = bytes()
             while not self._end:
                 try:
                     buffer += self.socket.recv(1024)
-                except socket.error as e:                
+                except socket.error as e:
                     if False and not self.blocking and e.errno == 11:
                         pass
                     else:
@@ -219,14 +219,14 @@ class IRCClient(object):
 
                     for el in data:
                         prefix, command, args = parse_raw_irc_command(el)
-                    
+
                         try:
                             enc = "utf8"
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
                         except UnicodeDecodeError:
                             enc = "latin1"
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
-                    
+
                         self.stream_handler("processCommand ({2}){0}({1})".format(command,
                                                        fargs, prefix), level="debug")
                         try:
@@ -244,7 +244,7 @@ class IRCClient(object):
                             raise e  # ?
                 yield True
         finally:
-            if self.socket: 
+            if self.socket:
                 self.stream_handler('closing socket')
                 self.socket.close()
                 yield False
@@ -291,4 +291,4 @@ class IRCClient(object):
             if not next(conn):
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
-            
+
