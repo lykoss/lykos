@@ -3598,6 +3598,20 @@ def transition_day(cli, gameid=0):
                     "https://i.imgur.com/b8HAvjL.gifv",
                     "https://i.imgur.com/PIIfL15.gifv"]
                     ))
+            elif random.random() < var.FORTUNE_CHANCE:
+                try:
+                    out = subprocess.check_output(("fortune", "-s"))
+                except OSError as e:
+                    if e.errno != 2:
+                        # No such file or directory (fortune is not installed)
+                        raise
+                else:
+                    out = out.decode("utf-8", "replace")
+                    out = out.replace("\n", " ")
+                    # Replace tabs and multiple spaces with a single space.
+                    out = re.sub(r"\s+", " ", out)
+
+                    message.append(out)
 
             if victim in var.HVISITED.values() and victim in bywolves:  #  victim was visited by some harlot and victim was attacked by wolves
                 for hlt in var.HVISITED.keys():
