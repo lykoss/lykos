@@ -239,6 +239,8 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.",
                            "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.")
 
+GIF_CHANCE = 1/50
+
 import botconfig
 import fnmatch
 import random

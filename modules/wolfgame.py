@@ -3589,7 +3589,7 @@ def transition_day(cli, gameid=0):
                 message.append(("The dead body of \u0002{0}\u0002 is found. " +
                                 "Those remaining mourn the tragedy.").format(victim))
             dead.append(victim)
-            if random.random() < 1/50:
+            if random.random() < var.GIF_CHANCE:
                 message.append(random.choice(
                     ["https://i.imgur.com/nO8rZ.gifv",
                     "https://i.imgur.com/uGVfZ.gifv",
