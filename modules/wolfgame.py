@@ -136,7 +136,7 @@ def connect_callback(cli):
             restart_program(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == SIGUSR2:
             plog("Scheduling aftergame restart")
-            aftergame(cli, "<console>", "frestart")
+            aftergame(cli, "<console>", botconfig.CHANNEL, "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
