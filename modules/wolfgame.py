@@ -6909,6 +6909,14 @@ def myrole(cli, nick, chan, rest):
     if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
         pm(cli, nick, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[nick]))
 
+    #Give minion the wolf list they would have recieved night one
+    if role == "minion":
+        wolves = []
+        for wolfrole in var.WOLF_ROLES:
+            for player in var.ORIGINAL_ROLES[wolfrole]:
+                wolves.append(player)
+        pm(cli, nick, "Original wolves: " + ", ".join(wolves))
+
     # Check for gun/bullets
     if nick not in ps:
         return
