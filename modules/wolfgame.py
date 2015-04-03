@@ -1476,9 +1476,9 @@ def stats(cli, nick, chan, rest):
         if amnrole in ("village elder", "time lord"):
             amnrole = "villager"
         elif amnrole == "vengeful ghost":
-            amnrole = var.DEFAULT_ROLE
+            amnrole = var.get_default_role()
         elif amnrole == "traitor" and var.HIDDEN_TRAITOR:
-            amnrole = var.DEFAULT_ROLE
+            amnrole = var.get_default_role()
         if amnrole != "amnesiac":
             amn_roles["amnesiac"] += 1
             if amnrole in amn_roles:
@@ -1508,7 +1508,7 @@ def stats(cli, nick, chan, rest):
             if var.HIDDEN_TRAITOR:
                 count += len(var.ROLES["traitor"])
                 count += bitten_roles["traitor"] if "traitor" in bitten_roles else 0
-            if var.DEFAULT_ROLE == "villager":
+            if var.get_default_role() == "villager":
                 count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
                 count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
                 count += bitten_roles["village elder"] if "village elder" in bitten_roles else 0
@@ -1923,7 +1923,7 @@ def stop_game(cli, winner = "", abort = False):
         for p in rolelist[role]:
             if p.startswith("(dced)"):
                 p = p[6:]
-            if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys():
+            if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys() and origroles[p] != var.DEFAULT_ROLE:
                 playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p,
                                         "" if prev else "was ", origroles[p]))
                 prev = True
@@ -2003,9 +2003,9 @@ def stop_game(cli, winner = "", abort = False):
                 if winner == "monsters" and rol == "monster":
                     won = True
             elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
-                if var.DEFAULT_ROLE == "villager" and winner == "villagers":
+                if var.get_default_role() == "villager" and winner == "villagers":
                     won = True
-                elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
+                elif var.get_default_role() == "cultist" and winner == "wolves":
                     won = True
             elif winner == "villagers":
                 won = True
@@ -2281,7 +2281,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             if sayrole in ("time lord", "village elder"):
                                 sayrole = "villager"
                             elif sayrole == "vengeful ghost":
-                                sayrole = var.DEFAULT_ROLE
+                                sayrole = var.get_default_role()
                             an = "n" if sayrole[0] in ("a", "e", "i", "o", "u") else ""
                             pm(cli, clone, "You are now a{0} \u0002{1}\u0002.".format(an, sayrole))
                             # if a clone is cloning a clone, clone who the old clone cloned
@@ -4078,13 +4078,13 @@ def check_exchange(cli, actor, nick):
 
         actor_rev_role = actor_role
         if actor_role == "vengeful ghost":
-            actor_rev_role = var.DEFAULT_ROLE
+            actor_rev_role = var.get_default_role()
         elif actor_role in ("village elder", "time lord"):
             actor_rev_role = "villager"
 
         nick_rev_role = nick_role
         if nick_role == "vengeful ghost":
-            nick_rev_role = var.DEFAULT_ROLE
+            nick_rev_role = var.get_default_role()
         elif actor_role in ("village elder", "time lord"):
             nick_rev_role = "villager"
 
@@ -5282,7 +5282,7 @@ def transition_night(cli):
             if showrole in ("village elder", "time lord"):
                 showrole = "villager"
             elif showrole == "vengeful ghost":
-                showrole = var.DEFAULT_ROLE
+                showrole = var.get_default_role()
             n = ""
             if showrole[0] in "aeiou":
                 n = "n"
@@ -5738,7 +5738,7 @@ def transition_night(cli):
 
         villagers = copy.copy(var.ROLES["villager"])
         villagers += var.ROLES["time lord"] + var.ROLES["village elder"]
-        if var.DEFAULT_ROLE == "villager":
+        if var.get_default_role() == "villager":
             villagers += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for villager in villagers:
             if villager in var.PLAYERS and not is_user_simple(villager):
@@ -5747,7 +5747,7 @@ def transition_night(cli):
                 pm(cli, villager, "You are a \u0002villager\u0002.")
 
         cultists = copy.copy(var.ROLES["cultist"])
-        if var.DEFAULT_ROLE == "cultist":
+        if var.get_default_role() == "cultist":
             cultists += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for cultist in cultists:
             if cultist in var.PLAYERS and not is_user_simple(cultist):
@@ -6899,10 +6899,10 @@ def myrole(cli, nick, chan, rest):
         return
 
     role = var.get_role(nick)
-    if role in ("time lord", "village elder", "amnesiac"):
-        role = var.DEFAULT_ROLE
-    elif role == "vengeful ghost" and nick not in var.VENGEFUL_GHOSTS.keys():
-        role = var.DEFAULT_ROLE
+    if role in ("time lord", "village elder"):
+        role = "villager"
+    elif (role == "vengeful ghost" and nick not in var.VENGEFUL_GHOSTS.keys()) or role == "amnesiac":
+        role = var.get_default_role()
     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
     pm(cli, nick, "You are a{0} \02{1}{2}\02.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
 

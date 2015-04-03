@@ -139,6 +139,7 @@ STASISED_ACCS = defaultdict(int)
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
+DEFAULT_DISPLAY_ROLE = "villager"
 ROLE_INDEX =                      (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )
 ROLE_GUIDE = {# village roles
               "villager"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
@@ -201,6 +202,8 @@ AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "vil
 SEEN_WOLF = WOLF_ROLES + ["monster", "mad scientist"]
 # These are seen as the default role (or villager) when seen by seer
 SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester"]
+# These are the only roles allowed to be displayed as the default role (any role can be the default)
+ALLOWED_DEFAULTS = ["villager", "cultist"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
@@ -327,6 +330,11 @@ def list_players(roles = None):
             pass
     return pl
 
+def get_default_role():
+    if DEFAULT_ROLE not in ALLOWED_DEFAULTS:
+        return DEFAULT_DISPLAY_ROLE
+    return DEFAULT_ROLE
+
 def list_players_and_roles():
     plr = {}
     for x in ROLES.keys():
@@ -433,10 +441,12 @@ class ChangedRolesMode(object):
                 elif role.lower() in self.ROLE_GUIDE:
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
-                    if num.lower() == "villager" or num.lower() == "cultist":
-                        self.DEFAULT_ROLE = num.lower()
+                    self.DEFAULT_ROLE = num.lower()
+                elif role.lower() == "display" and num.lower() in self.ROLE_GUIDE:
+                    if num.lower() in ALLOWED_DEFAULTS:
+                        self.DEFAULT_DISPLAY_ROLE = num.lower()
                     else:
-                        raise InvalidModeException("The default role must be either \u0002villager\u0002 or \u0002cultist\u0002.")
+                        raise InvalidModeException("The default display role must be either \u0002villager\u0002 or \u0002cultist\u0002.")
                 elif role.lower() == "role reveal" or role.lower() == "reveal roles":
                     num = num.lower()
                     if num == "on" or num == "true" or num == "yes" or num == "1":
