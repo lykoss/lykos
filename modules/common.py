@@ -111,9 +111,14 @@ hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 def connect_callback(cli):
 
     def prepare_stuff(*args):
+        # just in case we haven't managed to successfully auth yet
+        if not botconfig.SASL_AUTHENTICATION:
+            cli.ns_identify(botconfig.PASS)
         cli.join(botconfig.CHANNEL)
-        cli.join(botconfig.ALT_CHANNELS)
-        cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(",")))
+        if botconfig.ALT_CHANNELS:
+            cli.join(botconfig.ALT_CHANNELS)
+        if botconfig.DEV_CHANNEL:
+            cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(",")))
         cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
         cli.cap("REQ", "extended-join")
@@ -163,6 +168,9 @@ def connect_callback(cli):
         def on_cap(cli, svr, mynick, ack, cap):
             if ack.upper() == "ACK" and "sasl" in cap:
                 cli.send("AUTHENTICATE PLAIN")
+            elif ack.upper() == "NAK" and "sasl" in cap:
+                cli.quit()
+                alog("Server does not support SASL authentication")
 
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
@@ -193,3 +201,5 @@ if botconfig.DEBUG_MODE:
             cli.msg(chan, "Module {0} is now active.".format(rest))
         else:
             cli.msg(chan, "Module {0} does not exist.".format(rest))
+
+# vim: set expandtab:sw=4:ts=4:

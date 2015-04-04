@@ -52,6 +52,8 @@ PART_STASIS_PENALTY = 1
 ACC_STASIS_PENALTY = 1
 LEAVE_ON_LOGOUT = False # If True, the bot will consider a NickServ logout as a quit
 QUIET_DEAD_PLAYERS = False
+QUIET_MODE = "q" # "q" or "b"
+QUIET_PREFIX = "" # "" or "~q:"
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
 
@@ -133,6 +135,8 @@ PREFER_NOTICE = []  # cloaks of people who !notice, who want everything /notice'
 PREFER_NOTICE_ACCS = [] # Same as above, except accounts. takes precedence
 
 ACCOUNTS_ONLY = False # If True, will use only accounts for everything
+DISABLE_ACCOUNTS = False # If True, all account-related features are disabled. Automatically set if we discover we do not have proper ircd support for accounts
+                        # This will override ACCOUNTS_ONLY if it is set
 
 STASISED = defaultdict(int)
 STASISED_ACCS = defaultdict(int)

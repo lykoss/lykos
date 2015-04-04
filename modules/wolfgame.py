@@ -152,8 +152,37 @@ def connect_callback(cli):
 
     @hook("quietlist", hookid=294)
     def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
-        if re.match(".+\!\*@\*", quieted):  # only unquiet people quieted by bot
-            cmodes.append(("-q", quieted))
+        if re.match("{0}.+\!\*@\*".format(var.QUIET_PREFIX), quieted):  # only unquiet people quieted by bot
+            cmodes.append(("-{0}".format(var.QUIET_MODE), quieted))
+
+    @hook("banlist", hookid=294)
+    def on_banlist(cli, server, botnick, channel, ban, by, timestamp):
+        if re.match("{0}.+\!\*@\*".format(var.QUIET_PREFIX), ban):
+            cmodes.append(("-{0}".format(var.QUIET_MODE), ban))
+
+    @hook("whoreply", hookid=294)
+    def on_whoreply(cli, svr, botnick, chan, user, host, server, nick, status, rest):
+        if not var.DISABLE_ACCOUNTS:
+            plog("IRCd does not support accounts, disabling account-related features.")
+        var.DISABLE_ACCOUNTS = True
+        var.ACCOUNTS_ONLY = False
+
+        if nick in var.USERS:
+            return
+
+        if nick == botconfig.NICK:
+            cli.nickname = nick
+            cli.ident = user
+            cli.hostmask = host
+
+        if "+" in status:
+            to_be_devoiced.append(user)
+        newstat = ""
+        for stat in status:
+            if not stat in var.MODES_PREFIXES:
+                continue
+            newstat += var.MODES_PREFIXES[stat]
+        var.USERS[nick] = dict(cloak=host,account="*",inchan=True,modes=set(newstat),moded=set())
 
     @hook("whospcrpl", hookid=294)
     def on_whoreply(cli, server, nick, ident, cloak, _, user, status, acc):
@@ -204,14 +233,21 @@ def connect_callback(cli):
                 def on_quietlist_end(cli, svr, nick, chan, *etc):
                     if chan == botconfig.CHANNEL:
                         mass_mode(cli, cmodes, ["-m"])
+                @hook("endofbanlist", 294)
+                def on_banlist_end(cli, svr, nick, chan, *etc):
+                    if chan == botconfig.CHANNEL:
+                        mass_mode(cli, cmodes, ["-m"])
 
-                cli.mode(botconfig.CHANNEL, "q")  # unquiet all
+                cli.mode(botconfig.CHANNEL, var.QUIET_MODE)  # unquiet all
         elif modeaction == "-o" and target == botconfig.NICK:
             var.OPPED = False
             cli.msg("ChanServ", "op " + botconfig.CHANNEL)
 
 
-    cli.who(botconfig.CHANNEL, "%uhsnfa")
+    if var.DISABLE_ACCOUNTS:
+        cli.who(botconfig.CHANNEL)
+    else:
+        cli.who(botconfig.CHANNEL, "%uhsnfa")
 
 @hook("mode")
 def check_for_modes(cli, rnick, chan, modeaction, *target):
@@ -356,7 +392,7 @@ def reset_modes_timers(cli):
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
             if not is_fake_nick(deadguy):
-                cmodes.append(("-q", deadguy+"!*@*"))
+                cmodes.append(("-{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+deadguy+"!*@*"))
     mass_mode(cli, cmodes, ["-m"])
 
 def reset():
@@ -2551,7 +2587,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
             if var.PHASE != "join":
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not is_fake_nick(nick):
-                    cmode.append(("+q", nick+"!*@*"))
+                    cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+nick+"!*@*"))
                 mass_mode(cli, cmode, [])
                 if nick not in var.DEAD:
                     var.DEAD.append(nick)
