@@ -1,15 +1,15 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
 import botconfig
-from tools import decorators
-import tools.moduleloader as ld
+from src import decorators
 import traceback
 from base64 import b64encode
 from oyoyo.parse import parse_nick
 import imp
-from tools import logger
+from src import logger
 import socket
-import settings.wolfgame as var
+from src import settings as var
+from src import wolfgame
 
 log = logger("errors.log")
 alog = logger(None)
@@ -37,7 +37,6 @@ def notify_error(cli, chan, target_logger):
 
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
-    currmod = ld.MODULES[ld.CURRENT_MODULE]
 
     try:
         prefixes = getattr(var, "STATUSMSG_PREFIXES")
@@ -54,8 +53,8 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     if chan == botconfig.NICK:
         chan = parse_nick(rawnick)[0]
 
-    if currmod and "" in currmod.COMMANDS.keys():
-        for fn in currmod.COMMANDS[""]:
+    if "" in wolfgame.COMMANDS.keys():
+        for fn in wolfgame.COMMANDS[""]:
             try:
                 fn(cli, rawnick, chan, msg)
             except Exception:
@@ -65,7 +64,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     notify_error(cli, chan, log)
 
 
-    for x in set(list(COMMANDS.keys()) + (list(currmod.COMMANDS.keys()) if currmod else list())):
+    for x in set(list(COMMANDS.keys()) + list(wolfgame.COMMANDS.keys())):
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -75,7 +74,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         else:
             continue
         if not h or h[0] == " ":
-            for fn in COMMANDS.get(x, []) + (currmod.COMMANDS.get(x, []) if currmod else []):
+            for fn in COMMANDS.get(x, []) + (wolfgame.COMMANDS.get(x, [])):
                 try:
                     fn(cli, rawnick, chan, h.lstrip())
                 except Exception:
@@ -84,15 +83,13 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     else:
                         notify_error(cli, chan, log)
 
-
-def __unhandled__(cli, prefix, cmd, *args):
-    currmod = ld.MODULES[ld.CURRENT_MODULE]
-
-    if cmd in set(list(HOOKS.keys())+(list(currmod.HOOKS.keys()) if currmod else list())):
+    
+def unhandled(cli, prefix, cmd, *args):
+    if cmd in set(list(HOOKS.keys()) + list(wolfgame.HOOKS.keys())):
         largs = list(args)
         for i,arg in enumerate(largs):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
-        for fn in HOOKS.get(cmd, [])+(currmod.HOOKS.get(cmd, []) if currmod else []):
+        for fn in HOOKS.get(cmd, []) + wolfgame.HOOKS.get(cmd, []):
             try:
                 fn(cli, prefix, *largs)
             except Exception as e:
@@ -123,11 +120,8 @@ def connect_callback(cli):
 
         cli.cap("REQ", "extended-join")
         cli.cap("REQ", "account-notify")
-
-        try:
-            ld.MODULES[ld.CURRENT_MODULE].connect_callback(cli)
-        except AttributeError:
-            pass # no connect_callback for this one
+        
+        wolfgame.connect_callback(cli)
 
         cli.nick(botconfig.NICK)  # very important (for regain/release)
 
@@ -190,16 +184,5 @@ def connect_callback(cli):
 @hook("ping")
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)
-
-if botconfig.DEBUG_MODE:
-    @cmd("module", admin_only = True)
-    def ch_module(cli, nick, chan, rest):
-        rest = rest.strip()
-        if rest in ld.MODULES.keys():
-            ld.CURRENT_MODULE = rest
-            ld.MODULES[rest].connect_callback(cli)
-            cli.msg(chan, "Module {0} is now active.".format(rest))
-        else:
-            cli.msg(chan, "Module {0} does not exist.".format(rest))
 
 # vim: set expandtab:sw=4:ts=4:
