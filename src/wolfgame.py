@@ -3705,13 +3705,10 @@ def transition_day(cli, gameid=0):
     for victim in list(dead):
         if victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-                wc = var.ROLES["werecrow"][:]
-                for crow in wc:
-                    if crow in var.OBSERVED.keys():
-                        wc.remove(crow)
-                # don't kill off werecrows that observed
-                deadwolf = random.choice(var.ROLES["wolf"]+var.ROLES["wolf cub"]+wc)
-                if deadwolf not in dead:
+                # pick a random wolf to be shot, but don't kill off werecrows that observed
+                killlist = [wolf for wolf in var.list_players(var.WOLF_ROLES) if wolf not in var.OBSERVED.keys() and wolf not in dead]
+                if killlist:
+                    deadwolf = random.choice(killlist)
                     if var.ROLE_REVEAL:
                         message.append(("Fortunately, \02{0}\02 had bullets and "+
                                         "\02{1}\02, a \02{2}\02, was shot dead.").format(victim, deadwolf, var.get_reveal_role(deadwolf)))
