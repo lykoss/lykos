@@ -5615,6 +5615,7 @@ def transition_night(cli):
 
 
     for ms in var.ROLES["mad scientist"]:
+        pl = ps[:]
         index = var.ALL_PLAYERS.index(ms)
         targets = []
         target1 = var.ALL_PLAYERS[index - 1]
