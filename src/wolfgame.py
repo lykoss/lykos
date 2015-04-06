@@ -6823,7 +6823,7 @@ def timeleft(cli, nick, chan, rest):
         elif var.PHASE == "night":
             what = "sunrise"
         elif var.PHASE == "join":
-            what = "the game is canceled"
+            what = "the game is canceled if it's not started"
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
         msg = "{0} timers are currently disabled.".format(var.PHASE.capitalize())
