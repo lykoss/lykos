@@ -2207,7 +2207,7 @@ def chk_win(cli, end_game = True):
                     pass
 
         if lpl < 1:
-            message = "Game over! There are no players remaining. Nobody wins."
+            message = "Game over! There are no players remaining."
             winner = "none"
         elif lwolves == lpl / 2:
             if monsters > 0:
