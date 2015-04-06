@@ -14,7 +14,7 @@ import src.settings as var
 from oyoyo.parse import parse_nick
 from src import logger
 
-adminlog = logger(None)
+adminlog = lambda *out: logger.logger(*out, write=False, display=True)
 
 def generate(fdict, permissions=True, **kwargs):
     """Generates a decorator generator.  Always use this"""
