@@ -1,4 +1,7 @@
 import argparse
+import datetime
+import time
+
 import botconfig
 from src import settings as var
 
@@ -51,9 +54,6 @@ botconfig.VERBOSE_MODE = verbose if not normal else False
 var.init_db()
 
 # Logger
-
-import datetime
-import time
 
 # replace characters that can't be encoded with '?'
 # since windows likes to use weird encodings by default

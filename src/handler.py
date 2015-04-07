@@ -1,13 +1,14 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
-import botconfig
-from src import decorators
-import traceback
-from base64 import b64encode
-from oyoyo.parse import parse_nick
+import base64
 import imp
-from src import logger
 import socket
+import traceback
+
+import botconfig
+from oyoyo.parse import parse_nick
+from src import decorators
+from src import logger
 from src import settings as var
 from src import wolfgame
 
@@ -156,7 +157,7 @@ def connect_callback(cli):
                 nick_b = bytes(botconfig.USERNAME if botconfig.USERNAME else botconfig.NICK, "utf-8")
                 pass_b = bytes(botconfig.PASS, "utf-8")
                 secrt_msg = b'\0'.join((nick_b, nick_b, pass_b))
-                cli.send("AUTHENTICATE " + b64encode(secrt_msg).decode("utf-8"))
+                cli.send("AUTHENTICATE " + base64.b64encode(secrt_msg).decode("utf-8"))
 
         @hook("cap")
         def on_cap(cli, svr, mynick, ack, cap):
