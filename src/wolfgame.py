@@ -649,6 +649,7 @@ def pinger(cli, nick, chan, rest):
         if PING:
             var.LAST_PING = datetime.now()
             cli.msg(chan, "PING! "+" ".join(PING))
+            cli.msg(chan, "\u0002Please note that the {0}away/{0}back system will soon be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(botconfig.CMD_CHAR))
 
             minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
             if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
