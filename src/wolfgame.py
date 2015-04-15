@@ -489,6 +489,15 @@ def forced_exit(cli, nick, chan, rest):
         notify_error(cli, chan, errlog)
 
     try:
+        with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
+            c = conn.cursor()
+            players = var.list_players()
+            if players:
+                c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
+    except Exception:
+        notify_error(cli, chan, errlog)
+
+    try:
         reset()
     except Exception:
         notify_error(cli, chan, errlog)
