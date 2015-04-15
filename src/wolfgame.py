@@ -1197,7 +1197,7 @@ def join_timer_handler(cli):
                 cli.msg(botconfig.CHANNEL, "PING! {0} player{1}! {2}".format(
                     len(pl), "" if len(pl) == 1 else "s", " ".join(to_ping)))
 
-        cli.who(botconfig.CHANNEL, "%nushaf")
+        cli.who(botconfig.CHANNEL, "%uhsnfa")
 
 @cmd("join", "j", none=True, join=True)
 def join(cli, nick, chan, rest):
