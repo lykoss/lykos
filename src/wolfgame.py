@@ -44,8 +44,6 @@ debuglog = logger("debug.log", write=False, display=False) # will be True if in 
 errlog = logger("errors.log")
 plog = logger(None) #use this instead of print so that logs have timestamps
 
-BOLD = "\u0002"
-
 COMMANDS = {}
 HOOKS = {}
 
@@ -4714,7 +4712,7 @@ def see(cli, nick, chan, rest):
             iswolf = True
         pm(cli, nick, ("Your paranormal senses are tingling! "+
                         "The spirits tell you that \u0002{0}\u0002 is {1}"+
-                        "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002 ", BOLD if iswolf else ""))
+                        "a {2}wolf{2}!").format(victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
         debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":
         if victimrole == "amnesiac":
@@ -6918,7 +6916,7 @@ def listroles(cli, nick, chan, rest):
                 continue
             elif roleindex[i] > index:
                 break
-        txt += " {0}[{1}]{0} ".format(BOLD if roleindex[i] <= pl else "", str(roleindex[i]))
+        txt += " {0}[{1}]{0} ".format("\u0002" if roleindex[i] <= pl else "", str(roleindex[i]))
         roles = []
         for role, amount in roleguide:
             direction = 1 if amount[i] > old[role] else -1
