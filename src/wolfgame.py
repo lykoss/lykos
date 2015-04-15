@@ -209,14 +209,17 @@ def connect_callback(cli):
         for nick in to_be_devoiced:
             cmodes.append(("-v", nick))
 
-        # If the bot was restarted in the middle of the join phase, ping players that were joined.
-        with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
-            c = conn.cursor()
-            c.execute("SELECT players FROM pre_restart_state")
-            players = c.fetchone()[0]
-            if players:
-                cli.msg(botconfig.CHANNEL, "PING! {0}".format(players))
-                c.execute("UPDATE pre_restart_state SET players = NULL")
+        try:
+            # If the bot was restarted in the middle of the join phase, ping players that were joined.
+            with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
+                c = conn.cursor()
+                c.execute("SELECT players FROM pre_restart_state")
+                players = c.fetchone()[0]
+                if players:
+                    cli.msg(botconfig.CHANNEL, "PING! {0}".format(players))
+                    c.execute("UPDATE pre_restart_state SET players = NULL")
+        except Exception:
+            notify_error(cli, botconfig.CHANNEL, errlog)
 
         # Unhook the WHO hooks
         decorators.unhook(HOOKS, 295)
