@@ -161,7 +161,7 @@ def connect_callback(cli):
         if re.match("{0}.+\!\*@\*".format(var.QUIET_PREFIX), ban):
             cmodes.append(("-{0}".format(var.QUIET_MODE), ban))
 
-    @hook("whoreply", hookid=294)
+    @hook("whoreply", hookid=295)
     def on_whoreply(cli, svr, botnick, chan, user, host, server, nick, status, rest):
         if not var.DISABLE_ACCOUNTS:
             plog("IRCd does not support accounts, disabling account-related features.")
@@ -185,7 +185,7 @@ def connect_callback(cli):
             newstat += var.MODES_PREFIXES[stat]
         var.USERS[nick] = dict(cloak=host,account="*",inchan=True,modes=set(newstat),moded=set())
 
-    @hook("whospcrpl", hookid=294)
+    @hook("whospcrpl", hookid=295)
     def on_whoreply(cli, server, nick, ident, cloak, _, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
         if user == botconfig.NICK:
@@ -203,7 +203,7 @@ def connect_callback(cli):
             newstat += var.MODES_PREFIXES[stat]
         var.USERS[user] = dict(cloak=cloak,account=acc,inchan=True,modes=set(newstat),moded=set())
 
-    @hook("endofwho", hookid=294)
+    @hook("endofwho", hookid=295)
     def afterwho(*args):
         # Devoice all on connect
         for nick in to_be_devoiced:
@@ -220,7 +220,7 @@ def connect_callback(cli):
 
 
     #bot can be tricked into thinking it's still opped by doing multiple modes at once
-    @hook("mode", hookid=294)
+    @hook("mode", hookid=296)
     def on_give_me_ops(cli, nick, chan, modeaction, target="", *other):
         if chan != botconfig.CHANNEL:
             return
@@ -230,11 +230,11 @@ def connect_callback(cli):
                 var.USERS[botconfig.NICK]["modes"].add("o")
 
             if var.PHASE == "none":
-                @hook("quietlistend", 294)
+                @hook("quietlistend", hookid=297)
                 def on_quietlist_end(cli, svr, nick, chan, *etc):
                     if chan == botconfig.CHANNEL:
                         mass_mode(cli, cmodes, ["-m"])
-                @hook("endofbanlist", 294)
+                @hook("endofbanlist", hookid=297)
                 def on_banlist_end(cli, svr, nick, chan, *etc):
                     if chan == botconfig.CHANNEL:
                         mass_mode(cli, cmodes, ["-m"])
