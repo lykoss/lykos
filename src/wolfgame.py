@@ -1343,25 +1343,29 @@ def fjoin(cli, nick, chan, rest):
     if not rest.strip():
         join_player(cli, nick, chan, forced=True)
 
-    for a in re.split(" +",rest):
-        a = a.strip()
-        if not a:
+    for tojoin in re.split(" +",rest):
+        tojoin = tojoin.strip()
+        if not tojoin:
             continue
         ul = list(var.USERS.keys())
         ull = [u.lower() for u in ul]
-        if a.lower() not in ull:
-            if not is_fake_nick(a) or not botconfig.DEBUG_MODE:
+        if tojoin.lower() not in ull:
+            if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
                     cli.msg(chan, nick+(": You may only fjoin "+
                                         "people who are in this channel."))
                     noticed = True
                 continue
-        if not is_fake_nick(a):
-            a = ul[ull.index(a.lower())]
+        if not is_fake_nick(tojoin):
+            tojoin = ul[ull.index(tojoin.lower())].strip()
+            if not botconfig.DEBUG_MODE and var.ACCOUNTS_ONLY:
+                if not var.USERS[tojoin]["account"] or var.USERS[tojoin]["account"] == "*":
+                    cli.notice(nick, "{0} is not logged in to NickServ.".format(tojoin))
+                    return
         elif botconfig.DEBUG_MODE:
             fake = True
-        if a != botconfig.NICK:
-            join_player(cli, a.strip(), chan, forced=True, who=nick)
+        if tojoin != botconfig.NICK:
+            join_player(cli, tojoin, chan, forced=True, who=nick)
         else:
             cli.notice(nick, "No, that won't be allowed.")
     if fake:
