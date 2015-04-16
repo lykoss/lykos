@@ -623,6 +623,9 @@ def pinger(cli, nick, chan, rest):
 
         if 'G' not in status and not is_user_stasised(user)[0] and user not in pl:
             acc = var.USERS[user]["account"]
+            if acc == "*" and var.ACCOUNTS_ONLY:
+                # Don't ping unidentified users if they can't join anyway.
+                return
             if not is_user_away(user):
                 TO_PING.append(user)
             elif (acc != "*" and var.PING_IF_PREFS_ACCS.get(acc, 999) <= len(pl)
