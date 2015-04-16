@@ -442,13 +442,14 @@ def make_stasis(nick, penalty):
         else:
             var.STASISED_ACCS[acc] += penalty
             var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
-    if penalty == 0:
-        if cloak in var.STASISED:
-            del var.STASISED[cloak]
-            var.set_stasis(cloak, 0)
-    else:
-        var.STASISED[cloak] += penalty
-        var.set_stasis(cloak, var.STASISED[cloak])
+    if (not var.ACCOUNTS_ONLY or not acc) and cloak:
+        if penalty == 0:
+            if cloak in var.STASISED:
+                del var.STASISED[cloak]
+                var.set_stasis(cloak, 0)
+        else:
+            var.STASISED[cloak] += penalty
+            var.set_stasis(cloak, var.STASISED[cloak])
 
 @cmd("fsync", admin_only=True, pm=True)
 def fsync(cli, nick, chan, rest):
@@ -6225,11 +6226,15 @@ def fstasis(cli, nick, chan, rest):
         else:
             cloak = user
             acc = None
+        if var.ACCOUNTS_ONLY and acc == "*":
+            acc = None
+            cloak = None
+            msg = "{0} is not logged in to NickServ.".format(user)
         if not acc and user in var.STASISED_ACCS:
             acc = user
-        err_msg = "The amount of stasis has to be a non-negative integer."
 
-        if cloak:
+        err_msg = "The amount of stasis has to be a non-negative integer."
+        if (not var.ACCOUNTS_ONLY or not acc) and cloak:
             if len(data) == 1:
                 if cloak in var.STASISED:
                     plural = "" if var.STASISED[cloak] == 1 else "s"
@@ -6314,8 +6319,8 @@ def fstasis(cli, nick, chan, rest):
         for stas in var.USERS:
             if var.USERS[stas]["account"] in accstas:
                 stasised[var.USERS[stas]["account"]+" (Account)"] = accstas.pop(var.USERS[stas]["account"])
-                if var.USERS[stas]["cloak"] in cloakstas:
-                    del cloakstas[var.USERS[stas]["cloak"]]
+                #if var.USERS[stas]["cloak"] in cloakstas:
+                #    del cloakstas[var.USERS[stas]["cloak"]]
             elif var.USERS[stas]["cloak"] in cloakstas:
                 stasised[var.USERS[stas]["cloak"]+" (Host)"] = cloakstas.pop(var.USERS[stas]["cloak"])
         for oldcloak in cloakstas:
