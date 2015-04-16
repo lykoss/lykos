@@ -601,22 +601,27 @@ def pinger(cli, nick, chan, rest):
         return
     var.PINGING = True
     TO_PING = []
-
-
+    ALREADY_JOINED = []
 
     @hook("whoreply", hookid=800)
     def on_whoreply(cli, server, dunno, chan, dunno1,
                     cloak, dunno3, user, status, dunno4):
-        if not var.PINGING: return
-        if user in (botconfig.NICK, nick): return  # Don't ping self.
-
+        if not var.PINGING:
+            return
         pl = var.list_players()
+        acc = var.USERS[user]["account"]
+        # Don't ping unidentified people when ACCOUNTS_ONLY is on
+        # Don't ping an account that is already joined under an alternate nick either (mooo)
+        if var.ACCOUNTS_ONLY:
+            if not acc or acc == "*":
+                return
+            if user in pl:
+                ALREADY_JOINED.append(acc)
+        # Don't ping self or the bot
+        if user in (botconfig.NICK, nick):
+            return
 
         if 'G' not in status and not is_user_stasised(user)[0] and user not in pl:
-            acc = var.USERS[user]["account"]
-            if acc == "*" and var.ACCOUNTS_ONLY:
-                # Don't ping unidentified users if they can't join anyway.
-                return
             if not is_user_away(user):
                 TO_PING.append(user)
             elif (acc != "*" and var.PING_IF_PREFS_ACCS.get(acc, 999) <= len(pl)
@@ -628,13 +633,15 @@ def pinger(cli, nick, chan, rest):
 
     @hook("endofwho", hookid=800)
     def do_ping(*args):
-        if not var.PINGING: return
+        if not var.PINGING:
+            return
 
-        TO_PING.sort(key=lambda x: x.lower())
+        PING = [user for user in TO_PING if user in var.USERS and var.USERS[user]["account"] not in ALREADY_JOINED]
+        PING.sort(key=lambda x: x.lower())
 
-        if TO_PING:
+        if PING:
             var.LAST_PING = datetime.now()
-            cli.msg(chan, "PING! "+" ".join(TO_PING))
+            cli.msg(chan, "PING! "+" ".join(PING))
 
             minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
             if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
