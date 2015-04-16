@@ -23,7 +23,9 @@ def notify_error(cli, chan, target_logger):
 
     target_logger(tb)
 
-    cli.msg(chan, msg)
+    if (not botconfig.PASTEBIN_ERRORS) or (chan != botconfig.DEV_CHANNEL):
+        # Don't send a duplicate message if DEV_CHANNEL is the current channel.
+        cli.msg(chan, msg)
 
     if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
         try:
