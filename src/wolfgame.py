@@ -218,6 +218,9 @@ def connect_callback(cli):
                 cli.msg(botconfig.CHANNEL, "PING! {0}".format(players))
                 c.execute("UPDATE pre_restart_state SET players = NULL")
 
+        # Unhook the WHO hooks
+        decorators.unhook(HOOKS, 295)
+
 
     #bot can be tricked into thinking it's still opped by doing multiple modes at once
     @hook("mode", hookid=296)
