@@ -1431,9 +1431,10 @@ def on_kicked(cli, nick, chan, victim, reason):
 def on_account(cli, rnick, acc):
     nick, mode, user, cloak = parse_nick(rnick)
     chan = botconfig.CHANNEL
-    if acc == "*" and var.LEAVE_ON_LOGOUT and var.PHASE in ("join", "day", "night") and nick in var.PLAYERS:
+    if acc == "*" and var.ACCOUNTS_ONLY and nick in var.list_players():
         cli.mode(chan, "-v", nick)
         leave(cli, "account", nick)
+        cli.notice(nick, "Please reidentify to the account \u0002{0}\u0002".format(var.USERS[nick]["account"]))
     if nick in var.USERS.keys():
         var.USERS[nick]["cloak"] = cloak
         var.USERS[nick]["account"] = acc

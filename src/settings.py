@@ -50,7 +50,6 @@ LEAVE_STASIS_PENALTY = 1
 IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
 ACC_STASIS_PENALTY = 1
-LEAVE_ON_LOGOUT = False # If True, the bot will consider a NickServ logout as a quit
 QUIET_DEAD_PLAYERS = False
 QUIET_MODE = "q" # "q" or "b"
 QUIET_PREFIX = "" # "" or "~q:"
