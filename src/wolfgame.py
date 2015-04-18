@@ -3153,10 +3153,10 @@ def leave(cli, what, nick, why=""):
             msg = ("\02{0}\02 was mauled by wild animals and has died.{1}").format(nick, population)
     elif what == "account" and (not var.ACC_GRACE_TIME or var.PHASE == "join"):
         if var.get_role(nick) != "person" and var.ROLE_REVEAL:
-            msg = ("\02{0}\02 has died of a heart attack. The villagers couldn't "+
+            msg = ("\02{0}\02 fell into a river and was swept away. The villagers couldn't "+
                    "save the \02{1}\02.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
-            msg = ("\02{0}\02 has died of a heart attack.{1}").format(nick, population)
+            msg = ("\02{0}\02 fell into a river and was swept away.{1}").format(nick, population)
     elif what != "kick":
         msg = "\u0002{0}\u0002 has gone missing.".format(nick)
         killplayer = False
