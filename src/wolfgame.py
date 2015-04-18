@@ -3102,7 +3102,7 @@ def leave(cli, what, nick, why=""):
     if nick in var.USERS:
         acc = var.USERS[nick]["account"]
         cloak = var.USERS[nick]["cloak"]
-        if not what in ("account",):
+        if what == "quit" or (not what in ("account",) and why == botconfig.CHANNEL):
             var.USERS[nick]["inchan"] = False
     else:
         acc = None
