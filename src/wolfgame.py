@@ -6364,7 +6364,6 @@ def is_user_stasised(nick):
     if acc and acc != "*":
         if acc in var.STASISED_ACCS:
             return True, var.STASISED_ACCS[acc]
-        return False, None
     if cloak in var.STASISED:
         return True, var.STASISED[cloak]
     return False, None
