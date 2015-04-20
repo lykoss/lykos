@@ -1230,12 +1230,6 @@ def join_player(cli, player, chan, who = None, forced = False):
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
 
-    if is_user_stasised(player)[0] and not forced:
-        cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
-            "you are" if player == who else player + " is", is_user_stasised(player)[1],
-            "s" if is_user_stasised(player)[1] != 1 else ""))
-        return
-
     if player in var.USERS:
         cloak = var.USERS[player]["cloak"]
         acc = var.USERS[player]["account"]
@@ -1247,6 +1241,21 @@ def join_player(cli, player, chan, who = None, forced = False):
         return # Not normal
     if not acc or acc == "*":
         acc = None
+
+    (is_stasised, stasis_amt) = is_user_stasised(player)
+
+    if is_stasised:
+        if forced and stasis_amt == 1:
+            if cloak in var.STASISED:
+                del var.STASISED[cloak]
+            if acc in var.STASISED_ACCS:
+                del var.STASISED_ACCS[acc]
+        else:
+            cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
+                "you are" if player == who else player + " is", is_user_stasised(player)[1],
+                "s" if is_user_stasised(player)[1] != 1 else ""))
+            return
+
     cmodes = [("+v", player)]
     if var.PHASE == "none":
 
