@@ -12,8 +12,8 @@ from src import logger
 from src import settings as var
 from src import wolfgame
 
-log = logger("errors.log")
-alog = logger(None)
+log = lambda *out: logger.logger(*out, type="error")
+alog = lambda *out: logger.logger(*out, write=False)
 
 
 def notify_error(cli, chan, target_logger):

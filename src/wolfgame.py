@@ -40,9 +40,9 @@ from src import logger
 import urllib.request
 import sqlite3
 
-debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
-errlog = logger("errors.log")
-plog = logger(None) #use this instead of print so that logs have timestamps
+debuglog = lambda *out: logger.logger(*out, type="debug", write=False, display=False)
+errlog = lambda *out: logger.logger(*out, type="error")
+plog = lambda *out: logger.logger(*out, display=True, write=False)
 
 COMMANDS = {}
 HOOKS = {}

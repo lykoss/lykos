@@ -45,7 +45,7 @@ def main():
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
                      connect_cb=handler.connect_callback,
-                     stream_handler=src.stream,
+                     stream_handler=src.stream.logger,
     )
     cli.mainLoop()
 
@@ -54,4 +54,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        src.logger("errors.log")(traceback.format_exc())
+        src.logger.logger(traceback.format_exc(), type="error")
