@@ -2132,15 +2132,6 @@ def stop_game(cli, winner = "", abort = False):
                     else:
                         won = False
                         iwon = False
-            elif rol == "lycan" or splr in var.LYCANS:
-                if splr in var.LYCANS and winner == "wolves":
-                    won = True
-                elif splr not in var.LYCANS and winner == "villagers":
-                    won = True
-                else:
-                    won = False
-                if not iwon:
-                    iwon = won and splr in survived
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
             elif not iwon:
@@ -2984,9 +2975,6 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.SHAMANS:
                 var.SHAMANS.remove(prefix)
                 var.SHAMANS.append(nick)
-            if prefix in var.LYCANS:
-                var.LYCANS.remove(prefix)
-                var.LYCANS.append(nick)
             if prefix in var.PASSED:
                 var.PASSED.remove(prefix)
                 var.PASSED.append(nick)
@@ -3603,25 +3591,26 @@ def transition_day(cli, gameid=0):
                         novictmsg = False
                         break
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves and victim not in var.IMMUNIZED:
-            message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
-            pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
             vrole = var.get_role(victim)
-            var.ROLES[vrole].remove(victim)
-            var.ROLES["wolf"].append(victim)
-            var.LYCANS.append(victim)
-            wolves = var.list_players(var.WOLFCHAT_ROLES)
-            random.shuffle(wolves)
-            wolves.remove(victim)  # remove self from list
-            for i, wolf in enumerate(wolves):
-                pm(cli, wolf, "\u0002{0}\u0002 is now a wolf!".format(victim))
-                role = var.get_role(wolf)
-                cursed = ""
-                if wolf in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role)
+            if vrole not in var.WOLFCHAT_ROLES:
+                message.append("A chilling howl was heard last night. It appears there is another werewolf in our midst!")
+                pm(cli, victim, 'HOOOOOOOOOWL. You have become... a wolf!')
+                var.ROLES[vrole].remove(victim)
+                var.ROLES["wolf"].append(victim)
+                var.FINAL_ROLES[victim] = "wolf"
+                wolves = var.list_players(var.WOLFCHAT_ROLES)
+                random.shuffle(wolves)
+                wolves.remove(victim)  # remove self from list
+                for i, wolf in enumerate(wolves):
+                    pm(cli, wolf, "\u0002{0}\u0002 is now a wolf!".format(victim))
+                    role = var.get_role(wolf)
+                    cursed = ""
+                    if wolf in var.ROLES["cursed villager"]:
+                        cursed = "cursed "
+                    wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role)
 
-            pm(cli, victim, "Wolves: " + ", ".join(wolves))
-            novictmsg = False
+                pm(cli, victim, "Wolves: " + ", ".join(wolves))
+                novictmsg = False
         elif victim not in dead: # not already dead via some other means
             if victim in var.RETRIBUTION:
                 loser = random.choice(killers[victim])
@@ -6009,7 +5998,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.GUARDED = {}
     var.HVISITED = {}
     var.HUNTERS = []
-    var.LYCANS = []
     var.VENGEFUL_GHOSTS = {}
     var.CLONED = {}
     var.TARGETED = {}
