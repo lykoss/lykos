@@ -3324,7 +3324,7 @@ def transition_day(cli, gameid=0):
         for wolf in wolves:
             villagers.remove(wolf)
         for ghost, target in var.VENGEFUL_GHOSTS.items():
-            if target[0] == "!":
+            if target[0] == "!" or ghost in var.SILENCED:
                 continue
             if ghost not in var.OTHER_KILLS:
                 if target == "wolves":
