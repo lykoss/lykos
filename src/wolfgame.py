@@ -6690,10 +6690,12 @@ def wiki(cli, nick, chan, rest):
     if not page:
         cli.notice(nick, "Could not open https://github.com/lykoss/lykos/wiki")
         return
+
+    query = re.escape(rest.strip())
     #look for exact match first, then for a partial match
-    match = re.search("^##+ ({0})$\r?\n\r?\n^(.*)$".format(rest.strip()), page, re.MULTILINE + re.IGNORECASE)
+    match = re.search("^##+ ({0})$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
-        match = re.search("^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(rest.strip()), page, re.MULTILINE + re.IGNORECASE)
+        match = re.search("^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
         cli.notice(nick, "Could not find information on that role in https://github.com/lykoss/lykos/wiki")
         return
