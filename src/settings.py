@@ -746,7 +746,7 @@ class RandomMode(object):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire", minp = 4, maxp = 24, likelihood = 4)
+@game_mode("aleatoire", minp = 8, maxp = 24, likelihood = 4)
 class AleatoireMode(object):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
@@ -768,33 +768,33 @@ class AleatoireMode(object):
                                "retribution": (      4      ,      1      ),
                               "misdirection": (      0      ,      1      ),
                              }
-        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  21   )
+        self.ROLE_INDEX =         (   8   ,  10   ,  12   ,  15   ,  18   ,  21   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({ # village roles
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "shaman"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "matchmaker"        : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "augur"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "time lord"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
-            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "shaman"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "matchmaker"        : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "hunter"            : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "augur"             : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "time lord"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             # wolf roles
-            "wolf"              : (   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            "wolf cub"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
-            "traitor"           : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "hag"               : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "wolf"              : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "wolf cub"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "werecrow"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "hag"               : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
             # neutral roles
-            "vengeful ghost"    : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "amnesiac"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "lycan"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "vengeful ghost"    : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ),
+            "amnesiac"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "lycan"             : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             # templates
-            "cursed villager"   : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            "assassin"          : (   0   ,   0   ,   0   ,   1   ,   2   ,   2   ,   2   ,   2   ),
-            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
-            "bureaucrat"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
+            "cursed villager"   : (   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
+            "assassin"          : (   0   ,   1   ,   2   ,   2   ,   2   ,   2   ),
+            "gunner"            : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
+            "bureaucrat"        : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
+            "mayor"             : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             })
 
 @game_mode("alpha", minp = 7, maxp = 24, likelihood = 5)
