@@ -84,7 +84,7 @@ var.PINGING_IFS = False
 var.TIMERS = {}
 
 var.ORIGINAL_SETTINGS = {}
-var.CURRENT_GAMEMODE = {"name": "default"}
+var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
 
 var.LAST_SAID_TIME = {}
 
@@ -376,10 +376,8 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
     cli.msg(target, message)
 
 def reset_settings():
-    if hasattr(var.CURRENT_GAMEMODE, "teardown") and callable(var.CURRENT_GAMEMODE.teardown):
-        var.CURRENT_GAMEMODE.teardown()
-
-    var.CURRENT_GAMEMODE = {"name": "default"}
+    var.CURRENT_GAMEMODE.teardown()
+    var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
@@ -5881,15 +5879,13 @@ def cgamemode(cli, arg):
         md = modeargs.pop(0)
         try:
             gm = var.GAME_MODES[md][0](*modeargs)
-            if hasattr(gm, "startup") and callable(gm.startup):
-                gm.startup()
+            gm.startup()
             for attr in dir(gm):
                 val = getattr(gm, attr)
                 if (hasattr(var, attr) and not callable(val)
                                         and not attr.startswith("_")):
                     var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
                     setattr(var, attr, val)
-            gm.name = md
             var.CURRENT_GAMEMODE = gm
             return True
         except var.InvalidModeException as e:

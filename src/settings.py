@@ -401,6 +401,7 @@ def break_long_message(phrases, joinstr = " "):
 class InvalidModeException(Exception): pass
 def game_mode(name, minp, maxp, likelihood = 0, conceal_roles = False):
     def decor(c):
+        c.name = name
         GAME_MODES[name] = (c, minp, maxp, likelihood, conceal_roles)
         return c
     return decor
@@ -411,9 +412,16 @@ def reset_roles(index):
         newguide[role] = tuple([0 for i in index])
     return newguide
 
-# TODO: implement more game modes
+# TODO: move this to src/gamemodes.py
+class GameMode:
+    def startup(self):
+        pass
+
+    def teardown(self):
+        pass
+
 @game_mode("roles", minp = 4, maxp = 35)
-class ChangedRolesMode(object):
+class ChangedRolesMode(GameMode):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
     def __init__(self, arg = ""):
@@ -456,14 +464,14 @@ class ChangedRolesMode(object):
                 raise InvalidModeException("A bad value was used in mode roles.")
 
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
-class DefaultMode(object):
+class DefaultMode(GameMode):
     """Default game mode."""
     def __init__(self):
         # No extra settings, just an explicit way to revert to default settings
         pass
 
 @game_mode("foolish", minp = 8,maxp = 24, likelihood = 8)
-class FoolishMode(object):
+class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self):
         self.ROLE_INDEX =         (  8  ,  9  ,  10 , 11  , 12  , 15  , 17  , 20  , 21  , 22  , 24  )
@@ -491,7 +499,7 @@ class FoolishMode(object):
               })
 
 @game_mode("mad", minp = 7, maxp = 22, likelihood = 8)
-class MadMode(object):
+class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self):
         self.SHOTS_MULTIPLIER = 0.0001 # gunner and sharpshooter always get 0 bullets
@@ -523,7 +531,7 @@ class MadMode(object):
               })
 
 @game_mode("evilvillage", minp = 6, maxp = 18, likelihood = 1)
-class EvilVillageMode(object):
+class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
         self.DEFAULT_ROLE = "cultist"
@@ -575,7 +583,7 @@ class EvilVillageMode(object):
 
 
 @game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
-class ClassicMode(object):
+class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
     def __init__(self):
         self.ABSTAIN_ENABLED = False
@@ -597,7 +605,7 @@ class ClassicMode(object):
               })
 
 @game_mode("rapidfire", minp = 6, maxp = 24, likelihood = 0)
-class RapidFireMode(object):
+class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self):
         self.SHARPSHOOTER_CHANCE = 1
@@ -629,7 +637,7 @@ class RapidFireMode(object):
             })
 
 @game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
-class DrunkFireMode(object):
+class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self):
         self.SHARPSHOOTER_CHANCE = 1
@@ -660,7 +668,7 @@ class DrunkFireMode(object):
             })
 
 @game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
-class NoRevealMode(object):
+class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""
     def __init__(self):
         self.ROLE_REVEAL = False
@@ -687,7 +695,7 @@ class NoRevealMode(object):
             })
 
 @game_mode("lycan", minp = 7, maxp = 21, likelihood = 6)
-class LycanMode(object):
+class LycanMode(GameMode):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self):
         self.ROLE_INDEX =         (   7   ,   8  ,    9   ,   10  ,   11  ,   12  ,  15   ,  17   ,  20   )
@@ -712,7 +720,7 @@ class LycanMode(object):
             })
 
 @game_mode("amnesia", minp = 10, maxp = 24, likelihood = 0)
-class AmnesiaMode(object):
+class AmnesiaMode(GameMode):
     """Everyone gets assigned a random role on night 3."""
     def __init__(self):
         self.DEFAULT_ROLE = "cultist"
@@ -725,7 +733,7 @@ class AmnesiaMode(object):
             })
 
 @game_mode("valentines", minp = 8, maxp = 24, likelihood = 0)
-class MatchmakerMode(object):
+class MatchmakerMode(GameMode):
     """Love is in the air!"""
     def __init__(self):
         self.ROLE_INDEX = range(8, 25)
@@ -738,7 +746,7 @@ class MatchmakerMode(object):
             })
 
 @game_mode("random", minp = 8, maxp = 24, likelihood = 0, conceal_roles = True)
-class RandomMode(object):
+class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self):
         self.AMNESIAC_NIGHTS = 1
@@ -778,7 +786,7 @@ class RandomMode(object):
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
 @game_mode("aleatoire", minp = 8, maxp = 24, likelihood = 4)
-class AleatoireMode(object):
+class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self):
         self.SHARPSHOOTER_CHANCE = 1
@@ -829,7 +837,7 @@ class AleatoireMode(object):
             })
 
 @game_mode("alpha", minp = 7, maxp = 24, likelihood = 5)
-class AlphaMode(object):
+class AlphaMode(GameMode):
     """Features the alpha wolf who can turn other people into wolves, be careful whom you trust!"""
     def __init__(self):
         self.ROLE_INDEX =         (   7   ,   8   ,  10   ,  11   ,  12   ,  14   ,  15   ,  17   ,  18   ,  20   ,  21   ,  24   )
