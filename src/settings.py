@@ -566,7 +566,12 @@ class EvilVillageMode(GameMode):
         evt.stop_processing = True
 
         try:
-            if lrealwolves == 0:
+            if lrealwolves == 0 and lsafes == 0:
+                evt.data["winner"] = "none"
+                evt.data["message"] ("Game over! All the villagers are dead, but the cult needed to sacrifice " +
+                                     "the wolves to accomplish that. The cult disperses shortly thereafter, " +
+                                     "and nobody wins.")
+            elif lrealwolves == 0:
                 evt.data["winner"] = "villagers"
                 evt.data["message"] = ("Game over! All the wolves are dead! The villagers " +
                                        "round up the remaining cultists, hang them, and live " +
