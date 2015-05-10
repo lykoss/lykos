@@ -537,22 +537,21 @@ class EvilVillageMode(GameMode):
         self.DEFAULT_ROLE = "cultist"
         self.DEFAULT_SEEN_AS_VILL = False
         self.ABSTAIN_ENABLED = False
-        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  15   )
+        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
-              "oracle"          : (   0   ,   1   ,   1   ,   0   ),
-              "seer"            : (   0   ,   0   ,   0   ,   1   ),
-              "guardian angel"  : (   0   ,   0   ,   1   ,   1   ),
-              "shaman"          : (   0   ,   0   ,   0   ,   1   ),
-              "hunter"          : (   1   ,   1   ,   1   ,   1   ),
-              "villager"        : (   0   ,   0   ,   0   ,   1   ),
+              "seer"            : (   0   ,   1   ,   1   ,   1   ,   1   ),
+              "guardian angel"  : (   0   ,   0   ,   1   ,   1   ,   1   ),
+              "shaman"          : (   0   ,   0   ,   0   ,   1   ,   1   ),
+              "hunter"          : (   1   ,   1   ,   1   ,   1   ,   2   ),
               # wolf roles
-              "wolf"            : (   1   ,   1   ,   1   ,   2   ),
-              "minion"          : (   0   ,   0   ,   1   ,   1   ),
+              "wolf"            : (   1   ,   1   ,   1   ,   1   ,   2   ),
+              "minion"          : (   0   ,   0   ,   1   ,   1   ,   1   ),
               # neutral roles
-              "fool"            : (   0   ,   0   ,   1   ,   1   ),
+              "fool"            : (   0   ,   0   ,   1   ,   1   ,   1   ),
               # templates
-              "cursed villager" : (   0   ,   1   ,   1   ,   1   ),
+              "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ),
+              "mayor"           : (   0   ,   0   ,   0   ,   1   ,   1   ),
               })
 
     def startup(self):
@@ -576,6 +575,12 @@ class EvilVillageMode(GameMode):
                 evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
                                        "with their wolf buddies and start plotting to take over the " +
                                        "next village.")
+            elif lsafes >= lpl / 2:
+                evt.data["winner"] = "villagers"
+                evt.data["message"] = ("Game over! There are {0} villagers {1} cultists. They " +
+                                       "manage to regain control of the village and dispose of the remaining " +
+                                       "cultists.").format("more" if lsafes > lpl / 2 else "the same number of",
+                                                           "than" if lsafes > lpl / 2 else "as")
             elif evt.data["winner"][0] != "@":
                 evt.data["winner"] = None
         except TypeError: # means that evt.data["winner"] isn't a string or something else subscriptable
