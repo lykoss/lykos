@@ -40,6 +40,10 @@ from src import logger
 import urllib.request
 import sqlite3
 
+# done this way so that events is accessible in !eval (useful for debugging)
+from src import events
+Event = events.Event
+
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
 errlog = logger("errors.log")
 plog = logger(None) #use this instead of print so that logs have timestamps
@@ -80,6 +84,7 @@ var.PINGING_IFS = False
 var.TIMERS = {}
 
 var.ORIGINAL_SETTINGS = {}
+var.CURRENT_GAMEMODE = {"name": "default"}
 
 var.LAST_SAID_TIME = {}
 
@@ -371,6 +376,10 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
     cli.msg(target, message)
 
 def reset_settings():
+    if hasattr(var.CURRENT_GAMEMODE, "teardown") and callable(var.CURRENT_GAMEMODE.teardown):
+        var.CURRENT_GAMEMODE.teardown()
+
+    var.CURRENT_GAMEMODE = {"name": "default"}
     for attr in list(var.ORIGINAL_SETTINGS.keys()):
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     dict.clear(var.ORIGINAL_SETTINGS)
@@ -412,7 +421,6 @@ def reset():
     var.PINGED_ALREADY_ACCS = []
     var.NO_LYNCH = []
     var.FGAMED = False
-    var.CURRENT_GAMEMODE = "default"
     var.GAMEMODE_VOTES = {} #list of players who have used !game
 
     reset_settings()
@@ -1516,7 +1524,7 @@ def stats(cli, nick, chan, rest):
         else:
             cli.notice(nick, msg)
 
-    if var.PHASE == "join" or not var.ROLE_REVEAL or var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
+    if var.PHASE == "join" or not var.ROLE_REVEAL or var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
         return
 
     message = []
@@ -2148,7 +2156,7 @@ def stop_game(cli, winner = "", abort = False):
             if won or iwon:
                 winners.append(splr)
 
-        var.update_game_stats(var.CURRENT_GAMEMODE, len(survived) + len(var.DEAD), winner)
+        var.update_game_stats(var.CURRENT_GAMEMODE.name, len(survived) + len(var.DEAD), winner)
 
         # spit out the list of winners
         winners.sort()
@@ -2226,6 +2234,8 @@ def chk_win(cli, end_game = True):
                 except KeyError:
                     pass
 
+        winner = None
+        message = ""
         if lpl < 1:
             message = "Game over! There are no players remaining."
             winner = "none"
@@ -2265,8 +2275,15 @@ def chk_win(cli, end_game = True):
         elif lrealwolves == 0:
             chk_traitor(cli)
             return chk_win(cli, end_game)
-        else:
+
+        event = Event("chk_win", {"winner": winner, "message": message})
+        event.dispatch(var, lpl, lwolves, lrealwolves)
+        winner = event.data["winner"]
+        message = event.data["message"]
+
+        if winner is None:
             return False
+
         if end_game:
             players = []
             if winner == "monsters":
@@ -5353,7 +5370,7 @@ def transition_night(cli):
                 debuglog(elder, "ELDER DEATH")
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
-        start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE)
+        start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
         return
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
@@ -5864,13 +5881,16 @@ def cgamemode(cli, arg):
         md = modeargs.pop(0)
         try:
             gm = var.GAME_MODES[md][0](*modeargs)
+            if hasattr(gm, "startup") and callable(gm.startup):
+                gm.startup()
             for attr in dir(gm):
                 val = getattr(gm, attr)
                 if (hasattr(var, attr) and not callable(val)
                                         and not attr.startswith("_")):
                     var.ORIGINAL_SETTINGS[attr] = getattr(var, attr)
                     setattr(var, attr, val)
-            var.CURRENT_GAMEMODE = md
+            gm.name = md
+            var.CURRENT_GAMEMODE = gm
             return True
         except var.InvalidModeException as e:
             cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
@@ -6119,7 +6139,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if not restart:
         cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                       "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE))
+                       "game (a theme of Mafia). Using the \002{1}\002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE.name))
         cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -6876,15 +6896,15 @@ def listroles(cli, nick, chan, rest):
     rest = re.split(" +", rest.strip(), 1)
 
     #message if this game mode has been disabled
-    if (not len(rest[0]) or rest[0].isdigit()) and var.GAME_MODES[var.CURRENT_GAMEMODE][4]:
-        txt += " {0}: {1}roles was disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE)
+    if (not len(rest[0]) or rest[0].isdigit()) and var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
+        txt += " {0}: {1}roles was disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name)
         rest = []
         roleindex = {}
     #prepend player count if called without any arguments
     elif not len(rest[0]) and pl > 0:
         txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
         if var.PHASE in ["night", "day"]:
-            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE)
+            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE.name)
 
     #read game mode to get roles for
     elif len(rest[0]) and not rest[0].isdigit():
@@ -7091,7 +7111,7 @@ def game_stats(cli, nick, chan, rest):
             cli.notice(nick, "Wait until the game is over to view stats.")
             return
 
-    gamemode = var.CURRENT_GAMEMODE
+    gamemode = var.CURRENT_GAMEMODE.name
     gamesize = None
     rest = rest.split()
     # Check for gamemode

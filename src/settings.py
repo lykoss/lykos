@@ -1,5 +1,6 @@
 from collections import defaultdict
 import math
+from src import events
 
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
@@ -521,27 +522,57 @@ class MadMode(object):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
               })
 
-# evilvillage is broken, disable for now
-#@game_mode("evilvillage", minp = 6, maxp = 18)
+@game_mode("evilvillage", minp = 6, maxp = 18, likelihood = 1)
 class EvilVillageMode(object):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self):
         self.DEFAULT_ROLE = "cultist"
-        self.ROLE_INDEX =         (   6   ,  10   ,  15   )
+        self.DEFAULT_SEEN_AS_VILL = False
+        self.ABSTAIN_ENABLED = False
+        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
-              "oracle"          : (   1   ,   1   ,   0   ),
-              "seer"            : (   0   ,   0   ,   1   ),
-              "guardian angel"  : (   0   ,   1   ,   1   ),
-              "shaman"          : (   1   ,   1   ,   1   ),
-              "hunter"          : (   0   ,   0   ,   1   ),
-              "villager"        : (   0   ,   0   ,   1   ),
+              "oracle"          : (   0   ,   1   ,   1   ,   0   ),
+              "seer"            : (   0   ,   0   ,   0   ,   1   ),
+              "guardian angel"  : (   0   ,   0   ,   1   ,   1   ),
+              "shaman"          : (   0   ,   0   ,   0   ,   1   ),
+              "hunter"          : (   1   ,   1   ,   1   ,   1   ),
+              "villager"        : (   0   ,   0   ,   0   ,   1   ),
               # wolf roles
-              "wolf"            : (   1   ,   1   ,   2   ),
-              "minion"          : (   0   ,   1   ,   1   ),
+              "wolf"            : (   1   ,   1   ,   1   ,   2   ),
+              "minion"          : (   0   ,   0   ,   1   ,   1   ),
               # neutral roles
-              "fool"            : (   0   ,   1   ,   1   ),
+              "fool"            : (   0   ,   0   ,   1   ,   1   ),
+              # templates
+              "cursed villager" : (   0   ,   1   ,   1   ,   1   ),
               })
+
+    def startup(self):
+        events.add_listener("chk_win", self.chk_win, 1)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.chk_win, 1)
+
+    def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+        lsafes = len(var.list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
+        evt.stop_processing = True
+
+        try:
+            if lrealwolves == 0:
+                evt.data["winner"] = "villagers"
+                evt.data["message"] = ("Game over! All the wolves are dead! The villagers " +
+                                       "round up the remaining cultists, hang them, and live " +
+                                       "happily ever after.")
+            elif lsafes == 0:
+                evt.data["winner"] = "wolves"
+                evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
+                                       "with their wolf buddies and start plotting to take over the " +
+                                       "next village.")
+            elif evt.data["winner"][0] != "@":
+                evt.data["winner"] = None
+        except TypeError: # means that evt.data["winner"] isn't a string or something else subscriptable
+            evt.data["winner"] = None
+
 
 @game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
 class ClassicMode(object):
