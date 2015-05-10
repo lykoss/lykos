@@ -7,10 +7,10 @@ import traceback
 
 import botconfig
 from oyoyo.parse import parse_nick
-from src import decorators
-from src import logger
-from src import settings as var
-from src import wolfgame
+from core import decorators
+from core import logger
+from core import settings as var
+from core import wolfgame
 
 log = logger("errors.log")
 alog = logger(None)

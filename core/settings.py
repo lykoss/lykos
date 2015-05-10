@@ -1,6 +1,6 @@
 from collections import defaultdict
 import math
-from src import events
+from core import events
 
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping

@@ -20,10 +20,10 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 from oyoyo.parse import parse_nick
-import src.settings as var
+import core.settings as var
 import botconfig
 import traceback
-from src import decorators
+from core import decorators
 from datetime import datetime, timedelta
 import threading
 import copy
@@ -36,12 +36,12 @@ import math
 import random
 import subprocess
 import signal
-from src import logger
+from core import logger
 import urllib.request
 import sqlite3
 
 # done this way so that events is accessible in !eval (useful for debugging)
-from src import events
+from core import events
 Event = events.Event
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode

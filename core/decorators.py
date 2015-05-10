@@ -10,9 +10,9 @@
 import fnmatch
 
 import botconfig
-import src.settings as var
+import core.settings as var
 from oyoyo.parse import parse_nick
-from src import logger
+from core import logger
 
 adminlog = logger(None)
 

@@ -26,8 +26,8 @@ from oyoyo.client import IRCClient
 import botconfig
 import time
 import traceback
-import src
-from src import handler
+import core
+from core import handler
 
 
 def main():
@@ -45,7 +45,7 @@ def main():
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      use_ssl=botconfig.USE_SSL,
                      connect_cb=handler.connect_callback,
-                     stream_handler=src.stream,
+                     stream_handler=core.stream,
     )
     cli.mainLoop()
 
@@ -54,4 +54,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        src.logger("errors.log")(traceback.format_exc())
+        core.logger("errors.log")(traceback.format_exc())
