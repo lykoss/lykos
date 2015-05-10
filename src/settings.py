@@ -529,20 +529,22 @@ class EvilVillageMode(object):
         self.DEFAULT_ROLE = "cultist"
         self.DEFAULT_SEEN_AS_VILL = False
         self.ABSTAIN_ENABLED = False
-        self.ROLE_INDEX =         (   6   ,  10   ,  15   )
+        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
-              "oracle"          : (   1   ,   1   ,   0   ),
-              "seer"            : (   0   ,   0   ,   1   ),
-              "guardian angel"  : (   0   ,   1   ,   1   ),
-              "shaman"          : (   0   ,   0   ,   1   ),
-              "hunter"          : (   1   ,   1   ,   1   ),
-              "villager"        : (   0   ,   0   ,   1   ),
+              "oracle"          : (   0   ,   1   ,   1   ,   0   ),
+              "seer"            : (   0   ,   0   ,   0   ,   1   ),
+              "guardian angel"  : (   0   ,   0   ,   1   ,   1   ),
+              "shaman"          : (   0   ,   0   ,   0   ,   1   ),
+              "hunter"          : (   1   ,   1   ,   1   ,   1   ),
+              "villager"        : (   0   ,   0   ,   0   ,   1   ),
               # wolf roles
-              "wolf"            : (   1   ,   1   ,   2   ),
-              "minion"          : (   0   ,   1   ,   1   ),
+              "wolf"            : (   1   ,   1   ,   1   ,   2   ),
+              "minion"          : (   0   ,   0   ,   1   ,   1   ),
               # neutral roles
-              "fool"            : (   0   ,   1   ,   1   ),
+              "fool"            : (   0   ,   0   ,   1   ,   1   ),
+              # templates
+              "cursed villager" : (   0   ,   1   ,   1   ,   1   ),
               })
 
     def startup(self):
