@@ -562,6 +562,7 @@ class EvilVillageMode(GameMode):
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
         lsafes = len(var.list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
+        lcultists = len(var.list_players(["cultist"]))
         evt.stop_processing = True
 
         try:
@@ -575,6 +576,11 @@ class EvilVillageMode(GameMode):
                 evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
                                        "with their wolf buddies and start plotting to take over the " +
                                        "next village.")
+            elif lcultists == 0:
+                evt.data["winner"] = "villagers"
+                evt.data["message"] = ("Game over! All the cultists are dead! The now-exposed wolves " +
+                                       "are captured and killed by the remaining villagers. A BBQ party " +
+                                       "commences shortly thereafter.")
             elif lsafes >= lpl / 2:
                 evt.data["winner"] = "villagers"
                 evt.data["message"] = ("Game over! There are {0} villagers {1} cultists. They " +
