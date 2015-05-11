@@ -7420,9 +7420,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002immunized:\u0002 {0}".format(', '.join(var.IMMUNIZED)))
 
         if chan == nick:
-            pm(cli, nick, ' | '.join(output))
+            pm(cli, nick, var.break_long_message(output, ' | '))
         else:
-            cli.msg(chan, ' | '.join(output))
+            cli.msg(chan, var.break_long_message(output, ' | '))
 
 
     @cmd("fgame", admin_only=True, raw_nick=True, join=True)
