@@ -735,19 +735,6 @@ class LycanMode(GameMode):
             "mayor"             : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("amnesia", minp = 10, maxp = 24, likelihood = 0)
-class AmnesiaMode(GameMode):
-    """Everyone gets assigned a random role on night 3."""
-    def __init__(self):
-        self.DEFAULT_ROLE = "cultist"
-        self.HIDDEN_AMNESIAC = False
-        self.ROLE_INDEX = range(10, 25)
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            "wolf"     : [2 for i in self.ROLE_INDEX],
-            "amnesiac" : [i - 2 for i in self.ROLE_INDEX]
-            })
-
 @game_mode("valentines", minp = 8, maxp = 24, likelihood = 0)
 class MatchmakerMode(GameMode):
     """Love is in the air!"""
