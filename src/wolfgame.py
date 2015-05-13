@@ -6985,12 +6985,17 @@ def myrole(cli, nick, chan, rest):
     elif role == "vengeful ghost":
         role = var.DEFAULT_ROLE
     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-    pm(cli, nick, "You are a{0} \u0002{1}{2}\u0002.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
+    pm(cli, nick, "You are a{0} \u0002{1}\u0002.".format(an, role))
 
+    # Remind shamans what totem they have
     if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
         pm(cli, nick, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[nick]))
 
-    #Give minion the wolf list they would have recieved night one
+    # Remind clone who they have cloned
+    if role == "clone" and nick in var.CLONED:
+        pm(cli, nick, "You are cloning \u0002{0}\u0002.".format(var.CLONED[nick]))
+
+    # Give minion the wolf list they would have recieved night one
     if role == "minion":
         wolves = []
         for wolfrole in var.WOLF_ROLES:
@@ -7012,6 +7017,14 @@ def myrole(cli, nick, chan, rest):
             pm(cli, nick, "You have a \u0002gun\u0002 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullet"))
         else:
             pm(cli, nick, "You have a \u0002gun\u0002 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullets"))
+
+    # Check assassin
+    if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"]:
+        pm(cli, nick, "You are an \u0002assassin\u0002{0}.".format(" and targeting {0}".format(var.TARGETED[nick]) if nick in var.TARGETED else ""))
+
+    # Remind player if they were bitten by alpha wolf
+    if nick in var.BITTEN:
+        pm(cli, nick, "You were bitten by an alpha wolf and have \u0002{0} day{1}\u0002 until your transformation.".format(var.BITTEN[nick], "" if var.BITTEN[nick] == 1 else "s"))
 
     # Remind lovers of each other
     if nick in ps and nick in var.LOVERS:
