@@ -6969,18 +6969,23 @@ def listroles(cli, nick, chan, rest):
 def myrole(cli, nick, chan, rest):
     """Reminds you of your current role."""
 
+    #special case vengeful ghost (that hasn't been driven away)
+    if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != "!":
+        pm(cli, nick, "You are a \u0002vengeful ghost\u0002 who is against the \u0002{0}\u0002.".format(var.VENGEFUL_GHOSTS[nick]))
+        return
+
     ps = var.list_players()
-    if nick not in ps and nick not in var.VENGEFUL_GHOSTS.keys():
+    if nick not in ps:
         cli.notice(nick, "You're currently not playing.")
         return
 
     role = var.get_role(nick)
     if role in ("time lord", "village elder", "amnesiac"):
         role = var.DEFAULT_ROLE
-    elif role == "vengeful ghost" and nick not in var.VENGEFUL_GHOSTS.keys():
+    elif role == "vengeful ghost":
         role = var.DEFAULT_ROLE
     an = "n" if role[0] in ("a", "e", "i", "o", "u") else ""
-    pm(cli, nick, "You are a{0} \02{1}{2}\02.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
+    pm(cli, nick, "You are a{0} \u0002{1}{2}\u0002.".format(an, role, " assassin" if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"] else ""))
 
     if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
         pm(cli, nick, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[nick]))
@@ -6994,25 +6999,23 @@ def myrole(cli, nick, chan, rest):
         pm(cli, nick, "Original wolves: " + ", ".join(wolves))
 
     # Check for gun/bullets
-    if nick not in ps:
-        return
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
         role = "gunner"
         if nick in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
         if var.GUNNERS[nick] == 1:
-            pm(cli, nick, "You are a {0} and have a \02gun\02 with {1} {2}.".format(role, var.GUNNERS[nick], "bullet"))
+            pm(cli, nick, "You are a {0} and have a \u0002gun\u0002 with {1} {2}.".format(role, var.GUNNERS[nick], "bullet"))
         else:
-            pm(cli, nick, "You are a {0} and have a \02gun\02 with {1} {2}.".format(role, var.GUNNERS[nick], "bullets"))
+            pm(cli, nick, "You are a {0} and have a \u0002gun\u0002 with {1} {2}.".format(role, var.GUNNERS[nick], "bullets"))
     elif nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
         if var.WOLF_GUNNERS[nick] == 1:
-            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullet"))
+            pm(cli, nick, "You have a \u0002gun\u0002 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullet"))
         else:
-            pm(cli, nick, "You have a \02gun\02 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullets"))
+            pm(cli, nick, "You have a \u0002gun\u0002 with {0} {1}.".format(var.WOLF_GUNNERS[nick], "bullets"))
 
     # Remind lovers of each other
     if nick in ps and nick in var.LOVERS:
-        message = "You are \02in love\02 with "
+        message = "You are \u0002in love\u0002 with "
         lovers = sorted(list(set(var.LOVERS[nick])))
         if len(lovers) == 1:
             message += lovers[0]
