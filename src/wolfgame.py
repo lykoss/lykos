@@ -1205,7 +1205,7 @@ def join_timer_handler(cli):
 
         cli.who(botconfig.CHANNEL, "%uhsnfa")
 
-@cmd("join", "j", none=True, join=True)
+@cmd("join", "j", "kpon", none=True, join=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     if var.ACCOUNTS_ONLY:
