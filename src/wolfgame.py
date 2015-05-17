@@ -92,6 +92,7 @@ var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
 var.WARNING_LOCK = threading.RLock()
+var.WAIT_TB_LOCK = threading.RLock()
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
@@ -1277,7 +1278,9 @@ def join_player(cli, player, chan, who = None, forced = False):
         mass_mode(cli, cmodes, [])
         var.ROLES["person"].append(player)
         var.PHASE = "join"
-        var.WAITED = 0
+        with var.WAIT_TB_LOCK:
+            var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
+            var.WAIT_TB_LAST   = time.time()
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = []
         var.PINGED_ALREADY = []
@@ -6570,24 +6573,30 @@ def wait(cli, nick, chan, rest):
 
     if chan != botconfig.CHANNEL:
         return
-    if (var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
-            timedelta(seconds=var.WAIT_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. Please wait a while "
-                          "before using it again."))
-        return
-    if var.WAITED >= var.MAXIMUM_WAITED:
-        cli.msg(chan, "Limit has already been reached for extending the wait time.")
-        return
 
-    now = datetime.now()
-    var.LAST_WAIT[nick] = now
-    if now > var.CAN_START_TIME:
-        var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
-    else:
-        var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
-    var.WAITED += 1
-    cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
-                  "{1} seconds.").format(nick, var.EXTRA_WAIT))
+    with var.WAIT_TB_LOCK:
+        wait_check_time = time.time()
+        var.WAIT_TB_TOKENS += (wait_check_time - var.WAIT_TB_LAST) / var.WAIT_TB_DELAY
+        var.WAIT_TB_LAST = wait_check_time
+
+        var.WAIT_TB_TOKENS = min(var.WAIT_TB_TOKENS, var.WAIT_TB_BURST)
+
+        now = datetime.now()
+        if ((var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
+                timedelta(seconds=var.WAIT_RATE_LIMIT) > now)
+                or var.WAIT_TB_TOKENS < 1):
+            cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                              "before using it again."))
+            return
+
+        var.LAST_WAIT[nick] = now
+        var.WAIT_TB_TOKENS -= 1
+        if now > var.CAN_START_TIME:
+            var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+        else:
+            var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
+        cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
+                      "{1} seconds.").format(nick, var.EXTRA_WAIT))
 
 
 @cmd("fwait", admin_only=True, join=True)
@@ -6609,8 +6618,6 @@ def fwait(cli, nick, chan, rest):
         var.CAN_START_TIME = now + timedelta(seconds=extra)
     else:
         var.CAN_START_TIME += timedelta(seconds=extra)
-
-    var.WAITED += 1
 
     cli.msg(chan, ("\u0002{0}\u0002 forcibly {2}creased the wait time by {1} "
                    "second{3}.").format(nick,
