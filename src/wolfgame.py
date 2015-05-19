@@ -7236,7 +7236,7 @@ def game(cli, nick, chan, rest):
             return
         gamemode = match
 
-    if gamemode != "roles":
+    if gamemode != "roles" and gamemode not in botconfig.DISABLED_GAMEMODES:
         var.GAMEMODE_VOTES[nick] = gamemode
         cli.msg(chan, "\002{0}\002 votes for the \002{1}\002 game mode.".format(nick, gamemode))
     else:
