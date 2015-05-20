@@ -5,10 +5,13 @@ from src import events
 PING_WAIT = 300  # Seconds
 PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
-EXTRA_WAIT = 20
+EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
 WAIT_AFTER_JOIN = 25 # Wait at least this many seconds after the last join
-MAXIMUM_WAITED = 3  # limit for amount of !wait's
+# !wait uses a token bucket
+WAIT_TB_INIT  = 2   # initial number of tokens
+WAIT_TB_DELAY = 240 # wait time between adding tokens
+WAIT_TB_BURST = 3   # maximum number of tokens that can be accumulated
 STATS_RATE_LIMIT = 60
 VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300

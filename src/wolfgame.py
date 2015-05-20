@@ -92,6 +92,7 @@ var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.GRAVEYARD_LOCK = threading.RLock()
 var.WARNING_LOCK = threading.RLock()
+var.WAIT_TB_LOCK = threading.RLock()
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
@@ -649,6 +650,7 @@ def pinger(cli, nick, chan, rest):
         if PING:
             var.LAST_PING = datetime.now()
             cli.msg(chan, "PING! "+" ".join(PING))
+            cli.msg(chan, "\u0002Please note that the {0}away/{0}back system will soon be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(botconfig.CMD_CHAR))
 
             minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
             if not var.CAN_START_TIME or var.CAN_START_TIME < minimum:
@@ -774,6 +776,8 @@ def is_user_notice(nick):
 def away(cli, nick, chan, rest):
     """Use this to activate your away status (so you aren't pinged)."""
     nick, _, _, cloak = parse_nick(nick)
+    prefix = botconfig.CMD_CHAR
+    pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
     if var.OPT_IN_PING:
         if not rest: # don't want to trigger on unrelated messages
             cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
@@ -783,7 +787,6 @@ def away(cli, nick, chan, rest):
         acc = var.USERS[nick]["account"]
     else:
         acc = None
-    prefix = botconfig.CMD_CHAR
     if not acc or acc == "*":
         acc = None
     if acc: # Do it all by accounts if logged in
@@ -815,6 +818,8 @@ def away(cli, nick, chan, rest):
 def back_from_away(cli, nick, chan, rest):
     """Unsets your away status."""
     nick, _, _, cloak = parse_nick(nick)
+    prefix = botconfig.CMD_CHAR
+    pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
     if var.OPT_IN_PING:
         if not rest:
             cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
@@ -1273,7 +1278,9 @@ def join_player(cli, player, chan, who = None, forced = False):
         mass_mode(cli, cmodes, [])
         var.ROLES["person"].append(player)
         var.PHASE = "join"
-        var.WAITED = 0
+        with var.WAIT_TB_LOCK:
+            var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
+            var.WAIT_TB_LAST   = time.time()
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = []
         var.PINGED_ALREADY = []
@@ -6566,24 +6573,30 @@ def wait(cli, nick, chan, rest):
 
     if chan != botconfig.CHANNEL:
         return
-    if (var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
-            timedelta(seconds=var.WAIT_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, ("This command is rate-limited. Please wait a while "
-                          "before using it again."))
-        return
-    if var.WAITED >= var.MAXIMUM_WAITED:
-        cli.msg(chan, "Limit has already been reached for extending the wait time.")
-        return
 
-    now = datetime.now()
-    var.LAST_WAIT[nick] = now
-    if now > var.CAN_START_TIME:
-        var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
-    else:
-        var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
-    var.WAITED += 1
-    cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
-                  "{1} seconds.").format(nick, var.EXTRA_WAIT))
+    with var.WAIT_TB_LOCK:
+        wait_check_time = time.time()
+        var.WAIT_TB_TOKENS += (wait_check_time - var.WAIT_TB_LAST) / var.WAIT_TB_DELAY
+        var.WAIT_TB_LAST = wait_check_time
+
+        var.WAIT_TB_TOKENS = min(var.WAIT_TB_TOKENS, var.WAIT_TB_BURST)
+
+        now = datetime.now()
+        if ((var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
+                timedelta(seconds=var.WAIT_RATE_LIMIT) > now)
+                or var.WAIT_TB_TOKENS < 1):
+            cli.notice(nick, ("This command is rate-limited. Please wait a while "
+                              "before using it again."))
+            return
+
+        var.LAST_WAIT[nick] = now
+        var.WAIT_TB_TOKENS -= 1
+        if now > var.CAN_START_TIME:
+            var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+        else:
+            var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
+        cli.msg(chan, ("\u0002{0}\u0002 increased the wait time by "+
+                      "{1} seconds.").format(nick, var.EXTRA_WAIT))
 
 
 @cmd("fwait", admin_only=True, join=True)
@@ -6605,8 +6618,6 @@ def fwait(cli, nick, chan, rest):
         var.CAN_START_TIME = now + timedelta(seconds=extra)
     else:
         var.CAN_START_TIME += timedelta(seconds=extra)
-
-    var.WAITED += 1
 
     cli.msg(chan, ("\u0002{0}\u0002 forcibly {2}creased the wait time by {1} "
                    "second{3}.").format(nick,
