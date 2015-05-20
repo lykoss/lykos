@@ -220,7 +220,7 @@ def connect_callback(cli):
                 c.execute("SELECT players FROM pre_restart_state")
                 players = c.fetchone()[0]
                 if players:
-                    msg = "PING! " + var.break_long_message(players).replace("\n", "\nPING! ")
+                    msg = "PING! " + var.break_long_message(players.split()).replace("\n", "\nPING! ")
                     cli.msg(botconfig.CHANNEL, msg)
                     c.execute("UPDATE pre_restart_state SET players = NULL")
         except Exception:
