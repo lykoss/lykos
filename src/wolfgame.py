@@ -777,7 +777,10 @@ def away(cli, nick, chan, rest):
     """Use this to activate your away status (so you aren't pinged)."""
     nick, _, _, cloak = parse_nick(nick)
     prefix = botconfig.CMD_CHAR
-    pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
+    if chan == nick:
+        pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
+    else:
+        cli.notice(nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
     if var.OPT_IN_PING:
         if not rest: # don't want to trigger on unrelated messages
             cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
@@ -819,7 +822,10 @@ def back_from_away(cli, nick, chan, rest):
     """Unsets your away status."""
     nick, _, _, cloak = parse_nick(nick)
     prefix = botconfig.CMD_CHAR
-    pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
+    if chan == nick:
+        pm(cli, nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
+    else:
+        cli.notice(nick, "\u0002Please note that the {0}away/{0}back system will be deprecated in favor of {0}pingif.\u0002 See \u0002{0}help pingif\u0002 for details.".format(prefix))
     if var.OPT_IN_PING:
         if not rest:
             cli.notice(nick, "Please use {0}in and {0}out to opt in or out of the ping list.".format(botconfig.CMD_CHAR))
