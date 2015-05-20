@@ -220,7 +220,8 @@ def connect_callback(cli):
                 c.execute("SELECT players FROM pre_restart_state")
                 players = c.fetchone()[0]
                 if players:
-                    cli.msg(botconfig.CHANNEL, "PING! {0}".format(players))
+                    msg = "PING! " + var.break_long_message(players).replace("\n", "\nPING! ")
+                    cli.msg(botconfig.CHANNEL, msg)
                     c.execute("UPDATE pre_restart_state SET players = NULL")
         except Exception:
             notify_error(cli, botconfig.CHANNEL, errlog)
@@ -647,9 +648,11 @@ def pinger(cli, nick, chan, rest):
         PING = [user for user in TO_PING if user in var.USERS and var.USERS[user]["account"] not in ALREADY_JOINED]
         PING.sort(key=lambda x: x.lower())
 
+        msg = "PING! " + var.break_long_message(PING).replace("\n", "\nPING! ")
+
         if PING:
             var.LAST_PING = datetime.now()
-            cli.msg(chan, "PING! "+" ".join(PING))
+            cli.msg(chan, msg)
             cli.msg(chan, "\u0002Please note that {0}ping and the {0}away/{0}back system is deprecated in favor of {0}pingif and will be removed soon.\u0002 See \u0002{0}help pingif\u0002 for details.".format(botconfig.CMD_CHAR))
 
             minimum = datetime.now() + timedelta(seconds=var.PING_MIN_WAIT)
@@ -1212,8 +1215,11 @@ def join_timer_handler(cli):
             decorators.unhook(HOOKS, 387)
             if to_ping:
                 to_ping.sort(key=lambda x: x.lower())
-                cli.msg(botconfig.CHANNEL, "PING! {0} player{1}! {2}".format(
-                    len(pl), "" if len(pl) == 1 else "s", " ".join(to_ping)))
+
+                msg_prefix = "PING! {0} player{1}! ".format(len(pl), "" if len(pl) == 1 else "s")
+                msg = msg_prefix + var.break_long_message(to_ping).replace("\n", "\n" + msg_prefix)
+
+                cli.msg(botconfig.CHANNEL, msg)
 
         cli.who(botconfig.CHANNEL, "%uhsnfa")
 
@@ -1363,7 +1369,7 @@ def join_player(cli, player, chan, who = None, forced = False):
 def kill_join(cli, chan):
     pl = var.list_players()
     pl.sort(key=lambda x: x.lower())
-    msg = 'PING! {0}'.format(", ".join(pl))
+    msg = "PING! " + var.break_long_message(pl, ", ").replace("\n", "\nPING! ")
     reset_modes_timers(cli)
     reset()
     cli.msg(chan, msg)
