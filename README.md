@@ -1,16 +1,14 @@
-This is the game bot for ##werewolf on freenode. It's a continutation of
-[lycanthrope][1], which has become inactive. We have an active community, and
-we'd love for you to join us!
+This is the Werewolf game bot for ##werewolf on freenode. It's a fork of [lycanthrope][1], which was the last bot used in #wolfgame before it died.
 
-# Running the bot
+We have an active community, and we'd love for you to [join us][2]!
 
-If you wish to run your own copy of the bot, all you need is Python 3.2 or a
-newer version.
+# Running your own copy
 
-Copy `botconfig.py.example` to `botconfig.py` and modify the settings as needed.
-If desired, edit `settings/wolfgame.py` to modify game settings.
+You need Python 3.2 or newer to run the bot.
 
-To start the bot, run `./wolfbot.py`. You can optionally use `--debug` or
-`--verbose`.
+Copy `botconfig.py.example` to `botconfig.py` and modify the settings as needed. You can also copy-paste individual settings from `src/settings.py` into `botconfig.py` if you want to modify them.
+
+To start the bot, run `./wolfbot.py`. You can use `--verbose` to log all raw IRC messages and `--debug` to enable some debugging features. These options should not be used in production.
 
 [1]: https://github.com/LycanthropeTheGreat/lycanthrope
+[2]: https://kiwiirc.com/client/chat.freenode.net:+6697/##werewolf
