@@ -2064,7 +2064,7 @@ def stop_game(cli, winner = "", abort = False):
                 if x != None:
                     if role == "amnesiac" and x in var.AMNESIACS:
                         plrl[x] = var.FINAL_ROLES[x]
-                    elif role != "amnesiac" and x in var.FINAL_ROLES: # role swap
+                    elif role != "amnesiac" and x in var.FINAL_ROLES: # role swap or clone
                         plrl[x] = var.FINAL_ROLES[x]
                     else:
                         plrl[x] = role
@@ -2078,11 +2078,6 @@ def stop_game(cli, winner = "", abort = False):
                 acc = var.PLAYERS[plr]["account"]
             else:
                 acc = "*"  #probably fjoin'd fake
-
-            if rol == "clone":
-                # see if they became a different role
-                if splr in var.FINAL_ROLES:
-                    rol = var.FINAL_ROLES[splr]
 
             won = False
             iwon = False
@@ -2107,33 +2102,29 @@ def stop_game(cli, winner = "", abort = False):
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
+            elif splr in var.LOVERS and splr in survived and len([x for x in var.LOVERS[splr] if x in survived]) > 0:
+                for lvr in var.LOVERS[splr]:
+                    if lvr not in survived:
+                        # cannot win with dead lover (if splr in survived and lvr is not, that means lvr idled out)
+                        continue
+
+                    lvrrol = "" #somehow lvrrol wasn't set and caused a crash once
+                    if lvr in plrl:
+                        lvrrol = plrl[lvr]
+
+                    if not winner.startswith("@") and winner != "monsters":
+                        iwon = True
+                        break
+                    elif winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
+                        iwon = True
+                        break
+                    elif winner == "monsters" and lvrrol == "monster":
+                        iwon = True
+                        break
             elif rol == "fool" and "@" + splr == winner:
                 iwon = True
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
-            elif splr in var.LOVERS and splr in survived:
-                for lvr in var.LOVERS[splr]:
-                    lvrrol = "" #somehow lvrrol wasn't set and caused a crash once
-                    if lvr in plrl:
-                        lvrrol = plrl[lvr]
-                    elif ("(dced)" + lvr) in plrl:
-                        lvrrol = plrl["(dced)" + lvr]
-                    if lvrrol == "clone" and lvr in var.FINAL_ROLES:
-                        lvrrol = var.FINAL_ROLES[lvr]
-
-                    if lvr in survived and not winner.startswith("@") and winner != "monsters":
-                        iwon = True
-                        break
-                    elif lvr in survived and winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
-                        iwon = True
-                        break
-                    elif lvr in survived and winner == "monsters" and lvrrol == "monster":
-                        iwon = True
-                        break
-
-            if plr.startswith("(dced)"):
-                won = False
-                iwon = False
             elif rol == "crazed shaman" or rol == "clone":
                 # For clone, this means they ended game while being clone and not some other role
                 if splr in survived and not winner.startswith("@") and winner != "monsters":
