@@ -114,6 +114,7 @@ if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER:
     var.KILL_IDLE_TIME = 0 # 300
     var.WARN_IDLE_TIME = 0 # 180
+    var.PM_WARN_IDLE_TIME = 0 # 240
     var.JOIN_TIME_LIMIT = 0 # 3600
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS:
@@ -2701,28 +2702,28 @@ def reaper(cli, gameid):
                 to_warn_pm = []
                 to_kill    = []
                 for nick in var.list_players():
+                    if is_fake_nick(nick):
+                        continue
                     lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
-                    if (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
+                    if var.WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
                                             nick not in var.IDLE_WARNED):
-                        if var.WARN_IDLE_TIME:
-                            to_warn.append(nick)
+                        to_warn.append(nick)
                         var.IDLE_WARNED.add(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
                             timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
-                    elif (tdiff > timedelta(seconds=var.PM_WARN_IDLE_TIME) and
+                    elif var.PM_WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.PM_WARN_IDLE_TIME) and
                                             nick not in var.IDLE_WARNED_PM):
-                        if var.PM_WARN_IDLE_TIME:
-                            to_warn_pm.append(nick)
+                        to_warn_pm.append(nick)
                         var.IDLE_WARNED_PM.add(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
                             timedelta(seconds=var.PM_WARN_IDLE_TIME))
-                    elif (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                        nick in var.IDLE_WARNED and nick in var.IDLE_WARNED_PM):
-                        if var.KILL_IDLE_TIME:
-                            to_kill.append(nick)
+                    elif var.KILL_IDLE_TIME and (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
+                                            (not var.WARN_IDLE_TIME or nick in var.IDLE_WARNED) and
+                                            (not var.PM_WARN_IDLE_TIME or nick in var.IDLE_WARNED_PM)):
+                        to_kill.append(nick)
                     elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
-                        (nick in var.IDLE_WARNED or nick in var.IDLE_WARNED_PM)):
+                                            (nick in var.IDLE_WARNED or nick in var.IDLE_WARNED_PM)):
                         var.IDLE_WARNED.discard(nick)  # player saved themselves from death
                         var.IDLE_WARNED_PM.discard(nick)
                 for nck in to_kill:
@@ -6219,7 +6220,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if var.STASISED_ACCS[acc] <= 0:
             del var.STASISED_ACCS[acc]
 
-    if not botconfig.DEBUG_MODE:
+    if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
         # DEATH TO IDLERS!
         reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
         reapertimer.daemon = True
