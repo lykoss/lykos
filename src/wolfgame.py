@@ -1377,7 +1377,7 @@ def kill_join(cli, chan):
     cli.msg(chan, 'The current game took too long to start and ' +
                   'has been canceled. If you are still active, ' +
                   'please join again to start a new game.')
-    if callable(var.AFTER_FLASTGAME):
+    if var.AFTER_FLASTGAME is not None:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
 
@@ -2186,7 +2186,7 @@ def stop_game(cli, winner = "", abort = False):
     reset()
 
     # This must be after reset()
-    if var.AFTER_FLASTGAME:
+    if var.AFTER_FLASTGAME is not None:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
     if var.ADMIN_TO_PING:  # It was an flastgame
@@ -2207,7 +2207,7 @@ def chk_win(cli, end_game = True):
             reset()
 
             # This must be after reset()
-            if var.AFTER_FLASTGAME:
+            if var.AFTER_FLASTGAME is not None:
                 var.AFTER_FLASTGAME()
                 var.AFTER_FLASTGAME = None
             if var.ADMIN_TO_PING:  # It was an flastgame
