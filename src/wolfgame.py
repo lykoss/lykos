@@ -7379,7 +7379,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             # if allowed in normal games, restrict it so that it can only be used by dead players and
             # non-players (don't allow active vengeful ghosts either).
             # also don't allow in-channel (e.g. make it pm only)
-            pl = var.list_players()
+            pl = var.list_players() + [vg for (vg, against) in var.VENGEFUL_GHOSTS.items() if not against.startswith("!")]
             if chan != nick:
                 return
             elif nick in pl:
@@ -7387,8 +7387,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             elif nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
                 return
             elif nick in var.USERS and var.USERS[nick]["cloak"] in [var.USERS[player]["cloak"] for player in pl if player in var.USERS]:
-                return
-            elif nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != '!':
                 return
 
         output = []
