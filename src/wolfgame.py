@@ -1377,6 +1377,8 @@ def kill_join(cli, chan):
     cli.msg(chan, 'The current game took too long to start and ' +
                   'has been canceled. If you are still active, ' +
                   'please join again to start a new game.')
+    if callable(var.AFTER_FLASTGAME):
+        var.AFTER_FLASTGAME()
 
 
 @cmd("fjoin", admin_only=True, none=True, join=True)
