@@ -1379,6 +1379,7 @@ def kill_join(cli, chan):
                   'please join again to start a new game.')
     if callable(var.AFTER_FLASTGAME):
         var.AFTER_FLASTGAME()
+        var.AFTER_FLASTGAME = None
 
 
 @cmd("fjoin", admin_only=True, none=True, join=True)
