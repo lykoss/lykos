@@ -7375,19 +7375,34 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("revealroles", admin_only=True, pm=True, game=True)
     def revealroles(cli, nick, chan, rest):
-        if not botconfig.DEBUG_MODE:
+        def is_authorized():
             # if allowed in normal games, restrict it so that it can only be used by dead players and
             # non-players (don't allow active vengeful ghosts either).
             # also don't allow in-channel (e.g. make it pm only)
+
+            if botconfig.DEBUG_MODE:
+                return True
+
             pl = var.list_players() + [vg for (vg, against) in var.VENGEFUL_GHOSTS.items() if not against.startswith("!")]
-            if chan != nick:
-                return
-            elif nick in pl:
-                return
-            elif nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
-                return
-            elif nick in var.USERS and var.USERS[nick]["cloak"] in [var.USERS[player]["cloak"] for player in pl if player in var.USERS]:
-                return
+
+            if nick in pl:
+                return False
+
+            if nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
+                return False
+
+            if nick in var.USERS and var.USERS[nick]["cloak"] in [var.USERS[player]["cloak"] for player in pl if player in var.USERS]:
+                return False
+
+            return True
+
+        if not is_authorized():
+            if chan == nick:
+                pm(cli, nick, "You are not allowed to use that command right now.")
+            else:
+                cli.notice(nick, "You are not allowed to use that command right now.")
+
+            return
 
         output = []
         for role in var.role_order():
@@ -7452,7 +7467,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if chan == nick:
             pm(cli, nick, var.break_long_message(output, ' | '))
         else:
-            cli.msg(chan, var.break_long_message(output, ' | '))
+            cli.notice(nick, var.break_long_message(output, ' | '))
 
 
     @cmd("fgame", admin_only=True, raw_nick=True, join=True)
