@@ -4414,6 +4414,7 @@ def shoot(cli, nick, chan, rest):
 
 @cmd("kill", chan=False, pm=True, game=True)
 def kill(cli, nick, chan, rest):
+    """Kill a player. Behaviour varies depending on your role."""
     if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
@@ -4535,6 +4536,7 @@ def kill(cli, nick, chan, rest):
 
 @cmd("guard", "protect", "save", chan=False, pm=True, game=False, playing=True, roles=("bodyguard", "guardian angel"))
 def guard(cli, nick, chan, rest):
+    """Guard a player, preventing them from being targetted that night."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only protect people at night.")
         return
@@ -4578,6 +4580,7 @@ def guard(cli, nick, chan, rest):
 
 @cmd("observe", chan=False, pm=True, game=True, playing=True, roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
+    """Observe a player to obtain various information."""
     role = var.get_role(nick)
     if var.PHASE != "night":
         if role == "werecrow":
@@ -4636,6 +4639,7 @@ def observe(cli, nick, chan, rest):
 
 @cmd("id", chan=False, pm=True, game=True, playing=True, roles=("detective",))
 def investigate(cli, nick, chan, rest):
+    """Investigate a player to determine their exact role."""
     if var.PHASE != "day":
         pm(cli, nick, "You may only investigate people during the day.")
         return
@@ -4670,6 +4674,7 @@ def investigate(cli, nick, chan, rest):
 
 @cmd("visit", chan=False, pm=True, game=True, playing=True, roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
+    """Visit a player. You will die if you visit a wolf or a target of the wolves."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only visit someone at night.")
         return
@@ -4705,6 +4710,7 @@ def is_fake_nick(who):
 
 @cmd("see", chan=False, pm=True, game=True, playing=True, roles=("seer", "oracle", "augur"))
 def see(cli, nick, chan, rest):
+    """Use your paranormal powers to determine the role or alignment of a player."""
     role = var.get_role(nick)
     if var.PHASE != "night":
         pm(cli, nick, "You may only have visions at night.")
@@ -4763,6 +4769,7 @@ def see(cli, nick, chan, rest):
 
 @cmd("give", chan=False, pm=True, game=True, playing=True, roles=var.TOTEM_ORDER+("doctor",))
 def give(cli, nick, chan, rest):
+    """Give a totem or immunization to a player."""
     role = var.get_role(nick)
     if role in var.TOTEM_ORDER:
         totem(cli, nick, chan, rest)
@@ -4771,6 +4778,7 @@ def give(cli, nick, chan, rest):
 
 @cmd("totem", chan=False, pm=True, game=True, playing=True, roles=var.TOTEM_ORDER)
 def totem(cli, nick, chan, rest):
+    """Give a totem to a player."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only give totems at night.")
         return
@@ -4847,6 +4855,7 @@ def totem(cli, nick, chan, rest):
 
 @cmd("immunize", "immunise", chan=False, pm=True, game=True, playing=True, roles=("doctor",))
 def immunize(cli, nick, chan, rest):
+    """Immunize a player, preventing them from turning into a wolf."""
     if var.PHASE != "day":
         pm(cli, nick, "You may only immunize people during the day.")
         return
@@ -4915,6 +4924,7 @@ def get_bitten_message(nick):
 
 @cmd("bite", chan=False, pm=True, game=True, playing=True, roles=("alpha wolf",))
 def bite_cmd(cli, nick, chan, rest):
+    """Bite a player, turning them into a wolf after a certain number of nights."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only bite at night.")
         return
@@ -4959,6 +4969,7 @@ def bite_cmd(cli, nick, chan, rest):
 
 @cmd("pass", chan=False, pm=True, game=True, playing=True, roles=("hunter",))
 def pass_cmd(cli, nick, chan, rest):
+    """Decline to kill someone for that night."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only pass at night.")
         return
@@ -4978,6 +4989,7 @@ def pass_cmd(cli, nick, chan, rest):
 
 @cmd("choose", "match", chan=False, pm=True, game=True, playing=True, roles=("matchmaker",))
 def choose(cli, nick, chan, rest):
+    """Select two players to fall in love. You may select yourself as one of the lovers."""
     if var.PHASE != "night" or not var.FIRST_NIGHT:
         pm(cli, nick, "You may only choose lovers during the first night.")
         return
@@ -5043,6 +5055,7 @@ def choose(cli, nick, chan, rest):
 
 @cmd("target", chan=False, pm=True, game=True, playing=True, roles=("assassin",))
 def target(cli, nick, chan, rest):
+    """Pick a player as your target, killing them if you die."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only target people at night.")
         return
@@ -5070,6 +5083,7 @@ def target(cli, nick, chan, rest):
 
 @cmd("hex", chan=False, pm=True, game=True, playing=True, roles=("hag",))
 def hex(cli, nick, chan, rest):
+    """Hex someone, preventing them from acting the next day and night."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only hex at night.")
         return
@@ -5109,6 +5123,7 @@ def hex(cli, nick, chan, rest):
 
 @cmd("clone", chan=False, pm=True, game=True, playing=True, roles=("clone",))
 def clone(cli, nick, chan, rest):
+    """Clone another player. You will turn into their role if they die."""
     if var.PHASE != "night" or not var.FIRST_NIGHT:
         pm(cli, nick, "You may only clone someone during the first night.")
         return
@@ -7228,11 +7243,13 @@ def player_stats(cli, nick, chan, rest):
 
 @cmd("mystats", "me", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
+    """Get your own stats."""
     rest = rest.split()
     player_stats(cli, nick, chan, " ".join([nick] + rest))
 
 @cmd("game", join=True, playing=True)
 def game(cli, nick, chan, rest):
+    """Vote for a game mode to be picked."""
     if rest:
         gamemode = rest.lower().split()[0]
     else:
@@ -7267,6 +7284,7 @@ game.__doc__ = game_help
 
 @cmd("vote", "v", pm=True)
 def vote(cli, nick, chan, rest):
+    """Vote for a game mode if no game is running, or for a player to be lynched."""
     if rest:
         if var.PHASE == "join" and chan != nick:
             return game(cli, nick, chan, rest)
@@ -7310,6 +7328,7 @@ def fpull(cli, nick, chan, rest):
 
 @cmd("fsend", admin_only=True, pm=True)
 def fsend(cli, nick, chan, rest):
+    """Forcibly send raw IRC commands to the server."""
     cli.send(rest)
 
 def _say(cli, raw_nick, rest, command, action=False):
@@ -7345,10 +7364,12 @@ def _say(cli, raw_nick, rest, command, action=False):
 
 @cmd("fsay", admin_only=True, raw_nick=True, pm=True)
 def fsay(cli, raw_nick, chan, rest):
+    """Talk through the bot as a normal message."""
     _say(cli, raw_nick, rest, "fsay")
 
 @cmd("fact", "fdo", "fme", admin_only=True, raw_nick=True, pm=True)
 def fact(cli, raw_nick, chan, rest):
+    """Act through the bot as an action."""
     _say(cli, raw_nick, rest, "fact", action=True)
 
 before_debug_mode_commands = list(COMMANDS.keys())
@@ -7357,6 +7378,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("eval", owner_only=True, pm=True)
     def pyeval(cli, nick, chan, rest):
+        """Evaluate a Python expression."""
         try:
             a = str(eval(rest))
             if len(a) < 500:
@@ -7368,6 +7390,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("exec", owner_only=True, pm=True)
     def py(cli, nick, chan, rest):
+        """Execute arbitrary Python code."""
         try:
             exec(rest)
         except Exception as e:
@@ -7375,6 +7398,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("revealroles", admin_only=True, pm=True, game=True)
     def revealroles(cli, nick, chan, rest):
+        """Reveal role information."""
         def is_authorized():
             # if allowed in normal games, restrict it so that it can only be used by dead players and
             # non-players (don't allow active vengeful ghosts either).
@@ -7475,6 +7499,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("fgame", admin_only=True, raw_nick=True, join=True)
     def fgame(cli, nick, chan, rest):
+        """Force a certain game mode to be picked. Disable voting for game modes upon use."""
         nick = parse_nick(nick)[0]
 
         pl = var.list_players()
@@ -7519,6 +7544,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
     # DO NOT MAKE THIS A PMCOMMAND ALSO
     @cmd("force", admin_only=True)
     def force(cli, nick, chan, rest):
+        """Force a certain player to use a specific command."""
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
@@ -7561,6 +7587,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("rforce", admin_only=True)
     def rforce(cli, nick, chan, rest):
+        """Force all players of a given role to perform a certain action."""
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
@@ -7601,6 +7628,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     @cmd("frole", admin_only=True)
     def frole(cli, nick, chan, rest):
+        """Change the role or template of a player."""
         rst = re.split(" +",rest)
         if len(rst) < 2:
             cli.msg(chan, "The syntax is incorrect.")
