@@ -5082,7 +5082,7 @@ def target(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("hex", chan=False, pm=True, game=True, playing=True, roles=("hag",))
-def hex(cli, nick, chan, rest):
+def hex_target(cli, nick, chan, rest):
     """Hex someone, preventing them from acting the next day and night."""
     if var.PHASE != "night":
         pm(cli, nick, "You may only hex at night.")
