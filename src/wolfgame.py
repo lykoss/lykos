@@ -7467,7 +7467,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if chan == nick:
             pm(cli, nick, var.break_long_message(output, ' | '))
         else:
-            cli.notice(nick, var.break_long_message(output, ' | '))
+            if botconfig.DEBUG_MODE:
+                cli.msg(chan, var.break_long_message(output, ' | '))
+            else:
+                cli.notice(nick, var.break_long_message(output, ' | '))
 
 
     @cmd("fgame", admin_only=True, raw_nick=True, join=True)
