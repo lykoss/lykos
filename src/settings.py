@@ -871,6 +871,84 @@ class AlphaMode(GameMode):
             "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
             })
 
+# original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
+@game_mode("guardian", minp = 8, maxp = 16, likelihood = 0)
+class GuardianMode(GameMode):
+    """Game mode full of guardian angels, wolves need to pick them apart!"""
+    def __init__(self):
+        self.ROLE_INDEX =         (   8   ,   10   ,  12   ,  13   ,  15   )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            # village roles
+            "bodyguard"         : (   0   ,   0   ,   0   ,   0   ,   1   ),
+            "guardian angel"    : (   1   ,   1   ,   2   ,   2   ,   2   ),
+            "shaman"            : (   0   ,   1   ,   1   ,   1   ,   1   ),
+            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ),
+            # wolf roles
+            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ),
+            "werecrow"          : (   0   ,   1   ,   1   ,   1   ,   1   ),
+            "werekitten"        : (   1   ,   1   ,   1   ,   1   ,   1   ),
+            "alpha wolf"        : (   0   ,   0   ,   1   ,   1   ,   1   ),
+            # neutral roles
+            "jester"            : (   0   ,   0   ,   0   ,   1   ,   1   ),
+            # templates
+            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   1   ),
+            "cursed villager"   : (   1   ,   1   ,   2   ,   2   ,   2   ),
+            })
+
+        self.TOTEM_CHANCES = { #  shaman , crazed
+                        "death": (   4   ,   1   ),
+                   "protection": (   8   ,   1   ),
+                      "silence": (   2   ,   1   ),
+                    "revealing": (   0   ,   1   ),
+                  "desperation": (   0   ,   1   ),
+                   "impatience": (   0   ,   1   ),
+                     "pacifism": (   0   ,   1   ),
+                    "influence": (   0   ,   1   ),
+                   "narcolepsy": (   0   ,   1   ),
+                     "exchange": (   0   ,   1   ),
+                  "lycanthropy": (   0   ,   1   ),
+                         "luck": (   3   ,   1   ),
+                   "pestilence": (   0   ,   1   ),
+                  "retribution": (   6   ,   1   ),
+                 "misdirection": (   4   ,   1   ),
+                                 }
+
+    def startup(self):
+        events.add_listener("chk_win", self.chk_win, 1)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.chk_win, 1)
+
+    def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+        lguardians = len(var.list_players(["guardian angel", "bodyguard"]))
+
+        if lpl < 1:
+            evt.data["winner"] = "none"
+            evt.data["message"] = "Game over! The wolves and the villagers have killed each other off! Nobody wins."
+
+        elif not lguardians and lwolves > lpl // 2:
+            evt.data["winner"] = "wolves"
+            evt.data["message"] = ("Game over! There are more wolves than remaining villagers! The village " +
+                                   "doesn't have anyone left to save them, and the wolves eat up everyone left.")
+
+        elif not lguardians and lwolves == lpl // 2:
+            evt.data["winner"] = "wolves"
+            evt.data["message"] = ("Game over! There as many wolves as villagers! With no defensive power left, " +
+                                   "the wolves easily dispatch all the remaining villagers")
+
+        elif not lrealwolves:
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = ("Game over! All the wolves are dead, the remaining villagers throw a party to the " +
+                                   "guardian angels that watched over the village, and live happily ever after.")
+
+        elif not lguardians:
+            evt.data["winner"] = "wolves"
+            evt.data["message"] = ("Game over! The villagers have lost all their defensive power! The wolves " +
+                                   "overpower the villagers and win.")
+
+        else:
+            evt.data["winner"] = None
 
 # Persistence
 
