@@ -3830,13 +3830,13 @@ def chk_nightdone(cli):
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
-                  var.ROLES["crazed shaman"] + var.ROLES["augur"])
+                  var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"])
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
 
     if var.DISEASED_WOLVES:
-        nightroles = [p for p in nightroles if p not in var.ROLES["wolf"] and p not in var.ROLES["alpha wolf"]]
+        nightroles = [p for p in nightroles if p not in (var.ROLES["wolf"] + var.ROLES["alpha wolf"] + var.ROLES["werekitten"])]
 
     for p in var.HUNTERS:
         # only remove one instance of their name if they have used hunter ability, in case they have templates
@@ -4041,7 +4041,7 @@ def check_exchange(cli, actor, nick):
                 var.SHAMANS.remove(actor)
             if actor in var.LASTGIVEN:
                 del var.LASTGIVEN[actor]
-        elif actor_role == "wolf":
+        elif actor_role == "wolf" or actor_role == "werekitten":
             if actor in var.KILLS:
                 del var.KILLS[actor]
         elif actor_role == "hunter":
@@ -4087,6 +4087,8 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "alpha wolf":
             if actor in var.ALPHA_WOLVES:
                 var.ALPHA_WOLVES.remove(actor)
+            if actor in var.KILLS:
+                del var.KILLS[actor]
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
@@ -4102,7 +4104,7 @@ def check_exchange(cli, actor, nick):
                 var.SHAMANS.remove(nick)
             if nick in var.LASTGIVEN:
                 del var.LASTGIVEN[nick]
-        elif nick_role == "wolf":
+        elif nick_role == "wolf" or nick_role == "werekitten":
             if nick in var.KILLS:
                 del var.KILLS[nick]
         elif nick_role == "hunter":
@@ -4145,6 +4147,8 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "alpha wolf":
             if nick in var.ALPHA_WOLVES:
                 var.ALPHA_WOLVES.remove(nick)
+            if nick in var.KILLS:
+                del var.KILLS[nick]
 
 
         var.FINAL_ROLES[actor] = nick_role
@@ -4200,7 +4204,7 @@ def check_exchange(cli, actor, nick):
             angry_alpha = ''
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow", "alpha wolf"):
+            elif var.ANGRY_WOLVES and actor_role in ("wolf", "werecrow", "alpha wolf", "werekitten"):
                 pm(cli, actor, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
                 angry_alpha = ' <nick>'
             if var.ALPHA_ENABLED and actor_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
@@ -4236,7 +4240,7 @@ def check_exchange(cli, actor, nick):
             angry_alpha = ''
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
-            elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow", "alpha wolf"):
+            elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow", "alpha wolf", "werekitten"):
                 pm(cli, nick, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
                 angry_alpha = ' <nick>'
             if var.ALPHA_ENABLED and nick_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
@@ -4259,7 +4263,7 @@ def retract(cli, nick, chan, rest):
 
     if chan == nick: # PM, use different code
         role = var.get_role(nick)
-        if role not in ("wolf", "werecrow", "alpha wolf", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
+        if role not in ("wolf", "werecrow", "alpha wolf", "werekitten", "hunter") and nick not in var.VENGEFUL_GHOSTS.keys():
             return
         if var.PHASE != "night":
             pm(cli, nick, "You may only retract at night.")
@@ -4360,13 +4364,16 @@ def shoot(cli, nick, chan, rest):
         chances = var.GUN_CHANCES
 
     wolfvictim = victim in var.list_players(var.WOLF_ROLES)
-    if rand <= chances[0] and not (wolfshooter and wolfvictim):  # didn't miss or suicide
-        # and it's not a wolf shooting another wolf
+    realrole = var.get_role(victim)
+    victimrole = var.get_reveal_role(victim)
+
+    alwaysmiss = (realrole == "werekitten")
+
+    if rand <= chances[0] and not (wolfshooter and wolfvictim) and not alwaysmiss:
+        # didn't miss or suicide and it's not a wolf shooting another wolf
 
         cli.msg(chan, ("\u0002{0}\u0002 shoots \u0002{1}\u0002 with "+
                        "a silver bullet!").format(nick, victim))
-        realrole = var.get_role(victim)
-        victimrole = var.get_reveal_role(victim)
         an = "n" if victimrole[0] in ('a', 'e', 'i', 'o', 'u') else ""
         if realrole in var.WOLF_ROLES:
             if var.ROLE_REVEAL:
@@ -4737,7 +4744,7 @@ def see(cli, nick, chan, rest):
     victimrole = var.get_role(victim)
     vrole = victimrole # keep a copy for logging
     if role == "seer":
-        if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
+        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
@@ -4749,7 +4756,7 @@ def see(cli, nick, chan, rest):
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
-        if victimrole in var.SEEN_WOLF or victim in var.ROLES["cursed villager"]:
+        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             iswolf = True
         pm(cli, nick, ("Your paranormal senses are tingling! "+
                         "The spirits tell you that \u0002{0}\u0002 is {1}"+
@@ -5445,6 +5452,10 @@ def transition_night(cli):
                                'during the day, you can choose to bite the wolves\' next target to turn ' +
                                'them into a wolf instead of killing them. Kill villagers by using '
                                '"kill <nick>" and "bite" to use your once-per-game bite power.'))
+            elif role == "werekitten":
+                pm(cli, wolf, ('You are a \u0002werekitten\u0002. Due to your overwhelming cuteness, the seer ' +
+                               'always sees you as villager and the gunner will always miss you. Detectives can ' +
+                               'still reveal your true identity, however. Use "kill <nick>" to kill a villager.'))
             else:
                 # catchall in case we forgot something above
                 an = 'n' if role[0] in ('a', 'e', 'i', 'o', 'u') else ''
@@ -5477,7 +5488,7 @@ def transition_night(cli):
         angry_alpha = ''
         if var.DISEASED_WOLVES:
             pm(cli, wolf, 'You are feeling ill tonight, and are unable to kill anyone.')
-        elif var.ANGRY_WOLVES and role in ("wolf", "werecrow", "alpha wolf"):
+        elif var.ANGRY_WOLVES and role in ("wolf", "werecrow", "alpha wolf", "werekitten"):
             pm(cli, wolf, 'You are \u0002angry\u0002 tonight, and may kill two targets by using "kill <nick1> and <nick2>".')
             angry_alpha = ' <nick>'
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
