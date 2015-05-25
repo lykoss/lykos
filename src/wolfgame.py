@@ -3065,6 +3065,9 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.ALPHA_WOLVES:
                 var.ALPHA_WOLVES.remove(prefix)
                 var.ALPHA_WOLVES.append(nick)
+            if prefix in var.CURSED:
+                var.CURSED.remove(prefix)
+                var.CURSED.append(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3825,12 +3828,12 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
-                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS)
+                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS + var.CURSED)
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
-                  var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"])
+                  var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"] + var.ROLES["warlock"])
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
@@ -4089,6 +4092,9 @@ def check_exchange(cli, actor, nick):
                 var.ALPHA_WOLVES.remove(actor)
             if actor in var.KILLS:
                 del var.KILLS[actor]
+        elif actor_role == "warlock":
+            if actor in var.CURSED:
+                var.CURSED.remove(actor)
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
@@ -4149,6 +4155,9 @@ def check_exchange(cli, actor, nick):
                 var.ALPHA_WOLVES.remove(nick)
             if nick in var.KILLS:
                 del var.KILLS[nick]
+        elif nick_role == "warlock":
+            if nick in var.CURSED:
+                var.CURSED.remove(nick)
 
 
         var.FINAL_ROLES[actor] = nick_role
@@ -5131,6 +5140,53 @@ def hex_target(cli, nick, chan, rest):
     debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
+@cmd("curse", chan=False, pm=True, game=True, playing=True, roles=("warlock",))
+def curse(cli, nick, chan, rest):
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only curse at night.")
+        return
+    if nick in var.CURSED:
+        # CONSIDER: this happens even if they choose to not curse, should maybe let them
+        # pick again in that case instead of locking them into doing nothing.
+        pm(cli, nick, "You have already cursed someone tonight.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        return
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    if not victim:
+        return
+
+    # There may actually be valid strategy in cursing other wolfteam members,
+    # but for now it is not allowed. If someone seems suspicious and shows as
+    # villager across multiple nights, safes can use that as a tell that the
+    # person is likely wolf-aligned.
+    vrole = var.get_role(victim)
+    if nick == victim:
+        pm(cli, nick, "You have chosen to not curse anyone tonight.")
+        var.CURSED.append(nick)
+        debuglog("{0} ({1}) NO CURSE".format(nick, var.get_role(nick)))
+        chk_nightdone(cli)
+        return
+    if victim in var.ROLES["cursed villager"]:
+        pm(cli, nick, "\u0002{0}\u0002 is already cursed.".format(victim))
+        return
+    if vrole in var.WOLFCHAT_ROLES:
+        pm(cli, nick, "Cursing a fellow wolf would be a waste.")
+        return
+
+    victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        return
+
+    var.CURSED.append(nick)
+    if victim not in var.ROLES["cursed villager"]:
+        var.ROLES["cursed villager"].append(victim)
+    pm(cli, nick, "You have cast a curse on \u0002{0}\u0002.".format(victim))
+
+    debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
+    chk_nightdone(cli)
+
 @cmd("clone", chan=False, pm=True, game=True, playing=True, roles=("clone",))
 def clone(cli, nick, chan, rest):
     """Clone another player. You will turn into their role if they die."""
@@ -5295,6 +5351,7 @@ def transition_night(cli):
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers that have had visions
     var.HEXED = [] # list of hags that have hexed
+    var.CURSED = [] # list of warlocks that have cursed
     var.SHAMANS = []
     var.PASSED = [] # list of hunters that have chosen not to kill
     var.OBSERVED = {}  # those whom werecrows have observed
@@ -5456,6 +5513,11 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002werekitten\u0002. Due to your overwhelming cuteness, the seer ' +
                                'always sees you as villager and the gunner will always miss you. Detectives can ' +
                                'still reveal your true identity, however. Use "kill <nick>" to kill a villager.'))
+            elif role == "warlock":
+                pm(cli, wolf, ('You are a \u0002{0}warlock\u0002. Each night you can curse someone with "curse <nick>" ' +
+                               'to turn them into a cursed villager, so the seer sees them as wolf. Act quickly, as ' +
+                               'your curse applies as soon as you cast it! Only detectives can reveal your true identity, ' +
+                               'seers will see you as a regular villager.').format(cursed))
             else:
                 # catchall in case we forgot something above
                 an = 'n' if role[0] in ('a', 'e', 'i', 'o', 'u') else ''

@@ -175,6 +175,7 @@ ROLE_GUIDE = {# village roles
               "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
               "alpha wolf"      : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "werekitten"      : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "warlock"         : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # neutral roles
               "lycan"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
@@ -198,7 +199,7 @@ ROLE_GUIDE = {# village roles
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
 WOLF_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer"]
+WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer", "warlock"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES + ["minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
@@ -208,7 +209,7 @@ AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "vil
 # These roles are seen as wolf by the seer/oracle
 SEEN_WOLF = WOLF_ROLES + ["monster", "mad scientist"]
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
-SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten"]
+SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
