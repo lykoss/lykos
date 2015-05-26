@@ -2,8 +2,6 @@ from collections import defaultdict
 import math
 from src import events
 
-PING_WAIT = 300  # Seconds
-PING_MIN_WAIT = 30 # How long !start has to wait after a !ping
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
@@ -130,8 +128,6 @@ TOTEM_CHANCES = {       "death": (      1      ,        1        ),
                 }
 
 GAME_MODES = {}
-AWAY = []  # cloaks of people who are away.
-AWAY_ACCS = [] # accounts of people who are away
 SIMPLE_NOTIFY = []  # cloaks of people who !simple, who don't want detailed instructions
 SIMPLE_NOTIFY_ACCS = [] # same as above, except accounts. takes precedence
 PREFER_NOTICE = []  # cloaks of people who !notice, who want everything /notice'd
@@ -262,20 +258,13 @@ ALLOW = {}
 DENY_ACCOUNTS = {}
 ALLOW_ACCOUNTS = {}
 
-# Other settings:
-
-OPT_IN_PING = False  # instead of !away/!back, users can opt-in to be pinged
-PING_IN = []  # cloaks of users who have opted in for ping
-PING_IN_ACCS = [] # accounts of people who have opted in for ping
+# pingif-related mappings
 
 PING_IF_PREFS = {}
 PING_IF_PREFS_ACCS = {}
 
 PING_IF_NUMS = {}
 PING_IF_NUMS_ACCS = {}
-
-PING_PREFS = {}
-PING_PREFS_ACCS = {}
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
@@ -962,10 +951,6 @@ c = conn.cursor()
 
 def init_db():
     with conn:
-        c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS away (nick TEXT)')  # whoops, i mean cloak, not nick
-
-        c.execute('CREATE TABLE IF NOT EXISTS away_accs (acc TEXT)') # accounts of people who are away
 
         c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role (hostmasks - backup)
 
@@ -991,24 +976,12 @@ def init_db():
 
         c.execute('CREATE TABLE IF NOT EXISTS ping_if_prefs_accs (acc TEXT, players INTEGER)') # ping-if prefs (accounts - primary)
 
-        c.execute('CREATE TABLE IF NOT EXISTS ping_prefs (cloak TEXT, pref TEXT)') # ping-if preferences (none = only in !ping; all = on join and in !ping)
-
-        c.execute('CREATE TABLE IF NOT EXISTS ping_prefs_accs (acc TEXT, pref TEXT)') # ping-if prefs (accounts - primary)
-
         c.execute('PRAGMA table_info(pre_restart_state)')
         try:
             next(c)
         except StopIteration:
             c.execute('CREATE TABLE pre_restart_state (players TEXT)')
             c.execute('INSERT INTO pre_restart_state (players) VALUES (NULL)')
-
-        c.execute('SELECT * FROM away')
-        for row in c:
-            AWAY.append(row[0])
-
-        c.execute('SELECT * FROM away_accs')
-        for row in c:
-            AWAY_ACCS.append(row[0])
 
         c.execute('SELECT * FROM simple_role_notify')
         for row in c:
@@ -1074,14 +1047,6 @@ def init_db():
                 PING_IF_NUMS_ACCS[row[1]] = []
             PING_IF_NUMS_ACCS[row[1]].append(row[0])
 
-        c.execute('SELECT * FROM ping_prefs')
-        for row in c:
-            PING_PREFS[row[0]] = row[1]
-
-        c.execute('SELECT * FROM ping_prefs_accs')
-        for row in c:
-            PING_PREFS_ACCS[row[0]] = row[1]
-
         # populate the roles table
         c.execute('DROP TABLE IF EXISTS roles')
         c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
@@ -1098,34 +1063,6 @@ def init_db():
         c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
             'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
 
-
-        c.execute('CREATE TABLE IF NOT EXISTS ping (cloak text)')
-
-        c.execute('CREATE TABLE IF NOT EXISTS ping_accs (acc text)')
-
-        c.execute('SELECT * FROM ping')
-        for row in c:
-            PING_IN.append(row[0])
-
-        c.execute('SELECT * FROM ping_accs')
-        for row in c:
-            PING_IN_ACCS.append(row[0])
-
-def remove_away(clk):
-    with conn:
-        c.execute('DELETE from away where nick=?', (clk,))
-
-def add_away(clk):
-    with conn:
-        c.execute('INSERT into away VALUES (?)', (clk,))
-
-def remove_away_acc(acc):
-    with conn:
-        c.execute('DELETE from away_accs where acc=?', (acc,))
-
-def add_away_acc(acc):
-    with conn:
-        c.execute('INSERT into away_accs VALUES (?)', (acc,))
 
 def remove_simple_rolemsg(clk):
     with conn:
@@ -1158,22 +1095,6 @@ def remove_prefer_notice_acc(acc):
 def add_prefer_notice_acc(acc):
     with conn:
         c.execute('INSERT into prefer_notice_acc VALUES (?)', (acc,))
-
-def remove_ping(clk):
-    with conn:
-        c.execute('DELETE from ping where cloak=?', (clk,))
-
-def add_ping(clk):
-    with conn:
-        c.execute('INSERT into ping VALUES (?)', (clk,))
-
-def remove_ping_acc(acc):
-    with conn:
-        c.execute('DELETE from ping_accs where acc=?', (acc,))
-
-def add_ping_acc(acc):
-    with conn:
-        c.execute('INSERT into ping_accs VALUES (?)', (acc,))
 
 def set_stasis(clk, games):
     with conn:
@@ -1232,14 +1153,6 @@ def set_ping_if_status_acc(acc, players):
         c.execute('DELETE FROM ping_if_prefs_accs WHERE acc=?', (acc,))
         if players != 0:
             c.execute('INSERT OR REPLACE INTO ping_if_prefs_accs VALUES (?,?)', (acc, players))
-
-def set_ping_pref(cloak, pref):
-    with conn:
-        c.execute('INSERT OR REPLACE INTO ping_prefs VALUES (?,?)', (cloak, pref))
-
-def set_ping_pref_acc(acc, pref):
-    with conn:
-        c.execute('INSERT OR REPLACE INTO ping_prefs_accs VALUES (?,?)', (acc, pref))
 
 def update_role_stats(acc, role, won, iwon):
     with conn:
