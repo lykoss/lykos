@@ -876,6 +876,7 @@ class AlphaMode(GameMode):
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self):
+        self.LIMIT_ABSTAIN = False
         self.ROLE_INDEX =         (   8   ,   10   ,  12   ,  13   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
@@ -939,8 +940,8 @@ class GuardianMode(GameMode):
 
         elif not lrealwolves:
             evt.data["winner"] = "villagers"
-            evt.data["message"] = ("Game over! All the wolves are dead, the remaining villagers throw a party to the " +
-                                   "guardian angels that watched over the village, and live happily ever after.")
+            evt.data["message"] = ("Game over! All the wolves are dead! The remaining villagers throw a party in honor " +
+                                   "of the guardian angels that watched over the village, and live happily ever after.")
 
         elif not lguardians:
             evt.data["winner"] = "wolves"
