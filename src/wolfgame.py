@@ -2118,13 +2118,16 @@ def stop_game(cli, winner = "", abort = False):
                     if lvr in plrl:
                         lvrrol = plrl[lvr]
 
-                    if not winner.startswith("@") and winner != "monsters":
+                    if not winner.startswith("@") and winner not in ("monsters", "pipers"):
                         iwon = True
                         break
                     elif winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
                         iwon = True
                         break
                     elif winner == "monsters" and lvrrol == "monster":
+                        iwon = True
+                        break
+                    elif winner == "pipers" and lvrrol == "piper":
                         iwon = True
                         break
             elif rol == "fool" and "@" + splr == winner:
