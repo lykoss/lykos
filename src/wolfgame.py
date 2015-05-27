@@ -598,9 +598,9 @@ def pong(cli, nick, chan, rest):
 def pinger(cli, nick, chan, rest):
     """Placeholder for the old ping-related commands."""
 
-    cli.notice(nick, ("This command was removed. Please see '{0}pingif', " +
-                      "'{0}help pingif' and https://github.com/lykoss/lykos/wiki/Pingif").format(
-                      botconfig.CMD_CHAR))
+    cli.notice(nick, ("This command was removed. Please see "
+                      "https://github.com/lykoss/lykos/wiki/Pingif "
+                      "for more information."))
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
