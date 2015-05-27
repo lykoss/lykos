@@ -2131,6 +2131,8 @@ def stop_game(cli, winner = "", abort = False):
                 iwon = True
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
+            elif rol == "piper" and splr in survived and winner == "pipers":
+                iwon = True
             elif rol == "crazed shaman" or rol == "clone":
                 # For clone, this means they ended game while being clone and not some other role
                 if splr in survived and not winner.startswith("@") and winner != "monsters":
