@@ -4950,7 +4950,7 @@ def charm(cli, nick, chan, rest):
     if nick in (victim, victim2):
         pm(cli, nick, "You may not charm yourself.")
         return
-    if victim in var.CHARMED or victim2 in var.CHARMED:
+    if victim in var.CHARMED or victim2 and victim2 in var.CHARMED:
         if victim in var.CHARMED and victim2 and victim2 in var.CHARMED:
             pm(cli, nick, "\u0002{0}\u0002 and \u0002{1}\u0002 are already charmed!".format(victim, victim2))
             return
@@ -4958,10 +4958,6 @@ def charm(cli, nick, chan, rest):
             victim in var.CHARMED and not victim2):
             pm(cli, nick, "\u0002{0}\u0002 is already charmed!".format(victim in var.CHARMED and victim or victim2))
             return
-
-    elif not victim2 and len(var.list_players()) - len(var.ROLES["piper"]) - len(var.CHARMED) - 2 >= 0:
-        pm(cli, nick, "Not enough parameters.")
-        return
 
     var.CHARMERS.add(nick)
 
