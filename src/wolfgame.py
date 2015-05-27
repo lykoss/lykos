@@ -6587,9 +6587,6 @@ def get_help(cli, rnick, chan, rest):
 
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
-        if ((name in ("away", "back") and var.OPT_IN_PING) or
-            (name in ("in", "out") and not var.OPT_IN_PING)):
-            continue
         if (name and not fn[0].admin_only and not fn[0].owner_only and name not
             in fn[0].aliases and fn[0].chan):
             fns.append("\u0002"+name+"\u0002")
