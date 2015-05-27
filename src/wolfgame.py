@@ -100,6 +100,7 @@ var.OPPED = False  # Keeps track of whether the bot is opped
 var.BITTEN = {}
 var.BITTEN_ROLES = {}
 var.VENGEFUL_GHOSTS = {}
+var.CHARMED = set()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.NIGHT_TIME_LIMIT = 0 # 120
