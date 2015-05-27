@@ -1073,7 +1073,7 @@ def fjoin(cli, nick, chan, rest):
             continue
         ul = list(var.USERS.keys())
         ull = [u.lower() for u in ul]
-        if tojoin.lower() not in ull or not var.USERS[tojoin]["inchan"]:
+        if tojoin.lower() not in ull or not var.USERS[ul[ull.index(tojoin.lower())]]["inchan"]:
             if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
                     cli.msg(chan, nick+(": You may only fjoin "+
