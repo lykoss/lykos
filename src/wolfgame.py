@@ -2090,8 +2090,10 @@ def stop_game(cli, winner = "", abort = False):
                 if winner == "wolves":
                     won = True
             elif rol in var.TRUE_NEUTRAL_ROLES:
-                # true neutral roles never have a team win (with exception of monsters), only individual wins
+                # true neutral roles never have a team win (with exception of monsters and pipers), only individual wins
                 if winner == "monsters" and rol == "monster":
+                    won = True
+                if winner == "pipers" and rol == "piper":
                     won = True
             elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
                 if var.DEFAULT_ROLE == "villager" and winner == "villagers":
@@ -2227,6 +2229,7 @@ def chk_win(cli, end_game = True):
         lrealwolves = len(var.list_players(var.WOLF_ROLES)) - cubs
         monsters = len(var.ROLES["monster"]) if "monster" in var.ROLES else 0
         traitors = len(var.ROLES["traitor"]) if "traitor" in var.ROLES else 0
+        lpipers = len(var.ROLES["piper"]) if "piper" in var.ROLES else 0
         if var.PHASE == "day":
             for p in var.WOUNDED:
                 try:
@@ -2252,6 +2255,11 @@ def chk_win(cli, end_game = True):
         if lpl < 1:
             message = "Game over! There are no players remaining."
             winner = "none"
+        elif lpipers and lpl - lpipers == len(var.CHARMED - set(var.ROLES["piper"])):
+            winner = "pipers"
+            message = ("Game over! Everyone has fallen victim to the charms of the " +
+                       "piper{0}. The piper{0} lead{1} the villagers away from the village, " +
+                       "never to return...").format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
         elif lwolves == lpl / 2:
             if monsters > 0:
                 plural = "s" if monsters > 1 else ""
@@ -2308,6 +2316,9 @@ def chk_win(cli, end_game = True):
             elif winner == "villagers":
                 vroles = [role for role in var.ROLES.keys() if var.ROLES[role] and role not in (var.WOLFTEAM_ROLES + var.TRUE_NEUTRAL_ROLES + list(var.TEMPLATE_RESTRICTIONS.keys()))]
                 for plr in var.list_players(vroles):
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            elif winner == "pipers":
+                for plr in var.ROLES["piper"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
@@ -3068,6 +3079,12 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.CURSED:
                 var.CURSED.remove(prefix)
                 var.CURSED.append(nick)
+            if prefix in var.CHARMERS:
+                var.CHARMERS.remove(prefix)
+                var.CHARMERS.add(nick)
+            if prefix in var.CHARMED:
+                var.CHARMED.remove(prefix)
+                var.CHARMED.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3828,12 +3845,14 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
-                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS + var.CURSED)
+                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
+                      var.CURSED + list(var.CHARMERS))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
-                  var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"] + var.ROLES["warlock"])
+                  var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"] +
+                  var.ROLES["warlock"] + var.ROLES["piper"])
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
@@ -5214,6 +5233,94 @@ def clone(cli, nick, chan, rest):
     debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
+@cmd("charm", chan=False, pm=True, game=True, playing=True, roles=("piper",))
+def charm(cli, nick, chan, rest):
+    """Charm a player, slowly leading to your win!"""
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only charm other players during the night.")
+        return
+    if nick in var.CHARMERS:
+        pm(cli, nick, "You have already charmed players for tonight.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You are silenced, and are unable to use any special powers.")
+        return
+
+    pieces = re.split(" +",rest)
+    victim = pieces[0]
+    if len(pieces) > 1:
+        if len(pieces) > 2 and pieces[1].lower() == "and":
+            victim2 = pieces[2]
+        else:
+            victim2 = pieces[1]
+    else:
+        victim2 = None
+
+    victim = get_victim(cli, nick, victim, False, True)
+    if not victim:
+        return
+    if victim2 is not None:
+        victim2 = get_victim(cli, nick, victim2, False, True)
+
+    if victim == victim2:
+        pm(cli, nick, "You must choose two different people.")
+        return
+    if nick in (victim, victim2):
+        pm(cli, nick, "You may not charm yourself.")
+        return
+    if victim in var.CHARMED or victim2 in var.CHARMED:
+        if victim in var.CHARMED and victim2 and victim2 in var.CHARMED:
+            pm(cli, nick, "\u0002{0}\u0002 and \u0002{1}\u0002 are already charmed!".format(victim, victim2))
+            return
+        if (len(var.list_players()) - len(var.ROLES["piper"]) - len(var.CHARMED) - 2 >= 0 or
+            victim in var.CHARMED and not victim2):
+            pm(cli, nick, "\u0002{0}\u0002 is already charmed!".format(victim in var.CHARMED and victim or victim2))
+            return
+
+    elif not victim2 and len(var.list_players()) - len(var.ROLES["piper"]) - len(var.CHARMED) - 2 >= 0:
+        pm(cli, nick, "Not enough parameters.")
+        return
+
+    var.CHARMERS.add(nick)
+
+    var.CHARMED.add(victim)
+    if victim2:
+        var.CHARMED.add(victim2)
+
+    message = ("You hear the sweet tones of a flute coming from outside your window... " +
+               "You inexorably walk outside and find yourself stranded away from " +
+               "the village. You find out that \u0002{0}\u0002 {1} also charmed!")
+
+    simple_message = "You are now charmed. Other charmed players: \u0002{0}\u0002"
+
+    pm(cli, nick, "You have charmed \u0002{0}\u0002{1}.".format(victim, victim2 and " and \u0002{0}\u0002".format(victim2) or ""))
+
+    for vict in (victim, victim2):
+        if vict and vict in var.PLAYERS:
+            msg = is_user_simple(vict) and simple_message or message
+
+            pm(cli, vict, msg.format("\u0002, \u0002".join(var.CHARMED - {vict}),
+                          "is" if len(var.CHARMED) == 2 else "are"))
+
+    for vict in var.CHARMED:
+        if vict in (victim, victim2):
+            continue
+        message = victim2 and "\u0002{0}\u0002 and \u0002{1}\u0002 are" or "\u0002{0}\u0002 is"
+        pm(cli, vict, (message + " now charmed! All charmed players: " +
+                       "\u0002{2}\u0002").format(victim, victim2,
+                       "\u0002, \u0002".join(var.CHARMED - {vict})))
+
+    if victim2:
+        debuglog("{0} ({1}) CHARM {2} ({3}) && {4} ({5})".format(nick, var.get_role(nick),
+                                                                 victim, var.get_role(victim),
+                                                                 victim2, var.get_role(victim2)))
+
+    else:
+        debuglog("{0} ({1}) CHARM {2} ({3})".format(nick, var.get_role(nick),
+                                                    victim, var.get_role(victim)))
+
+    chk_nightdone(cli)
+
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
     for r in rest:
@@ -5355,6 +5462,7 @@ def transition_night(cli):
     var.SHAMANS = []
     var.PASSED = [] # list of hunters that have chosen not to kill
     var.OBSERVED = {}  # those whom werecrows have observed
+    var.CHARMERS = set() # pipers who have charmed
     var.HVISITED = {}
     var.ASLEEP = []
     var.DYING = []
@@ -5873,6 +5981,22 @@ def transition_night(cli):
                 pm(cli, ass, "You are an \u0002assassin\u0002.")
             pm(cli, ass, "Players: " + ", ".join(pl))
 
+    for piper in var.ROLES["piper"]:
+        pl = ps[:]
+        random.shuffle(pl)
+        pl.remove(piper)
+        for charmed in var.CHARMED:
+            pl.remove(charmed)
+        if piper in var.PLAYERS and not is_user_simple(piper):
+            pm(cli, piper, ('You are a \u0002piper\u0002. You must select two players ' +
+                            'to charm each night. The charmed players will know each ' +
+                            'other, but not who charmed them. You win when all other ' +
+                            'players are charmed. Use "charm <nick1> and <nick2>" to ' +
+                            'select the players to charm.'))
+        else:
+            pm(cli, piper, "You are a \u0002piper\u0002.")
+        pm(cli, piper, "Players: " + ", ".join(pl))
+
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
@@ -6168,6 +6292,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BITTEN = {}
     var.BITE_PREFERENCES = {}
     var.BITTEN_ROLES = {}
+    var.CHARMERS = set()
+    var.CHARMED = set()
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -7564,6 +7690,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         #show who got immunized
         if var.IMMUNIZED:
             output.append("\u0002immunized:\u0002 {0}".format(', '.join(var.IMMUNIZED)))
+
+        # get charmed players
+        if var.CHARMED:
+            output.append("\u0002charmed players\u0002: {0}".format(', '.join(var.CHARMED)))
 
         if chan == nick:
             pm(cli, nick, var.break_long_message(output, ' | '))

@@ -185,6 +185,7 @@ ROLE_GUIDE = {# village roles
               "jester"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "monster"         : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "amnesiac"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
+              "piper"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # templates
               "cursed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ),
               "gunner"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ),
@@ -203,13 +204,14 @@ WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer", "warlock"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES + ["minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
-TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone"]
+TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone", "piper"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also appended if not in this list)
-AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "villager", "cultist"]
+AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper"]
 # These roles are seen as wolf by the seer/oracle
 SEEN_WOLF = WOLF_ROLES + ["monster", "mad scientist"]
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
-SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion", "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock"]
+SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "village elder", "time lord", "villager", "cultist", "minion",
+                "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper"]
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
@@ -367,6 +369,8 @@ def del_player(pname):
         del BITTEN[pname]
     if pname in BITTEN_ROLES:
         del BITTEN_ROLES[pname]
+    if pname in CHARMED:
+        CHARMED.remove(pname)
 
 def get_templates(nick):
     tpl = []
