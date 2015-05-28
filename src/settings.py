@@ -976,9 +976,8 @@ def init_db():
 
         c.execute('CREATE TABLE IF NOT EXISTS allowed_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # ALLOW_ACCOUNTS
 
-        c.execute('CREATE TABLE IF NOT EXISTS ping_if_prefs (cloak TEXT, players INTEGER)') # ping-if preferences (hostnames - backup)
-
-        c.execute('CREATE TABLE IF NOT EXISTS ping_if_prefs_accs (acc TEXT, players INTEGER)') # ping-if prefs (accounts - primary)
+        c.execute('CREATE TABLE IF NOT EXISTS pingif_prefs (user TEXT, is_account BOOLEAN, players INTEGER, PRIMARY KEY(user, is_account))') # pingif player count preferences
+        c.execute('CREATE INDEX IF NOT EXISTS ix_ping_prefs_pingif ON pingif_prefs (players ASC)')
 
         c.execute('PRAGMA table_info(pre_restart_state)')
         try:
@@ -1035,21 +1034,22 @@ def init_db():
                 ALLOW_ACCOUNTS[row[0]] = []
             ALLOW_ACCOUNTS[row[0]].append(row[1])
 
-        c.execute('SELECT * FROM ping_if_prefs')
+        c.execute('SELECT * FROM pingif_prefs')
         for row in c:
-            if row[0] not in PING_IF_PREFS:
-                PING_IF_PREFS[row[0]] = row[1]
-            if row[1] not in PING_IF_NUMS:
-                PING_IF_NUMS[row[1]] = []
-            PING_IF_NUMS[row[1]].append(row[0])
-
-        c.execute('SELECT * FROM ping_if_prefs_accs')
-        for row in c:
-            if row[0] not in PING_IF_PREFS_ACCS:
-                PING_IF_PREFS_ACCS[row[0]] = row[1]
-            if row[1] not in PING_IF_NUMS_ACCS:
-                PING_IF_NUMS_ACCS[row[1]] = []
-            PING_IF_NUMS_ACCS[row[1]].append(row[0])
+            # is an account
+            if row[1]:
+                if row[0] not in PING_IF_PREFS_ACCS:
+                    PING_IF_PREFS_ACCS[row[0]] = row[2]
+                if row[1] not in PING_IF_NUMS_ACCS:
+                    PING_IF_NUMS_ACCS[row[2]] = []
+                PING_IF_NUMS_ACCS[row[2]].append(row[0])
+            # is a host
+            else:
+                if row[0] not in PING_IF_PREFS:
+                    PING_IF_PREFS[row[0]] = row[2]
+                if row[1] not in PING_IF_NUMS:
+                    PING_IF_NUMS[row[2]] = []
+                PING_IF_NUMS[row[2]].append(row[0])
 
         # populate the roles table
         c.execute('DROP TABLE IF EXISTS roles')
@@ -1146,17 +1146,11 @@ def remove_allow_acc(acc, command):
     with conn:
         c.execute('DELETE FROM allowed_accs WHERE acc=? AND command=?', (acc, command))
 
-def set_ping_if_status(cloak, players):
+def set_pingif_status(user, is_account, players):
     with conn:
-        c.execute('DELETE FROM ping_if_prefs WHERE cloak=?', (cloak,))
+        c.execute('DELETE FROM pingif_prefs WHERE user=? AND is_account=?', (user, is_account))
         if players != 0:
-            c.execute('INSERT OR REPLACE INTO ping_if_prefs VALUES (?,?)', (cloak, players))
-
-def set_ping_if_status_acc(acc, players):
-    with conn:
-        c.execute('DELETE FROM ping_if_prefs_accs WHERE acc=?', (acc,))
-        if players != 0:
-            c.execute('INSERT OR REPLACE INTO ping_if_prefs_accs VALUES (?,?)', (acc, players))
+            c.execute('INSERT OR REPLACE INTO pingif_prefs VALUES (?,?,?)', (user, is_account, players))
 
 def update_role_stats(acc, role, won, iwon):
     with conn:

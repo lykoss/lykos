@@ -798,7 +798,7 @@ def toggle_altpinged_status(nick, value, old=None):
         if acc and acc != "*":
             if acc in var.PING_IF_PREFS_ACCS.keys():
                 del var.PING_IF_PREFS_ACCS[acc]
-                var.set_ping_if_status_acc(acc, 0)
+                var.set_pingif_status(acc, True, 0)
                 if old is not None:
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS.keys():
@@ -806,7 +806,7 @@ def toggle_altpinged_status(nick, value, old=None):
                                 var.PING_IF_NUMS_ACCS[old].remove(acc)
         if not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
             del var.PING_IF_PREFS[cloak]
-            var.set_ping_if_status(cloak, 0)
+            var.set_pingif_status(cloak, False, 0)
             if old is not None:
                 with var.WARNING_LOCK:
                     if old in var.PING_IF_NUMS.keys():
@@ -815,7 +815,7 @@ def toggle_altpinged_status(nick, value, old=None):
     else:
         if acc and acc != "*":
             var.PING_IF_PREFS_ACCS[acc] = value
-            var.set_ping_if_status_acc(acc, value)
+            var.set_pingif_status(acc, True, value)
             with var.WARNING_LOCK:
                 if value not in var.PING_IF_NUMS_ACCS.keys():
                     var.PING_IF_NUMS_ACCS[value] = []
@@ -826,7 +826,7 @@ def toggle_altpinged_status(nick, value, old=None):
                             var.PING_IF_NUMS_ACCS[old].remove(acc)
         elif not var.ACCOUNTS_ONLY:
             var.PING_IF_PREFS[cloak] = value
-            var.set_ping_if_status(cloak, value)
+            var.set_pingif_status(cloak, False, value)
             with var.WARNING_LOCK:
                 if value not in var.PING_IF_NUMS.keys():
                     var.PING_IF_NUMS[value] = []
