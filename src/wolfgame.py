@@ -1811,10 +1811,10 @@ def stop_game(cli, winner = "", abort = False):
                 iwon = True
             elif rol == "crazed shaman" or rol == "clone":
                 # For clone, this means they ended game while being clone and not some other role
-                if splr in survived and not winner.startswith("@") and winner != "monsters":
+                if splr in survived and not winner.startswith("@") and winner not in ("monsters", "pipers"):
                     iwon = True
             elif rol == "vengeful ghost":
-                if not winner.startswith("@") and winner != "monsters":
+                if not winner.startswith("@") and winner not in ("monsters", "pipers"):
                     if won and splr in survived:
                         iwon = True
                     elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
