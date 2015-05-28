@@ -25,6 +25,7 @@ import botconfig
 import traceback
 from src import decorators
 from datetime import datetime, timedelta
+from collections import defaultdict
 import threading
 import copy
 import time
@@ -1241,7 +1242,7 @@ def stats(cli, nick, chan, rest):
     rs.append(var.DEFAULT_ROLE)
 
 
-    amn_roles = {"amnesiac": 0}
+    amn_roles = defaultdict(int)
     for amn in var.ORIGINAL_ROLES["amnesiac"]:
         if amn not in pl:
             continue
@@ -1255,17 +1256,11 @@ def stats(cli, nick, chan, rest):
             amnrole = var.DEFAULT_ROLE
         if amnrole != "amnesiac":
             amn_roles["amnesiac"] += 1
-            if amnrole in amn_roles:
-                amn_roles[amnrole] -= 1
-            else:
-                amn_roles[amnrole] = -1
+            amn_roles[amnrole] -= 1
 
-    bitten_roles = {}
-    for bitten, role in var.BITTEN_ROLES.items():
-        if role in bitten_roles:
-            bitten_roles[role] += 1
-        else:
-            bitten_roles[role] = 1
+    bitten_roles = defaultdict(int)
+    for role in var.BITTEN_ROLES.values():
+        bitten_roles[role] += 1
 
     vb = "are"
     for role in rs:
@@ -1277,31 +1272,31 @@ def stats(cli, nick, chan, rest):
             continue
         elif role == "lycan":
             count += len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
-            count += bitten_roles["lycan"] if "lycan" in bitten_roles else 0
+            count += bitten_roles["lycan"]
         elif role == var.DEFAULT_ROLE:
             if var.HIDDEN_TRAITOR:
                 count += len(var.ROLES["traitor"])
-                count += bitten_roles["traitor"] if "traitor" in bitten_roles else 0
+                count += bitten_roles["traitor"]
             if var.DEFAULT_ROLE == "villager":
                 count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
                 count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
-                count += bitten_roles["village elder"] if "village elder" in bitten_roles else 0
-                count += bitten_roles["time lord"] if "time lord" in bitten_roles else 0
-                count += bitten_roles["vengeful ghost"] if "vengeful ghost" in bitten_roles else 0
+                count += bitten_roles["village elder"]
+                count += bitten_roles["time lord"]
+                count += bitten_roles["vengeful ghost"]
             else:
                 count += len(var.ROLES["vengeful ghost"])
-                count += bitten_roles["vengeful ghost"] if "vengeful ghost" in bitten_roles else 0
-            count += bitten_roles[var.DEFAULT_ROLE] if var.DEFAULT_ROLE in bitten_roles else 0
+                count += bitten_roles["vengeful ghost"]
+            count += bitten_roles[var.DEFAULT_ROLE]
         elif role == "villager":
             count += len(var.ROLES["village elder"] + var.ROLES["time lord"])
             count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
-            count += bitten_roles["villager"] if "villager" in bitten_roles else 0
-            count += bitten_roles["village elder"] if "village elder" in bitten_roles else 0
-            count += bitten_roles["time lord"] if "time lord" in bitten_roles else 0
+            count += bitten_roles["villager"]
+            count += bitten_roles["village elder"]
+            count += bitten_roles["time lord"]
         elif role == "wolf":
             count -= sum(bitten_roles.values())
         else:
-            count += bitten_roles[role] if role in bitten_roles else 0
+            count += bitten_roles[role]
 
         if role in amn_roles:
             count += amn_roles[role]
@@ -3093,18 +3088,15 @@ def transition_day(cli, gameid=0):
             new_wolf = True
             break
 
-    found = {}
+    found = defaultdict(int)
     for v in var.KILLS.values():
         for p in v:
-            if p in found:
-                found[p] += 1
-            else:
-                found[p] = 1
+            found[p] += 1
 
     maxc = 0
     victims = []
     bitten = []
-    killers = {} # dict of victim: list of killers (for retribution totem)
+    killers = defaultdict(list) # dict of victim: list of killers (for retribution totem)
     bywolves = set() # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
     onlybywolves = set() # wolves and nobody else targeted (needed for lycan)
     dups = []
@@ -3120,10 +3112,8 @@ def transition_day(cli, gameid=0):
         victims.append(victim)
         bywolves.add(victim)
         onlybywolves.add(victim)
-        if victim in killers:
-            killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
-        else:
-            killers[victim] = ["@wolves"]
+        killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
+
 
     if victims and var.ANGRY_WOLVES:
         # they got a 2nd kill
@@ -3141,10 +3131,7 @@ def transition_day(cli, gameid=0):
             victims.append(victim)
             bywolves.add(victim)
             onlybywolves.add(victim)
-            if victim in killers:
-                killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
-            else:
-                killers[victim] = ["@wolves"]
+            killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
 
     if var.ALPHA_ENABLED: # check for bites
         for (alpha, desired) in var.BITE_PREFERENCES.items():
@@ -3191,29 +3178,20 @@ def transition_day(cli, gameid=0):
     for ghost, target in var.VENGEFUL_GHOSTS.items():
         if target == "villagers":
             victim = var.OTHER_KILLS[ghost]
-            if victim in killers:
-                killers[victim].append(ghost)
-            else:
-                killers[victim] = [ghost]
+            killers[victim].append(ghost)
             if victim not in var.DYING: # wolf ghost killing ghost will take precedence over everything except death totem and elder
                 wolfghostvictims.append(victim)
 
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
-        if d in killers:
-            killers[d].append(k)
-        else:
-            killers[d] = [k]
+        killers[d].append(k)
     for d in var.DYING:
         victims.append(d)
         onlybywolves.discard(d)
         for s, v in var.LASTGIVEN.items():
             if v == d and var.TOTEMS[s] == "death":
-                if d in killers:
-                    killers[d].append(s)
-                else:
-                    killers[d] = [s]
+                killers[d].append(s)
     victims_set = set(victims) # remove duplicates
     victims_set.discard(None) # in the event that ever happens
     victims = []
