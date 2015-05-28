@@ -1065,7 +1065,7 @@ def init_db():
 
 
         c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
-            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
+            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
 
 
 def remove_simple_rolemsg(clk):
@@ -1179,7 +1179,7 @@ def update_role_stats(acc, role, won, iwon):
 
 def update_game_stats(gamemode, size, winner):
     with conn:
-        vwins, wwins, mwins, fwins, total = 0, 0, 0, 0, 0
+        vwins, wwins, mwins, fwins, pwins, total = 0, 0, 0, 0, 0, 0
 
         c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, totalgames "+
                     "FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
@@ -1193,12 +1193,14 @@ def update_game_stats(gamemode, size, winner):
             vwins += 1
         elif winner == "monsters":
             mwins += 1
+        elif winner == "pipers":
+            pwins += 1
         elif winner.startswith("@"):
             fwins += 1
         total += 1
 
-        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?)",
-                    (gamemode, size, vwins, wwins, mwins, fwins, total))
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?,?)",
+                    (gamemode, size, vwins, wwins, mwins, fwins, pwins, total))
 
 def get_player_stats(acc, role):
     if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
@@ -1243,12 +1245,14 @@ def get_player_totals(acc):
 def get_game_stats(gamemode, size):
     with conn:
         for row in c.execute("SELECT * FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size)):
-            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[6] * 100), row[3], round(row[3]/row[6] * 100))
+            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[7] * 100), row[3], round(row[3]/row[7] * 100))
             if row[4] > 0:
-                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[6] * 100))
+                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[7] * 100))
             if row[5] > 0:
-                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[6] * 100))
-            return msg + ", Total games: {0}".format(row[6])
+                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[7] * 100))
+            if row[6] > 0:
+                msg += ", Piper wins: %d (%d%%)" % (row[6], round(row[6]/row[7] * 100))
+            return msg + ", Total games: {0}".format(row[7])
         else:
             return "No stats for \u0002{0}\u0002 player games.".format(size)
 
