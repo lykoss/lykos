@@ -6591,13 +6591,23 @@ def get_help(cli, rnick, chan, rest):
 @cmd("wiki", pm=True)
 def wiki(cli, nick, chan, rest):
     """Prints information on roles from the wiki."""
-    page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode('ascii', errors='replace')
+
+    # no arguments, just print a link to the wiki
+    if not rest:
+        cli.msg(chan, "https://github.com/lykoss/lykos/wiki")
+        return
+
+    try:
+        page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode('ascii', errors='replace')
+    except urllib.error.URLError:
+        cli.notice(nick, "Request to https://github.com/lykoss/lykos/wiki timed out.")
+        return
     if not page:
         cli.notice(nick, "Could not open https://github.com/lykoss/lykos/wiki")
         return
 
     query = re.escape(rest.strip())
-    #look for exact match first, then for a partial match
+    # look for exact match first, then for a partial match
     match = re.search(r"^##+ ({0})$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
         match = re.search(r"^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
@@ -6605,7 +6615,7 @@ def wiki(cli, nick, chan, rest):
         cli.notice(nick, "Could not find information on that role in https://github.com/lykoss/lykos/wiki")
         return
 
-    #wiki links only have lowercase aschii chars, and spaces are replaced with a dash
+    # wiki links only have lowercase aschii chars, and spaces are replaced with a dash
     wikilink = "https://github.com/lykoss/lykos/wiki#{0}".format(''.join(
                 [x.lower() for x in match.group(1).replace(" ", "-") if x in string.ascii_letters+"-"]))
     if nick == chan:
