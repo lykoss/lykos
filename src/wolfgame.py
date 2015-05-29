@@ -719,8 +719,6 @@ def altpinger(cli, nick, chan, rest):
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
         acc = var.USERS[nick]["account"]
-    elif is_fake_nick(nick):
-        return # just ignore it
     else:
         if chan == nick:
             pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
@@ -790,8 +788,6 @@ def is_user_altpinged(nick):
     return (False, None)
 
 def toggle_altpinged_status(nick, value, old=None):
-    if is_fake_nick(nick):
-        return # don't blow up on fake nicks
     # nick should be in var.USERS if not fake; if not, let the error propagate
     cloak = var.USERS[nick]["cloak"]
     acc = var.USERS[nick]["account"]
@@ -4408,7 +4404,7 @@ def hvisit(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 def is_fake_nick(who):
-    return re.match("[0-9]+", who)
+    return re.match("^[0-9]+$", who)
 
 @cmd("see", chan=False, pm=True, game=True, playing=True, roles=("seer", "oracle", "augur"))
 def see(cli, nick, chan, rest):
