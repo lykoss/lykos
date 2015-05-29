@@ -158,12 +158,12 @@ def connect_callback(cli):
 
     @hook("quietlist", hookid=294)
     def on_quietlist(cli, server, botnick, channel, q, quieted, by, something):
-        if re.match("{0}.+\!\*@\*".format(var.QUIET_PREFIX), quieted):  # only unquiet people quieted by bot
+        if re.search(r"^{0}.+\!\*@\*$".format(var.QUIET_PREFIX), quieted):  # only unquiet people quieted by bot
             cmodes.append(("-{0}".format(var.QUIET_MODE), quieted))
 
     @hook("banlist", hookid=294)
     def on_banlist(cli, server, botnick, channel, ban, by, timestamp):
-        if re.match("{0}.+\!\*@\*".format(var.QUIET_PREFIX), ban):
+        if re.search(r"^{0}.+\!\*@\*$".format(var.QUIET_PREFIX), ban):
             cmodes.append(("-{0}".format(var.QUIET_MODE), ban))
 
     @hook("whoreply", hookid=295)
@@ -4404,7 +4404,7 @@ def hvisit(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 def is_fake_nick(who):
-    return re.match("^[0-9]+$", who)
+    return re.search(r"^[0-9]+$", who)
 
 @cmd("see", chan=False, pm=True, game=True, playing=True, roles=("seer", "oracle", "augur"))
 def see(cli, nick, chan, rest):
@@ -6595,9 +6595,9 @@ def wiki(cli, nick, chan, rest):
 
     query = re.escape(rest.strip())
     #look for exact match first, then for a partial match
-    match = re.search("^##+ ({0})$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
+    match = re.search(r"^##+ ({0})$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
-        match = re.search("^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
+        match = re.search(r"^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
         cli.notice(nick, "Could not find information on that role in https://github.com/lykoss/lykos/wiki")
         return
