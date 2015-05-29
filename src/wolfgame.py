@@ -4943,20 +4943,24 @@ def charm(cli, nick, chan, rest):
     if victim2:
         var.CHARMED.add(victim2)
 
-    message = ("You hear the sweet tones of a flute coming from outside your window... " +
-               "You inexorably walk outside and find yourself stranded away from " +
-               "the village. You find out that \u0002{0}\u0002 {1} also charmed!")
-
-    simple_message = "You are now charmed. Other charmed players: \u0002{0}\u0002"
-
     pm(cli, nick, "You have charmed \u0002{0}\u0002{1}.".format(victim, victim2 and " and \u0002{0}\u0002".format(victim2) or ""))
 
     for vict in (victim, victim2):
         if vict and vict in var.PLAYERS:
-            msg = is_user_simple(vict) and simple_message or message
+            message = ("You hear the sweet tones of a flute coming from outside your window... You "
+                       "inexorably walk outside and find yourself stranded away from the village. ")
 
-            pm(cli, vict, msg.format("\u0002, \u0002".join(var.CHARMED - {vict}),
-                          "is" if len(var.CHARMED) == 2 else "are"))
+            charmedlist = list(var.CHARMED - {vict})
+            if len(charmedlist) <= 0:
+                pm(cli, vict, message + "There are no other charmed players.")
+            elif len(charmedlist) == 1:
+                pm(cli, vict, message + "You find out that \u0002{0}\u0002 is also charmed!".format(charmedlist[0]))
+            elif len(charmedlist) == 2:
+                pm(cli, vict, message + ("You find out that \u0002{0}\u0002 and \u0002{1}\u0002 "
+                                         "are also charmed!").format(charmedlist[0], charmedlist[1]))
+            else:
+                pm(cli, vict, message + ("You find out that \u0002{0}\u0002, and \u0002{1}\u0002 "
+                                         "are also charmed!").format("\u0002, \u0002".join(charmedlist[:-1]), charmedlist[-1]))
 
     for vict in var.CHARMED:
         if vict in (victim, victim2):
@@ -4970,7 +4974,6 @@ def charm(cli, nick, chan, rest):
         debuglog("{0} ({1}) CHARM {2} ({3}) && {4} ({5})".format(nick, var.get_role(nick),
                                                                  victim, var.get_role(victim),
                                                                  victim2, var.get_role(victim2)))
-
     else:
         debuglog("{0} ({1}) CHARM {2} ({3})".format(nick, var.get_role(nick),
                                                     victim, var.get_role(victim)))
