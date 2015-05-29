@@ -2454,7 +2454,7 @@ def reaper(cli, gameid):
                                                 "or you will be declared dead.\u0002").format(chan), privmsg=True)
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 acc, cloak, timeofdc, what = var.DISCONNECTED[dcedplayer]
-                if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
+                if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL:
                         cli.msg(chan, ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
                                        "\02{1}\02 meat is tasty.").format(dcedplayer, var.get_reveal_role(dcedplayer)))
@@ -2592,26 +2592,21 @@ def fgoat(cli, nick, chan, rest):
 @hook("nick")
 def on_nick(cli, oldnick, nick):
     prefix,u,m,cloak = parse_nick(oldnick)
+    chan = botconfig.CHANNEL
+
+    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
+        if var.PHASE != "join":
+            cli.mode(chan, "-v", nick)
+        leave(cli, "badnick", oldnick)
+        return
 
     if prefix in var.USERS:
         var.USERS[nick] = var.USERS.pop(prefix)
         if not var.USERS[nick]["inchan"]:
             return
-    chan = botconfig.CHANNEL
 
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
-
-    # for k,v in list(var.DEAD_USERS.items()):
-        # if prefix == k:
-            # var.DEAD_USERS[nick] = var.DEAD_USERS[k]
-            # del var.DEAD_USERS[k]
-
-    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
-        if var.PHASE != "join":
-            cli.mode(chan, "-v", nick)
-        leave(cli, "quit", oldnick)
-        return
 
     if prefix in var.list_players() and prefix not in var.DISCONNECTED.keys():
         r = var.ROLES[var.get_role(prefix)]
@@ -2878,7 +2873,7 @@ def leave(cli, what, nick, why=""):
                    "died.{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = ("\02{0}\02 ate some poisonous berries and has died.{1}").format(nick, population)
-    elif what == "quit" and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
+    elif what in ("quit", "badnick") and (not var.QUIT_GRACE_TIME or var.PHASE == "join"):
         if var.get_role(nick) != "person" and var.ROLE_REVEAL:
             msg = ("\02{0}\02 was mauled by wild animals and has died. It seems that "+
                    "\02{1}\02 meat is tasty.{2}").format(nick, var.get_reveal_role(nick), population)
@@ -2901,7 +2896,7 @@ def leave(cli, what, nick, why=""):
             msg = ("\02{0}\02 died due to falling off a cliff.{1}").format(nick, population)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
-    if nick in var.USERS:
+    if what not in ("badnick", "account") and nick in var.USERS:
         var.USERS[nick]["modes"] = set()
         var.USERS[nick]["moded"] = set()
     if killplayer:
