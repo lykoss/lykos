@@ -418,8 +418,8 @@ def reset():
     var.ROLES = {"person" : []}
     var.JOINED_THIS_GAME = [] # keeps track of who already joined this game at least once (cloaks)
     var.JOINED_THIS_GAME_ACCS = [] # same, except accounts
-    var.PINGED_ALREADY = []
-    var.PINGED_ALREADY_ACCS = []
+    var.PINGED_ALREADY = set()
+    var.PINGED_ALREADY_ACCS = set()
     var.NO_LYNCH = []
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
@@ -846,6 +846,7 @@ def join_timer_handler(cli):
         checker = []
         chk_acc = []
 
+        # Add accounts/hosts to the list of possible players to ping
         for num in var.PING_IF_NUMS_ACCS:
             if num <= len(pl):
                 chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
@@ -855,6 +856,11 @@ def join_timer_handler(cli):
                 if num <= len(pl):
                     checker.extend(var.PING_IF_NUMS[num])
 
+        # Don't ping alt connections of users that have already joined
+        for acc in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
+            var.PINGED_ALREADY_ACCS.add(acc)
+
+        # Remove players who have already been pinged from the list of possible players to ping
         for acc in chk_acc[:]:
             if acc in var.PINGED_ALREADY_ACCS:
                 chk_acc.remove(acc)
@@ -863,6 +869,7 @@ def join_timer_handler(cli):
             if cloak in var.PINGED_ALREADY:
                 checker.remove(cloak)
 
+        # If there is nobody to ping, do nothing
         if not chk_acc and not checker:
             var.PINGING_IFS = False
             return
@@ -874,14 +881,15 @@ def join_timer_handler(cli):
 
                 return
 
+            # Create list of players to ping
             if acc and acc != "*":
                 if acc in chk_acc:
                     to_ping.append(user)
-                    var.PINGED_ALREADY_ACCS.append(acc)
+                    var.PINGED_ALREADY_ACCS.add(acc)
 
             elif not var.ACCOUNTS_ONLY:
                 to_ping.append(user)
-                var.PINGED_ALREADY.append(cloak)
+                var.PINGED_ALREADY.add(cloak)
 
         @hook("endofwho", hookid=387)
         def fetch_altpingers(*stuff):
@@ -975,8 +983,8 @@ def join_player(cli, player, chan, who = None, forced = False):
             var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
             var.WAIT_TB_LAST   = time.time()
         var.GAME_ID = time.time()
-        var.PINGED_ALREADY_ACCS = []
-        var.PINGED_ALREADY = []
+        var.PINGED_ALREADY_ACCS = set()
+        var.PINGED_ALREADY = set()
         if cloak:
             var.JOINED_THIS_GAME.append(cloak)
         if acc:
