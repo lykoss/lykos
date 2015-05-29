@@ -977,7 +977,7 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS allowed_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # ALLOW_ACCOUNTS
 
         c.execute('CREATE TABLE IF NOT EXISTS pingif_prefs (user TEXT, is_account BOOLEAN, players INTEGER, PRIMARY KEY(user, is_account))') # pingif player count preferences
-        c.execute('CREATE INDEX IF NOT EXISTS ix_ping_prefs_pingif ON pingif_prefs (players ASC)')
+        c.execute('CREATE INDEX IF NOT EXISTS ix_ping_prefs_pingif ON pingif_prefs (players ASC)') # index apparently makes it faster
 
         c.execute('PRAGMA table_info(pre_restart_state)')
         try:
