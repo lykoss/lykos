@@ -581,14 +581,44 @@ def restart_program(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
-    plog("RESTARTING")
+    @hook("quit")
+    def restart_buffer(*s):
+        # *** BIG FLASHY RED WARNING GOES HERE ***
+        # THERE IS A POTENTIAL RACE CONDITION IN THIS CODE
 
-    python = sys.executable
+        # this is due to the fact that the socket's buffer is not empty
+        # when we reach the os.execl calls, so we kill the process before
+        # the buffer is done being sent. someone who knows better than me
+        # at sockets should probably try to fix this properly. for now, this
+        # is actually a working fix; we want to wait until the above quit
+        # call is processed (we see our own quit). I prefer false positives
+        # over false negatives, so I'd rather have this hook trigger on more
+        # quits than not enough. the race condition mentioned above happens
+        # if someone else quits while the bot is still sending data. I haven't
+        # actually tested this to see if it processes received data even if
+        # it's currently sending stuff, thus why it's a "potential" race
+        # condition anyway. I'm fairly sure we can, though, so this is a
+        # bug. however this is a rare bug and would cause annoyance only in
+        # some times, while the previous behaviour caused annoyance at all
+        # times, since the process was killed before all the buffering could
+        # be processed. should this happen, the bot was waiting for its own
+        # quit to restart anyway, so it's not restarting while nothing was
+        # supposed to happen. this isn't a critical bug (I hear you woffle,
+        # yes we should fix it better, but this is also less worse than it
+        # used to be, any upside is good to take; if we can't fix it in one
+        # go better to at least fix what we can), but a bug nonetheless, and
+        # should be fixed as soon as someone finds a proper fix. -Vgr
 
-    if mode:
-        os.execl(python, python, sys.argv[0], "--{0}".format(mode))
-    else:
-        os.execl(python, python, *sys.argv)
+        # TL;DR - data does not finish sending before we kill the process
+
+        plog("RESTARTING")
+
+        python = sys.executable
+
+        if mode:
+            os.execl(python, python, sys.argv[0], "--{0}".format(mode))
+        else:
+            os.execl(python, python, *sys.argv)
 
 
 @cmd("ping", chan=False, pm=True)
