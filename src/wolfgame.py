@@ -630,8 +630,8 @@ def pong(cli, nick, chan, rest):
 def pinger(cli, nick, chan, rest):
     """Placeholder for the old ping-related commands."""
 
-    cli.notice(nick, ("This command has been removed. Please see "
-                      "\"{0}help pingif\" for more information.".format(botconfig.CMD_CHAR)))
+    cli.notice(nick, 'This command has been removed. Please see '
+                     '"{0}help pingif" for more information.'.format(botconfig.CMD_CHAR))
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
