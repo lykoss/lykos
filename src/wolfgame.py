@@ -7167,34 +7167,33 @@ def vote(cli, nick, chan, rest):
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
-    args = ["git", "pull", "--stat", "--rebase=preserve"]
+    commands = ["git fetch",
+                "git rebase --stat --preserve-merges"]
 
-    if rest:
-        args += rest.split(" ")
+    for command in commands:
+        child = subprocess.Popen(command.split(),
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        (out, err) = child.communicate()
+        ret = child.returncode
 
-    child = subprocess.Popen(args,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    (out, err) = child.communicate()
-    ret = child.returncode
+        for line in (out + err).splitlines():
+            if chan == nick:
+                cli.msg(nick, line.decode("utf-8"))
+            else:
+                pm(cli, nick, line.decode("utf-8"))
 
-    for line in (out + err).splitlines():
-        if chan == nick:
-            cli.msg(nick, line.decode("utf-8"))
-        else:
-            pm(cli, nick, line.decode("utf-8"))
+        if ret != 0:
+            if ret < 0:
+                cause = "signal"
+                ret *= -1
+            else:
+                cause = "status"
 
-    if ret != 0:
-        if ret < 0:
-            cause = "signal"
-            ret *= -1
-        else:
-            cause = "status"
-
-        if chan == nick:
-            cli.msg(nick, "Process %s exited with %s %d" % (args, cause, ret))
-        else:
-            pm(cli, nick, "Process %s exited with %s %d" % (args, cause, ret))
+            if chan == nick:
+                cli.msg(nick, "Process %s exited with %s %d" % (command, cause, ret))
+            else:
+                pm(cli, nick, "Process %s exited with %s %d" % (command, cause, ret))
 
 @cmd("fsend", admin_only=True, pm=True)
 def fsend(cli, nick, chan, rest):
