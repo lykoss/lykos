@@ -1,167 +1,222 @@
-# Copyright (c) 2011, Jimmy Cao
-# All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-# Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-# Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Old, obsolete & original code by jcao219
+# rewritten by Vgr
 
 import fnmatch
+from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from oyoyo.parse import parse_nick
+from src import settings as var
 from src import logger
 
 adminlog = logger(None)
 
-def generate(fdict, permissions=True, **kwargs):
-    """Generates a decorator generator.  Always use this"""
-    def cmd(*s, raw_nick=False, admin_only=False, owner_only=False, chan=True, pm=False,
-                game=False, join=False, none=False, playing=False, roles=(), hookid=-1):
-        def dec(f):
-            def innerf(*args):
-                largs = list(args)
-                rawnick = largs[1]
-                if not permissions:
-                    return f(*largs)
-                if len(largs) > 1 and largs[1]:
-                    nick, _, _, cloak = parse_nick(largs[1])
+COMMANDS = defaultdict(list)
+HOOKS = defaultdict(list)
 
-                    if cloak is None:
-                        cloak = ""
+class cmd:
+    def __init__(self, *cmds, raw_nick=False, admin_only=False, owner_only=False,
+                 chan=True, pm=False, join=False, none=False, game=False, playing=False, roles=()):
+
+        self.cmds = cmds
+        self.raw_nick = raw_nick
+        self.admin_only = admin_only
+        self.owner_only = owner_only
+        self.chan = chan
+        self.pm = pm
+        self.join = join
+        self.none = none
+        self.game = game
+        self.playing = playing
+        self.roles = roles
+        self.func = None
+        self.aftergame = False
+        self.name = cmds[0]
+
+        alias = False
+        self.aliases = []
+        for name in cmds:
+            for func in COMMANDS[name]:
+                if (func.owner_only != owner_only or
+                    func.admin_only != admin_only):
+                    raise ValueError("unmatching protection levels for " + func.name)
+
+            COMMANDS[name].append(self)
+            if alias:
+                self.aliases.append(self)
+            alias = True
+
+    def __call__(self, *args):
+        if self.func is None: # when function is defined; set self.func and call itself again
+            self.func = args[0]
+            self.__doc__ = self.func.__doc__
+            return self
+
+        largs = list(args)
+
+        cli, rawnick, chan, rest = largs
+        nick, mode, user, cloak = parse_nick(rawnick)
+
+        if cloak is None:
+            cloak = ""
+
+        if not self.raw_nick:
+            largs[1] = nick
+
+        if nick == "<console>":
+            return self.func(*largs) # special case; no questions
+
+        if not self.pm and chan == nick:
+            return # PM command, not allowed
+
+        if not self.chan and chan != nick:
+            return # channel command, not allowed
+
+        if chan.startswith("#") and chan != botconfig.CHANNEL and not (admin_only or owner_only):
+            if "" in self.cmds:
+                return # don't have empty commands triggering in other channels
+            for command in self.cmds:
+                if command in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
+                    break
+            else:
+                return
+
+        if nick in var.USERS and var.USERS[nick]["account"] != "*":
+            acc = var.USERS[nick]["account"]
+        else:
+            acc = None
+
+        if "" in self.cmds:
+            return self.func(*largs)
+
+        if self.game and var.PHASE not in ("day", "night") + (("join",) if self.join else ()):
+            if chan == nick:
+                pm(cli, nick, "No game is currently running.")
+            else:
+                cli.notice(nick, "No game is currently running.")
+            return
+
+        if ((self.join and self.none and var.PHASE not in ("join", "none")) or
+                     (self.none and not self.join and var.PHASE != "none")):
+            if chan == nick:
+                pm(cli, nick, "Sorry, but the game is already running. Try again next time.")
+            else:
+                cli.notice(nick, "Sorry, but the game is already running. Try again next time.")
+            return
+
+        if self.join and not self.none:
+            if var.PHASE == "none":
+                if chan == nick:
+                    pm(cli, nick, "No game is currently running.")
                 else:
-                    nick = ""
-                    cloak = ""
-                if not raw_nick and len(largs) > 1 and largs[1]:
-                    largs[1] = nick
-                if nick == "<console>":
-                    return f(*largs) # special case; no questions
-                if not pm and largs[2] == nick: # PM command
-                    return
-                if not chan and largs[2] != nick: # channel command
-                    return
-                if largs[2].startswith("#") and largs[2] != botconfig.CHANNEL and not admin_only and not owner_only:
-                    if "" in s:
-                        return # Don't have empty commands triggering in other channels
-                    allowed = False
-                    for cmdname in s:
-                        if cmdname in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
-                            allowed = True
-                            break
-                    if not allowed:
-                        return
-                if nick in var.USERS.keys() and var.USERS[nick]["account"] != "*":
-                    acc = var.USERS[nick]["account"]
+                    cli.notice(nick, "No game is currently running.")
+                return
+
+            if var.PHASE != "join" and not self.game:
+                if chan == nick:
+                    pm(cli, nick, "Werewolf is already in play.")
                 else:
-                    acc = None
-                if "" in s:
-                    return f(*largs)
-                if game and var.PHASE not in ("day", "night") + (("join",) if join else ()):
-                    largs[0].notice(nick, "No game is currently running.")
-                    return
-                if ((join and none and var.PHASE not in ("join", "none"))
-                        or (none and not join and var.PHASE != "none")):
-                    largs[0].notice(nick, "Sorry, but the game is already running. Try again next time.")
-                    return
-                if join and not none:
-                    if var.PHASE == "none":
-                        largs[0].notice(nick, "No game is currently running.")
-                        return
-                    if var.PHASE != "join" and not game:
-                        largs[0].notice(nick, "Werewolf is already in play.")
-                        return
-                if playing and (nick not in var.list_players() or nick in var.DISCONNECTED.keys()):
-                    largs[0].notice(nick, "You're not currently playing.")
-                    return
-                if roles:
-                    for role in roles:
-                        if nick in var.ROLES[role]:
-                            break
-                    else:
-                        return
-                if acc:
-                    for pattern in var.DENY_ACCOUNTS.keys():
-                        if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in var.DENY_ACCOUNTS[pattern]:
-                                    largs[0].notice(nick, "You do not have permission to use that command.")
-                                    return
-                    for pattern in var.ALLOW_ACCOUNTS.keys():
-                        if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in var.ALLOW_ACCOUNTS[pattern]:
-                                    if admin_only or owner_only:
-                                        adminlog(largs[2], rawnick, s[0], largs[3])
-                                    return f(*largs)
-                if not var.ACCOUNTS_ONLY and cloak:
-                    for pattern in var.DENY.keys():
-                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in var.DENY[pattern]:
-                                    largs[0].notice(nick, "You do not have permission to use that command.")
-                                    return
-                    for pattern in var.ALLOW.keys():
-                        if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                            for cmdname in s:
-                                if cmdname in var.ALLOW[pattern]:
-                                    if admin_only or owner_only:
-                                        adminlog(largs[2], rawnick, s[0], largs[3])
-                                    return f(*largs)  # no questions
-                if owner_only:
-                    if var.is_owner(nick, cloak):
-                        adminlog(largs[2], rawnick, s[0], largs[3])
-                        return f(*largs)
-                    else:
-                        largs[0].notice(nick, "You are not the owner.")
-                        return
-                if admin_only:
-                    if var.is_admin(nick, cloak):
-                        adminlog(largs[2], rawnick, s[0], largs[3])
-                        return f(*largs)
-                    else:
-                        largs[0].notice(nick, "You are not an admin.")
-                        return
-                return f(*largs)
-            alias = False
-            innerf.aliases = []
-            for x in s:
-                if x not in fdict.keys():
-                    fdict[x] = []
-                else:
-                    for fn in fdict[x]:
-                        if (fn.owner_only != owner_only or
-                            fn.admin_only != admin_only):
-                            raise Exception("Command: "+x+" has non-matching protection levels!")
-                fdict[x].append(innerf)
-                if alias:
-                    innerf.aliases.append(x)
-                alias = True
-            innerf.owner_only = owner_only
-            innerf.raw_nick = raw_nick
-            innerf.admin_only = admin_only
-            innerf.chan = chan
-            innerf.pm = pm
-            innerf.none = none
-            innerf.join = join
-            innerf.game = game
-            innerf.playing = playing
-            innerf.roles = roles
-            innerf.hookid = hookid
-            innerf.aftergame = False
-            innerf.__doc__ = f.__doc__
-            return innerf
+                    cli.notice(nick, "Werewolf is already in play.")
+                return
 
-        return dec
+        if self.playing and (nick not in var.list_players() or nick in var.DISCONNECTED):
+            if chan == nick:
+                pm(cli, nick, "You're not currently playing.")
+            else:
+                cli.notice(nick, "You're not currently playing.")
+            return
 
-    return lambda *args, **kwarargs: cmd(*args, **kwarargs) if kwarargs else cmd(*args, **kwargs)
+        if self.roles:
+            for role in self.roles:
+                if nick in var.ROLES[role]:
+                    break
+            else:
+                return
 
+            return self.func(*largs) # don't check restrictions for role commands
 
-def unhook(hdict, hookid):
-    for cmd in list(hdict.keys()):
-        for x in hdict[cmd]:
-            if x.hookid == hookid:
-                hdict[cmd].remove(x)
-        if not hdict[cmd]:
-            del hdict[cmd]
+        if acc:
+            for pattern in var.DENY_ACCOUNTS:
+                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                    for command in self.cmds:
+                        if command in var.DENY_ACCOUNTS[pattern]:
+                            if chan == nick:
+                                pm(cli, nick, "You do not have permission to use that command.")
+                            else:
+                                cli.notice(nick, "You do not have permission to use that command.")
+                            return
+
+            for pattern in var.ALLOW_ACCOUNTS:
+                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                    for command in self.cmds:
+                        if command in var.ALLOW_ACCOUNTS[pattern]:
+                            if self.admin_only or self.owner_only:
+                                adminlog(chan, rawnick, self.name, rest)
+                            return self.func(*largs)
+
+        if not var.ACCOUNTS_ONLY and cloak:
+            for pattern in var.DENY:
+                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                    for command in self.cmds:
+                        if command in var.DENY[pattern]:
+                            if chan == nick:
+                                pm(cli, nick, "You do not have permission to use that command.")
+                            else:
+                                cli.notice(nick, "You do not have permission to use that command.")
+                            return
+
+            for pattern in var.ALLOW:
+                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                    for command in self.cmds:
+                        if command in var.ALLOW[pattern]:
+                            if self.admin_only or self.owner_only:
+                                adminlog(chan, rawnick, self.name, rest)
+                            return self.func(*largs)
+
+        if self.owner_only:
+            if var.is_owner(nick, cloak):
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(*largs)
+
+            if chan == nick:
+                pm(cli, nick, "You are not the owner.")
+            else:
+                cli.notice(nick, "You are not the owner.")
+            return
+
+        if self.admin_only:
+            if var.is_admin(nick, cloak):
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(*largs)
+
+            if chan == nick:
+                pm(cli, nick, "You are not an admin.")
+            else:
+                cli.notice(nick, "You are not an admin.")
+            return
+
+        return self.func(*largs)
+
+class hook:
+    def __init__(self, name, hookid=-1):
+        self.name = name
+        self.hookid = hookid
+        self.func = None
+
+        HOOKS[name].append(self)
+
+    def __call__(self, *args):
+        if self.func is None:
+            self.func = args[0]
+            self.__doc__ = self.func.__doc__
+            return self
+        return self.func(*args)
+
+    @staticmethod
+    def unhook(hookid):
+        for each in list(HOOKS):
+            for inner in list(HOOKS[each]):
+                if inner.hookid == hookid:
+                    HOOKS[each].remove(inner)
+            if not HOOKS[each]:
+                del HOOKS[each]

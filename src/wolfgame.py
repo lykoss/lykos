@@ -49,14 +49,12 @@ debuglog = logger("debug.log", write=False, display=False) # will be True if in 
 errlog = logger("errors.log")
 plog = logger(None) #use this instead of print so that logs have timestamps
 
-COMMANDS = {}
-HOOKS = {}
-
 is_admin = var.is_admin
 is_owner = var.is_owner
 
-cmd = decorators.generate(COMMANDS)
-hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
+cmd = decorators.cmd
+hook = decorators.hook
+COMMANDS = decorators.COMMANDS
 
 # Game Logic Begins:
 
@@ -228,7 +226,7 @@ def connect_callback(cli):
             notify_error(cli, botconfig.CHANNEL, errlog)
 
         # Unhook the WHO hooks
-        decorators.unhook(HOOKS, 295)
+        hook.unhook(295)
 
 
     #bot can be tricked into thinking it's still opped by doing multiple modes at once
@@ -377,6 +375,8 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
         return
 
     cli.msg(target, message)
+
+decorators.pm = pm
 
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
@@ -898,7 +898,7 @@ def join_timer_handler(cli):
             # I was lucky to catch this in testing, as it requires precise timing
             # it only failed if a join happened while this outer func had started
             var.PINGING_IFS = False
-            decorators.unhook(HOOKS, 387)
+            hook.unhook(387)
             if to_ping:
                 to_ping.sort(key=lambda x: x.lower())
 
@@ -6703,7 +6703,7 @@ def show_admins(cli, nick, chan, rest):
         else:
             cli.msg(chan, msg)
 
-        decorators.unhook(HOOKS, 4)
+        hook.unhook(4)
         var.ADMIN_PINGING = False
 
     if nick == chan:

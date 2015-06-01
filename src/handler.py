@@ -15,6 +15,7 @@ from src import wolfgame
 log = logger("errors.log")
 alog = logger(None)
 
+hook = decorators.hook
 
 def notify_error(cli, chan, target_logger):
     msg = "An error has occurred and has been logged."
@@ -56,18 +57,17 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     if chan == botconfig.NICK:
         chan = parse_nick(rawnick)[0]
 
-    if "" in wolfgame.COMMANDS.keys():
-        for fn in wolfgame.COMMANDS[""]:
-            try:
-                fn(cli, rawnick, chan, msg)
-            except Exception:
-                if botconfig.DEBUG_MODE:
-                    raise
-                else:
-                    notify_error(cli, chan, log)
+    for fn in decorators.COMMANDS[""]:
+        try:
+            fn(cli, rawnick, chan, msg)
+        except Exception:
+            if botconfig.DEBUG_MODE:
+                raise
+            else:
+                notify_error(cli, chan, log)
 
 
-    for x in set(list(COMMANDS.keys()) + list(wolfgame.COMMANDS.keys())):
+    for x in decorators.COMMANDS:
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -77,7 +77,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         else:
             continue
         if not h or h[0] == " ":
-            for fn in COMMANDS.get(x, []) + (wolfgame.COMMANDS.get(x, [])):
+            for fn in decorators.COMMANDS.get(x, []):
                 try:
                     fn(cli, rawnick, chan, h.lstrip())
                 except Exception:
@@ -86,13 +86,13 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     else:
                         notify_error(cli, chan, log)
 
-    
+
 def unhandled(cli, prefix, cmd, *args):
-    if cmd in set(list(HOOKS.keys()) + list(wolfgame.HOOKS.keys())):
+    if cmd in decorators.HOOKS:
         largs = list(args)
         for i,arg in enumerate(largs):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
-        for fn in HOOKS.get(cmd, []) + wolfgame.HOOKS.get(cmd, []):
+        for fn in decorators.HOOKS.get(cmd, []):
             try:
                 fn(cli, prefix, *largs)
             except Exception as e:
@@ -100,13 +100,6 @@ def unhandled(cli, prefix, cmd, *args):
                     raise e
                 else:
                     notify_error(cli, botconfig.CHANNEL, log)
-
-
-COMMANDS = {}
-HOOKS = {}
-
-cmd = decorators.generate(COMMANDS)
-hook = decorators.generate(HOOKS, raw_nick=True, permissions=False)
 
 def connect_callback(cli):
 
@@ -123,7 +116,7 @@ def connect_callback(cli):
 
         cli.cap("REQ", "extended-join")
         cli.cap("REQ", "account-notify")
-        
+
         wolfgame.connect_callback(cli)
 
         cli.nick(botconfig.NICK)  # very important (for regain/release)
@@ -147,7 +140,7 @@ def connect_callback(cli):
         cli.nick(botconfig.NICK+"_")
         cli.user(botconfig.NICK, "")
 
-        decorators.unhook(HOOKS, 239)
+        hook.unhook(HOOKS, 239)
         hook("unavailresource")(mustrelease)
         hook("nicknameinuse")(mustregain)
 
