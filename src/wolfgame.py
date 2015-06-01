@@ -1277,7 +1277,7 @@ def stats(cli, nick, chan, rest):
         if role == "traitor" and var.HIDDEN_TRAITOR:
             continue
         elif role == "lycan":
-            count += len(p for p in var.CURED_LYCANS if p in var.ROLES["villager"])
+            count += len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
             count += bitten_roles["lycan"]
         elif role == var.DEFAULT_ROLE:
             if var.HIDDEN_TRAITOR:
@@ -1285,7 +1285,7 @@ def stats(cli, nick, chan, rest):
                 count += bitten_roles["traitor"]
             if var.DEFAULT_ROLE == "villager":
                 count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
-                count -= len(p for p in var.CURED_LYCANS if p in var.ROLES["villager"])
+                count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
                 count += bitten_roles["village elder"]
                 count += bitten_roles["time lord"]
                 count += bitten_roles["vengeful ghost"]
@@ -1295,7 +1295,7 @@ def stats(cli, nick, chan, rest):
             count += bitten_roles[var.DEFAULT_ROLE]
         elif role == "villager":
             count += len(var.ROLES["village elder"] + var.ROLES["time lord"])
-            count -= len(p for p in var.CURED_LYCANS if p in var.ROLES["villager"])
+            count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
             count += bitten_roles["villager"]
             count += bitten_roles["village elder"]
             count += bitten_roles["time lord"]
