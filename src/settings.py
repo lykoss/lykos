@@ -1070,14 +1070,14 @@ def init_db():
             if row[1]:
                 if row[0] not in PING_IF_PREFS_ACCS:
                     PING_IF_PREFS_ACCS[row[0]] = row[2]
-                if row[1] not in PING_IF_NUMS_ACCS:
+                if row[2] not in PING_IF_NUMS_ACCS:
                     PING_IF_NUMS_ACCS[row[2]] = []
                 PING_IF_NUMS_ACCS[row[2]].append(row[0])
             # is a host
             else:
                 if row[0] not in PING_IF_PREFS:
                     PING_IF_PREFS[row[0]] = row[2]
-                if row[1] not in PING_IF_NUMS:
+                if row[2] not in PING_IF_NUMS:
                     PING_IF_NUMS[row[2]] = []
                 PING_IF_NUMS[row[2]].append(row[0])
 
