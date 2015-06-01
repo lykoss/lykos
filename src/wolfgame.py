@@ -1787,7 +1787,7 @@ def stop_game(cli, winner = "", abort = False):
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
-            elif splr in var.LOVERS and splr in survived and len(x for x in var.LOVERS[splr] if x in survived) > 0:
+            elif splr in var.LOVERS and splr in survived and len([x for x in var.LOVERS[splr] if x in survived]) > 0:
                 for lvr in var.LOVERS[splr]:
                     if lvr not in survived:
                         # cannot win with dead lover (if splr in survived and lvr is not, that means lvr idled out)
