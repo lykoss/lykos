@@ -918,29 +918,31 @@ class GuardianMode(GameMode):
         lguardians = len(var.list_players(["guardian angel", "bodyguard"]))
 
         if lpl < 1:
-            evt.data["winner"] = "none"
-            evt.data["message"] = "Game over! The wolves and the villagers have killed each other off! Nobody wins."
-
-        elif not lguardians and lwolves > lpl // 2:
+            # handled by default win cond checking
+            return
+        elif not lguardians and lwolves > lpl / 2:
             evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! There are more wolves than remaining villagers! The village " +
-                                   "doesn't have anyone left to save them, and the wolves eat up everyone left.")
-
-        elif not lguardians and lwolves == lpl // 2:
+            evt.data["message"] = ("Game over! There are more wolves than uninjured villagers. With the ancestral " +
+                                   "guardians dead, the wolves overpower the defenseless villagers and win.")
+        elif not lguardians and lwolves == lpl / 2:
             evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! There as many wolves as villagers! With no defensive power left, " +
-                                   "the wolves easily dispatch all the remaining villagers")
-
-        elif not lrealwolves:
+            evt.data["message"] = ("Game over! There are the same number of wolves as uninjured villagers. With the ancestral " +
+                                   "guardians dead, the wolves overpower the defenseless villagers and win.")
+        elif not lrealwolves and lguardians:
             evt.data["winner"] = "villagers"
             evt.data["message"] = ("Game over! All the wolves are dead! The remaining villagers throw a party in honor " +
                                    "of the guardian angels that watched over the village, and live happily ever after.")
-
-        elif not lguardians:
-            evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! The villagers have lost all their defensive power! The wolves " +
-                                   "overpower the villagers and win.")
-
+        elif not lrealwolves and not lguardians:
+            evt.data["winner"] = "none"
+            evt.data["message"] = ("Game over! The remaining villagers managed to destroy the wolves, however the guardians " +
+                                   "that used to watch over the village are nowhere to be found. The village lives on in an " +
+                                   "uneasy peace, not knowing when they will be destroyed completely now that they are " +
+                                   "defenseless. Nobody wins.")
+        elif lwolves == lguardians and lpl - lwolves - lguardians == 0:
+            evt.data["winner"] = "none"
+            evt.data["message"] = ("Game over! The guardians, angered by the loss of everyone they were meant to guard, " +
+                                   "engage the wolves in battle and mutually assured destruction. After the dust settles " +
+                                   "the village is completely dead, and nobody wins.")
         else:
             evt.data["winner"] = None
 
