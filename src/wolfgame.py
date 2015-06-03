@@ -6928,8 +6928,8 @@ def myrole(cli, nick, chan, rest):
         pm(cli, nick, "You are an \u0002assassin\u0002{0}.".format(" and targeting {0}".format(var.TARGETED[nick]) if nick in var.TARGETED else ""))
 
     # Remind player if they were bitten by alpha wolf
-    if nick in var.BITTEN:
-        pm(cli, nick, "You were bitten by an alpha wolf and have \u0002{0} day{1}\u0002 until your transformation.".format(var.BITTEN[nick], "" if var.BITTEN[nick] == 1 else "s"))
+    if nick in var.BITTEN and role not in var.WOLF_ROLES:
+        pm(cli, nick, "You were bitten by an alpha wolf and have \u0002{0} night{1}\u0002 until your transformation.".format(max(var.BITTEN[nick], 0), "" if var.BITTEN[nick] == 1 else "s"))
 
     # Remind lovers of each other
     if nick in ps and nick in var.LOVERS:
@@ -7354,9 +7354,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                    for (ghost, team) in var.VENGEFUL_GHOSTS.items())))
 
         #show bitten users + days until turning
-        if var.BITTEN: # and sum(var.BITTEN.values()) > 0:
-            output.append("\u0002bitten\u0002: {0}".format(", ".join("{0} ({1} day{2} until transformation)".format(
-             nickname, days, "" if days == 1 else "s") for (nickname,days) in var.BITTEN.items())))
+        if var.BITTEN and next((days for (nickname,days) in var.BITTEN.items() if days > 0 or var.get_role(nickname) not in var.WOLF_ROLES), None) is not None:
+            output.append("\u0002bitten\u0002: {0}".format(", ".join("{0} ({1} night{2} until transformation)".format(
+                nickname, max(days, 0), "" if days == 1 else "s") for (nickname,days) in var.BITTEN.items() if days > 0 or var.get_role(nickname) not in var.WOLF_ROLES)))
 
         #show who got immunized
         if var.IMMUNIZED:
