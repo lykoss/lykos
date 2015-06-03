@@ -1311,6 +1311,9 @@ def stats(cli, nick, chan, rest):
         if role in amn_roles:
             count += amn_roles[role]
 
+        if role in var.FAKE_ROLES:
+            count += var.FAKE_ROLES[role]
+
         if role == rs[0]:
             if count == 1:
                 vb = "is"
@@ -3197,6 +3200,15 @@ def transition_day(cli, gameid=0):
         for s, v in var.LASTGIVEN.items():
             if v == d and var.TOTEMS[s] == "death":
                 killers[d].append(s)
+
+    conceal_role = set()
+    for ars, target in var.ARSONIST_TARGETS.items():
+        victims.append(target)
+        onlybywolves.discard(target)
+        killers[target].append(ars)
+        conceal_role.add(target)
+        var.BURNED_HOUSES.add(target)
+
     victims_set = set(victims) # remove duplicates
     victims_set.discard(None) # in the event that ever happens
     victims = []
@@ -3271,7 +3283,8 @@ def transition_day(cli, gameid=0):
         if crow not in var.ROLES["werecrow"]:
             continue
         if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
-            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
+            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target]) or
+            target in var.ARSONIST_TARGETS):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed all night, and you fly back to your house.").format(target))
         else:
@@ -3285,9 +3298,85 @@ def transition_day(cli, gameid=0):
         novictmsg = False
 
     for victim in vlist:
-        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves:
+        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves and victim not in conceal_role:
             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
             novictmsg = False
+        elif victim in conceal_role and (victim in var.HVISITED.values() or victim in bywolves):
+            targets = [x for x in var.HVISITED if var.HVISISTED[x] == victim] + [x for x in var.KILLS if victim in var.KILLS[x]]
+
+            if (victim not in var.HVISITED and victim not in var.GUARDED and victim not in var.KILLS and
+                victim not in var.OTHER_KILLS and victim not in var.HEXED and victim not in var.SHAMANS and
+                victim not in var.CURSED and victim not in var.CHARMERS and victim not in var.ARSONIST_TARGETS and
+               (victim not in var.OBSERVED or victim in var.ROLES["werecrow"])):
+
+                if targets:
+                    dead.extend(targets + [victim])
+                    message.append(("\u0002{0}\u0002's house burned down last night, killing them and " +
+                                    "\u0002{1}\u0002.").format(victim,
+                                   ("\u0002, \u0002".join(targets[:-1]) if len(targets) > 1 else "") +
+                                   "\u0002{0}\u0002{1}".format(" and " if len(targets) > 1 else "", targets[-1])))
+                    novictmsg = False
+                    for t in targets:
+                        var.FAKE_ROLES[var.get_role(t)] += 1
+                    var.FAKE_ROLES[var.get_role(victim)] += 1
+
+                else:
+                    dead.append(victim)
+                    message.append("\u0002{0}\u0002's house burned down last night, killing them.".format(victim))
+                    novictmsg = False
+                    var.FAKE_ROLES[var.get_role(victim)] += 1
+
+            else:
+                dead.extend(targets)
+                message.append(("\u0002{0}\u0002's house burned down last night, but thankfully, they weren't home. " +
+                                "However, \u0002{1}\u0002 {2} for some reason over at their house, and died in the fire.").format(
+                                victim, "\u0002, \u0002".join(targets[:-1]) + "\u0002 and \u0002{0}".format(targets[-1]),
+                                len(targets) == 1 and "was" or "were"))
+                novictmsg = False
+                var.BURNED_HOUSES.add(victim)
+                for t in targets:
+                    var.FAKE_ROLES[var.get_role(t)] += 1
+
+        elif victim in conceal_role and (victim in var.HVISITED or victim in var.GUARDED or victim in var.KILLS or
+                                         victim in var.OTHER_KILLS or victim in var.HEXED or victim in var.SHAMANS or
+                                         victim in var.CURSED or victim in var.CHARMERS or victim in var.ARSONIST_TARGETS or
+                                        (victim in var.OBSERVED and victim in var.ROLES["werecrow"])):
+            message.append("\u0002{0}\u0002's house burned down last night, but thankfully, they weren't home.".format(victim))
+            novictmsg = False
+        elif victim in conceal_role and (victim in var.SEEN or (victim in var.OBSERVED and victim in var.ROLES["sorcerer"]) or
+                                         victim in var.CHARMED): # special case for charmed players, who will coincidentally be awake
+                                                                 # this shouldn't happen in normal games because of balance issues
+            if random.random() <= var.FIRE_ESCAPE_CHANCE:
+                message.append(("An arsonist burned down \u0002{0}\u0002's house last night, but luckily, they were " +
+                                "awake and could make it out in time.").format(victim))
+                novictmsg = False
+                var.BURNED_HOUSES.add(victim)
+            else:
+                dead.append(victim)
+                message.append(("An arsonist threw a molotov at \u0002{0}\u0002's house last night. They tried to " +
+                                "get out, but couldn't make it in time. The village mourns the loss.").format(victim))
+                novictmsg = False
+                var.FAKE_ROLES[var.get_role(victim)] += 1
+        elif victim in conceal_role and victim in var.GUARDED.values():
+            for gangel in var.ROLES["guardian angel"]:
+                if var.GUARDED.get(gangel) == victim:
+                    message.append("\u0002{0}\u0002's house burned down last, but thankfully, the guardian angel could save them.".format(victim))
+                    novictmsg = False
+                    break
+            else:
+                for bodyguard in var.ROLES["bodyguard"]:
+                    if var.GUARDED.get(bodyguard) == victim:
+                        dead.append(bodyguard)
+                        message.append(("\u0002{0}\u0002's house burned down last night, but \u0002{1}\u0002 sacrified " +
+                                        "their live to save them.").format(victim, bodyguard))
+                        novictmsg = False
+                        break
+            var.BURNED_HOUSES.add(victim)
+        elif victim in conceal_role:
+            dead.append(victim)
+            message.append("\u0002{0}\u0002's house has been burned down, leaving them to ashes.".format(victim))
+            novictmsg = False
+            var.FAKE_ROLES[var.get_role(victim)] += 1
         elif victim in var.PROTECTED and victim not in var.DYING:
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
                             "emitted a brilliant flash of light, blinding the attacker and " +
@@ -3512,16 +3601,20 @@ def chk_nightdone(cli):
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
                       list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
-                      var.CURSED + list(var.CHARMERS))
+                      var.CURSED + list(var.CHARMERS) + list(var.ARSONIST_TARGETS))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
                   var.ROLES["werecrow"] + var.ROLES["alpha wolf"] + var.ROLES["sorcerer"] + var.ROLES["hunter"] +
                   list(var.VENGEFUL_GHOSTS.keys()) + var.ROLES["hag"] + var.ROLES["shaman"] +
                   var.ROLES["crazed shaman"] + var.ROLES["augur"] + var.ROLES["werekitten"] +
-                  var.ROLES["warlock"] + var.ROLES["piper"])
+                  var.ROLES["warlock"] + var.ROLES["piper"] + var.ROLES["arsonist"])
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS + list(var.CLONED.keys()))
         nightroles += var.ROLES["matchmaker"] + var.ROLES["clone"]
+
+    for ars in var.ARSONISTS:
+        if var.ARSONISTS[ars] < 1 and ars not in var.ARSONIST_TARGETS:
+            nightroles.remove(ars)
 
     if var.DISEASED_WOLVES:
         nightroles = [p for p in nightroles if p not in (var.ROLES["wolf"] + var.ROLES["alpha wolf"] + var.ROLES["werekitten"])]
@@ -4671,7 +4764,7 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), victim if victim else "wolves' target", vrole if vrole else "unknown"))
 
-@cmd("pass", chan=False, pm=True, game=True, playing=True, roles=("hunter",))
+@cmd("pass", chan=False, pm=True, game=True, playing=True, roles=("hunter", "arsonist"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to kill someone for that night."""
     if var.PHASE != "night":
@@ -4680,15 +4773,20 @@ def pass_cmd(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
         return
+    role = var.get_role(nick)
 
-    if nick in var.OTHER_KILLS.keys():
+    if role == "hunter" and nick in var.OTHER_KILLS.keys():
         del var.OTHER_KILLS[nick]
         var.HUNTERS.remove(nick)
+
+    if role == "arsonist" and nick in var.ARSONIST_TARGETS:
+        pm(cli, nick, "You have already thrown a molotov for tonight.")
+        return
 
     pm(cli, nick, "You have decided to not kill anyone tonight.")
     if nick not in var.PASSED: # Prevents multiple entries
         var.PASSED.append(nick)
-    debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
+    debuglog("{0} ({1}) PASS".format(nick, role))
     chk_nightdone(cli)
 
 @cmd("choose", "match", chan=False, pm=True, game=True, playing=True, roles=("matchmaker",))
@@ -4986,6 +5084,44 @@ def charm(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
+@cmd("throw", "burn", chan=False, pm=True, game=True, playing=True, roles=("arsonist",))
+def throw_molotov(cli, nick, chan, rest):
+    """Throw a molotov at someone's house. Watch out for the flames!"""
+    if var.ARSONISTS[nick] < 1:
+        pm(cli, nick, "You are out of molotovs to throw.")
+        return
+    if var.PHASE != "night":
+        pm(cli, nick, "You may only throw molotovs during the night.")
+        return
+    if nick in var.SILENCED:
+        pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        return
+    if nick in var.ARSONIST_TARGETS:
+        pm(cli, nick, "You have already thrown a molotov for tonight.")
+        return
+
+    victim = re.split(" +", rest)[0]
+    victim = get_victim(cli, nick, victim, False, True)
+    if not victim:
+        return
+
+    if victim == nick:
+        pm(cli, nick, "Throwing a molotov at your own house would be stupid.")
+        return
+    if victim in var.BURNED_HOUSES:
+        pm(cli, nick, "This house is already burned down.")
+        return
+
+    var.ARSONIST_TARGETS[nick] = victim
+    var.ARSONISTS[nick] -= 1
+
+    pm(cli, nick, "You have thrown a molotov at \u0002{0}\u0002's house.")
+
+    debuglog("{0} ({1}) BURN {2} ({3})".format(nick, var.get_role(nick),
+                                               victim, var.get_role(victim)))
+
+    chk_nightdone(cli)
+
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
     for r in rest:
@@ -5128,6 +5264,7 @@ def transition_night(cli):
     var.PASSED = [] # list of hunters that have chosen not to kill
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
+    var.ARSONIST_TARGETS = {}
     var.HVISITED = {}
     var.ASLEEP = []
     var.DYING = []
@@ -5662,6 +5799,25 @@ def transition_night(cli):
             pm(cli, piper, "You are a \u0002piper\u0002.")
         pm(cli, piper, "Players: " + ", ".join(pl))
 
+    for ars in var.ROLES["arsonist"]:
+        if not var.ARSONISTS.get(ars):
+            continue
+        pl = ps[:]
+        random.shuffle(pl)
+        pl.remove(ars)
+        for house in var.BURNED_HOUSES:
+            if house in pl:
+                pl.remove(house)
+        if ars in var.PLAYERS and not is_user_simple(ars):
+            pm(cli, ars, ("You are an \u0002arsonist\u0002. You may throw a molotov " +
+                          "at someone's house, killing who's inside, if there are any. " +
+                          'Use "throw <nick>" to throw a molotov at a player, or "pass" ' +
+                          'to not throw any molotov tonight. You get \u0002{0}\u0002 molotovs.').format(
+                          var.ARSONISTS[ars]))
+        else:
+            pm(cli, ars, "You are an \u0002arsonist\u0002 with \u0002{0}\u0002 molotovs.".format(var.ARSONISTS[ars]))
+        pm(cli, ars, "Players: " + ", ".join(pl))
+
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
@@ -5959,6 +6115,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BITTEN_ROLES = {}
     var.CHARMERS = set()
     var.CHARMED = set()
+    var.ARSONISTS = {}
+    var.BURNED_HOUSES = set()
+    var.FAKE_ROLES = defaultdict(int)
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -6051,6 +6210,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
     for amn in var.FINAL_ROLES:
         if var.FINAL_ROLES[amn] == "doctor":
             var.DOCTORS[amn] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(pl))
+
+    # handle arsonist
+    for ars in var.ROLES["arsonist"]:
+        var.ARSONISTS[ars] = math.ceil(var.ARSONIST_MOLOTOVS_MULTIPLIER * len(pl))
+    for amn in var.FINAL_ROLES:
+        if var.FINAL_ROLES[amn] == "arsonist":
+            var.ARSONISTS[amn] = math.ceil(var.ARSONIST_MOLOTOVS_MULTIPLIER * len(pl))
 
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
