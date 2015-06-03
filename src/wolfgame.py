@@ -7226,7 +7226,7 @@ def _say(cli, raw_nick, rest, command, action=False):
             return
 
     if action:
-        message = "\u0001ACTION {0}\0001".format(message)
+        message = "\u0001ACTION {0}\u0001".format(message)
 
     cli.send("PRIVMSG {0} :{1}".format(target, message))
 
