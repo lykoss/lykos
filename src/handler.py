@@ -59,7 +59,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
 
     for fn in decorators.COMMANDS[""]:
         try:
-            fn(cli, rawnick, chan, msg)
+            fn.caller(cli, rawnick, chan, msg)
         except Exception:
             if botconfig.DEBUG_MODE:
                 raise
@@ -79,7 +79,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
                 try:
-                    fn(cli, rawnick, chan, h.lstrip())
+                    fn.caller(cli, rawnick, chan, h.lstrip())
                 except Exception:
                     if botconfig.DEBUG_MODE:
                         raise
@@ -94,7 +94,7 @@ def unhandled(cli, prefix, cmd, *args):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
         for fn in decorators.HOOKS.get(cmd, []):
             try:
-                fn(cli, prefix, *largs)
+                fn.caller(cli, prefix, *largs)
             except Exception as e:
                 if botconfig.DEBUG_MODE:
                     raise e

@@ -1,6 +1,3 @@
-# Old, obsolete & original code by jcao219
-# rewritten by Vgr
-
 import fnmatch
 from collections import defaultdict
 
@@ -46,12 +43,12 @@ class cmd:
                 self.aliases.append(self)
             alias = True
 
-    def __call__(self, *args):
-        if self.func is None: # when function is defined; set self.func and call itself again
-            self.func = args[0]
-            self.__doc__ = self.func.__doc__
-            return self
+    def __call__(self, func):
+        self.func = func
+        self.__doc__ = self.func.__doc__
+        return self
 
+    def caller(self, *args):
         largs = list(args)
 
         cli, rawnick, chan, rest = largs
@@ -205,11 +202,12 @@ class hook:
 
         HOOKS[name].append(self)
 
-    def __call__(self, *args):
-        if self.func is None:
-            self.func = args[0]
-            self.__doc__ = self.func.__doc__
-            return self
+    def __call__(self, func):
+        self.func = func
+        self.__doc__ = self.func.__doc__
+        return self
+
+    def caller(self, *args):
         return self.func(*args)
 
     @staticmethod
