@@ -581,16 +581,20 @@ def restart_program(cli, nick, chan, rest):
     except Exception:
         notify_error(cli, chan, errlog)
 
-    @hook("error")
-    def restart_buffer(*s):
-        plog("RESTARTING")
+    @hook("quit")
+    def restart_buffer(cli, raw_nick, reason):
+        nick, _, __, cloak = parse_nick(raw_nick)
+        # restart the bot once our quit message goes though to ensure entire IRC queue is sent
+        # if the bot is using a nick that isn't botconfig.NICK, then stop breaking things and fdie
+        if nick == botconfig.NICK:
+            plog("RESTARTING")
 
-        python = sys.executable
+            python = sys.executable
 
-        if mode:
-            os.execl(python, python, sys.argv[0], "--{0}".format(mode))
-        else:
-            os.execl(python, python, *sys.argv)
+            if mode:
+                os.execl(python, python, sys.argv[0], "--{0}".format(mode))
+            else:
+                os.execl(python, python, *sys.argv)
 
 
 @cmd("ping", chan=False, pm=True)
