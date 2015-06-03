@@ -1939,7 +1939,7 @@ def chk_win(cli, end_game = True):
         if lpl < 1:
             message = "Game over! There are no players remaining."
             winner = "none"
-        elif lpipers and len(var.list_players()) - lpipers == len(var.CHARMED - set(var.ROLES["piper"])):
+        elif var.PHASE == "day" and lpipers and len(var.list_players()) - lpipers == len(var.CHARMED - set(var.ROLES["piper"])):
             winner = "pipers"
             message = ("Game over! Everyone has fallen victim to the charms of the " +
                        "piper{0}. The piper{0} lead{1} the villagers away from the village, " +
