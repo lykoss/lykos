@@ -181,9 +181,6 @@ class hook:
         self.__doc__ = self.func.__doc__
         return self
 
-    def caller(self, *args):
-        return self.func(*args)
-
     @staticmethod
     def unhook(hookid):
         for each in list(HOOKS):

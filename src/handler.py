@@ -94,7 +94,7 @@ def unhandled(cli, prefix, cmd, *args):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
         for fn in decorators.HOOKS.get(cmd, []):
             try:
-                fn.caller(cli, prefix, *largs)
+                fn.func(cli, prefix, *largs)
             except Exception as e:
                 if botconfig.DEBUG_MODE:
                     raise e
