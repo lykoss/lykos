@@ -6420,7 +6420,7 @@ def reset_game(cli, nick, chan, rest):
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
-    if (var.PHASE in ("day", "night") and nick not in var.list_players()) or nick == chan:
+    if (var.PHASE in ("day", "night") and nick not in var.list_players()) and chan != botconfig.CHANNEL:
         cli.notice(nick, var.RULES)
         return
     cli.msg(chan, var.RULES)
@@ -6613,7 +6613,7 @@ def show_admins(cli, nick, chan, rest):
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
 
-    if var.PHASE in ("day", "night") and nick not in var.list_players():
+    if var.PHASE in ("day", "night") and nick not in var.list_players() and chan == botconfig.CHANNEL:
         cli.notice(nick, "You may not use this command right now.")
         return
 
@@ -6631,7 +6631,7 @@ def coin(cli, nick, chan, rest):
 def pony(cli, nick, chan, rest):
     """For entertaining bronies."""
 
-    if var.PHASE in ("day", "night") and nick not in var.list_players():
+    if var.PHASE in ("day", "night") and nick not in var.list_players() and chan == botconfig.CHANNEL:
         cli.notice(nick, "You may not use this command right now.")
         return
 
