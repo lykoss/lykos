@@ -65,7 +65,7 @@ class cmd:
         if not self.chan and chan != nick:
             return # channel command, not allowed
 
-        if chan.startswith("#") and chan != botconfig.CHANNEL and not (admin_only or owner_only):
+        if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.admin_only or self.owner_only):
             if "" in self.cmds:
                 return # don't have empty commands triggering in other channels
             for command in self.cmds:
