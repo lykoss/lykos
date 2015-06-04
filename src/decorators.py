@@ -59,9 +59,6 @@ class cmd:
         if not self.raw_nick:
             largs[1] = nick
 
-        if nick == "<console>":
-            return self.func(*largs) # special case; no questions
-
         if not self.pm and chan == nick:
             return # PM command, not allowed
 

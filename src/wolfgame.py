@@ -135,12 +135,12 @@ def connect_callback(cli):
 
     def sighandler(signum, frame):
         if signum in (signal.SIGINT, signal.SIGTERM):
-            forced_exit(cli, "<console>", botconfig.CHANNEL, "")
+            forced_exit.func(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == SIGUSR1:
-            restart_program(cli, "<console>", botconfig.CHANNEL, "")
+            restart_program.func(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == SIGUSR2:
             plog("Scheduling aftergame restart")
-            aftergame(cli, "<console>", botconfig.CHANNEL, "frestart")
+            aftergame.func(cli, "<console>", botconfig.CHANNEL, "frestart")
 
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
@@ -3593,7 +3593,7 @@ def no_lynch(cli, nick, chan, rest):
 def lynch(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
     if not rest:
-        show_votes(cli, nick, chan, rest)
+        show_votes.caller(cli, nick, chan, rest)
         return
     if chan != botconfig.CHANNEL:
         return
@@ -4415,9 +4415,9 @@ def give(cli, nick, chan, rest):
     """Give a totem or immunization to a player."""
     role = var.get_role(nick)
     if role in var.TOTEM_ORDER:
-        totem(cli, nick, chan, rest)
+        totem.caller(cli, nick, chan, rest)
     elif role == "doctor":
-        immunize(cli, nick, chan, rest)
+        immunize.caller(cli, nick, chan, rest)
 
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 def totem(cli, nick, chan, rest):
@@ -4567,7 +4567,7 @@ def bite_cmd(cli, nick, chan, rest):
     vrole = None
     # also mark the victim as the kill target
     if victim:
-        kill(cli, nick, chan, rest)
+        kill.caller(cli, nick, chan, rest)
 
     if var.ANGRY_WOLVES:
         if not victim:
@@ -5777,11 +5777,11 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if var.ADMIN_TO_PING and not restart:
         if "join" in COMMANDS.keys():
-            COMMANDS["join"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            COMMANDS["join"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         if "j" in COMMANDS.keys():
-            COMMANDS["j"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            COMMANDS["j"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
         if "start" in COMMANDS.keys():
-            COMMANDS["start"] = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            COMMANDS["start"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
 
     if not restart: # will already be stored if restarting
         var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
@@ -6001,7 +6001,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 @hook("error")
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
-        restart_program(cli, "excess flood", "")
+        restart_program.func(cli, "excess flood", "")
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
@@ -6847,7 +6847,7 @@ def aftergame(cli, rawnick, chan, rest):
         def do_action():
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
-                fn(cli, rawnick, botconfig.CHANNEL if fn.chan else nick, " ".join(rst))
+                fn.caller(cli, rawnick, botconfig.CHANNEL if fn.chan else nick, " ".join(rst))
                 fn.aftergame = False
     else:
         cli.notice(nick, "That command was not found.")
@@ -6898,7 +6898,7 @@ def flastgame(cli, rawnick, chan, rest):
     var.ADMIN_TO_PING = nick
 
     if rest.strip():
-        aftergame(cli, rawnick, botconfig.CHANNEL, rest)
+        aftergame.func(cli, rawnick, botconfig.CHANNEL, rest)
 
 @cmd("gamestats", "gstats", pm=True)
 def game_stats(cli, nick, chan, rest):
@@ -7007,7 +7007,7 @@ def player_stats(cli, nick, chan, rest):
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
-    player_stats(cli, nick, chan, " ".join([nick] + rest))
+    player_stats.func(cli, nick, chan, " ".join([nick] + rest))
 
 @cmd("game", playing=True, phases=("join",))
 def game(cli, nick, chan, rest):
@@ -7049,11 +7049,11 @@ def vote(cli, nick, chan, rest):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if rest:
         if var.PHASE == "join" and chan != nick:
-            return game(cli, nick, chan, rest)
+            return game.caller(cli, nick, chan, rest)
         else:
-            return lynch(cli, nick, chan, rest)
+            return lynch.caller(cli, nick, chan, rest)
     else:
-        return show_votes(cli, nick, chan, rest)
+        return show_votes.caller(cli, nick, chan, rest)
 
 @cmd("fpull", admin_only=True, pm=True)
 def fpull(cli, nick, chan, rest):
@@ -7186,7 +7186,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 pm(cli, nick, "You are not allowed to use that command right now.")
             else:
                 cli.notice(nick, "You are not allowed to use that command right now.")
-
             return
 
         output = []
@@ -7343,9 +7342,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     continue
                 for user in who:
                     if fn.chan:
-                        fn(cli, user, chan, " ".join(rst))
+                        fn.caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn(cli, user, user, " ".join(rst))
+                        fn.caller(cli, user, user, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
@@ -7383,9 +7382,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     continue
                 for user in tgt[:]:
                     if fn.chan:
-                        fn(cli, user, chan, " ".join(rst))
+                        fn.caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn(cli, user, user, " ".join(rst))
+                        fn.caller(cli, user, user, " ".join(rst))
             cli.msg(chan, "Operation successful.")
         else:
             cli.msg(chan, "That command was not found.")
