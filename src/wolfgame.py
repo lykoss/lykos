@@ -5676,7 +5676,7 @@ def cgamemode(cli, arg):
 
 
 @cmd("start", phases=("join",))
-def fstart(cli, nick, chan, rest):
+def start_cmd(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
     start(cli, nick, chan)
 
