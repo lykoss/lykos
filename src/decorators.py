@@ -13,7 +13,7 @@ HOOKS = defaultdict(list)
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, admin_only=False, owner_only=False,
-                 chan=True, pm=False, join=False, none=False, game=False, playing=False, roles=()):
+                 chan=True, pm=False, playing=False, silenced=False, phases=(), roles=()):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
@@ -21,10 +21,9 @@ class cmd:
         self.owner_only = owner_only
         self.chan = chan
         self.pm = pm
-        self.join = join
-        self.none = none
-        self.game = game
         self.playing = playing
+        self.silenced = silenced
+        self.phases = phases
         self.roles = roles
         self.func = None
         self.aftergame = False
@@ -86,41 +85,21 @@ class cmd:
         if "" in self.cmds:
             return self.func(*largs)
 
-        if self.game and var.PHASE not in ("day", "night") + (("join",) if self.join else ()):
-            if chan == nick:
-                pm(cli, nick, "No game is currently running.")
-            else:
-                cli.notice(nick, "No game is currently running.")
+        if self.phases and var.PHASE not in self.phases:
             return
-
-        if ((self.join and self.none and var.PHASE not in ("join", "none")) or
-                     (self.none and not self.join and var.PHASE != "none")):
-            if chan == nick:
-                pm(cli, nick, "Sorry, but the game is already running. Try again next time.")
-            else:
-                cli.notice(nick, "Sorry, but the game is already running. Try again next time.")
-            return
-
-        if self.join and not self.none:
-            if var.PHASE == "none":
-                if chan == nick:
-                    pm(cli, nick, "No game is currently running.")
-                else:
-                    cli.notice(nick, "No game is currently running.")
-                return
-
-            if var.PHASE != "join" and not self.game:
-                if chan == nick:
-                    pm(cli, nick, "Werewolf is already in play.")
-                else:
-                    cli.notice(nick, "Werewolf is already in play.")
-                return
 
         if self.playing and (nick not in var.list_players() or nick in var.DISCONNECTED):
             if chan == nick:
                 pm(cli, nick, "You're not currently playing.")
             else:
                 cli.notice(nick, "You're not currently playing.")
+            return
+
+        if self.silenced and nick in var.SILENCED:
+            if chan == nick:
+                pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+            else:
+                cli.notice(nick, "You have been silenced, and are unable to use any special powers.")
             return
 
         if self.roles:
