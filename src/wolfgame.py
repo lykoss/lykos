@@ -3752,7 +3752,8 @@ def check_exchange(cli, actor, nick):
                 del var.KILLS[actor]
         elif actor_role == "harlot":
             if actor in var.HVISITED:
-                pm(cli, var.HVISITED[actor], "\u0002{0}\u0002 seems to have disappeared...".format(actor))
+                if var.HVISITED[actor] is not None:
+                    pm(cli, var.HVISITED[actor], "\u0002{0}\u0002 seems to have disappeared...".format(actor))
                 del var.HVISITED[actor]
         elif actor_role in ("seer", "oracle", "augur"):
             if actor in var.SEEN:
@@ -3818,7 +3819,8 @@ def check_exchange(cli, actor, nick):
                 del var.KILLS[nick]
         elif nick_role == "harlot":
             if nick in var.HVISITED:
-                pm(cli, var.HVISITED[nick], "\u0002{0}\u0002 seems to have disappeared...".format(nick))
+                if var.HVISITED[nick] is not None:
+                    pm(cli, var.HVISITED[nick], "\u0002{0}\u0002 seems to have disappeared...".format(nick))
                 del var.HVISITED[nick]
         elif nick_role in ("seer", "oracle", "augur"):
             if nick in var.SEEN:
