@@ -5782,10 +5782,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
 
     if var.ADMIN_TO_PING and not restart:
-        if "join" in COMMANDS.keys():
-            COMMANDS["join"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
-        if "start" in COMMANDS.keys():
-            COMMANDS["start"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
+        for decor in (COMMANDS.get("join", []) + COMMANDS.get("start", [])):
+            decor(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
 
     if not restart: # will already be stored if restarting
         var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
@@ -6887,10 +6885,8 @@ def flastgame(cli, rawnick, chan, rest):
 
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
-        if "join" in COMMANDS.keys():
-            COMMANDS["join"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
-        if "start" in COMMANDS.keys():
-            COMMANDS["start"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
+        for decor in (COMMANDS.get("join", []) + COMMANDS.get("start", [])):
+            decor(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
 
     cli.msg(chan, "Creating a new game has now been disabled by \u0002{0}\u0002.".format(nick))
     var.ADMIN_TO_PING = nick
