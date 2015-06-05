@@ -227,12 +227,11 @@ class IRCClient(object):
                             enc = "latin1"
                             fargs = [arg.decode(enc) for arg in args if isinstance(arg,bytes)]
 
-                        self.stream_handler("processCommand ({2}){0}({1})".format(command,
-                                                       fargs, prefix), level="debug")
                         try:
                             largs = list(args)
                             if prefix is not None:
                                 prefix = prefix.decode(enc)
+                            self.stream_handler("<--- receive {0} {1} ({2})".format(prefix, command, ", ".join(fargs)), level="debug")
                             # for i,arg in enumerate(largs):
                                 # if arg is not None: largs[i] = arg.decode(enc)
                             if command in self.command_handler:
