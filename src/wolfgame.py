@@ -5783,11 +5783,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if var.ADMIN_TO_PING and not restart:
         if "join" in COMMANDS.keys():
-            COMMANDS["join"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
-        if "j" in COMMANDS.keys():
-            COMMANDS["j"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            COMMANDS["join"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
         if "start" in COMMANDS.keys():
-            COMMANDS["start"].caller = [lambda *spam: cli.msg(chan, "This command has been disabled by an admin.")]
+            COMMANDS["start"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
 
     if not restart: # will already be stored if restarting
         var.ALL_PLAYERS = copy.copy(var.ROLES["person"])
@@ -6890,17 +6888,11 @@ def flastgame(cli, rawnick, chan, rest):
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
         if "join" in COMMANDS.keys():
-            del COMMANDS["join"]
-            cmd("join")(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
-            # manually recreate the command by calling the decorator function
-        if "j" in COMMANDS.keys():
-            del COMMANDS["j"]
-            cmd("j")(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
+            COMMANDS["join"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
         if "start" in COMMANDS.keys():
-            del COMMANDS["start"]
-            cmd("start")(lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
+            COMMANDS["start"][0](lambda *spam: cli.msg(chan, "This command has been disabled by an admin."))
 
-    cli.msg(chan, "Starting a new game has now been disabled by \u0002{0}\u0002.".format(nick))
+    cli.msg(chan, "Creating a new game has now been disabled by \u0002{0}\u0002.".format(nick))
     var.ADMIN_TO_PING = nick
 
     if rest.strip():
