@@ -4032,7 +4032,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, actor, "Players: " + ", ".join(pl))
             if actor_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager",))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
                 pm(cli, actor, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
@@ -4073,7 +4073,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, nick, "Players: " + ", ".join(pl))
             if nick_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager",))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
                 pm(cli, nick, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
@@ -5505,7 +5505,7 @@ def transition_night(cli):
         if role == "wolf mystic":
             # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager",))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
         if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
