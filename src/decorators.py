@@ -119,11 +119,9 @@ class cmd:
                 cli.notice(nick, "You are not the owner.")
             return
 
-        if not self.admin_only:
-            return self.func(*largs)
-
         if var.is_admin(nick, cloak):
-            adminlog(chan, rawnick, self.name, rest)
+            if self.admin_only:
+                adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
         if acc:
@@ -141,7 +139,8 @@ class cmd:
                 if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                     for command in self.cmds:
                         if command in var.ALLOW_ACCOUNTS[pattern]:
-                            adminlog(chan, rawnick, self.name, rest)
+                            if self.admin_only:
+                                adminlog(chan, rawnick, self.name, rest)
                             return self.func(*largs)
 
         if not var.ACCOUNTS_ONLY and cloak:
@@ -159,14 +158,18 @@ class cmd:
                 if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                     for command in self.cmds:
                         if command in var.ALLOW[pattern]:
-                            adminlog(chan, rawnick, self.name, rest)
+                            if self.admin_only:
+                                adminlog(chan, rawnick, self.name, rest)
                             return self.func(*largs)
 
-        if chan == nick:
-            pm(cli, nick, "You are not an admin.")
-        else:
-            cli.notice(nick, "You are not an admin.")
-        return
+        if self.admin_only:
+            if chan == nick:
+                pm(cli, nick, "You are not an admin.")
+            else:
+                cli.notice(nick, "You are not an admin.")
+            return
+
+        return self.func(*largs)
 
 class hook:
     def __init__(self, name, hookid=-1):
