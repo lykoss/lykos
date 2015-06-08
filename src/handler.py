@@ -140,7 +140,7 @@ def connect_callback(cli):
         cli.nick(botconfig.NICK+"_")
         cli.user(botconfig.NICK, "")
 
-        hook.unhook(HOOKS, 239)
+        hook.unhook(239)
         hook("unavailresource")(mustrelease)
         hook("nicknameinuse")(mustregain)
 
