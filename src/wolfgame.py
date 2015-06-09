@@ -3990,7 +3990,7 @@ def check_exchange(cli, actor, nick):
             var.TOTEMS[actor] = nick_totem
         elif nick_role == "mystic":
             numevil = len(var.list_players(var.WOLFTEAM_ROLES))
-            pm(cli, actor, "There are \u0002{0}\u0002 evil villager{1} still alive.".format(numevil, "s" if numevil != 1 else ""))
+            pm(cli, actor, "There {0} \u0002{1}\u0002 evil villager{2} still alive.".format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
         elif nick_role in var.WOLFCHAT_ROLES and actor_role not in var.WOLFCHAT_ROLES:
             pl = var.list_players()
             random.shuffle(pl)
@@ -4010,7 +4010,7 @@ def check_exchange(cli, actor, nick):
             if actor_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
                 numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
-                pm(cli, actor, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
+                pm(cli, actor, "There {0} \u0002{1}\u0002 special villager{2} still alive.".format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
             elif var.ANGRY_WOLVES and actor_role in var.WOLF_ROLES and actor_role != "wolf cub":
@@ -4031,7 +4031,7 @@ def check_exchange(cli, actor, nick):
             var.TOTEMS[nick] = actor_totem
         elif actor_role == "mystic":
             numevil = len(var.list_players(var.WOLFTEAM_ROLES))
-            pm(cli, nick, "There are \u0002{0}\u0002 evil villager{1} still alive.".format(numevil, "s" if numevil != 1 else ""))
+            pm(cli, nick, "There {0} \u0002{1}\u0002 evil villager{2} still alive.".format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
         elif actor_role in var.WOLFCHAT_ROLES and nick_role not in var.WOLFCHAT_ROLES:
             pl = var.list_players()
             random.shuffle(pl)
@@ -4051,7 +4051,7 @@ def check_exchange(cli, actor, nick):
             if nick_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
                 numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
-                pm(cli, nick, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
+                pm(cli, nick, "There {0} \u0002{1}\u0002 special villager{2} still alive.".format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
             elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow", "alpha wolf", "werekitten"):
@@ -5378,7 +5378,7 @@ def transition_night(cli):
             # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
             numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
-            pm(cli, wolf, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
+            pm(cli, wolf, "There {0} \u0002{1}\u0002 special villager{2} still alive.".format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
         if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
         if var.DISEASED_WOLVES:
@@ -5508,7 +5508,7 @@ def transition_night(cli):
             pm(cli, mystic, "You are the \u0002mystic\u0002.")
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
         numevil = len(var.list_players(var.WOLFTEAM_ROLES))
-        pm(cli, mystic, "There are \u0002{0}\u0002 evil villager{1} still alive.".format(numevil, "s" if numevil != 1 else ""))
+        pm(cli, mystic, "There {0} \u0002{1}\u0002 evil villager{2} still alive.".format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
     max_totems = {}
     for sham in var.TOTEM_ORDER:
