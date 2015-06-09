@@ -1258,7 +1258,7 @@ def stats(cli, nick, chan, rest):
             continue
 
         amnrole = var.get_role(amn)
-        if amnrole in ("village elder", "time lord"):
+        if amnrole == "time lord":
             amnrole = "villager"
         elif amnrole == "vengeful ghost":
             amnrole = var.DEFAULT_ROLE
@@ -1275,7 +1275,7 @@ def stats(cli, nick, chan, rest):
     vb = "are"
     for role in rs:
         # only show actual roles
-        if role in ("village elder", "time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
+        if role in ("time lord", "vengeful ghost") or role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
         count = len(var.ROLES[role])
         if role == "traitor" and var.HIDDEN_TRAITOR:
@@ -1288,9 +1288,8 @@ def stats(cli, nick, chan, rest):
                 count += len(var.ROLES["traitor"])
                 count += bitten_roles["traitor"]
             if var.DEFAULT_ROLE == "villager":
-                count += len(var.ROLES["village elder"] + var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
+                count += len(var.ROLES["time lord"] + var.ROLES["vengeful ghost"])
                 count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
-                count += bitten_roles["village elder"]
                 count += bitten_roles["time lord"]
                 count += bitten_roles["vengeful ghost"]
             else:
@@ -1298,10 +1297,9 @@ def stats(cli, nick, chan, rest):
                 count += bitten_roles["vengeful ghost"]
             count += bitten_roles[var.DEFAULT_ROLE]
         elif role == "villager":
-            count += len(var.ROLES["village elder"] + var.ROLES["time lord"])
+            count += len(var.ROLES["time lord"])
             count -= len([p for p in var.CURED_LYCANS if p in var.ROLES["villager"]])
             count += bitten_roles["villager"]
-            count += bitten_roles["village elder"]
             count += bitten_roles["time lord"]
         elif role == "wolf":
             count -= sum(bitten_roles.values())
@@ -2068,7 +2066,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 sayrole = nickrole
                             debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, sayrole))
                             # if cloning time lord or vengeful ghost, say they are villager instead
-                            if sayrole in ("time lord", "village elder"):
+                            if sayrole == "time lord":
                                 sayrole = "villager"
                             elif sayrole == "vengeful ghost":
                                 sayrole = var.DEFAULT_ROLE
@@ -2690,9 +2688,6 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.TOBESILENCED:
                 var.TOBESILENCED.remove(prefix)
                 var.TOBESILENCED.append(nick)
-            if prefix in var.DYING:
-                var.DYING.remove(prefix)
-                var.DYING.append(nick)
             if prefix in var.REVEALED_MAYORS:
                 var.REVEALED_MAYORS.remove(prefix)
                 var.REVEALED_MAYORS.append(nick)
@@ -3157,8 +3152,7 @@ def transition_day(cli, gameid=0):
         if target == "villagers":
             victim = var.OTHER_KILLS[ghost]
             killers[victim].append(ghost)
-            if victim not in var.DYING: # wolf ghost killing ghost will take precedence over everything except elder
-                wolfghostvictims.append(victim)
+            wolfghostvictims.append(victim)
 
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
@@ -3169,11 +3163,6 @@ def transition_day(cli, gameid=0):
         victims.append(d)
         onlybywolves.discard(d)
         killers[d].append(k)
-
-    # handle elder and other auto-deaths
-    for d in var.DYING:
-        victims.append(d)
-        onlybywolves.discard(d)
 
     victims_set = set(victims) # remove duplicates
     victims_set.discard(None) # in the event that ever happens
@@ -3186,9 +3175,6 @@ def transition_day(cli, gameid=0):
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
     # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard)
     for v in victims_set:
-        if v in var.DYING:
-            # this person is dying no matter what
-            continue
         numkills = victims.count(v)
         numtotems = var.PROTECTED.count(v)
         if numtotems >= numkills:
@@ -3410,7 +3396,7 @@ def transition_day(cli, gameid=0):
         novictmsg = False
 
     for victim in vlist:
-        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in var.DYING and victim not in dead and victim in onlybywolves:
+        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in dead and victim in onlybywolves:
             message.append("The wolves' selected victim was a harlot, who was not at home last night.")
             novictmsg = False
         elif protected.get(victim) == "totem":
@@ -3982,13 +3968,13 @@ def check_exchange(cli, actor, nick):
         actor_rev_role = actor_role
         if actor_role == "vengeful ghost":
             actor_rev_role = var.DEFAULT_ROLE
-        elif actor_role in ("village elder", "time lord"):
+        elif actor_role == "time lord":
             actor_rev_role = "villager"
 
         nick_rev_role = nick_role
         if nick_role == "vengeful ghost":
             nick_rev_role = var.DEFAULT_ROLE
-        elif actor_role in ("village elder", "time lord"):
+        elif actor_role == "time lord":
             nick_rev_role = "villager"
 
         # don't say who, since misdirection/luck totem may have switched it
@@ -4023,7 +4009,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, actor, "Players: " + ", ".join(pl))
             if actor_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
                 pm(cli, actor, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, actor, 'You are feeling ill tonight, and are unable to kill anyone.')
@@ -4064,7 +4050,7 @@ def check_exchange(cli, actor, nick):
             pm(cli, nick, "Players: " + ", ".join(pl))
             if nick_role == "wolf mystic":
                 # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+                numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
                 pm(cli, nick, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
             if var.DISEASED_WOLVES:
                 pm(cli, nick, 'You are feeling ill tonight, and are unable to kill anyone.')
@@ -5186,7 +5172,6 @@ def transition_night(cli):
     var.CHARMERS = set() # pipers who have charmed
     var.HVISITED = {}
     var.ASLEEP = []
-    var.DYING = []
     var.PROTECTED = []
     var.DESPERATE = []
     var.REVEALED = []
@@ -5274,7 +5259,7 @@ def transition_night(cli):
                     # no need for a/an since newrole is either wolf or fallen angel
                     pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(chump, newrole))
 
-    # convert amnesiac and kill village elder if necessary
+    # convert amnesiac
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amns = copy.copy(var.ROLES["amnesiac"])
         for amn in amns:
@@ -5285,7 +5270,7 @@ def transition_night(cli):
             if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                 continue
             showrole = amnrole
-            if showrole in ("village elder", "time lord"):
+            if showrole == "time lord":
                 showrole = "villager"
             elif showrole == "vengeful ghost":
                 showrole = var.DEFAULT_ROLE
@@ -5298,13 +5283,6 @@ def transition_night(cli):
                     if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
                         pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
             debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
-
-    numwolves = len(var.list_players(var.WOLF_ROLES))
-    if var.NIGHT_COUNT >= numwolves + 1:
-        if "village elder" in var.ROLES:
-            for elder in var.ROLES["village elder"]:
-                var.DYING.append(elder)
-                debuglog(elder, "ELDER DEATH")
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
         start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
@@ -5399,7 +5377,7 @@ def transition_night(cli):
         if role == "wolf mystic":
             # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "village elder", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, "There are \u0002{0}\u0002 special villager{1} still alive.".format(numvills, "s" if numvills != 1 else ""))
         if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
             pm(cli, wolf, "You have a \u0002gun\u0002 with {0} bullet{1}.".format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
@@ -5788,7 +5766,7 @@ def transition_night(cli):
             pm(cli, minion, "Wolves: " + ", ".join(wolves))
 
         villagers = copy.copy(var.ROLES["villager"])
-        villagers += var.ROLES["time lord"] + var.ROLES["village elder"]
+        villagers += var.ROLES["time lord"]
         if var.DEFAULT_ROLE == "villager":
             villagers += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
         for villager in villagers:
@@ -6008,7 +5986,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.REVEALED = []
     var.ASLEEP = []
     var.PROTECTED = []
-    var.DYING = []
     var.JESTERS = []
     var.AMNESIACS = []
     var.NIGHT_COUNT = 0
@@ -6974,9 +6951,9 @@ def myrole(cli, nick, chan, rest):
         return
 
     role = var.get_role(nick)
-    if role in ("time lord", "village elder", "amnesiac"):
-        role = var.DEFAULT_ROLE
-    elif role == "vengeful ghost":
+    if role == "time lord":
+        role = "villager"
+    elif role in ("amnesiac", "vengeful ghost"):
         role = var.DEFAULT_ROLE
     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
     pm(cli, nick, "You are a{0} \u0002{1}\u0002.".format(an, role))
