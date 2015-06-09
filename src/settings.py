@@ -103,6 +103,7 @@ GUARDIAN_ANGEL_DIES_CHANCE = 0
 BODYGUARD_DIES_CHANCE = 0
 DETECTIVE_REVEALED_CHANCE = 2/5
 SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner will become a sharpshooter instead
+FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE = 1/2
 
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many nights (note the night they are bitten is considered night 1)
@@ -160,6 +161,7 @@ ROLE_GUIDE = {# village roles
               "hunter"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "doctor"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "mystic"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # wolf roles
               "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  ),
               "traitor"         : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
@@ -172,6 +174,8 @@ ROLE_GUIDE = {# village roles
               "alpha wolf"      : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "werekitten"      : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "warlock"         : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "wolf mystic"     : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "fallen angel"    : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # neutral roles
               "lycan"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
@@ -194,7 +198,7 @@ ROLE_GUIDE = {# village roles
 
 # Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
-WOLF_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten"]
+WOLF_ROLES = ["wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "fallen angel"]
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
 WOLFCHAT_ROLES = WOLF_ROLES + ["traitor", "hag", "sorcerer", "warlock"]
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
@@ -202,7 +206,7 @@ WOLFTEAM_ROLES = WOLFCHAT_ROLES + ["minion", "cultist"]
 # These roles never win as a team, only ever individually (either instead of or in addition to the regular winners)
 TRUE_NEUTRAL_ROLES = ["crazed shaman", "fool", "jester", "monster", "clone", "piper"]
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also appended if not in this list)
-AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper"]
+AMNESIAC_BLACKLIST = ["monster", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "village elder"]
 # These roles are seen as wolf by the seer/oracle
 SEEN_WOLF = WOLF_ROLES + ["monster", "mad scientist"]
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
@@ -218,6 +222,8 @@ TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "fo
                          "assassin"        : WOLF_ROLES + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan"],
                          "bureaucrat"      : [],
                          }
+# fallen angel can be assassin even though they are a wolf role
+TEMPLATE_RESTRICTIONS["assassin"].remove("fallen angel")
 
 # Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
 DISABLED_ROLES = []
@@ -690,15 +696,15 @@ class NoRevealMode(GameMode):
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
             "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "guardian angel"    : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "guardian angel"    : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             "shaman"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "village elder"     : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
+            "mystic"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             "detective"         : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
             "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             # wolf roles
-            "wolf"              : (   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   3   ),
+            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   3   ),
+            "wolf mystic"       : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             "traitor"           : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "minion"            : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
             "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
             # neutral roles
             "clone"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
