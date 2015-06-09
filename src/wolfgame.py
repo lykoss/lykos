@@ -1374,8 +1374,8 @@ def hurry_up(cli, gameid, change):
                 voters.append(v)
         for v in voters:
             weight = 1
-            imp_count = sum(1 if p == v else 0 for p in var.IMPATIENT)
-            pac_count = sum(1 if p == v else 0 for p in var.PACIFISTS)
+            imp_count = var.IMPATIENT.count(v)
+            pac_count = var.PACIFISTS.count(v)
             if pac_count > imp_count:
                 weight = 0 # more pacifists than impatience totems
             elif imp_count == pac_count and v not in var.VOTES[votee]:
@@ -1455,8 +1455,8 @@ def chk_decision(cli, force = ""):
             if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
                 # don't add them in if they have the same number or more of pacifism totems
                 # this matters for desperation totem on the votee
-                imp_count = sum(1 if p == v else 0 for p in var.IMPATIENT)
-                pac_count = sum(1 if p == v else 0 for p in var.PACIFISTS)
+                imp_count = var.IMPATIENT.count(v)
+                pac_count = var.PACIFISTS.count(v)
                 if pac_count >= imp_count:
                     continue
 
@@ -1466,8 +1466,8 @@ def chk_decision(cli, force = ""):
                 impatient_voters.append(v)
         for v in voters[:]:
             weight = 1
-            imp_count = sum(1 if p == v else 0 for p in var.IMPATIENT)
-            pac_count = sum(1 if p == v else 0 for p in var.PACIFISTS)
+            imp_count = var.IMPATIENT.count(v)
+            pac_count = var.PACIFISTS.count(v)
             if pac_count > imp_count:
                 weight = 0 # more pacifists than impatience totems
             elif imp_count == pac_count and v not in var.VOTES[votee]:
@@ -3193,8 +3193,8 @@ def transition_day(cli, gameid=0):
         if v in var.DYING:
             # this person is dying no matter what
             continue
-        numkills = sum(1 for n in victims if n == v)
-        numtotems = sum(1 for n in var.PROTECTED if n == v)
+        numkills = victims.count(v)
+        numtotems = var.PROTECTED.count(v)
         if numtotems >= numkills:
             protected[v] = "totem"
             if numtotems > numkills:
@@ -4099,7 +4099,7 @@ def retract(cli, nick, chan, rest):
 
     if chan == nick: # PM, use different code
         role = var.get_role(nick)
-        if role not in var.WOLF_ROLES + ("hunter",) and nick not in var.VENGEFUL_GHOSTS.keys():
+        if role not in var.WOLF_ROLES + ["hunter"] and nick not in var.VENGEFUL_GHOSTS.keys():
             return
         if role == "wolf cub":
             return
