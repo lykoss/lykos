@@ -7214,7 +7214,7 @@ def game(cli, nick, chan, rest):
 def game_help(args=""):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
         ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and gamemode not in botconfig.DISABLED_GAMEMODES)
 game.__doc__ = game_help
 
 
