@@ -6093,6 +6093,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 var.TIMERS[name][0].cancel()
                 del var.TIMERS[name]
 
+    var.LAST_STATS = None
+    var.LAST_TIME = None
+    var.LAST_VOTES = None
+
     if not restart:
         cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
                        "game (a theme of Mafia). Using the \u0002{1}\u0002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE.name))
