@@ -3609,10 +3609,11 @@ def transition_day(cli, gameid=0):
             del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist = dead, original = deadperson)
 
     message = []
-    ntotems = 1
     processed_totems = []
 
     for (i, player) in enumerate(havetotem):
+        ntotems = 1
+
         if player in processed_totems:
             continue
 
