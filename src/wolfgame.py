@@ -40,6 +40,7 @@ import signal
 from src import logger
 import urllib.request
 import sqlite3
+import itertools
 
 # done this way so that events is accessible in !eval (useful for debugging)
 from src import events
@@ -3609,24 +3610,11 @@ def transition_day(cli, gameid=0):
             del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist = dead, original = deadperson)
 
     message = []
-    processed_totems = []
 
-    for (i, player) in enumerate(havetotem):
-        ntotems = 1
-
-        if player in processed_totems:
-            continue
-
-        for j in range(i + 1, len(havetotem)):
-            if havetotem[j] == player:
-                ntotems += 1
-            else:
-                break
-
+    for player, tlist in itertools.groupby(havetotem):
+        ntotems = len(list(tlist))
         message.append("\u0002{0}\u0002 seem{1} to be in possession of {2} mysterious totem{3}...".format(
             player, "ed" if player in dead else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
-
-        processed_totems.append(player)
 
     for brokentotem in brokentotem:
         message.append("Broken totem pieces were found next to \u0002{0}\u0002's body...".format(brokentotem))
