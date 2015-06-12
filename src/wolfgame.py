@@ -3075,7 +3075,7 @@ def transition_day(cli, gameid=0):
     var.NO_LYNCH = []
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
-    havetotem = list(var.LASTGIVEN.values())
+    havetotem = sorted(x for x in var.LASTGIVEN.values() if x)
 
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
@@ -3609,9 +3609,24 @@ def transition_day(cli, gameid=0):
             del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist = dead, original = deadperson)
 
     message = []
-    for havetotem in havetotem:
-        if havetotem:
-            message.append("\u0002{0}\u0002 seem{1} to be in possession of a mysterious totem...".format(havetotem, "ed" if havetotem in dead else "s"))
+    ntotems = 1
+    processed_totems = []
+
+    for (i, player) in enumerate(havetotem):
+        if player in processed_totems:
+            continue
+
+        for j in range(i + 1, len(havetotem)):
+            if havetotem[j] == player:
+                ntotems += 1
+            else:
+                break
+
+        message.append("\u0002{0}\u0002 seem{1} to be in possession of {2} mysterious totem{3}...".format(
+            player, "ed" if player in dead else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
+
+        processed_totems.append(player)
+
     for brokentotem in brokentotem:
         message.append("Broken totem pieces were found next to \u0002{0}\u0002's body...".format(brokentotem))
     cli.msg(chan, "\n".join(message))
