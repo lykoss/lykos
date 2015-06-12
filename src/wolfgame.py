@@ -6483,7 +6483,10 @@ def allow_deny(cli, nick, chan, rest, mode):
             variable = var.DENY_ACCOUNTS
         if variable:
             for acc, varied in variable.items():
-                cmds[acc+" (Account)"] = varied
+                if var.ACCOUNTS_ONLY:
+                    cmds[acc] = varied
+                else:
+                    cmds[acc+" (Account)"] = varied
         if not var.ACCOUNTS_ONLY:
             if mode == "allow":
                 variable = var.ALLOW
