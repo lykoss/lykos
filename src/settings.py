@@ -745,9 +745,9 @@ class MatchmakerMode(GameMode):
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
             "wolf"          : [math.ceil((i ** 1.4) * 0.06) for i in self.ROLE_INDEX],
-            "matchmaker"    : [i - math.ceil((i ** 1.4) * 0.06) - (1 if i >= 12 else 0) - (1 if i >= 18 else 0) for i in self.ROLE_INDEX],
-            "monster"       : [(1 if i >= 12 else 0) for i in self.ROLE_INDEX],
-            "mad scientist" : [(1 if i >= 18 else 0) for i in self.ROLE_INDEX]
+            "matchmaker"    : [i - math.ceil((i ** 1.4) * 0.06) - (i >= 12) - (i >= 18) for i in self.ROLE_INDEX],
+            "monster"       : [i >= 12 for i in self.ROLE_INDEX],
+            "mad scientist" : [i >= 18 for i in self.ROLE_INDEX],
             })
 
 @game_mode("random", minp = 8, maxp = 24, likelihood = 0, conceal_roles = True)
