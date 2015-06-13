@@ -928,7 +928,7 @@ def join(cli, nick, chan, rest):
             if not match:
                 return
             gamemode = match
-        if gamemode != "roles" and gamemode not in botconfig.DISABLED_GAMEMODES:
+        if gamemode != "roles":
             var.GAMEMODE_VOTES[nick] = gamemode
             cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
 
@@ -7210,7 +7210,7 @@ def game(cli, nick, chan, rest):
             return
         gamemode = match
 
-    if gamemode != "roles" and gamemode not in botconfig.DISABLED_GAMEMODES:
+    if gamemode != "roles":
         var.GAMEMODE_VOTES[nick] = gamemode
         cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
     else:
@@ -7219,7 +7219,7 @@ def game(cli, nick, chan, rest):
 def game_help(args=""):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
         ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and gamemode not in botconfig.DISABLED_GAMEMODES)
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
 game.__doc__ = game_help
 
 

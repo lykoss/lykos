@@ -24,9 +24,6 @@ ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_admin3")  # glob 
 OWNERS_ACCOUNTS = ("1owner_acc",)
 ADMINS_ACCOUNTS = ("1admin_acc", "2admin_acc")
 
-# Players can't vote for these game modes, but they can still be forced with !fgame.
-DISABLED_GAMEMODES = []
-
 ALT_CHANNELS = ""
 
 ALLOWED_ALT_CHANNELS_COMMANDS = []
