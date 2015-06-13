@@ -2625,7 +2625,6 @@ def on_nick(cli, oldnick, nick):
                 if prefix in v:
                     var.ORIGINAL_ROLES[k].remove(prefix)
                     var.ORIGINAL_ROLES[k].append(nick)
-                    break
             for k,v in list(var.PLAYERS.items()):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS[k]
@@ -2821,7 +2820,6 @@ def on_nick(cli, oldnick, nick):
                         if "(dced)"+nick in rlist:
                             rlist.remove("(dced)"+nick)
                             rlist.append(nick)
-                            break
                     if nick in var.DCED_PLAYERS.keys():
                         var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
