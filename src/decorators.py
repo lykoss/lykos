@@ -6,7 +6,7 @@ from oyoyo.parse import parse_nick
 from src import settings as var
 from src import logger
 
-adminlog = logger(None)
+adminlog = logger("audit.log")
 
 COMMANDS = defaultdict(list)
 HOOKS = defaultdict(list)
