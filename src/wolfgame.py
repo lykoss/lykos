@@ -6359,6 +6359,17 @@ def allow_deny(cli, nick, chan, rest, mode):
     if data and data[0].startswith("-"):
         if data[0] == "-cmds":
             opts["cmds"] = True
+        elif data[0] == "-cmd":
+            if len(data) < 2:
+                if chan == nick:
+                    pm(cli, nick, "Error: No command specified. Did you mean \u0002-cmds\u0002?")
+                else:
+                    cli.notice(nick, "Error: No command specified. Did you mean \u0002-cmds\u0002?")
+
+                return
+
+            opts["cmd"] = data[1]
+            data = data[1:]
         else:
             if chan == nick:
                 pm(cli, nick, "Invalid option: {0}".format(data[0][1:]))
@@ -6369,7 +6380,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
         data = data[1:]
 
-    if data:
+    if data and not opts["cmd"]:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0]
 
@@ -6517,15 +6528,34 @@ def allow_deny(cli, nick, chan, rest, mode):
         if not users_to_cmds: # Deny or Allow list is empty
             msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
         else:
-            if opts["cmds"]:
+            if opts["cmds"] or opts["cmd"]:
                 cmds_to_users = defaultdict(list)
 
                 for user in sorted(users_to_cmds, key=str.lower):
                     for cmd in users_to_cmds[user]:
                         cmds_to_users[cmd].append(user)
 
-                msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
-                    cmd, ", ".join(users)) for cmd, users in sorted(cmds_to_users.items(), key=lambda t: t[0].lower())))
+                if opts["cmd"]:
+                    cmd = opts["cmd"]
+                    users = cmds_to_users[cmd]
+
+                    if cmd not in COMMANDS:
+                        if chan == nick:
+                            pm(cli, nick, "That command does not exist.")
+                        else:
+                            cli.notice(nick, "That command does not exist.")
+
+                        return
+
+                    if users:
+                        msg = "\u0002{0}{1}\u0002 is {2} to the following people: {3}".format(
+                            botconfig.CMD_CHAR, opts["cmd"], "allowed" if mode == "allow" else "denied", ", ".join(users))
+                    else:
+                        msg = "\u0002{0}{1}\u0002 is not {2} to any special people.".format(
+                            botconfig.CMD_CHAR, opts["cmd"], "allowed" if mode == "allow" else "denied")
+                else:
+                    msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
+                        cmd, ", ".join(users)) for cmd, users in sorted(cmds_to_users.items(), key=lambda t: t[0].lower())))
             else:
                 msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
                     user, ", ".join(cmds)) for user, cmds in sorted(users_to_cmds.items(), key=lambda t: t[0].lower())))
