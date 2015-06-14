@@ -788,6 +788,21 @@ class RandomMode(GameMode):
                  "misdirection": (   6   ,   1   ),
                             }
 
+    def startup(self):
+        events.add_listener("amnesiac_turn", self.amnesiac_turn, 1)
+
+    def teardown(self):
+        events.remove_listener("amnesiac_turn", self.amnesiac_turn, 1)
+
+    def amnesiac_turn(self, evt, var, amn, role):
+        var.ROLES["amnesiac"].remove(amn)
+        var.ROLES[role].append(amn)
+        var.ORIGINAL_ROLES["amnesiac"].remove(amn)
+        var.ORIGINAL_ROLES[role].append(amn)
+        del var.FINAL_ROLES[amn]
+
+        evt.prevent_default = True
+
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
 @game_mode("aleatoire", minp = 8, maxp = 24, likelihood = 4)

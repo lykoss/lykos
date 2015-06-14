@@ -5264,27 +5264,30 @@ def transition_night(cli):
     # convert amnesiac
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amns = copy.copy(var.ROLES["amnesiac"])
+
         for amn in amns:
-            amnrole = var.FINAL_ROLES[amn]
-            var.ROLES["amnesiac"].remove(amn)
-            var.ROLES[amnrole].append(amn)
-            var.AMNESIACS.append(amn)
-            if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
-                continue
-            showrole = amnrole
-            if showrole == "time lord":
-                showrole = "villager"
-            elif showrole == "vengeful ghost":
-                showrole = var.DEFAULT_ROLE
-            n = ""
-            if showrole.startswith(("a", "e", "i", "o", "u")):
-                n = "n"
-            pm(cli, amn, "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!".format(n, showrole))
-            if amnrole in var.WOLFCHAT_ROLES:
-                for wolf in var.list_players(var.WOLFCHAT_ROLES):
-                    if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
-                        pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
-            debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
+            event = Event("amnesiac_turn", {})
+            if event.dispatch(var, amn, var.FINAL_ROLES[amn]):
+                amnrole = var.FINAL_ROLES[amn]
+                var.ROLES["amnesiac"].remove(amn)
+                var.ROLES[amnrole].append(amn)
+                var.AMNESIACS.append(amn)
+                if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
+                    continue
+                showrole = amnrole
+                if showrole == "time lord":
+                    showrole = "villager"
+                elif showrole == "vengeful ghost":
+                    showrole = var.DEFAULT_ROLE
+                n = ""
+                if showrole.startswith(("a", "e", "i", "o", "u")):
+                    n = "n"
+                pm(cli, amn, "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!".format(n, showrole))
+                if amnrole in var.WOLFCHAT_ROLES:
+                    for wolf in var.list_players(var.WOLFCHAT_ROLES):
+                        if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
+                            pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
+                debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
         start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
