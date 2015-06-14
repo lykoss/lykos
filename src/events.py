@@ -24,7 +24,7 @@ class Event:
 
     def dispatch(self, *args):
         if self.name not in EVENT_CALLBACKS:
-            return
+            return True
 
         for item in list(EVENT_CALLBACKS[self.name]):
             item[1](self, *args)
