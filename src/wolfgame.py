@@ -5945,22 +5945,25 @@ def start(cli, nick, chan, forced = False, restart = ""):
         return
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
-        while True:
+        event = Event("roles_check", {})
+        if event.dispatch(var, addroles):
+            need_reset = True
             wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
             if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys())):
                 cli.msg(chan, "There are too few players in the "+
                               "game to use the custom roles.")
-            elif not wvs and not var.IGNORE_NO_WOLF:
+            elif not wvs:
                 cli.msg(chan, "There has to be at least one wolf!")
             elif wvs > (len(villagers) / 2):
                 cli.msg(chan, "Too many wolves.")
             else:
-                break
-            reset_settings()
-            cli.msg(chan, "The default settings have been restored. Please !start again.")
-            var.PHASE = "join"
-            return
+                need_reset = False
 
+            if need_reset:
+                reset_settings()
+                cli.msg(chan, "The default settings have been restored. Please !start again.")
+                var.PHASE = "join"
+                return
 
     if var.ADMIN_TO_PING and not restart:
         for decor in (COMMANDS.get("join", []) + COMMANDS.get("start", [])):

@@ -75,8 +75,6 @@ ROLE_REVEAL = True
 LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
 DEFAULT_SEEN_AS_VILL = True # non-wolves are seen as villager regardless of the default role
 
-IGNORE_NO_WOLF = False # set to True only when randomizing roles
-
 # Debug mode settings, whether or not timers and stasis should apply during debug mode
 DISABLE_DEBUG_MODE_TIMERS = True
 DISABLE_DEBUG_MODE_TIME_LORD = False
@@ -755,7 +753,6 @@ class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self):
         self.AMNESIAC_NIGHTS = 1
-        self.IGNORE_NO_WOLF = True
         self.AMNESIAC_BLACKLIST = ["cultist"]
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
@@ -790,9 +787,11 @@ class RandomMode(GameMode):
 
     def startup(self):
         events.add_listener("amnesiac_turn", self.amnesiac_turn, 1)
+        events.add_listener("roles_check", self.roles_check, 1)
 
     def teardown(self):
         events.remove_listener("amnesiac_turn", self.amnesiac_turn, 1)
+        events.remove_listener("roles_check", self.roles_check, 1)
 
     def amnesiac_turn(self, evt, var, amn, role):
         var.ROLES["amnesiac"].remove(amn)
@@ -801,6 +800,9 @@ class RandomMode(GameMode):
         var.ORIGINAL_ROLES[role].append(amn)
         del var.FINAL_ROLES[amn]
 
+        evt.prevent_default = True
+
+    def roles_check(self, evt, var, addroles):
         evt.prevent_default = True
 
 # Credits to Metacity for designing and current name
