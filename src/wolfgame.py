@@ -6354,6 +6354,21 @@ def allow_deny(cli, nick, chan, rest, mode):
     modes = ("allow", "deny")
     assert mode in modes, "mode not in {!r}".format(modes)
 
+    opts = defaultdict(bool)
+
+    if data and data[0].startswith("-"):
+        if data[0] == "-cmds":
+            opts["cmds"] = True
+        else:
+            if chan == nick:
+                pm(cli, nick, "Invalid option: {0}".format(data[0][1:]))
+            else:
+                cli.notice(nick, "Invalid option: {0}".format(data[0][1:]))
+
+            return
+
+        data = data[1:]
+
     if data:
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0]
@@ -6478,7 +6493,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                     msg = "\u0002{0}\u0002 (Host: {1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
 
     else:
-        cmds = {}
+        users_to_cmds = {}
         if mode == "allow":
             variable = var.ALLOW_ACCOUNTS
         else:
@@ -6486,9 +6501,9 @@ def allow_deny(cli, nick, chan, rest, mode):
         if variable:
             for acc, varied in variable.items():
                 if var.ACCOUNTS_ONLY:
-                    cmds[acc] = varied
+                    users_to_cmds[acc] = sorted(varied, key=str.lower)
                 else:
-                    cmds[acc+" (Account)"] = varied
+                    users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
         if not var.ACCOUNTS_ONLY:
             if mode == "allow":
                 variable = var.ALLOW
@@ -6496,13 +6511,24 @@ def allow_deny(cli, nick, chan, rest, mode):
                 variable = var.DENY
             if variable:
                 for cloak, varied in variable.items():
-                    cmds[cloak+" (Host)"] = varied
+                    users_to_cmds[cloak+" (Host)"] = sorted(varied, key=str.lower)
 
-        if not cmds: # Deny or Allow list is empty
+
+        if not users_to_cmds: # Deny or Allow list is empty
             msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
         else:
-            msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", ", ".join("\u0002{0}\u0002 ({1}{2})".format(user,
-                botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(cmd)) for user, cmd in cmds.items()))
+            if opts["cmds"]:
+                cmds_to_users = defaultdict(list)
+
+                for user in sorted(users_to_cmds, key=str.lower):
+                    for cmd in users_to_cmds[user]:
+                        cmds_to_users[cmd].append(user)
+
+                msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
+                    cmd, ", ".join(users)) for cmd, users in sorted(cmds_to_users.items(), key=lambda t: t[0].lower())))
+            else:
+                msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
+                    user, ", ".join(cmds)) for user, cmds in sorted(users_to_cmds.items(), key=lambda t: t[0].lower())))
 
     if msg:
         if data:
@@ -6512,6 +6538,8 @@ def allow_deny(cli, nick, chan, rest, mode):
                 (data[0] == cloak and tokens[1] == "({0})".format(cloak))):
                 # Don't show the cloak/account twice.
                 msg = " ".join((tokens[0], " ".join(tokens[2:])))
+
+        msg = var.break_long_message(msg.split("; "), "; ")
 
         if chan == nick:
             pm(cli, nick, msg)
