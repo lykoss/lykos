@@ -1632,29 +1632,37 @@ def show_votes(cli, nick, chan, rest):
         cli.msg(chan, the_message)
 
 def chk_traitor(cli):
+    realwolves = var.WOLF_ROLES[:]
+    realwolves.remove("wolf cub")
+    if len(var.list_players(realwolves)) > 0:
+        return # actual wolves still alive
+
     wcl = copy.copy(var.ROLES["wolf cub"])
     ttl = copy.copy(var.ROLES["traitor"])
-    for wc in wcl:
-        var.ROLES["wolf"].append(wc)
-        var.ROLES["wolf cub"].remove(wc)
-        pm(cli, wc, "You have grown up into a wolf and vowed to take revenge for your dead parents!")
-        debuglog(wc, "(wolf cub) GROW UP")
 
-    if len(var.ROLES["wolf"]) == 0:
-        for tt in ttl:
-            var.ROLES["wolf"].append(tt)
-            var.ROLES["traitor"].remove(tt)
-            if tt in var.ROLES["cursed villager"]:
-                var.ROLES["cursed villager"].remove(tt)
-            pm(cli, tt, "HOOOOOOOOOWL. You have become... a wolf!\n"+
-                        "It is up to you to avenge your fallen leaders!")
-            debuglog(tt, "(traitor) TURNING")
+    event = Event("chk_traitor", {})
+    if event.dispatch(cli, var, wcl, ttl):
+        for wc in wcl:
+            var.ROLES["wolf"].append(wc)
+            var.ROLES["wolf cub"].remove(wc)
+            pm(cli, wc, "You have grown up into a wolf and vowed to take revenge for your dead parents!")
+            debuglog(wc, "(wolf cub) GROW UP")
 
-        # no message if wolf cub becomes wolf for now, may want to change that in future
-        if len(var.ROLES["wolf"]) > 0:
-            cli.msg(botconfig.CHANNEL, "\u0002The villagers, during their celebrations, are "+
-                                       "frightened as they hear a loud howl. The wolves are "+
-                                       "not gone!\u0002")
+        if len(var.ROLES["wolf"]) == 0:
+            for tt in ttl:
+                var.ROLES["wolf"].append(tt)
+                var.ROLES["traitor"].remove(tt)
+                if tt in var.ROLES["cursed villager"]:
+                    var.ROLES["cursed villager"].remove(tt)
+                pm(cli, tt, "HOOOOOOOOOWL. You have become... a wolf!\n"+
+                            "It is up to you to avenge your fallen leaders!")
+                debuglog(tt, "(traitor) TURNING")
+
+            # no message if wolf cub becomes wolf for now, may want to change that in future
+            if len(var.ROLES["wolf"]) > 0:
+                cli.msg(botconfig.CHANNEL, "\u0002The villagers, during their celebrations, are "+
+                                           "frightened as they hear a loud howl. The wolves are "+
+                                           "not gone!\u0002")
 
 def stop_game(cli, winner = "", abort = False):
     chan = botconfig.CHANNEL

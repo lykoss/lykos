@@ -788,10 +788,12 @@ class RandomMode(GameMode):
     def startup(self):
         events.add_listener("amnesiac_turn", self.amnesiac_turn, 1)
         events.add_listener("roles_check", self.roles_check, 1)
+        events.add_listener("chk_traitor", self.chk_traitor, 1)
 
     def teardown(self):
         events.remove_listener("amnesiac_turn", self.amnesiac_turn, 1)
         events.remove_listener("roles_check", self.roles_check, 1)
+        events.remove_listener("chk_traitor", self.chk_traitor, 1)
 
     def amnesiac_turn(self, evt, var, amn, role):
         var.ROLES["amnesiac"].remove(amn)
@@ -803,6 +805,25 @@ class RandomMode(GameMode):
         evt.prevent_default = True
 
     def roles_check(self, evt, var, addroles):
+        evt.prevent_default = True
+
+    def chk_traitor(self, evt, cli, var, cubes, betrayers):
+        if not var.FIRST_NIGHT:
+            return # use normal chk_traitor
+
+        for cube in cubes:
+            var.ROLES["wolf"].append(cube)
+            var.ROLES["wolf cub"].remove(cube)
+            var.ORIGINAL_ROLES["wolf"].append(cube)
+            var.ORIGINAL_ROLES["wolf cub"].remove(cube)
+
+        if len(var.ROLES["wolf"]) == 0:
+            for betrayer in betrayers:
+                var.ROLES["wolf"].append(betrayer)
+                var.ROLES["traitor"].remove(betrayer)
+                var.ORIGINAL_ROLES["wolf"].append(betrayer)
+                var.ORIGINAL_ROLES["traitor"].remove(betrayer)
+
         evt.prevent_default = True
 
 # Credits to Metacity for designing and current name
