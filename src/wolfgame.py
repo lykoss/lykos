@@ -5722,7 +5722,8 @@ def transition_night(cli):
         random.shuffle(pl)
         pl.remove(piper)
         for charmed in var.CHARMED:
-            pl.remove(charmed)
+            if charmed in pl: # corner case: if there are multiple pipers and a piper is charmed, the piper will be in var.CHARMED but not in pl
+                pl.remove(charmed)
         if piper in var.PLAYERS and not is_user_simple(piper):
             pm(cli, piper, ('You are a \u0002piper\u0002. You must select two players ' +
                             'to charm each night. The charmed players will know each ' +
