@@ -5950,7 +5950,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     if event.dispatch(cli, var, villagers):
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
-                addroles.update({k:v[index] for k,v in var.ROLE_GUIDE.items()})
+                for role, num in var.ROLE_GUIDE.items(): # allow event to override some roles
+                    addroles[role] = addroles.get(role, num[index])
                 break
         else:
             cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
