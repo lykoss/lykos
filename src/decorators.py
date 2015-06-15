@@ -1,5 +1,5 @@
 import fnmatch
-from _collections import defaultdict
+from collections import defaultdict
 
 import botconfig
 from oyoyo.parse import parse_nick
