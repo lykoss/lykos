@@ -5944,13 +5944,17 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cgamemode(cli, restart)
         var.GAME_ID = time.time() # restart reaper timer
 
-    for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
-        if var.ROLE_INDEX[index] <= len(villagers):
-            addroles = {k:v[index] for k,v in var.ROLE_GUIDE.items()}
-            break
-    else:
-        cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
-        return
+    addroles = {}
+
+    event = Event("role_attribution", {})
+    if event.dispatch(cli, var, villagers, addroles):
+        for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
+            if var.ROLE_INDEX[index] <= len(villagers):
+                addroles.update({k:v[index] for k,v in var.ROLE_GUIDE.items()})
+                break
+        else:
+            cli.msg(chan, "{0}: No game settings are defined for \u0002{1}\u0002 player games.".format(nick, len(villagers)))
+            return
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         event = Event("roles_check", {})
