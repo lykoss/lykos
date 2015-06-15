@@ -14,6 +14,8 @@ def remove_listener(event, callback, priority = 5):
     if event in EVENT_CALLBACKS and (priority, callback) in EVENT_CALLBACKS[event]:
         EVENT_CALLBACKS[event].remove((priority, callback))
 
+    if event in EVENT_CALLBACKS and not EVENT_CALLBACKS[event]:
+        del EVENT_CALLBACKS[event]
 
 class Event:
     def __init__(self, name, data):
