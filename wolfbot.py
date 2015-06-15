@@ -30,8 +30,7 @@ from oyoyo.client import IRCClient
 
 import botconfig
 import src
-
-handler = src.handler
+from src import handler
 
 
 def main():
