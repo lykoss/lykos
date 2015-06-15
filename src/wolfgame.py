@@ -5006,7 +5006,7 @@ def charm(cli, nick, chan, rest):
     for vict in (victim, victim2):
         if vict and vict in var.PLAYERS:
             message = ("You hear the sweet tones of a flute coming from outside your window... You "
-                       "inexorably walk outside and find yourself stranded away from the village. ")
+                       "inexorably walk outside and find yourself in the village square. ")
 
             charmedlist = list(var.CHARMED - {vict})
             if len(charmedlist) <= 0:
