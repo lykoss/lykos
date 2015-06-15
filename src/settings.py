@@ -1,4 +1,4 @@
-from collections import defaultdict
+from _collections import defaultdict
 import math
 from src import events
 

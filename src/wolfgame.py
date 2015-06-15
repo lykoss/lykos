@@ -25,7 +25,7 @@ import botconfig
 import traceback
 from src import decorators
 from datetime import datetime, timedelta
-from collections import defaultdict
+from _collections import defaultdict
 import threading
 import copy
 import time
