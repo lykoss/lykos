@@ -19,31 +19,31 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from oyoyo.parse import parse_nick
-import src.settings as var
-import botconfig
-import traceback
-from src import decorators
-from datetime import datetime, timedelta
-from collections import defaultdict
-import threading
 import copy
-import time
-import re
-import string
-import sys
-import os
-import math
-import random
-import subprocess
-import signal
-from src import logger
-import urllib.request
-import sqlite3
 import itertools
+import math
+import os
+import random
+import re
+import signal
+import sqlite3
+import string
+import subprocess
+import sys
+import threading
+import time
+import traceback
+import urllib.request
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+from oyoyo.parse import parse_nick
+
+import botconfig
+import src.settings as var
+from src import decorators, events, logger
 
 # done this way so that events is accessible in !eval (useful for debugging)
-from src import events
 Event = events.Event
 
 debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode

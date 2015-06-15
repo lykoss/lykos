@@ -1,5 +1,10 @@
-from collections import defaultdict
+import fnmatch
 import math
+import random
+import sqlite3
+from collections import defaultdict
+
+import botconfig
 from src import events
 
 MINIMUM_WAIT = 60
@@ -252,9 +257,6 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25
 
-import botconfig
-import fnmatch
-import random
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 DENY = {}
@@ -995,8 +997,6 @@ class CharmingMode(GameMode):
 # Persistence
 
 
-# Load saved settings
-import sqlite3
 
 conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
 c = conn.cursor()

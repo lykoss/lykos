@@ -5,12 +5,11 @@ import imp
 import socket
 import traceback
 
-import botconfig
 from oyoyo.parse import parse_nick
-from src import decorators
-from src import logger
-from src import settings as var
-from src import wolfgame
+
+import botconfig
+import src.settings as var
+from src import decorators, logger, wolfgame
 
 log = logger("errors.log")
 alog = logger(None)

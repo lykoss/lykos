@@ -15,8 +15,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from oyoyo.ircevents import generated_events, protocol_events,\
-                            all_events, numeric_events
+from oyoyo.ircevents import (all_events, generated_events,
+                             numeric_events, protocol_events)
+
 
 # avoiding regex
 def parse_raw_irc_command(element):
@@ -87,4 +88,3 @@ def parse_nick(name):
         return (nick, mode, rest, None)
 
     return (nick, mode, user, host)
-

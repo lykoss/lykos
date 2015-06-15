@@ -1,9 +1,10 @@
 import fnmatch
 from collections import defaultdict
 
-import botconfig
 from oyoyo.parse import parse_nick
-from src import settings as var
+
+import botconfig
+import src.settings as var
 from src import logger
 
 adminlog = logger("audit.log")

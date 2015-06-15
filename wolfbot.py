@@ -18,16 +18,20 @@
 # THE SOFTWARE.
 
 import sys
+
 if sys.version_info < (3, 2):
     print('Python 3.2 or newer is required to run the bot.')
     sys.exit(1)
 
-from oyoyo.client import IRCClient
-import botconfig
 import time
 import traceback
+
+from oyoyo.client import IRCClient
+
+import botconfig
 import src
-from src import handler
+
+handler = src.handler
 
 
 def main():

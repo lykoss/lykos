@@ -3,7 +3,7 @@ import datetime
 import time
 
 import botconfig
-from src import settings as var
+import src.settings as var
 
 # Todo: Allow game modes to be set via config
 

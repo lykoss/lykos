@@ -14,14 +14,16 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+
 import socket
-import time
-import threading
-import traceback
-import sys
 import ssl
+import sys
+import threading
+import time
+import traceback
 
 from oyoyo.parse import parse_raw_irc_command
+
 
 # Adapted from http://code.activestate.com/recipes/511490-implementation-of-the-token-bucket-algorithm/
 class TokenBucket(object):
@@ -290,4 +292,3 @@ class IRCClient(object):
             if not next(conn):
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
-
