@@ -3155,16 +3155,12 @@ def transition_day(cli, gameid=0):
                 onlybywolves.discard(monster)
 
     wolfghostvictims = []
-    for ghost, target in var.VENGEFUL_GHOSTS.items():
-        if target == "villagers":
-            victim = var.OTHER_KILLS[ghost]
-            killers[victim].append(ghost)
-            wolfghostvictims.append(victim)
-
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
         killers[d].append(k)
+        if var.VENGEFUL_GHOSTS.get(k) == "villagers":
+            wolfghostvictims.append(d)
 
     for k, d in var.DEATH_TOTEM:
         victims.append(d)
