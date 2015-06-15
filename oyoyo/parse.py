@@ -15,8 +15,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from oyoyo.ircevents import (all_events, generated_events,
-                             numeric_events, protocol_events)
+from oyoyo.ircevents import numeric_events
 
 
 # avoiding regex
