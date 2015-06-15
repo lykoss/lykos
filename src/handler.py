@@ -101,24 +101,25 @@ def unhandled(cli, prefix, cmd, *args):
                     notify_error(cli, botconfig.CHANNEL, log)
 
 def connect_callback(cli):
-
     def prepare_stuff(*args):
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
             cli.ns_identify(botconfig.PASS)
-        cli.join(botconfig.CHANNEL)
-        if botconfig.ALT_CHANNELS:
-            cli.join(botconfig.ALT_CHANNELS)
-        if botconfig.DEV_CHANNEL:
-            cli.join(",".join(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(",")))
-        cli.msg("ChanServ", "op "+botconfig.CHANNEL)
 
-        cli.cap("REQ", "extended-join")
-        cli.cap("REQ", "account-notify")
+        channels = {botconfig.CHANNEL}
+
+        if botconfig.ALT_CHANNELS:
+            channels.update(botconfig.ALT_CHANNELS.split(","))
+
+        if botconfig.DEV_CHANNEL:
+            channels.update(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(","))
+
+        cli.join(",".join(channels))
+
+        cli.nick(botconfig.NICK)  # very important (for regain/release)
 
         wolfgame.connect_callback(cli)
 
-        cli.nick(botconfig.NICK)  # very important (for regain/release)
 
     prepare_stuff = hook("endofmotd", hookid=294)(prepare_stuff)
 
