@@ -752,20 +752,11 @@ class MatchmakerMode(GameMode):
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self):
-        self.AMNESIAC_NIGHTS = 1
-        self.AMNESIAC_BLACKLIST = ["cultist"]
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALPHA_WOLF_NIGHTS = 2
         self.ROLE_REVEAL = False
         self.TEMPLATE_RESTRICTIONS = {template: [] for template in TEMPLATE_RESTRICTIONS}
-        self.ROLE_INDEX = range(8, 25)
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            "amnesiac"   : [i for i in self.ROLE_INDEX],
-            "gunner"     : [random.randrange(int(i ** 1.2 / 4)) for i in self.ROLE_INDEX],
-            "assassin"   : [random.randrange(int(i ** 1.2 / 8)) for i in self.ROLE_INDEX],
-            })
 
         self.TOTEM_CHANCES = { #  shaman , crazed
                         "death": (   8   ,   1   ),
@@ -786,43 +777,26 @@ class RandomMode(GameMode):
                             }
 
     def startup(self):
-        events.add_listener("amnesiac_turn", self.amnesiac_turn, 1)
-        events.add_listener("roles_check", self.roles_check, 1)
-        events.add_listener("chk_traitor", self.chk_traitor, 1)
+        events.add_listener("role_attribution", self.role_attribution, 1)
 
     def teardown(self):
-        events.remove_listener("amnesiac_turn", self.amnesiac_turn, 1)
-        events.remove_listener("roles_check", self.roles_check, 1)
-        events.remove_listener("chk_traitor", self.chk_traitor, 1)
+        events.remove_listener("role_attribution", self.role_attribution, 1)
 
-    def amnesiac_turn(self, evt, var, amn, role):
-        var.ROLES["amnesiac"].remove(amn)
-        var.ROLES[role].append(amn)
-        var.ORIGINAL_ROLES["amnesiac"].remove(amn)
-        var.ORIGINAL_ROLES[role].append(amn)
-        del var.FINAL_ROLES[amn]
+    def role_attribution(self, evt, cli, var, villagers, addroles):
+        lpl = len(villagers) - 1
+        for role in var.ROLE_GUIDE:
+            addroles[role] = 0
 
-        evt.prevent_default = True
+        wolves = var.WOLF_ROLES[:]
+        wolves.remove("wolf cub")
+        addroles[random.choice(wolves)] += 1 # make sure there's at least one wolf role
+        roles = list(var.ROLE_GUIDE.keys() - (list(var.TEMPLATE_RESTRICTIONS) + ["villager", "cultist", "amnesiac"]))
+        while lpl:
+            addroles[random.choice(roles)] += 1
+            lpl -= 1
 
-    def roles_check(self, evt, var, addroles):
-        evt.prevent_default = True
-
-    def chk_traitor(self, evt, cli, var, cubes, betrayers):
-        if not var.FIRST_NIGHT:
-            return # use normal chk_traitor
-
-        for cube in cubes:
-            var.ROLES["wolf"].append(cube)
-            var.ROLES["wolf cub"].remove(cube)
-            var.ORIGINAL_ROLES["wolf"].append(cube)
-            var.ORIGINAL_ROLES["wolf cub"].remove(cube)
-
-        if len(var.ROLES["wolf"]) == 0:
-            for betrayer in betrayers:
-                var.ROLES["wolf"].append(betrayer)
-                var.ROLES["traitor"].remove(betrayer)
-                var.ORIGINAL_ROLES["wolf"].append(betrayer)
-                var.ORIGINAL_ROLES["traitor"].remove(betrayer)
+        addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
+        addroles["assassin"] = random.randrange(int(len(villagers) ** 1.2 / 8))
 
         evt.prevent_default = True
 
