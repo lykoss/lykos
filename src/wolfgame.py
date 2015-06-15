@@ -5946,8 +5946,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     addroles = {}
 
-    event = Event("role_attribution", {})
-    if event.dispatch(cli, var, villagers, addroles):
+    event = Event("role_attribution", {"addroles": addroles})
+    if event.dispatch(cli, var, villagers):
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
                 addroles.update({k:v[index] for k,v in var.ROLE_GUIDE.items()})
@@ -5957,8 +5957,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
-        event = Event("roles_check", {})
-        if event.dispatch(var, addroles):
+        event = Event("roles_check", {"addroles": addroles})
+        if event.dispatch(var):
             need_reset = True
             wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
             if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys())):

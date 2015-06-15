@@ -782,8 +782,9 @@ class RandomMode(GameMode):
     def teardown(self):
         events.remove_listener("role_attribution", self.role_attribution, 1)
 
-    def role_attribution(self, evt, cli, var, villagers, addroles):
+    def role_attribution(self, evt, cli, var, villagers):
         lpl = len(villagers) - 1
+        addroles = evt.data["addroles"]
         for role in var.ROLE_GUIDE:
             addroles[role] = 0
 
