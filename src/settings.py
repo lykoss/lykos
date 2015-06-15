@@ -217,13 +217,17 @@ SEEN_DEFAULT = ["traitor", "hag", "sorcerer", "time lord", "villager", "cultist"
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty list. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : WOLF_ROLES + ["seer", "oracle", "fool", "jester", "mad scientist", "monster"],
+TEMPLATE_RESTRICTIONS = {"cursed villager" : SEEN_WOLF + ["seer", "oracle", "fool", "jester"],
                          "gunner"          : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
-                         "sharpshooter"    : WOLFTEAM_ROLES + ["fool", "lycan", "jester"],
+                         "sharpshooter"    : [], # the above gets automatically added to the list. this list is the list of roles that can be gunner but not sharpshooter
                          "mayor"           : ["fool", "jester", "monster"],
                          "assassin"        : WOLF_ROLES + ["traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan"],
                          "bureaucrat"      : [],
                          }
+
+# make sharpshooter restrictions at least the same as gunner
+TEMPLATE_RESTRICTIONS["sharpshooter"].extend(TEMPLATE_RESTRICTIONS["gunner"])
+
 # fallen angel can be assassin even though they are a wolf role
 TEMPLATE_RESTRICTIONS["assassin"].remove("fallen angel")
 
