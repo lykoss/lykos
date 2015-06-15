@@ -116,6 +116,8 @@ def connect_callback(cli):
 
         cli.join(",".join(channels))
 
+        cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+
         cli.nick(botconfig.NICK)  # very important (for regain/release)
 
         wolfgame.connect_callback(cli)
