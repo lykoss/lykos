@@ -143,23 +143,52 @@ def connect_callback(cli):
         hook("unavailresource")(mustrelease)
         hook("nicknameinuse")(mustregain)
 
-    if botconfig.SASL_AUTHENTICATION:
+    request_caps = {"account-notify", "extended-join", "multi-prefix"}
 
+    if botconfig.SASL_AUTHENTICATION:
+        request_caps.add("sasl")
+
+    supported_caps = set()
+
+
+    @hook("cap")
+    def on_cap(cli, svr, mynick, cmd, caps, star=None):
+        if cmd == "LS":
+            if caps == "*":
+                # Multi-line LS
+                supported_caps.update(star.split())
+            else:
+                supported_caps.update(caps.split())
+
+                print(supported_caps)
+
+                if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
+                    alog("Server does not support SASL authentication")
+                    cli.quit()
+
+                common_caps = request_caps & supported_caps
+
+                if common_caps:
+                    cli.cap("REQ", ":{0}".format(" ".join(common_caps)))
+        elif cmd == "ACK":
+            if "sasl" in caps:
+                cli.send("AUTHENTICATE PLAIN")
+            else:
+                cli.cap("END")
+        elif cmd == "NAK":
+            # This isn't supposed to happen. The server claimed to support a
+            # capability but now claims otherwise.
+            alog("Server refused capabilities: {0}".format(" ".join(caps)))
+
+
+    if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")
         def auth_plus(cli, something, plus):
             if plus == "+":
-                nick_b = bytes(botconfig.USERNAME if botconfig.USERNAME else botconfig.NICK, "utf-8")
-                pass_b = bytes(botconfig.PASS, "utf-8")
-                secrt_msg = b'\0'.join((nick_b, nick_b, pass_b))
-                cli.send("AUTHENTICATE " + base64.b64encode(secrt_msg).decode("utf-8"))
-
-        @hook("cap")
-        def on_cap(cli, svr, mynick, ack, cap):
-            if ack.upper() == "ACK" and "sasl" in cap:
-                cli.send("AUTHENTICATE PLAIN")
-            elif ack.upper() == "NAK" and "sasl" in cap:
-                cli.quit()
-                alog("Server does not support SASL authentication")
+                account = (botconfig.USERNAME or botconfig.NICK).encode("utf-8")
+                password = botconfig.PASS.encode("utf-8")
+                auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
+                cli.send("AUTHENTICATE " + auth_token)
 
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
@@ -170,9 +199,9 @@ def connect_callback(cli):
         @hook("906")
         @hook("907")
         def on_failure_auth(cli, *etc):
+            alog("Authentication failed.  Did you fill the account name "
+                 "in botconfig.USERNAME if it's different from the bot nick?")
             cli.quit()
-            alog("Authentication failed.  Did you fill the account name "+
-                  "in botconfig.USERNAME if it's different from the bot nick?")
 
 
 

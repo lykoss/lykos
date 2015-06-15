@@ -186,18 +186,14 @@ class IRCClient(object):
             if not self.blocking:
                 self.socket.setblocking(0)
 
+            self.cap("LS", "302")
+
             if not self.sasl_auth:
                 self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname,
                     self.password if self.password else "NOPASS"))
-            else:
-                self.cap("LS")
 
             self.nick(self.nickname)
             self.user(self.ident, self.real_name)
-
-            if self.sasl_auth:
-                self.cap("REQ", "multi-prefix")
-                self.cap("REQ", "sasl")
 
             if self.connect_cb:
                 try:
