@@ -40,7 +40,7 @@ class cmd:
 
             COMMANDS[name].append(self)
             if alias:
-                self.aliases.append(self)
+                self.aliases.append(name)
             alias = True
 
     def __call__(self, func):

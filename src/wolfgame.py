@@ -6727,25 +6727,25 @@ def get_help(cli, rnick, chan, rest):
 
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
-        if (name and not fn[0].admin_only and not fn[0].owner_only and name not
-            in fn[0].aliases and fn[0].chan):
-            fns.append("\u0002"+name+"\u0002")
+        if (name and not fn[0].admin_only and not fn[0].owner_only and
+            name not in fn[0].aliases and fn[0].chan):
+            fns.append("{0}{1}{0}".format("\u0002", name))
     afns = []
     if is_admin(nick, cloak):
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
-                afns.append("\u0002"+name+"\u0002")
+                afns.append("{0}{1}{0}".format("\u0002", name))
     fns.sort() # Output commands in alphabetical order
     if chan == nick:
-        pm(cli, nick, "Commands: "+", ".join(fns))
+        pm(cli, nick, "Commands: {0}".format(var.break_long_message(fns, ", ")))
     else:
-        cli.notice(nick, "Commands: "+", ".join(fns))
+        cli.notice(nick, "Commands: {0}".format(var.break_long_message(fns, ", ")))
     if afns:
         afns.sort()
         if chan == nick:
-            pm(cli, nick, "Admin Commands: "+", ".join(afns))
+            pm(cli, nick, "Admin Commands: {0}".format(var.break_long_message(afns, ", ")))
         else:
-            cli.notice(nick, "Admin Commands: "+", ".join(afns))
+            cli.notice(nick, "Admin Commands: {0}".format(var.break_long_message(afns, ", ")))
 
 @cmd("wiki", pm=True)
 def wiki(cli, nick, chan, rest):
