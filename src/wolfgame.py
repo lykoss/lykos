@@ -2344,7 +2344,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                     var.USERS[nick]["modes"].update(var.USERS[nick]["moded"])
                     var.USERS[nick]["moded"] = set()
                 ret = not chk_win(cli)
-            if var.PHASE != "join":
+            elif var.PHASE != "join":
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not is_fake_nick(nick):
                     cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+nick+"!*@*"))
