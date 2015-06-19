@@ -2025,7 +2025,7 @@ def chk_win(cli, end_game = True):
             stop_game(cli, winner)
         return True
 
-def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = ""):
+def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = "", cmode = [], count = []):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
@@ -2040,7 +2040,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
         if not var.GAME_ID or var.GAME_ID > t:
             #  either game ended, or a new game has started.
             return False
-        cmode = []
+        count.append(None) # if at any point you need to return before the end, make sure to remove a None from this list
         ret = True
         pl = var.list_players()
         for dead in deadlist:
@@ -2343,13 +2343,11 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         cmode.append(("+"+newmode, nick))
                     var.USERS[nick]["modes"].update(var.USERS[nick]["moded"])
                     var.USERS[nick]["moded"] = set()
-                mass_mode(cli, cmode, [])
-                return not chk_win(cli)
+                ret = not chk_win(cli)
             if var.PHASE != "join":
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not is_fake_nick(nick):
                     cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+nick+"!*@*"))
-                mass_mode(cli, cmode, [])
                 if nick not in var.DEAD:
                     var.DEAD.append(nick)
                 ret = not chk_win(cli, end_game)
@@ -2396,6 +2394,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
+
+        count.remove(None)
+        if not count:
+            mass_mode(cli, cmode, [])
+            cmode.clear()
+
         return ret
 
 
