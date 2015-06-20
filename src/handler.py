@@ -163,8 +163,6 @@ def connect_callback(cli):
             else:
                 supported_caps.update(caps.split())
 
-                print(supported_caps)
-
                 if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
                     alog("Server does not support SASL authentication")
                     cli.quit()
