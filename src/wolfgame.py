@@ -2398,7 +2398,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
         count.remove(None)
         if not count:
             mass_mode(cli, cmode, [])
-            cmode.clear()
+            del cmode[:]  # clear list
 
         return ret
 
