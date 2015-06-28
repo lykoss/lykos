@@ -6866,7 +6866,7 @@ def show_admins(cli, nick, chan, rest):
     else:
         cli.who(chan)
 
-@cmd("coin")
+@cmd("coin", pm=True)
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
 
@@ -6884,7 +6884,7 @@ def coin(cli, nick, chan, rest):
     cmsg = "The coin lands on \2{0}\2.".format(coin)
     cli.msg(chan, cmsg)
 
-@cmd("pony")
+@cmd("pony", pm=True)
 def pony(cli, nick, chan, rest):
     """For entertaining bronies."""
 
