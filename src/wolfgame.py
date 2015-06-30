@@ -3492,8 +3492,8 @@ def transition_day(cli, gameid=0):
                 else:
                     out = out.decode("utf-8", "replace")
                     out = out.replace("\n", " ")
-                    # Replace tabs and multiple spaces with a single space.
-                    out = re.sub(r"\s+", " ", out)
+                    out = re.sub(r"\s+", " ", out)  # collapse whitespace
+                    out = out.strip()  # remove surrounding whitespace
 
                     message.append(out)
 
