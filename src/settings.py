@@ -345,7 +345,12 @@ def list_players_and_roles():
             plr[p] = x
     return plr
 
-get_role = lambda plyr: list_players_and_roles()[plyr]
+def get_role(p):
+    for role, pl in ROLES.items():
+        if role in TEMPLATE_RESTRICTIONS.keys():
+            continue # only get actual roles
+        if p in pl:
+            return role
 
 def get_reveal_role(nick):
     if HIDDEN_TRAITOR and get_role(nick) == "traitor":
