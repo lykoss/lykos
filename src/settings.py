@@ -463,10 +463,12 @@ class ChangedRolesMode(GameMode):
                         raise InvalidModeException("The default role must be either \u0002villager\u0002 or \u0002cultist\u0002.")
                 elif role.lower() == "role reveal" or role.lower() == "reveal roles":
                     num = num.lower()
-                    if num == "on" or num == "true" or num == "yes" or num == "1":
+                    if num in ("on", "true", "yes", "1"):
                         self.ROLE_REVEAL = True
-                    elif num == "off" or num == "false" or num == "no" or num == "0":
+                    elif num in ("off", "false", "no", "0"):
                         self.ROLE_REVEAL = False
+                    elif num == "partial":
+                        self.ROLE_REVEAL = "partial"
                     else:
                         raise InvalidModeException("Did not recognize value \u0002{0}\u0002 for role reveal.".format(num))
                 else:
@@ -766,7 +768,7 @@ class RandomMode(GameMode):
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALPHA_WOLF_NIGHTS = 2
-        self.ROLE_REVEAL = False
+        self.ROLE_REVEAL = random.choice(("partial", False))
         self.TEMPLATE_RESTRICTIONS = {template: [] for template in TEMPLATE_RESTRICTIONS}
 
         self.TOTEM_CHANCES = { #  shaman , crazed

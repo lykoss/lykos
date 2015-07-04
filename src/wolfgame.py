@@ -1236,7 +1236,7 @@ def stats(cli, nick, chan, rest):
         else:
             cli.notice(nick, msg)
 
-    if var.PHASE == "join" or not var.ROLE_REVEAL or var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
+    if var.PHASE == "join" or var.ROLE_REVEAL is not True:
         return
 
     message = []
@@ -6118,8 +6118,16 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_VOTES = None
 
     if not restart:
+        gamemode = var.CURRENT_GAMEMODE.name
+
+        if gamemode == "random":
+            if var.ROLE_REVEAL == "partial":
+                gamemode = "random_reveal"
+            else:
+                gamemode = "random_noreveal"
+
         cli.msg(chan, ("{0}: Welcome to Werewolf, the popular detective/social party "+
-                       "game (a theme of Mafia). Using the \u0002{1}\u0002 game mode.").format(", ".join(pl), var.CURRENT_GAMEMODE.name))
+                       "game (a theme of Mafia). Using the \u0002{1}\u0002 game mode.").format(", ".join(pl), gamemode))
         cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
@@ -7529,15 +7537,27 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             return
 
         if rest:
-            rest = gamemode = rest.strip().lower()
-            if rest not in var.GAME_MODES.keys() and not rest.startswith("roles"):
-                rest = rest.split()[0]
-                gamemode, _ = complete_match(rest, var.GAME_MODES.keys())
+            gamemode = rest.strip().lower()
+
+            force_reveal = None
+
+            if gamemode == "random_reveal":
+                gamemode = "random"
+                force_reveal = "partial"
+            elif gamemode == "random_noreveal":
+                gamemode = "random"
+                force_reveal = False
+
+            if gamemode not in var.GAME_MODES.keys() and not gamemode.startswith("roles"):
+                gamemode = gamemode.split()[0]
+                gamemode, _ = complete_match(gamemode, var.GAME_MODES.keys())
                 if not gamemode:
                     cli.notice(nick, "\u0002{0}\u0002 is not a valid game mode.".format(rest))
                     return
 
             if cgamemode(cli, gamemode):
+                if force_reveal is not None:
+                    var.ROLE_REVEAL = force_reveal
                 cli.msg(chan, ("\u0002{0}\u0002 has changed the game settings "
                                "successfully.").format(nick))
                 var.FGAMED = True
