@@ -962,8 +962,10 @@ def join_player(cli, player, chan, who = None, forced = False):
     if is_stasised:
         if forced and stasis_amt == 1:
             if cloak in var.STASISED:
+                var.set_stasis(cloak, 0)
                 del var.STASISED[cloak]
             if acc in var.STASISED_ACCS:
+                var.set_stasis_acc(acc, 0)
                 del var.STASISED_ACCS[acc]
         else:
             cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
