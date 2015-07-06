@@ -5839,7 +5839,8 @@ def transition_night(cli):
                    "relax, and wait patiently for morning.")
     cli.msg(chan, dmsg)
     debuglog("BEGIN NIGHT")
-
+    # If there are no nightroles that can act, immediately turn it to daytime
+    chk_nightdone(cli)
 
 
 def cgamemode(cli, arg):
