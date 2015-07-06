@@ -7139,15 +7139,6 @@ def aftergame(cli, rawnick, chan, rest):
                   "after this game by \u0002{1}\u0002.").format(fullcmd, nick))
     var.AFTER_FLASTGAME = do_action
 
-@cmd("fghost", admin_only=True, pm=True)
-def fghost(cli, nick, chan, rest):
-    """Voices you, allowing you to haunt the remaining players after your death."""
-    cli.mode(botconfig.CHANNEL, "+v", nick)
-
-@cmd("funghost", admin_only=True, pm=True)
-def funghost(cli, nick, chan, rest):
-    """Devoices you."""
-    cli.mode(botconfig.CHANNEL, "-v", nick)
 
 @cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
 def flastgame(cli, rawnick, chan, rest):
