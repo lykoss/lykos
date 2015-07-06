@@ -3213,36 +3213,35 @@ def transition_day(cli, gameid=0):
     if len(var.ROLES["fallen angel"]) > 0:
         for p, t in list(protected.items()):
             if p in bywolves:
-                if t == "angel":
-                    for g in var.ROLES["guardian angel"]:
-                        if var.GUARDED.get(g) == p and random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
-                            if g in protected:
-                                del protected[g]
-                            bywolves.add(g)
-                            victims.append(g)
-                            fallenkills.add(g)
-                            if g not in victims_set:
-                                victims_set.add(g)
-                                onlybywolves.add(g)
-                elif t == "bodyguard":
-                    for g in var.ROLES["bodyguard"]:
-                        if var.GUARDED.get(g) == p:
-                            if g in protected:
-                                del protected[g]
-                            bywolves.add(g)
-                            victims.append(g)
-                            fallenkills.add(g)
-                            if g not in victims_set:
-                                victims_set.add(g)
-                                onlybywolves.add(g)
-                elif t == "totem":
-                    # we'll never end up killing a shaman who gave out protection, but delete the totem since
-                    # story-wise it gets demolished at night by the FA
-                    while p in havetotem:
-                        havetotem.remove(p)
-                    brokentotem.add(p)
-                if p in protected:
-                    del protected[p]
+                for g in var.ROLES["guardian angel"]:
+                    if var.GUARDED.get(g) == p and random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
+                        if g in protected:
+                            del protected[g]
+                        bywolves.add(g)
+                        victims.append(g)
+                        fallenkills.add(g)
+                        if g not in victims_set:
+                            victims_set.add(g)
+                            onlybywolves.add(g)
+                for g in var.ROLES["bodyguard"]:
+                    if var.GUARDED.get(g) == p:
+                        if g in protected:
+                            del protected[g]
+                        bywolves.add(g)
+                        victims.append(g)
+                        fallenkills.add(g)
+                        if g not in victims_set:
+                            victims_set.add(g)
+                            onlybywolves.add(g)
+                # we'll never end up killing a shaman who gave out protection, but delete the totem since
+                # story-wise it gets demolished at night by the FA
+                while p in havetotem:
+                    havetotem.remove(p)
+                brokentotem.add(p)
+            if p in protected:
+                del protected[p]
+            if p in var.ACTIVE_PROTECTIONS:
+                del var.ACTIVE_PROTECTIONS[p]
 
     if var.ALPHA_ENABLED: # check for bites
         for (alpha, desired) in var.BITE_PREFERENCES.items():
