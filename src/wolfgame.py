@@ -6920,6 +6920,20 @@ def timeleft(cli, nick, chan, rest):
     if chan != nick:
         var.LAST_TIME = datetime.now()
 
+    if var.PHASE == "join":
+        dur = int((var.CAN_START_TIME - datetime.now()).total_seconds())
+        msg = None
+        if dur > 1:
+            msg = "There are \u0002{0}\u0002 seconds remaining until the game may be started.".format(dur)
+        elif dur == 1:
+            msg = "There is \u00021\u0002 second remaining until the game may be started."
+
+        if msg is not None:
+            if nick == chan:
+                pm(cli, nick, msg)
+            else:
+                cli.msg(chan, msg)
+
     if var.PHASE in var.TIMERS:
         remaining = timeleft_internal(var.PHASE)
         if var.PHASE == "day":
