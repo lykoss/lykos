@@ -516,6 +516,18 @@ def forced_exit(cli, nick, chan, rest):
         sys.exit()
 
 
+def _restart_program(cli, mode=None):
+    plog("RESTARTING")
+
+    python = sys.executable
+
+    if mode:
+        assert mode in ("normal", "verbose", "debug")
+        os.execl(python, python, sys.argv[0], "--{0}".format(mode))
+    else:
+        os.execl(python, python, *sys.argv)
+
+
 @cmd("frestart", admin_only=True, pm=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
@@ -588,14 +600,7 @@ def restart_program(cli, nick, chan, rest):
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         # if the bot is using a nick that isn't botconfig.NICK, then stop breaking things and fdie
         if nick == botconfig.NICK:
-            plog("RESTARTING")
-
-            python = sys.executable
-
-            if mode:
-                os.execl(python, python, sys.argv[0], "--{0}".format(mode))
-            else:
-                os.execl(python, python, *sys.argv)
+            _restart_program(cli, mode)
 
 
 @cmd("ping", chan=False, pm=True)
@@ -6213,7 +6218,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 @hook("error")
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
-        restart_program.func(cli, "<console>", botconfig.CHANNEL, "")
+        _restart_program(cli)
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
