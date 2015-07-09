@@ -6213,7 +6213,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 @hook("error")
 def on_error(cli, pfx, msg):
     if msg.endswith("(Excess Flood)"):
-        restart_program.func(cli, "excess flood", "")
+        restart_program.func(cli, "<console>", botconfig.CHANNEL, "")
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
