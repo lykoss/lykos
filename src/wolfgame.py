@@ -3047,17 +3047,9 @@ def transition_day(cli, gameid=0):
     var.PHASE = "day"
     var.GOATED = False
     chan = botconfig.CHANNEL
+    pl = var.list_players()
 
     if not var.START_WITH_DAY or not var.FIRST_DAY:
-        # In case people didn't act at night, clear appropriate variables
-        if len(var.SHAMANS) < len(var.ROLES["shaman"] + var.ROLES["crazed shaman"]):
-            for shaman in var.ROLES["shaman"]:
-                if shaman not in var.SHAMANS:
-                    var.LASTGIVEN[shaman] = None
-            for shaman in var.ROLES["crazed shaman"]:
-                if shaman not in var.SHAMANS:
-                    var.LASTGIVEN[shaman] = None
-
         # bodyguard doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
         if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] + var.ROLES["guardian angel"]):
             for gangel in var.ROLES["guardian angel"]:
@@ -3068,6 +3060,9 @@ def transition_day(cli, gameid=0):
             for hag in var.ROLES["hag"]:
                 if hag not in var.HEXED:
                     var.LASTHEXED[hag] = None
+
+        # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
+        # that isn't going to be dying today, meaning we need to know who is dying first :)
 
         # Select a random target for vengeful ghost if they didn't kill
         wolves = var.list_players(var.WOLFTEAM_ROLES)
@@ -3082,6 +3077,30 @@ def transition_day(cli, gameid=0):
                     var.OTHER_KILLS[ghost] = random.choice(wolves)
                 else:
                     var.OTHER_KILLS[ghost] = random.choice(villagers)
+
+        # Select random totem recipients if shamans didn't act
+        shamans = var.list_players(var.TOTEM_ORDER)
+        for shaman in shamans:
+            if shaman not in var.SHAMANS:
+                ps = pl[:]
+                ps.remove(var.LASTGIVEN.get(shaman))
+                target = random.choice(ps)
+                totem.func(cli, shaman, shaman, random.choice(ps), prefix="Because you forgot to give out your totem at night, you")
+
+        if var.FIRST_NIGHT:
+            # Select a random target for clone if they didn't choose someone
+            for clone in var.ROLES["clone"]:
+                if clone not in var.CLONED:
+                    ps = pl[:]
+                    ps.remove(clone)
+                    for victim in victims:
+                        if victim in ps:
+                            ps.remove(victim)
+                    if len(ps) > 0:
+                        target = random.choice(ps)
+                        var.CLONED[clone] = target
+                        pm(cli, clone, "Because you forgot to select someone to clone at night, you are now cloning \u0002{0}\u0002.".format(target))
+
 
     # Reset daytime variables
     var.VOTES = {}
@@ -3378,19 +3397,6 @@ def transition_day(cli, gameid=0):
                 target = random.choice(ps)
                 var.TARGETED[ass] = target
                 pm(cli, ass, "Because you forgot to select a target at night, you are now targeting \u0002{0}\u0002.".format(target))
-    if var.FIRST_NIGHT:
-        for clone in var.ROLES["clone"]:
-            if clone not in var.CLONED:
-                ps = pl[:]
-                ps.remove(clone)
-                for victim in victims:
-                    if victim in ps:
-                        ps.remove(victim)
-                if len(ps) > 0:
-                    target = random.choice(ps)
-                    var.CLONED[clone] = target
-                    pm(cli, clone, "Because you forgot to select someone to clone at night, you are now cloning \u0002{0}\u0002.".format(target))
-
 
     message = [("Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. "+
                "The villagers awake, thankful for surviving the night, "+
@@ -3649,6 +3655,9 @@ def transition_day(cli, gameid=0):
     begin_day(cli)
 
 def chk_nightdone(cli):
+    if var.PHASE != "night":
+        return
+
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
@@ -4583,7 +4592,7 @@ def give(cli, nick, chan, rest):
         immunize.caller(cli, nick, chan, rest)
 
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-def totem(cli, nick, chan, rest):
+def totem(cli, nick, chan, rest, prefix="You"):
     """Give a totem to a player."""
     if nick in var.SHAMANS:
         pm(cli, nick, "You have already given out your totem this round.")
@@ -4601,7 +4610,7 @@ def totem(cli, nick, chan, rest):
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
         return
-    pm(cli, nick, ("You have given a totem{0} to \u0002{1}\u0002.").format(type, victim))
+    pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, type, victim))
     totem = var.TOTEMS[nick]
     if totem == "death": # this totem stacks
         var.DEATH_TOTEM.append((nick, victim))
