@@ -3186,32 +3186,45 @@ def transition_day(cli, gameid=0):
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
     # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard)
-    for v in victims_set:
-        numkills = victims.count(v)
-        numtotems = var.PROTECTED.count(v)
-        if numtotems >= numkills:
-            protected[v] = "totem"
-            if numtotems > numkills:
-                for i in range(0, numtotems - numkills):
-                    var.ACTIVE_PROTECTIONS[v].append("totem")
-        numkills -= numtotems
-        for g in var.ROLES["guardian angel"]:
-            if var.GUARDED.get(g) == v:
-                numkills -= 1
-                if numkills <= 0 and v not in protected:
-                    protected[v] = "angel"
-                elif numkills <= 0:
+    pl = var.list_players()
+    for v in pl:
+        if v in victims_set:
+            numkills = victims.count(v)
+            numtotems = var.PROTECTED.count(v)
+            if numtotems >= numkills:
+                protected[v] = "totem"
+                if numtotems > numkills:
+                    for i in range(0, numtotems - numkills):
+                        var.ACTIVE_PROTECTIONS[v].append("totem")
+            numkills -= numtotems
+            for g in var.ROLES["guardian angel"]:
+                if var.GUARDED.get(g) == v:
+                    numkills -= 1
+                    if numkills <= 0 and v not in protected:
+                        protected[v] = "angel"
+                    elif numkills <= 0:
+                        var.ACTIVE_PROTECTIONS[v].append("angel")
+            for g in var.ROLES["bodyguard"]:
+                if var.GUARDED.get(g) == v:
+                    numkills -= 1
+                    if numkills <= 0 and v not in protected:
+                        protected[v] = "bodyguard"
+                    elif numkills <= 0:
+                        var.ACTIVE_PROTECTIONS[v].append("bodyguard")
+                    numkills -= 1
+            if numkills == 1 and v in bywolves:
+                onlybywolves.add(v)
+        else:
+            # player wasn't targeted, but apply protections on them
+            numtotems = var.PROTECTED.count(v)
+            for i in range(0, numtotems):
+                var.ACTIVE_PROTECTIONS[v].append("totem")
+            for g in var.ROLES["guardian angel"]:
+                if var.GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("angel")
-        for g in var.ROLES["bodyguard"]:
-            if var.GUARDED.get(g) == v:
-                numkills -= 1
-                if numkills <= 0 and v not in protected:
-                    protected[v] = "bodyguard"
-                elif numkills <= 0:
+            for g in var.ROLES["bodyguard"]:
+                if var.GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("bodyguard")
-                numkills -= 1
-        if numkills == 1 and v in bywolves:
-            onlybywolves.add(v)
 
     fallenkills = set()
     brokentotem = set()
