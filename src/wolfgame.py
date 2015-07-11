@@ -3084,7 +3084,6 @@ def transition_day(cli, gameid=0):
             if shaman not in var.SHAMANS:
                 ps = pl[:]
                 ps.remove(var.LASTGIVEN.get(shaman))
-                target = random.choice(ps)
                 totem.func(cli, shaman, shaman, random.choice(ps), prefix="Because you forgot to give out your totem at night, you")
 
         if var.FIRST_NIGHT:
