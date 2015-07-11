@@ -457,10 +457,7 @@ class ChangedRolesMode(GameMode):
                 elif role.lower() in self.ROLE_GUIDE:
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
-                    if num.lower() == "villager" or num.lower() == "cultist":
-                        self.DEFAULT_ROLE = num.lower()
-                    else:
-                        raise InvalidModeException("The default role must be either \u0002villager\u0002 or \u0002cultist\u0002.")
+                    self.DEFAULT_ROLE = num.lower()
                 elif role.lower() == "role reveal" or role.lower() == "reveal roles":
                     num = num.lower()
                     if num in ("on", "true", "yes", "1"):
