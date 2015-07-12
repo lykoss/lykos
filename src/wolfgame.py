@@ -2630,6 +2630,10 @@ def on_nick(cli, oldnick, nick):
         if var.PHASE != "join":
             cli.mode(chan, "-v", nick)
         leave(cli, "badnick", oldnick)
+        # update var.USERS after so that leave() can keep track of new nick to use properly
+        # return after doing this so that none of the game vars are updated with the bad nickname
+        if prefix in var.USERS:
+            var.USERS[nick] = var.USERS.pop(prefix)
         return
 
     if prefix in var.USERS:
