@@ -3047,7 +3047,7 @@ def transition_day(cli, gameid=0):
         # bodyguard doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
         if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] + var.ROLES["guardian angel"]):
             for gangel in var.ROLES["guardian angel"]:
-                if gangel not in var.GUARDED:
+                if gangel not in var.GUARDED or var.GUARDED[gangel] is None:
                     var.LASTGUARDED[gangel] = None
 
         if len(var.HEXED) < len(var.ROLES["hag"]):
@@ -4398,10 +4398,8 @@ def guard(cli, nick, chan, rest):
         return
     if victim == nick:
         if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            var.GUARDED[nick] = None
-            if nick in var.LASTGUARDED:
-                del var.LASTGUARDED[nick]
-            pm(cli, nick, "You have chosen not to guard anyone tonight.")
+            pm(cli, nick, "You cannot guard yourself. Use pass if you do not wish to guard anyone tonight.")
+            return
         elif role == "guardian angel": # choosing to guard self bypasses lucky/misdirection
             var.GUARDED[nick] = nick
             var.LASTGUARDED[nick] = nick
@@ -4509,9 +4507,9 @@ def hvisit(cli, nick, chan, rest):
     if not victim:
         return
 
-    if nick == victim:  # Staying home
-        var.HVISITED[nick] = None
-        pm(cli, nick, "You have chosen to stay home for the night.")
+    if nick == victim:  # Staying home (same as calling pass, so call pass)
+        pass_cmd.func(cli, nick, chan, "")
+        return
     else:
         victim = choose_target(nick, victim)
         if check_exchange(cli, nick, victim):
@@ -4781,16 +4779,32 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), victim if victim else "wolves' target", vrole if vrole else "unknown"))
 
-@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat"))
 def pass_cmd(cli, nick, chan, rest):
-    """Decline to kill someone for that night."""
-    if nick in var.OTHER_KILLS.keys():
-        del var.OTHER_KILLS[nick]
-        var.HUNTERS.remove(nick)
+    """Decline to use your special power for that night."""
+    nickrole = var.get_role(nick)
+    if nickrole == "hunter":
+        if nick in var.OTHER_KILLS.keys():
+            del var.OTHER_KILLS[nick]
+            var.HUNTERS.remove(nick)
 
-    pm(cli, nick, "You have decided to not kill anyone tonight.")
-    if nick not in var.PASSED: # Prevents multiple entries
-        var.PASSED.append(nick)
+        pm(cli, nick, "You have decided to not kill anyone tonight.")
+        if nick not in var.PASSED: # Prevents multiple entries
+            var.PASSED.append(nick)
+    elif nickrole == "harlot":
+        if var.HVISITED.get(nick):
+            pm(cli, nick, ("You are already spending the night "+
+                          "with \u0002{0}\u0002.").format(var.HVISITED[nick]))
+            return
+        var.HVISITED[nick] = None
+        pm(cli, nick, "You have chosen to stay home for the night.")
+    elif nickrole == "bodyguard" or nickrole == "guardian angel":
+        if var.GUARDED.get(nick):
+            pm(cli, nick, "You are already protecting someone tonight.")
+            return
+        var.GUARDED[nick] = None
+        pm(cli, nick, "you have chosen not to guard anyone tonight.")
+
     debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
     chk_nightdone(cli)
 
