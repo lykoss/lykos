@@ -7274,9 +7274,6 @@ def player_stats(cli, nick, chan, rest):
 
     if chan != nick:
         var.LAST_PSTATS = datetime.now()
-        if var.PHASE not in ("none", "join"):
-            cli.notice(nick, "Wait until the game is over to view stats.")
-            return
 
     params = rest.split()
 
@@ -7303,18 +7300,22 @@ def player_stats(cli, nick, chan, rest):
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
+        message = var.get_player_totals(acc)
         if chan == nick:
-            pm(cli, nick, var.get_player_totals(acc))
+            pm(cli, nick, message)
         else:
-            cli.msg(chan, var.get_player_totals(acc))
+            cli.notice(nick, message)
     else:
         role = " ".join(params[1:])
-
         # Attempt to find the player's stats
+        message = var.get_player_stats(acc, role)
+
         if chan == nick:
-            pm(cli, nick, var.get_player_stats(acc, role))
+            pm(cli, nick, message)
+        elif var.PHASE not in ("none", "join"):
+            cli.notice(nick, message)
         else:
-            cli.msg(chan, var.get_player_stats(acc, role))
+            cli.msg(chan, message)
 
 @cmd("mystats", "me", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
