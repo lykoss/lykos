@@ -5822,6 +5822,7 @@ def transition_night(cli):
         villagers += var.ROLES["time lord"]
         if var.DEFAULT_ROLE == "villager":
             villagers += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
+        random.shuffle(villagers)
         for villager in villagers:
             if villager in var.PLAYERS and not is_user_simple(villager):
                 pm(cli, villager, "You are a \u0002villager\u0002. It is your job to lynch all of the wolves.")
@@ -5831,6 +5832,7 @@ def transition_night(cli):
         cultists = copy.copy(var.ROLES["cultist"])
         if var.DEFAULT_ROLE == "cultist":
             cultists += var.ROLES["vengeful ghost"] + var.ROLES["amnesiac"]
+        random.shuffle(cultists)
         for cultist in cultists:
             if cultist in var.PLAYERS and not is_user_simple(cultist):
                 pm(cli, cultist, "You are a \u0002cultist\u0002. It is your job to help the wolves kill all of the villagers.")
