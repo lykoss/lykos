@@ -1948,7 +1948,7 @@ def chk_win(cli, end_game = True, winner = None):
         if winner and winner.startswith("@"):
             message = "Game over! The fool has been lynched, causing them to win."
         elif lpl < 1:
-            message = "Game over! There are no players remaining."
+            message = "Game over! There are no players remaining. Nobody wins."
             winner = "none"
         elif var.PHASE == "day" and lpipers and len(var.list_players()) - lpipers == len(var.CHARMED - set(var.ROLES["piper"])):
             winner = "pipers"
