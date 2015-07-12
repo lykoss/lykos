@@ -3094,6 +3094,12 @@ def transition_day(cli, gameid=0):
                         var.CLONED[clone] = target
                         pm(cli, clone, "Because you forgot to select someone to clone at night, you are now cloning \u0002{0}\u0002.".format(target))
 
+            for mm in var.ROLES["matchmaker"]:
+                if mm not in var.MATCHMAKERS:
+                    lovers = random.sample(pl, 2)
+                    choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False)
+                    pm(cli, mm, "Because you forgot to choose lovers at night, two lovers have been selected for you.")
+
 
     # Reset daytime variables
     var.VOTES = {}
@@ -4789,7 +4795,7 @@ def pass_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("choose", "match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(cli, nick, chan, rest):
+def choose(cli, nick, chan, rest, sendmsg=True):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
         return
@@ -4834,7 +4840,9 @@ def choose(cli, nick, chan, rest):
     else:
         var.LOVERS[victim2] = [victim]
         var.ORIGINAL_LOVERS[victim2] = [victim]
-    pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be lovers.".format(victim, victim2))
+
+    if sendmsg:
+        pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be lovers.".format(victim, victim2))
 
     if victim in var.PLAYERS and not is_user_simple(victim):
         pm(cli, victim, ("You are \u0002in love\u0002 with {0}. If that player dies for any " +
