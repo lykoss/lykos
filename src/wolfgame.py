@@ -2361,7 +2361,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.KILLS[a].remove(nick)
                     if a == nick or len(var.KILLS[a]) == 0:
                         del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.OTHER_KILLS):
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.OTHER_KILLS, var.SHAMANS):
                     keys = list(x.keys())
                     for k in keys:
                         if k == nick:
@@ -2374,7 +2374,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
                 # if these aren't cleared properly night may end prematurely
-                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED, var.SHAMANS):
+                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED):
                     if nick in x:
                         x.remove(nick)
             if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
@@ -2646,7 +2646,7 @@ def on_nick(cli, oldnick, nick):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS[k]
                     del var.PLAYERS[k]
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.BITE_PREFERENCES, var.BITTEN_ROLES):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED, var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.BITE_PREFERENCES, var.BITTEN_ROLES, var.SHAMANS):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -2714,9 +2714,6 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.HUNTERS:
                 var.HUNTERS.remove(prefix)
                 var.HUNTERS.append(nick)
-            if prefix in var.SHAMANS:
-                var.SHAMANS.remove(prefix)
-                var.SHAMANS.append(nick)
             if prefix in var.PASSED:
                 var.PASSED.remove(prefix)
                 var.PASSED.append(nick)
@@ -2765,9 +2762,6 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.EXCHANGED:
                 var.EXCHANGED.remove(prefix)
                 var.EXCHANGED.append(nick)
-            if prefix in var.TOBEEXCHANGED:
-                var.TOBEEXCHANGED.remove(prefix)
-                var.TOBEEXCHANGED.append(nick)
             if prefix in var.IMMUNIZED:
                 var.IMMUNIZED.remove(prefix)
                 var.IMMUNIZED.add(nick)
@@ -2981,7 +2975,7 @@ def begin_day(cli):
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = []  # list of seers/oracles/augurs that have had visions
     var.HEXED = [] # list of hags that have silenced others
-    var.SHAMANS = [] # list of shamans/crazed shamans that have acted
+    var.SHAMANS = {} # dict of shamans/crazed shamans that have acted and who got totems
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
     var.HVISITED = {} # those whom harlots have visited
     var.GUARDED = {}  # this whom bodyguards/guardian angels have guarded
@@ -2992,7 +2986,6 @@ def begin_day(cli):
     var.LUCKY = copy.copy(var.TOBELUCKY)
     var.DISEASED = copy.copy(var.TOBEDISEASED)
     var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
-    var.EXCHANGED = copy.copy(var.TOBEEXCHANGED)
     var.ACTIVE_PROTECTIONS = defaultdict(list)
 
     msg = ('The villagers must now vote for whom to lynch. '+
@@ -3116,6 +3109,57 @@ def transition_day(cli, gameid=0):
     var.NO_LYNCH = []
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
+
+    # Give out totems here
+    for shaman, target in var.SHAMANS.items():
+        totemname = var.TOTEMS[shaman]
+        victim = choose_target(shaman, target)
+        if totemname == "death": # this totem stacks
+            var.DEATH_TOTEM.append((shaman, victim))
+        elif totemname == "protection": # this totem stacks
+            var.PROTECTED.append(victim)
+        elif totemname == "revealing":
+            if victim not in var.REVEALED:
+                var.REVEALED.append(victim)
+        elif totemname == "narcolepsy":
+            if victim not in var.ASLEEP:
+                var.ASLEEP.append(victim)
+        elif totemname == "silence":
+            if victim not in var.TOBESILENCED:
+                var.TOBESILENCED.append(victim)
+        elif totemname == "desperation":
+            if victim not in var.DESPERATE:
+                var.DESPERATE.append(victim)
+        elif totemname == "impatience": # this totem stacks
+            var.IMPATIENT.append(victim)
+        elif totemname == "pacifism": # this totem stacks
+            var.PACIFISTS.append(victim)
+        elif totemname == "influence":
+            if victim not in var.INFLUENTIAL:
+                var.INFLUENTIAL.append(victim)
+        elif totemname == "exchange":
+            if victim not in var.EXCHANGED:
+                var.EXCHANGED.append(victim)
+        elif totemname == "lycanthropy":
+            if victim not in var.TOBELYCANTHROPES:
+                var.TOBELYCANTHROPES.append(victim)
+        elif totemname == "luck":
+            if victim not in var.TOBELUCKY:
+                var.TOBELUCKY.append(victim)
+        elif totemname == "pestilence":
+            if victim not in var.TOBEDISEASED:
+                var.TOBEDISEASED.append(victim)
+        elif totemname == "retribution":
+            if victim not in var.RETRIBUTION:
+                var.RETRIBUTION.append(victim)
+        elif totemname == "misdirection":
+            if victim not in var.TOBEMISDIRECTED:
+                var.TOBEMISDIRECTED.append(victim)
+        else:
+            debuglog("{0} (1): INVALID TOTEM {2} TO {3}".format(shaman, var.get_role(shaman), totemname, victim))
+        if target != victim:
+            pm(cli, shaman, "It seems that {0} now has the totem you gave out last night".format(victim))
+        var.LASTGIVEN[shaman] = victim
     havetotem = sorted(x for x in var.LASTGIVEN.values() if x)
 
     if var.START_WITH_DAY and var.FIRST_DAY:
@@ -3667,7 +3711,7 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
-                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + var.SHAMANS +
+                      list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + list(var.SHAMANS.keys()) +
                       var.CURSED + list(var.CHARMERS))
     nightroles = (var.ROLES["seer"] + var.ROLES["oracle"] + var.ROLES["harlot"] +
                   var.ROLES["bodyguard"] + var.ROLES["guardian angel"] + var.ROLES["wolf"] +
@@ -3874,8 +3918,7 @@ def check_exchange(cli, actor, nick):
             actor_totem = var.TOTEMS[actor]
             del var.TOTEMS[actor]
             if actor in var.SHAMANS:
-                var.ACTED_EXTRA += 1
-                var.SHAMANS.remove(actor)
+                del var.SHAMANS[actor]
             if actor in var.LASTGIVEN:
                 del var.LASTGIVEN[actor]
         elif actor_role in ("wolf", "werekitten", "wolf mystic", "fallen angel"):
@@ -3941,8 +3984,7 @@ def check_exchange(cli, actor, nick):
             nick_totem = var.TOTEMS[nick]
             del var.TOTEMS[nick]
             if nick in var.SHAMANS:
-                var.ACTED_EXTRA += 1
-                var.SHAMANS.remove(nick)
+                del var.SHAMANS[nick]
             if nick in var.LASTGIVEN:
                 del var.LASTGIVEN[nick]
         elif nick_role in ("wolf", "werekitten", "wolf mystic", "fallen angel"):
@@ -4598,69 +4640,21 @@ def give(cli, nick, chan, rest):
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 def totem(cli, nick, chan, rest, prefix="You"):
     """Give a totem to a player."""
-    if nick in var.SHAMANS:
-        pm(cli, nick, "You have already given out your totem this round.")
-        return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
         return
     if nick in var.LASTGIVEN and var.LASTGIVEN[nick] == victim:
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
-    type = ""
+
+    totem = ""
     role = var.get_role(nick)
     if role != "crazed shaman":
-        type = " of " + var.TOTEMS[nick]
-    victim = choose_target(nick, victim)
+        totem = " of " + var.TOTEMS[nick]
     if check_exchange(cli, nick, victim):
         return
-    pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, type, victim))
-    totem = var.TOTEMS[nick]
-    if totem == "death": # this totem stacks
-        var.DEATH_TOTEM.append((nick, victim))
-    elif totem == "protection": # this totem stacks
-        var.PROTECTED.append(victim)
-    elif totem == "revealing":
-        if victim not in var.REVEALED:
-            var.REVEALED.append(victim)
-    elif totem == "narcolepsy":
-        if victim not in var.ASLEEP:
-            var.ASLEEP.append(victim)
-    elif totem == "silence":
-        if victim not in var.TOBESILENCED:
-            var.TOBESILENCED.append(victim)
-    elif totem == "desperation":
-        if victim not in var.DESPERATE:
-            var.DESPERATE.append(victim)
-    elif totem == "impatience": # this totem stacks
-        var.IMPATIENT.append(victim)
-    elif totem == "pacifism": # this totem stacks
-        var.PACIFISTS.append(victim)
-    elif totem == "influence":
-        if victim not in var.INFLUENTIAL:
-            var.INFLUENTIAL.append(victim)
-    elif totem == "exchange":
-        if victim not in var.TOBEEXCHANGED:
-            var.TOBEEXCHANGED.append(victim)
-    elif totem == "lycanthropy":
-        if victim not in var.TOBELYCANTHROPES:
-            var.TOBELYCANTHROPES.append(victim)
-    elif totem == "luck":
-        if victim not in var.TOBELUCKY:
-            var.TOBELUCKY.append(victim)
-    elif totem == "pestilence":
-        if victim not in var.TOBEDISEASED:
-            var.TOBEDISEASED.append(victim)
-    elif totem == "retribution":
-        if victim not in var.RETRIBUTION:
-            var.RETRIBUTION.append(victim)
-    elif totem == "misdirection":
-        if victim not in var.TOBEMISDIRECTED:
-            var.TOBEMISDIRECTED.append(victim)
-    else:
-        pm(cli, nick, "I don't know what to do with a '{0}' totem. This is a bug, please report it to the admins.".format(totem))
-    var.LASTGIVEN[nick] = victim
-    var.SHAMANS.append(nick)
+    pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, totem, victim))
+    var.SHAMANS[nick] = victim
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, totem))
     chk_nightdone(cli)
 
@@ -5224,7 +5218,7 @@ def transition_night(cli):
     var.SEEN = []  # list of seers that have had visions
     var.HEXED = [] # list of hags that have hexed
     var.CURSED = [] # list of warlocks that have cursed
-    var.SHAMANS = []
+    var.SHAMANS = {}
     var.PASSED = [] # list of hunters that have chosen not to kill
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
@@ -5243,7 +5237,6 @@ def transition_night(cli):
     var.TOBEDISEASED = []
     var.RETRIBUTION = []
     var.TOBEMISDIRECTED = []
-    var.TOBEEXCHANGED = []
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
@@ -6081,8 +6074,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.MISDIRECTED = []
     var.TOBEMISDIRECTED = []
     var.EXCHANGED = []
-    var.TOBEEXCHANGED = []
-    var.SHAMANS = []
+    var.SHAMANS = {}
     var.HEXED = []
     var.OTHER_KILLS = {}
     var.ACTED_EXTRA = 0
@@ -7521,11 +7513,12 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     if role == "assassin" and nickname in var.TARGETED:
                         nicks[i] += " (targeting {0})".format(var.TARGETED[nickname])
                     elif role in var.TOTEM_ORDER and nickname in var.TOTEMS:
-                        if nickname in var.SHAMANS or var.PHASE == "day":
-                            if nickname in var.LASTGIVEN and var.LASTGIVEN[nickname] != None:
-                                nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
-                        else:
+                        if nickname in var.SHAMANS:
+                            nicks[i] += " (giving {0} totem to {1})".format(var.TOTEMS[nickname], var.SHAMANS[nickname])
+                        elif var.PHASE == "night":
                             nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
+                        else:
+                            nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
                     elif role == "clone" and nickname in var.CLONED:
                         nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
                     elif role == "amnesiac" and nickname in var.FINAL_ROLES:
