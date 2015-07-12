@@ -95,6 +95,8 @@ var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
 
+var.RESTARTING = False
+
 var.OPPED = False  # Keeps track of whether the bot is opped
 
 var.BITTEN = {}
@@ -601,6 +603,11 @@ def restart_program(cli, nick, chan, rest):
         # if the bot is using a nick that isn't botconfig.NICK, then stop breaking things and fdie
         if nick == botconfig.NICK:
             _restart_program(cli, mode)
+
+    # This is checked in the on_error handler. Some IRCds, such as InspIRCd, don't send the bot
+    # its own QUIT message, so we need to use ERROR. Ideally, we shouldn't even need the above
+    # handler now, but I'm keeping it for now just in case.
+    var.RESTARTING = True
 
 
 @cmd("ping", chan=False, pm=True)
@@ -6255,7 +6262,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
 @hook("error")
 def on_error(cli, pfx, msg):
-    if msg.endswith("(Excess Flood)"):
+    if var.RESTARTING or msg.endswith("(Excess Flood)"):
         _restart_program(cli)
     elif msg.startswith("Closing Link:"):
         raise SystemExit
