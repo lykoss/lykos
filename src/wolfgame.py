@@ -1515,11 +1515,34 @@ def chk_decision(cli, force = ""):
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
                     cli.msg(botconfig.CHANNEL, lmsg)
                     message = "Game over! The fool has been lynched, causing them to win."
+                    winner = "@" + votee
                     debuglog("WIN: fool")
                     debuglog("PLAYERS:", votee)
-                    cli.msg(botconfig.CHANNEL, message)
-                    stop_game(cli, "@" + votee)
-                    return
+
+                    # get the values of some arguments that need to be passed into the event
+                    lpl = len(var.list_players())
+                    lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+                    cubs = len(var.ROLES["wolf cub"]) if "wolf cub" in var.ROLES else 0
+                    lrealwolves = len(var.list_players(var.WOLF_ROLES)) - cubs
+                    for p in var.WOUNDED + var.ASLEEP:
+                            try:
+                                role = var.get_role(p)
+                                if role in var.WOLFCHAT_ROLES:
+                                    lwolves -= 1
+                                else:
+                                    lpl -= 1
+                            except KeyError:
+                                pass
+
+                    # call the chk_win event so that fool win can be modified / overridden by game modes
+                    event = Event("chk_win", {"winner": winner, "message": message})
+                    event.dispatch(var, lpl, lwolves, lrealwolves)
+                    winner = event.data["winner"]
+                    message = event.data["message"]
+                    if winner is not None:
+                        cli.msg(botconfig.CHANNEL, message)
+                        stop_game(cli, winner)
+                        return
                 # roles that eliminate other players upon being lynched
                 # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
                 if votee in var.DESPERATE:
@@ -1937,16 +1960,7 @@ def chk_win(cli, end_game = True):
         traitors = len(var.ROLES["traitor"]) if "traitor" in var.ROLES else 0
         lpipers = len(var.ROLES["piper"]) if "piper" in var.ROLES else 0
         if var.PHASE == "day":
-            for p in var.WOUNDED:
-                try:
-                    role = var.get_role(p)
-                    if role in var.WOLFCHAT_ROLES:
-                        lwolves -= 1
-                    else:
-                        lpl -= 1
-                except KeyError:
-                    pass
-            for p in var.ASLEEP:
+            for p in var.WOUNDED + var.ASLEEP:
                 try:
                     role = var.get_role(p)
                     if role in var.WOLFCHAT_ROLES:
