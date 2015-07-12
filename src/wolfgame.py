@@ -1514,8 +1514,7 @@ def chk_decision(cli, force = ""):
                     # ends game immediately, with fool as only winner
                     lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
                     cli.msg(botconfig.CHANNEL, lmsg)
-                    winner = "@" + votee
-                    if chk_win(cli, True, winner):
+                    if chk_win(cli, winner="@" + votee):
                         return
                 # roles that eliminate other players upon being lynched
                 # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
