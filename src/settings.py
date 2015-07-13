@@ -76,7 +76,8 @@ HIDDEN_CLONE = False
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
-ROLE_REVEAL = True
+ROLE_REVEAL = "on" # on/off/team - what role information is shown on death
+STATS_TYPE = "default" # default/accurate/team/disabled - what role information is shown when doing !stats
 LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
 DEFAULT_SEEN_AS_VILL = True # non-wolves are seen as villager regardless of the default role
 
@@ -355,13 +356,23 @@ def get_role(p):
 
 def get_reveal_role(nick):
     if HIDDEN_TRAITOR and get_role(nick) == "traitor":
-        return DEFAULT_ROLE
+        role = DEFAULT_ROLE
     elif HIDDEN_AMNESIAC and nick in ORIGINAL_ROLES["amnesiac"]:
-        return "amnesiac"
+        role = "amnesiac"
     elif HIDDEN_CLONE and nick in ORIGINAL_ROLES["clone"]:
-        return "clone"
+        role = "clone"
     else:
-        return get_role(nick)
+        role = get_role(nick)
+
+    if ROLE_REVEAL != "team":
+        return role
+
+    if role in WOLFTEAM_ROLES:
+        return "wolf"
+    elif role in TRUE_NEUTRAL_ROLES:
+        return "neutral player"
+    else:
+        return "villager"
 
 def del_player(pname):
     prole = get_role(pname)
@@ -427,6 +438,43 @@ def reset_roles(index):
 
 # TODO: move this to src/gamemodes.py
 class GameMode:
+    def __init__(self, arg=""):
+        if not arg:
+            return
+
+        pairs = arg.split(",")
+        for pair in pairs:
+            change = pair.lower().split(":")
+            if len(change) != 2:
+                raise InvalidModeException("Invalid syntax for mode arguments. arg={0}".format(arg))
+
+            key, val = change
+            if key in ("role reveal", "reveal roles"):
+                if val not in ("on", "off", "team"):
+                    raise InvalidModeException(("Did not recognize value \u0002{0}\u0002 for role reveal. "+
+                                               "Allowed values: on, off, team").format(val))
+                self.ROLE_REVEAL = val
+                if val == "off" and not hasattr(self, "STATS_TYPE"):
+                    self.STATS_TYPE = "disabled"
+                elif val == "team" and not hasattr(self, "STATS_TYPE"):
+                    self.STATS_TYPE = "team"
+            elif key in ("stats type", "stats"):
+                if val not in ("default", "accurate", "team", "disabled"):
+                    raise InvalidModeException(("Did not recognize value \u0002{0}\u0002 for stats type. "+
+                                               "Allowed values: default, accurate, team, disabled").format(val))
+                self.STATS_TYPE = val
+            elif key == "abstain":
+                if val not in ("enabled", "restricted", "disabled"):
+                    raise InvalidModeException(("Did not recognize value \u0002{0}\u0002 for abstain. "+
+                                               "Allowed values: enabled, restricted, disabled").format(val))
+                if val == "enabled":
+                    self.ABSTAIN_ENABLED = True
+                    self.LIMIT_ABSTAIN = False
+                elif val == "restricted":
+                    self.ABSTAIN_ENABLED = True
+                    self.LIMIT_ABSTAIN = True
+                elif val == "disabled":
+                    self.ABSTAIN_ENABLED = False
     def startup(self):
         pass
 
@@ -437,7 +485,8 @@ class GameMode:
 class ChangedRolesMode(GameMode):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
-    def __init__(self, arg = ""):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.MAX_PLAYERS = 35
         self.ROLE_GUIDE = ROLE_GUIDE.copy()
         self.ROLE_INDEX = (MIN_PLAYERS,)
@@ -459,16 +508,9 @@ class ChangedRolesMode(GameMode):
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
                     self.DEFAULT_ROLE = num.lower()
-                elif role.lower() == "role reveal" or role.lower() == "reveal roles":
-                    num = num.lower()
-                    if num in ("on", "true", "yes", "1"):
-                        self.ROLE_REVEAL = True
-                    elif num in ("off", "false", "no", "0"):
-                        self.ROLE_REVEAL = False
-                    elif num == "partial":
-                        self.ROLE_REVEAL = "partial"
-                    else:
-                        raise InvalidModeException("Did not recognize value \u0002{0}\u0002 for role reveal.".format(num))
+                elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain"):
+                    # handled in parent constructor
+                    pass
                 else:
                     raise InvalidModeException(("The role \u0002{0}\u0002 "+
                                                 "is not valid.").format(role))
@@ -478,14 +520,15 @@ class ChangedRolesMode(GameMode):
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(GameMode):
     """Default game mode."""
-    def __init__(self):
+    def __init__(self, arg=""):
         # No extra settings, just an explicit way to revert to default settings
-        pass
+        super().__init__(arg)
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ROLE_INDEX =         (  8  ,  9  ,  10 , 11  , 12  , 15  , 17  , 20  , 21  , 22  , 24  )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -513,7 +556,8 @@ class FoolishMode(GameMode):
 @game_mode("mad", minp = 7, maxp = 22, likelihood = 8)
 class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         # gunner and sharpshooter always get 1 bullet
         self.SHOTS_MULTIPLIER = 0.0001
         self.SHARPSHOOTER_MULTIPLIER = 0.0001
@@ -546,10 +590,11 @@ class MadMode(GameMode):
 @game_mode("evilvillage", minp = 6, maxp = 18, likelihood = 1)
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        self.ABSTAIN_ENABLED = False
+        super().__init__(arg)
         self.DEFAULT_ROLE = "cultist"
         self.DEFAULT_SEEN_AS_VILL = False
-        self.ABSTAIN_ENABLED = False
         self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -614,7 +659,8 @@ class EvilVillageMode(GameMode):
 @game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
 class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ABSTAIN_ENABLED = False
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
@@ -636,7 +682,8 @@ class ClassicMode(GameMode):
 @game_mode("rapidfire", minp = 6, maxp = 24, likelihood = 0)
 class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
@@ -668,7 +715,8 @@ class RapidFireMode(GameMode):
 @game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
 class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
@@ -699,8 +747,9 @@ class DrunkFireMode(GameMode):
 @game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
 class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""
-    def __init__(self):
-        self.ROLE_REVEAL = False
+    def __init__(self, arg=""):
+        self.ROLE_REVEAL = "off"
+        super().__init__(arg)
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -725,7 +774,8 @@ class NoRevealMode(GameMode):
 @game_mode("lycan", minp = 7, maxp = 21, likelihood = 6)
 class LycanMode(GameMode):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ROLE_INDEX =         (   7   ,   8  ,    9   ,   10  ,   11  ,   12  ,  15   ,  17   ,  20   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
@@ -750,7 +800,8 @@ class LycanMode(GameMode):
 @game_mode("valentines", minp = 8, maxp = 24, likelihood = 0)
 class MatchmakerMode(GameMode):
     """Love is in the air!"""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ROLE_INDEX = range(8, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
@@ -763,11 +814,13 @@ class MatchmakerMode(GameMode):
 @game_mode("random", minp = 8, maxp = 24, likelihood = 0, conceal_roles = True)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        self.ROLE_REVEAL = random.choice(("on", "off", "team"))
+        self.STATS_TYPE = "disabled"
+        super().__init__(arg)
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALPHA_WOLF_NIGHTS = 2
-        self.ROLE_REVEAL = random.choice(("partial", False))
         self.TEMPLATE_RESTRICTIONS = {template: [] for template in TEMPLATE_RESTRICTIONS}
 
         self.TOTEM_CHANCES = { #  shaman , crazed
@@ -818,7 +871,8 @@ class RandomMode(GameMode):
 @game_mode("aleatoire", minp = 8, maxp = 24, likelihood = 4)
 class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.SHARPSHOOTER_CHANCE = 1
                                               #    SHAMAN   , CRAZED SHAMAN
         self.TOTEM_CHANCES = {       "death": (      4      ,      1      ),
@@ -869,7 +923,8 @@ class AleatoireMode(GameMode):
 @game_mode("alpha", minp = 7, maxp = 24, likelihood = 5)
 class AlphaMode(GameMode):
     """Features the alpha wolf who can turn other people into wolves, be careful whom you trust!"""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ROLE_INDEX =         (   7   ,   8   ,  10   ,  11   ,  12   ,  14   ,  15   ,  17   ,  18   ,  20   ,  21   ,  24   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
@@ -897,8 +952,9 @@ class AlphaMode(GameMode):
 @game_mode("guardian", minp = 8, maxp = 16, likelihood = 0)
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
-    def __init__(self):
+    def __init__(self, arg=""):
         self.LIMIT_ABSTAIN = False
+        super().__init__(arg)
         self.ROLE_INDEX =         (   8   ,   10   ,  12   ,  13   ,  15   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
@@ -978,7 +1034,8 @@ class GuardianMode(GameMode):
 @game_mode("charming", minp = 5, maxp = 24, likelihood = 4)
 class CharmingMode(GameMode):
     """Charmed players must band together to find the piper in this game mode."""
-    def __init__(self):
+    def __init__(self, arg=""):
+        super().__init__(arg)
         self.ROLE_INDEX =         (  5  ,  6  ,  8 ,  10  , 11  , 12  , 14  , 16  , 18  , 19  , 22  , 24  )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
