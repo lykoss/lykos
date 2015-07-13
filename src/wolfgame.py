@@ -7517,7 +7517,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                             nicks[i] += " (giving {0} totem to {1})".format(var.TOTEMS[nickname], var.SHAMANS[nickname])
                         elif var.PHASE == "night":
                             nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
-                        else:
+                        elif nickname in var.LASTGIVEN:
                             nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
                     elif role == "clone" and nickname in var.CLONED:
                         nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
