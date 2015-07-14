@@ -4151,7 +4151,7 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", pm=True, playing=True, phases=("day", "night"))
+@cmd("retract", "r", pm=True, playing=True, phases=("day", "night"))
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
