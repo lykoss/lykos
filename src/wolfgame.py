@@ -20,6 +20,7 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import copy
+import fnmatch
 import itertools
 import math
 import os
@@ -6503,8 +6504,9 @@ def is_user_stasised(nick):
     if acc and acc != "*":
         if acc in var.STASISED_ACCS:
             return True, var.STASISED_ACCS[acc]
-    if cloak in var.STASISED:
-        return True, var.STASISED[cloak]
+    for clk in var.STASISED:
+        if fnmatch.fnmatch(cloak, clk):
+           return True, var.STASISED[clk]
     return False, None
 
 def allow_deny(cli, nick, chan, rest, mode):
