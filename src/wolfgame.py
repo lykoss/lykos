@@ -1794,11 +1794,13 @@ def stop_game(cli, winner = "", abort = False):
                 if winner == "wolves":
                     won = True
             elif rol in var.TRUE_NEUTRAL_ROLES:
-                # true neutral roles never have a team win (with exception of monsters and pipers), only individual wins
+                # most true neutral roles never have a team win, only individual wins
                 if winner == "monsters" and rol == "monster":
                     won = True
                 if winner == "pipers" and rol == "piper":
                     won = True
+                if rol == "turncoat" and var.TURNCOATS[splr][0] != "none":
+                    won = (winner == var.TURNCOATS[splr][0])
             elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
                 if var.DEFAULT_ROLE == "villager" and winner == "villagers":
                     won = True
@@ -2657,7 +2659,7 @@ def on_nick(cli, oldnick, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.DOCTORS):
+            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.DOCTORS, var.TURNCOATS):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar[prefix]
                     del dictvar[prefix]
@@ -3709,6 +3711,7 @@ def chk_nightdone(cli):
         return
 
     # TODO: alphabetize and/or arrange sensibly
+    pl = var.list_players()
     actedcount  = len(var.SEEN + list(var.HVISITED.keys()) + list(var.GUARDED.keys()) +
                       list(var.KILLS.keys()) + list(var.OTHER_KILLS.keys()) +
                       list(var.OBSERVED.keys()) + var.PASSED + var.HEXED + list(var.SHAMANS.keys()) +
@@ -3734,6 +3737,18 @@ def chk_nightdone(cli):
 
     # but remove all instances of their name if they are silenced
     nightroles = [p for p in nightroles if p not in var.SILENCED]
+
+    # add in turncoats who should be able to act -- if they passed they're already in var.PASSED
+    # but if they can act they're in var.TURNCOATS where the second tuple item is the current night
+    # (if said tuple item is the previous night, then they are not allowed to act tonight)
+    for tc, tu in var.TURNCOATS.items():
+        if tc not in pl:
+            continue
+        if tu[1] == var.NIGHT_COUNT:
+            nightroles.append(tc)
+            actedcount += 1
+        elif tu[1] < var.NIGHT_COUNT - 1:
+            nightroles.append(tc)
 
     playercount = len(nightroles) + var.ACTED_EXTRA
 
@@ -3973,6 +3988,10 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "warlock":
             if actor in var.CURSED:
                 var.CURSED.remove(actor)
+        elif actor_role == "turncoat":
+            if actor in var.PASSED:
+                var.PASSED.remove(actor)
+            del var.TURNCOATS[actor]
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
@@ -4036,6 +4055,10 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "warlock":
             if nick in var.CURSED:
                 var.CURSED.remove(nick)
+        elif nick_role == "turncoat":
+            if nick in var.PASSED:
+                var.PASSED.remove(nick)
+            del var.TURNCOATS[nick]
 
 
         var.FINAL_ROLES[actor] = nick_role
@@ -4106,6 +4129,8 @@ def check_exchange(cli, actor, nick):
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
             pm(cli, actor, "Wolves: " + ", ".join(wolves))
+        elif nick_role == "turncoat":
+            var.TURNCOATS[actor] = ("none", -1)
 
         if actor_role == "clone":
             pm(cli, nick, "You are cloning \u0002{0}\u0002.".format(actor_target))
@@ -4147,6 +4172,8 @@ def check_exchange(cli, actor, nick):
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
             pm(cli, nick, "Wolves: " + ", ".join(wolves))
+        elif actor_role == "turncoat":
+            var.TURNCOATS[nick] = ("none", -1)
 
         return True
     return False
@@ -4780,10 +4807,19 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), victim if victim else "wolves' target", vrole if vrole else "unknown"))
 
-@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat"))
+@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = var.get_role(nick)
+
+    # turncoats can change roles and pass even if silenced
+    if nickrole != "turncoat" and nick in var.SILENCED:
+        if chan == nick:
+            pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+        else:
+            cli.notice(nick, "You have been silenced, and are unable to use any special powers.")
+        return
+
     if nickrole == "hunter":
         if nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
@@ -4804,9 +4840,41 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, "You are already protecting someone tonight.")
             return
         var.GUARDED[nick] = None
-        pm(cli, nick, "you have chosen not to guard anyone tonight.")
+        pm(cli, nick, "You have chosen not to guard anyone tonight.")
+    elif nickrole == "turncoat":
+        if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
+            # theoretically passing would revert them to how they were before, but
+            # we aren't tracking that, so just tell them to change it back themselves.
+            pm(cli, nick, ("You have already changed sides tonight. Use" +
+                           '"side villagers" or "side wolves" to modify your selection.'))
+            return
+        pm(cli, nick, "You have decided to not change sides tonight.")
+        if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
+            # don't add to var.PASSED since we aren't counting them anyway for nightdone
+            # let them still use !pass though to make them feel better or something
+            return
+        if nick not in var.PASSED:
+            var.PASSED.append(nick)
+
 
     debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
+    chk_nightdone(cli)
+
+@cmd("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
+def change_sides(cli, nick, chan, rest, sendmsg=True):
+    if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
+        pm(cli, nick, "You have changed sides yesterday night, and may not do so again tonight.")
+        return
+
+    team = re.split(" +", rest)[0]
+    team, _ = complete_match(team, ("villagers", "wolves"))
+    if not team:
+        pm(cli, nick, "Please specify which team you wish to side with, villagers or wolves.")
+        return
+
+    pm(cli, nick, "You are now siding with \u0002{0}\u0002.".format(team))
+    var.TURNCOATS[nick] = (team, var.NIGHT_COUNT)
+    debuglog("{0} ({1}) SIDE {2}".format(nick, var.get_role(nick), team))
     chk_nightdone(cli)
 
 @cmd("choose", "match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
@@ -5786,6 +5854,19 @@ def transition_night(cli):
             pm(cli, piper, "You are a \u0002piper\u0002.")
         pm(cli, piper, "Players: " + ", ".join(pl))
 
+    for turncoat in var.ROLES["turncoat"]:
+        # they start out as unsided, but can change n1
+        if turncoat not in var.TURNCOATS:
+            var.TURNCOATS[turncoat] = ("none", -1)
+
+        if turncoat in var.PLAYERS and not is_user_simple(turncoat):
+            pm(cli, turncoat, ('You are a \u0002turncoat\u0002. You can change which ' +
+                               'team you\'re siding with every other night. Use ' +
+                               '"side villagers" or "side wolves" to select your team. ' +
+                               'You are currently siding with \u0002{0}\u0002.').format(var.TURNCOATS[turncoat][0]))
+        else:
+            pm(cli, turncoat, 'You are a \u0002turncoat\u0002. Current side: \u0002{0}\u0002.'.format(var.TURNCOATS[turncoat][0]))
+
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
@@ -6090,6 +6171,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.CHARMERS = set()
     var.CHARMED = set()
     var.ACTIVE_PROTECTIONS = defaultdict(list)
+    var.TURNCOATS = {}
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -7125,6 +7207,10 @@ def myrole(cli, nick, chan, rest):
             for player in var.ORIGINAL_ROLES[wolfrole]:
                 wolves.append(player)
         pm(cli, nick, "Original wolves: " + ", ".join(wolves))
+
+    # Remind turncoats of their side
+    if role == "turncoat":
+        pm(cli, nick, "Current side: \u0002{0}\u0002.".format(var.TURNCOATS[nick]))
 
     # Check for gun/bullets
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
