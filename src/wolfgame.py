@@ -1509,6 +1509,9 @@ def chk_decision(cli, force = ""):
                     pm(cli, votee, "Your totem clears your amnesia and you now fully remember who you are!")
                     # If wolfteam, don't bother giving list of wolves since night is about to start anyway
                     # Existing wolves also know that someone just joined their team because revealing totem says what they are
+                    # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
+                    if role == "turncoat":
+                        var.TURNCOATS[votee] = ("none", -1)
 
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                 lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
@@ -1799,7 +1802,7 @@ def stop_game(cli, winner = "", abort = False):
                     won = True
                 if winner == "pipers" and rol == "piper":
                     won = True
-                if rol == "turncoat" and var.TURNCOATS[splr][0] != "none":
+                if rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
                     won = (winner == var.TURNCOATS[splr][0])
             elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
                 if var.DEFAULT_ROLE == "villager" and winner == "villagers":
@@ -2111,6 +2114,8 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         pm(cli, clone, "Wolves: " + ", ".join(wolves))
                                     else:
                                         pm(cli, clone, "There are no other wolves")
+                            elif nickrole == "turncoat":
+                                var.TURNCOATS[clone] = ("none", -1)
 
                 if nickrole == "clone" and nick in var.CLONED:
                     del var.CLONED[nick]
@@ -5404,6 +5409,8 @@ def transition_night(cli):
                     for wolf in var.list_players(var.WOLFCHAT_ROLES):
                         if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
                             pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
+                elif amnrole == "turncoat":
+                    var.TURNCOATS[amn] = ("none", -1)
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
@@ -7210,7 +7217,7 @@ def myrole(cli, nick, chan, rest):
 
     # Remind turncoats of their side
     if role == "turncoat":
-        pm(cli, nick, "Current side: \u0002{0}\u0002.".format(var.TURNCOATS[nick]))
+        pm(cli, nick, "Current side: \u0002{0}\u0002.".format(var.TURNCOATS.get(nick, "none")))
 
     # Check for gun/bullets
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
