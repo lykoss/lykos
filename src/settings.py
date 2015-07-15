@@ -514,7 +514,8 @@ class FoolishMode(GameMode):
 class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self):
-        self.SHOTS_MULTIPLIER = 0.0001 # gunner and sharpshooter always get 0 bullets
+        # gunner and sharpshooter always get 1 bullet
+        self.SHOTS_MULTIPLIER = 0.0001
         self.SHARPSHOOTER_MULTIPLIER = 0.0001
         self.ROLE_INDEX =         (  7  ,  8  ,  10 , 12  , 14  , 15  , 17  , 18  , 20  )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
