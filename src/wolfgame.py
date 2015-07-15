@@ -4850,7 +4850,7 @@ def pass_cmd(cli, nick, chan, rest):
         if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
             # theoretically passing would revert them to how they were before, but
             # we aren't tracking that, so just tell them to change it back themselves.
-            pm(cli, nick, ("You have already changed sides tonight. Use" +
+            pm(cli, nick, ("You have already changed sides tonight. Use " +
                            '"side villagers" or "side wolves" to modify your selection.'))
             return
         pm(cli, nick, "You have decided to not change sides tonight.")
