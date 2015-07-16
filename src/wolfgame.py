@@ -5159,6 +5159,14 @@ def charm(cli, nick, chan, rest):
 
     pm(cli, nick, "You have charmed \u0002{0}\u0002{1}.".format(victim, victim2 and " and \u0002{0}\u0002".format(victim2) or ""))
 
+    # if there are other pipers, tell them who gets charmed (so they don't have to keep guessing who they are still allowed to charm)
+    for piper in var.ROLES["piper"]:
+        if piper != nick:
+            if victim2:
+                pm(cli, piper, "Another piper has charmed \u0002{0}\u0002 and \u0002{1}\u0002!".format(victim, victim2))
+            else:
+                pm(cli, piper, "Another piper has charmed \u0002{0}\u0002!".format(victim))
+
     if victim2:
         debuglog("{0} ({1}) CHARM {2} ({3}) && {4} ({5})".format(nick, var.get_role(nick),
                                                                  victim, var.get_role(victim),
