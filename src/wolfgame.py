@@ -5868,10 +5868,13 @@ def transition_night(cli):
             var.TURNCOATS[turncoat] = ("none", -1)
 
         if turncoat in var.PLAYERS and not is_user_simple(turncoat):
-            pm(cli, turncoat, ('You are a \u0002turncoat\u0002. You can change which ' +
-                               'team you\'re siding with every other night. Use ' +
-                               '"side villagers" or "side wolves" to select your team. ' +
-                               'You are currently siding with \u0002{0}\u0002.').format(var.TURNCOATS[turncoat][0]))
+            message = ('You are a \u0002turncoat\u0002. You can change which team you\'re siding with every other night. ' +
+                       'Use "side villagers" or "side wolves" to select your team. ')
+            if var.TURNCOATS[turncoat][0] != "none":
+                message += 'You are currently siding with \u0002{0}\u0002.'.format(var.TURNCOATS[turncoat][0])
+            else:
+                message += 'If you die before selecting a side, you will not win.'
+            pm(cli, turncoat, message)
         else:
             pm(cli, turncoat, 'You are a \u0002turncoat\u0002. Current side: \u0002{0}\u0002.'.format(var.TURNCOATS[turncoat][0]))
 
