@@ -3085,7 +3085,7 @@ def transition_day(cli, gameid=0):
         # Select random totem recipients if shamans didn't act
         shamans = var.list_players(var.TOTEM_ORDER)
         for shaman in shamans:
-            if shaman not in var.SHAMANS:
+            if shaman not in var.SHAMANS and shaman not in var.SILENCED:
                 ps = pl[:]
                 if var.LASTGIVEN.get(shaman) in ps:
                     ps.remove(var.LASTGIVEN.get(shaman))
