@@ -2788,6 +2788,9 @@ def on_nick(cli, oldnick, nick):
             if prefix in var.CHARMED:
                 var.CHARMED.remove(prefix)
                 var.CHARMED.add(nick)
+            if prefix in var.TOBECHARMED:
+                var.TOBECHARMED.remove(prefix)
+                var.TOBECHARMED.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3169,6 +3172,40 @@ def transition_day(cli, gameid=0):
             pm(cli, shaman, "It seems that {0} now has the totem you gave out last night".format(victim))
         var.LASTGIVEN[shaman] = victim
     havetotem = sorted(x for x in var.LASTGIVEN.values() if x)
+
+    # Send out PMs to players who have been charmed
+    for victim in var.TOBECHARMED:
+        charmedlist = list(var.CHARMED | var.TOBECHARMED - {victim})
+        message = ("You hear the sweet tones of a flute coming from outside your window... You "
+                   "inexorably walk outside and find yourself in the village square. ")
+
+        if len(charmedlist) <= 0:
+            pm(cli, victim, message + "There are no other charmed players.")
+        elif len(charmedlist) == 1:
+            pm(cli, victim, message + "You find out that \u0002{0}\u0002 is also charmed!".format(charmedlist[0]))
+        elif len(charmedlist) == 2:
+            pm(cli, victim, message + ("You find out that \u0002{0}\u0002 and \u0002{1}\u0002 "
+                                     "are also charmed!").format(charmedlist[0], charmedlist[1]))
+        else:
+            pm(cli, victim, message + ("You find out that \u0002{0}\u0002, and \u0002{1}\u0002 "
+                                     "are also charmed!").format("\u0002, \u0002".join(charmedlist[:-1]), charmedlist[-1]))
+
+    if var.TOBECHARMED:
+        tobecharmedlist = list(var.TOBECHARMED)
+        for victim in var.CHARMED:
+            if len(tobecharmedlist) == 1:
+                message = "\u0002{0}\u0002 is now charmed!".format(tobecharmedlist[0])
+            elif len(tobecharmedlist) == 2:
+                message = "\u0002{0}\u0002 and \u0002{1}\u0002 are now charmed".format(tobecharmedlist[0], tobecharmedlist[1])
+            else:
+                message = "\u0002{0}\u0002, and \u0002{1}\u0002 are also charmed!".format(
+                          "\u0002, \u0002".join(tobecharmedlist[:-1]), tobecharmedlist[-1])
+
+            pm(cli, victim, message + (" now charmed! Previously charmed players: "
+                                       "{0}").format("\u0002, \u0002".join(var.CHARMED - {victim})))
+    var.CHARMED.update(var.TOBECHARMED)
+    var.TOBECHARMED.clear()
+    
 
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
@@ -5095,6 +5132,8 @@ def charm(cli, nick, chan, rest):
         return
     if victim2 is not None:
         victim2 = get_victim(cli, nick, victim2, False, True)
+        if not victim2:
+            return
 
     if victim == victim2:
         pm(cli, nick, "You must choose two different people.")
@@ -5102,47 +5141,23 @@ def charm(cli, nick, chan, rest):
     if nick in (victim, victim2):
         pm(cli, nick, "You may not charm yourself.")
         return
-    if victim in var.CHARMED or victim2 and victim2 in var.CHARMED:
-        if victim in var.CHARMED and victim2 and victim2 in var.CHARMED:
+    charmedlist = var.CHARMED|var.TOBECHARMED
+    if victim in charmedlist or victim2 and victim2 in charmedlist:
+        if victim in charmedlist and victim2 and victim2 in charmedlist:
             pm(cli, nick, "\u0002{0}\u0002 and \u0002{1}\u0002 are already charmed!".format(victim, victim2))
             return
-        if (len(var.list_players()) - len(var.ROLES["piper"]) - len(var.CHARMED) - 2 >= 0 or
-            victim in var.CHARMED and not victim2):
-            pm(cli, nick, "\u0002{0}\u0002 is already charmed!".format(victim in var.CHARMED and victim or victim2))
+        if (len(var.list_players()) - len(var.ROLES["piper"]) - len(charmedlist) - 2 >= 0 or
+            victim in charmedlist and not victim2):
+            pm(cli, nick, "\u0002{0}\u0002 is already charmed!".format(victim in charmedlist and victim or victim2))
             return
 
     var.CHARMERS.add(nick)
 
-    var.CHARMED.add(victim)
+    var.TOBECHARMED.add(victim)
     if victim2:
-        var.CHARMED.add(victim2)
+        var.TOBECHARMED.add(victim2)
 
     pm(cli, nick, "You have charmed \u0002{0}\u0002{1}.".format(victim, victim2 and " and \u0002{0}\u0002".format(victim2) or ""))
-
-    for vict in (victim, victim2):
-        if vict and vict in var.PLAYERS:
-            message = ("You hear the sweet tones of a flute coming from outside your window... You "
-                       "inexorably walk outside and find yourself in the village square. ")
-
-            charmedlist = list(var.CHARMED - {vict})
-            if len(charmedlist) <= 0:
-                pm(cli, vict, message + "There are no other charmed players.")
-            elif len(charmedlist) == 1:
-                pm(cli, vict, message + "You find out that \u0002{0}\u0002 is also charmed!".format(charmedlist[0]))
-            elif len(charmedlist) == 2:
-                pm(cli, vict, message + ("You find out that \u0002{0}\u0002 and \u0002{1}\u0002 "
-                                         "are also charmed!").format(charmedlist[0], charmedlist[1]))
-            else:
-                pm(cli, vict, message + ("You find out that \u0002{0}\u0002, and \u0002{1}\u0002 "
-                                         "are also charmed!").format("\u0002, \u0002".join(charmedlist[:-1]), charmedlist[-1]))
-
-    for vict in var.CHARMED:
-        if vict in (victim, victim2):
-            continue
-        message = victim2 and "\u0002{0}\u0002 and \u0002{1}\u0002 are" or "\u0002{0}\u0002 is"
-        pm(cli, vict, (message + " now charmed! All charmed players: " +
-                       "\u0002{2}\u0002").format(victim, victim2,
-                       "\u0002, \u0002".join(var.CHARMED - {vict})))
 
     if victim2:
         debuglog("{0} ({1}) CHARM {2} ({3}) && {4} ({5})".format(nick, var.get_role(nick),
@@ -6181,6 +6196,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BITTEN_ROLES = {}
     var.CHARMERS = set()
     var.CHARMED = set()
+    var.TOBECHARMED = set()
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.TURNCOATS = {}
 
@@ -7663,8 +7679,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
 
         # get charmed players
-        if var.CHARMED:
-            output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED)))
+        if var.CHARMED | var.TOBECHARMED:
+            output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
 
         if chan == nick:
             pm(cli, nick, var.break_long_message(output, " | "))
