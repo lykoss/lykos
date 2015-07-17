@@ -2990,7 +2990,7 @@ def begin_day(cli):
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
     var.HVISITED = {} # those whom harlots have visited
     var.GUARDED = {}  # this whom bodyguards/guardian angels have guarded
-    var.PASSED = [] # hunters that have opted not to kill
+    var.PASSED = [] # list of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(var.list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
     var.LYCANTHROPES = copy.copy(var.TOBELYCANTHROPES)
@@ -3968,6 +3968,10 @@ def check_exchange(cli, actor, nick):
         actor_role = var.get_role(actor)
         nick_role = var.get_role(nick)
 
+        # var.PASSED is used by many roles
+        if actor in var.PASSED:
+            var.PASSED.remove(actor)
+
         if actor_role == "amnesiac":
             actor_role = var.FINAL_ROLES[actor]
         elif actor_role == "clone":
@@ -3989,8 +3993,6 @@ def check_exchange(cli, actor, nick):
                 var.ACTED_EXTRA += 1
             if actor in var.HUNTERS:
                 var.HUNTERS.remove(actor)
-            if actor in var.PASSED:
-                var.PASSED.remove(actor)
         elif actor_role in ("bodyguard", "guardian angel"):
             if actor in var.GUARDED:
                 pm(cli, var.GUARDED[actor], "Your protector seems to have disappeared...")
@@ -4034,9 +4036,12 @@ def check_exchange(cli, actor, nick):
             if actor in var.CURSED:
                 var.CURSED.remove(actor)
         elif actor_role == "turncoat":
-            if actor in var.PASSED:
-                var.PASSED.remove(actor)
             del var.TURNCOATS[actor]
+
+
+        # var.PASSED is used by many roles
+        if nick in var.PASSED:
+            var.PASSED.remove(nick)
 
         if nick_role == "amnesiac":
             nick_role = var.FINAL_ROLES[nick]
@@ -4059,8 +4064,6 @@ def check_exchange(cli, actor, nick):
                 var.ACTED_EXTRA += 1
             if nick in var.HUNTERS:
                 var.HUNTERS.remove(nick)
-            if nick in var.PASSED:
-                var.PASSED.remove(nick)
         elif nick_role in ("bodyguard", "guardian angel"):
             if nick in var.GUARDED:
                 pm(cli, var.GUARDED[nick], "Your protector seems to have disappeared...")
@@ -4101,8 +4104,6 @@ def check_exchange(cli, actor, nick):
             if nick in var.CURSED:
                 var.CURSED.remove(nick)
         elif nick_role == "turncoat":
-            if nick in var.PASSED:
-                var.PASSED.remove(nick)
             del var.TURNCOATS[nick]
 
 
@@ -4852,7 +4853,7 @@ def bite_cmd(cli, nick, chan, rest):
         pm(cli, nick, "You have chosen to bite tonight. Whomever the wolves select to be killed tonight will be bitten instead.")
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), victim if victim else "wolves' target", vrole if vrole else "unknown"))
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat"))
+@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat","warlock","piper"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = var.get_role(nick)
@@ -4898,6 +4899,20 @@ def pass_cmd(cli, nick, chan, rest):
             # don't add to var.PASSED since we aren't counting them anyway for nightdone
             # let them still use !pass though to make them feel better or something
             return
+        if nick not in var.PASSED:
+            var.PASSED.append(nick)
+    elif nickrole == "warlock":
+        if nick in var.CURSED:
+            pm(cli, nick, "You have already cursed someone tonight.")
+            return
+        pm(cli, nick, "You have chosen to not curse anyone tonight.")
+        if nick not in var.PASSED:
+            var.PASSED.append(nick)
+    elif nickrole == "piper":
+        if nick in var.CHARMERS:
+            pm(cli, nick, "You have already charmed players for tonight.")
+            return
+        pm(cli, nick, "You have chosen not to charm anyone tonight.")
         if nick not in var.PASSED:
             var.PASSED.append(nick)
 
@@ -5079,6 +5094,8 @@ def curse(cli, nick, chan, rest):
         return
 
     var.CURSED.append(nick)
+    if nick in var.PASSED:
+        var.PASSED.remove(nick)
     if victim not in var.ROLES["cursed villager"]:
         var.ROLES["cursed villager"].append(victim)
     pm(cli, nick, "You have cast a curse on \u0002{0}\u0002.".format(victim))
@@ -5154,6 +5171,8 @@ def charm(cli, nick, chan, rest):
             return
 
     var.CHARMERS.add(nick)
+    if nick in var.PASSED:
+        var.PASSED.remove(nick)
 
     var.TOBECHARMED.add(victim)
     if victim2:
@@ -5318,7 +5337,7 @@ def transition_night(cli):
     var.HEXED = [] # list of hags that have hexed
     var.CURSED = [] # list of warlocks that have cursed
     var.SHAMANS = {}
-    var.PASSED = [] # list of hunters that have chosen not to kill
+    var.PASSED = [] # list of certain roles that have chosen not to act
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
     var.HVISITED = {}
