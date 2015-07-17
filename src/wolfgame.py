@@ -5076,12 +5076,6 @@ def curse(cli, nick, chan, rest):
     # villager across multiple nights, safes can use that as a tell that the
     # person is likely wolf-aligned.
     vrole = var.get_role(victim)
-    if nick == victim:
-        pm(cli, nick, "You have chosen to not curse anyone tonight.")
-        var.CURSED.append(nick)
-        debuglog("{0} ({1}) NO CURSE".format(nick, var.get_role(nick)))
-        chk_nightdone(cli)
-        return
     if victim in var.ROLES["cursed villager"]:
         pm(cli, nick, "\u0002{0}\u0002 is already cursed.".format(victim))
         return
