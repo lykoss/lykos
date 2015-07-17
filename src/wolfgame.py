@@ -345,9 +345,9 @@ def get_victim(cli, nick, victim, in_chan, self_in_list = False):
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
         if in_chan:
-            cli.notice(nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            cli.notice(nick, "\u0002{0}\u0002 is not currently playing.".format(victim))
         else:
-            pm(cli, nick, "\u0002{0}\u0002 is currently not playing.".format(victim))
+            pm(cli, nick, "\u0002{0}\u0002 is not currently playing.".format(victim))
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
@@ -6080,7 +6080,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.notice(nick, "Werewolf is already in play.")
             return
         if nick not in villagers and nick != chan and not forced:
-            cli.notice(nick, "You're currently not playing.")
+            cli.notice(nick, "You're not currently playing.")
             return
 
         now = datetime.now()
@@ -7232,7 +7232,7 @@ def myrole(cli, nick, chan, rest):
 
     ps = var.list_players()
     if nick not in ps:
-        cli.notice(nick, "You're currently not playing.")
+        cli.notice(nick, "You're not currently playing.")
         return
 
     role = var.get_role(nick)
