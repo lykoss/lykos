@@ -1284,6 +1284,8 @@ def stats(cli, nick, chan, rest):
             start_roles.add(r)
             rolecounts[r] = [len(v), len(v)]
             for p in v:
+                if p.startswith("(dced)"):
+                    p = p[6:]
                 orig_roles[p] = r
 
         total_immunizations = rolecounts["doctor"][0] * math.ceil(len(var.ALL_PLAYERS) * var.DOCTOR_IMMUNIZATION_MULTIPLIER)
