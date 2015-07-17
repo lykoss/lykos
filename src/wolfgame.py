@@ -3090,6 +3090,8 @@ def transition_day(cli, gameid=0):
                 if var.LASTGIVEN.get(shaman) in ps:
                     ps.remove(var.LASTGIVEN.get(shaman))
                 totem.func(cli, shaman, shaman, random.choice(ps), prefix="Because you forgot to give out your totem at night, you")
+            else:
+                var.LASTGIVEN[shaman] = None
 
         if var.FIRST_NIGHT:
             # Select a random target for clone if they didn't choose someone
