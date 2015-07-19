@@ -1374,6 +1374,7 @@ def stats(cli, nick, chan, rest):
                 # We may have gotten an additional wolf or an additional fallen angel, we don't necessarily know which
                 num_alpha -= 1
                 num_angel -= 1
+                rolecounts["lycan"][0] = max(0, rolecounts["lycan"][0] - 1)
                 rolecounts["wolf"][1] += 1
                 rolecounts["fallen angel"][1] += 1
                 rolecounts["guardian angel"][0] -= 1
