@@ -300,12 +300,12 @@ def check_priv(priv):
                 acc = USERS[nick]["account"]
 
         if acc and acc != "*":
-            for pattern in set(accounts):
+            for pattern in accounts:
                 if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                     return True
 
         if cloak:
-            for pattern in set(hosts):
+            for pattern in hosts:
                 if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
                     return True
 
