@@ -673,7 +673,7 @@ def is_user_simple(nick):
         acc = var.USERS[nick]["account"]
     else:
         return False
-    if acc and acc != "*":
+    if acc and acc != "*" and not var.DISABLE_ACCOUNTS:
         if acc in var.SIMPLE_NOTIFY_ACCS:
             return True
         return False
@@ -694,7 +694,7 @@ def mark_prefer_notice(cli, nick, chan, rest):
     if not acc or acc == "*":
         acc = None
 
-    if acc: # Do things by account if logged in
+    if acc and not var.DISABLE_ACCOUNTS: # Do things by account if logged in
         if acc in var.PREFER_NOTICE_ACCS:
             var.PREFER_NOTICE_ACCS.remove(acc)
             var.remove_prefer_notice_acc(acc)
@@ -725,7 +725,7 @@ def mark_prefer_notice(cli, nick, chan, rest):
     cli.notice(nick, "The bot will now always NOTICE you.")
 
 def is_user_notice(nick):
-    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*":
+    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
         if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
             return True
     if nick in var.USERS and var.USERS[nick]["cloak"] in var.PREFER_NOTICE and not var.ACCOUNTS_ONLY:
@@ -801,7 +801,7 @@ def is_user_altpinged(nick):
         acc = var.USERS[nick]["account"]
     else:
         return (False, None)
-    if acc and acc != "*":
+    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.PING_IF_PREFS_ACCS.keys():
             return (True, var.PING_IF_PREFS_ACCS[acc])
     elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
@@ -813,7 +813,7 @@ def toggle_altpinged_status(nick, value, old=None):
     cloak = var.USERS[nick]["cloak"]
     acc = var.USERS[nick]["account"]
     if value == 0:
-        if acc and acc != "*":
+        if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             if acc in var.PING_IF_PREFS_ACCS.keys():
                 del var.PING_IF_PREFS_ACCS[acc]
                 var.set_pingif_status(acc, True, 0)
@@ -831,7 +831,7 @@ def toggle_altpinged_status(nick, value, old=None):
                         if cloak in var.PING_IF_NUMS[old]:
                             var.PING_IF_NUMS[old].remove(cloak)
     else:
-        if acc and acc != "*":
+        if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             var.PING_IF_PREFS_ACCS[acc] = value
             var.set_pingif_status(acc, True, value)
             with var.WARNING_LOCK:
@@ -864,9 +864,10 @@ def join_timer_handler(cli):
         chk_acc = []
 
         # Add accounts/hosts to the list of possible players to ping
-        for num in var.PING_IF_NUMS_ACCS:
-            if num <= len(pl):
-                chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
+        if not var.DISABLE_ACCOUNTS:
+            for num in var.PING_IF_NUMS_ACCS:
+                if num <= len(pl):
+                    chk_acc.extend(var.PING_IF_NUMS_ACCS[num])
 
         if not var.ACCOUNTS_ONLY:
             for num in var.PING_IF_NUMS:
@@ -874,8 +875,9 @@ def join_timer_handler(cli):
                     checker.extend(var.PING_IF_NUMS[num])
 
         # Don't ping alt connections of users that have already joined
-        for acc in (var.USERS[player]["account"] for player in pl if player in var.USERS):
-            var.PINGED_ALREADY_ACCS.add(acc)
+        if not var.DISABLE_ACCOUNTS:
+            for acc in (var.USERS[player]["account"] for player in pl if player in var.USERS):
+                var.PINGED_ALREADY_ACCS.add(acc)
 
         # Remove players who have already been pinged from the list of possible players to ping
         for acc in chk_acc[:]:
@@ -890,6 +892,15 @@ def join_timer_handler(cli):
         if not chk_acc and not checker:
             var.PINGING_IFS = False
             return
+
+        @hook("whoreply", hookid=387)
+        def ping_altpingers_noacc(cli, svr, botnick, chan, user, host, server, nick, status, rest):
+            if ("G" in status or is_user_stasised(nick)[0] or not var.PINGING_IFS or
+                    nick == botnick or nick in pl):
+                return
+
+            to_ping.append(nick)
+            var.PINGED_ALREADY.add(host)
 
         @hook("whospcrpl", hookid=387)
         def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
@@ -926,7 +937,10 @@ def join_timer_handler(cli):
 
                 cli.msg(botconfig.CHANNEL, msg)
 
-        cli.who(botconfig.CHANNEL, "%uhsnfa")
+        if not var.DISABLE_ACCOUNTS:
+            cli.who(botconfig.CHANNEL, "%uhsnfa")
+        else:
+            cli.who(botconfig.CHANNEL)
 
 @cmd("join", "j", phases=("none", "join"))
 def join(cli, nick, chan, rest):
@@ -968,7 +982,7 @@ def join_player(cli, player, chan, who = None, forced = False):
         acc = None
     else:
         return # Not normal
-    if not acc or acc == "*":
+    if not acc or acc == "*" or var.DISABLE_ACCOUNTS:
         acc = None
 
     (is_stasised, stasis_amt) = is_user_stasised(player)
@@ -978,7 +992,7 @@ def join_player(cli, player, chan, who = None, forced = False):
             if cloak in var.STASISED:
                 var.set_stasis(cloak, 0)
                 del var.STASISED[cloak]
-            if acc in var.STASISED_ACCS:
+            if not var.DISABLE_ACCOUNTS and acc in var.STASISED_ACCS:
                 var.set_stasis_acc(acc, 0)
                 del var.STASISED_ACCS[acc]
         else:
@@ -1153,7 +1167,7 @@ def fleave(cli, nick, chan, rest):
                 message += " New player count: \u0002{0}\u0002".format(lpl)
         cli.msg(chan, message)
 
-        del_player(cli, a, death_triggers = False)
+        del_player(cli, a, death_triggers=False)
 
 
 @cmd("fstart", admin_only=True, phases=("join",))
@@ -1189,7 +1203,7 @@ def on_account(cli, rnick, acc):
                 with var.GRAVEYARD_LOCK:
                     clk = var.DISCONNECTED[nick][1]
                     act = var.DISCONNECTED[nick][0]
-                    if acc == act or (cloak == clk and not var.ACCOUNTS_ONLY):
+                    if (acc == act and not var.DISABLE_ACCOUNTS) or (cloak == clk and not var.ACCOUNTS_ONLY):
                         cli.mode(chan, "+v", nick, nick+"!*@*")
                         del var.DISCONNECTED[nick]
                         var.LAST_SAID_TIME[nick] = datetime.now()
@@ -2194,6 +2208,7 @@ def stop_game(cli, winner = "", abort = False):
         for plr, rol in plrl.items():
             orol = rol # original role, since we overwrite rol in case of clone
             splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
+            # TODO: figure out how player stats should work when var.DISABLE_ACCOUNTS is True; likely track by nick
             if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
                 acc = var.DCED_PLAYERS[plr[6:]]["account"]
                 splr = plr[6:]
@@ -2963,7 +2978,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
         if nick in var.DISCONNECTED.keys():
             clk = var.DISCONNECTED[nick][1]
             act = var.DISCONNECTED[nick][0]
-            if acc == act or (cloak == clk and not var.ACCOUNTS_ONLY):
+            if (acc == act and not var.DISABLE_ACCOUNTS) or (cloak == clk and not var.ACCOUNTS_ONLY):
                 cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
@@ -6857,11 +6872,12 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if var.STASISED[cloak] <= 0:
             del var.STASISED[cloak]
 
-    for acc in list(var.STASISED_ACCS.keys()):
-        var.STASISED_ACCS[acc] -= 1
-        var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
-        if var.STASISED_ACCS[acc] <= 0:
-            del var.STASISED_ACCS[acc]
+    if not var.DISABLE_ACCOUNTS:
+        for acc in list(var.STASISED_ACCS.keys()):
+            var.STASISED_ACCS[acc] -= 1
+            var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
+            if var.STASISED_ACCS[acc] <= 0:
+                del var.STASISED_ACCS[acc]
 
     if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
         # DEATH TO IDLERS!
@@ -6943,7 +6959,7 @@ def fstasis(cli, nick, chan, rest):
                         msg = "\u0002{0}\u0002 (Host: {1}) is no longer in stasis.".format(data[0], cloak)
                     else:
                         msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], cloak)
-        if acc:
+        if not var.DISABLE_ACCOUNTS and acc:
             if len(data) == 1:
                 if acc in var.STASISED_ACCS:
                     plural = "" if var.STASISED_ACCS[acc] == 1 else "s"
@@ -6986,16 +7002,23 @@ def fstasis(cli, nick, chan, rest):
         cloakstas = dict(var.STASISED)
         accstas = dict(var.STASISED_ACCS)
         for stas in var.USERS:
-            if var.USERS[stas]["account"] in accstas:
+            if not var.DISABLE_ACCOUNTS and var.USERS[stas]["account"] in accstas:
                 stasised[var.USERS[stas]["account"]+" (Account)"] = accstas.pop(var.USERS[stas]["account"])
                 #if var.USERS[stas]["cloak"] in cloakstas:
                 #    del cloakstas[var.USERS[stas]["cloak"]]
             elif var.USERS[stas]["cloak"] in cloakstas:
-                stasised[var.USERS[stas]["cloak"]+" (Host)"] = cloakstas.pop(var.USERS[stas]["cloak"])
+                if var.DISABLE_ACCOUNTS:
+                    stasised[var.USERS[stas]["cloak"]] = cloakstas.pop(var.USERS[stas]["cloak"])
+                else:
+                    stasised[var.USERS[stas]["cloak"]+" (Host)"] = cloakstas.pop(var.USERS[stas]["cloak"])
         for oldcloak in cloakstas:
-            stasised[oldcloak+" (Host)"] = cloakstas[oldcloak]
-        for oldacc in accstas:
-            stasised[oldacc+" (Account)"] = accstas[oldacc]
+            if var.DISABLE_ACCOUNTS:
+                stasised[oldcloak] = cloakstas[oldcloak]
+            else:
+                stasised[oldcloak+" (Host)"] = cloakstas[oldcloak]
+        if not var.DISABLE_ACCOUNTS:
+            for oldacc in accstas:
+                stasised[oldacc+" (Account)"] = accstas[oldacc]
         msg = "Currently stasised: {0}".format(", ".join(
             "\u0002{0}\u0002 ({1})".format(usr, number)
             for usr, number in stasised.items()))
@@ -7029,7 +7052,7 @@ def is_user_stasised(nick):
         acc = var.USERS[nick]["account"]
     else:
         return False, None
-    if acc and acc != "*":
+    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.STASISED_ACCS:
             return True, var.STASISED_ACCS[acc]
     for clk in var.STASISED:
@@ -7084,7 +7107,7 @@ def allow_deny(cli, nick, chan, rest, mode):
         if not acc or acc == "*":
             acc = None
 
-        if acc:
+        if not var.DISABLE_ACCOUNTS and acc:
             if mode == "allow":
                 variable = var.ALLOW_ACCOUNTS
             else:
@@ -7195,16 +7218,17 @@ def allow_deny(cli, nick, chan, rest, mode):
 
     else:
         users_to_cmds = {}
-        if mode == "allow":
-            variable = var.ALLOW_ACCOUNTS
-        else:
-            variable = var.DENY_ACCOUNTS
-        if variable:
-            for acc, varied in variable.items():
-                if var.ACCOUNTS_ONLY:
-                    users_to_cmds[acc] = sorted(varied, key=str.lower)
-                else:
-                    users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
+        if not var.DISABLE_ACCOUNTS:
+            if mode == "allow":
+                variable = var.ALLOW_ACCOUNTS
+            else:
+                variable = var.DENY_ACCOUNTS
+            if variable:
+                for acc, varied in variable.items():
+                    if var.ACCOUNTS_ONLY:
+                        users_to_cmds[acc] = sorted(varied, key=str.lower)
+                    else:
+                        users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
         if not var.ACCOUNTS_ONLY:
             if mode == "allow":
                 variable = var.ALLOW
@@ -7212,7 +7236,10 @@ def allow_deny(cli, nick, chan, rest, mode):
                 variable = var.DENY
             if variable:
                 for cloak, varied in variable.items():
-                    users_to_cmds[cloak+" (Host)"] = sorted(varied, key=str.lower)
+                    if var.DISABLE_ACCOUNTS:
+                        users_to_cmds[cloak] = sorted(varied, key=str.lower)
+                    else:
+                        users_to_cmds[cloak+" (Host)"] = sorted(varied, key=str.lower)
 
 
         if not users_to_cmds: # Deny or Allow list is empty
@@ -7444,7 +7471,7 @@ def wiki(cli, nick, chan, rest):
         cli.notice(nick, "Could not find information on that role in https://github.com/lykoss/lykos/wiki")
         return
 
-    # wiki links only have lowercase aschii chars, and spaces are replaced with a dash
+    # wiki links only have lowercase ascii chars, and spaces are replaced with a dash
     wikilink = "https://github.com/lykoss/lykos/wiki#{0}".format("".join(
                 x.lower() for x in match.group(1).replace(" ", "-") if x in string.ascii_letters+"-"))
     if nick == chan:

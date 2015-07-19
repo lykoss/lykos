@@ -125,7 +125,7 @@ class cmd:
                 adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
-        if acc:
+        if not var.DISABLE_ACCOUNTS and acc:
             for pattern in var.DENY_ACCOUNTS:
                 if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                     for command in self.cmds:

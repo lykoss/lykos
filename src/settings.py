@@ -299,7 +299,7 @@ def check_priv(priv):
             if not acc:
                 acc = USERS[nick]["account"]
 
-        if acc and acc != "*":
+        if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             for pattern in accounts:
                 if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                     return True
