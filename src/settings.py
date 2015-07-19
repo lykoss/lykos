@@ -281,43 +281,40 @@ PING_IF_NUMS_ACCS = {}
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
-def is_admin(nick, cloak=None, acc=None):
-    if nick in USERS.keys():
-        if not cloak:
-            cloak = USERS[nick]["cloak"]
-        if not acc:
-            acc = USERS[nick]["account"]
+def check_priv(priv):
+    assert priv in ("owner", "admin")
 
-    if acc and acc != "*":
-        for pattern in set(botconfig.OWNERS_ACCOUNTS + botconfig.ADMINS_ACCOUNTS):
-            if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                return True
+    # Owners can do everything
+    hosts = set(botconfig.OWNERS)
+    accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-    if cloak:
-        for pattern in set(botconfig.OWNERS + botconfig.ADMINS):
-            if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                return True
+    if priv == "admin":
+        hosts.update(botconfig.ADMINS)
+        accounts.update(botconfig.ADMINS_ACCOUNTS)
 
-    return False
+    def do_check(nick, cloak=None, acc=None):
+        if nick in USERS.keys():
+            if not cloak:
+                cloak = USERS[nick]["cloak"]
+            if not acc:
+                acc = USERS[nick]["account"]
 
-def is_owner(nick, cloak=None, acc=None):
-    if nick in USERS.keys():
-        if not cloak:
-            cloak = USERS[nick]["cloak"]
-        if not acc:
-            acc = USERS[nick]["account"]
+        if acc and acc != "*":
+            for pattern in set(accounts):
+                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                    return True
 
-    if acc and acc != "*":
-        for pattern in botconfig.OWNERS_ACCOUNTS:
-            if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                return True
+        if cloak:
+            for pattern in set(hosts):
+                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                    return True
 
-    if cloak:
-        for pattern in botconfig.OWNERS:
-            if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
-                return True
+        return False
 
-    return False
+    return do_check
+
+is_admin = check_priv("admin")
+is_owner = check_priv("owner")
 
 def plural(role):
     bits = role.split()
