@@ -3602,9 +3602,9 @@ def transition_day(cli, gameid=0):
             if victim not in var.TOBEMISDIRECTED:
                 var.TOBEMISDIRECTED.append(victim)
         else:
-            debuglog("{0} (1): INVALID TOTEM {2} TO {3}".format(shaman, var.get_role(shaman), totemname, victim))
+            debuglog("{0} {1}: INVALID TOTEM {2} TO {3}".format(shaman, var.get_role(shaman), totemname, victim))
         if target != victim:
-            pm(cli, shaman, "It seems that {0} now has the totem you gave out last night".format(victim))
+            pm(cli, shaman, "It seems that \u0002{0}\u0002 now has the totem you gave out last night.".format(victim))
         var.LASTGIVEN[shaman] = victim
     havetotem = sorted(x for x in var.LASTGIVEN.values() if x)
 
