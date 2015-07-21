@@ -2394,6 +2394,17 @@ def chk_win(cli, end_game = True, winner = None):
             message = ("Game over! Everyone has fallen victim to the charms of the " +
                        "piper{0}. The piper{0} lead{1} the villagers away from the village, " +
                        "never to return...").format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
+        elif lrealwolves == 0 and traitors == 0 and cubs == 0:
+            if monsters > 0:
+                plural = "s" if monsters > 1 else ""
+                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
+                           "the monster{0} quickly kill{1} the remaining villagers, " +
+                           "causing the monster{0} to win.").format(plural, "" if plural else "s")
+                winner = "monsters"
+            else:
+                message = ("Game over! All the wolves are dead! The villagers " +
+                          "chop them up, BBQ them, and have a hearty meal.")
+                winner = "villagers"
         elif lwolves == lpl / 2:
             if monsters > 0:
                 plural = "s" if monsters > 1 else ""
@@ -2416,17 +2427,6 @@ def chk_win(cli, end_game = True, winner = None):
                 message = ("Game over! There are more wolves than "+
                           "uninjured villagers. The wolves overpower the villagers and win.")
                 winner = "wolves"
-        elif lrealwolves == 0 and traitors == 0 and cubs == 0:
-            if monsters > 0:
-                plural = "s" if monsters > 1 else ""
-                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
-                           "the monster{0} quickly kill{1} the remaining villagers, " +
-                           "causing the monster{0} to win.").format(plural, "" if plural else "s")
-                winner = "monsters"
-            else:
-                message = ("Game over! All the wolves are dead! The villagers " +
-                          "chop them up, BBQ them, and have a hearty meal.")
-                winner = "villagers"
         elif lrealwolves == 0:
             chk_traitor(cli)
             return chk_win(cli, end_game)
