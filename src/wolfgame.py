@@ -3850,8 +3850,9 @@ def transition_day(cli, gameid=0):
                 pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
 
                 wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-                if wolf != nick:
-                    pm(cli, wolf, "\u0002{0}\u0002 has bitten \u0002{1}\u0002.".format(nick, victim))
+                for wolf in wolfchatwolves:
+                    if wolf != nick:
+                        pm(cli, wolf, "\u0002{0}\u0002 has bitten \u0002{1}\u0002.".format(nick, victim))
             else:
                 pm(cli, alpha, "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!".format(target))
 
@@ -4734,6 +4735,7 @@ def retract(cli, nick, chan, rest):
             del var.BITE_PREFERENCES[nick]
             var.ALPHA_WOLVES.remove(nick)
             pm(cli, nick, "You have decided not to bite anyone tonight.")
+            wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
             for wolf in wolfchatwolves:
                 if wolf != nick:
                     pm(cli, wolf, "\u0002{0}\u0002 has decided not to bite anyone tonight.".format(nick))
