@@ -3848,6 +3848,11 @@ def transition_day(cli, gameid=0):
             
             if alpha in var.ALPHA_WOLVES:
                 pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
+
+                wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+                for wolf in wolfchatwolves:
+                    if wolf != nick:
+                        pm(cli, wolf, "\u0002{0}\u0002 has bitten \u0002{1}\u0002.".format(nick, victim))
             else:
                 pm(cli, alpha, "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!".format(target))
 
@@ -4956,14 +4961,25 @@ def kill(cli, nick, chan, rest):
                 var.PASSED.remove(nick)
 
     if victim2 != None:
-        pm(cli, nick, "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be killed.".format(victim, victim2))
+        msg = " selected \u0002{0}\u0002 and \u0002{1}\u0002 to be killed.".format(victim, victim2)
+        pm(cli, nick, "You have{0}".format(msg))
     else:
-        pm(cli, nick, "You have selected \u0002{0}\u0002 to be killed.".format(victim))
+        msg = " selected \u0002{0}\u0002 to be killed.".format(victim)
+        pm(cli, nick, "You have{0}".format(msg))
         if var.ANGRY_WOLVES and role in wolfroles:
-            pm(cli, nick, "You are angry tonight and may kill a second target. Use kill <nick1> and <nick2> to select multiple targets.")
-    debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
+            pm(cli, nick, 'You are angry tonight and may kill a second target. Use "kill <nick1> and <nick2>" to select multiple targets.')
+
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if nick in wolfchatwolves:
+        for wolf in wolfchatwolves:
+            if wolf != nick:
+                pm(cli, wolf, "\u0002{0}\u0002 has{1}".format(nick, msg))
+
     if victim2:
-        debuglog("{0} ({1}) KILL : {2} ({3})".format(nick, role, victim2, var.get_role(victim2)))
+        debuglog("{0} ({1}) KILL: {2} and {3} ({4})".format(nick, role, victim, victim2, var.get_role(victim2)))
+    else:
+        debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
+
     chk_nightdone(cli)
 
 @cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
@@ -5038,6 +5054,10 @@ def observe(cli, nick, chan, rest):
         pm(cli, nick, ("You transform into a large crow and start your flight "+
                        "to \u0002{0}'s\u0002 house. You will return after "+
                       "collecting your observations when day begins.").format(victim))
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        for wolf in wolfchatwolves:
+            if wolf != nick:
+                pm(cli, wolf, "\u0002{0}\u0002 is observing \u0002{1}\u0002.".format(nick, victim))
     elif role == "sorcerer":
         vrole = var.get_role(victim)
         if vrole == "amnesiac":
@@ -5369,6 +5389,12 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, "You have already cursed someone tonight.")
             return
         pm(cli, nick, "You have chosen to not curse anyone tonight.")
+
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        for wolf in wolfchatwolves:
+            if wolf != nick:
+                pm(cli, wolf, "\u0002{0}\u0002 has chosen to not curse anyone tonight.".format(nick))
+
         if nick not in var.PASSED:
             var.PASSED.append(nick)
     elif nickrole == "piper":
@@ -5518,7 +5544,13 @@ def hex_target(cli, nick, chan, rest):
     var.HEXED.append(nick)
     var.LASTHEXED[nick] = victim
     var.TOBESILENCED.append(victim)
-    pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
+
+    pm(cli, nick, "You have cast a hex on \u0002{0}\u0002".format(victim))
+
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    for wolf in wolfchatwolves:
+        if wolf != nick:
+            pm(cli, wolf, "\u0002{0}\u0002 has cast a hex on \u0002{1}\u0002.".format(nick, victim))
 
     debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -5555,7 +5587,14 @@ def curse(cli, nick, chan, rest):
         var.PASSED.remove(nick)
     if victim not in var.ROLES["cursed villager"]:
         var.ROLES["cursed villager"].append(victim)
+
     pm(cli, nick, "You have cast a curse on \u0002{0}\u0002.".format(victim))
+
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    for wolf in wolfchatwolves:
+        if wolf != nick:
+            pm(cli, wolf, "\u0002{0}\u0002 has cast a curse on \u0002{1}\u0002.".format(nick, victim))
+
 
     debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
