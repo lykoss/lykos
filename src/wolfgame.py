@@ -1877,8 +1877,8 @@ def chk_decision(cli, force = ""):
     if len(not_lynching) >= math.ceil(avail / 2):
         for p in not_lynching:
             if p not in var.NO_LYNCH:
-                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes to not lynch anyone today.".format(p))
-        cli.msg(botconfig.CHANNEL, "The villagers have agreed to not lynch anybody today.")
+                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes not to lynch anyone today.".format(p))
+        cli.msg(botconfig.CHANNEL, "The villagers have agreed not to lynch anybody today.")
         var.ABSTAINED = True
         transition_night(cli)
         return
@@ -4293,7 +4293,7 @@ def no_lynch(cli, nick, chan, rest):
                     del var.VOTES[voter]
         if nick not in var.NO_LYNCH:
             var.NO_LYNCH.append(nick)
-        cli.msg(chan, "\u0002{0}\u0002 votes to not lynch anyone today.".format(nick))
+        cli.msg(chan, "\u0002{0}\u0002 votes not to lynch anyone today.".format(nick))
 
         chk_decision(cli)
         return
@@ -4733,10 +4733,10 @@ def retract(cli, nick, chan, rest):
         elif what == "bite" and role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
             del var.BITE_PREFERENCES[nick]
             var.ALPHA_WOLVES.remove(nick)
-            pm(cli, nick, "You have decided to not bite anyone tonight.")
+            pm(cli, nick, "You have decided not to bite anyone tonight.")
             for wolf in wolfchatwolves:
                 if wolf != nick:
-                    pm(cli, wolf, "\u0002{0}\u0002 has decided to not bite anyone tonight.".format(nick))
+                    pm(cli, wolf, "\u0002{0}\u0002 has decided not to bite anyone tonight.".format(nick))
         else:
             pm(cli, nick, "You have not chosen to {0} anyone yet.".format(what))
         return
@@ -5361,7 +5361,7 @@ def pass_cmd(cli, nick, chan, rest):
             del var.OTHER_KILLS[nick]
             var.HUNTERS.remove(nick)
 
-        pm(cli, nick, "You have decided to not kill anyone tonight.")
+        pm(cli, nick, "You have decided not to kill anyone tonight.")
         if nick not in var.PASSED: # Prevents multiple entries
             var.PASSED.append(nick)
     elif nickrole == "harlot":
@@ -5384,7 +5384,7 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, ("You have already changed sides tonight. Use " +
                            '"side villagers" or "side wolves" to modify your selection.'))
             return
-        pm(cli, nick, "You have decided to not change sides tonight.")
+        pm(cli, nick, "You have decided not to change sides tonight.")
         if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
             # don't add to var.PASSED since we aren't counting them anyway for nightdone
             # let them still use !pass though to make them feel better or something
@@ -5395,12 +5395,12 @@ def pass_cmd(cli, nick, chan, rest):
         if nick in var.CURSED:
             pm(cli, nick, "You have already cursed someone tonight.")
             return
-        pm(cli, nick, "You have chosen to not curse anyone tonight.")
+        pm(cli, nick, "You have chosen not to curse anyone tonight.")
 
         wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
         for wolf in wolfchatwolves:
             if wolf != nick:
-                pm(cli, wolf, "\u0002{0}\u0002 has chosen to not curse anyone tonight.".format(nick))
+                pm(cli, wolf, "\u0002{0}\u0002 has chosen not to curse anyone tonight.".format(nick))
 
         if nick not in var.PASSED:
             var.PASSED.append(nick)
