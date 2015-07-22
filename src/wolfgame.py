@@ -3950,6 +3950,7 @@ def transition_day(cli, gameid=0):
             target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was not in "+
                           "bed all night, and you fly back to your house.").format(target))
+
         else:
             pm(cli, crow, ("As the sun rises, you conclude that \u0002{0}\u0002 was sleeping "+
                           "all night long, and you fly back to your house.").format(target))
@@ -5399,7 +5400,7 @@ def pass_cmd(cli, nick, chan, rest):
             var.PASSED.append(nick)
     elif nickrole == "piper":
         if nick in var.CHARMERS:
-            pm(cli, nick, "You have already charmed players for tonight.")
+            pm(cli, nick, "You have already charmed players tonight.")
             return
         pm(cli, nick, "You have chosen not to charm anyone tonight.")
         if nick not in var.PASSED:
@@ -5629,7 +5630,7 @@ def clone(cli, nick, chan, rest):
 def charm(cli, nick, chan, rest):
     """Charm a player, slowly leading to your win!"""
     if nick in var.CHARMERS:
-        pm(cli, nick, "You have already charmed players for tonight.")
+        pm(cli, nick, "You have already charmed players tonight.")
         return
 
     pieces = re.split(" +",rest)
