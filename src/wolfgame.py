@@ -3850,9 +3850,8 @@ def transition_day(cli, gameid=0):
                 pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
 
                 wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-                for wolf in wolfchatwolves:
-                    if wolf != nick:
-                        pm(cli, wolf, "\u0002{0}\u0002 has bitten \u0002{1}\u0002.".format(nick, victim))
+                if wolf != nick:
+                    pm(cli, wolf, "\u0002{0}\u0002 has bitten \u0002{1}\u0002.".format(nick, victim))
             else:
                 pm(cli, alpha, "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!".format(target))
 
@@ -4723,6 +4722,10 @@ def retract(cli, nick, chan, rest):
         if what == "kill" and role in var.WOLF_ROLES and nick in var.KILLS.keys():
             del var.KILLS[nick]
             pm(cli, nick, "You have retracted your kill.")
+            wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+            for wolf in wolfchatwolves:
+                if wolf != nick:
+                    pm(cli, wolf, "\u0002{0}\u0002 has retracted their kill.".format(nick))
         elif what == "kill" and role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
             var.HUNTERS.remove(nick)
@@ -4731,6 +4734,9 @@ def retract(cli, nick, chan, rest):
             del var.BITE_PREFERENCES[nick]
             var.ALPHA_WOLVES.remove(nick)
             pm(cli, nick, "You have decided to not bite anyone tonight.")
+            for wolf in wolfchatwolves:
+                if wolf != nick:
+                    pm(cli, wolf, "\u0002{0}\u0002 has decided to not bite anyone tonight.".format(nick))
         else:
             pm(cli, nick, "You have not chosen to {0} anyone yet.".format(what))
         return
