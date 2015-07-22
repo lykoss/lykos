@@ -6206,7 +6206,8 @@ def transition_night(cli):
         if shaman in var.PLAYERS and not is_user_simple(shaman):
             pm(cli, shaman, ('You are a \u0002{0}\u0002. You can select a player to receive ' +
                              'a {1}totem each night by using "give <nick>". You may give yourself a totem, but you ' +
-                             'may not give the same player a totem two nights in a row.').format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
+                             'may not give the same player a totem two nights in a row. ' +
+                             'If you do not give the totem to anyone, it will be given to a random player.').format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
             if role != "crazed shaman":
                 totem = var.TOTEMS[shaman]
                 tmsg = 'You have the \u0002{0}\u0002 totem. '.format(totem)
@@ -6428,7 +6429,9 @@ def transition_night(cli):
                 pm(cli, mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
                              'to be lovers with "choose <nick1> and <nick2>". If one lover ' +
                              'dies, the other will as well. You may select yourself as one ' +
-                             'of the lovers. You may only select lovers during the first night.'))
+                             'of the lovers. You may only select lovers during the first night. ' +
+                             'If you do not select lovers, they will be randomly selected and ' +
+                             'you will not be told who they are (unless you are one of them).'))
             else:
                 pm(cli, mm, "You are a \u0002matchmaker\u0002.")
             pm(cli, mm, "Players: " + ", ".join(pl))
