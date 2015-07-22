@@ -321,7 +321,7 @@ def complete_match(string, matches):
     for possible in matches:
         if string == possible:
             return string, 1
-        if possible.startswith(string):
+        if possible.startswith(string) or possible.lstrip("[{\\^_`|}]").startswith(string):
             bestmatch = possible
             num_matches += 1
     if num_matches != 1:
