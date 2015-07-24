@@ -6825,7 +6825,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             elif var.ROLE_REVEAL == "team":
                 options.append("team reveal")
             elif var.ROLE_REVEAL == "off":
-                options.append("no reveal")
+                options.append("no role reveal")
         if var.ORIGINAL_SETTINGS.get("STATS_TYPE") is not None:
             if var.STATS_TYPE == "disabled":
                 options.append("no stats")

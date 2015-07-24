@@ -746,6 +746,7 @@ class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""
     def __init__(self, arg=""):
         self.ROLE_REVEAL = "off"
+        self.STATS_TYPE = "disabled"
         super().__init__(arg)
         self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
