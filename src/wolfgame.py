@@ -5818,7 +5818,7 @@ def relay(cli, nick, chan, rest):
             if rest.startswith("\u0001ACTION"):
                 rest = rest[7:-1]
                 mass_privmsg(cli, [guy for guy in badguys
-                    if guy in var.PLAYERS], "\u0002{0}\u0002{1}".format(nick, rest))
+                    if guy in var.PLAYERS], "* \u0002{0}\u0002{1}".format(nick, rest))
             else:
                 mass_privmsg(cli, [guy for guy in badguys
                     if guy in var.PLAYERS], "\u0002{0}\u0002 says: {1}".format(nick, rest))
