@@ -5554,7 +5554,7 @@ def hex_target(cli, nick, chan, rest):
     var.LASTHEXED[nick] = victim
     var.TOBESILENCED.append(victim)
 
-    pm(cli, nick, "You have cast a hex on \u0002{0}\u0002".format(victim))
+    pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
     wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
     for wolf in wolfchatwolves:
