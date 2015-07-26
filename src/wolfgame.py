@@ -8319,10 +8319,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if not args:
             return "Available game mode setters: " + ", ".join(var.GAME_MODES.keys())
         elif args in var.GAME_MODES.keys():
-            if hasattr(var.GAME_MODES[args][0], "__doc__"):
-                return var.GAME_MODES[args][0].__doc__
-            else:
-                return "Game mode {0} has no doc string".format(args)
+            return var.GAME_MODES[args][0].__doc__ or "Game mode {0} has no doc string".format(args)
         else:
             return "Game mode setter \u0002{0}\u0002 not found.".format(args)
 
