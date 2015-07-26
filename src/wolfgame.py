@@ -8304,6 +8304,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 if not gamemode:
                     cli.notice(nick, "\u0002{0}\u0002 is not a valid game mode.".format(rest))
                     return
+                parts[0] = gamemode
 
             if cgamemode(cli, "=".join(parts)):
                 cli.msg(chan, ("\u0002{0}\u0002 has changed the game settings "
