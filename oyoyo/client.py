@@ -272,8 +272,8 @@ class IRCClient(object):
         self.send("PART {0} :{1}".format(chan, msg))
     def kick(self, chan, nick, msg=""):
         self.send("KICK", chan, nick, ":"+msg)
-    def ns_identify(self, passwd, nickserv, command):
-        self.msg(nickserv, command.format(account=self.nickname, password=passwd))
+    def ns_identify(self, account, passwd, nickserv, command):
+        self.msg(nickserv, command.format(account=self.account, password=passwd))
     def ns_ghost(self, nickserv, command):
         if command:
             self.msg(nickserv, command.format(nick=self.nickname))
@@ -289,5 +289,5 @@ class IRCClient(object):
         conn = self.connect()
         while True:
             if not next(conn):
-                self.stream_handler("Calling sys.exit()...", level="warning")
+                self.stream_handler("Calling sys.exit()... {0}".format(x), level="warning")
                 sys.exit()

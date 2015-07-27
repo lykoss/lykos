@@ -104,7 +104,8 @@ def connect_callback(cli):
     def prepare_stuff(*args):
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
-            cli.ns_identify(botconfig.PASS,
+            cli.ns_identify(botconfig.USERNAME or botconfig.NICK,
+                            botconfig.PASS,
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
