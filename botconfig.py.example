@@ -20,6 +20,8 @@ OWNERS_ACCOUNTS = ("1owner_acc",)
 ADMINS_ACCOUNTS = ("1admin_acc", "2admin_acc")
 
 
+DISABLE_DEBUG_MODE = False  # Entirely disable debug mode
+
 ALLOWED_NORMAL_MODE_COMMANDS = []  # Debug mode commands to be allowed in normal mode
 
 ALT_CHANNELS = ""
