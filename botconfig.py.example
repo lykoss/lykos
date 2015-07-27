@@ -35,6 +35,8 @@ IGNORE_HIDDEN_COMMANDS = True  # Ignore commands sent to @#channel or +#channel
 ALLOW_NOTICE_COMMANDS = False  # Allow "/notice #channel !command" to be interpreted as a command
 ALLOW_PRIVATE_NOTICE_COMMANDS = True  # Allow "/notice botnick command" to be interpreted as a command
 
+CHANGING_HOST_QUIT_MESSAGE = "Changing host"
+
 
 USE_UTC = True  # If True, logs will use the UTC time, else local time.
 
