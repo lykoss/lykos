@@ -104,7 +104,9 @@ def connect_callback(cli):
     def prepare_stuff(*args):
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
-            cli.ns_identify(botconfig.PASS)
+            cli.ns_identify(botconfig.PASS,
+                            nickserv=var.NICKSERV,
+                            command=var.NICKSERV_IDENTIFY_COMMAND)
 
         channels = {botconfig.CHANNEL}
 
@@ -128,12 +130,12 @@ def connect_callback(cli):
     def mustregain(cli, *blah):
         if not botconfig.PASS:
             return
-        cli.ns_regain()
+        cli.ns_regain(nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
 
     def mustrelease(cli, *rest):
         if not botconfig.PASS:
             return # prevents the bot from trying to release without a password
-        cli.ns_release()
+        cli.ns_release(nickserv=var.NICKSERV, command=var.NICKSERV_RELEASE_COMMAND)
         cli.nick(botconfig.NICK)
 
     @hook("unavailresource", hookid=239)

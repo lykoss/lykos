@@ -272,14 +272,17 @@ class IRCClient(object):
         self.send("PART {0} :{1}".format(chan, msg))
     def kick(self, chan, nick, msg=""):
         self.send("KICK", chan, nick, ":"+msg)
-    def ns_identify(self, passwd):
-        self.msg("NickServ", "IDENTIFY {0} {1}".format(self.nickname, passwd))
-    def ns_ghost(self):
-        self.msg("NickServ", "GHOST "+self.nickname)
-    def ns_release(self):
-        self.msg("NickServ", "RELEASE "+self.nickname)
-    def ns_regain(self):
-        self.msg("NickServ", "REGAIN "+self.nickname)
+    def ns_identify(self, passwd, nickserv, command):
+        self.msg(nickserv, command.format(account=self.nickname, password=passwd))
+    def ns_ghost(self, nickserv, command):
+        if command:
+            self.msg(nickserv, command.format(nick=self.nickname))
+    def ns_release(self, nickserv="NickServ", command="RELEASE {nick}"):
+        if command:
+            self.msg(nickserv, command.format(nick=self.nickname))
+    def ns_regain(self, nickserv="NickServ", command="REGAIN {nick}"):
+        if command:
+            self.msg(nickserv, command.format(nick=self.nickname))
     def user(self, ident, rname):
         self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
     def mainLoop(self):

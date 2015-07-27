@@ -142,6 +142,12 @@ ACCOUNTS_ONLY = False # If True, will use only accounts for everything
 DISABLE_ACCOUNTS = False # If True, all account-related features are disabled. Automatically set if we discover we do not have proper ircd support for accounts
                         # This will override ACCOUNTS_ONLY if it is set
 
+NICKSERV = "NickServ"
+NICKSERV_IDENTIFY_COMMAND = "IDENTIFY {account} {password}"
+NICKSERV_GHOST_COMMAND = "GHOST {nick}"
+NICKSERV_RELEASE_COMMAND = "RELEASE {nick}"
+NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
+
 STASISED = defaultdict(int)
 STASISED_ACCS = defaultdict(int)
 

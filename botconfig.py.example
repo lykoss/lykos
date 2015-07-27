@@ -12,6 +12,7 @@ CHANNEL = "##mywolfgame"
 
 CMD_CHAR = "!"
 
+
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # The comma is required at the end if there is only one owner.
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_test*")
 
@@ -38,3 +39,20 @@ USE_UTC = True  # If True, logs will use the UTC time, else local time.
 # %Y is the year, %m is the month, %d is the day, %H = hour, %M = minute, and %S = seconds.
 # {tzname} and {tzoffset} can both be used - the timezone name (like UTC) and offset (+0000), respectively.
 TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
+
+
+# This doesn't need to be changed unless you're running the bot on a network with a non-standard
+# services setup.
+#
+# An example configuration for Undernet is provided below; if you're running the bot on Undernet,
+# you can simply uncomment the following lines. For other networks, you can set the appropriate
+# values manually.
+#
+# Note: Do not put the account and password here; they will be automatically substituted
+#       from the USERNAME (or NICK) and PASS variables on the top of the file.
+
+#NICKSERV = "x@channels.undernet.org"
+#NICKSERV_IDENTIFY_COMMAND = "LOGIN {account} {password}"
+#NICKSERV_GHOST_COMMAND = ""
+#NICKSERV_RELEASE_COMMAND = ""
+#NICKSERV_REGAIN_COMMAND = ""
