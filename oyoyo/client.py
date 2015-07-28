@@ -289,5 +289,5 @@ class IRCClient(object):
         conn = self.connect()
         while True:
             if not next(conn):
-                self.stream_handler("Calling sys.exit()... {0}".format(x), level="warning")
+                self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
