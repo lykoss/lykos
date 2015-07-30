@@ -7405,6 +7405,7 @@ def fwait(cli, nick, chan, rest):
         extra = var.EXTRA_WAIT
 
     now = datetime.now()
+    extra = max(-900, min(900, extra))
 
     if now > var.CAN_START_TIME:
         var.CAN_START_TIME = now + timedelta(seconds=extra)
