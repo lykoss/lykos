@@ -181,7 +181,10 @@ class hook:
         HOOKS[name].append(self)
 
     def __call__(self, func):
-        self.func = func
+        if isinstance(func, hook):
+            self.func = func.func
+        else:
+            self.func = func
         self.__doc__ = self.func.__doc__
         return self
 

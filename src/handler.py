@@ -101,6 +101,8 @@ def unhandled(cli, prefix, cmd, *args):
                     notify_error(cli, botconfig.CHANNEL, log)
 
 def connect_callback(cli):
+    @hook("endofmotd", hookid=294)
+    @hook("nomotd", hookid=294)
     def prepare_stuff(cli, *args):
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
@@ -125,9 +127,6 @@ def connect_callback(cli):
         cli.nick(botconfig.NICK)  # very important (for regain/release)
 
         wolfgame.connect_callback(cli)
-
-    hook("endofmotd", hookid=294)(prepare_stuff)
-    hook("nomotd", hookid=294)(prepare_stuff)
 
     def mustregain(cli, *blah):
         if not botconfig.PASS:
