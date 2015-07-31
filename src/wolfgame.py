@@ -3241,10 +3241,10 @@ def on_nick(cli, oldnick, nick):
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
-                if hasattr(var, "IDLE_WARNED") and prefix in var.IDLE_WARNED:
+                if prefix in getattr(var, "IDLE_WARNED", ()):
                     var.IDLE_WARNED.remove(prefix)
                     var.IDLE_WARNED.add(nick)
-                if hasattr(var, "IDLE_WARNED_PM") and prefix in var.IDLE_WARNED_PM:
+                if prefix in getattr(var, "IDLE_WARNED_PM", ()):
                     var.IDLE_WARNED_PM.remove(prefix)
                     var.IDLE_WARNED_PM.add(nick)
 
@@ -7743,8 +7743,8 @@ def listroles(cli, nick, chan, rest):
         if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and not var.GAME_MODES[gamemode][4]:
             mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
-                roleindex = getattr(mode, "ROLE_INDEX")
-                roleguide = getattr(mode, "ROLE_GUIDE")
+                roleindex = mode.ROLE_INDEX
+                roleguide = mode.ROLE_GUIDE
             elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
