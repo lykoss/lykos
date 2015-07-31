@@ -8223,26 +8223,37 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 nicks = copy.copy(var.ROLES[role])
                 # go through each nickname, adding extra info if necessary
                 for i in range(len(nicks)):
+                    special_case = []
                     nickname = nicks[i]
                     if role == "assassin" and nickname in var.TARGETED:
-                        nicks[i] += " (targeting {0})".format(var.TARGETED[nickname])
+                        special_case.append("targeting {0}".format(var.TARGETED[nickname]))
                     elif role in var.TOTEM_ORDER and nickname in var.TOTEMS:
                         if nickname in var.SHAMANS:
-                            nicks[i] += " (giving {0} totem to {1})".format(var.TOTEMS[nickname], var.SHAMANS[nickname])
+                            special_case.append("giving {0} totem to {1}".format(var.TOTEMS[nickname], var.SHAMANS[nickname]))
                         elif var.PHASE == "night":
-                            nicks[i] += " (has {0} totem)".format(var.TOTEMS[nickname])
+                            special_case.append("has {0} totem".format(var.TOTEMS[nickname]))
                         elif nickname in var.LASTGIVEN:
-                            nicks[i] += " (gave {0} totem to {1})".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname])
+                            special_case.append("gave {0} totem to {1}".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname]))
                     elif role == "clone" and nickname in var.CLONED:
-                        nicks[i] += " (cloned {0})".format(var.CLONED[nickname])
+                        special_case.append("cloning {0}".format(var.CLONED[nickname]))
                     elif role == "amnesiac" and nickname in var.AMNESIAC_ROLES:
-                        nicks[i] += " (will become {0})".format(var.AMNESIAC_ROLES[nickname])
+                        special_case.append("will become {0}".format(var.AMNESIAC_ROLES[nickname]))
                     # print how many bullets normal gunners have
                     elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
-                        nicks[i] += " ({0} bullet{1})".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s")
+                        special_case.append("{0} bullet{1}".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s"))
+                    elif role == "turncoat" and nickname in var.TURNCOATS:
+                        special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
+                                            if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
                     # print out how many bullets wolf gunners have
                     if nickname in var.WOLF_GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
-                        nicks[i] += " (wolf gunner with {0} bullet{1})".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s")
+                        special_case.append("wolf gunner with {0} bullet{1}".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s"))
+                    if nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
+                        for old_role in var.role_order(): # order doesn't matter here, but oh well
+                            if nickname in var.ORIGINAL_ROLES[old_role] and nickname not in var.ROLES[old_role]:
+                                special_case.append("was {0}".format(old_role))
+                                break
+                    if special_case:
+                        nicks[i] = "".join((nicks[i], " (", ", ".join(special_case), ")"))
                 output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(nicks)))
 
         # print out lovers too
