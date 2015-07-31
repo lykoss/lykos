@@ -418,20 +418,20 @@ def role_order():
 
 
 def break_long_message(phrases, joinstr = " "):
-    message = ""
+    message = []
     count = 0
     for phrase in phrases:
         # IRC max is 512, but freenode splits around 380ish, make 300 to have plenty of wiggle room
         if count + len(joinstr) + len(phrase) > 300:
-            message += "\n" + phrase
-            count = len(phrase)
-        elif message == "":
-            message = phrase
+            message.append("\n" + phrase)
             count = len(phrase)
         else:
-            message += joinstr + phrase
-            count += len(joinstr) + len(phrase)
-    return message
+            if message:
+                count = len(phrase)
+            else:
+                count += len(joinstr) + len(phrase)
+            message.append(phrase)
+    return joinstr.join(message)
 
 class InvalidModeException(Exception): pass
 def game_mode(name, minp, maxp, likelihood = 0, conceal_roles = False):
