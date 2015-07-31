@@ -1110,6 +1110,16 @@ def fjoin(cli, nick, chan, rest):
 
     for tojoin in re.split(" +",rest):
         tojoin = tojoin.strip()
+        if "-" in tojoin:
+            first, hyphen, last = tojoin.partition("-")
+            if first.isdigit() and last.isdigit():
+                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(var.list_players()):
+                    cli.msg(chan, "{0}: Too many players to join.".format(nick))
+                    break
+                fake = True
+                for i in range(int(first), int(last)+1):
+                    join_player(cli, str(i), chan, forced=True, who=nick)
+                continue
         if not tojoin:
             continue
         ul = list(var.USERS.keys())
