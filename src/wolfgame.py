@@ -612,17 +612,15 @@ def restart_program(cli, nick, chan, rest):
     var.RESTARTING = True
 
 
-@cmd("ping", chan=False, pm=True)
-def pong(cli, nick, chan, rest):
-    """Check if you or the bot is still connected."""
-    pm(cli, nick, "Pong!")
-
-@cmd("ping", "away", "back")
+@cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
-    """Placeholder for the old ping-related commands."""
+    """Check if you or the bot is still connected."""
+    message = random.choice(var.PING_MESSAGES)
 
-    cli.notice(nick, 'This command has been removed. Please see '
-                     '"{0}help pingif" for more information.'.format(botconfig.CMD_CHAR))
+    if chan == nick:
+        pm(cli, nick, message)
+    else:
+        cli.msg(chan, message)
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
