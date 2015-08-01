@@ -7709,9 +7709,9 @@ def listroles(cli, nick, chan, rest):
     """Displays which roles are enabled at a certain number of players."""
 
     old = {}
-    txt = ""
+    msg = []
     index = 0
-    pl = len(var.list_players()) + len(var.DEAD)
+    lpl = len(var.list_players()) + len(var.DEAD)
     roleindex = var.ROLE_INDEX
     roleguide = var.ROLE_GUIDE
 
@@ -7720,18 +7720,19 @@ def listroles(cli, nick, chan, rest):
     rest = re.split(" +", rest.strip(), 1)
 
     #message if this game mode has been disabled
-    if (not len(rest[0]) or rest[0].isdigit()) and var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
-        txt += " {0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name)
+    if (not rest[0] or rest[0].isdigit()) and var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
+        msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name))
         rest = []
         roleindex = {}
     #prepend player count if called without any arguments
-    elif not len(rest[0]) and pl > 0:
-        txt += " {0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if pl == 1 else "are", pl)
+    elif not rest[0] and lpl > 0:
+        msg.append("{0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if lpl == 1 else "are", lpl))
         if var.PHASE in ["night", "day"]:
-            txt += " Using the {0} game mode.".format(var.CURRENT_GAMEMODE.name)
+            msg.append("Using the {0} game mode.".format(var.CURRENT_GAMEMODE.name))
+            rest = [str(lpl)]
 
     #read game mode to get roles for
-    elif len(rest[0]) and not rest[0].isdigit():
+    elif rest[0] and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
             gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
@@ -7746,14 +7747,14 @@ def listroles(cli, nick, chan, rest):
             rest.pop(0)
         else:
             if gamemode in var.GAME_MODES and var.GAME_MODES[gamemode][4]:
-                txt += " {0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode)
+                msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
             else:
-                txt += " {0}: {1} is not a valid game mode.".format(nick, rest[0])
+                msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
             rest = []
             roleindex = {}
 
     #number of players to print the game mode for
-    if len(rest) and rest[0].isdigit():
+    if rest and rest[0].isdigit():
         index = int(rest[0])
         for i in range(len(roleindex)-1, -1, -1):
             if roleindex[i] <= index:
@@ -7762,14 +7763,11 @@ def listroles(cli, nick, chan, rest):
 
     #special ordering
     roleguide = [(role, roleguide[role]) for role in var.role_order()]
-    for i in range(0, len(roleindex)):
+    for i, num in enumerate(roleindex):
         #getting the roles at a specific player count
-        if index:
-            if roleindex[i] < index:
-                continue
-            elif roleindex[i] > index:
-                break
-        txt += " {0}[{1}]{0} ".format("\u0002" if roleindex[i] <= pl else "", str(roleindex[i]))
+        if index and num > index:
+            break
+        msg.append("{0}[{1}]{0}".format("\u0002" if num <= lpl else "", str(num)))
         roles = []
         for role, amount in roleguide:
             direction = 1 if amount[i] > old[role] else -1
@@ -7781,17 +7779,19 @@ def listroles(cli, nick, chan, rest):
                     temp += "({0})".format(j)
                 roles.append(temp)
             old[role] = amount[i]
-        txt += ", ".join(roles)
-    txt = txt[1:]
-    if not len(txt):
-        txt = "No roles are defined for {0}p games.".format(index)
+        msg.append(", ".join(roles))
+
+    if not msg:
+        msg = ["No roles are defined for {0}p games.".format(index)]
+
+    msg = " ".join(msg)
 
     if chan == nick:
-        pm(cli, nick, txt)
+        pm(cli, nick, msg)
     elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
-        cli.notice(nick, txt)
+        cli.notice(nick, msg)
     else:
-        cli.msg(chan, txt)
+        cli.msg(chan, msg)
 
 @cmd("myrole", pm=True, phases=("day", "night"))
 def myrole(cli, nick, chan, rest):
