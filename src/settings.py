@@ -875,6 +875,9 @@ class RandomMode(GameMode):
         addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(int(len(villagers) ** 1.2 / 8))
 
+        if sum(addroles[r] for r in var.WOLFCHAT_ROLES) > len(villagers) // 2:
+            return self.role_attribution(evt, cli, var, villagers)
+
         evt.prevent_default = True
 
 # Credits to Metacity for designing and current name
