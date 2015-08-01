@@ -893,7 +893,7 @@ def join_timer_handler(cli):
 
         @hook("whoreply", hookid=387)
         def ping_altpingers_noacc(cli, svr, botnick, chan, user, host, server, nick, status, rest):
-            if ("G" in status or is_user_stasised(nick)[0] or not var.PINGING_IFS or
+            if ("G" in status or is_user_stasised(nick) or not var.PINGING_IFS or
                     nick == botnick or nick in pl):
                 return
 
@@ -902,7 +902,7 @@ def join_timer_handler(cli):
 
         @hook("whospcrpl", hookid=387)
         def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
-            if ("G" in status or is_user_stasised(user)[0] or not var.PINGING_IFS or
+            if ("G" in status or is_user_stasised(user) or not var.PINGING_IFS or
                 user == botconfig.NICK or user in pl):
 
                 return
@@ -983,10 +983,10 @@ def join_player(cli, player, chan, who = None, forced = False):
     if not acc or acc == "*" or var.DISABLE_ACCOUNTS:
         acc = None
 
-    (is_stasised, stasis_amt) = is_user_stasised(player)
+    stasis = is_user_stasised(player)
 
-    if is_stasised:
-        if forced and stasis_amt == 1:
+    if stasis:
+        if forced and stasis == 1:
             if cloak in var.STASISED:
                 var.set_stasis(cloak, 0)
                 del var.STASISED[cloak]
@@ -995,8 +995,8 @@ def join_player(cli, player, chan, who = None, forced = False):
                 del var.STASISED_ACCS[acc]
         else:
             cli.notice(who, "Sorry, but {0} in stasis for {1} game{2}.".format(
-                "you are" if player == who else player + " is", is_user_stasised(player)[1],
-                "s" if is_user_stasised(player)[1] != 1 else ""))
+                "you are" if player == who else player + " is", stasis,
+                "s" if stasis != 1 else ""))
             return
 
     cmodes = [("+v", player)]
@@ -7103,25 +7103,20 @@ def fstasis(cli, nick, chan, rest):
             cli.msg(chan, msg)
 
 def is_user_stasised(nick):
-    """Checks if a user is in stasis. Returns a tuple of two items.
-
-    First parameter is True or False, and tells if the user is in stasis.
-    If the first parameter is False, the second will always be None.
-    If the first parameter is True, the second is an integer of the amount
-    of games the user is in stasis."""
+    """Checks if a user is in stasis. Returns a number of games in stasis."""
 
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
         acc = var.USERS[nick]["account"]
     else:
-        return False, None
+        return 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.STASISED_ACCS:
-            return True, var.STASISED_ACCS[acc]
+            return var.STASISED_ACCS[acc]
     for clk in var.STASISED:
         if fnmatch.fnmatch(cloak, clk):
-           return True, var.STASISED[clk]
-    return False, None
+           return var.STASISED[clk]
+    return 0
 
 def allow_deny(cli, nick, chan, rest, mode):
     data = rest.split()
