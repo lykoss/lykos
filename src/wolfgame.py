@@ -730,6 +730,74 @@ def is_user_notice(nick):
         return True
     return False
 
+@cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
+def replace(cli, nick, chan, rest):
+    """Swap out a player logged in to your account."""
+    if nick not in var.USERS:
+        pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        return
+
+    if nick in var.list_players():
+        if chan == nick:
+            pm(cli, nick, "You're already playing!")
+        else:
+            cli.notice(nick, "You're already playing!")
+        return
+
+    account = var.USERS[nick]["account"]
+
+    if not account or account == "*":
+        if chan == nick:
+            pm(cli, nick, "You are not logged in to NickServ.")
+        else:
+            cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    rest = rest.split()
+
+    if not rest: # bare call
+        target = None
+
+        for user in var.USERS:
+            if var.USERS[user]["account"] == account:
+                if user == nick:
+                    pass
+                elif target is None:
+                    target = user
+                else:
+                    if chan == nick:
+                        pm(cli, nick, "More than one player is logged in to your account. Use 'swap <nick>' to swap.")
+                    else:
+                        cli.notice(nick, "More than one player is logged in to your account. Use '{0}swap <nick>' to swap.".format(botconfig.CMD_CHAR))
+                    return
+
+    else:
+        target = rest[0]
+
+        if target not in var.list_players():
+            msg = "That person is no{0} playing.".format(" longer" if target in var.DEAD else "t")
+            if chan == nick:
+                pm(cli, nick, msg)
+            else:
+                cli.notice(nick, msg)
+            return
+
+        if target in var.USERS:
+            if var.USERS[target]["account"] == "*":
+                if chan == nick:
+                    pm(cli, nick, "That person is not logged in to NickServ.")
+                else:
+                    cli.notice(nick, "That person is not logged in to NickServ.")
+                return
+
+    if var.USERS[target]["account"] == account and nick != target:
+        rename_player(cli, target, nick)
+
+        mass_mode(cli, [("-v", target), ("+v", nick)], [])
+
+        cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has swapped places with \u0002{1}\u0002.".format(nick, target))
+        myrole.caller(cli, nick, nick, "")
+
 @cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://github.com/lykoss/lykos/wiki/Pingif"""
@@ -998,6 +1066,14 @@ def join_player(cli, player, chan, who = None, forced = False):
                 "you are" if player == who else player + " is", stasis,
                 "s" if stasis != 1 else ""))
             return
+
+    if acc is not None and not botconfig.DEBUG_MODE:
+        for user in pl:
+            if var.USERS[user]["account"] == acc:
+                cli.notice(who, "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}".format(
+                           user, "your" if who == player else "their", " Please use '{0}swap' to join instead.".format(
+                           botconfig.CMD_CHAR) if who == player else ""))
+                return
 
     cmodes = [("+v", player)]
     if var.PHASE == "none":
@@ -3048,25 +3124,8 @@ def fgoat(cli, nick, chan, rest):
 
     cli.msg(chan, "\u0002{0}\u0002's goat walks by and {1} \u0002{2}\u0002.".format(nick, goatact, togoat))
 
-@hook("nick")
-def on_nick(cli, oldnick, nick):
-    prefix,u,m,cloak = parse_nick(oldnick)
+def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
-
-    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
-        if var.PHASE != "join":
-            cli.mode(chan, "-v", nick)
-        leave(cli, "badnick", oldnick)
-        # update var.USERS after so that leave() can keep track of new nick to use properly
-        # return after doing this so that none of the game vars are updated with the bad nickname
-        if prefix in var.USERS:
-            var.USERS[nick] = var.USERS.pop(prefix)
-        return
-
-    if prefix in var.USERS:
-        var.USERS[nick] = var.USERS.pop(prefix)
-        if not var.USERS[nick]["inchan"]:
-            return
 
     if prefix == var.ADMIN_TO_PING:
         var.ADMIN_TO_PING = nick
@@ -3295,6 +3354,28 @@ def on_nick(cli, oldnick, nick):
     if prefix in var.NO_LYNCH:
         var.NO_LYNCH.remove(prefix)
         var.NO_LYNCH.append(nick)
+
+@hook("nick")
+def on_nick(cli, oldnick, nick):
+    prefix,u,m,cloak = parse_nick(oldnick)
+    chan = botconfig.CHANNEL
+
+    if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
+        if var.PHASE != "join":
+            cli.mode(chan, "-v", nick)
+        leave(cli, "badnick", oldnick)
+        # update var.USERS after so that leave() can keep track of new nick to use properly
+        # return after doing this so that none of the game vars are updated with the bad nickname
+        if prefix in var.USERS:
+            var.USERS[nick] = var.USERS.pop(prefix)
+        return
+
+    if prefix in var.USERS:
+        var.USERS[nick] = var.USERS.pop(prefix)
+        if not var.USERS[nick]["inchan"]:
+            return
+
+    rename_player(cli, prefix, nick)
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
