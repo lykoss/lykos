@@ -268,9 +268,9 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.",
                            "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.")
 PING_MESSAGES = ("Pong!", "Ping!", "Sure thing.", "No.", "!gniP", "!gnoP", "Segmentation fault", "Segmentation fault (core dumped)",
-                 "{0}.exe has stopped working. Windows is searching for a solution to the problem...".format(botconfig.NICK), "HTTP Error 418: I'm a teapot",
+                 "{0}.exe has stopped working. Windows is checking for a solution to the problem...".format(botconfig.NICK), "HTTP Error 418: I'm a teapot",
                  "An error has pinged and has been ponged.", "I'm here!", "I refuse!", "What?", "Don't you mean \u0002{0}ping\u0002?".format(botconfig.CMD_CHAR),
-                 "skynet.exe has stopped working. Windows is searching for a solution to the problem...", "No ping received for 1337 seconds.",
+                 "skynet.exe has stopped working. Windows is checking for a solution to the problem...", "No ping received for 1337 seconds.",
                  "Congratulations! You're the 1337th person to use {0}ping. You win a goat!".format(botconfig.CMD_CHAR), "PING! {nick}")
 
 
