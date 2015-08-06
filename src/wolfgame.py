@@ -733,7 +733,7 @@ def is_user_notice(nick):
 @cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://github.com/lykoss/lykos/wiki/Pingif"""
-    altpinged, players = is_user_altpinged(nick)
+    players = is_user_altpinged(nick)
     rest = rest.split()
     if nick in var.USERS:
         cloak = var.USERS[nick]["cloak"]
@@ -755,7 +755,7 @@ def altpinger(cli, nick, chan, rest):
     msg = []
 
     if not rest:
-        if altpinged:
+        if players:
             msg.append("You will be pinged when there are at least {0} players joined.".format(players))
         else:
             msg.append("You do not have any ping preferences currently set.")
@@ -763,7 +763,7 @@ def altpinger(cli, nick, chan, rest):
     elif any((rest[0] in ("off", "never"),
               rest[0].isdigit() and int(rest[0]) == 0,
               len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0)):
-        if altpinged:
+        if players:
             msg.append("Your ping preferences have been removed (was {0}).".format(players))
             toggle_altpinged_status(nick, 0, players)
         else:
@@ -778,7 +778,7 @@ def altpinger(cli, nick, chan, rest):
             msg.append("That number is too large.")
         elif players == num:
             msg.append("Your ping preferences are already set to {0}.".format(num))
-        elif altpinged:
+        elif players:
             msg.append("Your ping preferences have been changed from {0} to {1}.".format(players, num))
             toggle_altpinged_status(nick, num, players)
         else:
@@ -798,13 +798,13 @@ def is_user_altpinged(nick):
         cloak = var.USERS[nick]["cloak"]
         acc = var.USERS[nick]["account"]
     else:
-        return (False, None)
+        return 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.PING_IF_PREFS_ACCS.keys():
-            return (True, var.PING_IF_PREFS_ACCS[acc])
+            return var.PING_IF_PREFS_ACCS[acc]
     elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
-        return (True, var.PING_IF_PREFS[cloak])
-    return (False, None)
+        return var.PING_IF_PREFS[cloak]
+    return 0
 
 def toggle_altpinged_status(nick, value, old=None):
     # nick should be in var.USERS if not fake; if not, let the error propagate
