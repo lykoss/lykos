@@ -760,7 +760,7 @@ def replace(cli, nick, chan, rest):
 
         for user in var.USERS:
             if var.USERS[user]["account"] == account:
-                if user == nick:
+                if user == nick or (user not in var.list_players() and user not in var.VENGEFUL_GHOSTS):
                     pass
                 elif target is None:
                     target = user
@@ -772,9 +772,9 @@ def replace(cli, nick, chan, rest):
                     return
 
     else:
-        target = rest[0]
+        target, _ = complete_match(rest[0], var.list_players() + list(var.VENGEFUL_GHOSTS.keys()))
 
-        if target not in var.list_players():
+        if target not in var.list_players() and target not in var.VENGEFUL_GHOSTS:
             msg = "That person is no{0} playing.".format(" longer" if target in var.DEAD else "t")
             if chan == nick:
                 pm(cli, nick, msg)
@@ -796,7 +796,7 @@ def replace(cli, nick, chan, rest):
         mass_mode(cli, [("-v", target), ("+v", nick)], [])
 
         cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has swapped places with \u0002{1}\u0002.".format(nick, target))
-        myrole.caller(cli, nick, nick, "")
+        myrole.caller(cli, nick, chan, "")
 
 @cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(cli, nick, chan, rest):
@@ -1070,9 +1070,11 @@ def join_player(cli, player, chan, who = None, forced = False):
     if acc is not None and not botconfig.DEBUG_MODE:
         for user in pl:
             if var.USERS[user]["account"] == acc:
-                cli.notice(who, "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}".format(
-                           user, "your" if who == player else "their", " Please use '{0}swap' to join instead.".format(
-                           botconfig.CMD_CHAR) if who == player else ""))
+                msg = "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}"
+                if who == player:
+                    cli.notice(who, msg.format(user, "your", " Please use '{0}swap' to join instead.".format(botconfig.CMD_CHAR)))
+                else:
+                    cli.notice(who, msg.format(user, "their", ""))
                 return
 
     cmodes = [("+v", player)]
