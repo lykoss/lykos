@@ -1,9 +1,9 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
-import base64
-import imp
-import socket
 import traceback
+import base64
+import socket
+import sys
 
 from oyoyo.parse import parse_nick
 
@@ -14,30 +14,9 @@ from src import decorators, logger, wolfgame
 log = logger("errors.log")
 alog = logger(None)
 
+sys.stderr.target_logger = log
+
 hook = decorators.hook
-
-def notify_error(cli, chan, target_logger):
-    msg = "An error has occurred and has been logged."
-
-    tb = traceback.format_exc()
-
-    target_logger(tb)
-
-    if (not botconfig.PASTEBIN_ERRORS) or (chan != botconfig.DEV_CHANNEL):
-        # Don't send a duplicate message if DEV_CHANNEL is the current channel.
-        cli.msg(chan, msg)
-
-    if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
-        try:
-            with socket.socket() as sock:
-                sock.connect(("termbin.com", 9999))
-                sock.send(tb.encode("utf-8", "replace") + b"\n")
-                url = sock.recv(1024).decode("utf-8")
-        except socket.error:
-            target_logger(traceback.format_exc())
-        else:
-            cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
-
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
 
@@ -63,7 +42,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             if botconfig.DEBUG_MODE:
                 raise
             else:
-                notify_error(cli, chan, log)
+                traceback.print_exc()
 
 
     for x in decorators.COMMANDS:
@@ -83,7 +62,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     if botconfig.DEBUG_MODE:
                         raise
                     else:
-                        notify_error(cli, chan, log)
+                        traceback.print_exc()
 
 
 def unhandled(cli, prefix, cmd, *args):
@@ -94,11 +73,11 @@ def unhandled(cli, prefix, cmd, *args):
         for fn in decorators.HOOKS.get(cmd, []):
             try:
                 fn.func(cli, prefix, *largs)
-            except Exception as e:
+            except Exception:
                 if botconfig.DEBUG_MODE:
-                    raise e
+                    raise
                 else:
-                    notify_error(cli, botconfig.CHANNEL, log)
+                    traceback.print_exc()
 
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
@@ -184,6 +163,8 @@ def connect_callback(cli):
             # capability but now claims otherwise.
             alog("Server refused capabilities: {0}".format(" ".join(caps)))
 
+    if sys.stderr.cli is None:
+        sys.stderr.cli = cli # first connection
 
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")

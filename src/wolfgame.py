@@ -494,17 +494,17 @@ def forced_exit(cli, nick, chan, rest):
         try:
             stop_game(cli)
         except Exception:
-            notify_error(cli, chan, errlog)
+            traceback.print_exc()
 
     try:
         reset_modes_timers(cli)
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     try:
         reset()
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     msg = "{0} quit from {1}"
 
@@ -516,7 +516,7 @@ def forced_exit(cli, nick, chan, rest):
                             nick,
                             rest.strip()))
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
         sys.exit()
 
 
@@ -540,12 +540,12 @@ def restart_program(cli, nick, chan, rest):
         try:
             stop_game(cli)
         except Exception:
-            notify_error(cli, chan, errlog)
+            traceback.print_exc()
 
     try:
         reset_modes_timers(cli)
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     try:
         with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
@@ -554,12 +554,12 @@ def restart_program(cli, nick, chan, rest):
             if players:
                 c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     try:
         reset()
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", nick)
@@ -596,7 +596,7 @@ def restart_program(cli, nick, chan, rest):
     try:
         cli.quit(msg.format(nick, rest.strip()))
     except Exception:
-        notify_error(cli, chan, errlog)
+        traceback.print_exc()
 
     @hook("quit")
     def restart_buffer(cli, raw_nick, reason):
@@ -7508,7 +7508,10 @@ def fwait(cli, nick, chan, rest):
 @cmd("fstop", admin_only=True, phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
-    cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
+    if nick == "<stderr>":
+        cli.msg(botconfig.CHANNEL, "Game stopped due to error.")
+    else:
+        cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 has forced the game to stop.".format(nick))
     if var.PHASE != "join":
         stop_game(cli)
     else:

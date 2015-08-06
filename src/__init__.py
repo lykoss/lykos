@@ -1,6 +1,10 @@
+import traceback
 import argparse
 import datetime
+import socket
 import time
+import sys
+import io
 
 import botconfig
 import src.settings as var
@@ -104,3 +108,55 @@ def stream(output, level="normal"):
         stream_handler(output)
     elif level == "warning":
         stream_handler(output)
+
+# Error handler
+
+buffer = io.BufferedWriter(io.FileIO(file=sys.stderr.fileno(), mode="wb", closefd=False))
+
+class ErrorHandler(io.TextIOWrapper):
+    """Handle tracebacks sent to sys.stderr."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cli = None
+        self.target_logger = None
+        self.data = []
+
+    def write(self, data):
+        assert not (self.cli is None or self.target_logger is None)
+        if self.closed:
+            raise ValueError("write to closed file")
+        if not isinstance(data, str):
+            raise ValueError("can't write %s to text stream" % data.__class__.__name__)
+        length = len(data)
+        b = data.encode("utf-8", "replace")
+        self.buffer.write(b)
+        self.data.append(data)
+        if data and not data.startswith(("Traceback", " ", "Exception in thread")):
+            self.flush()
+        return length
+
+    def flush(self):
+        self.buffer.flush()
+
+        msg = "An error has occurred and has been logged."
+        if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
+            self.cli.msg(botconfig.CHANNEL, msg)
+        if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
+            try:
+                with socket.socket() as sock:
+                    sock.connect(("termbin.com", 9999))
+                    sock.send(b"".join(s.encode("utf-8", "replace") for s in self.data) + b"\n")
+                    url = sock.recv(1024).decode("utf-8")
+            except socket.error:
+                self.target_logger("".join(self.data), display=False)
+            else:
+                self.cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
+        del self.data[:]
+        if var.PHASE in ("join", "day", "night"):
+            from src.decorators import COMMANDS
+            for cmd in COMMANDS["fstop"]:
+                cmd.func(self.cli, "<stderr>", "", "")
+
+sys.stderr = ErrorHandler(buffer=buffer, encoding=sys.stderr.encoding,
+             errors=sys.stderr.errors, line_buffering=sys.stderr.line_buffering)
