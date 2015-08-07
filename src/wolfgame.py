@@ -4145,7 +4145,7 @@ def transition_day(cli, gameid=0):
 
     # handle separately so it always happens no matter how victim dies, and so that we can account for bitten victims as well
     for victim in victims + bitten:
-        if victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
+        if victim in dead and victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
             for hlt in var.HVISITED.keys():
                 if var.HVISITED[hlt] == victim and hlt not in bitten and hlt not in dead:
                     message.append(("\u0002{0}\u0002, a \u0002harlot\u0002, made the unfortunate mistake of "+
