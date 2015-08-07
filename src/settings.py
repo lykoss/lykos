@@ -426,7 +426,7 @@ def break_long_message(phrases, joinstr = " "):
             message.append("\n" + phrase)
             count = len(phrase)
         else:
-            if message:
+            if not message:
                 count = len(phrase)
             else:
                 count += len(joinstr) + len(phrase)
