@@ -7522,8 +7522,11 @@ def reset_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         stop_game(cli)
     else:
+        pl = var.list_players()
         reset_modes_timers(cli)
         reset()
+        cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
+
 
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
