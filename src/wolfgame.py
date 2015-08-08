@@ -771,6 +771,13 @@ def replace(cli, nick, chan, rest):
                         cli.notice(nick, "More than one player is logged in to your account. Use '{0}swap <nick>' to swap.".format(botconfig.CMD_CHAR))
                     return
 
+        if target is None:
+            msg = "You do not appear to be playing. Make sure you are identified to the same account."
+            if chan == nick:
+                pm(cli, nick, msg)
+            else:
+                cli.notice(nick, msg)
+            return
     else:
         target, _ = complete_match(rest[0], var.list_players() + list(var.VENGEFUL_GHOSTS.keys()))
 
