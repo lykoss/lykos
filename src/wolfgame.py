@@ -139,6 +139,10 @@ def connect_callback(cli):
     SIGUSR2 = getattr(signal, "SIGUSR2", None)
 
     def sighandler(signum, frame):
+        if signum == signal.SIGINT:
+            # Exit immediately if Ctrl-C is pressed twice
+            signal.signal(signal.SIGINT, signal.SIG_DFL)
+
         if signum in (signal.SIGINT, signal.SIGTERM):
             forced_exit.func(cli, "<console>", botconfig.CHANNEL, "")
         elif signum == SIGUSR1:
