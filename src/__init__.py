@@ -139,11 +139,25 @@ class ErrorHandler(io.TextIOWrapper):
     def flush(self):
         self.buffer.flush()
 
-        import builtins
-
         exc = self.data[-1].partition(":")[0]
 
-        if not issubclass(getattr(builtins, exc, BaseException), Exception):
+        import builtins
+
+        if "." in exc:
+            import importlib
+            module, dot, name = exc.rpartition(".")
+            try:
+                module = importlib.import_module(module)
+            except ImportError:
+                exc = Exception
+            else:
+                exc = getattr(module, name.strip())
+
+        elif hasattr(builtins, exc):
+            exc = getattr(builtins, exc)
+
+        if not issubclass(exc, Exception):
+            del self.data[:]
             return # not an actual exception
 
         msg = "An error has occurred and has been logged."
