@@ -139,6 +139,13 @@ class ErrorHandler(io.TextIOWrapper):
     def flush(self):
         self.buffer.flush()
 
+        import builtins
+
+        exc = self.data[-1].partition(":")[0]
+
+        if not issubclass(getattr(builtins, exc, BaseException), Exception):
+            return # not an actual exception
+
         msg = "An error has occurred and has been logged."
         if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
             self.cli.msg(botconfig.CHANNEL, msg)
