@@ -7347,7 +7347,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                         command = command[len(botconfig.CMD_CHAR):]
 
                     if not rem:
-                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval"):
+                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[cloak]:
                             variable[cloak].append(command)
                             if mode == "allow":
                                 var.add_allow(cloak, command)
