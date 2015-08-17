@@ -976,8 +976,9 @@ def join_timer_handler(cli):
                     nick == botnick or nick in pl):
                 return
 
-            to_ping.append(nick)
-            var.PINGED_ALREADY.add(host)
+            if host in checker:
+                to_ping.append(nick)
+                var.PINGED_ALREADY.add(host)
 
         @hook("whospcrpl", hookid=387)
         def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
