@@ -7614,7 +7614,7 @@ def wiki(cli, nick, chan, rest):
 
     try:
         page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode("ascii", errors="replace")
-    except urllib.error.URLError:
+    except (urllib.error.URLError, socket.timeout):
         cli.notice(nick, "Request to https://github.com/lykoss/lykos/wiki timed out.")
         return
     if not page:
