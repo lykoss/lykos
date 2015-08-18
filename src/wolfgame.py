@@ -1079,16 +1079,6 @@ def join_player(cli, player, chan, who = None, forced = False):
                 "s" if stasis != 1 else ""))
             return
 
-    if acc is not None and not botconfig.DEBUG_MODE:
-        for user in pl:
-            if var.USERS[user]["account"] == acc:
-                msg = "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}"
-                if who == player:
-                    cli.notice(who, msg.format(user, "your", " Please use '{0}swap' to join instead.".format(botconfig.CMD_CHAR)))
-                else:
-                    cli.notice(who, msg.format(user, "their", ""))
-                return
-
     cmodes = [("+v", player)]
     if var.PHASE == "none":
 
@@ -1132,6 +1122,15 @@ def join_player(cli, player, chan, who = None, forced = False):
         cli.notice(who, "Sorry, but the game is already running. Try again next time.")
         return
     else:
+        if acc is not None and not botconfig.DEBUG_MODE:
+            for user in pl:
+                if var.USERS[user]["account"] == acc:
+                    msg = "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}"
+                    if who == player:
+                        cli.notice(who, msg.format(user, "your", " Please use '{0}swap' to join instead.".format(botconfig.CMD_CHAR)))
+                    else:
+                        cli.notice(who, msg.format(user, "their", ""))
+                    return
 
         var.ROLES["person"].append(player)
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
