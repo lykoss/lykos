@@ -8126,7 +8126,7 @@ def player_stats(cli, nick, chan, rest):
         else:
             cli.msg(chan, message)
 
-@cmd("mystats", "me", "m", pm=True)
+@cmd("mystats", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
