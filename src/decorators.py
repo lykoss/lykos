@@ -52,10 +52,13 @@ class cmd:
         largs = list(args)
 
         cli, rawnick, chan, rest = largs
-        nick, mode, user, cloak = parse_nick(rawnick)
+        nick, mode, ident, host = parse_nick(rawnick)
 
-        if cloak is None:
-            cloak = ""
+        if ident is None:
+            ident = ""
+
+        if host is None:
+            host = ""
 
         if not self.raw_nick:
             largs[1] = nick
@@ -110,7 +113,7 @@ class cmd:
             return self.func(*largs) # don't check restrictions for role commands
 
         if self.owner_only:
-            if var.is_owner(nick, cloak):
+            if var.is_owner(nick, ident, host):
                 adminlog(chan, rawnick, self.name, rest)
                 return self.func(*largs)
 
@@ -120,33 +123,31 @@ class cmd:
                 cli.notice(nick, "You are not the owner.")
             return
 
-        if var.is_admin(nick, cloak):
+        if var.is_admin(nick, ident, host):
             if self.admin_only:
                 adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
         if not var.DISABLE_ACCOUNTS and acc:
-            for pattern in var.DENY_ACCOUNTS:
-                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                    for command in self.cmds:
-                        if command in var.DENY_ACCOUNTS[pattern]:
-                            if chan == nick:
-                                pm(cli, nick, "You do not have permission to use that command.")
-                            else:
-                                cli.notice(nick, "You do not have permission to use that command.")
-                            return
+            if acc in var.DENY_ACCOUNTS:
+                for command in self.cmds:
+                    if command in var.DENY_ACCOUNTS[acc]:
+                        if chan == nick:
+                            pm(cli, nick, "You do not have permission to use that command.")
+                        else:
+                            cli.notice(nick, "You do not have permission to use that command.")
+                        return
 
-            for pattern in var.ALLOW_ACCOUNTS:
-                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                    for command in self.cmds:
-                        if command in var.ALLOW_ACCOUNTS[pattern]:
-                            if self.admin_only:
-                                adminlog(chan, rawnick, self.name, rest)
-                            return self.func(*largs)
+            if acc in var.ALLOW_ACCOUNTS:
+                for command in self.cmds:
+                    if command in var.ALLOW_ACCOUNTS[acc]:
+                        if self.admin_only:
+                            adminlog(chan, rawnick, self.name, rest)
+                        return self.func(*largs)
 
-        if not var.ACCOUNTS_ONLY and cloak:
+        if not var.ACCOUNTS_ONLY and host:
             for pattern in var.DENY:
-                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                if var.match_hostmask(pattern, nick, ident, host):
                     for command in self.cmds:
                         if command in var.DENY[pattern]:
                             if chan == nick:
@@ -156,7 +157,7 @@ class cmd:
                             return
 
             for pattern in var.ALLOW:
-                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+                if var.match_hostmask(pattern, nick, ident, host):
                     for command in self.cmds:
                         if command in var.ALLOW[pattern]:
                             if self.admin_only:

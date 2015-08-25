@@ -194,15 +194,15 @@ def connect_callback(cli):
             if not stat in var.MODES_PREFIXES:
                 continue
             newstat += var.MODES_PREFIXES[stat]
-        var.USERS[nick] = dict(cloak=host,account="*",inchan=True,modes=set(newstat),moded=set())
+        var.USERS[nick] = dict(ident=user,host=host,account="*",inchan=True,modes=set(newstat),moded=set())
 
     @hook("whospcrpl", hookid=295)
-    def on_whoreply(cli, server, nick, ident, cloak, _, user, status, acc):
+    def on_whoreply(cli, server, nick, ident, host, _, user, status, acc):
         if user in var.USERS: return  # Don't add someone who is already there
         if user == botconfig.NICK:
             cli.nickname = user
             cli.ident = ident
-            cli.hostmask = cloak
+            cli.hostmask = host
         if acc == "0":
             acc = "*"
         if "+" in status:
@@ -212,7 +212,7 @@ def connect_callback(cli):
             if not stat in var.MODES_PREFIXES:
                 continue
             newstat += var.MODES_PREFIXES[stat]
-        var.USERS[user] = dict(cloak=cloak,account=acc,inchan=True,modes=set(newstat),moded=set())
+        var.USERS[user] = dict(ident=ident,host=host,account=acc,inchan=True,modes=set(newstat),moded=set())
 
     @hook("endofwho", hookid=295)
     def afterwho(*args):
@@ -431,7 +431,7 @@ def reset():
     var.DEAD = set()
     var.ROLES = {"person" : set()}
     var.ALL_PLAYERS = []
-    var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (cloaks)
+    var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
@@ -450,13 +450,14 @@ reset()
 
 def make_stasis(nick, penalty):
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         return # Can't do it
     if not acc or acc == "*":
         acc = None
-    if not cloak and not acc:
+    if not host and not acc:
         return # Can't do it, either
     if acc:
         if penalty == 0:
@@ -466,14 +467,15 @@ def make_stasis(nick, penalty):
         else:
             var.STASISED_ACCS[acc] += penalty
             var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
-    if (not var.ACCOUNTS_ONLY or not acc) and cloak:
+    if (not var.ACCOUNTS_ONLY or not acc) and host:
+        hostmask = ident + "@" + host
         if penalty == 0:
-            if cloak in var.STASISED:
-                del var.STASISED[cloak]
-                var.set_stasis(cloak, 0)
+            if hostmask in var.STASISED:
+                del var.STASISED[hostmask]
+                var.set_stasis(hostmask, 0)
         else:
-            var.STASISED[cloak] += penalty
-            var.set_stasis(cloak, var.STASISED[cloak])
+            var.STASISED[hostmask] += penalty
+            var.set_stasis(hostmask, var.STASISED[hostmask])
 
 @cmd("fsync", admin_only=True, pm=True)
 def fsync(cli, nick, chan, rest):
@@ -610,7 +612,7 @@ def restart_program(cli, nick, chan, rest):
 
     @hook("quit")
     def restart_buffer(cli, raw_nick, reason):
-        nick, _, __, cloak = parse_nick(raw_nick)
+        nick, _, __, host = parse_nick(raw_nick)
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         # if the bot is using a nick that isn't botconfig.NICK, then stop breaking things and fdie
         if nick == botconfig.NICK:
@@ -636,9 +638,10 @@ def pinger(cli, nick, chan, rest):
 def mark_simple_notify(cli, nick, chan, rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
-    nick, _, __, cloak = parse_nick(nick)
+    nick, _, ident, host = parse_nick(nick)
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         acc = None
@@ -649,9 +652,9 @@ def mark_simple_notify(cli, nick, chan, rest):
         if acc in var.SIMPLE_NOTIFY_ACCS:
             var.SIMPLE_NOTIFY_ACCS.remove(acc)
             var.remove_simple_rolemsg_acc(acc)
-            if cloak in var.SIMPLE_NOTIFY:
-                var.SIMPLE_NOTIFY.remove(cloak)
-                var.remove_simple_rolemsg(cloak)
+            if host in var.SIMPLE_NOTIFY:
+                var.SIMPLE_NOTIFY.remove(host)
+                var.remove_simple_rolemsg(host)
 
             cli.notice(nick, "You now no longer receive simple role instructions.")
             return
@@ -663,21 +666,22 @@ def mark_simple_notify(cli, nick, chan, rest):
         return
 
     else: # Not logged in, fall back to hostmask
-        if cloak in var.SIMPLE_NOTIFY:
-            var.SIMPLE_NOTIFY.remove(cloak)
-            var.remove_simple_rolemsg(cloak)
+        if host in var.SIMPLE_NOTIFY:
+            var.SIMPLE_NOTIFY.remove(host)
+            var.remove_simple_rolemsg(host)
 
             cli.notice(nick, "You now no longer receive simple role instructions.")
             return
 
-        var.SIMPLE_NOTIFY.add(cloak)
-        var.add_simple_rolemsg(cloak)
+        var.SIMPLE_NOTIFY.add(host)
+        var.add_simple_rolemsg(host)
 
     cli.notice(nick, "You now receive simple role instructions.")
 
 def is_user_simple(nick):
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         return False
@@ -685,17 +689,20 @@ def is_user_simple(nick):
         if acc in var.SIMPLE_NOTIFY_ACCS:
             return True
         return False
-    elif cloak in var.SIMPLE_NOTIFY and not var.ACCOUNTS_ONLY:
-        return True
+    elif not var.ACCOUNTS_ONLY:
+        for hostmask in var.SIMPLE_NOTIFY:
+            if var.match_hostmask(hostmask, nick, ident, host):
+                return True
     return False
 
 @cmd("notice", raw_nick=True, pm=True)
 def mark_prefer_notice(cli, nick, chan, rest):
     """Makes the bot NOTICE you for every interaction."""
 
-    nick, _, __, cloak = parse_nick(nick)
+    nick, _, ident, host = parse_nick(nick)
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         acc = None
@@ -706,9 +713,9 @@ def mark_prefer_notice(cli, nick, chan, rest):
         if acc in var.PREFER_NOTICE_ACCS:
             var.PREFER_NOTICE_ACCS.remove(acc)
             var.remove_prefer_notice_acc(acc)
-            if cloak in var.PREFER_NOTICE:
-                var.PREFER_NOTICE.remove(cloak)
-                var.remove_prefer_notice(cloak)
+            if host in var.PREFER_NOTICE:
+                var.PREFER_NOTICE.remove(host)
+                var.remove_prefer_notice(host)
 
             cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
             return
@@ -720,15 +727,15 @@ def mark_prefer_notice(cli, nick, chan, rest):
         return
 
     else: # Not logged in
-        if cloak in var.PREFER_NOTICE:
-            var.PREFER_NOTICE.remove(cloak)
-            var.remove_prefer_notice(cloak)
+        if host in var.PREFER_NOTICE:
+            var.PREFER_NOTICE.remove(host)
+            var.remove_prefer_notice(host)
 
             cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
             return
 
-        var.PREFER_NOTICE.add(cloak)
-        var.add_prefer_notice(cloak)
+        var.PREFER_NOTICE.add(host)
+        var.add_prefer_notice(host)
 
     cli.notice(nick, "The bot will now always NOTICE you.")
 
@@ -736,8 +743,12 @@ def is_user_notice(nick):
     if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
         if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
             return True
-    if nick in var.USERS and var.USERS[nick]["cloak"] in var.PREFER_NOTICE and not var.ACCOUNTS_ONLY:
-        return True
+    if nick in var.USERS and not var.ACCOUNTS_ONLY:
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
+        for hostmask in var.PREFER_NOTICE:
+            if var.match_hostmask(hostmask, nick, ident, host):
+                return True
     return False
 
 @cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
@@ -821,7 +832,8 @@ def altpinger(cli, nick, chan, rest):
     players = is_user_altpinged(nick)
     rest = rest.split()
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         if chan == nick:
@@ -880,20 +892,24 @@ def altpinger(cli, nick, chan, rest):
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         return 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.PING_IF_PREFS_ACCS.keys():
             return var.PING_IF_PREFS_ACCS[acc]
-    elif not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS.keys():
-        return var.PING_IF_PREFS[cloak]
+    elif not var.ACCOUNTS_ONLY:
+        for hostmask, pref in var.PING_IF_PREFS.items():
+            if var.match_hostmask(hostmask, nick, ident, host):
+                return pref
     return 0
 
 def toggle_altpinged_status(nick, value, old=None):
     # nick should be in var.USERS if not fake; if not, let the error propagate
-    cloak = var.USERS[nick]["cloak"]
+    ident = var.USERS[nick]["ident"]
+    host = var.USERS[nick]["host"]
     acc = var.USERS[nick]["account"]
     if value == 0:
         if not var.DISABLE_ACCOUNTS and acc and acc != "*":
@@ -904,13 +920,16 @@ def toggle_altpinged_status(nick, value, old=None):
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(acc)
-        if not var.ACCOUNTS_ONLY and cloak in var.PING_IF_PREFS:
-            del var.PING_IF_PREFS[cloak]
-            var.set_pingif_status(cloak, False, 0)
-            if old is not None:
-                with var.WARNING_LOCK:
-                    if old in var.PING_IF_NUMS:
-                        var.PING_IF_NUMS[old].discard(cloak)
+        if not var.ACCOUNTS_ONLY:
+            for hostmask in list(var.PING_IF_PREFS.keys()):
+                if var.match_hostmask(hostmask, nick, ident, host):
+                    del var.PING_IF_PREFS[hostmask]
+                    var.set_pingif_status(hostmask, False, 0)
+                    if old is not None:
+                        with var.WARNING_LOCK:
+                            if old in var.PING_IF_NUMS.keys():
+                                var.PING_IF_NUMS[old].discard(host)
+                                var.PING_IF_NUMS[old].discard(hostmask)
     else:
         if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             var.PING_IF_PREFS_ACCS[acc] = value
@@ -923,15 +942,17 @@ def toggle_altpinged_status(nick, value, old=None):
                     if old in var.PING_IF_NUMS_ACCS:
                         var.PING_IF_NUMS_ACCS[old].discard(acc)
         elif not var.ACCOUNTS_ONLY:
-            var.PING_IF_PREFS[cloak] = value
-            var.set_pingif_status(cloak, False, value)
+            hostmask = ident + "@" + host
+            var.PING_IF_PREFS[hostmask] = value
+            var.set_pingif_status(hostmask, False, value)
             with var.WARNING_LOCK:
-                if value not in var.PING_IF_NUMS:
+                if value not in var.PING_IF_NUMS.keys():
                     var.PING_IF_NUMS[value] = set()
-                var.PING_IF_NUMS[value].add(cloak)
+                var.PING_IF_NUMS[value].add(hostmask)
                 if old is not None:
-                    if old in var.PING_IF_NUMS:
-                        var.PING_IF_NUMS[old].discard(cloak)
+                    if old in var.PING_IF_NUMS.keys():
+                        var.PING_IF_NUMS[old].discard(host)
+                        var.PING_IF_NUMS[old].discard(hostmask)
 
 def join_timer_handler(cli):
     with var.WARNING_LOCK:
@@ -963,9 +984,9 @@ def join_timer_handler(cli):
             if acc in var.PINGED_ALREADY_ACCS:
                 chk_acc.remove(acc)
 
-        for cloak in frozenset(checker):
-            if cloak in var.PINGED_ALREADY:
-                checker.remove(cloak)
+        for hostmask in frozenset(checker):
+            if hostmask in var.PINGED_ALREADY:
+                checker.remove(hostmask)
 
         # If there is nobody to ping, do nothing
         if not chk_acc and not checker:
@@ -973,17 +994,18 @@ def join_timer_handler(cli):
             return
 
         @hook("whoreply", hookid=387)
-        def ping_altpingers_noacc(cli, svr, botnick, chan, user, host, server, nick, status, rest):
+        def ping_altpingers_noacc(cli, svr, botnick, chan, ident, host, server, nick, status, rest):
             if ("G" in status or is_user_stasised(nick) or not var.PINGING_IFS or
                     nick == botnick or nick in pl):
                 return
 
-            if host in checker:
+            hostmask = ident + "@" + host
+            if hostmask in checker:
                 to_ping.append(nick)
-                var.PINGED_ALREADY.add(host)
+                var.PINGED_ALREADY.add(hostmask)
 
         @hook("whospcrpl", hookid=387)
-        def ping_altpingers(cli, server, nick, ident, cloak, _, user, status, acc):
+        def ping_altpingers(cli, server, nick, ident, host, _, user, status, acc):
             if ("G" in status or is_user_stasised(user) or not var.PINGING_IFS or
                 user == botconfig.NICK or user in pl):
 
@@ -996,8 +1018,9 @@ def join_timer_handler(cli):
                     var.PINGED_ALREADY_ACCS.add(acc)
 
             elif not var.ACCOUNTS_ONLY:
+                hostmask = ident + "@" + host
                 to_ping.append(user)
-                var.PINGED_ALREADY.add(cloak)
+                var.PINGED_ALREADY.add(hostmask)
 
         @hook("endofwho", hookid=387)
         def fetch_altpingers(*stuff):
@@ -1054,11 +1077,13 @@ def join_player(cli, player, chan, who = None, forced = False):
         return
 
     if player in var.USERS:
-        cloak = var.USERS[player]["cloak"]
+        ident = var.USERS[player]["ident"]
+        host = var.USERS[player]["host"]
         acc = var.USERS[player]["account"]
     elif is_fake_nick(player) and botconfig.DEBUG_MODE:
         # fakenick
-        cloak = None
+        ident = None
+        host = None
         acc = None
     else:
         return # Not normal
@@ -1069,9 +1094,10 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     if stasis:
         if forced and stasis == 1:
-            if cloak in var.STASISED:
-                var.set_stasis(cloak, 0)
-                del var.STASISED[cloak]
+            for hostmask in list(var.STASISED.keys()):
+                if var.match_hostmask(hostmask, nick, ident, host):
+                    var.set_stasis(hostmask, 0)
+                    del var.STASISED[hostmask]
             if not var.DISABLE_ACCOUNTS and acc in var.STASISED_ACCS:
                 var.set_stasis_acc(acc, 0)
                 del var.STASISED_ACCS[acc]
@@ -1099,8 +1125,8 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
-        if cloak:
-            var.JOINED_THIS_GAME.add(cloak)
+        if host:
+            var.JOINED_THIS_GAME.add(ident + "@" + host)
         if acc:
             var.JOINED_THIS_GAME_ACCS.add(acc)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
@@ -1145,9 +1171,10 @@ def join_player(cli, player, chan, who = None, forced = False):
                 var.USERS[player]["modes"] = set()
             mass_mode(cli, cmodes, [])
             cli.msg(chan, "\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.".format(player, len(pl) + 1))
-        if not is_fake_nick(player) and not cloak in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
+        hostmask = ident + "@" + host
+        if not is_fake_nick(player) and not hostmask in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
             # make sure this only happens once
-            var.JOINED_THIS_GAME.add(cloak)
+            var.JOINED_THIS_GAME.add(hostmask)
             if acc:
                 var.JOINED_THIS_GAME_ACCS.add(acc)
             now = datetime.now()
@@ -1289,22 +1316,24 @@ def on_kicked(cli, nick, chan, victim, reason):
 
 @hook("account")
 def on_account(cli, rnick, acc):
-    nick, mode, user, cloak = parse_nick(rnick)
+    nick, _, ident, host = parse_nick(rnick)
+    hostmask = ident + "@" + host
     chan = botconfig.CHANNEL
     if acc == "*" and var.ACCOUNTS_ONLY and nick in var.list_players():
         cli.mode(chan, "-v", nick)
         leave(cli, "account", nick)
         cli.notice(nick, "Please reidentify to the account \u0002{0}\u0002".format(var.USERS[nick]["account"]))
     if nick in var.USERS.keys():
-        var.USERS[nick]["cloak"] = cloak
+        var.USERS[nick]["ident"] = ident
+        var.USERS[nick]["host"] = host
         var.USERS[nick]["account"] = acc
     if nick in var.DISCONNECTED.keys():
         if acc == var.DISCONNECTED[nick][0]:
             if nick in var.USERS and var.USERS[nick]["inchan"]:
                 with var.GRAVEYARD_LOCK:
-                    clk = var.DISCONNECTED[nick][1]
+                    hm = var.DISCONNECTED[nick][1]
                     act = var.DISCONNECTED[nick][0]
-                    if (acc == act and not var.DISABLE_ACCOUNTS) or (cloak == clk and not var.ACCOUNTS_ONLY):
+                    if (acc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
                         cli.mode(chan, "+v", nick, nick+"!*@*")
                         del var.DISCONNECTED[nick]
                         var.LAST_SAID_TIME[nick] = datetime.now()
@@ -3014,7 +3043,7 @@ def reaper(cli, gameid):
                 mass_privmsg(cli, msg_targets, ("\u0002You have been idling in {0} for a while. Please say something in {0} "+
                                                 "or you will be declared dead.\u0002").format(chan), privmsg=True)
             for dcedplayer in list(var.DISCONNECTED.keys()):
-                acc, cloak, timeofdc, what = var.DISCONNECTED[dcedplayer]
+                acc, hostmask, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if var.get_role(dcedplayer) != "person" and var.ROLE_REVEAL in ("on", "team"):
                         cli.msg(chan, ("\u0002{0}\u0002 was mauled by wild animals and has died. It seems that "+
@@ -3071,12 +3100,13 @@ def update_last_said(cli, nick, chan, rest):
 
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
-    nick,m,u,cloak = parse_nick(raw_nick)
+    nick, _, ident, host = parse_nick(raw_nick)
     if nick != botconfig.NICK:
         if nick not in var.USERS.keys():
-            var.USERS[nick] = dict(cloak=cloak,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
+            var.USERS[nick] = dict(ident=ident,host=host,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
         else:
-            var.USERS[nick]["cloak"] = cloak
+            var.USERS[nick]["ident"] = ident
+            var.USERS[nick]["host"] = host
             var.USERS[nick]["account"] = acc
             if not var.USERS[nick]["inchan"]:
                 # Will be True if the user joined the main channel, else False
@@ -3084,10 +3114,11 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     if chan != botconfig.CHANNEL:
         return
     with var.GRAVEYARD_LOCK:
+        hostmask = ident + "@" + host
         if nick in var.DISCONNECTED.keys():
-            clk = var.DISCONNECTED[nick][1]
+            hm = var.DISCONNECTED[nick][1]
             act = var.DISCONNECTED[nick][0]
-            if (acc == act and not var.DISABLE_ACCOUNTS) or (cloak == clk and not var.ACCOUNTS_ONLY):
+            if (acc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
                 cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
@@ -3351,16 +3382,18 @@ def rename_player(cli, prefix, nick):
     if var.PHASE in ("night", "day"):
         with var.GRAVEYARD_LOCK:
             if nick in var.DISCONNECTED.keys():
-                clk = var.DISCONNECTED[nick][1]
+                hm = var.DISCONNECTED[nick][1]
                 act = var.DISCONNECTED[nick][0]
                 if nick in var.USERS:
-                    cloak = var.USERS[nick]["cloak"]
+                    ident = var.USERS[nick]["ident"]
+                    host = var.USERS[nick]["host"]
                     acc = var.USERS[nick]["account"]
                 else:
                     acc = None
                 if not acc or acc == "*":
                     acc = None
-                if (acc and acc == act) or (cloak == clk and not var.ACCOUNTS_ONLY):
+                hostmask = ident + "@" + host
+                if (acc and acc == act) or (hostmask == hm and not var.ACCOUNTS_ONLY):
                     cli.mode(chan, "+v", nick, nick+"!*@*")
                     del var.DISCONNECTED[nick]
                     var.LAST_SAID_TIME[nick] = datetime.now()
@@ -3378,7 +3411,7 @@ def rename_player(cli, prefix, nick):
 
 @hook("nick")
 def on_nick(cli, oldnick, nick):
-    prefix,u,m,cloak = parse_nick(oldnick)
+    prefix, _, ident, host = parse_nick(oldnick)
     chan = botconfig.CHANNEL
 
     if (nick.startswith("Guest") or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in var.list_players():
@@ -3403,10 +3436,11 @@ def on_nick(cli, oldnick, nick):
         rename_player(cli, prefix, nick)
 
 def leave(cli, what, nick, why=""):
-    nick, _, _, cloak = parse_nick(nick)
+    nick, _, ident, host = parse_nick(nick)
     if nick in var.USERS:
         acc = var.USERS[nick]["account"]
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         if what == "quit" or (not what in ("account",) and why == botconfig.CHANNEL):
             var.USERS[nick]["inchan"] = False
     else:
@@ -3479,7 +3513,7 @@ def leave(cli, what, nick, why=""):
     if killplayer:
         del_player(cli, nick, death_triggers = False)
     else:
-        var.DISCONNECTED[nick] = (acc, cloak, datetime.now(), what)
+        var.DISCONNECTED[nick] = (acc, ident + "@" + host, datetime.now(), what)
 
 #Functions decorated with hook do not parse the nick by default
 hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick, rest[0]))
@@ -6701,7 +6735,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
 
         if not var.FGAMED:
-            votes = {} #key = gamemode, not cloak
+            votes = {} #key = gamemode, not hostmask
             for gamemode in var.GAMEMODE_VOTES.values():
                 if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
                     votes[gamemode] = votes.get(gamemode, 0) + 1
@@ -6987,11 +7021,11 @@ def start(cli, nick, chan, forced = False, restart = ""):
         var.GAMEPHASE = "day"
         transition_day(cli)
 
-    for cloak in list(var.STASISED.keys()):
-        var.STASISED[cloak] -= 1
-        var.set_stasis(cloak, var.STASISED[cloak])
-        if var.STASISED[cloak] <= 0:
-            del var.STASISED[cloak]
+    for hostmask in list(var.STASISED.keys()):
+        var.STASISED[hostmask] -= 1
+        var.set_stasis(hostmask, var.STASISED[hostmask])
+        if var.STASISED[hostmask] <= 0:
+            del var.STASISED[hostmask]
 
     if not var.DISABLE_ACCOUNTS:
         for acc in list(var.STASISED_ACCS.keys()):
@@ -7027,26 +7061,28 @@ def fstasis(cli, nick, chan, rest):
         user = data[0]
 
         if user.lower() in lusers:
-            cloak = lusers[user.lower()]["cloak"]
+            ident = lusers[user.lower()]["ident"]
+            host = lusers[user.lower()]["host"]
             acc = lusers[user.lower()]["account"]
+            hostmask = ident + "@" + host
         else:
-            cloak = user
+            hostmask = user
             acc = None
         if var.ACCOUNTS_ONLY and acc == "*":
             acc = None
-            cloak = None
+            hostmask = None
             msg = "{0} is not logged in to NickServ.".format(user)
         if not acc and user in var.STASISED_ACCS:
             acc = user
 
         err_msg = "The amount of stasis has to be a non-negative integer."
-        if (not var.ACCOUNTS_ONLY or not acc) and cloak:
+        if (not var.ACCOUNTS_ONLY or not acc) and hostmask:
             if len(data) == 1:
-                if cloak in var.STASISED:
-                    plural = "" if var.STASISED[cloak] == 1 else "s"
-                    msg = "\u0002{0}\u0002 (Host: {1}) is in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, var.STASISED[cloak], plural)
+                if hostmask in var.STASISED:
+                    plural = "" if var.STASISED[hostmask] == 1 else "s"
+                    msg = "\u0002{0}\u0002 (Host: {1}) is in stasis for \u0002{2}\u0002 game{3}.".format(data[0], hostmask, var.STASISED[hostmask], plural)
                 else:
-                    msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], cloak)
+                    msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], hostmask)
             else:
                 try:
                     amt = int(data[1])
@@ -7069,17 +7105,17 @@ def fstasis(cli, nick, chan, rest):
                     amt = 2**31-1
 
                 if amt > 0:
-                    var.STASISED[cloak] = amt
-                    var.set_stasis(cloak, amt)
+                    var.STASISED[hostmask] = amt
+                    var.set_stasis(hostmask, amt)
                     plural = "" if amt == 1 else "s"
-                    msg = "\u0002{0}\u0002 (Host: {1}) is now in stasis for \u0002{2}\u0002 game{3}.".format(data[0], cloak, amt, plural)
+                    msg = "\u0002{0}\u0002 (Host: {1}) is now in stasis for \u0002{2}\u0002 game{3}.".format(data[0], hostmask, amt, plural)
                 elif amt == 0:
-                    if cloak in var.STASISED:
-                        del var.STASISED[cloak]
-                        var.set_stasis(cloak, 0)
-                        msg = "\u0002{0}\u0002 (Host: {1}) is no longer in stasis.".format(data[0], cloak)
+                    if hostmask in var.STASISED:
+                        del var.STASISED[hostmask]
+                        var.set_stasis(hostmask, 0)
+                        msg = "\u0002{0}\u0002 (Host: {1}) is no longer in stasis.".format(data[0], hostmask)
                     else:
-                        msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], cloak)
+                        msg = "\u0002{0}\u0002 (Host: {1}) is not in stasis.".format(data[0], hostmask)
         if not var.DISABLE_ACCOUNTS and acc:
             if len(data) == 1:
                 if acc in var.STASISED_ACCS:
@@ -7120,26 +7156,14 @@ def fstasis(cli, nick, chan, rest):
                         msg = "\u0002{0}\u0002 (Account: {1}) is not in stasis.".format(data[0], acc)
     elif var.STASISED or var.STASISED_ACCS:
         stasised = {}
-        cloakstas = dict(var.STASISED)
-        accstas = dict(var.STASISED_ACCS)
-        for stas in var.USERS:
-            if not var.DISABLE_ACCOUNTS and var.USERS[stas]["account"] in accstas:
-                stasised[var.USERS[stas]["account"]+" (Account)"] = accstas.pop(var.USERS[stas]["account"])
-                #if var.USERS[stas]["cloak"] in cloakstas:
-                #    del cloakstas[var.USERS[stas]["cloak"]]
-            elif var.USERS[stas]["cloak"] in cloakstas:
-                if var.DISABLE_ACCOUNTS:
-                    stasised[var.USERS[stas]["cloak"]] = cloakstas.pop(var.USERS[stas]["cloak"])
-                else:
-                    stasised[var.USERS[stas]["cloak"]+" (Host)"] = cloakstas.pop(var.USERS[stas]["cloak"])
-        for oldcloak in cloakstas:
+        for hostmask in var.STASISED:
             if var.DISABLE_ACCOUNTS:
-                stasised[oldcloak] = cloakstas[oldcloak]
+                stasised[hostmask] = var.STASISED[hostmask]
             else:
-                stasised[oldcloak+" (Host)"] = cloakstas[oldcloak]
+                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
         if not var.DISABLE_ACCOUNTS:
-            for oldacc in accstas:
-                stasised[oldacc+" (Account)"] = accstas[oldacc]
+            for acc in var.STASISED_ACCS:
+                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
         msg = "Currently stasised: {0}".format(", ".join(
             "\u0002{0}\u0002 ({1})".format(usr, number)
             for usr, number in stasised.items()))
@@ -7147,14 +7171,6 @@ def fstasis(cli, nick, chan, rest):
         msg = "Nobody is currently stasised."
 
     if msg:
-        if data:
-            tokens = msg.split()
-
-            if ((data[0] == cloak and tokens[1] == "({0})".format(cloak)) or
-                (data[0] == acc and tokens[1] == "({0})".format(acc))):
-                # Don't show the cloak/account twice.
-                msg = " ".join((tokens[0], " ".join(tokens[2:])))
-
         if chan == nick:
             pm(cli, nick, msg)
         else:
@@ -7164,17 +7180,19 @@ def is_user_stasised(nick):
     """Checks if a user is in stasis. Returns a number of games in stasis."""
 
     if nick in var.USERS:
-        cloak = var.USERS[nick]["cloak"]
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
         return 0
+    amount = 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.STASISED_ACCS:
-            return var.STASISED_ACCS[acc]
-    for clk in var.STASISED:
-        if fnmatch.fnmatch(cloak, clk):
-           return var.STASISED[clk]
-    return 0
+            amount = var.STASISED_ACCS[acc]
+    for hostmask in var.STASISED:
+        if var.match_hostmask(hostmask, nick, ident, host):
+           amount = max(amount, var.STASISED[hostmask])
+    return amount
 
 def allow_deny(cli, nick, chan, rest, mode):
     data = rest.split()
@@ -7199,6 +7217,11 @@ def allow_deny(cli, nick, chan, rest, mode):
 
             opts["cmd"] = data[1]
             data = data[1:]
+        elif data[0] == "-acc":
+            opts["acc"] = True
+            data = data[1:]
+        elif data[0] == "-host":
+            opts["host"] = True
         else:
             if chan == nick:
                 pm(cli, nick, "Invalid option: {0}".format(data[0][1:]))
@@ -7214,22 +7237,42 @@ def allow_deny(cli, nick, chan, rest, mode):
         user = data[0]
 
         if user.lower() in lusers:
-            cloak = lusers[user.lower()]["cloak"]
+            ident = lusers[user.lower()]["ident"]
+            host = lusers[user.lower()]["host"]
             acc = lusers[user.lower()]["account"]
+            hostmask = ident + "@" + host
+        elif opts["acc"]:
+            hostmask = None
+            acc = user
         else:
-            cloak = user
+            hostmask = user
+            m = re.match('(?:(?:(.*?)!)?(.*)@)?(.*)', hostmask)
+            user = m.group(1)
+            ident = m.group(2)
+            host = m.group(3)
             acc = None
 
-        if not acc or acc == "*":
+        if not acc or acc == "*" or opts["host"]:
             acc = None
 
         if not var.DISABLE_ACCOUNTS and acc:
             if mode == "allow":
                 variable = var.ALLOW_ACCOUNTS
+                noaccvar = var.ALLOW
             else:
                 variable = var.DENY_ACCOUNTS
+                noaccvar = var.DENY
             if len(data) == 1:
+                cmds = []
                 if acc in variable:
+                    cmds.extend(variable[acc])
+
+                if hostmask:
+                    for mask in noaccvar:
+                        if var.match_hostmask(mask, user, ident, host):
+                            cmds.extend(noaccvar[mask])
+
+                if cmds:
                     msg = "\u0002{0}\u0002 (Account: {1}) is {2} the following {3}commands: {4}.".format(
                         data[0], acc, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(variable[acc]))
                 else:
@@ -7277,30 +7320,34 @@ def allow_deny(cli, nick, chan, rest, mode):
                     msg = "\u0002{0}\u0002 (Account: {1}) is no longer {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
         elif var.ACCOUNTS_ONLY:
             msg = "Error: \u0002{0}\u0002 is not logged in to NickServ.".format(data[0])
-
         else:
             if mode == "allow":
                 variable = var.ALLOW
             else:
                 variable = var.DENY
             if len(data) == 1: # List commands for a specific hostmask
-                if cloak in variable:
+                cmds = []
+                for mask in variable:
+                    if var.match_hostmask(mask, user, ident, host):
+                        cmds.extend(variable[mask])
+
+                if cmds:
                     msg = "\u0002{0}\u0002 (Host: {1}) is {2} the following {3}commands: {4}.".format(
-                        data[0], cloak, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(variable[cloak]))
+                        data[0], hostmask, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(cmds))
                 else:
-                    msg = "\u0002{0}\u0002 (Host: {1}) is not {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
+                    msg = "\u0002{0}\u0002 (Host: {1}) is not {2} commands.".format(data[0], hostmask, "allowed any special" if mode == "allow" else "denied any")
             else:
-                if cloak not in variable:
-                    variable[cloak] = []
+                if hostmask not in variable:
+                    variable[hostmask] = []
                 commands = data[1:]
                 for command in commands: #add or remove commands one at a time to a specific hostmask
                     if "-*" in commands: # Remove all
-                        for cmd in variable[cloak]:
+                        for cmd in variable[hostmask]:
                             if mode == "allow":
-                                var.remove_allow(cloak, cmd)
+                                var.remove_allow(hostmask, cmd)
                             else:
-                                var.remove_deny(cloak, cmd)
-                        del variable[cloak]
+                                var.remove_deny(hostmask, cmd)
+                        del variable[hostmask]
                         break
                     if command[0] == '-': #starting with - removes
                         rem = True
@@ -7311,26 +7358,26 @@ def allow_deny(cli, nick, chan, rest, mode):
                         command = command[len(botconfig.CMD_CHAR):]
 
                     if not rem:
-                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[cloak]:
-                            variable[cloak].append(command)
+                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[hostmask]:
+                            variable[hostmask].append(command)
                             if mode == "allow":
-                                var.add_allow(cloak, command)
+                                var.add_allow(hostmask, command)
                             else:
-                                var.add_deny(cloak, command)
-                    elif command in variable[cloak]:
-                        variable[cloak].remove(command)
+                                var.add_deny(hostmask, command)
+                    elif command in variable[hostmask]:
+                        variable[hostmask].remove(command)
                         if mode == "allow":
-                            var.remove_allow(cloak, command)
+                            var.remove_allow(hostmask, command)
                         else:
-                            var.remove_deny(cloak, command)
+                            var.remove_deny(hostmask, command)
 
-                if cloak in variable and variable[cloak]:
+                if hostmask in variable and variable[hostmask]:
                     msg = "\u0002{0}\u0002 (Host: {1}) is now {2} the following {3}commands: {4}{5}.".format(
-                        data[0], cloak, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[cloak]))
+                        data[0], hostmask, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[hostmask]))
                 else:
-                    if cloak in variable:
-                        del variable[cloak]
-                    msg = "\u0002{0}\u0002 (Host: {1}) is no longer {2} commands.".format(data[0], cloak, "allowed any special" if mode == "allow" else "denied any")
+                    if hostmask in variable:
+                        del variable[hostmask]
+                    msg = "\u0002{0}\u0002 (Host: {1}) is no longer {2} commands.".format(data[0], hostmask, "allowed any special" if mode == "allow" else "denied any")
 
     else:
         users_to_cmds = {}
@@ -7351,11 +7398,11 @@ def allow_deny(cli, nick, chan, rest, mode):
             else:
                 variable = var.DENY
             if variable:
-                for cloak, varied in variable.items():
+                for hostmask, varied in variable.items():
                     if var.DISABLE_ACCOUNTS:
-                        users_to_cmds[cloak] = sorted(varied, key=str.lower)
+                        users_to_cmds[hostmask] = sorted(varied, key=str.lower)
                     else:
-                        users_to_cmds[cloak+" (Host)"] = sorted(varied, key=str.lower)
+                        users_to_cmds[hostmask+" (Host)"] = sorted(varied, key=str.lower)
 
 
         if not users_to_cmds: # Deny or Allow list is empty
@@ -7394,14 +7441,6 @@ def allow_deny(cli, nick, chan, rest, mode):
                     user, ", ".join(cmds)) for user, cmds in sorted(users_to_cmds.items(), key=lambda t: t[0].lower())))
 
     if msg:
-        if data:
-            tokens = msg.split()
-
-            if ((data[0] == acc and tokens[1] == "({0})".format(acc)) or
-                (data[0] == cloak and tokens[1] == "({0})".format(cloak))):
-                # Don't show the cloak/account twice.
-                msg = " ".join((tokens[0], " ".join(tokens[2:])))
-
         msg = var.break_long_message(msg.split("; "), "; ")
 
         if chan == nick:
@@ -7507,7 +7546,7 @@ def show_rules(cli, nick, chan, rest):
 @cmd("help", raw_nick=True, pm=True)
 def get_help(cli, rnick, chan, rest):
     """Gets help."""
-    nick, mode, user, cloak = parse_nick(rnick)
+    nick, _, ident, host = parse_nick(rnick)
     fns = []
 
     rest = rest.strip().replace(botconfig.CMD_CHAR, "", 1).lower()
@@ -7551,7 +7590,7 @@ def get_help(cli, rnick, chan, rest):
             name not in fn[0].aliases and fn[0].chan):
             fns.append("{0}{1}{0}".format("\u0002", name))
     afns = []
-    if is_admin(nick, cloak):
+    if is_admin(nick, ident, host):
         for name, fn in COMMANDS.items():
             if fn[0].admin_only and name not in fn[0].aliases:
                 afns.append("{0}{1}{0}".format("\u0002", name))
@@ -7609,8 +7648,8 @@ def on_invite(cli, raw_nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
         return # No questions
-    (nick, _, _, cloak) = parse_nick(raw_nick)
-    if is_admin(nick, cloak):
+    (nick, _, ident, host) = parse_nick(raw_nick)
+    if is_admin(nick, ident, host):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
     else:
@@ -7657,7 +7696,7 @@ def show_admins(cli, nick, chan, rest):
     var.ADMIN_PINGING = True
 
     @hook("whoreply", hookid=4)
-    def on_whoreply(cli, server, _, chan, __, cloak, ___, user, status, ____):
+    def on_whoreply(cli, server, _, chan, ident, host, ___, user, status, ____):
         if not var.ADMIN_PINGING:
             return
 
@@ -7971,7 +8010,7 @@ def aftergame(cli, rawnick, chan, rest):
 @cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
 def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
-    nick, _, __, cloak = parse_nick(rawnick)
+    nick, _, ident, host = parse_nick(rawnick)
 
     chan = botconfig.CHANNEL
     if var.PHASE != "join":
@@ -8189,7 +8228,7 @@ def fsend(cli, nick, chan, rest):
     cli.send(rest)
 
 def _say(cli, raw_nick, rest, command, action=False):
-    (nick, _, _, cloak) = parse_nick(raw_nick)
+    (nick, _, ident, host) = parse_nick(raw_nick)
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
@@ -8200,7 +8239,7 @@ def _say(cli, raw_nick, rest, command, action=False):
 
     (target, message) = rest
 
-    if not is_admin(nick, cloak):
+    if not is_admin(nick, ident, host):
         if nick not in var.USERS:
             pm(cli, nick, "You have to be in {0} to use this command.".format(
                 botconfig.CHANNEL))
@@ -8272,7 +8311,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
                 return False
 
-            if nick in var.USERS and var.USERS[nick]["cloak"] in [var.USERS[player]["cloak"] for player in pl if player in var.USERS]:
+            hostmask = var.USERS[nick]["ident"] + "@" + var.USERS[nick]["host"]
+            if nick in var.USERS and hostmask in [var.USERS[player]["ident"] + "@" + var.USERS[player]["host"] for player in pl if player in var.USERS]:
                 return False
 
             return True
