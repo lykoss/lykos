@@ -2310,10 +2310,16 @@ def stop_game(cli, winner = "", abort = False):
             splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
             # TODO: figure out how player stats should work when var.DISABLE_ACCOUNTS is True; likely track by nick
             if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
-                acc = var.DCED_PLAYERS[plr[6:]]["account"]
                 splr = plr[6:]
+                if var.DISABLE_ACCOUNTS:
+                    acc = splr
+                else:
+                    acc = var.DCED_PLAYERS[plr[6:]]["account"]
             elif plr in var.PLAYERS.keys():
-                acc = var.PLAYERS[plr]["account"]
+                if var.DISABLE_ACCOUNTS:
+                    acc = plr
+                else:
+                    acc = var.PLAYERS[plr]["account"]
             else:
                 acc = "*"  #probably fjoin'd fake
 
@@ -8095,7 +8101,7 @@ def player_stats(cli, nick, chan, rest):
     # Find the player's account if possible
     luser = user.lower()
     lusers = {k.lower(): v for k, v in var.USERS.items()}
-    if luser in lusers:
+    if luser in lusers and not var.DISABLE_ACCOUNTS:
         acc = lusers[luser]["account"]
         if acc == "*":
             if luser == nick.lower():
