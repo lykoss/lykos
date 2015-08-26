@@ -8416,7 +8416,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
         if rest:
             gamemode = rest.strip().lower()
-            parts = gamemode.split("=", 2)
+            parts = gamemode.split("=", 1)
             if len(parts) > 1:
                 gamemode, modeargs = parts
             else:
