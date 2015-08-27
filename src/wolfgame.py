@@ -5925,6 +5925,11 @@ def relay(cli, nick, chan, rest):
     if var.PHASE not in ("night", "day"):
         return
 
+    if nick in var.IDLE_WARNED:
+        cli.msg(nick, ("\u0002You have been idling in {0} for a while. Please say something in {0} "
+                       "or you will be declared dead.\u0002").format(botconfig.CHANNEL))
+        var.IDLE_WARNED_PM.add(nick)
+
     badguys = var.list_players(var.WOLFCHAT_ROLES)
     if len(badguys) > 1:
         if nick in badguys:
