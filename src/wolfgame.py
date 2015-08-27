@@ -1952,136 +1952,139 @@ def fday(cli, nick, chan, rest):
 
 # Specify force = "nick" to force nick to be lynched
 def chk_decision(cli, force = ""):
-    chan = botconfig.CHANNEL
-    pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
-    votesneeded = avail // 2 + 1
-    not_lynching = var.NO_LYNCH[:]
-    for p in var.PACIFISTS:
-        if p in pl and p not in var.WOUNDED and p not in var.ASLEEP:
-            not_lynching.append(p)
+    with var.GRAVEYARD_LOCK:
+        if var.PHASE != "day":
+            return
+        chan = botconfig.CHANNEL
+        pl = var.list_players()
+        avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
+        votesneeded = avail // 2 + 1
+        not_lynching = var.NO_LYNCH[:]
+        for p in var.PACIFISTS:
+            if p in pl and p not in var.WOUNDED and p not in var.ASLEEP:
+                not_lynching.append(p)
 
-    # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
-    for p in var.IMPATIENT:
-        if p in not_lynching:
-            not_lynching.remove(p)
+        # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
+        for p in var.IMPATIENT:
+            if p in not_lynching:
+                not_lynching.remove(p)
 
-    # remove duplicates
-    not_lynching = set(not_lynching)
+        # remove duplicates
+        not_lynching = set(not_lynching)
 
-    # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
-    # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
-    if len(not_lynching) >= math.ceil(avail / 2):
-        for p in not_lynching:
-            if p not in var.NO_LYNCH:
-                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes not to lynch anyone today.".format(p))
-        cli.msg(botconfig.CHANNEL, "The villagers have agreed not to lynch anybody today.")
-        var.ABSTAINED = True
-        transition_night(cli)
-        return
-    aftermessage = None
-    votelist = copy.deepcopy(var.VOTES)
-    for votee, voters in votelist.items():
-        impatient_voters = []
-        numvotes = 0
-        random.shuffle(var.IMPATIENT)
-        for v in var.IMPATIENT:
-            if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
-                # don't add them in if they have the same number or more of pacifism totems
-                # this matters for desperation totem on the votee
+        # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
+        # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
+        if len(not_lynching) >= math.ceil(avail / 2):
+            for p in not_lynching:
+                if p not in var.NO_LYNCH:
+                    cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes not to lynch anyone today.".format(p))
+            cli.msg(botconfig.CHANNEL, "The villagers have agreed not to lynch anybody today.")
+            var.ABSTAINED = True
+            transition_night(cli)
+            return
+        aftermessage = None
+        votelist = copy.deepcopy(var.VOTES)
+        for votee, voters in votelist.items():
+            impatient_voters = []
+            numvotes = 0
+            random.shuffle(var.IMPATIENT)
+            for v in var.IMPATIENT:
+                if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
+                    # don't add them in if they have the same number or more of pacifism totems
+                    # this matters for desperation totem on the votee
+                    imp_count = var.IMPATIENT.count(v)
+                    pac_count = var.PACIFISTS.count(v)
+                    if pac_count >= imp_count:
+                        continue
+
+                    # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
+                    # already !vote earlier. sucks to suck. >:)
+                    voters.append(v)
+                    impatient_voters.append(v)
+            for v in voters[:]:
+                weight = 1
                 imp_count = var.IMPATIENT.count(v)
                 pac_count = var.PACIFISTS.count(v)
-                if pac_count >= imp_count:
-                    continue
+                if pac_count > imp_count:
+                    weight = 0 # more pacifists than impatience totems
+                elif imp_count == pac_count and v not in var.VOTES[votee]:
+                    weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
+                if v in var.ROLES["bureaucrat"] or v in var.INFLUENTIAL: # the two do not stack
+                    weight *= 2
+                numvotes += weight
 
-                # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
-                # already !vote earlier. sucks to suck. >:)
-                voters.append(v)
-                impatient_voters.append(v)
-        for v in voters[:]:
-            weight = 1
-            imp_count = var.IMPATIENT.count(v)
-            pac_count = var.PACIFISTS.count(v)
-            if pac_count > imp_count:
-                weight = 0 # more pacifists than impatience totems
-            elif imp_count == pac_count and v not in var.VOTES[votee]:
-                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-            if v in var.ROLES["bureaucrat"] or v in var.INFLUENTIAL: # the two do not stack
-                weight *= 2
-            numvotes += weight
+            if numvotes >= votesneeded or votee == force:
+                for p in impatient_voters:
+                    cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 impatiently votes for \u0002{1}\u0002.".format(p, votee))
 
-        if numvotes >= votesneeded or votee == force:
-            for p in impatient_voters:
-                cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 impatiently votes for \u0002{1}\u0002.".format(p, votee))
+                # roles that prevent any lynch from happening
+                if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
+                    lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
+                            "are the \u0002mayor\u0002. The village agrees to let them live for now.").format(votee)
+                    var.REVEALED_MAYORS.append(votee)
+                    votee = None
+                elif votee in var.REVEALED:
+                    role = var.get_role(votee)
+                    if role == "amnesiac":
+                        var.ROLES["amnesiac"].remove(votee)
+                        role = var.AMNESIAC_ROLES[votee]
+                        var.ROLES[role].append(votee)
+                        var.AMNESIACS.append(votee)
+                        var.FINAL_ROLES[votee] = role
+                        pm(cli, votee, "Your totem clears your amnesia and you now fully remember who you are!")
+                        # If wolfteam, don't bother giving list of wolves since night is about to start anyway
+                        # Existing wolves also know that someone just joined their team because revealing totem says what they are
+                        # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
+                        if role == "turncoat":
+                            var.TURNCOATS[votee] = ("none", -1)
 
-            # roles that prevent any lynch from happening
-            if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
-                lmsg = ("While being dragged to the gallows, \u0002{0}\u0002 reveals that they " +
-                        "are the \u0002mayor\u0002. The village agrees to let them live for now.").format(votee)
-                var.REVEALED_MAYORS.append(votee)
-                votee = None
-            elif votee in var.REVEALED:
-                role = var.get_role(votee)
-                if role == "amnesiac":
-                    var.ROLES["amnesiac"].remove(votee)
-                    role = var.AMNESIAC_ROLES[votee]
-                    var.ROLES[role].append(votee)
-                    var.AMNESIACS.append(votee)
-                    var.FINAL_ROLES[votee] = role
-                    pm(cli, votee, "Your totem clears your amnesia and you now fully remember who you are!")
-                    # If wolfteam, don't bother giving list of wolves since night is about to start anyway
-                    # Existing wolves also know that someone just joined their team because revealing totem says what they are
-                    # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
-                    if role == "turncoat":
-                        var.TURNCOATS[votee] = ("none", -1)
-
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
-                        "When the villagers are able to see again, they discover that {0} has escaped! " +
-                        "The left-behind totem seems to have taken on the shape of a{1} \u0002{2}\u0002.").format(votee, an, role)
-                votee = None
-            else:
-                # roles that end the game upon being lynched
-                if votee in var.ROLES["fool"]:
-                    # ends game immediately, with fool as only winner
-                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
-                    cli.msg(botconfig.CHANNEL, lmsg)
-                    if chk_win(cli, winner="@" + votee):
-                        return
-                # roles that eliminate other players upon being lynched
-                # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
-                if votee in var.DESPERATE:
-                    # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
-                    target = voters[-1]
-                    if target != votee:
-                        if var.ROLE_REVEAL in ("on", "team"):
-                            r1 = var.get_reveal_role(target)
-                            an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                            tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
-                                    "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
-                                    "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
-                        else:
-                            tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
-                                    "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
-                                    "has fallen over dead.").format(votee, target)
-                        cli.msg(botconfig.CHANNEL, tmsg)
-                        del_player(cli, target, True, end_game = False, killer_role = "shaman") # do not end game just yet, we have more killin's to do!
-                # Other
-                if votee in var.ROLES["jester"]:
-                    var.JESTERS.append(votee)
-
-                if var.ROLE_REVEAL in ("on", "team"):
-                    rrole = var.get_reveal_role(votee)
-                    an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                    lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, an, rrole)
+                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                    lmsg = ("Before the rope is pulled, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                            "When the villagers are able to see again, they discover that {0} has escaped! " +
+                            "The left-behind totem seems to have taken on the shape of a{1} \u0002{2}\u0002.").format(votee, an, role)
+                    votee = None
                 else:
-                    lmsg = random.choice(var.LYNCH_MESSAGES_NO_REVEAL).format(votee)
-            cli.msg(botconfig.CHANNEL, lmsg)
-            if aftermessage != None:
-                cli.msg(botconfig.CHANNEL, aftermessage)
-            if del_player(cli, votee, True, killer_role = "villager"):
-                transition_night(cli)
-            break
+                    # roles that end the game upon being lynched
+                    if votee in var.ROLES["fool"]:
+                        # ends game immediately, with fool as only winner
+                        lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
+                        cli.msg(botconfig.CHANNEL, lmsg)
+                        if chk_win(cli, winner="@" + votee):
+                            return
+                    # roles that eliminate other players upon being lynched
+                    # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
+                    if votee in var.DESPERATE:
+                        # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
+                        target = voters[-1]
+                        if target != votee:
+                            if var.ROLE_REVEAL in ("on", "team"):
+                                r1 = var.get_reveal_role(target)
+                                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
+                                tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                        "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
+                                        "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
+                            else:
+                                tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
+                                        "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
+                                        "has fallen over dead.").format(votee, target)
+                            cli.msg(botconfig.CHANNEL, tmsg)
+                            del_player(cli, target, True, end_game = False, killer_role = "shaman") # do not end game just yet, we have more killin's to do!
+                    # Other
+                    if votee in var.ROLES["jester"]:
+                        var.JESTERS.append(votee)
+
+                    if var.ROLE_REVEAL in ("on", "team"):
+                        rrole = var.get_reveal_role(votee)
+                        an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
+                        lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, an, rrole)
+                    else:
+                        lmsg = random.choice(var.LYNCH_MESSAGES_NO_REVEAL).format(votee)
+                cli.msg(botconfig.CHANNEL, lmsg)
+                if aftermessage != None:
+                    cli.msg(botconfig.CHANNEL, aftermessage)
+                if del_player(cli, votee, True, killer_role = "villager"):
+                    transition_night(cli)
+                break
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
 def show_votes(cli, nick, chan, rest):
