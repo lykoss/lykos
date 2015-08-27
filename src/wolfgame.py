@@ -6240,7 +6240,7 @@ def transition_night(cli):
             pm(cli, g_angel, ('You are a \u0002bodyguard\u0002. '+
                               'It is your job to protect the villagers. {0}If you guard '+
                               'a victim, you will sacrifice yourself to save them. ' +
-                              'Selecting yourself will make you not guard for tonight. ' +
+                              'Use "pass" to not guard anyone tonight. ' +
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
             pm(cli, g_angel, "You are a \u0002bodyguard\u0002.")  # !simple
