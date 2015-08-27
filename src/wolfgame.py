@@ -6105,9 +6105,14 @@ def transition_night(cli):
                 pm(cli, wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
             elif role == "traitor":
-                pm(cli, wolf, ('You are a \u0002{0}traitor\u0002. You are exactly like a '+
-                               'villager and not even a seer can see your true identity, '+
-                               'only detectives can.').format(cursed))
+                if cursed:
+                    pm(cli, wolf, ('You are a \u0002cursed traitor\u0002. Normally, you would be '
+                                   'seen as a villager by the seer and oracle, but since you\'re '
+                                   'cursed, you are seen as a wolf.'))
+                else:
+                    pm(cli, wolf, ('You are a \u0002traitor\u0002. You are exactly like a villager '
+                                   'and not even a seer or oracle can see your true identity, '
+                                   'only detectives and augurs can.'))
             elif role == "werecrow":
                 pm(cli, wolf, ('You are a \u0002werecrow\u0002. You are able to fly at night. '+
                                'Use "kill <nick>" to kill a villager. Alternatively, you can '+
