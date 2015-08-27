@@ -120,7 +120,7 @@ class ErrorHandler(io.TextIOWrapper):
         super().__init__(*args, **kwargs)
         self.cli = None
         self.target_logger = None
-        self.data = []
+        self.data = None
 
     def write(self, data):
         assert not (self.cli is None or self.target_logger is None)
@@ -131,15 +131,17 @@ class ErrorHandler(io.TextIOWrapper):
         length = len(data)
         b = data.encode("utf-8", "replace")
         self.buffer.write(b)
-        self.data.append(data)
-        if data and not data.startswith(("Traceback", " ", "Exception in thread")):
-            self.flush()
+        self.data = data
+        self.flush()
         return length
 
     def flush(self):
         self.buffer.flush()
 
-        exc = self.data[-1].partition(":")[0]
+        if self.data is None:
+            return
+
+        exc = self.data.rstrip().splitlines()[-1].partition(":")[0]
 
         import builtins
 
@@ -156,8 +158,8 @@ class ErrorHandler(io.TextIOWrapper):
         elif hasattr(builtins, exc):
             exc = getattr(builtins, exc)
 
-        if not issubclass(exc, Exception):
-            del self.data[:]
+        if not isinstance(exc, type) or not issubclass(exc, Exception):
+            self.data = None
             return # not an actual exception
 
         msg = "An error has occurred and has been logged."
@@ -170,10 +172,10 @@ class ErrorHandler(io.TextIOWrapper):
                     sock.send(b"".join(s.encode("utf-8", "replace") for s in self.data) + b"\n")
                     url = sock.recv(1024).decode("utf-8")
             except socket.error:
-                self.target_logger("".join(self.data), display=False)
+                self.target_logger(self.data, display=False)
             else:
                 self.cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
-        del self.data[:]
+        self.data = None
         if var.PHASE in ("join", "day", "night"):
             from src.decorators import COMMANDS
             for cmd in COMMANDS["fstop"]:

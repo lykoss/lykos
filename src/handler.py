@@ -42,7 +42,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             if botconfig.DEBUG_MODE:
                 raise
             else:
-                traceback.print_exc()
+                sys.stderr.write(traceback.format_exc())
 
 
     for x in decorators.COMMANDS:
@@ -62,7 +62,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                     if botconfig.DEBUG_MODE:
                         raise
                     else:
-                        traceback.print_exc()
+                        sys.stderr.write(traceback.format_exc())
 
 
 def unhandled(cli, prefix, cmd, *args):
@@ -77,7 +77,7 @@ def unhandled(cli, prefix, cmd, *args):
                 if botconfig.DEBUG_MODE:
                     raise
                 else:
-                    traceback.print_exc()
+                    sys.stderr.write(traceback.format_exc())
 
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
