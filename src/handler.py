@@ -39,10 +39,9 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         try:
             fn.caller(cli, rawnick, chan, msg)
         except Exception:
+            sys.stderr.write(traceback.format_exc())
             if botconfig.DEBUG_MODE:
                 raise
-            else:
-                sys.stderr.write(traceback.format_exc())
 
 
     for x in decorators.COMMANDS:
@@ -59,10 +58,9 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                 try:
                     fn.caller(cli, rawnick, chan, h.lstrip())
                 except Exception:
+                    sys.stderr.write(traceback.format_exc())
                     if botconfig.DEBUG_MODE:
                         raise
-                    else:
-                        sys.stderr.write(traceback.format_exc())
 
 
 def unhandled(cli, prefix, cmd, *args):
@@ -74,10 +72,9 @@ def unhandled(cli, prefix, cmd, *args):
             try:
                 fn.func(cli, prefix, *largs)
             except Exception:
+                sys.stderr.write(traceback.format_exc())
                 if botconfig.DEBUG_MODE:
                     raise
-                else:
-                    sys.stderr.write(traceback.format_exc())
 
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
