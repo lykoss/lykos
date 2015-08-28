@@ -8596,6 +8596,12 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                         var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                     else:
                         var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+                if who not in pl:
+                    var.ROLES[var.DEFAULT_ROLE].append(who)
+                    if not is_fake_nick(who):
+                        cli.mode(chan, "+v", who)
+                    cli.msg(chan, "Added default role ({0}) because only a template was specified for a new player.".format(var.DEFAULT_ROLE))
+
                 var.ROLES[rol].append(who)
             elif addrem == "-" and who in var.ROLES[rol]:
                 var.ROLES[rol].remove(who)
@@ -8631,6 +8637,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                                 var.TOTEMS[shaman] = t
                                 break
             var.ROLES[rol].append(who)
+            if not is_fake_nick(who):
+                cli.mode(chan, "+v", who)
         else:
             cli.msg(chan, "Not a valid role.")
             return
