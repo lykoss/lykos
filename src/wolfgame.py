@@ -3745,13 +3745,18 @@ def transition_day(cli, gameid=0):
             if len(tobecharmedlist) == 1:
                 message = "\u0002{0}\u0002 is now charmed!".format(tobecharmedlist[0])
             elif len(tobecharmedlist) == 2:
-                message = "\u0002{0}\u0002 and \u0002{1}\u0002 are now charmed".format(tobecharmedlist[0], tobecharmedlist[1])
+                message = "\u0002{0}\u0002 and \u0002{1}\u0002 are now charmed!".format(tobecharmedlist[0], tobecharmedlist[1])
             else:
                 message = "\u0002{0}\u0002, and \u0002{1}\u0002 are also charmed!".format(
                           "\u0002, \u0002".join(tobecharmedlist[:-1]), tobecharmedlist[-1])
 
-            pm(cli, victim, message + (" now charmed! Previously charmed players: "
-                                       "{0}").format("\u0002, \u0002".join(var.CHARMED - {victim})))
+            previouscharmed = var.CHARMED - {victim}
+            if len(previouscharmed):
+                pm(cli, victim, message + (" Previously charmed players: "
+                                           "{0}").format("\u0002, \u0002".join(previouscharmed)))
+            else:
+                pm(cli, victim, message)
+
     var.CHARMED.update(var.TOBECHARMED)
     var.TOBECHARMED.clear()
     
