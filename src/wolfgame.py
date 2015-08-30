@@ -3903,7 +3903,7 @@ def transition_day(cli, gameid=0):
                 # story-wise it gets demolished at night by the FA
                 while p in havetotem:
                     havetotem.remove(p)
-                brokentotem.add(p)
+                    brokentotem.add(p)
             if p in protected:
                 del protected[p]
             if p in var.ACTIVE_PROTECTIONS:
