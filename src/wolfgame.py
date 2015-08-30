@@ -3359,8 +3359,8 @@ def rename_player(cli, prefix, nick):
                     cli.msg(chan, "\u0002{0}\u0002 has returned to the village.".format(nick))
                     for r,rset in var.ORIGINAL_ROLES.items():
                         if "(dced)"+nick in rset:
-                            rlist.remove("(dced)"+nick)
-                            rlist.add(nick)
+                            rset.remove("(dced)"+nick)
+                            rset.add(nick)
                     if nick in var.DCED_PLAYERS.keys():
                         var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
@@ -7233,7 +7233,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
                     if not rem:
                         if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[acc]:
-                            variable[acc].add(command)
+                            variable[acc].append(command)
                             if mode == "allow":
                                 var.add_allow_acc(acc, command)
                             else:
@@ -7288,7 +7288,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
                     if not rem:
                         if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[cloak]:
-                            variable[cloak].add(command)
+                            variable[cloak].append(command)
                             if mode == "allow":
                                 var.add_allow(cloak, command)
                             else:
