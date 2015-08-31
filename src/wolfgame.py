@@ -3143,10 +3143,7 @@ def fgoat(cli, nick, chan, rest):
 def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
-    if prefix == var.ADMIN_TO_PING:
-        var.ADMIN_TO_PING = nick
-
-    if prefix in var.list_players() and prefix not in var.DISCONNECTED.keys():
+    if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
         r.add(nick)
         r.remove(prefix)
@@ -3161,6 +3158,9 @@ def rename_player(cli, prefix, nick):
             for k,v in var.ORIGINAL_ROLES.items():
                 if prefix in v:
                     var.ORIGINAL_ROLES[k].remove(prefix)
+                    var.ORIGINAL_ROLES[k].add(nick)
+                if "(dced)"+prefix in v:
+                    var.ORIGINAL_ROLES[k].remove("(dced)"+prefix)
                     var.ORIGINAL_ROLES[k].add(nick)
             for k,v in list(var.PLAYERS.items()):
                 if prefix == k:
@@ -3388,7 +3388,11 @@ def on_nick(cli, oldnick, nick):
         if not var.USERS[nick]["inchan"]:
             return
 
-    rename_player(cli, prefix, nick)
+    if prefix == var.ADMIN_TO_PING:
+        var.ADMIN_TO_PING = nick
+
+    if prefix not in var.DISCONNECTED.keys():
+        rename_player(cli, prefix, nick)
 
 def leave(cli, what, nick, why=""):
     nick, _, _, cloak = parse_nick(nick)
