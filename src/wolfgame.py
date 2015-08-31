@@ -3152,9 +3152,11 @@ def rename_player(cli, prefix, nick):
             var.ROLES[t].add(nick)
             var.ROLES[t].remove(prefix)
 
-        if var.PHASE in ("night", "day"):
+        if prefix in var.ALL_PLAYERS:
             # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
             var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
+
+        if var.PHASE in ("night", "day"):
             for k,v in var.ORIGINAL_ROLES.items():
                 if prefix in v:
                     var.ORIGINAL_ROLES[k].remove(prefix)
