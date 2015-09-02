@@ -6709,7 +6709,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     addroles = {}
 
     event = Event("role_attribution", {"addroles": addroles})
-    if event.dispatch(cli, var, villagers):
+    if event.dispatch(cli, chk_win_conditions, var, villagers):
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
                 for role, num in var.ROLE_GUIDE.items(): # allow event to override some roles

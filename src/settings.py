@@ -877,7 +877,7 @@ class RandomMode(GameMode):
     def teardown(self):
         events.remove_listener("role_attribution", self.role_attribution, 1)
 
-    def role_attribution(self, evt, cli, var, villagers):
+    def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
         for role in var.ROLE_GUIDE:
@@ -893,8 +893,16 @@ class RandomMode(GameMode):
         addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(int(len(villagers) ** 1.2 / 8))
 
-        if sum(addroles[r] for r in var.WOLFCHAT_ROLES) > len(villagers) // 2:
-            return self.role_attribution(evt, cli, var, villagers)
+        lpl = len(villagers)
+        lwolves = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
+        lcubs = addroles["wolf cub"]
+        lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
+        lmonsters = addroles["monster"]
+        ltraitors = addroles["traitor"]
+        lpipers = addroles["piper"]
+
+        if chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game=False):
+            return self.role_attribution(evt, cli, chk_win_conditions, var, villagers)
 
         evt.prevent_default = True
 
