@@ -2449,7 +2449,7 @@ def stop_game(cli, winner = "", abort = False):
 
     return True
 
-def chk_win(cli, end_game = True, winner = None):
+def chk_win(cli, end_game=True, winner=None):
     """ Returns True if someone won """
     chan = botconfig.CHANNEL
     lpl = len(var.list_players())
@@ -2479,8 +2479,8 @@ def chk_win(cli, end_game = True, winner = None):
         lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
         lcubs = len(var.ROLES.get("wolf cub", ()))
         lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
-        monsters = len(var.ROLES.get("monster", ()))
-        traitors = len(var.ROLES.get("traitor", ()))
+        lmonsters = len(var.ROLES.get("monster", ()))
+        ltraitors = len(var.ROLES.get("traitor", ()))
         lpipers = len(var.ROLES.get("piper", ()))
         if var.PHASE == "day":
             for p in var.WOUNDED | var.ASLEEP:
@@ -2493,6 +2493,11 @@ def chk_win(cli, end_game = True, winner = None):
                 except KeyError:
                     pass
 
+        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game, winner)
+
+def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game=True, winner=None):
+    """Internal handler for the chk_win function."""
+    with var.GRAVEYARD_LOCK:
         message = ""
         # fool won, chk_win was called from !lynch
         if winner and winner.startswith("@"):
@@ -2505,9 +2510,9 @@ def chk_win(cli, end_game = True, winner = None):
             message = ("Game over! Everyone has fallen victim to the charms of the " +
                        "piper{0}. The piper{0} lead{1} the villagers away from the village, " +
                        "never to return...").format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
-        elif lrealwolves == 0 and traitors == 0 and lcubs == 0:
-            if monsters > 0:
-                plural = "s" if monsters > 1 else ""
+        elif lrealwolves == 0 and ltraitors == 0 and lcubs == 0:
+            if lmonsters > 0:
+                plural = "s" if lmonsters > 1 else ""
                 message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
                            "the monster{0} quickly kill{1} the remaining villagers, " +
                            "causing the monster{0} to win.").format(plural, "" if plural else "s")
@@ -2517,8 +2522,8 @@ def chk_win(cli, end_game = True, winner = None):
                           "chop them up, BBQ them, and have a hearty meal.")
                 winner = "villagers"
         elif lwolves == lpl / 2:
-            if monsters > 0:
-                plural = "s" if monsters > 1 else ""
+            if lmonsters > 0:
+                plural = "s" if lmonsters > 1 else ""
                 message = ("Game over! There are the same number of wolves as uninjured villagers. " +
                            "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
                            "causing the monster{0} to win.").format(plural)
@@ -2528,8 +2533,8 @@ def chk_win(cli, end_game = True, winner = None):
                           "uninjured villagers. The wolves overpower the villagers and win.")
                 winner = "wolves"
         elif lwolves > lpl / 2:
-            if monsters > 0:
-                plural = "s" if monsters > 1 else ""
+            if lmonsters > 0:
+                plural = "s" if lmonsters > 1 else ""
                 message = ("Game over! There are more wolves than uninjured villagers. " +
                            "The wolves overpower the villagers but then get destroyed by the monster{0}, " +
                            "causing the monster{0} to win.").format(plural)
@@ -2540,7 +2545,7 @@ def chk_win(cli, end_game = True, winner = None):
                 winner = "wolves"
         elif lrealwolves == 0:
             chk_traitor(cli)
-            return chk_win(cli, end_game)
+            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game)
 
         event = Event("chk_win", {"winner": winner, "message": message})
         event.dispatch(var, lpl, lwolves, lrealwolves)
