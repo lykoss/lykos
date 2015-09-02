@@ -2884,7 +2884,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL FAIL")
 
-            if devoice:
+            if devoice and not var.DEVOICE_DURING_NIGHT:
                 cmode.append(("-v", nick))
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
@@ -3578,6 +3578,12 @@ def begin_day(cli):
         var.TIMERS["day"] = (t2, var.DAY_ID, l)
         t2.daemon = True
         t2.start()
+
+    if var.DEVOICE_DURING_NIGHT:
+        modes = []
+        for player in var.list_players():
+            modes.append(("+v", player))
+        mass_mode(cli, modes, [])
 
 def night_warn(cli, gameid):
     if gameid != var.NIGHT_ID:
@@ -5902,6 +5908,12 @@ def transition_night(cli):
         return
     var.PHASE = "night"
     var.GAMEPHASE = "night"
+
+    if var.DEVOICE_DURING_NIGHT:
+        modes = []
+        for player in var.list_players():
+            modes.append(("-v", player))
+        mass_mode(cli, modes, [])
 
     for x, tmr in var.TIMERS.items():  # cancel daytime timer
         tmr[0].cancel()

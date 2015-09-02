@@ -58,6 +58,7 @@ IDLE_STASIS_PENALTY = 1
 PART_STASIS_PENALTY = 1
 ACC_STASIS_PENALTY = 1
 QUIET_DEAD_PLAYERS = False
+DEVOICE_DURING_NIGHT = False
 QUIET_MODE = "q" # "q" or "b"
 QUIET_PREFIX = "" # "" or "~q:"
 # The bot will automatically toggle those modes of people joining
