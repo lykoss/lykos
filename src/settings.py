@@ -473,9 +473,12 @@ class GameMode:
         if not arg:
             return
 
-        pairs = arg.split(",")
-        for pair in pairs:
-            change = pair.lower().split(":")
+        arg = arg.replace("=", ":").replace(";", ",")
+
+        pairs = [arg]
+        while pairs:
+            pair, *pairs = pairs[0].split(",", 1)
+            change = pair.lower().replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
                 raise InvalidModeException("Invalid syntax for mode arguments. arg={0}".format(arg))
 
@@ -521,14 +524,15 @@ class ChangedRolesMode(GameMode):
         self.MAX_PLAYERS = 35
         self.ROLE_GUIDE = ROLE_GUIDE.copy()
         self.ROLE_INDEX = (MIN_PLAYERS,)
-        pairs = arg.split(",")
-        if not pairs:
-            raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
+        arg = arg.replace("=", ":").replace(";", ",")
 
         for role in self.ROLE_GUIDE.keys():
             self.ROLE_GUIDE[role] = (0,)
-        for pair in pairs:
-            change = pair.split(":")
+
+        pairs = [arg]
+        while pairs:
+            pair, *pairs = pairs[0].split(",", 1)
+            change = pair.replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
                 raise InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
             role, num = change
