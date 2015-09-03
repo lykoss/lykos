@@ -2885,7 +2885,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL FAIL")
 
-            if devoice and not var.DEVOICE_DURING_NIGHT:
+            if var.PHASE != "night" or devoice and not var.DEVOICE_DURING_NIGHT:
                 cmode.append(("-v", nick))
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
