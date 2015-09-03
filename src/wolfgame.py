@@ -8122,6 +8122,17 @@ def game(cli, nick, chan, rest):
     else:
         cli.notice(nick, "You can't vote for that game mode.")
 
+@cmd("games", "modes", pm=True)
+def show_modes(cli, nick, chan, rest):
+    """Show the available game modes."""
+    msg = "Available game modes: \u0002"
+    modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles"}))
+
+    if chan == nick:
+        pm(cli, nick, msg + modes + "\u0002")
+    else:
+        cli.notice(nick, msg + modes + "\u0002")
+
 def game_help(args=""):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
         ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
