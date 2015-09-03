@@ -2497,6 +2497,7 @@ def chk_win(cli, end_game=True, winner=None):
 
 def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
+    chan = botconfig.CHANNEL
     with var.GRAVEYARD_LOCK:
         message = ""
         # fool won, chk_win was called from !lynch
