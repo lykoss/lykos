@@ -6978,6 +6978,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if restart:
         var.PHASE = None # allow transition_* to run properly if game was restarted on first night
+
+    var.UMODE_G = set()
+
+    @hook("716", hookid=716) # oyoyo doesn't know 716 / targumodeg
+    def umode_g(cli, prefix, me, target, *rest):
+        var.UMODE_G.add(target)
+
     var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
         var.GAMEPHASE = "night"
@@ -6986,6 +6993,15 @@ def start(cli, nick, chan, forced = False, restart = ""):
         var.FIRST_DAY = True
         var.GAMEPHASE = "day"
         transition_day(cli)
+
+    cli.send("PING umodeg-cookie") # will be processed after all PMs so by the time we get the pong we've seen all 716's
+
+    @hook("pong", hookid=716)
+    def umode_g_pong(cli, prefix, server, cookie):
+        if cookie == "umodeg-cookie":
+            decorators.unhook(HOOKS, 716)
+            if var.UMODE_G:
+                cli.msg(chan, "{0}: \u0002You have user mode +g (server-side ignore) set. Please unset it and ask me \"myrole\" in PM.".format(", ".join(sorted(var.UMODE_G))))
 
     for cloak in list(var.STASISED.keys()):
         var.STASISED[cloak] -= 1
