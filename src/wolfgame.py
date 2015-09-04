@@ -2546,6 +2546,11 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
                 winner = "wolves"
         elif lrealwolves == 0:
             chk_traitor(cli)
+            # update variables for recursive call (this shouldn't happen when checking 'random' role attribution, where it would probably fail)
+            lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+            lcubs = len(var.ROLES.get("wolf cub", ()))
+            lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
+            ltraitors = len(var.ROLES.get("traitor", ()))
             return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game)
 
         event = Event("chk_win", {"winner": winner, "message": message})
