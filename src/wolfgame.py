@@ -6053,8 +6053,6 @@ def transition_night(cli):
                             pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
                 elif amnrole == "turncoat":
                     var.TURNCOATS[amn] = ("none", -1)
-                if amnrole == "fallen angel":
-                    var.ROLES["assassin"].add(amn)
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
@@ -6958,7 +6956,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
         amnroles.discard(nope)
     for amnesiac in var.ROLES["amnesiac"]:
         var.AMNESIAC_ROLES[amnesiac] = random.choice(list(amnroles))
-    var.ROLES["assassin"].update(var.ROLES["fallen angel"])
 
     # Handle doctor
     for doctor in var.ROLES["doctor"]:
