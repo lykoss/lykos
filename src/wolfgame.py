@@ -2355,6 +2355,8 @@ def stop_game(cli, winner = "", abort = False):
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
+            elif rol == "fool" and "@" + splr == winner:
+                iwon = True
             elif splr in var.LOVERS and splr in survived and len([x for x in var.LOVERS[splr] if x in survived]) > 0:
                 for lvr in var.LOVERS[splr]:
                     if lvr not in survived:
@@ -2377,8 +2379,6 @@ def stop_game(cli, winner = "", abort = False):
                     elif winner == "pipers" and lvrrol == "piper":
                         iwon = True
                         break
-            elif rol == "fool" and "@" + splr == winner:
-                iwon = True
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
             elif rol == "piper" and splr in survived and winner == "pipers":
