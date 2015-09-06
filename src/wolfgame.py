@@ -7305,7 +7305,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
                     if not rem:
                         if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[acc]:
-                            variable[acc].append(command)
+                            variable[acc].add(command)
                             if mode == "allow":
                                 var.add_allow_acc(acc, command)
                             else:
@@ -7364,7 +7364,7 @@ def allow_deny(cli, nick, chan, rest, mode):
 
                     if not rem:
                         if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[hostmask]:
-                            variable[hostmask].append(command)
+                            variable[hostmask].add(command)
                             if mode == "allow":
                                 var.add_allow(hostmask, command)
                             else:
