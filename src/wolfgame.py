@@ -1095,7 +1095,7 @@ def join_player(cli, player, chan, who = None, forced = False):
     if stasis:
         if forced and stasis == 1:
             for hostmask in list(var.STASISED.keys()):
-                if var.match_hostmask(hostmask, nick, ident, host):
+                if var.match_hostmask(hostmask, player, ident, host):
                     var.set_stasis(hostmask, 0)
                     del var.STASISED[hostmask]
             if not var.DISABLE_ACCOUNTS and acc in var.STASISED_ACCS:
