@@ -2,6 +2,7 @@ import fnmatch
 import math
 import random
 import sqlite3
+import re
 from collections import defaultdict, OrderedDict
 
 import botconfig
@@ -328,6 +329,18 @@ PING_IF_NUMS_ACCS = {}
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
+def match_hostmask(hostmask, nick, ident, host):
+    # support n!u@h, u@h, or just h by itself
+    matches = re.match('(?:(?:(.*?)!)?(.*?)@)?(.*)', hostmask.lower())
+
+    if ((not matches.group(1) or fnmatch.fnmatch(nick.lower(), matches.group(1))) and
+            (not matches.group(2) or fnmatch.fnmatch(ident.lower(), matches.group(2))) and
+            fnmatch.fnmatch(host.lower(), matches.group(3))):
+        return True
+
+    return False
+
+
 def check_priv(priv):
     assert priv in ("owner", "admin")
 
@@ -339,10 +352,12 @@ def check_priv(priv):
         hosts.update(botconfig.ADMINS)
         accounts.update(botconfig.ADMINS_ACCOUNTS)
 
-    def do_check(nick, cloak=None, acc=None):
+    def do_check(nick, ident=None, host=None, acc=None):
         if nick in USERS.keys():
-            if not cloak:
-                cloak = USERS[nick]["cloak"]
+            if not ident:
+                ident = USERS[nick]["ident"]
+            if not host:
+                host = USERS[nick]["host"]
             if not acc:
                 acc = USERS[nick]["account"]
 
@@ -351,9 +366,9 @@ def check_priv(priv):
                 if fnmatch.fnmatch(acc.lower(), pattern.lower()):
                     return True
 
-        if cloak:
-            for pattern in hosts:
-                if fnmatch.fnmatch(cloak.lower(), pattern.lower()):
+        if host:
+            for hostmask in hosts:
+                if match_hostmask(hostmask, nick, ident, host):
                     return True
 
         return False
