@@ -5877,6 +5877,13 @@ def getfeatures(cli, nick, *rest):
                 pass
         if r.startswith("STATUSMSG="):
             var.STATUSMSG_PREFIXES = list(r.split("=")[1])
+        if r.startswith("CASEMAPPING="):
+            var.CASEMAPPING = r.split("=")[1]
+
+            if var.CASEMAPPING not in ("rfc1459", "strict-rfc1459", "ascii"):
+                # This is very unlikely to happen, but just in case.
+                errlog("Unsupported case mapping: {0!r}; falling back to rfc1459.".format(var.CASEMAPPING))
+                var.CASEMAPPING = "rfc1459"
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if not notice and not privmsg:

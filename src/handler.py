@@ -1,9 +1,9 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
-import traceback
 import base64
 import socket
 import sys
+import traceback
 
 from oyoyo.parse import parse_nick
 
@@ -19,7 +19,6 @@ sys.stderr.target_logger = log
 hook = decorators.hook
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
-
     try:
         prefixes = getattr(var, "STATUSMSG_PREFIXES")
     except AttributeError:
@@ -28,11 +27,20 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes:
             return
 
-    if (notice and ((chan != botconfig.NICK and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (chan == botconfig.NICK and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    try:
+        getattr(var, "CASEMAPPING")
+    except AttributeError:
+        var.CASEMAPPING = "rfc1459"
+
+        if not (notice and "!" not in rawnick and chan in ("*", "AUTH")):
+            # Not an on-connect message before RPL_ISUPPORT.
+            log("Server did not send a case mapping; falling back to rfc1459.")
+
+    if (notice and ((not var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
 
-    if chan == botconfig.NICK:
+    if var.irc_equals(chan, botconfig.NICK):
         chan = parse_nick(rawnick)[0]
 
     for fn in decorators.COMMANDS[""]:

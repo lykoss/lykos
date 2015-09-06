@@ -378,6 +378,24 @@ def check_priv(priv):
 is_admin = check_priv("admin")
 is_owner = check_priv("owner")
 
+def irc_lower(nick):
+    mapping = {
+        "[": "{",
+        "]": "}",
+        "\\": "|",
+        "^": "~",
+    }
+
+    if CASEMAPPING == "strict-rfc1459":
+        mapping.pop("^")
+    elif CASEMAPPING == "ascii":
+        mapping = {}
+
+    return nick.lower().translate(str.maketrans(mapping))
+
+def irc_equals(nick1, nick2):
+    return irc_lower(nick1) == irc_lower(nick2)
+
 def plural(role):
     bits = role.split()
     bits[-1] = {"person": "people", "wolf": "wolves"}.get(bits[-1], bits[-1] + "s")
