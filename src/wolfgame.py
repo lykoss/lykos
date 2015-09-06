@@ -7284,7 +7284,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                     msg = "\u0002{0}\u0002 (Account: {1}) is not {2} commands.".format(data[0], acc, "allowed any special" if mode == "allow" else "denied any")
             else:
                 if acc not in variable:
-                    variable[acc] = []
+                    variable[acc] = set()
                 commands = data[1:]
                 for command in commands: # Add or remove commands one at a time to a specific account
                     if "-*" in commands: # Remove all
@@ -7343,7 +7343,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                     msg = "\u0002{0}\u0002 (Host: {1}) is not {2} commands.".format(data[0], hostmask, "allowed any special" if mode == "allow" else "denied any")
             else:
                 if hostmask not in variable:
-                    variable[hostmask] = []
+                    variable[hostmask] = set()
                 commands = data[1:]
                 for command in commands: #add or remove commands one at a time to a specific hostmask
                     if "-*" in commands: # Remove all
