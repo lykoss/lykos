@@ -1171,23 +1171,24 @@ def join_player(cli, player, chan, who = None, forced = False):
                 var.USERS[player]["modes"] = set()
             mass_mode(cli, cmodes, [])
             cli.msg(chan, "\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.".format(player, len(pl) + 1))
-        hostmask = ident + "@" + host
-        if not is_fake_nick(player) and not hostmask in var.JOINED_THIS_GAME and (not acc or not acc in var.JOINED_THIS_GAME_ACCS):
-            # make sure this only happens once
-            var.JOINED_THIS_GAME.add(hostmask)
-            if acc:
-                var.JOINED_THIS_GAME_ACCS.add(acc)
-            now = datetime.now()
+        if not is_fake_nick(player):
+            hostmask = ident + "@" + host
+            if hostmask not in var.JOINED_THIS_GAME and (not acc or acc not in var.JOINED_THIS_GAME_ACCS):
+                # make sure this only happens once
+                var.JOINED_THIS_GAME.add(hostmask)
+                if acc:
+                    var.JOINED_THIS_GAME_ACCS.add(acc)
+                now = datetime.now()
 
-            # add var.EXTRA_WAIT_JOIN to wait time
-            if now > var.CAN_START_TIME:
-                var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
-            else:
-                var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
+                # add var.EXTRA_WAIT_JOIN to wait time
+                if now > var.CAN_START_TIME:
+                    var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
+                else:
+                    var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
 
-            # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
-            if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
-                var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
+                # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
+                if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
+                    var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
 
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None
