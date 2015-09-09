@@ -7879,8 +7879,11 @@ def listroles(cli, nick, chan, rest):
     roleguide = [(role, roleguide[role]) for role in var.role_order()]
     for i, num in enumerate(roleindex):
         #getting the roles at a specific player count
-        if index and num > index:
-            break
+        if index:
+            if num < index:
+                continue
+            if num > index:
+                break
         msg.append("{0}[{1}]{0}".format("\u0002" if num <= lpl else "", str(num)))
         roles = []
         for role, amount in roleguide:
