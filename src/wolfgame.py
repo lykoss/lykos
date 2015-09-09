@@ -5486,6 +5486,9 @@ def pass_cmd(cli, nick, chan, rest):
         if nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
             var.HUNTERS.remove(nick)
+        if nick in var.HUNTERS:
+            pm(cli, nick, "You have already killed someone this game.")
+            return
 
         pm(cli, nick, "You have decided not to kill anyone tonight.")
         var.PASSED.add(nick)
