@@ -3832,9 +3832,13 @@ def transition_day(cli, gameid=0):
     maxc = 0
     victims = []
     bitten = []
-    killers = defaultdict(list) # dict of victim: list of killers (for retribution totem)
-    bywolves = set() # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
-    onlybywolves = set() # wolves and nobody else targeted (needed for lycan)
+    # dict of victim: list of killers (for retribution totem)
+    killers = defaultdict(list)
+    # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
+    bywolves = set()
+    # wolves and nobody else targeted (needed for lycan)
+    onlybywolves = set()
+
     dups = []
     for v, c in found.items():
         if c > maxc:
@@ -3848,7 +3852,8 @@ def transition_day(cli, gameid=0):
         victims.append(victim)
         bywolves.add(victim)
         onlybywolves.add(victim)
-        killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
+        # special key to let us know to randomly select a wolf
+        killers[victim].append("@wolves")
 
 
     if victims and var.ANGRY_WOLVES:
@@ -3867,7 +3872,8 @@ def transition_day(cli, gameid=0):
             victims.append(victim)
             bywolves.add(victim)
             onlybywolves.add(victim)
-            killers[victim].append("@wolves") # special key to let us know to randomly select a wolf
+            # special key to let us know to randomly select a wolf
+            killers[victim].append("@wolves")
 
     if len(var.ROLES["fallen angel"]) == 0:
         for monster in var.ROLES["monster"]:
@@ -3883,18 +3889,21 @@ def transition_day(cli, gameid=0):
         killers[d].append(k)
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
-    var.OTHER_KILLS = {} # clear list so that it doesn't pm hunter / ghost about being able to kill again
+    # clear list so that it doesn't pm hunter / ghost about being able to kill again
+    var.OTHER_KILLS = {}
 
     for k, d in var.DEATH_TOTEM:
         victims.append(d)
         onlybywolves.discard(d)
         killers[d].append(k)
 
-    victims_set = set(victims) # remove duplicates
-    victims_set.discard(None) # in the event that ever happens
-    vappend = []
+    # remove duplicates
+    victims_set = set(victims)
+    # in the event that ever happens
+    victims_set.discard(None)
     # this keeps track of the protections active on each nick, stored in var since del_player needs to access it for sake of assassin
     protected = {}
+    vappend = []
     var.ACTIVE_PROTECTIONS = defaultdict(list)
 
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
