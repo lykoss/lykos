@@ -30,11 +30,12 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     try:
         getattr(var, "CASEMAPPING")
     except AttributeError:
-        var.CASEMAPPING = "rfc1459"
+        if notice and "!" not in rawnick and chan in ("*", "AUTH"):
+            # On-connect message before RPL_ISUPPORT is sent.
+            return
 
-        if not (notice and "!" not in rawnick and chan in ("*", "AUTH")):
-            # Not an on-connect message before RPL_ISUPPORT.
-            log("Server did not send a case mapping; falling back to rfc1459.")
+        log("Server did not send a case mapping; falling back to rfc1459.")
+        var.CASEMAPPING = "rfc1459"
 
     if (notice and ((not var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
                     (var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
