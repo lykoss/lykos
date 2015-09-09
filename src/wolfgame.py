@@ -7849,8 +7849,9 @@ def listroles(cli, nick, chan, rest):
     rest = re.split(" +", rest.strip(), 1)
 
     #message if this game mode has been disabled
-    if (not rest[0] or rest[0].isdigit()) and var.GAME_MODES[var.CURRENT_GAMEMODE.name][4]:
-        msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name))
+    if (not rest[0] or rest[0].isdigit()) and not hasattr(var.CURRENT_GAMEMODE, "ROLE_GUIDE"):
+        msg.append("{0}: There {1} \u0002{2}\u0002 playing. {3}roles is disabled for the {4} game mode.".format(nick,
+                   "is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name))
         rest = []
         roleindex = {}
     #prepend player count if called without any arguments
@@ -7865,7 +7866,7 @@ def listroles(cli, nick, chan, rest):
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
             gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
-        if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and not var.GAME_MODES[gamemode][4]:
+        if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
             mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
@@ -7875,7 +7876,7 @@ def listroles(cli, nick, chan, rest):
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
             rest.pop(0)
         else:
-            if gamemode in var.GAME_MODES and var.GAME_MODES[gamemode][4]:
+            if gamemode in var.GAME_MODES and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
                 msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
             else:
                 msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))

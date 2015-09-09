@@ -7,10 +7,10 @@ import src.settings as var
 
 from src import events
 
-def game_mode(name, minp, maxp, likelihood = 0, conceal_roles = False):
+def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
         c.name = name
-        var.GAME_MODES[name] = (c, minp, maxp, likelihood, conceal_roles)
+        var.GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
 
@@ -104,9 +104,11 @@ class ChangedRolesMode(GameMode):
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(GameMode):
     """Default game mode."""
-    def __init__(self, arg=""):
+    def __init__(self, arg="", role_index=var.ROLE_INDEX, role_guide=var.ROLE_GUIDE.copy()):
         # No extra settings, just an explicit way to revert to default settings
         super().__init__(arg)
+        self.ROLE_INDEX = role_index
+        self.ROLE_GUIDE = role_guide
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):
@@ -396,7 +398,7 @@ class MatchmakerMode(GameMode):
             "mad scientist" : [i >= 18 for i in self.ROLE_INDEX],
             })
 
-@game_mode("random", minp = 8, maxp = 24, likelihood = 0, conceal_roles = True)
+@game_mode("random", minp = 8, maxp = 24, likelihood = 0)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self, arg=""):
