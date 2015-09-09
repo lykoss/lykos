@@ -4332,7 +4332,7 @@ def transition_day(cli, gameid=0):
     for player, tlist in itertools.groupby(havetotem):
         ntotems = len(list(tlist))
         message.append("\u0002{0}\u0002 seem{1} to be in possession of {2} mysterious totem{3}...".format(
-            player, "ed" if player in dead else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
+            player, "ed" if player not in var.list_players() else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
 
     for brokentotem in brokentotem:
         message.append("Broken totem pieces were found next to \u0002{0}\u0002's body...".format(brokentotem))
