@@ -9,7 +9,15 @@ import io
 import botconfig
 import src.settings as var
 
-# Todo: Allow game modes to be set via config
+# Import the user-defined game modes
+# These are not required, so failing to import it doesn't matter
+# The file then imports our game modes
+# Fall back to importing our game modes if theirs fail
+
+try:
+    import gamemodes
+except ImportError:
+    import src.gamemodes
 
 # Handle launch parameters
 
