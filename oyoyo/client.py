@@ -57,7 +57,8 @@ class TokenBucket(object):
         self.timestamp = now
         return self._tokens
 
-
+    def __repr__(self):
+        return "{self.__class__.__name__}(capacity={self.capacity}, fill rate={self.fill_rate}, tokens={self.tokens})".format(self=self)
 
 def add_commands(d):
     def dec(cls):
