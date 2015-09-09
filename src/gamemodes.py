@@ -207,37 +207,38 @@ class EvilVillageMode(GameMode):
         lcultists = len(var.list_players(["cultist"]))
         evt.stop_processing = True
 
-        try:
-            if lrealwolves == 0 and lsafes == 0:
-                evt.data["winner"] = "none"
-                evt.data["message"] = ("Game over! All the villagers are dead, but the cult needed to sacrifice " +
-                                     "the wolves to accomplish that. The cult disperses shortly thereafter, " +
-                                     "and nobody wins.")
-            elif lrealwolves == 0:
-                evt.data["winner"] = "villagers"
-                evt.data["message"] = ("Game over! All the wolves are dead! The villagers " +
-                                       "round up the remaining cultists, hang them, and live " +
-                                       "happily ever after.")
-            elif lsafes == 0:
-                evt.data["winner"] = "wolves"
-                evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
-                                       "with their wolf buddies and start plotting to take over the " +
-                                       "next village.")
-            elif lcultists == 0:
-                evt.data["winner"] = "villagers"
-                evt.data["message"] = ("Game over! All the cultists are dead! The now-exposed wolves " +
-                                       "are captured and killed by the remaining villagers. A BBQ party " +
-                                       "commences shortly thereafter.")
-            elif lsafes >= lpl / 2:
-                evt.data["winner"] = "villagers"
-                evt.data["message"] = ("Game over! There are {0} villagers {1} cultists. They " +
-                                       "manage to regain control of the village and dispose of the remaining " +
-                                       "cultists.").format("more" if lsafes > lpl / 2 else "the same number of",
-                                                           "than" if lsafes > lpl / 2 else "as")
-            elif evt.data["winner"][0] != "@":
+        if lrealwolves == 0 and lsafes == 0:
+            evt.data["winner"] = "none"
+            evt.data["message"] = ("Game over! All the villagers are dead, but the cult needed to sacrifice " +
+                                 "the wolves to accomplish that. The cult disperses shortly thereafter, " +
+                                 "and nobody wins.")
+        elif lrealwolves == 0:
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = ("Game over! All the wolves are dead! The villagers " +
+                                   "round up the remaining cultists, hang them, and live " +
+                                   "happily ever after.")
+        elif lsafes == 0:
+            evt.data["winner"] = "wolves"
+            evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
+                                   "with their wolf buddies and start plotting to take over the " +
+                                   "next village.")
+        elif lcultists == 0:
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = ("Game over! All the cultists are dead! The now-exposed wolves " +
+                                   "are captured and killed by the remaining villagers. A BBQ party " +
+                                   "commences shortly thereafter.")
+        elif lsafes >= lpl / 2:
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = ("Game over! There are {0} villagers {1} cultists. They " +
+                                   "manage to regain control of the village and dispose of the remaining " +
+                                   "cultists.").format("more" if lsafes > lpl / 2 else "the same number of",
+                                                       "than" if lsafes > lpl / 2 else "as")
+        else:
+            try:
+                if evt.data["winner"][0] != "@":
+                    evt.data["winner"] = None
+            except TypeError:
                 evt.data["winner"] = None
-        except TypeError: # means that evt.data["winner"] isn't a string or something else subscriptable
-            evt.data["winner"] = None
 
 
 @game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
