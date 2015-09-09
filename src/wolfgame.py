@@ -2947,10 +2947,17 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.KILLS[a].remove(nick)
                     if a == nick or len(var.KILLS[a]) == 0:
                         del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.OTHER_KILLS, var.SHAMANS):
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.SHAMANS):
                     for k in list(x):
                         if nick in (k, x[k]):
                             del x[k]
+                for k in list(var.OTHER_KILLS):
+                    if var.OTHER_KILLS[k] == nick:
+                        var.HUNTERS.discard(k)
+                        pm(cli, k, "Your target has died, so you may now pick a new one.")
+                        del var.OTHER_KILLS[k]
+                    elif nick == k:
+                        del var.OTHER_KILLS[k]
                 if nick in var.DISCONNECTED:
                     del var.DISCONNECTED[nick]
             if var.PHASE == "night":
@@ -3876,6 +3883,7 @@ def transition_day(cli, gameid=0):
         killers[d].append(k)
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
+    var.OTHER_KILLS = {} # clear list so that it doesn't pm hunter / ghost about being able to kill again
 
     for k, d in var.DEATH_TOTEM:
         victims.append(d)
@@ -4393,9 +4401,7 @@ def chk_nightdone(cli):
         elif tu[1] < var.NIGHT_COUNT - 1:
             nightroles.append(tc)
 
-    playercount = len(nightroles) + var.ACTED_EXTRA
-
-    if var.PHASE == "night" and actedcount >= playercount:
+    if var.PHASE == "night" and actedcount >= len(nightroles):
         # check for assassins that have not yet targeted
         # must be handled separately because assassin only acts on nights when their target is dead
         # and silenced assassin shouldn't add to actedcount
@@ -4589,7 +4595,7 @@ def check_exchange(cli, actor, nick):
                 del var.KILLS[actor]
         elif actor_role == "hunter":
             if actor in var.OTHER_KILLS:
-                var.ACTED_EXTRA += 1
+                del var.OTHER_KILLS[actor]
             var.HUNTERS.discard(actor)
         elif actor_role in ("bodyguard", "guardian angel"):
             if actor in var.GUARDED:
@@ -4653,7 +4659,7 @@ def check_exchange(cli, actor, nick):
                 del var.KILLS[nick]
         elif nick_role == "hunter":
             if nick in var.OTHER_KILLS:
-                var.ACTED_EXTRA += 1
+                del var.OTHER_KILLS[nick]
             var.HUNTERS.discard(nick)
         elif nick_role in ("bodyguard", "guardian angel"):
             if nick in var.GUARDED:
@@ -5972,7 +5978,6 @@ def transition_night(cli):
 
     # Reset nighttime variables
     var.KILLS = {}
-    var.OTHER_KILLS = {}
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of seers that have had visions
@@ -6001,7 +6006,6 @@ def transition_night(cli):
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
     var.TOTEMS = {}
-    var.ACTED_EXTRA = 0
 
     daydur_msg = ""
 
@@ -6857,7 +6861,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SHAMANS = {}
     var.HEXED = set()
     var.OTHER_KILLS = {}
-    var.ACTED_EXTRA = 0
     var.ABSTAINED = False
     var.DOCTORS = {}
     var.IMMUNIZED = set()
