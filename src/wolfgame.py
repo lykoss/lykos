@@ -3244,9 +3244,9 @@ def rename_player(cli, prefix, nick):
                     if c == prefix:
                         c = nick
                     kvp.append((a,(b,c)))
-                    dictvar.update(kvp)
-                    if prefix in dictvar.keys():
-                        del dictvar[prefix]
+                dictvar.update(kvp)
+                if prefix in dictvar.keys():
+                    del dictvar[prefix]
             for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
