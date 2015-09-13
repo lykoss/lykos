@@ -45,8 +45,7 @@ USE_UTC = True  # If True, logs will use the UTC time, else local time.
 TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
 
 
-# This doesn't need to be changed unless you're running the bot on a network with a non-standard
-# services setup.
+# The defaults used by the bot should work on freenode and other networks using Atheme.
 #
 # An example configuration for Undernet is provided below; if you're running the bot on Undernet,
 # you can simply uncomment the following lines. For other networks, you can set the appropriate
