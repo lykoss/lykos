@@ -2947,9 +2947,13 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             var.KILLS[a].remove(nick)
                     if a == nick or len(var.KILLS[a]) == 0:
                         del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.SHAMANS):
+                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
                     for k in list(x):
                         if nick in (k, x[k]):
+                            del x[k]
+                for x in (var.SHAMANS,):
+                    for k in list(x):
+                        if nick in (k, x[k][0]):
                             del x[k]
                 for k in list(var.OTHER_KILLS):
                     if var.OTHER_KILLS[k] == nick:
@@ -3219,7 +3223,7 @@ def rename_player(cli, prefix, nick):
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED,
                             var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED,
-                            var.BITE_PREFERENCES, var.SHAMANS):
+                            var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -3230,6 +3234,19 @@ def rename_player(cli, prefix, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
+            for dictvar in (var.SHAMANS,):
+                kvp = []
+                for a,(b,c) in dictvar.items():
+                    if a == prefix:
+                        a = nick
+                    if b == prefix:
+                        b = nick
+                    if c == prefix:
+                        c = nick
+                    kvp.append((a,(b,c)))
+                    dictvar.update(kvp)
+                    if prefix in dictvar.keys():
+                        del dictvar[prefix]
             for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
@@ -3725,11 +3742,25 @@ def transition_day(cli, gameid=0):
     var.NO_LYNCH = set()
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
+    var.DEATH_TOTEM = []
+    var.PROTECTED = []
+    var.REVEALED = set()
+    var.ASLEEP = set()
+    var.TOBESILENCED = set()
+    var.DESPERATE = set()
+    var.IMPATIENT = []
+    var.PACIFISTS = []
+    var.INFLUENTIAL = set()
+    var.EXCHANGED = set()
+    var.TOBELYCANTHROPES = set()
+    var.TOBELUCKY = set()
+    var.TOBEDISEASED = set()
+    var.RETRIBUTION = set()
+    var.MISDIRECTION = set()
 
     # Give out totems here
-    for shaman, target in var.SHAMANS.items():
+    for shaman, (victim, target) in var.SHAMANS.items():
         totemname = var.TOTEMS[shaman]
-        victim = choose_target(shaman, target)
         if totemname == "death": # this totem stacks
             var.DEATH_TOTEM.append((shaman, victim))
         elif totemname == "protection": # this totem stacks
@@ -5348,14 +5379,16 @@ def totem(cli, nick, chan, rest, prefix="You"):
         pm(cli, nick, "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.".format(victim))
         return
 
+    original_victim = victim
+    victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        return
     totem = ""
     role = var.get_role(nick)
     if role != "crazed shaman":
         totem = " of " + var.TOTEMS[nick]
-    if check_exchange(cli, nick, victim):
-        return
-    pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, totem, victim))
-    var.SHAMANS[nick] = victim
+    pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, totem, original_victim))
+    var.SHAMANS[nick] = (victim, original_victim)
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, totem))
     chk_nightdone(cli)
 
@@ -8369,7 +8402,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                         special_case.append("targeting {0}".format(var.TARGETED[nickname]))
                     elif role in var.TOTEM_ORDER and nickname in var.TOTEMS:
                         if nickname in var.SHAMANS:
-                            special_case.append("giving {0} totem to {1}".format(var.TOTEMS[nickname], var.SHAMANS[nickname]))
+                            special_case.append("giving {0} totem to {1}".format(var.TOTEMS[nickname], var.SHAMANS[nickname][0]))
                         elif var.PHASE == "night":
                             special_case.append("has {0} totem".format(var.TOTEMS[nickname]))
                         elif nickname in var.LASTGIVEN:
