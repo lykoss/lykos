@@ -131,7 +131,6 @@ class ErrorHandler(io.TextIOWrapper):
         self.data = None
 
     def write(self, data):
-        assert not (self.cli is None or self.target_logger is None)
         if self.closed:
             raise ValueError("write to closed file")
         if not isinstance(data, str):
@@ -144,6 +143,11 @@ class ErrorHandler(io.TextIOWrapper):
         return length
 
     def flush(self):
+        # Probably a syntax error on startup, so these aren't defined yet
+        # If we do nothing, the error magically is printed to the console
+        if self.cli is None or self.target_logger is None:
+            return
+
         self.buffer.flush()
 
         if self.data is None:
