@@ -3937,6 +3937,46 @@ def transition_day(cli, gameid=0):
     vappend = []
     var.ACTIVE_PROTECTIONS = defaultdict(list)
 
+    if var.ALPHA_ENABLED: # check for bites
+        for (alpha, target) in var.BITE_PREFERENCES.items():
+            # bite is now separate but some people may try to double up still, if bitten person is
+            # also being killed by wolves, make the kill not apply
+            # note that we cannot bite visiting harlots unless they are visiting a wolf,
+            # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
+            hvisit = var.HVISITED.get(target)
+            if (target in onlybywolves
+                    and (target not in var.ROLES["harlot"] or not hvisit or var.get_role(hvisit) not in var.WOLFCHAT_ROLES
+                        or (hvisit in bywolves and hvisit not in protected))
+                    and target not in var.ROLES["lycan"]
+                    and target not in var.LYCANTHROPES
+                    and target not in var.IMMUNIZED):
+                victims.remove(target)
+                bywolves.remove(target)
+                onlybywolves.remove(target)
+                killers[target].remove("@wolves")
+                if target not in victims:
+                    victims_set.discard(target)
+
+            if target in victims_set:
+                # bite was unsuccessful
+                var.ALPHA_WOLVES.remove(alpha)
+            elif target in var.IMMUNIZED:
+                # target immunized, kill them instead and refund the bite
+                var.ALPHA_WOLVES.remove(alpha)
+                if target not in victims:
+                    onlybywolves.add(target)
+                victims.append(target)
+                victims_set.add(target)
+                bywolves.add(target)
+            else:
+                var.BITTEN[target] = var.ALPHA_WOLF_NIGHTS
+                bitten.append(target)
+
+            if alpha in var.ALPHA_WOLVES:
+                pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
+            else:
+                pm(cli, alpha, "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!".format(target))
+
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
     # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard)
@@ -4014,38 +4054,6 @@ def transition_day(cli, gameid=0):
                 del protected[p]
             if p in var.ACTIVE_PROTECTIONS:
                 del var.ACTIVE_PROTECTIONS[p]
-
-    if var.ALPHA_ENABLED: # check for bites
-        for (alpha, target) in var.BITE_PREFERENCES.items():
-            # bite is now separate but some people may try to double up still, if bitten person is
-            # also being killed by wolves, make the kill not apply
-            # note that we cannot bite visiting harlots unless they are visiting a wolf,
-            # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
-            hvisit = var.HVISITED.get(target)
-            if (target in onlybywolves
-                    and (target not in var.ROLES["harlot"] or not hvisit or var.get_role(hvisit) not in var.WOLFCHAT_ROLES
-                        or (hvisit in bywolves and hvisit not in protected))
-                    and target not in var.ROLES["lycan"]
-                    and target not in var.LYCANTHROPES
-                    and target not in var.IMMUNIZED):
-                victims.remove(target)
-                bywolves.remove(target)
-                onlybywolves.remove(target)
-                killers[target].remove("@wolves")
-                if target not in victims:
-                    victims_set.discard(target)
-
-            if target in victims_set:
-                # bite was unsuccessful
-                var.ALPHA_WOLVES.remove(alpha)
-            else:
-                var.BITTEN[target] = var.ALPHA_WOLF_NIGHTS
-                bitten.append(target)
-
-            if alpha in var.ALPHA_WOLVES:
-                pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
-            else:
-                pm(cli, alpha, "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!".format(target))
 
     var.BITE_PREFERENCES = {}
     victims = []
@@ -5516,6 +5524,7 @@ def bite_cmd(cli, nick, chan, rest):
             pm(cli, wolf, "\u0002{0}\u0002 has chosen to bite \u0002{1}\u0002.".format(nick, victim))
 
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), actual, var.get_role(actual)))
+    chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat","warlock","piper"))
 def pass_cmd(cli, nick, chan, rest):
