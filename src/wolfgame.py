@@ -1322,7 +1322,6 @@ def on_account(cli, rnick, acc):
     hostmask = ident + "@" + host
     chan = botconfig.CHANNEL
     if acc == "*" and var.ACCOUNTS_ONLY and nick in var.list_players():
-        cli.mode(chan, "-v", nick)
         leave(cli, "account", nick)
         cli.notice(nick, "Please reidentify to the account \u0002{0}\u0002".format(var.USERS[nick]["account"]))
     if nick in var.USERS.keys():
