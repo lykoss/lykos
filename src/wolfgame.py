@@ -8681,6 +8681,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                         var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
                 if who not in pl:
                     var.ROLES[var.DEFAULT_ROLE].add(who)
+                    var.ALL_PLAYERS.append(who)
                     if not is_fake_nick(who):
                         cli.mode(chan, "+v", who)
                     cli.msg(chan, "Added default role ({0}) because only a template was specified for a new player.".format(var.DEFAULT_ROLE))
@@ -8700,6 +8701,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if who in pl:
                 oldrole = var.get_role(who)
                 var.ROLES[oldrole].remove(who)
+            else:
+                var.ALL_PLAYERS.append(who)
             if rol in var.TOTEM_ORDER:
                 if len(rolargs) == 2:
                     var.TOTEMS[who] = rolargs[1]
