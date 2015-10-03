@@ -1228,7 +1228,7 @@ def fjoin(cli, nick, chan, rest):
     noticed = False
     fake = False
     if not var.OPPED:
-        cli.notice(who, "Sorry, I'm not opped in {0}.".format(chan))
+        cli.notice(nick, "Sorry, I'm not opped in {0}.".format(chan))
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
     if not rest.strip():
