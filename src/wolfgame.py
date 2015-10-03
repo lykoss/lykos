@@ -1227,6 +1227,10 @@ def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
     noticed = False
     fake = False
+    if not var.OPPED:
+        cli.notice(who, "Sorry, I'm not opped in {0}.".format(chan))
+        cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+        return
     if not rest.strip():
         join_player(cli, nick, chan, forced=True)
 
