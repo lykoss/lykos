@@ -3251,7 +3251,8 @@ def rename_player(cli, prefix, nick):
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
-            for dictvar in (var.KILLS, var.LOVERS, var.ORIGINAL_LOVERS):
+            # Looks like {'jacob2': ['5'], '7': ['3']}
+            for dictvar in (var.KILLS,):
                 kvp = []
                 for a,b in dictvar.items():
                     nl = []
@@ -3259,6 +3260,21 @@ def rename_player(cli, prefix, nick):
                         if n == prefix:
                             n = nick
                         nl.append(n)
+                    if a == prefix:
+                        a = nick
+                    kvp.append((a,nl))
+                dictvar.update(kvp)
+                if prefix in dictvar.keys():
+                    del dictvar[prefix]
+            # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
+            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS):
+                kvp = []
+                for a,b in dictvar.items():
+                    nl = set()
+                    for n in b:
+                        if n == prefix:
+                            n = nick
+                        nl.add(n)
                     if a == prefix:
                         a = nick
                     kvp.append((a,nl))
