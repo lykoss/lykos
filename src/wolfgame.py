@@ -2926,6 +2926,10 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
+            # devoice all players that died as a result, if we are in the original del_player
+            if ismain:
+                mass_mode(cli, cmode, [])
+                del cmode[:]
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
                     del var.GAMEMODE_VOTES[nick]
@@ -2989,10 +2993,6 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
-
-        if ismain:
-            mass_mode(cli, cmode, [])
-            del cmode[:]  # clear list
 
         return ret
 
