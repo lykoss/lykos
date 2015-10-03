@@ -1327,7 +1327,11 @@ def on_account(cli, rnick, acc):
     chan = botconfig.CHANNEL
     if acc == "*" and var.ACCOUNTS_ONLY and nick in var.list_players():
         leave(cli, "account", nick)
-        cli.notice(nick, "Please reidentify to the account \u0002{0}\u0002".format(var.USERS[nick]["account"]))
+        if var.PHASE not in "join":
+            cli.mode(chan, "-v", nick)
+            cli.notice(nick, "Please reidentify to the account \u0002{0}\u0002".format(var.USERS[nick]["account"]))
+        else:
+            cli.notice(nick, "Please do not change accounts midgame")
     if nick in var.USERS.keys():
         var.USERS[nick]["ident"] = ident
         var.USERS[nick]["host"] = host
