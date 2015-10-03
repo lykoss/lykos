@@ -3770,7 +3770,6 @@ def transition_day(cli, gameid=0):
     var.PROTECTED = []
     var.REVEALED = set()
     var.ASLEEP = set()
-    var.TOBESILENCED = set()
     var.DESPERATE = set()
     var.IMPATIENT = []
     var.PACIFISTS = []
