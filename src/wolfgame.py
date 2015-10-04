@@ -2626,6 +2626,9 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
     arg: forced_death = True when lynched or when the seer/wolf both don't act
     """
 
+    def refresh_pl(old_pl):
+        return [p for p in var.list_players() if p in old_pl]
+
     t = time.time()  #  time
 
     var.LAST_STATS = None # reset
@@ -2727,7 +2730,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                         cli.msg(botconfig.CHANNEL, message)
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(other, var.get_role(other), nick, nickrole))
                         del_player(cli, other, True, end_game = False, killer_role = killer_role, deadlist = deadlist, original = original, ismain = False)
-                        pl.remove(other)
+                        pl = refresh_pl(pl)
                 if "assassin" in nicktpls:
                     if nick in var.TARGETED:
                         target = var.TARGETED[nick]
@@ -2764,7 +2767,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                 cli.msg(botconfig.CHANNEL, message)
                                 debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, nickrole, target, var.get_role(target)))
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
-                                pl.remove(target)
+                                pl = refresh_pl(pl)
 
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -2888,8 +2891,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             deadlist2.append(target1)
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original, ismain = False)
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original, ismain = False)
-                            pl.remove(target1)
-                            pl.remove(target2)
+                            pl = refresh_pl(pl)
                         else:
                             if var.ROLE_REVEAL in ("on", "team"):
                                 r1 = var.get_reveal_role(target1)
@@ -2904,7 +2906,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, var.get_role(target1)))
                             del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
-                            pl.remove(target1)
+                            pl = refresh_pl(pl)
                     else:
                         if target2 in pl:
                             if var.ROLE_REVEAL in ("on", "team"):
@@ -2920,7 +2922,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, var.get_role(target2)))
                             del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
-                            pl.remove(target2)
+                            pl = refresh_pl(pl)
                         else:
                             tmsg = ("\u0002{0}\u0002 throws " +
                                     "a potent chemical concoction into the crowd. Thankfully, " +
