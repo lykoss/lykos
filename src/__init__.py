@@ -188,10 +188,6 @@ class ErrorHandler(io.TextIOWrapper):
             else:
                 self.cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
         self.data = None
-        if var.PHASE in ("join", "day", "night"):
-            from src.decorators import COMMANDS
-            for cmd in COMMANDS["fstop"]:
-                cmd.func(self.cli, "<stderr>", "", "")
 
 sys.stderr = ErrorHandler(buffer=buffer, encoding=sys.stderr.encoding,
              errors=sys.stderr.errors, line_buffering=sys.stderr.line_buffering)
