@@ -30,6 +30,9 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     try:
         getattr(var, "CASEMAPPING")
     except AttributeError:
+        # some kind of hack for strange networks which don't put server name in some of the NOTICEs on startup
+        if not rawnick:
+            return
         if notice and "!" not in rawnick and chan in ("*", "AUTH"):
             # On-connect message before RPL_ISUPPORT is sent.
             return
