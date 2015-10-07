@@ -755,7 +755,7 @@ def is_user_notice(nick):
 @cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
 def replace(cli, nick, chan, rest):
     """Swap out a player logged in to your account."""
-    if nick not in var.USERS:
+    if nick not in var.USERS or not var.USERS[nick]["inchan"]:
         pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
         return
 
@@ -821,6 +821,9 @@ def replace(cli, nick, chan, rest):
 
     if var.USERS[target]["account"] == account and nick != target:
         rename_player(cli, target, nick)
+        # Make sure to remove player from var.DISCONNECTED if they were in there
+        if var.PHASE in ("day", "night"):
+            return_to_village(target, False)
 
         mass_mode(cli, [("-v", target), ("+v", nick)], [])
 
@@ -3204,6 +3207,33 @@ def fgoat(cli, nick, chan, rest):
 
     cli.msg(chan, "\u0002{0}\u0002's goat walks by and {1} \u0002{2}\u0002.".format(nick, goatact, togoat))
 
+def return_to_village(nick, show_message):
+    with var.GRAVEYARD_LOCK:
+        if nick in var.DISCONNECTED.keys():
+            hm = var.DISCONNECTED[nick][1]
+            act = var.DISCONNECTED[nick][0]
+            if nick in var.USERS:
+                ident = var.USERS[nick]["ident"]
+                host = var.USERS[nick]["host"]
+                acc = var.USERS[nick]["account"]
+            else:
+                acc = None
+            if not acc or acc == "*":
+                acc = None
+            hostmask = ident + "@" + host
+            if (acc and acc == act) or (hostmask == hm and not var.ACCOUNTS_ONLY):
+                del var.DISCONNECTED[nick]
+                var.LAST_SAID_TIME[nick] = datetime.now()
+                for r,rset in var.ORIGINAL_ROLES.items():
+                    if "(dced)"+nick in rset:
+                        rset.remove("(dced)"+nick)
+                        rset.add(nick)
+                if nick in var.DCED_PLAYERS.keys():
+                    var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
+                if show_message:
+                    cli.mode(chan, "+v", nick, nick+"!*@*")
+                    cli.msg(chan, "\u0002{0}\u0002 has returned to the village.".format(nick))
+
 def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
@@ -3434,32 +3464,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.GAMEMODE_VOTES:
                 var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES.pop(prefix)
 
-    # Check if he was DC'ed
+    # Check if player was disconnected
     if var.PHASE in ("night", "day"):
-        with var.GRAVEYARD_LOCK:
-            if nick in var.DISCONNECTED.keys():
-                hm = var.DISCONNECTED[nick][1]
-                act = var.DISCONNECTED[nick][0]
-                if nick in var.USERS:
-                    ident = var.USERS[nick]["ident"]
-                    host = var.USERS[nick]["host"]
-                    acc = var.USERS[nick]["account"]
-                else:
-                    acc = None
-                if not acc or acc == "*":
-                    acc = None
-                hostmask = ident + "@" + host
-                if (acc and acc == act) or (hostmask == hm and not var.ACCOUNTS_ONLY):
-                    cli.mode(chan, "+v", nick, nick+"!*@*")
-                    del var.DISCONNECTED[nick]
-                    var.LAST_SAID_TIME[nick] = datetime.now()
-                    cli.msg(chan, "\u0002{0}\u0002 has returned to the village.".format(nick))
-                    for r,rset in var.ORIGINAL_ROLES.items():
-                        if "(dced)"+nick in rset:
-                            rset.remove("(dced)"+nick)
-                            rset.add(nick)
-                    if nick in var.DCED_PLAYERS.keys():
-                        var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
+        return_to_village(nick, True)
 
     if prefix in var.NO_LYNCH:
         var.NO_LYNCH.remove(prefix)
