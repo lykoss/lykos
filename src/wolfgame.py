@@ -531,6 +531,8 @@ def forced_exit(cli, nick, chan, rest):
     except Exception:
         traceback.print_exc()
         sys.exit()
+    finally:
+        cli.socket.close() # in case it didn't close, force it to
 
 
 def _restart_program(cli, mode=None):
@@ -616,8 +618,11 @@ def restart_program(cli, nick, chan, rest):
         nick, _, __, host = parse_nick(raw_nick)
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         # if the bot is using a nick that isn't botconfig.NICK, then stop breaking things and fdie
-        if nick == botconfig.NICK:
-            _restart_program(cli, mode)
+        try:
+            if nick == botconfig.NICK:
+                _restart_program(cli, mode)
+        finally:
+            cli.socket.close()
 
     # This is checked in the on_error handler. Some IRCds, such as InspIRCd, don't send the bot
     # its own QUIT message, so we need to use ERROR. Ideally, we shouldn't even need the above
