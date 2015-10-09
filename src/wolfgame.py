@@ -2990,7 +2990,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
                 # if these aren't cleared properly night may end prematurely
-                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED):
+                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED, var.MATCHMAKERS, var.CURSED, var.CHARMERS):
                     x.discard(nick)
             if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
                 var.VOTES.pop(nick, None)  #  Delete other people's votes on the player
