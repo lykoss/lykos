@@ -302,7 +302,8 @@ PING_MESSAGES = ("Pong!", "Ping!", "Sure thing.", "No.", "!gniP", "!gnoP", "Segm
                  "{0}.exe has stopped working. Windows is checking for a solution to the problem...".format(botconfig.NICK), "HTTP Error 418: I'm a teapot",
                  "An error has pinged and has been ponged.", "I'm here!", "I refuse!", "What?", "Don't you mean \u0002{0}ping\u0002?".format(botconfig.CMD_CHAR),
                  "skynet.exe has stopped working. Windows is checking for a solution to the problem...", "No ping received for 1337 seconds.",
-                 "Congratulations! You're the 1337th person to use {0}ping. You win a goat!".format(botconfig.CMD_CHAR), "PING! {nick}", "I'm sorry I can't do that \u0002")
+                 "Congratulations! You're the 1337th person to use {0}ping. You win a goat!".format(botconfig.CMD_CHAR), "PING! {nick}",
+                 "I'm sorry Dave, I'm afraid I can't do that")
 
 
 GIF_CHANCE = 1/50
