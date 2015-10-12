@@ -828,7 +828,7 @@ def replace(cli, nick, chan, rest):
         rename_player(cli, target, nick)
         # Make sure to remove player from var.DISCONNECTED if they were in there
         if var.PHASE in ("day", "night"):
-            return_to_village(target, False)
+            return_to_village(cli, chan, target, False)
 
         mass_mode(cli, [("-v", target), ("+v", nick)], [])
 
@@ -3212,7 +3212,7 @@ def fgoat(cli, nick, chan, rest):
 
     cli.msg(chan, "\u0002{0}\u0002's goat walks by and {1} \u0002{2}\u0002.".format(nick, goatact, togoat))
 
-def return_to_village(nick, show_message):
+def return_to_village(cli, chan, nick, show_message):
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
             hm = var.DISCONNECTED[nick][1]
@@ -3471,7 +3471,7 @@ def rename_player(cli, prefix, nick):
 
     # Check if player was disconnected
     if var.PHASE in ("night", "day"):
-        return_to_village(nick, True)
+        return_to_village(cli, chan, nick, True)
 
     if prefix in var.NO_LYNCH:
         var.NO_LYNCH.remove(prefix)
