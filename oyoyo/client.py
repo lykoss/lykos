@@ -200,7 +200,7 @@ class IRCClient(object):
                 try:
                     self.connect_cb(self)
                 except Exception as e:
-                    traceback.print_exc()
+                    sys.stderr.write(traceback.format_exc())
                     raise e
 
             buffer = bytes()
@@ -211,6 +211,7 @@ class IRCClient(object):
                     if False and not self.blocking and e.errno == 11:
                         pass
                     else:
+                        sys.stderr.write(traceback.format_exc())
                         raise e
                 else:
                     data = buffer.split(bytes("\n", "utf_8"))
@@ -238,7 +239,7 @@ class IRCClient(object):
                             elif "" in self.command_handler:
                                 self.command_handler[""](self, prefix, command, *fargs)
                         except Exception as e:
-                            traceback.print_exc()
+                            sys.stderr.write(traceback.format_exc())
                             raise e  # ?
                 yield True
         finally:
