@@ -4581,17 +4581,20 @@ def lynch(cli, nick, chan, rest):
 
     lcandidates = list(var.VOTES.keys())
     for voters in lcandidates:  # remove previous vote
+        if voters == voted and nick in var.VOTES[voters]:
+            break
         if nick in var.VOTES[voters]:
             var.VOTES[voters].remove(nick)
             if not var.VOTES.get(voters) and voters != voted:
                 del var.VOTES[voters]
             break
+
     if voted not in var.VOTES.keys():
-        var.VOTES[voted] = [nick]
-    else:
+        var.VOTES[voted] = []
+    if nick not in var.VOTES[voted]:
         var.VOTES[voted].append(nick)
-    cli.msg(chan, ("\u0002{0}\u0002 votes for "+
-                   "\u0002{1}\u0002.").format(nick, voted))
+        cli.msg(chan, ("\u0002{0}\u0002 votes for "+
+                       "\u0002{1}\u0002.").format(nick, voted))
 
     var.LAST_VOTES = None # reset
 
@@ -8267,8 +8270,9 @@ def game(cli, nick, chan, rest):
         gamemode = match
 
     if gamemode != "roles":
-        var.GAMEMODE_VOTES[nick] = gamemode
-        cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
+        if var.GAMEMODE_VOTES.get(nick) != gamemode:
+            var.GAMEMODE_VOTES[nick] = gamemode
+            cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
     else:
         cli.notice(nick, "You can't vote for that game mode.")
 
