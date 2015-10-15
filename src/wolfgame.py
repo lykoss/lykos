@@ -661,6 +661,10 @@ def mark_simple_notify(cli, nick, chan, rest):
             if host in var.SIMPLE_NOTIFY:
                 var.SIMPLE_NOTIFY.remove(host)
                 var.remove_simple_rolemsg(host)
+            fullmask = ident + "@" + host
+            if fullmask in var.SIMPLE_NOTIFY:
+                var.SIMPLE_NOTIFY.remove(fullmask)
+                var.remove_simple_rolemsg(fullmask)
 
             cli.notice(nick, "You now no longer receive simple role instructions.")
             return
@@ -671,16 +675,24 @@ def mark_simple_notify(cli, nick, chan, rest):
         cli.notice(nick, "You are not logged in to NickServ.")
         return
 
-    else: # Not logged in, fall back to hostmask
+    else: # Not logged in, fall back to ident@hostmask
         if host in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(host)
             var.remove_simple_rolemsg(host)
+        
+            cli.notice(nick, "You now no longer receive simple role instructions.")
+            return
+      
+        fullmask = ident + "@" + host
+        if fullmask in var.SIMPLE_NOTIFY:
+            var.SIMPLE_NOTIFY.remove(fullmask)
+            var.remove_simple_rolemsg(fullmask)
 
             cli.notice(nick, "You now no longer receive simple role instructions.")
             return
 
-        var.SIMPLE_NOTIFY.add(host)
-        var.add_simple_rolemsg(host)
+        var.SIMPLE_NOTIFY.add(fullmask)
+        var.add_simple_rolemsg(fullmask)
 
     cli.notice(nick, "You now receive simple role instructions.")
 
@@ -722,6 +734,10 @@ def mark_prefer_notice(cli, nick, chan, rest):
             if host in var.PREFER_NOTICE:
                 var.PREFER_NOTICE.remove(host)
                 var.remove_prefer_notice(host)
+            fullmask = ident + "@" + host
+            if fullmask in var.PREFER_NOTICE:
+                var.PREFER_NOTICE.remove(fullmask)
+                var.remove_prefer_notice(fullmask)
 
             cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
             return
@@ -739,9 +755,16 @@ def mark_prefer_notice(cli, nick, chan, rest):
 
             cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
             return
+        fullmask = ident + "@" + host
+        if fullmask in var.PREFER_NOTICE:
+            var.PREFER_NOTICE.remove(fullmask)
+            var.remove_prefer_notice(fullmask)
 
-        var.PREFER_NOTICE.add(host)
-        var.add_prefer_notice(host)
+            cli.notice(nick, "Gameplay interactions will now use PRIVMSG for you.")
+            return
+
+        var.PREFER_NOTICE.add(fullmask)
+        var.add_prefer_notice(fullmask)
 
     cli.notice(nick, "The bot will now always NOTICE you.")
 
