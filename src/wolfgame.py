@@ -7350,9 +7350,8 @@ def allow_deny(cli, nick, chan, rest, mode):
 
             opts["cmd"] = data[1]
             data = data[1:]
-        elif data[0] == "-acc":
+        elif data[0] == "-acc" or data[0] == "-account":
             opts["acc"] = True
-            data = data[1:]
         elif data[0] == "-host":
             opts["host"] = True
         else:
@@ -7369,24 +7368,24 @@ def allow_deny(cli, nick, chan, rest, mode):
         lusers = {k.lower(): v for k, v in var.USERS.items()}
         user = data[0]
 
-        if user.lower() in lusers:
+        if opts["acc"] and user != "*":
+            hostmask = None
+            acc = user
+        elif not opts["host"] and user.lower() in lusers:
             ident = lusers[user.lower()]["ident"]
             host = lusers[user.lower()]["host"]
             acc = lusers[user.lower()]["account"]
             hostmask = ident + "@" + host
-        elif opts["acc"]:
-            hostmask = None
-            acc = user
         else:
             hostmask = user
             m = re.match('(?:(?:(.*?)!)?(.*)@)?(.*)', hostmask)
-            user = m.group(1)
-            ident = m.group(2)
+            user = m.group(1) or ""
+            ident = m.group(2) or ""
             host = m.group(3)
             acc = None
 
-        if not acc or acc == "*" or opts["host"]:
-            acc = None
+        if user == "*":
+            opts["host"] = True
 
         if not var.DISABLE_ACCOUNTS and acc:
             if mode == "allow":
@@ -7451,7 +7450,7 @@ def allow_deny(cli, nick, chan, rest, mode):
                     if acc in variable:
                         del variable[acc]
                     msg = "\u0002{0}\u0002 (Account: {1}) is no longer {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
-        elif var.ACCOUNTS_ONLY:
+        elif var.ACCOUNTS_ONLY and not opts["host"]:
             msg = "Error: \u0002{0}\u0002 is not logged in to NickServ.".format(data[0])
         else:
             if mode == "allow":
@@ -7521,11 +7520,11 @@ def allow_deny(cli, nick, chan, rest, mode):
                 variable = var.DENY_ACCOUNTS
             if variable:
                 for acc, varied in variable.items():
-                    if var.ACCOUNTS_ONLY:
+                    if var.ACCOUNTS_ONLY and not opts["host"]:
                         users_to_cmds[acc] = sorted(varied, key=str.lower)
                     else:
                         users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
-        if not var.ACCOUNTS_ONLY:
+        if not var.ACCOUNTS_ONLY or opts["host"]:
             if mode == "allow":
                 variable = var.ALLOW
             else:
