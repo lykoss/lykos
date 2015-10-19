@@ -4942,11 +4942,14 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", "r", pm=True, playing=True, phases=("day", "night"))
+@cmd("retract", "r", pm=True, phases=("day", "night"))
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
     if chan not in (botconfig.CHANNEL, nick):
+        return
+    if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
+        cli.notice(nick, "You're not currently playing.")
         return
 
     if chan == nick: # PM, use different code
@@ -4972,7 +4975,8 @@ def retract(cli, nick, chan, rest):
                     pm(cli, wolf, "\u0002{0}\u0002 has retracted their kill.".format(nick))
         elif role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
-            var.HUNTERS.remove(nick)
+            if role == "hunter":
+                var.HUNTERS.remove(nick)
             pm(cli, nick, "You have retracted your kill.")
         elif role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
             del var.BITE_PREFERENCES[nick]
