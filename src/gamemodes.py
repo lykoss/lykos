@@ -250,10 +250,10 @@ class EvilVillageMode(GameMode):
               })
 
     def startup(self):
-        events.add_listener("chk_win", self.chk_win, 1)
+        events.add_listener("chk_win", self.chk_win)
 
     def teardown(self):
-        events.remove_listener("chk_win", self.chk_win, 1)
+        events.remove_listener("chk_win", self.chk_win)
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
         lsafes = len(var.list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
@@ -450,10 +450,10 @@ class MatchmakerMode(GameMode):
             })
 
     def startup(self):
-        events.add_listener("chk_win", self.lovers_chk_win, 1)
+        events.add_listener("chk_win", self.lovers_chk_win)
 
     def teardown(self):
-        events.remove_listener("chk_win", self.lovers_chk_win, 1)
+        events.remove_listener("chk_win", self.lovers_chk_win)
 
 @game_mode("random", minp = 8, maxp = 24, likelihood = 0)
 class RandomMode(GameMode):
@@ -486,12 +486,12 @@ class RandomMode(GameMode):
                             }
 
     def startup(self):
-        events.add_listener("role_attribution", self.role_attribution, 1)
-        events.add_listener("chk_win", self.lovers_chk_win, 1)
+        events.add_listener("role_attribution", self.role_attribution)
+        events.add_listener("chk_win", self.lovers_chk_win)
 
     def teardown(self):
-        events.remove_listener("role_attribution", self.role_attribution, 1)
-        events.remove_listener("chk_win", self.lovers_chk_win, 1)
+        events.remove_listener("role_attribution", self.role_attribution)
+        events.remove_listener("chk_win", self.lovers_chk_win)
 
     def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
         lpl = len(villagers) - 1
@@ -650,10 +650,10 @@ class GuardianMode(GameMode):
                                  }
 
     def startup(self):
-        events.add_listener("chk_win", self.chk_win, 1)
+        events.add_listener("chk_win", self.chk_win)
 
     def teardown(self):
-        events.remove_listener("chk_win", self.chk_win, 1)
+        events.remove_listener("chk_win", self.chk_win)
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
         lguardians = len(var.list_players(["guardian angel", "bodyguard"]))
