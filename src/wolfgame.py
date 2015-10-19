@@ -2623,7 +2623,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             ltraitors = len(var.ROLES.get("traitor", ()))
             return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game)
 
-        event = Event("chk_win", {"winner": winner, "message": message, "players": [], "winners": None})
+        event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
         event.dispatch(var, lpl, lwolves, lrealwolves)
         winner = event.data["winner"]
         message = event.data["message"]
@@ -2632,7 +2632,10 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             return False
 
         if end_game:
-            players = event.data["players"]
+            if event.data["additional_winners"] is None:
+                players = []
+            else:
+                players = ["{0} ({1})".format(x, var.get_role(x)) for x in event.data["additional_winners"]]
             if winner == "monsters":
                 for plr in var.ROLES["monster"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
@@ -2649,7 +2652,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
             cli.msg(chan, message)
-            stop_game(cli, winner, winners=event.data["winners"])
+            stop_game(cli, winner, winners=event.data["additional_winners"])
         return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = "", cmode = [], ismain = True):

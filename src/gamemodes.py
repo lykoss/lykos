@@ -111,8 +111,7 @@ class GameMode:
         if len(lovers) == lpl:
             evt.data["winner"] = "lovers"
             evt.data["message"] = "Game over! All of the remaining villagers are in love with each other! All of them win."
-            evt.data["players"] = ["{0} ({1})".format(x, var.get_role(x)) for x in lovers]
-            evt.data["winners"] = list(lovers)
+            evt.data["additional_winners"] = list(lovers)
 
 @game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(GameMode):
