@@ -110,8 +110,10 @@ class GameMode:
 
         if len(lovers) == lpl:
             evt.data["winner"] = "lovers"
-            evt.data["message"] = "Game over! All of the remaining villagers are in love with each other! All of them win."
             evt.data["additional_winners"] = list(lovers)
+            evt.data["message"] = ("Game over! The remaining villagers through their inseparable "
+                                   "love for each other have agreed to stop all of this senseless "
+                                   "violence and coexist in peace forever more. All remaining players win.")
 
 @game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(GameMode):
