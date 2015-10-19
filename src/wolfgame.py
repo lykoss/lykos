@@ -7399,18 +7399,18 @@ def allow_deny(cli, nick, chan, rest, mode):
                 variable = var.DENY_ACCOUNTS
                 noaccvar = var.DENY
             if len(data) == 1:
-                cmds = []
+                cmds = set()
                 if acc in variable:
-                    cmds.extend(variable[acc])
+                    cmds |= set(variable[acc])
 
-                if hostmask:
+                if hostmask and not opts["acc"]:
                     for mask in noaccvar:
                         if var.match_hostmask(mask, user, ident, host):
-                            cmds.extend(noaccvar[mask])
+                            cmds |= set(noaccvar[mask])
 
                 if cmds:
                     msg = "\u0002{0}\u0002 (Account: {1}) is {2} the following {3}commands: {4}.".format(
-                        data[0], acc, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(variable[acc]))
+                        data[0], acc, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(cmds))
                 else:
                     msg = "\u0002{0}\u0002 (Account: {1}) is not {2} commands.".format(data[0], acc, "allowed any special" if mode == "allow" else "denied any")
             else:
@@ -7517,25 +7517,28 @@ def allow_deny(cli, nick, chan, rest, mode):
 
     else:
         users_to_cmds = {}
-        if not var.DISABLE_ACCOUNTS:
+        if not var.DISABLE_ACCOUNTS and not opts["host"]:
             if mode == "allow":
                 variable = var.ALLOW_ACCOUNTS
+                noaccvar = var.ALLOW
             else:
                 variable = var.DENY_ACCOUNTS
+                noaccvar = var.DENY
+
             if variable:
                 for acc, varied in variable.items():
-                    if var.ACCOUNTS_ONLY and not opts["host"]:
+                    if opts["acc"] or (var.ACCOUNTS_ONLY and not noaccvar):
                         users_to_cmds[acc] = sorted(varied, key=str.lower)
                     else:
                         users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
-        if not var.ACCOUNTS_ONLY or opts["host"]:
+        if not opts["acc"]:
             if mode == "allow":
                 variable = var.ALLOW
             else:
                 variable = var.DENY
             if variable:
                 for hostmask, varied in variable.items():
-                    if var.DISABLE_ACCOUNTS:
+                    if var.DISABLE_ACCOUNTS or opts["host"]:
                         users_to_cmds[hostmask] = sorted(varied, key=str.lower)
                     else:
                         users_to_cmds[hostmask+" (Host)"] = sorted(varied, key=str.lower)

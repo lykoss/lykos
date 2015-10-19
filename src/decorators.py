@@ -145,7 +145,7 @@ class cmd:
                             adminlog(chan, rawnick, self.name, rest)
                         return self.func(*largs)
 
-        if not var.ACCOUNTS_ONLY and host:
+        if host:
             for pattern in var.DENY:
                 if var.match_hostmask(pattern, nick, ident, host):
                     for command in self.cmds:
