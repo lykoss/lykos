@@ -2275,7 +2275,7 @@ def chk_traitor(cli):
                                            "frightened as they hear a loud howl. The wolves are "+
                                            "not gone!\u0002")
 
-def stop_game(cli, winner = "", abort = False, winners = None):
+def stop_game(cli, winner = "", abort = False, additional_winners = None):
     chan = botconfig.CHANNEL
     if abort:
         cli.msg(chan, "The role attribution failed 3 times. Game was canceled.")
@@ -2369,8 +2369,9 @@ def stop_game(cli, winner = "", abort = False, winners = None):
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
         plrl = {}
-        if winners is None:
-            winners = []
+        winners = []
+        if additional_winners is not None:
+            winners.extend(additional_winners)
         for role,ppl in var.ORIGINAL_ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
@@ -2652,7 +2653,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
             cli.msg(chan, message)
-            stop_game(cli, winner, winners=event.data["additional_winners"])
+            stop_game(cli, winner, additional_winners=event.data["additional_winners"])
         return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = "", cmode = [], ismain = True):
