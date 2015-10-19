@@ -439,6 +439,7 @@ def reset():
     var.NO_LYNCH = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
+    var.LOVERS = {} # need to be here for purposes of random
 
     reset_settings()
 
@@ -6949,7 +6950,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LASTGUARDED = {}
     var.LASTHEXED = {}
     var.LASTGIVEN = {}
-    var.LOVERS = {}
     var.MATCHMAKERS = set()
     var.REVEALED_MAYORS = set()
     var.SILENCED = set()
