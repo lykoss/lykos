@@ -16,6 +16,39 @@ def game_mode(name, minp, maxp, likelihood = 0):
 
 reset_roles = lambda i: OrderedDict([(role, (0,) * len(i)) for role in var.ROLE_GUIDE])
 
+def get_lovers():
+    lovers = []
+    pl = var.list_players()
+    for lover in var.LOVERS:
+        done = None
+        for i, lset in enumerate(lovers):
+            if lover in pl and lover in lset:
+                if done is not None: # plot twist! two clusters turn out to be linked!
+                    done.update(lset)
+                    for lvr in var.LOVERS[lover]:
+                        if lvr in pl:
+                            done.add(lvr)
+
+                    lset.clear()
+                    continue
+
+                for lvr in var.LOVERS[lover]:
+                    if lvr in pl:
+                        lset.add(lvr)
+                done = lset
+
+        if done is None and lover in pl:
+            lovers.append(set())
+            lovers[-1].add(lover)
+            for lvr in var.LOVERS[lover]:
+                if lvr in pl:
+                    lovers[-1].add(lvr)
+
+    while set() in lovers:
+        lovers.remove(set())
+
+    return lovers
+
 class GameMode:
     def __init__(self, arg=""):
         if not arg:
@@ -63,6 +96,23 @@ class GameMode:
 
     def teardown(self):
         pass
+
+    # Here so any game mode can use it
+    def lovers_chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+        winner = evt.data["winner"]
+        if winner is not None and winner.startswith("@"):
+            return # fool won, lovers can't win even if they would
+        all_lovers = get_lovers()
+        if len(all_lovers) != 1:
+            return # we need exactly one cluster alive for this to trigger
+
+        lovers = all_lovers[0]
+
+        if len(lovers) == lpl:
+            evt.data["winner"] = "lovers"
+            evt.data["message"] = "Game over! All of the remaining villagers are in love with each other! All of them win."
+            evt.data["players"] = ["{0} ({1})".format(x, var.get_role(x)) for x in lovers]
+            evt.data["winners"] = list(lovers)
 
 @game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(GameMode):
@@ -398,6 +448,12 @@ class MatchmakerMode(GameMode):
             "mad scientist" : [i >= 18 for i in self.ROLE_INDEX],
             })
 
+    def startup(self):
+        events.add_listener("chk_win", self.lovers_chk_win, 1)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.lovers_chk_win, 1)
+
 @game_mode("random", minp = 8, maxp = 24, likelihood = 0)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
@@ -430,9 +486,11 @@ class RandomMode(GameMode):
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution, 1)
+        events.add_listener("chk_win", self.lovers_chk_win, 1)
 
     def teardown(self):
         events.remove_listener("role_attribution", self.role_attribution, 1)
+        events.remove_listener("chk_win", self.lovers_chk_win, 1)
 
     def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
         lpl = len(villagers) - 1

@@ -2275,7 +2275,7 @@ def chk_traitor(cli):
                                            "frightened as they hear a loud howl. The wolves are "+
                                            "not gone!\u0002")
 
-def stop_game(cli, winner = "", abort = False):
+def stop_game(cli, winner = "", abort = False, winners = None):
     chan = botconfig.CHANNEL
     if abort:
         cli.msg(chan, "The role attribution failed 3 times. Game was canceled.")
@@ -2369,7 +2369,8 @@ def stop_game(cli, winner = "", abort = False):
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
         plrl = {}
-        winners = []
+        if winners is None:
+            winners = []
         for role,ppl in var.ORIGINAL_ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
@@ -2426,7 +2427,7 @@ def stop_game(cli, winner = "", abort = False):
                 iwon = False
             elif rol == "fool" and "@" + splr == winner:
                 iwon = True
-            elif splr in var.LOVERS and splr in survived and len([x for x in var.LOVERS[splr] if x in survived]) > 0:
+            elif winner != "lovers" and splr in var.LOVERS and splr in survived and len([x for x in var.LOVERS[splr] if x in survived]) > 0:
                 for lvr in var.LOVERS[splr]:
                     if lvr not in survived:
                         # cannot win with dead lover (if splr in survived and lvr is not, that means lvr idled out)
@@ -2622,7 +2623,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             ltraitors = len(var.ROLES.get("traitor", ()))
             return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game)
 
-        event = Event("chk_win", {"winner": winner, "message": message})
+        event = Event("chk_win", {"winner": winner, "message": message, "players": [], "winners": None})
         event.dispatch(var, lpl, lwolves, lrealwolves)
         winner = event.data["winner"]
         message = event.data["message"]
@@ -2631,7 +2632,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             return False
 
         if end_game:
-            players = []
+            players = event.data["players"]
             if winner == "monsters":
                 for plr in var.ROLES["monster"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
@@ -2648,7 +2649,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
             cli.msg(chan, message)
-            stop_game(cli, winner)
+            stop_game(cli, winner, winners=event.data["winners"])
         return True
 
 def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = "", cmode = [], ismain = True):
