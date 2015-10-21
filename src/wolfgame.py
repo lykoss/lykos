@@ -4009,34 +4009,46 @@ def transition_day(cli, gameid=0):
             # also being killed by wolves, make the kill not apply
             # note that we cannot bite visiting harlots unless they are visiting a wolf,
             # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
+            got_bit = False
             hvisit = var.HVISITED.get(target)
-            if (target in onlybywolves
-                    and (target not in var.ROLES["harlot"] or not hvisit or var.get_role(hvisit) not in var.WOLFCHAT_ROLES
+            if ((target not in var.ROLES["harlot"]
+                        or not hvisit
+                        or var.get_role(hvisit) in var.WOLFCHAT_ROLES
                         or (hvisit in bywolves and hvisit not in protected))
                     and target not in var.ROLES["lycan"]
                     and target not in var.LYCANTHROPES
                     and target not in var.IMMUNIZED):
-                victims.remove(target)
-                bywolves.remove(target)
-                onlybywolves.remove(target)
-                killers[target].remove("@wolves")
-                if target not in victims:
-                    victims_set.discard(target)
+                # mark them as bitten
+                got_bit = True
+                # if they were also being killed by wolves, undo that
+                if target in bywolves:
+                    victims.remove(target)
+                    bywolves.discard(target)
+                    onlybywolves.discard(target)
+                    killers[target].remove("@wolves")
+                    if target not in victims:
+                        victims_set.discard(target)
 
             if target in victims_set:
-                # bite was unsuccessful
+                # bite was unsuccessful due to someone else killing them
                 var.ALPHA_WOLVES.remove(alpha)
-            elif target in var.IMMUNIZED:
-                # target immunized, kill them instead and refund the bite
+            elif target in var.IMMUNIZED or target in var.ROLES["lycan"] or target in var.LYCANTHROPES:
+                # target immunized or a lycan, kill them instead and refund the bite
+                # (for lycans, this effectively gives alpha a free kill on top of regular wolf kill, deal with it)
                 var.ALPHA_WOLVES.remove(alpha)
                 if target not in victims:
                     onlybywolves.add(target)
-                victims.append(target)
+                if target not in bywolves:
+                    # don't count this as 2 separate kills for the purposes of protection if wolves already targeted this person
+                    victims.append(target)
                 victims_set.add(target)
                 bywolves.add(target)
-            else:
+            elif got_bit:
                 var.BITTEN[target] = var.ALPHA_WOLF_NIGHTS
                 bitten.append(target)
+            else:
+                # bite failed due to some other reason (namely harlot)
+                var.ALPHA_WOLVES.remove(alpha)
 
             if alpha in var.ALPHA_WOLVES:
                 pm(cli, alpha, "You have bitten \u0002{0}\u0002.".format(target))
@@ -4491,8 +4503,8 @@ def chk_nightdone(cli):
     if var.DISEASED_WOLVES:
         nightroles = [p for p in nightroles if p not in var.list_players(var.WOLF_ROLES - {"wolf cub", "werecrow"})]
     elif var.ALPHA_ENABLED:
-        # don't re-add alphas here since they can only kill *or* bite, not both
-        actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
+        # add in alphas that have bitten (note an alpha can kill or bite, but not both)
+        actedcount += len([p for p in var.BITE_PREFERENCES if p in var.ROLES["alpha wolf"]])
 
     for p in var.HUNTERS:
         # only remove one instance of their name if they have used hunter ability, in case they have templates
