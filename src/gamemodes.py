@@ -294,7 +294,7 @@ class EvilVillageMode(GameMode):
                 evt.data["winner"] = None
 
 
-@game_mode("classic", minp = 7, maxp = 21, likelihood = 4)
+@game_mode("classic", minp = 4, maxp = 21, likelihood = 0)
 class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
     def __init__(self, arg=""):
