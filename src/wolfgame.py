@@ -4041,6 +4041,8 @@ def transition_day(cli, gameid=0):
                 if target not in bywolves:
                     # don't count this as 2 separate kills for the purposes of protection if wolves already targeted this person
                     victims.append(target)
+                    # and if the target is immunized and has retribution totem, (maybe) kill off the alpha that tried to bite them
+                    killers[target].append(alpha)
                 victims_set.add(target)
                 bywolves.add(target)
             elif got_bit:
