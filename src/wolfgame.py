@@ -1078,23 +1078,30 @@ def join_timer_handler(cli):
         else:
             cli.who(botconfig.CHANNEL)
 
-@cmd("join", "j", phases=("none", "join"))
+@cmd("join", "j")
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
-    if var.ACCOUNTS_ONLY:
-        if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
-            cli.notice(nick, "You are not logged in to NickServ.")
-            return
-    if join_player(cli, nick, chan) and rest and not var.FGAMED:
-        gamemode = rest.lower().split()[0]
-        if gamemode not in var.GAME_MODES.keys():
-            match, _ = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"})
-            if not match:
+    if var.PHASE in ("none", "join"):
+        if var.ACCOUNTS_ONLY:
+            if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
+                cli.notice(nick, "You are not logged in to NickServ.")
                 return
-            gamemode = match
-        if gamemode != "roles":
-            var.GAMEMODE_VOTES[nick] = gamemode
-            cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
+        if join_player(cli, nick, chan) and rest and not var.FGAMED:
+            gamemode = rest.lower().split()[0]
+            if gamemode not in var.GAME_MODES.keys():
+                match, _ = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"})
+                if not match:
+                    return
+                gamemode = match
+            if gamemode != "roles":
+                var.GAMEMODE_VOTES[nick] = gamemode
+                cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
+
+    else: # join deadchat
+        if chan == nick and nick not in var.list_players() and nick not in var.DEADCHAT_PLAYERS:
+            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has joined the dead chat.".format(nick))
+            pm(cli, nick, "You are now in the dead chat. Players: {0}".format(", ".join(var.DEADCHAT_PLAYERS)))
+            var.DEADCHAT_PLAYERS.add(nick)
 
 def join_player(cli, player, chan, who = None, forced = False):
     if who is None:
@@ -1407,12 +1414,18 @@ def stats(cli, nick, chan, rest):
     if nick == chan:
         _nick = ""
 
-    if chan == nick and nick in pl and var.get_role(nick) in var.WOLFCHAT_ROLES:
+    badguys = set(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        badguys = set(var.WOLF_ROLES)
+        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            badguys.update(var.ROLES["traitor"])
+
+    if chan == nick and nick in pl and var.get_role(nick) in badguys:
         ps = pl[:]
         random.shuffle(ps)
         for i, player in enumerate(ps):
             prole = var.get_role(player)
-            if prole in var.WOLFCHAT_ROLES:
+            if prole in badguys:
                 cursed = ""
                 if player in var.ROLES["cursed villager"]:
                     cursed = "cursed "
@@ -3646,6 +3659,12 @@ def leave_game(cli, nick, chan, rest):
         else:
             population = (" New player count: \u0002{0}\u0002").format(lpl)
     else:
+        if chan == nick and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
+            var.DEADCHAT_PLAYERS.remove(nick)
+            pm(cli, nick, "You have left the dead chat.")
+            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has left the dead chat.".format(nick))
+            return
+
         dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
         if var.START_QUIT_DELAY and dur > 0:
             cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
@@ -5235,6 +5254,11 @@ def kill(cli, nick, chan, rest):
 
     if role in wolfroles:
         wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+            wolfchatwolves = var.list_players(var.WOLF_ROLES)
+            if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+                wolfchatwolves.extend(var.ROLES["traitor"])
+
         if victim in wolfchatwolves or victim2 in wolfchatwolves:
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
@@ -5275,6 +5299,15 @@ def kill(cli, nick, chan, rest):
             pm(cli, nick, 'You are angry tonight and may kill a second target. Use "kill <nick1> and <nick2>" to select multiple targets.')
 
     wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+        wolfchatwolves = var.list_players(wolfroles)
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD: # bypass the above one if relevant
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
+        wolfchatwolves = var.list_players(var.WOLF_ROLES)
+    if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        wolfchatwolves.extend(var.ROLES["traitor"])
+
     if nick in wolfchatwolves:
         for wolf in wolfchatwolves:
             if wolf != nick:
@@ -5383,9 +5416,21 @@ def observe(cli, nick, chan, rest):
                        "to \u0002{0}'s\u0002 house. You will return after "+
                       "collecting your observations when day begins.").format(victim))
         wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+        wolves = var.list_players(var.WOLF_ROLES)
+        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolves.extend(var.ROLES["traitor"])
+        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+            if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
+                wolfchatwolves = var.ROLES["werecrow"]
+            else:
+                wolfchatwolves = var.ROLES["werecrow"] | var.ROLES["sorcerer"]
+        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
+            wolfchatwolves = []
+
         for wolf in wolfchatwolves:
             if wolf != nick:
                 pm(cli, wolf, "\u0002{0}\u0002 is observing \u0002{1}\u0002.".format(nick, victim))
+
     elif role == "sorcerer":
         vrole = var.get_role(victim)
         if vrole == "amnesiac":
@@ -5397,6 +5442,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
+
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
@@ -5649,7 +5695,13 @@ def bite_cmd(cli, nick, chan, rest):
     vrole = var.get_role(victim)
     actual = choose_target(nick, victim)
 
-    if vrole in var.WOLFCHAT_ROLES:
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
+        wolfchatwolves = var.list_players(var.WOLF_ROLES)
+        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolfchatwolves.extend(var.ROLES["traitor"])
+
+    if victim in wolfchatwolves:
         pm(cli, nick, "You may not bite other wolves.")
         return
 
@@ -5662,8 +5714,11 @@ def bite_cmd(cli, nick, chan, rest):
         del var.KILLS[nick]
 
     pm(cli, nick, "You have chosen to bite \u0002{0}\u0002.".format(victim))
-    wolfchat = var.list_players(var.WOLFCHAT_ROLES)
-    for wolf in wolfchat:
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+        wolfchatwolves = var.ROLES["alpha wolf"]
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
+        wolfchatwolves = []
+    for wolf in wolfchatwolves:
         if wolf != nick:
             pm(cli, wolf, "\u0002{0}\u0002 has chosen to bite \u0002{1}\u0002.".format(nick, victim))
 
@@ -5869,7 +5924,11 @@ def hex_target(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     vrole = var.get_role(victim)
-    if vrole in var.WOLFCHAT_ROLES:
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        wolfchatwolves = []
+
+    if victim in wolfchatwolves:
         pm(cli, nick, "Hexing another wolf would be a waste.")
         return
 
@@ -5879,7 +5938,12 @@ def hex_target(cli, nick, chan, rest):
 
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
+    if var.RESTRICT_WOLFCHAT & (var.RW_ONLY_KILL_CMD | var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
+        wolfchatwolves = []
+    elif var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+        wolfchatwolves = var.ROLES["hag"]
+    else:
+        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
     for wolf in wolfchatwolves:
         if wolf != nick:
             pm(cli, wolf, "\u0002{0}\u0002 has cast a hex on \u0002{1}\u0002.".format(nick, victim))
@@ -6130,30 +6194,54 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
 
 @cmd("", chan=False, pm=True)
 def relay(cli, nick, chan, rest):
-    """Let the wolves talk to each other through the bot"""
+    """Wolfchat and Deadchat"""
     if rest.startswith("\u0001PING"):
         cli.notice(nick, rest)
         return
     if var.PHASE not in ("night", "day"):
         return
 
-    if nick in var.list_players() and nick in getattr(var, "IDLE_WARNED_PM", ()):
+    pl = var.list_players()
+
+    if nick in pl and nick in getattr(var, "IDLE_WARNED_PM", ()):
         cli.msg(nick, ("\u0002You have been idling in {0} for a while. Please say something in {0} "
                        "or you will be declared dead.\u0002").format(botconfig.CHANNEL))
         var.IDLE_WARNED_PM.add(nick)
 
     badguys = var.list_players(var.WOLFCHAT_ROLES)
-    if len(badguys) > 1:
-        if nick in badguys:
-            badguys.remove(nick)  #  remove self from list
+    wolves = var.list_players(var.WOLF_ROLES)
 
+    if nick not in pl:
+        if var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
             if rest.startswith("\u0001ACTION"):
                 rest = rest[7:-1]
-                mass_privmsg(cli, [guy for guy in badguys
-                    if guy in var.PLAYERS], "* \u0002{0}\u0002{1}".format(nick, rest))
+                mass_privmsg(cli, [x for x in var.DEADCHAT_PLAYERS if x != nick],
+                             "* \u0002{0}\u0002{1}".format(nick, rest))
             else:
-                mass_privmsg(cli, [guy for guy in badguys
-                    if guy in var.PLAYERS], "\u0002{0}\u0002 says: {1}".format(nick, rest))
+                mass_privmsg(cli, [x for x in var.DEADCHAT_PLAYERS if x != nick],
+                             "\u0002{0}\u0002 says: {1}".format(nick, rest))
+
+    elif nick in badguys and len(badguys) > 1:
+        # handle wolfchat toggles
+        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolves.extend(var.ROLES["traitor"])
+        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+            return
+        elif var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+            return
+        elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
+            return
+        elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+            return
+
+        badguys.remove(nick)
+        if rest.startswith("\u0001ACTION"):
+            rest = rest[7:-1]
+            mass_privmsg(cli, [x for x in badguys if x in var.PLAYERS],
+                         "* \u0002{0}\u0002{1}".format(nick, rest))
+        else:
+            mass_privmsg(cli, [x for x in badguys if x in var.PLAYERS],
+                         "\u0002{0}\u0002 says: {1}".format(nick, rest))
 
 def transition_night(cli):
     if var.PHASE == "night":
@@ -7084,6 +7172,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXTRA_WOLVES = 0
     var.BLESSED = set()
     var.PRIESTS = set()
+
+    var.DEADCHAT_PLAYERS = set()
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():

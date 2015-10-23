@@ -62,6 +62,25 @@ QUIET_PREFIX = "" # "" or "~q:"
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
 
+# The following is a bitfield, and they can be mixed together
+# Defaults to none of these, can be changed on a per-game-mode basis
+
+RESTRICT_WOLFCHAT = 0x00
+
+### DO NOT CHANGE THESE!
+### They are for easier code interpretation/modification
+
+RW_DISABLE_NIGHT    = 0x01 # Disable during night (commands are still relayed)
+RW_DISABLE_DAY      = 0x02 # Disable during day (commands are still relayed)
+RW_ONLY_KILL_CMD    = 0x04 # Only relay kill commands when wolfchat is disabled
+RW_ONLY_SAME_CMD    = 0x08 # Only relay commands to other people who have access to the same command
+RW_WOLVES_ONLY_CHAT = 0x10 # Non-wolves cannot participate in wolfchat (commands still relayed as applicable)
+RW_NO_INTERACTION   = 0x20 # Do not relay commands to/from non-wolves regardless of other settings
+RW_REM_NON_WOLVES   = 0x40 # Remove non-wolves from wolfchat entirely (can be killed, do not count towards wolf win condition, do not show in wolflist, etc.)
+RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of the above restrictions (if unset, traitor is treated the same as wolf cub)
+
+ENABLE_DEADCHAT = True # dead players can communicate with each other
+
 DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
 
 GOAT_HERDER = True
