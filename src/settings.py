@@ -222,7 +222,7 @@ AMNESIAC_BLACKLIST = frozenset({"monster", "minion", "matchmaker", "clone", "doc
 # These roles are seen as wolf by the seer/oracle
 SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist"}
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
-SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat",
+SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
                           "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper"})
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
