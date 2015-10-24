@@ -2793,6 +2793,11 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                                         del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
                                         pl.remove(ga)
                                         break
+                            elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.BLESSED):
+                                if "blessing" in var.ACTIVE_PROTECTIONS[target]:
+                                    var.ACTIVE_PROTECTIONS[target].remove("blessing")
+                                # don't message the channel whenever a blessing blocks a kill, but *do* let the assassin know so they don't try to report it as a bug
+                                pm(cli, nick, "\u0002{0}\u0002 seems to be blessed, causing your assassination attempt to fail.".format(target))
                             else:
                                 if var.ROLE_REVEAL in ("on", "team"):
                                     role = var.get_reveal_role(target)
@@ -2904,6 +2909,12 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                             if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == nick:
                                 target2 = var.ALL_PLAYERS[i]
                                 break
+
+                    # do not kill blessed players, they had a premonition to step out of the way before the chemicals hit
+                    if target1 in var.BLESSED:
+                        target1 = None
+                    if target2 in var.BLESSED:
+                        target2 = None
 
                     if target1 in pl:
                         if target2 in pl and target1 != target2:
@@ -3470,6 +3481,12 @@ def rename_player(cli, prefix, nick):
             if prefix in var.TOBECHARMED:
                 var.TOBECHARMED.remove(prefix)
                 var.TOBECHARMED.add(nick)
+            if prefix in var.BLESSED:
+                var.BLESSED.remove(prefix)
+                var.BLESSED.add(nick)
+            if prefix in var.PRIESTS:
+                var.PRIESTS.remove(prefix)
+                var.PRIESTS.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -4059,7 +4076,7 @@ def transition_day(cli, gameid=0):
 
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
-    # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard)
+    # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard > blessing)
     pl = var.list_players()
     for v in pl:
         if v in victims_set:
@@ -4085,7 +4102,12 @@ def transition_day(cli, gameid=0):
                         protected[v] = "bodyguard"
                     elif numkills <= 0:
                         var.ACTIVE_PROTECTIONS[v].append("bodyguard")
-                    numkills -= 1
+            if v in var.BLESSED:
+                numkills -= 1
+                if numkills <= 0 and v not in protected:
+                    protected[v] = "blessing"
+                elif numkills <= 0:
+                    var.ACTIVE_PROTECTIONS[v].append("blessing")
             if numkills == 1 and v in bywolves:
                 onlybywolves.add(v)
         else:
@@ -4099,6 +4121,8 @@ def transition_day(cli, gameid=0):
             for g in var.ROLES["bodyguard"]:
                 if var.GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("bodyguard")
+            if v in var.BLESSED:
+                var.ACTIVE_PROTECTIONS[v].append("blessing")
 
     fallenkills = set()
     brokentotem = set()
@@ -4194,8 +4218,13 @@ def transition_day(cli, gameid=0):
                     else:
                         pm(cli, g, "A fell wind blows through you and chills you to the bone. You no longer feel safe or protected...")
                 if g != v and v not in fallenmsg:
-                    fallenmsg.add(g)
+                    fallenmsg.add(v)
                     pm(cli, v, "A fell wind blows through you and chills you to the bone. You no longer feel safe or protected...")
+        # Finally, message blessed people that aren't otherwise being guarded by a GA or bodyguard
+        for v in bywolves:
+            if v not in fallenmsg:
+                fallenmsg.add(v)
+                pm(cli, v, "A fell wind blows through you and chills you to the bone. You no longer feel safe or protected...")
 
     # Select a random target for assassin that isn't already going to die if they didn't target
     pl = var.list_players()
@@ -4262,6 +4291,11 @@ def transition_day(cli, gameid=0):
                     message.append(("\u0002{0}\u0002 sacrificed their life to guard that of another.").format(bodyguard))
                     novictmsg = False
                     break
+        elif protected.get(victim) == "blessing":
+            # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
+            # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
+            # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
+            continue
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves and victim not in var.IMMUNIZED:
             vrole = var.get_role(victim)
             if vrole not in var.WOLFCHAT_ROLES:
@@ -5255,7 +5289,7 @@ def kill(cli, nick, chan, rest):
 
 @cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def guard(cli, nick, chan, rest):
-    """Guard a player, preventing them from being targetted that night."""
+    """Guard a player, preventing them from being killed that night."""
     if var.GUARDED.get(nick):
         pm(cli, nick, "You are already protecting someone tonight.")
         return
@@ -5287,7 +5321,30 @@ def guard(cli, nick, chan, rest):
     debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
+@cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
+def bless(cli, nick, chan, rest):
+    """Bless a player, preventing them from being killed for the remainder of the game."""
+    if nick in var.PRIESTS:
+        pm(cli, nick, "You have already blessed someone this game.")
+        return
 
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    if not victim:
+        return
+
+    if victim == nick:
+        pm(cli, nick, "You may not bless yourself.")
+        return
+
+    victim = choose_target(nick, victim)
+    if check_exchange(cli, nick, victim):
+        return
+
+    var.PRIESTS.add(nick)
+    var.BLESSED.add(victim)
+    pm(cli, nick, "You have given a blessing to \u0002{0}\u0002".format(victim))
+    pm(cli, victim, "You suddenly feel very safe.")
+    debuglog("{0} ({1}) BLESS: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
@@ -6709,6 +6766,15 @@ def transition_night(cli):
         else:
             pm(cli, turncoat, 'You are a \u0002turncoat\u0002. Current side: \u0002{0}\u0002.'.format(var.TURNCOATS[turncoat][0]))
 
+    for priest in var.ROLES["priest"]:
+        if priest in var.PLAYERS and not is_user_simple(priest):
+            pm(cli, priest, ('You are a \u0002priest\u0002. Once per game during the day, you may bless someone with ' +
+                             '"bless <nick>" to prevent them from being killed. Furthermore, you may consecrate the dead ' +
+                             'during the day with "consecrate <nick>" to settle down restless spirits and prevent the ' +
+                             'corpse from rising as undead; doing so removes your ability to participate in the vote that day.'))
+        else:
+            pm(cli, priest, "You are a \u0002priest\u0002.")
+
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
@@ -7016,6 +7082,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TURNCOATS = {}
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
+    var.BLESSED = set()
+    var.PRIESTS = set()
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():

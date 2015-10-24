@@ -186,6 +186,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("matchmaker"      , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ("village drunk"   , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("time lord"       , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("priest"          , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("villager"        , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              # neutral roles
              ("jester"          , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
@@ -227,11 +228,11 @@ SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager",
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager" : SEEN_WOLF | {"seer", "oracle", "fool", "jester"},
-                         "gunner"          : WOLFTEAM_ROLES | {"fool", "lycan", "jester"},
+TEMPLATE_RESTRICTIONS = {"cursed villager" : SEEN_WOLF | {"seer", "oracle", "fool", "jester", "priest"},
+                         "gunner"          : WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest"},
                          "sharpshooter"    : frozenset(), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
                          "mayor"           : frozenset({"fool", "jester", "monster"}),
-                         "assassin"        : WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan"},
+                         "assassin"        : WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"},
                          "bureaucrat"      : frozenset(),
                         }
 
