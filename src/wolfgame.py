@@ -1979,7 +1979,7 @@ def hurry_up(cli, gameid, change):
     var.DAY_ID = 0
 
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
+    avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
     votesneeded = avail // 2 + 1
     not_lynching = len(var.NO_LYNCH)
 
@@ -2042,11 +2042,11 @@ def chk_decision(cli, force = ""):
             return
         chan = botconfig.CHANNEL
         pl = var.list_players()
-        avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
+        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
         votesneeded = avail // 2 + 1
         not_lynching = list(var.NO_LYNCH)
         for p in var.PACIFISTS:
-            if p in pl and p not in var.WOUNDED and p not in var.ASLEEP:
+            if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING):
                 not_lynching.append(p)
 
         # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
@@ -2074,7 +2074,7 @@ def chk_decision(cli, force = ""):
             numvotes = 0
             random.shuffle(var.IMPATIENT)
             for v in var.IMPATIENT:
-                if v in pl and v not in voters and v != votee and v not in var.WOUNDED and v not in var.ASLEEP:
+                if v in pl and v not in voters and v != votee and v not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING):
                     # don't add them in if they have the same number or more of pacifism totems
                     # this matters for desperation totem on the votee
                     imp_count = var.IMPATIENT.count(v)
@@ -2236,7 +2236,7 @@ def show_votes(cli, nick, chan, rest):
             cli.msg(chan, msg)
 
         pl = var.list_players()
-        avail = len(pl) - len(var.WOUNDED) - len(var.ASLEEP)
+        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
         votesneeded = avail // 2 + 1
         not_voting = len(var.NO_LYNCH)
         if not_voting == 1:
@@ -2568,7 +2568,7 @@ def chk_win(cli, end_game=True, winner=None):
         ltraitors = len(var.ROLES.get("traitor", ()))
         lpipers = len(var.ROLES.get("piper", ()))
         if var.PHASE == "day":
-            for p in var.WOUNDED | var.ASLEEP:
+            for p in var.WOUNDED | var.ASLEEP | var.CONSECRATING:
                 try:
                     role = var.get_role(p)
                     if role in var.WOLFCHAT_ROLES:
@@ -3057,6 +3057,7 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
                 var.NO_LYNCH.discard(nick)
                 var.WOUNDED.discard(nick)
                 var.ASLEEP.discard(nick)
+                var.CONSECRATING.discard(nick)
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
@@ -3500,6 +3501,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.PRIESTS:
                 var.PRIESTS.remove(prefix)
                 var.PRIESTS.add(nick)
+            if prefix in var.CONSECRATING:
+                var.CONSECRATING.remove(prefix)
+                var.CONSECRATING.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -4628,6 +4632,14 @@ def no_lynch(cli, nick, chan, rest):
         elif nick in var.WOUNDED:
             cli.msg(chan, "{0}: You are wounded and resting, thus you are unable to vote for the day.".format(nick))
             return
+        elif nick in var.ASLEEP:
+            pm(cli, nick, "As you place your vote, your totem emits a brilliant flash of light. " +
+                          "After recovering, you notice that you are still in your bed. " +
+                          "That entire sequence of events must have just been a dream...")
+            return
+        elif nick in var.CONSECRATING:
+            pm(cli, nick, "You are consecrating someone today and cannot participate in the vote.")
+            return
         candidates = var.VOTES.keys()
         for voter in list(candidates):
             if nick in var.VOTES[voter]:
@@ -4659,6 +4671,9 @@ def lynch(cli, nick, chan, rest):
         pm(cli, nick, "As you place your vote, your totem emits a brilliant flash of light. " +
                       "After recovering, you notice that you are still in your bed. " +
                       "That entire sequence of events must have just been a dream...")
+        return
+    if nick in var.CONSECRATING:
+        pm(cli, nick, "You are consecrating someone today and cannot participate in the vote.")
         return
 
     var.NO_LYNCH.discard(nick)
@@ -5378,6 +5393,36 @@ def bless(cli, nick, chan, rest):
     pm(cli, nick, "You have given a blessing to \u0002{0}\u0002".format(victim))
     pm(cli, victim, "You suddenly feel very safe.")
     debuglog("{0} ({1}) BLESS: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
+
+@cmd("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
+def consecrate(cli, nick, chan, rest):
+    """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
+    alive = var.list_players()
+    victim = re.split(" +", rest)[0]
+    if not victim:
+        pm(cli, nick, "Not enough parameters")
+        return
+    dead = [x for x in var.ALL_PLAYERS if x not in alive]
+    deadl = [x.lower() for x in dead]
+
+    tempvictim, num_matches = complete_match(victim.lower(), deadl)
+    if not tempvictim:
+        pm(cli, nick, "\u0002{0}\u0002 is not currently playing or is not dead.".format(victim))
+        return
+    victim = dead[deadl.index(tempvictim)] #convert back to normal casing
+
+    # we have a target, so mark them as consecrated, right now all this does is silence a VG for a night
+    # but other roles that do stuff after death or impact dead players should have functionality here as well
+    # (for example, if there was a role that could raise corpses as undead somethings, this would prevent that from working)
+    # regardless if this has any actual effect or not, it still removes the priest from being able to vote
+    if victim in var.VENGEFUL_GHOSTS.keys():
+        var.SILENCED.add(victim)
+
+    var.CONSECRATING.add(nick)
+    pm(cli, nick, "You have consecrated the body of \u0002{0}\u0002.".format(victim))
+    debuglog("{0} ({1}) CONSECRATE: {2}".format(nick, var.get_role(nick), victim))
+    # consecrating can possibly cause game to end, so check for that
+    chk_win(cli)
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
@@ -6289,6 +6334,7 @@ def transition_night(cli):
     var.NIGHT_COUNT += 1
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
     var.TOTEMS = {}
+    var.CONSECRATING = set()
 
     daydur_msg = ""
 
@@ -7172,6 +7218,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXTRA_WOLVES = 0
     var.BLESSED = set()
     var.PRIESTS = set()
+    var.CONSECRATING = set()
 
     var.DEADCHAT_PLAYERS = set()
 
