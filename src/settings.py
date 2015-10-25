@@ -80,6 +80,9 @@ STATS_TYPE = "default" # default/accurate/team/disabled - what role information 
 LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
 DEFAULT_SEEN_AS_VILL = True # non-wolves are seen as villager regardless of the default role
 
+START_VOTES_SCALE = 0.3
+START_VOTES_MAX = 4
+
 # Debug mode settings, whether or not timers and stasis should apply during debug mode
 DISABLE_DEBUG_MODE_TIMERS = True
 DISABLE_DEBUG_MODE_TIME_LORD = False
