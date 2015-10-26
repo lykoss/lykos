@@ -715,3 +715,40 @@ class CharmingMode(GameMode):
               "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
+
+@game_mode("sleepy", minp=8, maxp=24, likelihood=0)
+class SleepyMode(GameMode):
+    """A small village has become the playing ground for all sorts of supernatural beings."""
+    def __init__(self, arg=""):
+        super().__init__(arg)
+        self.ROLE_INDEX =        (  8  , 10  , 12  , 15  , 18  , 21  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            # village roles
+            "seer"             : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "priest"           : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "harlot"           : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+            "detective"        : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+            "vigilante"        : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
+            "village drunk"    : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
+            # wolf roles
+            "wolf"             : (  1  ,  1  ,  2  ,  3  ,  4  ,  5  ),
+            "werecrow"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "traitor"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "cultist"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            # neutral roles
+            "dullahan"         : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "vengeful ghost"   : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+            "monster"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  2  ),
+            # templates
+            "cursed villager"  : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "blessed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "devout"           : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "gunner"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
+            })
+        # this ensures that priest will always receive the blessed villager and devout templates
+        self.TEMPLATE_RESTRICTIONS["cursed villager"] |= "priest"
+        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "devout"}
+        self.TEMPLATE_RESTRICTIONS["devout"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "devout"}
+        # this ensures that village drunk will always receive the gunner template
+        self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
