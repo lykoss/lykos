@@ -6945,7 +6945,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 # vote again for the final start.
                 if len(var.START_VOTES) < start_votes_required - 1:
                     var.START_VOTES.add(nick)
-                    msg = "{0} has voted to \u0002start\u0002 the game. \u0002{1}\u0002 more {2} required."
+                    msg = "\u0002{0}\u0002 has voted to start the game. \u0002{1}\u0002 more {2} required."
                     remaining_votes = start_votes_required - len(var.START_VOTES)
 
                     if remaining_votes == 1:
