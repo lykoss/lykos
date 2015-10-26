@@ -6283,7 +6283,8 @@ def transition_night(cli):
         return
 
     # send PMs
-    ps = var.list_players()
+    ps = set(var.list_players())
+    to_send = defaultdict(lambda: ["Players", set()])
     wolves = var.list_players(var.WOLFCHAT_ROLES)
     for wolf in wolves:
         normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
@@ -6355,20 +6356,8 @@ def transition_night(cli):
             an = "n" if cursed == "" and role.startswith(("a", "e", "i", "o", "u")) else ""
             pm(cli, wolf, 'You are a{0} \u0002{1}{2}\u0002.'.format(an, cursed, role))  # !simple
 
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(wolf)  # remove self from list
-        for i, player in enumerate(pl):
-            prole = var.get_role(player)
-            if prole in var.WOLFCHAT_ROLES:
-                cursed = ""
-                if player in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-            elif player in var.ROLES["cursed villager"]:
-                pl[i] = player + " (cursed)"
+        to_send[wolf][1].update(ps - {wolf})
 
-        pm(cli, wolf, "Players: " + ", ".join(pl))
         if role == "wolf mystic":
             # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
@@ -6385,10 +6374,8 @@ def transition_night(cli):
                            'They will turn into a wolf in {0} night{1}.').format(var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
 
     for seer in var.list_players(("seer", "oracle", "augur")):
-        pl = ps[:]
-        random.shuffle(pl)
         role = var.get_role(seer)
-        pl.remove(seer)  # remove self from list
+        to_send[seer][1].update(ps - {seer})
 
         a = "a"
         if role in ("oracle", "augur"):
@@ -6410,12 +6397,9 @@ def transition_night(cli):
                           'Use "see <nick>" to see {2}.').format(a, role, what))
         else:
             pm(cli, seer, "You are {0} \u0002{1}\u0002.".format(a, role))  # !simple
-        pm(cli, seer, "Players: " + ", ".join(pl))
 
     for harlot in var.ROLES["harlot"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(harlot)
+        to_send[harlot][1].update(ps - {harlot})
         if harlot in var.PLAYERS and not is_user_simple(harlot):
             pm(cli, harlot, ('You are a \u0002harlot\u0002. '+
                              'You may spend the night with one person per round. '+
@@ -6424,13 +6408,10 @@ def transition_night(cli):
                              'Use "visit <nick>" to visit a player.'))
         else:
             pm(cli, harlot, "You are a \u0002harlot\u0002.")  # !simple
-        pm(cli, harlot, "Players: " + ", ".join(pl))
 
     # the messages for angel and guardian angel are different enough to merit individual loops
     for g_angel in var.ROLES["bodyguard"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(g_angel)
+        to_send[g_angel][1].update(ps - {g_angel})
         chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
         warning = ""
         if chance > 0:
@@ -6444,17 +6425,15 @@ def transition_night(cli):
                               'Use "guard <nick>" to guard a player.').format(warning))
         else:
             pm(cli, g_angel, "You are a \u0002bodyguard\u0002.")  # !simple
-        pm(cli, g_angel, "Players: " + ", ".join(pl))
 
     for gangel in var.ROLES["guardian angel"]:
-        pl = ps[:]
-        random.shuffle(pl)
         gself = "You may also guard yourself. "
+        to_send[gangel][1].update(ps)
         if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            pl.remove(gangel)
+            to_send[gangel][1].remove(gangel)
             gself = ""
-        if var.LASTGUARDED.get(gangel) in pl:
-            pl.remove(var.LASTGUARDED[gangel])
+        if var.LASTGUARDED.get(gangel) in ps:
+            to_send[gangel][1].discard(var.LASTGUARDED[gangel]) # might already be removed
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
         warning = ""
         if chance > 0:
@@ -6467,12 +6446,9 @@ def transition_night(cli):
                               '{1}Use "guard <nick>" to guard a player.').format(warning, gself))
         else:
             pm(cli, gangel, "You are a \u0002guardian angel\u0002.")  # !simple
-        pm(cli, gangel, "Players: " + ", ".join(pl))
 
     for dttv in var.ROLES["detective"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(dttv)
+        to_send[dttv][1].update(ps - {dttv})
         chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
         warning = ""
         if chance > 0:
@@ -6486,7 +6462,6 @@ def transition_night(cli):
                           '{0}Use "id <nick>" in PM to identify any player during the day.').format(warning))
         else:
             pm(cli, dttv, "You are a \u0002detective\u0002.")  # !simple
-        pm(cli, dttv, "Players: " + ", ".join(pl))
 
     for drunk in var.ROLES["village drunk"]:
         if drunk in var.PLAYERS and not is_user_simple(drunk):
@@ -6509,11 +6484,10 @@ def transition_night(cli):
         for c in var.TOTEM_CHANCES.values():
             max_totems[var.TOTEM_ORDER[ix]] += c[ix]
     for shaman in var.list_players(var.TOTEM_ORDER):
-        pl = ps[:]
-        random.shuffle(pl)
+        to_send[shaman][1].update(ps)
         if shaman in var.LASTGIVEN:
-            if var.LASTGIVEN[shaman] in pl:
-                pl.remove(var.LASTGIVEN[shaman])
+            if var.LASTGIVEN[shaman] in ps:
+                to_send[shaman][1].remove(var.LASTGIVEN[shaman])
         role = var.get_role(shaman)
         indx = var.TOTEM_ORDER.index(role)
         target = 0
@@ -6568,25 +6542,19 @@ def transition_night(cli):
             pm(cli, shaman, "You are a \u0002{0}\u0002.".format(role))
             if role != "crazed shaman":
                 pm(cli, shaman, "You have the \u0002{0}\u0002 totem.".format(var.TOTEMS[shaman]))
-        pm(cli, shaman, "Players: " + ", ".join(pl))
 
     for hunter in var.ROLES["hunter"]:
         if hunter in var.HUNTERS:
             continue #already killed
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(hunter)
+        to_send[hunter][1].update(ps - {hunter})
         if hunter in var.PLAYERS and not is_user_simple(hunter):
             pm(cli, hunter, ('You are a \u0002hunter\u0002. Once per game, you may kill another ' +
                              'player with "kill <nick>". If you do not wish to kill anyone tonight, ' +
                              'use "pass" instead.'))
         else:
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
-        pm(cli, hunter, "Players: " + ", ".join(pl))
-
 
     for ms in var.ROLES["mad scientist"]:
-        pl = ps[:]
         index = var.ALL_PLAYERS.index(ms)
         targets = []
         target1 = var.ALL_PLAYERS[index - 1]
@@ -6598,7 +6566,7 @@ def transition_night(cli):
                 i -= 1
                 if i < 0:
                     i = len(var.ALL_PLAYERS) - 1
-                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                if var.ALL_PLAYERS[i] in ps or var.ALL_PLAYERS[i] == ms:
                     target1 = var.ALL_PLAYERS[i]
                     break
             # determine right player
@@ -6607,7 +6575,7 @@ def transition_night(cli):
                 i += 1
                 if i >= len(var.ALL_PLAYERS):
                     i = 0
-                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                if var.ALL_PLAYERS[i] in ps or var.ALL_PLAYERS[i] == ms:
                     target2 = var.ALL_PLAYERS[i]
                     break
         targets = "\u0002{0}\u0002 and \u0002{1}\u0002".format(target1, target2)
@@ -6620,8 +6588,7 @@ def transition_night(cli):
 
     for doctor in var.ROLES["doctor"]:
         if doctor in var.DOCTORS and var.DOCTORS[doctor] > 0: # has immunizations remaining
-            pl = ps[:]
-            random.shuffle(pl)
+            to_send[doctor][1].update(ps)
             if doctor in var.PLAYERS and not is_user_simple(doctor):
                 pm(cli, doctor, ('You are a \u0002doctor\u0002. You can give out immunizations to ' +
                                  'villagers by using "give <nick>" in PM during the daytime. ' +
@@ -6667,13 +6634,11 @@ def transition_night(cli):
             continue
         wolves = var.list_players(var.WOLFTEAM_ROLES)
         if who == "wolves":
-            pl = wolves
+            to_send[v_ghost][1].update(wolves)
         else:
-            pl = ps[:]
-            for wolf in wolves:
-                pl.remove(wolf)
+            to_send[v_ghost][1].update(ps - wolves)
 
-        random.shuffle(pl)
+        to_send[v_ghost][0] = who.capitalize()
 
         if v_ghost in var.PLAYERS and not is_user_simple(v_ghost):
             pm(cli, v_ghost, ('You are a \u0002vengeful ghost\u0002, sworn to take revenge on the ' +
@@ -6682,39 +6647,30 @@ def transition_night(cli):
                               'at random.').format(who))
         else:
             pm(cli, v_ghost, "You are a \u0002vengeful ghost\u0002.")
-        pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
         debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(pl)))
 
     for ass in var.ROLES["assassin"]:
         if ass in var.TARGETED and var.TARGETED[ass] != None:
             continue # someone already targeted
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(ass)
         role = var.get_role(ass)
         if role == "village drunk":
-            var.TARGETED[ass] = random.choice(pl)
+            var.TARGETED[ass] = random.choice(list(ps - {ass}))
             message = ("You are an \u0002assassin\u0002. In your drunken stupor you have selected " +
                        "\u0002{0}\u0002 as your target.").format(var.TARGETED[ass])
             if ass in var.PLAYERS and not is_user_simple(ass):
                 message += " If you die you will take out your target with you."
             pm(cli, ass, message)
         else:
+            to_send[ass][1].update(ps - {ass})
             if ass in var.PLAYERS and not is_user_simple(ass):
                 pm(cli, ass, ('You are an \u0002assassin\u0002. Choose a target with ' +
                               '"target <nick>". If you die you will take out your target with you. ' +
                               'If your target dies you may choose another one.'))
             else:
                 pm(cli, ass, "You are an \u0002assassin\u0002.")
-            pm(cli, ass, "Players: " + ", ".join(pl))
 
     for piper in var.ROLES["piper"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(piper)
-        for charmed in var.CHARMED:
-            if charmed in pl: # corner case: if there are multiple pipers and a piper is charmed, the piper will be in var.CHARMED but not in pl
-                pl.remove(charmed)
+        to_send[piper][1].update(ps - var.CHARMED - {piper})
         if piper in var.PLAYERS and not is_user_simple(piper):
             pm(cli, piper, ('You are a \u0002piper\u0002. You must select two players ' +
                             'to charm each night. The charmed players will know each ' +
@@ -6723,7 +6679,6 @@ def transition_night(cli):
                             'select the players to charm.'))
         else:
             pm(cli, piper, "You are a \u0002piper\u0002.")
-        pm(cli, piper, "Players: " + ", ".join(pl))
 
     for turncoat in var.ROLES["turncoat"]:
         # they start out as unsided, but can change n1
@@ -6743,8 +6698,7 @@ def transition_night(cli):
 
     if var.FIRST_NIGHT:
         for mm in var.ROLES["matchmaker"]:
-            pl = ps[:]
-            random.shuffle(pl)
+            to_send[mm][1].update(ps)
             if mm in var.PLAYERS and not is_user_simple(mm):
                 pm(cli, mm, ('You are a \u0002matchmaker\u0002. You can select two players ' +
                              'to be lovers with "choose <nick1> and <nick2>". If one lover ' +
@@ -6754,21 +6708,18 @@ def transition_night(cli):
                              'you will not be told who they are (unless you are one of them).'))
             else:
                 pm(cli, mm, "You are a \u0002matchmaker\u0002.")
-            pm(cli, mm, "Players: " + ", ".join(pl))
 
         for clone in var.ROLES["clone"]:
-            pl = ps[:]
-            random.shuffle(pl)
-            pl.remove(clone)
+            to_send[clone][1].update(ps - {clone})
             if clone in var.PLAYERS and not is_user_simple(clone):
                 pm(cli, clone, ('You are a \u0002clone\u0002. You can select someone to clone ' +
                                 'with "clone <nick>". If that player dies, you become their ' +
                                 'role(s). You may only clone someone during the first night.'))
             else:
                 pm(cli, clone, "You are a \u0002clone\u0002.")
-            pm(cli, clone, "Players: "+", ".join(pl))
 
         for minion in var.ROLES["minion"]:
+            # Don't use to_send for minion - if they're assassin they lose all information!
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
             if minion in var.PLAYERS and not is_user_simple(minion):
@@ -6828,6 +6779,17 @@ def transition_night(cli):
             continue
 
         pm(cli, g, gun_msg)
+
+    for player, (who, pl) in to_send.items():
+        # The player list we get is a set of players to send. The set ordering
+        # is semi-random. It is based on its hash algorithm but also on the
+        # insertion order. We want to get rid of this potential source of
+        # information leak, so we need to shuffle this right now, as doing it
+        # before would kind of break the purpose (the set would discard it)
+        pl = list(pl)
+        random.shuffle(pl)
+        pm(cli, player, "{0}: {1}".format(who, ", ".join(pl)))
+
 
     dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions.")
