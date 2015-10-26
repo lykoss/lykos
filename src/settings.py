@@ -189,6 +189,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("hag"              , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  )),
              ("sorcerer"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  )),
              ("warlock"          , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("doomsayer"        , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("minion"           , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("cultist"          , (  0  ,  0  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              # villager roles
@@ -223,6 +224,8 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("clone"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("lycan"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("vengeful ghost"   , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("succubus"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("demoniac"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              # templates
              ("cursed villager"  , (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  )),
              ("blessed villager" , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
@@ -239,30 +242,31 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
 WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "fallen angel"})
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock"}
+WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock", "doomsayer"}
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
 # These roles either steal away wins or can otherwise win with any team
-TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat"})
+TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac"})
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper"})
 # These roles are seen as wolf by the seer/oracle
-SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist"}
+SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
 SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
-                          "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper"})
+                          "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper", "doomsayer", "demoniac"})
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = {"cursed villager"  : SEEN_WOLF | {"seer", "oracle", "fool", "jester", "priest"},
-                         "gunner"           : WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest"},
-                         "sharpshooter"     : frozenset(), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
-                         "mayor"            : frozenset({"fool", "jester", "monster"}),
-                         "assassin"         : WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"},
-                         "bureaucrat"       : frozenset(),
-                         "devout"           : WOLFTEAM_ROLES | TRUE_NEUTRAL_ROLES | {"harlot", "lycan", "amnesiac", "mad scientist"},
-                         "blessed villager" : frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"},
-                        }
+TEMPLATE_RESTRICTIONS = OrderedDict([
+                        ("cursed villager"  , SEEN_WOLF | {"seer", "oracle", "fool", "jester", "priest"}),
+                        ("gunner"           , WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest"}),
+                        ("sharpshooter"     , frozenset()), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
+                        ("mayor"            , frozenset({"fool", "jester", "monster"})),
+                        ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"}),
+                        ("bureaucrat"       , frozenset()),
+                        ("devout"           : WOLFTEAM_ROLES | TRUE_NEUTRAL_ROLES | {"harlot", "lycan", "amnesiac", "mad scientist"}),
+                        ("blessed villager" : frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
+                        ])
 
 # make sharpshooter restrictions at least the same as gunner
 TEMPLATE_RESTRICTIONS["sharpshooter"] |= TEMPLATE_RESTRICTIONS["gunner"]
