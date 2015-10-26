@@ -1078,10 +1078,12 @@ def join_timer_handler(cli):
         else:
             cli.who(botconfig.CHANNEL)
 
-@cmd("join", "j")
+@cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     if var.PHASE in ("none", "join"):
+        if chan == nick:
+            return
         if var.ACCOUNTS_ONLY:
             if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
                 cli.notice(nick, "You are not logged in to NickServ.")
@@ -1099,8 +1101,8 @@ def join(cli, nick, chan, rest):
 
     else: # join deadchat
         if chan == nick and nick not in var.list_players() and nick not in var.DEADCHAT_PLAYERS:
-            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has joined the dead chat.".format(nick))
-            pm(cli, nick, "You are now in the dead chat. Players: {0}".format(", ".join(var.DEADCHAT_PLAYERS)))
+            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has joined the chat.".format(nick))
+            pm(cli, nick, "You are now in the chat.{0}".format("Players: {0}".format(", ".join(var.DEADCHAT_PLAYERS)) if var.DEADCHAT_PLAYERS else ""))
             var.DEADCHAT_PLAYERS.add(nick)
 
 def join_player(cli, player, chan, who = None, forced = False):
@@ -5472,13 +5474,13 @@ def observe(cli, nick, chan, rest):
         wolves = var.list_players(var.WOLF_ROLES)
         if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             wolves.extend(var.ROLES["traitor"])
+        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
+            wolfchatwolves = []
         if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
             if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
                 wolfchatwolves = var.ROLES["werecrow"]
             else:
                 wolfchatwolves = var.ROLES["werecrow"] | var.ROLES["sorcerer"]
-        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-            wolfchatwolves = []
 
         for wolf in wolfchatwolves:
             if wolf != nick:
@@ -5767,10 +5769,10 @@ def bite_cmd(cli, nick, chan, rest):
         del var.KILLS[nick]
 
     pm(cli, nick, "You have chosen to bite \u0002{0}\u0002.".format(victim))
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        wolfchatwolves = var.ROLES["alpha wolf"]
     if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
         wolfchatwolves = []
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+        wolfchatwolves = var.ROLES["alpha wolf"]
     for wolf in wolfchatwolves:
         if wolf != nick:
             pm(cli, wolf, "\u0002{0}\u0002 has chosen to bite \u0002{1}\u0002.".format(nick, victim))
@@ -5991,12 +5993,11 @@ def hex_target(cli, nick, chan, rest):
 
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
 
+    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
     if var.RESTRICT_WOLFCHAT & (var.RW_ONLY_KILL_CMD | var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
         wolfchatwolves = []
-    elif var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
         wolfchatwolves = var.ROLES["hag"]
-    else:
-        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
     for wolf in wolfchatwolves:
         if wolf != nick:
             pm(cli, wolf, "\u0002{0}\u0002 has cast a hex on \u0002{1}\u0002.".format(nick, victim))
