@@ -264,8 +264,8 @@ TEMPLATE_RESTRICTIONS = OrderedDict([
                         ("mayor"            , frozenset({"fool", "jester", "monster"})),
                         ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"}),
                         ("bureaucrat"       , frozenset()),
-                        ("devout"           : WOLFTEAM_ROLES | TRUE_NEUTRAL_ROLES | {"harlot", "lycan", "amnesiac", "mad scientist"}),
-                        ("blessed villager" : frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
+                        ("devout"           , WOLFTEAM_ROLES | TRUE_NEUTRAL_ROLES | {"harlot", "lycan", "amnesiac", "mad scientist"}),
+                        ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
                         ])
 
 # make sharpshooter restrictions at least the same as gunner
