@@ -1420,12 +1420,12 @@ def stats(cli, nick, chan, rest):
         if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             badguys.update(var.ROLES["traitor"])
 
-    if chan == nick and nick in pl and var.get_role(nick) in badguys:
+    if chan == nick and nick in pl and var.get_role(nick) in badguys | {"warlock"}:
         ps = pl[:]
         random.shuffle(ps)
         for i, player in enumerate(ps):
             prole = var.get_role(player)
-            if prole in badguys:
+            if prole in badguys and var.get_role(nick) in badguys:
                 cursed = ""
                 if player in var.ROLES["cursed villager"]:
                     cursed = "cursed "
@@ -4940,6 +4940,14 @@ def check_exchange(cli, actor, nick):
         pm(cli, actor, "You have exchanged roles with someone! You are now a \u0002{0}\u0002.".format(nick_rev_role))
         pm(cli, nick,  "You have exchanged roles with someone! You are now a \u0002{0}\u0002.".format(actor_rev_role))
 
+        wolfchatwolves = set(var.WOLFCHAT_ROLES)
+        if var.RESTRICT_WOLFCHAT & (var.RW_WOLVES_ONLY_CHAT | var.RW_REM_NON_WOLVES):
+            wolfchatwolves = set(var.WOLF_ROLES)
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolfchatwolves.discard("traitor")
+        else:
+            wolfchatwolves.add("traitor")
+
         if nick_role == "clone":
             pm(cli, actor, "You are cloning \u0002{0}\u0002.".format(nick_target))
         elif nick_role in var.TOTEM_ORDER:
@@ -4949,13 +4957,13 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "mystic":
             numevil = len(var.list_players(var.WOLFTEAM_ROLES))
             pm(cli, actor, "There {0} \u0002{1}\u0002 evil villager{2} still alive.".format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
-        elif nick_role in var.WOLFCHAT_ROLES and actor_role not in var.WOLFCHAT_ROLES:
+        elif nick_role in wolfchatwolves | {"warlock"} and actor_role not in wolfchatwolves | {"warlock"}:
             pl = var.list_players()
             random.shuffle(pl)
             pl.remove(actor)  # remove self from list
             for i, player in enumerate(pl):
                 prole = var.get_role(player)
-                if prole in var.WOLFCHAT_ROLES:
+                if prole in wolfchatwolves and nick_role in wolfchatwolves | {"warlock"}:
                     cursed = ""
                     if player in var.ROLES["cursed villager"]:
                         cursed = "cursed "
@@ -4992,13 +5000,13 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "mystic":
             numevil = len(var.list_players(var.WOLFTEAM_ROLES))
             pm(cli, nick, "There {0} \u0002{1}\u0002 evil villager{2} still alive.".format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
-        elif actor_role in var.WOLFCHAT_ROLES and nick_role not in var.WOLFCHAT_ROLES:
+        elif actor_role in wolfchatwolves | {"warlock"} and nick_role not in wolfchatwolves | {"warlock"}:
             pl = var.list_players()
             random.shuffle(pl)
             pl.remove(nick)  # remove self from list
             for i, player in enumerate(pl):
                 prole = var.get_role(player)
-                if prole in var.WOLFCHAT_ROLES:
+                if prole in wolfchatwolves and actor_role in wolfchatwolves | {"warlock"}:
                     cursed = ""
                     if player in var.ROLES["cursed villager"]:
                         cursed = "cursed "

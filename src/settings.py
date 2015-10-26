@@ -65,6 +65,8 @@ AUTO_TOGGLE_MODES = ""
 # The following is a bitfield, and they can be mixed together
 # Defaults to none of these, can be changed on a per-game-mode basis
 
+# For now, do NOT use 0x40 and 0x80 are they are not yet ready. All others should be fine!
+
 RESTRICT_WOLFCHAT = 0x00
 
 ### DO NOT CHANGE THESE!
