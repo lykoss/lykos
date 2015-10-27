@@ -131,6 +131,9 @@ DETECTIVE_REVEALED_CHANCE = 2/5
 SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner will become a sharpshooter instead
 FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE = 1/2
 
+                        #    HALF    FULL
+PROPHET_REVEALED_CHANCE = (  2/5  ,  4/5  )
+
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many nights (note the night they are bitten is considered night 1)
 
@@ -433,7 +436,9 @@ def irc_equals(nick1, nick2):
 
 def plural(role):
     bits = role.split()
-    bits[-1] = {"person": "people", "wolf": "wolves"}.get(bits[-1], bits[-1] + "s")
+    bits[-1] = {"person": "people",
+                "wolf": "wolves",
+                "succubus": "succubi"}.get(bits[-1], bits[-1] + "s")
     return " ".join(bits)
 
 def list_players(roles = None):
