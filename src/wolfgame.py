@@ -5548,9 +5548,12 @@ def investigate(cli, nick, chan, rest):
                             "that \u0002{0}\u0002 is the detective!").format(nick))
         debuglog("{0} ({1}) PAPER DROP".format(nick, var.get_role(nick)))
 
-@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("devout",))
+@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
 def pray(cli, nick, chan, rest):
     """Receive divine visions of something or someone."""
+    # this command may be used multiple times in the course of the night, however it only needs
+    # to be used once to count towards ending night (additional uses don't count)
+
     pass
 
 @cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))

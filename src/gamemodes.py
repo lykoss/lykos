@@ -743,12 +743,13 @@ class SleepyMode(GameMode):
             # templates
             "cursed villager"  : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
             "blessed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "devout"           : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "prophet"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
             "gunner"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
             })
-        # this ensures that priest will always receive the blessed villager and devout templates
+        # this ensures that priest will always receive the blessed villager and prophet templates
+        # prophet is normally a role by itself, but we're turning it into a template for this mode
         self.TEMPLATE_RESTRICTIONS["cursed villager"] |= "priest"
-        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "devout"}
-        self.TEMPLATE_RESTRICTIONS["devout"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "devout"}
+        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
+        self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
         # this ensures that village drunk will always receive the gunner template
         self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
