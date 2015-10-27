@@ -5530,6 +5530,11 @@ def investigate(cli, nick, chan, rest):
                             "that \u0002{0}\u0002 is the detective!").format(nick))
         debuglog("{0} ({1}) PAPER DROP".format(nick, var.get_role(nick)))
 
+@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("devout",))
+def pray(cli, nick, chan, rest):
+    """Receive divine visions of something or someone."""
+    pass
+
 @cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
@@ -6973,6 +6978,12 @@ def transition_night(cli):
             else:
                 pm(cli, cultist, "You are a \u0002cultist\u0002.")
 
+        for blessed in var.ROLES["blessed villager"]:
+            if blessed in var.PLAYERS and not is_user_simple(blessed):
+                pm(cli, blessed, "You feel incredibly safe. You are a \u0002blessed villager\u0002.")
+            else:
+                pm(cli, blessed, "You are a \u0002blessed villager\u0002.")
+
     for g in var.GUNNERS.keys():
         if g not in ps:
             continue
@@ -7284,6 +7295,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES["sharpshooter"] = set(var.ROLES["sharpshooter"])
 
     var.ROLES["sharpshooter"].discard(None)
+
+    # Handle blessed villager
+    for blessed in var.ROLES["blessed villager"]:
+        var.BLESSED.add(blessed)
 
     if not restart:
         var.SPECIAL_ROLES["goat herder"] = []
