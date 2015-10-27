@@ -1078,9 +1078,104 @@ def join_timer_handler(cli):
         else:
             cli.who(botconfig.CHANNEL)
 
+def get_deadchat_pref(nick):
+    if nick in var.USERS:
+        host = var.USERS[nick]["host"]
+        acc = var.USERS[nick]["account"]
+    else:
+        return False
+
+    if acc in var.DEADCHAT_PREFS_ACCS:
+        return False
+    elif var.ACCOUNTS_ONLY:
+        return True
+    elif host in var.DEADCHAT_PREFS:
+        return False
+
+    return True
+
+def join_deadchat(cli, *all_nicks):
+    if var.PHASE not in ("day", "night"):
+        return False
+
+    nicks = []
+    for nick in all_nicks:
+        if is_user_stasised(nick) or nick in var.list_players() or nick in var.DEADCHAT_PLAYERS or nick in var.VENGEFUL_GHOSTS:
+            continue
+        nicks.append(nick)
+
+    if not nicks:
+        return False
+
+    if len(nicks) == 1:
+        msg = "\u0002{0}\u0002 has joined the chat.".format(nicks[0])
+    elif len(nicks) == 2:
+        msg = "\u0002{0}\u0002 and \u0002{1}\u0002 have joined the chat.".format(*nicks)
+    else:
+        msg = "\u0002{0}\u0002, and \u0002{1}\u0002 have joined the chat.".format("\u0002, \u0002".join(nicks[:-1]), nicks[-1])
+    mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
+    mass_privmsg(cli, nicks, "You are now in the chat.")
+
+    people = var.DEADCHAT_PLAYERS | set(nicks)
+
+    if len(people) > 1:
+        for nick in nicks:
+            pm(cli, nick, "Players: {0}".format(", ".join(people - {nick})))
+
+    var.DEADCHAT_PLAYERS.update(nicks)
+
+    return True
+
+def leave_deadchat(cli, nick):
+    if var.PHASE not in ("day", "night") or nick not in var.DEADCHAT_PLAYERS:
+        return False
+
+    var.DEADCHAT_PLAYERS.remove(nick)
+    pm(cli, nick, "You have left the chat.")
+    mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the chat.".format(nick))
+
+    return True
+
 @cmd("deadchat", pm=True)
 def deadchat_pref(cli, nick, chan, rest):
-    pass # for now
+    if nick in var.USERS:
+        host = var.USERS[nick]["host"]
+        acc = var.USERS[nick]["account"]
+    else:
+        if chan == nick:
+            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        else:
+            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        return
+
+    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
+        if chan == nick:
+            pm(cli, nick, "You are not logged in to NickServ.")
+        else:
+            cli.notice(nick, "You are not logged in to NickServ.")
+        return
+
+    if acc and acc != "*":
+        value = acc
+        variable = var.DEADCHAT_PREFS_ACCS
+    else:
+        value = host
+        variable = var.DEADCHAT_PREFS
+
+    if value in variable:
+        msg = "You will now join the chat on death."
+        variable.remove(value)
+        var.remove_deadchat_pref(value, value == acc)
+
+    else:
+        msg = "You will no longer join the chat on death."
+        variable.add(value)
+        var.add_deadchat_pref(value, value == acc)
+
+    if chan == nick:
+        pm(cli, nick, msg)
+    else:
+        cli.notice(nick, msg)
 
 @cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
@@ -1104,10 +1199,8 @@ def join(cli, nick, chan, rest):
                 cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
 
     else: # join deadchat
-        if chan == nick and nick not in var.list_players() and nick not in var.DEADCHAT_PLAYERS:
-            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has joined the chat.".format(nick))
-            pm(cli, nick, "You are now in the chat.{0}".format("Players: {0}".format(", ".join(var.DEADCHAT_PLAYERS)) if var.DEADCHAT_PLAYERS else ""))
-            var.DEADCHAT_PLAYERS.add(nick)
+        if chan == nick:
+            join_deadchat(cli, nick)
 
 def join_player(cli, player, chan, who = None, forced = False):
     if who is None:
@@ -2691,7 +2784,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             stop_game(cli, winner, additional_winners=event.data["additional_winners"])
         return True
 
-def del_player(cli, nick, forced_death = False, devoice = True, end_game = True, death_triggers = True, killer_role = "", deadlist = [], original = "", cmode = [], ismain = True):
+def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original="", cmode=[], deadchat=[], ismain=True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched or when the seer/wolf both don't act
@@ -3014,10 +3107,13 @@ def del_player(cli, nick, forced_death = False, devoice = True, end_game = True,
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
+            deadchat.append(nick)
             # devoice all players that died as a result, if we are in the original del_player
             if ismain:
                 mass_mode(cli, cmode, [])
                 del cmode[:]
+                join_deadchat(cli, *deadchat)
+                del deadchat[:]
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
                     del var.GAMEMODE_VOTES[nick]
@@ -3673,28 +3769,31 @@ hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 
 
-@cmd("quit", "leave", playing=True, phases=("join", "day", "night"))
+@cmd("quit", "leave", pm=True, phases=("join", "day", "night"))
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
-    if var.PHASE == "join":
+    if var.PHASE == "join" and nick in var.list_players():
         lpl = len(var.list_players()) - 1
 
         if lpl == 0:
             population = (" No more players remaining.")
         else:
             population = (" New player count: \u0002{0}\u0002").format(lpl)
-    else:
-        if chan == nick and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
-            var.DEADCHAT_PLAYERS.remove(nick)
-            pm(cli, nick, "You have left the dead chat.")
-            mass_privmsg(cli, var.DEADCHAT_PLAYERS, "{0} has left the dead chat.".format(nick))
-            return
 
+    elif chan == nick and var.PHASE in ("day", "night") and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
+        leave_deadchat(cli, nick)
+        return
+
+    elif nick in var.list_players():
         dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
         if var.START_QUIT_DELAY and dur > 0:
             cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
             return
         population = ""
+
+    else:
+        return
+
     if var.get_role(nick) != "person" and var.ROLE_REVEAL in ("on", "team"):
         role = var.get_reveal_role(nick)
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
