@@ -251,7 +251,7 @@ WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock", "doomsay
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
 # These roles either steal away wins or can otherwise win with any team
-TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "demoniac", "clone", "piper", "turncoat", "succubus", "demoniac"})
+TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac"})
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper"})
 # These roles are seen as wolf by the seer/oracle
