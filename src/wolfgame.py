@@ -3759,6 +3759,9 @@ def begin_day(cli):
             modes.append(("+v", player))
         mass_mode(cli, modes, [])
 
+    event = Event("begin_day", {})
+    event.dispatch(cli, var)
+
 def night_warn(cli, gameid):
     if gameid != var.NIGHT_ID:
         return
@@ -3782,7 +3785,16 @@ def transition_day(cli, gameid=0):
 
     var.PHASE = "day"
     var.GOATED = False
+    var.DAY_COUNT += 1
+    var.FIRST_DAY = (var.DAY_COUNT == 1)
+    var.DAY_START_TIME = datetime.now()
+    var.VOTES = {}
+
     chan = botconfig.CHANNEL
+
+    event_begin = Event("transition_day_begin", {})
+    event_begin.dispatch(cli, var)
+
     pl = var.list_players()
 
     if not var.START_WITH_DAY or not var.FIRST_DAY:
@@ -3844,13 +3856,9 @@ def transition_day(cli, gameid=0):
 
 
     # Reset daytime variables
-    var.VOTES = {}
     var.INVESTIGATED = set()
     var.WOUNDED = set()
-    var.DAY_START_TIME = datetime.now()
     var.NO_LYNCH = set()
-    var.DAY_COUNT += 1
-    var.FIRST_DAY = (var.DAY_COUNT == 1)
     var.DEATH_TOTEM = []
     var.PROTECTED = []
     var.REVEALED = set()
@@ -4533,6 +4541,9 @@ def transition_day(cli, gameid=0):
         message.append("Broken totem pieces were found next to \u0002{0}\u0002's body...".format(brokentotem))
     cli.msg(chan, "\n".join(message))
 
+    event_end = Event("transition_day_end", {})
+    event_end.dispatch(cli, var)
+
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
 
@@ -4587,6 +4598,9 @@ def chk_nightdone(cli):
             actedcount += 1
         elif tu[1] < var.NIGHT_COUNT - 1:
             nightroles.append(tc)
+
+    event = Event("chk_nightdone", {})
+    event.dispatch(cli, var)
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         # check for assassins that have not yet targeted
@@ -6308,6 +6322,13 @@ def transition_night(cli):
     var.PHASE = "night"
     var.GAMEPHASE = "night"
 
+    var.NIGHT_START_TIME = datetime.now()
+    var.NIGHT_COUNT += 1
+    var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
+
+    event_begin = Event("transition_night_begin", {})
+    event_begin.dispatch(cli, var)
+
     if var.DEVOICE_DURING_NIGHT:
         modes = []
         for player in var.list_players():
@@ -6344,9 +6365,6 @@ def transition_night(cli):
     var.TOBEDISEASED = set()
     var.RETRIBUTION = set()
     var.TOBEMISDIRECTED = set()
-    var.NIGHT_START_TIME = datetime.now()
-    var.NIGHT_COUNT += 1
-    var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
     var.TOTEMS = {}
     var.CONSECRATING = set()
 
@@ -7016,6 +7034,9 @@ def transition_night(cli):
             continue
 
         pm(cli, g, gun_msg)
+
+    event_end = Event("transition_night_end", {})
+    event_end.dispatch(cli, var)
 
     dmsg = (daydur_msg + "It is now nighttime. All players "+
                    "check for PMs from me for instructions.")
