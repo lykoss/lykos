@@ -360,6 +360,9 @@ PING_IF_PREFS_ACCS = {}
 PING_IF_NUMS = {}
 PING_IF_NUMS_ACCS = {}
 
+DEADCHAT_PREFS = set()
+DEADCHAT_PREFS_ACCS = set()
+
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
 def match_hostmask(hostmask, nick, ident, host):
@@ -556,6 +559,8 @@ def init_db():
         c.execute('CREATE TABLE IF NOT EXISTS pingif_prefs (user TEXT, is_account BOOLEAN, players INTEGER, PRIMARY KEY(user, is_account))') # pingif player count preferences
         c.execute('CREATE INDEX IF NOT EXISTS ix_ping_prefs_pingif ON pingif_prefs (players ASC)') # index apparently makes it faster
 
+        c.execute('CREATE TABLE IF NOT EXISTS deadchat_prefs (user TEXT, is_account BOOLEAN)') # deadcht preferences
+
         c.execute('PRAGMA table_info(pre_restart_state)')
         try:
             next(c)
@@ -627,6 +632,13 @@ def init_db():
                 if row[2] not in PING_IF_NUMS:
                     PING_IF_NUMS[row[2]] = set()
                 PING_IF_NUMS[row[2]].add(row[0])
+
+        c.execute('SELECT * FROM deadchat_prefs')
+        for user, is_acc in c:
+            if is_acc:
+                DEADCHAT_PREFS_ACCS.add(user)
+            else:
+                DEADCHAT_PREFS.add(user)
 
         # populate the roles table
         c.execute('DROP TABLE IF EXISTS roles')
@@ -728,6 +740,14 @@ def set_pingif_status(user, is_account, players):
         c.execute('DELETE FROM pingif_prefs WHERE user=? AND is_account=?', (user, is_account))
         if players != 0:
             c.execute('INSERT OR REPLACE INTO pingif_prefs VALUES (?,?,?)', (user, is_account, players))
+
+def add_deadchat_pref(user, is_account):
+    with conn:
+        c.execute('INSERT OR REPLACE INTO deadchat_prefs VALUES (?,?)', (user, is_account))
+
+def remove_deadchat_pref(user, is_account):
+    with conn:
+        c.execute('DELETE FROM deadchat_prefs WHERE user=? AND is_account=?' (user, is_account))
 
 def update_role_stats(acc, role, won, iwon):
     with conn:

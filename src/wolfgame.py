@@ -1078,6 +1078,10 @@ def join_timer_handler(cli):
         else:
             cli.who(botconfig.CHANNEL)
 
+@cmd("deadchat", pm=True)
+def deadchat_pref(cli, nick, chan, rest):
+    pass # for now
+
 @cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
