@@ -2458,7 +2458,7 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                     if lvr in plrl:
                         lvrrol = plrl[lvr]
 
-                    if not winner.startswith("@") and winner not in ("monsters", "pipers"):
+                    if not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                         iwon = True
                         break
                     elif winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
@@ -2467,19 +2467,24 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                     elif winner == "monsters" and lvrrol == "monster":
                         iwon = True
                         break
+                    elif winner == "demoniacs" and lvrrol == "demoniac":
+                        iwon = True
+                        break
                     elif winner == "pipers" and lvrrol == "piper":
                         iwon = True
                         break
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
+            elif rol == "demoniac" and splr in survived and winner == "demoniacs":
+                iwon = True
             elif rol == "piper" and splr in survived and winner == "pipers":
                 iwon = True
             elif rol == "crazed shaman" or rol == "clone":
                 # For clone, this means they ended game while being clone and not some other role
-                if splr in survived and not winner.startswith("@") and winner not in ("monsters", "pipers"):
+                if splr in survived and not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                     iwon = True
             elif rol == "vengeful ghost":
-                if not winner.startswith("@") and winner not in ("monsters", "pipers"):
+                if not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                     if won and splr in survived:
                         iwon = True
                     elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
@@ -2571,6 +2576,7 @@ def chk_win(cli, end_game=True, winner=None):
         lcubs = len(var.ROLES.get("wolf cub", ()))
         lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
         lmonsters = len(var.ROLES.get("monster", ()))
+        ldemoniacs = len(var.ROLES.get("demoniac", ()))
         ltraitors = len(var.ROLES.get("traitor", ()))
         lpipers = len(var.ROLES.get("piper", ()))
         if var.PHASE == "day":
@@ -2584,9 +2590,9 @@ def chk_win(cli, end_game=True, winner=None):
                 except KeyError:
                     pass
 
-        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game, winner)
+        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game, winner)
 
-def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game=True, winner=None):
+def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     chan = botconfig.CHANNEL
     with var.GRAVEYARD_LOCK:
@@ -2609,6 +2615,12 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
                            "the monster{0} quickly kill{1} the remaining villagers, " +
                            "causing the monster{0} to win.").format(plural, "" if plural else "s")
                 winner = "monsters"
+            elif ldemoniacs > 0:
+                plural = "s" if ldemoniacs > 1 else ""
+                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
+                           "a sudden flash illuminates the sky. Demonic spirits emerge around the sacrificed wolves " +
+                           "and possess all villagers, causing the demoniac{0} to win.").format(plural)
+                winner = "demoniacs"
             else:
                 message = ("Game over! All the wolves are dead! The villagers " +
                           "chop them up, BBQ them, and have a hearty meal.")
@@ -2642,7 +2654,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
             lcubs = len(var.ROLES.get("wolf cub", ()))
             lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
             ltraitors = len(var.ROLES.get("traitor", ()))
-            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game)
+            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game)
 
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
         event.dispatch(var, lpl, lwolves, lrealwolves)
@@ -2659,6 +2671,9 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, l
                 players = ["{0} ({1})".format(x, var.get_role(x)) for x in event.data["additional_winners"]]
             if winner == "monsters":
                 for plr in var.ROLES["monster"]:
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            if winner == "demoniacs":
+                for plr in var.ROLES["demoniac"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             elif winner == "wolves":
                 for plr in var.list_players(var.WOLFTEAM_ROLES):
@@ -6941,6 +6956,14 @@ def transition_night(cli):
                               'normal winners.'))
         else:
             pm(cli, monster, "You are a \u0002monster\u0002.")
+
+    for demoniac in var.ROLES["demoniac"]:
+        if demoniac in var.PLAYERS and not is_user_simple(demoniac):
+            pm(cli, demoniac, ('You are a \u0002demoniac\u0002. You win instead of the normal winners '+
+                               'if all wolves are killed while you are alive.'))
+        else:
+            pm(cli, demoniac, "You are a \u0002demoniac\u0002.")
+
 
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and not is_user_simple(lycan):
