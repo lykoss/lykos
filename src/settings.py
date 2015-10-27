@@ -751,7 +751,7 @@ def add_deadchat_pref(user, is_account):
 
 def remove_deadchat_pref(user, is_account):
     with conn:
-        c.execute('DELETE FROM deadchat_prefs WHERE user=? AND is_account=?' (user, is_account))
+        c.execute('DELETE FROM deadchat_prefs WHERE user=? AND is_account=?', (user, is_account))
 
 def update_role_stats(acc, role, won, iwon):
     with conn:
