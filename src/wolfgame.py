@@ -2769,18 +2769,18 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
                        "piper{0}. The piper{0} lead{1} the villagers away from the village, " +
                        "never to return...").format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
         elif lrealwolves == 0 and ltraitors == 0 and lcubs == 0:
-            if lmonsters > 0:
-                plural = "s" if lmonsters > 1 else ""
-                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
-                           "the monster{0} quickly kill{1} the remaining villagers, " +
-                           "causing the monster{0} to win.").format(plural, "" if plural else "s")
-                winner = "monsters"
-            elif ldemoniacs > 0:
+            if ldemoniacs > 0:
                 plural = "s" if ldemoniacs > 1 else ""
                 message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
                            "a sudden flash illuminates the sky. Demonic spirits emerge around the sacrificed wolves " +
                            "and possess all villagers, causing the demoniac{0} to win.").format(plural)
                 winner = "demoniacs"
+            elif lmonsters > 0:
+                plural = "s" if lmonsters > 1 else ""
+                message = ("Game over! All the wolves are dead! As the villagers start preparing the BBQ, " +
+                           "the monster{0} quickly kill{1} the remaining villagers, " +
+                           "causing the monster{0} to win.").format(plural, "" if plural else "s")
+                winner = "monsters"
             else:
                 message = ("Game over! All the wolves are dead! The villagers " +
                           "chop them up, BBQ them, and have a hearty meal.")
@@ -2832,7 +2832,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             if winner == "monsters":
                 for plr in var.ROLES["monster"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
-            if winner == "demoniacs":
+            elif winner == "demoniacs":
                 for plr in var.ROLES["demoniac"]:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             elif winner == "wolves":
