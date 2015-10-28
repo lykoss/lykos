@@ -3456,6 +3456,25 @@ def rename_player(cli, prefix, nick):
             for k,v in list(var.PLAYERS.items()):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
+
+            kvp = []
+            # Looks like {'nick': [_, 'nick1', _, {'nick2': [_]}]}
+            for a,b in var.PRAYED.items():
+                kvp2 = []
+                if a == prefix:
+                    a = nick
+                if b[1] == prefix:
+                    b[1] = nick
+                for c,d in b[3].items():
+                    if c == prefix:
+                        c = nick
+                    kvp2.append((c,d))
+                b[3].update(kvp2)
+                kvp.append((a,b))
+            var.PRAYED.update(kvp)
+            if prefix in var.PRAYED.keys():
+                del var.PRAYED[prefix]
+
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED,
                             var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED,
                             var.BITE_PREFERENCES):
@@ -5728,13 +5747,13 @@ def pray(cli, nick, chan, rest):
             # also, if we're the only person with that role, say so and don't allow a second vision
             people = set(var.ROLES[role]) | set(p for p, r in var.AMNESIAC_ROLES.items() if p in pl and r == role)
             if len(people) == 1 and nick in people:
-                pm(cli, nick, "You receive a vision that are the only \u0002{0}\u0002.".format(role))
+                pm(cli, nick, "You receive a vision that you are the only \u0002{0}\u0002.".format(role))
                 var.PRAYED[nick][0] = 2
                 debuglog("{0} ({1}) PRAY {2} - ONLY".format(nick, var.get_role(nick), role))
                 chk_nightdone(cli)
                 return
             # select someone with the role that we haven't looked at before for this particular role
-            prevlist = (p for p, rl in var.PRAYED[nick][3] if role in rl)
+            prevlist = (p for p, rl in var.PRAYED[nick][3].items() if role in rl)
             for p in prevlist:
                 people.discard(p)
             if len(people) == 0 or (len(people) == 1 and nick in people):
@@ -5743,7 +5762,7 @@ def pray(cli, nick, chan, rest):
                 debuglog("{0} ({1}) PRAY {2} - NO OTHER".format(nick, var.get_role(nick), role))
                 chk_nightdone(cli)
                 return
-            target = random.choice(people)
+            target = random.choice(list(people))
             var.PRAYED[nick][0] = 1
             var.PRAYED[nick][1] = target
             var.PRAYED[nick][2] = role
@@ -5751,6 +5770,7 @@ def pray(cli, nick, chan, rest):
             half = random.sample(pl, math.ceil(len(pl) / 2))
             if target not in half:
                 half[0] = target
+            random.shuffle(half)
             if len(half) > 1:
                 msg = "You receive a vision that at least one of these people is a \u0002{0}\u0002: ".format(role)
                 if len(half) > 2:
@@ -5769,7 +5789,7 @@ def pray(cli, nick, chan, rest):
                 debuglog("{0} ({1}) PRAY {2} ({3}) - FULL".format(nick, var.get_role(nick), role, target))
                 if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
                     pm(cli, target, "You receive a vision that \u0002{0}\u0002 is the prophet!".format(nick))
-                    debuglog("{0} ({1}) PRAY REVEAL".format(nick, var.get_role(nick), role))
+                    debuglog("{0} ({1}) PRAY REVEAL".format(nick, var.get_role(nick)))
         else:
             # role is not in this game, this still counts as a successful activation of the power!
             pm(cli, nick, "You receive a vision that there are no \u0002{0}\u0002.".format(var.plural(role)))
@@ -5782,11 +5802,13 @@ def pray(cli, nick, chan, rest):
     else:
         # continuing a praying session from this night to obtain more information, give them the actual person
         var.PRAYED[nick][0] = 2
-        pm(cli, nick, "You receive a vision that \u0002{0}\u0002 is a \u0002{1}\u0002.".format(var.PRAYED[nick][1], var.PRAYED[nick][2]))
+        target = var.PRAYED[nick][1]
+        role = var.PRAYED[nick][2]
+        pm(cli, nick, "You receive a vision that \u0002{0}\u0002 is a \u0002{1}\u0002.".format(target, role))
         debuglog("{0} ({1}) PRAY {2} ({3}) - FULL".format(nick, var.get_role(nick), role, target))
         if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
             pm(cli, target, "You receive a vision that \u0002{0}\u0002 is the prophet!".format(nick))
-            debuglog("{0} ({1}) PRAY REVEAL".format(nick, var.get_role(nick), role))
+            debuglog("{0} ({1}) PRAY REVEAL".format(nick, var.get_role(nick)))
 
     chk_nightdone(cli)
 
@@ -6665,6 +6687,10 @@ def transition_night(cli):
     var.TOBEMISDIRECTED = set()
     var.TOTEMS = {}
     var.CONSECRATING = set()
+    for nick in var.PRAYED:
+        var.PRAYED[nick][0] = 0
+        var.PRAYED[nick][1] = None
+        var.PRAYED[nick][2] = None
 
     daydur_msg = ""
 
@@ -6976,6 +7002,24 @@ def transition_night(cli):
         else:
             pm(cli, dttv, "You are a \u0002detective\u0002.")  # !simple
         pm(cli, dttv, "Players: " + ", ".join(pl))
+
+    for pht in var.ROLES["prophet"]:
+        chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)
+        chance2 = math.floor(var.PROPHET_REVEALED_CHANCE[1] * 100)
+        warning = ""
+        if chance1 > 0:
+            warning = ("The first time each night you use your ability, you risk a {0}% chance of having " +
+                       "your identity revealed to that person. If your identity is revealed this way, you " +
+                       "cannot use your ability again that night. ").format(chance1)
+        if chance2 > 0:
+            warning += ("The second time each night you use your ability, you risk a {0}% chance of having " +
+                        "your identity revealed to that person. ").format(chance2)
+        if pht in var.PLAYERS and not is_user_simple(pht):
+            pm(cli, pht, ("You are a \u0002prophet\u0002. Each night you may pray up to twice to learn who has " +
+                          "a particular role. The first time, you are given a list of players. The second time, " +
+                          'you are given the exact player name. {0}Use "pray <role>" in PM to learn who has that role.').format(warning))
+        else:
+            pm(cli, pht, "You are a \u0002prophet\u0002.")
 
     for drunk in var.ROLES["village drunk"]:
         if drunk in var.PLAYERS and not is_user_simple(drunk):
@@ -7568,6 +7612,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.CONSECRATING = set()
     var.ENTRANCED = set()
     var.ENTRANCED_DYING = set()
+    var.PRAYED = {}
 
     var.DEADCHAT_PLAYERS = set()
 
