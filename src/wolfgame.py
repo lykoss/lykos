@@ -2169,6 +2169,11 @@ def chk_decision(cli, force = ""):
         aftermessage = None
         votelist = copy.deepcopy(var.VOTES)
         for votee, voters in votelist.items():
+            if votee in var.ROLES["succubus"]:
+                for vtr in var.ENTRANCED:
+                    if vtr in voters:
+                        voters.remove(vtr)
+
             impatient_voters = []
             numvotes = 0
             random.shuffle(var.IMPATIENT)
@@ -2533,6 +2538,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                     won = True
             elif winner == "villagers":
                 won = True
+            elif winner == "succubi" and rol == "succubus":
+                won = True
 
             survived = var.list_players()
             if plr.startswith("(dced)"):
@@ -2597,6 +2604,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                         won = False
                         iwon = False
             elif rol == "jester" and splr in var.JESTERS:
+                iwon = True
+            elif winner == "succubi" and plr in var.ROLES["succubi"] | var.ENTRANCED:
                 iwon = True
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
@@ -2672,6 +2681,8 @@ def chk_win(cli, end_game=True, winner=None):
         ldemoniacs = len(var.ROLES.get("demoniac", ()))
         ltraitors = len(var.ROLES.get("traitor", ()))
         lpipers = len(var.ROLES.get("piper", ()))
+        lsuccubi = len(var.ROLES.get("succubus", ()))
+        lentranced = len(var.ENTRANCED)
         if var.PHASE == "day":
             for p in var.WOUNDED | var.ASLEEP | var.CONSECRATING:
                 try:
@@ -2683,9 +2694,9 @@ def chk_win(cli, end_game=True, winner=None):
                 except KeyError:
                     pass
 
-        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game, winner)
+        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game, winner)
 
-def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game=True, winner=None):
+def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     chan = botconfig.CHANNEL
     with var.GRAVEYARD_LOCK:
@@ -2696,6 +2707,11 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
         elif lpl < 1:
             message = "Game over! There are no players remaining. Nobody wins."
             winner = "none"
+        elif var.PHASE == "day" and lpl - lsuccubi <= lentranced: # entranced people
+            winner = "succubi"
+            message = ("Game over! The succub{0} ha{1} won! The succub{0} then take{2} all of the "
+                       "entranced players with them, and go{3} out of the village, never to return"
+                       "...").format(*(("us", "s", "s", "es") if lsuccubi == 1 else ("i", "ve", "", "")))
         elif var.PHASE == "day" and lpipers and len(var.list_players()) - lpipers == len(var.CHARMED - var.ROLES["piper"]):
             winner = "pipers"
             message = ("Game over! Everyone has fallen victim to the charms of the " +
@@ -2747,7 +2763,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             lcubs = len(var.ROLES.get("wolf cub", ()))
             lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
             ltraitors = len(var.ROLES.get("traitor", ()))
-            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, cli, end_game)
+            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game)
 
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
         event.dispatch(var, lpl, lwolves, lrealwolves)
@@ -2777,6 +2793,9 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             elif winner == "pipers":
                 for plr in var.ROLES["piper"]:
+                    players.append("{0} ({1})".format(plr, var.get_role(plr)))
+            elif winner == "succubi":
+                for plr in var.ROLES["succubus"] | var.ENTRANCED:
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             debuglog("WIN:", winner)
             debuglog("PLAYERS:", ", ".join(players))
@@ -3621,6 +3640,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.CONSECRATING:
                 var.CONSECRATING.remove(prefix)
                 var.CONSECRATING.add(nick)
+            if prefix in var.ENTRANCED:
+                var.ENTRANCED.remove(prefix)
+                var.ENTRANCED.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -4677,10 +4699,11 @@ def chk_nightdone(cli):
                                var.OTHER_KILLS, var.PASSED, var.OBSERVED,
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("seer", "oracle", "harlot", "bodyguard", "guardian angel",
-                           "wolf", "werecrow", "alpha wolf", "sorcerer", "hunter",
-                           "hag", "shaman", "crazed shaman", "augur", "werekitten",
-                           "warlock", "piper", "wolf mystic", "fallen angel")
+    nightroles = get_roles("seer", "oracle", "harlot", "succubus", "bodyguard",
+                           "guardian angel", "wolf", "werecrow", "alpha wolf",
+                           "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
+                           "augur", "werekitten", "warlock", "piper", "wolf mystic",
+                           "fallen angel")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -5335,7 +5358,8 @@ def shoot(cli, nick, chan, rest):
         if not del_player(cli, nick, killer_role = "villager"): # blame explosion on villager's shoddy gun construction or something
             return  # Someone won.
 
-
+def is_safe(nick, victim): # helper function
+    return nick in var.ENTRANCED and victim in var.ROLES["succubus"]
 
 @cmd("kill", chan=False, pm=True, phases=("night",))
 def kill(cli, nick, chan, rest):
@@ -5388,9 +5412,15 @@ def kill(cli, nick, chan, rest):
     victim = get_victim(cli, nick, victim, False)
     if not victim:
         return
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not target a succubus.")
+        return
     if victim2 != None:
         victim2 = get_victim(cli, nick, victim2, False)
         if not victim2:
+            return
+        if is_safe(nick, victim):
+            pm(cli, nick, "You may not target a succubus.")
             return
 
     if victim == nick or victim2 == nick:
@@ -5760,9 +5790,11 @@ def pray(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
+@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot", "succubus"))
 def hvisit(cli, nick, chan, rest):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
+    role = var.get_role(nick)
+
     if var.HVISITED.get(nick):
         pm(cli, nick, ("You are already spending the night "+
                       "with \u0002{0}\u0002.").format(var.HVISITED[nick]))
@@ -5779,12 +5811,45 @@ def hvisit(cli, nick, chan, rest):
         if check_exchange(cli, nick, victim):
             return
         var.HVISITED[nick] = victim
-        pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
-                      "Have a good time!").format(victim))
-        if nick != victim: #prevent luck/misdirection totem weirdness
-            pm(cli, victim, ("You are spending the night with \u0002{0}"+
-                                     "\u0002. Have a good time!").format(nick))
-    debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
+        if role == "harlot":
+            pm(cli, nick, ("You are spending the night with \u0002{0}\u0002. "+
+                           "Have a good time!").format(victim))
+            if nick != victim: #prevent luck/misdirection totem weirdness
+                pm(cli, victim, ("You are spending the night with \u0002{0}"+
+                                         "\u0002. Have a good time!").format(nick))
+        else:
+            var.ENTRANCED.add(victim)
+            pm(cli, nick, "You are entrancing \u0002{0}\u0002 tonight.".format(victim))
+            if nick != victim:
+                pm(cli, victim, ("You are being entranced by \u0002{0}\u0002. From this point on, "
+                                 "you must vote along with them or risk dying. For as long as they "
+                                 "are alive, you \u0002cannot win with your own team\u0002, but you "
+                                 "will win along them if they are alive.").format(nick))
+
+            if var.OTHER_KILLS.get(victim) == nick:
+                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002.".format(nick)) # placeholder
+                del var.OTHER_KILLS[victim]
+            if var.TARGETED.get(victim) == nick:
+                pm(cli, victim, "You have retracted your targetting on \u0002{0}\u0002.".format(nick))
+                del var.TARGETED[victim]
+            if var.SHAMANS.get(victim) == nick and var.TOTEMS[victim] in var.DETRIMENTAL_TOTEMS:
+                pm(cli, victim, "You have retracted your totem on \u0002{0}\u0002.".format(nick))
+                del var.SHAMANS[victim]
+            if victim in var.HEXED and var.LASTHEXED[victim] == nick:
+                pm(cli, victim, "You have retracted your hex on \u0002{0}\u0002.".format(nick))
+                var.TOBESILENCED.remove(nick)
+                var.HEXED.remove(victim)
+                del var.LASTHEXED[victim]
+            if nick in var.KILLS.get(victim, ()):
+                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002.".format(nick))
+                var.KILLS[victim].remove(nick)
+                if not var.KILLS[victim]:
+                    del var.KILLS[victim]
+            if var.BITE_PREFERENCES.get(victim) == nick:
+                pm(cli, victim, "You are retracted your bite on \u0002{0}\u0002.".format(nick))
+                del var.BITE_PREFERENCES[victim]
+
+    debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 def is_fake_nick(who):
@@ -5870,6 +5935,9 @@ def totem(cli, nick, chan, rest, prefix="You"):
     role = var.get_role(nick)
     if role != "crazed shaman":
         totem = " of " + var.TOTEMS[nick]
+    if is_safe(nick, victim) and var.TOTEMS[nick] in var.DETRIMENTAL_TOTEMS:
+        pm(cli, nick, "You may not give a totem{0} to a succubus.".format(totem))
+        return
     pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, totem, original_victim))
     var.SHAMANS[nick] = (victim, original_victim)
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, totem))
@@ -5975,6 +6043,9 @@ def bite_cmd(cli, nick, chan, rest):
 
     if not victim:
         pm(cli, nick, "Please choose who to bite by specifying their nick.")
+        return
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not bite a succubus.")
         return
 
     vrole = var.get_role(victim)
@@ -6179,6 +6250,10 @@ def target(cli, nick, chan, rest):
         pm(cli, nick, "You may not target yourself.")
         return
 
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not target a succubus.")
+        return
+
     victim = choose_target(nick, victim)
     # assassin is a template so it will never get swapped, so don't check for exchanges with it
     var.TARGETED[nick] = victim
@@ -6203,6 +6278,10 @@ def hex_target(cli, nick, chan, rest):
     if var.LASTHEXED.get(nick) == victim:
         pm(cli, nick, ("You hexed \u0002{0}\u0002 last night. " +
                        "You cannot hex the same person two nights in a row.").format(victim))
+        return
+
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not hex a succubus.")
         return
 
     victim = choose_target(nick, victim)
@@ -6244,6 +6323,9 @@ def curse(cli, nick, chan, rest):
         return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
+        return
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not curse a succubus.")
         return
 
     # There may actually be valid strategy in cursing other wolfteam members,
@@ -6323,10 +6405,15 @@ def charm(cli, nick, chan, rest):
     victim = get_victim(cli, nick, victim, False, True)
     if not victim:
         return
+    if is_safe(nick, victim):
+        pm(cli, nick, "You may not charm a succubus.")
+        return
     if victim2 is not None:
         victim2 = get_victim(cli, nick, victim2, False, True)
         if not victim2:
             return
+        if is_safe(nick, victim):
+            pm(cli, nick, "You may not charm a succubus.")
 
     if victim == victim2:
         pm(cli, nick, "You must choose two different people.")
@@ -7479,6 +7566,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BLESSED = set()
     var.PRIESTS = set()
     var.CONSECRATING = set()
+    var.ENTRANCED = set()
+    var.ENTRANCED_DYING = set()
 
     var.DEADCHAT_PLAYERS = set()
 

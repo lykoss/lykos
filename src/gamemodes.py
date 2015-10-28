@@ -514,10 +514,12 @@ class RandomMode(GameMode):
         lcubs = addroles["wolf cub"]
         lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
         lmonsters = addroles["monster"]
+        ldemoniacs = addroles["demoniacs"]
         ltraitors = addroles["traitor"]
         lpipers = addroles["piper"]
+        lsuccubi = addroles["succubus"]
 
-        if chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ltraitors, lpipers, cli, end_game=False):
+        if chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
             return self.role_attribution(evt, cli, chk_win_conditions, var, villagers)
 
         evt.prevent_default = True
