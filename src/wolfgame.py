@@ -2092,7 +2092,7 @@ def hurry_up(cli, gameid, change):
     var.DAY_ID = 0
 
     pl = var.list_players()
-    avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+    avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
     votesneeded = avail // 2 + 1
     not_lynching = len(var.NO_LYNCH)
 
@@ -2155,11 +2155,11 @@ def chk_decision(cli, force = ""):
             return
         chan = botconfig.CHANNEL
         pl = var.list_players()
-        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
         votesneeded = avail // 2 + 1
         not_lynching = list(var.NO_LYNCH)
         for p in var.PACIFISTS:
-            if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING):
+            if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
                 not_lynching.append(p)
 
         # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
@@ -2194,7 +2194,7 @@ def chk_decision(cli, force = ""):
             numvotes = 0
             random.shuffle(var.IMPATIENT)
             for v in var.IMPATIENT:
-                if v in pl and v not in voters and v != votee and v not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING):
+                if v in pl and v not in voters and v != votee and v not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
                     # don't add them in if they have the same number or more of pacifism totems
                     # this matters for desperation totem on the votee
                     imp_count = var.IMPATIENT.count(v)
@@ -2366,7 +2366,7 @@ def show_votes(cli, nick, chan, rest):
             cli.msg(chan, msg)
 
         pl = var.list_players()
-        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
         votesneeded = avail // 2 + 1
         not_voting = len(var.NO_LYNCH)
         if not_voting == 1:
@@ -2718,7 +2718,7 @@ def chk_win(cli, end_game=True, winner=None):
         lsuccubi = len(var.ROLES.get("succubus", ()))
         lentranced = len(var.ENTRANCED)
         if var.PHASE == "day":
-            for p in var.WOUNDED | var.ASLEEP | var.CONSECRATING:
+            for p in var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK:
                 try:
                     role = var.get_role(p)
                     if role in var.WOLFCHAT_ROLES:
@@ -3233,6 +3233,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 var.WOUNDED.discard(nick)
                 var.ASLEEP.discard(nick)
                 var.CONSECRATING.discard(nick)
+                var.SICK.discard(nick)
                 chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
@@ -3705,6 +3706,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.ENTRANCED_DYING:
                 var.ENTRANCED_DYING.remove(prefix)
                 var.ENTRANCED_DYING.add(nick)
+            if prefix in var.SICK:
+                var.SICK.remove(prefix)
+                var.SICK.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -4159,6 +4163,9 @@ def transition_day(cli, gameid=0):
     var.CHARMED.update(var.TOBECHARMED)
     var.TOBECHARMED.clear()
     
+    # send PMs to sick players
+    for victim in var.SICK:
+        pm(cli, victim, "You woke up today not feeling very well, you think it best to stay home for the remainder of the day and night.")
 
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
@@ -4875,6 +4882,9 @@ def no_lynch(cli, nick, chan, rest):
         elif nick in var.CONSECRATING:
             pm(cli, nick, "You are consecrating someone today and cannot participate in the vote.")
             return
+        elif nick in var.SICK:
+            pm(cli, nick, "You are staying home due to your illness and cannot participate in the vote.")
+            return
         candidates = var.VOTES.keys()
         for voter in list(candidates):
             if nick in var.VOTES[voter]:
@@ -4909,6 +4919,9 @@ def lynch(cli, nick, chan, rest):
         return
     if nick in var.CONSECRATING:
         pm(cli, nick, "You are consecrating someone today and cannot participate in the vote.")
+        return
+    if nick in var.SICK:
+        pm(cli, nick, "You are staying home due to your illness and cannot participate in the vote.")
         return
 
     var.NO_LYNCH.discard(nick)
@@ -5950,7 +5963,7 @@ def hvisit(cli, nick, chan, rest):
 def is_fake_nick(who):
     return re.search(r"^[0-9]+$", who)
 
-@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur"))
+@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur", "doomsayer"))
 def see(cli, nick, chan, rest):
     """Use your paranormal powers to determine the role or alignment of a player."""
     role = var.get_role(nick)
@@ -5965,6 +5978,9 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, "Seeing yourself would be a waste.")
         return
     victim = choose_target(nick, victim)
+    if role == "doomsayer" and is_safe(nick, victim):
+        pm(cli, nick, "You may not see a succubus.")
+        return
     if check_exchange(cli, nick, victim):
         return
     victimrole = var.get_role(victim)
@@ -6000,6 +6016,24 @@ def see(cli, nick, chan, rest):
                        "you see that \u0002{0}\u0002 exudes " +
                        "a \u0002{1}\u0002 aura!").format(victim, aura))
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4} ({5} aura)".format(nick, role, victim, vrole, victimrole, aura))
+    elif role == "doomsayer":
+        mode = random.randint(1, 3)
+        if mode == 1:
+            mode = "DEATH"
+            pm(cli, nick, "You have a vision that \u0002{0}\u0002 will meet an untimely end tonight.".format(victim))
+            var.OTHER_KILLS[nick] = victim
+        elif mode == 2:
+            mode = "LYCAN"
+            pm(cli, nick, "You have a vision that \u0002{0}\u0002 is transforming into a savage beast tomorrow night.".format(victim))
+            var.TOBELYCANTHROPES.add(victim)
+        elif mode == 3:
+            mode = "SICK"
+            pm(cli, nick, "You have a vision that \u0002{0}\u0002 will become incredibly ill tomorrow and unable to do anything.".format(victim))
+            var.TOBEDISEASED.add(victim)
+            var.TOBESILENCED.add(victim)
+            var.SICK.add(victim) # counts as unable to vote and lets them know at beginning of day that they aren't feeling well
+        debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, vrole, mode))
+
     var.SEEN.add(nick)
     chk_nightdone(cli)
 
@@ -6760,6 +6794,7 @@ def transition_night(cli):
     var.TOBEMISDIRECTED = set()
     var.TOTEMS = {}
     var.CONSECRATING = set()
+    var.SICK = set()
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
         var.PRAYED[nick][1] = None
@@ -7701,6 +7736,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ENTRANCED = set()
     var.ENTRANCED_DYING = set()
     var.PRAYED = {}
+    var.SICK = set()
 
     var.DEADCHAT_PLAYERS = set()
 
