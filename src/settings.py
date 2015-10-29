@@ -260,8 +260,8 @@ SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
 SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
                           "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper", "doomsayer", "demoniac"})
 
-# these totems are detrimental for the *receiving* person, but can be detrimental to someone else acting on the receiver!
-DETRIMENTAL_TOTEMS = frozenset({"death", "silence", "impatience", "pacifism", "narcolepsy", "exchange", "lycanthropy", "misdirection"})
+# these totems are beneficial for the *receiving* person, but can be detrimental to someone else acting on the receiver!
+BENEFICIAL_TOTEMS = frozenset({"protection", "revealing", "desperation", "influence", "luck", "pestilence", "retribution"})
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead

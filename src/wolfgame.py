@@ -2178,7 +2178,7 @@ def chk_decision(cli, force = ""):
                     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes not to lynch anyone today.".format(p))
             cli.msg(botconfig.CHANNEL, "The villagers have agreed not to lynch anybody today.")
             if var.ROLES["succubus"] & var.NO_LYNCH:
-                var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH)
+                var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH - var.DEAD)
             var.ABSTAINED = True
             transition_night(cli)
             return
@@ -2280,14 +2280,15 @@ def chk_decision(cli, force = ""):
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
 
-                    voted_along = set()
-                    for person, all_voters in var.VOTES.items():
-                        if var.ROLES["succubus"] & set(all_voters):
-                            for v in all_voters:
-                                if v in var.ENTRANCED:
-                                    voted_along.add(v)
+                    if not var.ROLES["succubus"] & set(var.VOTES[votee]):
+                        voted_along = set()
+                        for person, all_voters in var.VOTES.items():
+                            if var.ROLES["succubus"] & set(all_voters):
+                                for v in all_voters:
+                                    if v in var.ENTRANCED:
+                                        voted_along.add(v)
 
-                    var.ENTRANCED_DYING.update(var.ENTRANCED - voted_along) # can be the empty set
+                        var.ENTRANCED_DYING.update(var.ENTRANCED - voted_along - var.DEAD) # can be the empty set
 
                     if var.ROLE_REVEAL in ("on", "team"):
                         rrole = var.get_reveal_role(votee)
@@ -4524,7 +4525,7 @@ def transition_day(cli, gameid=0):
                 novictmsg = False
         elif victim in var.ENTRANCED_DYING:
             message.append(("\u0002{0}\u0002 was found dead by the village's center, and seem to "
-                            "have died of faithlessness...").format(victim))
+                            "have died of a lack of faithfulness...").format(victim))
             novictmsg = False
         elif protected.get(victim) == "totem":
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
@@ -4631,9 +4632,9 @@ def transition_day(cli, gameid=0):
         if victim in dead and victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
             for hlt in var.HVISITED.keys():
                 if var.HVISITED[hlt] == victim and hlt not in bitten and hlt not in dead:
-                    message.append(("\u0002{0}\u0002, a \u0002harlot\u0002, made the unfortunate mistake of "+
+                    message.append(("\u0002{0}\u0002, a \u0002{1}\u0002, made the unfortunate mistake of "+
                                     "visiting the victim's house last night and is "+
-                                    "now dead.").format(hlt))
+                                    "now dead.").format(hlt, var.get_role(hlt)))
                     bywolves.add(hlt)
                     onlybywolves.add(hlt)
                     dead.append(hlt)
@@ -5916,27 +5917,31 @@ def hvisit(cli, nick, chan, rest):
                                  "are alive, you \u0002cannot win with your own team\u0002, but you "
                                  "will win along them if they are alive.").format(nick))
 
-            if var.OTHER_KILLS.get(victim) == nick:
-                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002.".format(nick)) # placeholder
+            if var.OTHER_KILLS.get(victim) in var.ROLES["succubus"]:
+                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002, a succubus.".format(nick)) # placeholder
                 del var.OTHER_KILLS[victim]
-            if var.TARGETED.get(victim) == nick:
-                pm(cli, victim, "You have retracted your targetting on \u0002{0}\u0002.".format(nick))
+            if var.TARGETED.get(victim) in var.ROLES["succubus"]:
+                pm(cli, victim, "You have retracted your targetting on \u0002{0}\u0002, a succubus.".format(nick))
                 del var.TARGETED[victim]
-            if var.SHAMANS.get(victim) == nick and (var.get_role(victim) == "crazed shaman" or var.TOTEMS[victim] in var.DETRIMENTAL_TOTEMS):
-                pm(cli, victim, "You have retracted your totem on \u0002{0}\u0002.".format(nick))
+                if victim in var.ROLES["village drunk"]:
+                    target = random.choice(list(set(var.list_players()) - var.ROLES["succubus"]))
+                    pm(cli, victim, "In your drunken stupor, you have selected \u0002{0}\u0002 as your target.".format(target))
+                    var.TARGETED[victim] = target
+            if var.SHAMANS.get(victim)[1] in var.ROLES["succubus"] and (var.get_role(victim) == "crazed shaman" or var.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS):
+                pm(cli, victim, "You have retracted your totem on \u0002{0}\u0002, a succubus.".format(nick))
                 del var.SHAMANS[victim]
-            if victim in var.HEXED and var.LASTHEXED[victim] == nick:
-                pm(cli, victim, "You have retracted your hex on \u0002{0}\u0002.".format(nick))
+            if victim in var.HEXED and var.LASTHEXED[victim] in var.ROLES["succubus"]:
+                pm(cli, victim, "You have retracted your hex on \u0002{0}\u0002, a succubus.".format(nick))
                 var.TOBESILENCED.remove(nick)
                 var.HEXED.remove(victim)
                 del var.LASTHEXED[victim]
-            if nick in var.KILLS.get(victim, ()):
-                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002.".format(nick))
+            if set(var.KILLS.get(victim, ())) & var.ROLES["succubus"]:
+                pm(cli, victim, "You have retracted your kill on \u0002{0}\u0002, a succubus.".format(nick))
                 var.KILLS[victim].remove(nick)
                 if not var.KILLS[victim]:
                     del var.KILLS[victim]
-            if var.BITE_PREFERENCES.get(victim) == nick:
-                pm(cli, victim, "You are retracted your bite on \u0002{0}\u0002.".format(nick))
+            if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
+                pm(cli, victim, "You are retracted your bite on \u0002{0}\u0002, a succubus.".format(nick))
                 del var.BITE_PREFERENCES[victim]
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
@@ -9245,6 +9250,12 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         #show who got immunized
         if var.IMMUNIZED:
             output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
+
+        if var.ENTRANCED:
+            output.append("\u0002entranced players\u0002: {0}".format(", ".join(var.ENTRANCED)))
+
+        if var.ENTRANCED_DYING:
+            output.append("\u0002dying entranced players\u0002: {0}".format(", ".join(var.ENTRANCED_DYING)))
 
         # get charmed players
         if var.CHARMED | var.TOBECHARMED:
