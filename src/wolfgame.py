@@ -4035,6 +4035,10 @@ def transition_day(cli, gameid=0):
                 ps = pl[:]
                 if var.LASTGIVEN.get(shaman) in ps:
                     ps.remove(var.LASTGIVEN.get(shaman))
+                if shaman in var.ENTRANCED:
+                    for succubus in var.ROLES["succubus"]:
+                        if succubus in ps:
+                            ps.remove(succubus)
                 totem.func(cli, shaman, shaman, random.choice(ps), prefix="Because you forgot to give out your totem at night, you")
             else:
                 var.LASTGIVEN[shaman] = None
