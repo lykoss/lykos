@@ -2280,7 +2280,7 @@ def chk_decision(cli, force = ""):
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
 
-                    if not var.ROLES["succubus"] & set(var.VOTES[votee]):
+                    if not var.ROLES["succubus"] & set(var.VOTES[votee]) and var.ROLES["succubus"] & set(itertools.chain(*var.VOTES.values())):
                         voted_along = set()
                         for person, all_voters in var.VOTES.items():
                             if var.ROLES["succubus"] & set(all_voters):
@@ -4420,7 +4420,9 @@ def transition_day(cli, gameid=0):
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
     for v in victims_set:
-        if v in var.ROLES["bodyguard"] and var.GUARDED.get(v) in victims_set:
+        if v in var.ENTRANCED_DYING:
+            victims.append(v)
+        elif v in var.ROLES["bodyguard"] and var.GUARDED.get(v) in victims_set:
             vappend.append(v)
         elif v in var.ROLES["harlot"] and var.HVISITED.get(v) in victims_set:
             vappend.append(v)
@@ -4531,8 +4533,8 @@ def transition_day(cli, gameid=0):
                 message.append("The wolves' selected victim was not home last night, and avoided the attack.")
                 novictmsg = False
         elif victim in var.ENTRANCED_DYING:
-            message.append(("\u0002{0}\u0002 was found dead by the village's center, and seem to "
-                            "have died of a lack of faithfulness...").format(victim))
+            message.append("\u0002{0}\u0002 seems to have died of a lack of faithfulness...".format(victim))
+            dead.append(victim)
             novictmsg = False
         elif protected.get(victim) == "totem":
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
@@ -5386,11 +5388,8 @@ def shoot(cli, nick, chan, rest):
         var.GUNNERS[nick] -= 1
 
     rand = random.random()
-    if victim in var.ROLES["succubus"] and nick in var.ENTRANCED: # hardcoded chances for entranced targetting succubus
-        if nick in var.ROLES["sharpshooter"]:
-            chances = (1, 0, 0, 0)
-        else:
-            chances = (1, 0, 0, 0)
+    if victim in var.ROLES["succubus"]: # hardcoded chances for entranced targetting succubus
+        chances = (1, 0, 0, 0)
     elif nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
     elif nick in var.ROLES["sharpshooter"]:
@@ -5940,7 +5939,7 @@ def hvisit(cli, nick, chan, rest):
                     target = random.choice(list(set(var.list_players()) - var.ROLES["succubus"]))
                     pm(cli, victim, "In your drunken stupor, you have selected \u0002{0}\u0002 as your target.".format(target))
                     var.TARGETED[victim] = target
-            if var.SHAMANS.get(victim)[1] in var.ROLES["succubus"] and (var.get_role(victim) == "crazed shaman" or var.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS):
+            if var.SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and (var.get_role(victim) == "crazed shaman" or var.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS):
                 pm(cli, victim, "You have retracted your totem on \u0002{0}\u0002, a succubus.".format(nick))
                 del var.SHAMANS[victim]
             if victim in var.HEXED and var.LASTHEXED[victim] in var.ROLES["succubus"]:
