@@ -4261,12 +4261,19 @@ def transition_day(cli, gameid=0):
                 onlybywolves.discard(monster)
 
     wolfghostvictims = []
+    dead_vigilantes = set()
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
         killers[d].append(k)
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
+        if k in var.ROLES["vigilante"]:
+            if d not in var.WOLF_ROLES | {"monster", "succubus", "demoniac"}:
+                victims.append(k)
+                onlybywolves.discard(k)
+                dead_vigilantes.add(k)
+
     # clear list so that it doesn't pm hunter / ghost about being able to kill again
     var.OTHER_KILLS = {}
 
@@ -4348,7 +4355,7 @@ def transition_day(cli, gameid=0):
     pl = var.list_players()
     for v in pl:
         if v in victims_set:
-            if v in var.ENTRANCED_DYING:
+            if v in var.ENTRANCED_DYING | dead_vigilantes:
                 continue # bypass protections
             numkills = victims.count(v)
             numtotems = var.PROTECTED.count(v)
@@ -4436,7 +4443,7 @@ def transition_day(cli, gameid=0):
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
     for v in victims_set:
-        if v in var.ENTRANCED_DYING:
+        if v in var.ENTRANCED_DYING | dead_vigilantes:
             victims.append(v)
         elif v in var.ROLES["bodyguard"] and var.GUARDED.get(v) in victims_set:
             vappend.append(v)
@@ -4818,7 +4825,7 @@ def chk_nightdone(cli):
                            "guardian angel", "wolf", "werecrow", "alpha wolf",
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
-                           "fallen angel")
+                           "fallen angel", "dullahan", "vigilante")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -5500,7 +5507,7 @@ def kill(cli, nick, chan, rest):
     wolfroles = var.WOLF_ROLES - {"wolf cub"}
     if role in var.WOLFCHAT_ROLES and role not in wolfroles:
         return  # they do this a lot.
-    if role not in wolfroles | {"hunter"} and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in wolfroles | {"hunter", "dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
@@ -6345,6 +6352,11 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, "You have already charmed players tonight.")
             return
         pm(cli, nick, "You have chosen not to charm anyone tonight.")
+        var.PASSED.add(nick)
+    elif nickrole == "vigilante":
+        if nick in var.OTHER_KILLS:
+            del var.OTHER_KILLS[nick]
+        pm(cli, nick, "You have chosen not to kill anyone tonight.")
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
@@ -7325,6 +7337,19 @@ def transition_night(cli):
         else:
             pm(cli, succubus, "You are a \u0002succubus\u0002.")
         pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, var.get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
+
+    for vigilante in var.ROLES["vigilante"]:
+        pl = ps[:]
+        random.shuffle(pl)
+        pl.remove(vigilante)
+        if vigilante in var.PLAYERS and not is_user_simple(vigilante):
+            pm(cli, vigilante, ('You are a \u0002vigilante\u0002. Each night, you may kill someone by '
+                                'doing "kill <nick>", or use "pass" to pass. If the person you kill is '
+                                'one of the wolves or an evil neutral, you will survive. Otherwise, you '
+                                'will die alongside your victim.'))
+        else:
+            pm(cli, vigilante, "You are a \u0002vigilante\u0002.")
+        pm(cli, vigilante, "Players: " + ", ".join(pl))
 
     for ms in var.ROLES["mad scientist"]:
         pl = ps[:]
