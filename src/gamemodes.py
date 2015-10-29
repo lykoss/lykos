@@ -750,7 +750,8 @@ class SleepyMode(GameMode):
             })
         # this ensures that priest will always receive the blessed villager and prophet templates
         # prophet is normally a role by itself, but we're turning it into a template for this mode
-        self.TEMPLATE_RESTRICTIONS["cursed villager"] |= "priest"
+        self.TEMPLATE_RESTRICTIONS = var.TEMPLATE_RESTRICTIONS.copy()
+        self.TEMPLATE_RESTRICTIONS["cursed villager"] |= {"priest"}
         self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
         self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
         # this ensures that village drunk will always receive the gunner template

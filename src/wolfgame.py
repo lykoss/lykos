@@ -7906,8 +7906,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES["sharpshooter"].discard(None)
 
     # Handle blessed villager
-    for blessed in var.ROLES["blessed villager"]:
-        var.BLESSED.add(blessed)
+    var.BLESSED.update(var.ROLES["blessed villager"])
 
     if not restart:
         var.SPECIAL_ROLES["goat herder"] = []
