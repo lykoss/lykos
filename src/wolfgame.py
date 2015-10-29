@@ -1126,13 +1126,17 @@ def join_deadchat(cli, *all_nicks):
 
     return True
 
-def leave_deadchat(cli, nick):
+def leave_deadchat(cli, nick, force=""):
     if var.PHASE not in ("day", "night") or nick not in var.DEADCHAT_PLAYERS:
         return False
 
     var.DEADCHAT_PLAYERS.remove(nick)
-    pm(cli, nick, "You have left the chat.")
-    mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the chat.".format(nick))
+    if force:
+        pm(cli, nick, "You have been forcibly removed from the chat by \u0002{0}\u0002.".format(force))
+        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has been removed from the chat by \u0002{1}\u0002.".format(nick, force))
+    else:
+        pm(cli, nick, "You have left the chat.")
+        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the chat.".format(nick))
 
     return True
 
@@ -1410,7 +1414,7 @@ def fjoin(cli, nick, chan, rest):
     if fake:
         cli.msg(chan, "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.".format(nick, len(var.list_players())))
 
-@cmd("fleave", "fquit", admin_only=True, phases=("join", "day", "night"))
+@cmd("fleave", "fquit", admin_only=True, pm=True, phases=("join", "day", "night"))
 def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
     if chan != botconfig.CHANNEL:
@@ -1422,24 +1426,34 @@ def fleave(cli, nick, chan, rest):
             continue
         pl = var.list_players()
         pll = [x.lower() for x in pl]
+        dcl = list(var.DEADCHAT_PLAYERS)
+        dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
             a = pl[pll.index(a.lower())]
+
+            message = "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.".format(nick, a)
+            if var.get_role(a) != "person" and var.ROLE_REVEAL:
+                message += " Say goodbye to the \u0002{0}\u0002.".format(var.get_reveal_role(a))
+            if var.PHASE == "join":
+                lpl = len(var.list_players()) - 1
+                if lpl == 0:
+                    message += " No more players remaining."
+                else:
+                    message += " New player count: \u0002{0}\u0002".format(lpl)
+            cli.msg(chan, message)
+
+            del_player(cli, a, death_triggers=False)
+
+        elif a.lower() in dcll:
+            a = dcl[dcll.index(a.lower())]
+
+            leave_deadchat(cli, a, force=nick)
+
         else:
             cli.msg(chan, nick+": That person is not playing.")
             return
 
-        message = "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.".format(nick, a)
-        if var.get_role(a) != "person" and var.ROLE_REVEAL:
-            message += " Say goodbye to the \u0002{0}\u0002.".format(var.get_reveal_role(a))
-        if var.PHASE == "join":
-            lpl = len(var.list_players()) - 1
-            if lpl == 0:
-                message += " No more players remaining."
-            else:
-                message += " New player count: \u0002{0}\u0002".format(lpl)
-        cli.msg(chan, message)
-
-        del_player(cli, a, death_triggers=False)
+        
 
 
 @cmd("fstart", admin_only=True, phases=("join",))
