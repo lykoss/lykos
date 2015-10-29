@@ -2261,23 +2261,31 @@ def chk_decision(cli, force = ""):
                             return
                     # roles that eliminate other players upon being lynched
                     # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
-                    if votee in var.DESPERATE:
+                    if votee in var.DESPERATE | var.ROLES["dullahan"]:
                         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
                         target = voters[-1]
                         if target != votee:
-                            if var.ROLE_REVEAL in ("on", "team"):
+                            if var.ROLE_REVEAL in ("on", "team") and votee not in var.ROLES["dullahan"]:
                                 r1 = var.get_reveal_role(target)
                                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                                 tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                                         "When the villagers are able to see again, they discover that \u0002{1}\u0002, " +
                                         "a{2} \u0002{3}\u0002, has fallen over dead.").format(votee, target, an1, r1)
-                            else:
+                            elif votee not in var.ROLES["dullahan"]:
                                 tmsg = ("As the noose is being fitted, \u0002{0}\u0002's totem emits a brilliant flash of light. " +
                                         "When the villagers are able to see again, they discover that \u0002{1}\u0002 " +
                                         "has fallen over dead.").format(votee, target)
+                            elif var.ROLE_REVEAL in ("on", "team"):
+                                r1 = var.get_reveal_role(target)
+                                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
+                                tmsg = ("Pushed towards the gallows, \u0002{0}\u0002 pulls a spine whip out of nowhere "+
+                                        "and snaps \u0002{1}\u0002, a{2} \u0002{3}\u0002, out of existence.").format(votee, target, an1, r1)
+                            else:
+                                tmsg = ("Pushed towards the gallows, \u0002{0}\u0002 pulls a spine whip out of nowhere "+
+                                        "and snaps \u0002{1}\u0002 out of existence.").format(votee, target)
                             cli.msg(botconfig.CHANNEL, tmsg)
                             # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
-                            del_player(cli, target, True, end_game=False, killer_role="shaman", ismain=False) # do not end game just yet, we have more killin's to do!
+                            del_player(cli, target, True, end_game=False, killer_role="dullahan" if votee in var.ROLES["dullahan"] else "shaman", ismain=False) # do not end game just yet, we have more killin's to do!
                     # Other
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
@@ -2644,6 +2652,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                         won = False
                         iwon = False
             elif rol == "jester" and splr in var.JESTERS:
+                iwon = True
+            elif rol == "dullahan" and not var.DULLAHAN_TARGETS[splr] & set(var.list_players()):
                 iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
@@ -3571,7 +3581,7 @@ def rename_player(cli, prefix, nick):
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
             # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
-            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS):
+            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS, var.DULLAHAN_TARGETS):
                 kvp = []
                 for a,b in dictvar.items():
                     nl = set()
@@ -4582,8 +4592,8 @@ def transition_day(cli, gameid=0):
                 pm(cli, victim, "Wolves: " + ", ".join(wolves))
                 novictmsg = False
         elif victim not in dead: # not already dead via some other means
-            if victim in var.RETRIBUTION:
-                loser = random.choice(killers[victim])
+            if victim in var.RETRIBUTION | var.ROLES["dullahan"]:
+                loser = random.choice(killers[victim]) if killers[victim] else None
                 if loser == "@wolves":
                     wolves = var.list_players(var.WOLF_ROLES)
                     for crow in var.ROLES["werecrow"]:
@@ -4593,18 +4603,30 @@ def transition_day(cli, gameid=0):
                 if loser in var.VENGEFUL_GHOSTS.keys():
                     # mark ghost as being unable to kill any more
                     var.VENGEFUL_GHOSTS[loser] = "!" + var.VENGEFUL_GHOSTS[loser]
-                    message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
-                                    "It appears that \u0002{1}\u0002's spirit was driven away by the flash.").format(victim, loser))
-                else:
+                    if victim not in var.ROLES["dullahan"]:
+                        message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
+                                        "It appears that \u0002{1}\u0002's spirit was driven away by the flash.").format(victim, loser))
+                    else:
+                        message.append(("\u0002{0}\u0002 was attacked by \u0002{1}\u0002's spirit last night, " +
+                                        "however their strong spiritual powers drove away the spirit.").format(victim, loser))
+                elif loser is not None:
                     dead.append(loser)
-                    if var.ROLE_REVEAL in ("on", "team"):
+                    if var.ROLE_REVEAL in ("on", "team") and victim not in var.ROLES["dullahan"]:
                         role = var.get_reveal_role(loser)
                         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                         message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
                                         "The dead body of \u0002{1}\u0002, a{2} \u0002{3}\u0002, was found at the scene.").format(victim, loser, an, role))
-                    else:
+                    elif victim not in var.ROLES["dullahan"]:
                         message.append(("\u0002{0}\u0002's totem emitted a brilliant flash of light last night. " +
                                         "The dead body of \u0002{1}\u0002 was found at the scene.").format(victim, loser))
+                    elif var.ROLE_REVEAL in ("on", "team"):
+                        role = var.get_reveal_role(loser)
+                        an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                        message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
+                                        "\u0002{1}\u0002, a{2} \u0002{3}\u0002, and were found dead at the scene.").format(victim, lower, an, role))
+                    else:
+                        message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
+                                        "\u0002{1}\u0002, and were found dead at the scene.").format(victim, loser))
             if var.ROLE_REVEAL in ("on", "team"):
                 role = var.get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -4643,9 +4665,13 @@ def transition_day(cli, gameid=0):
         if victim in dead and victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
             for hlt in var.HVISITED.keys():
                 if var.HVISITED[hlt] == victim and hlt not in bitten and hlt not in dead:
-                    message.append(("\u0002{0}\u0002, a \u0002{1}\u0002, made the unfortunate mistake of "+
-                                    "visiting the victim's house last night and is "+
-                                    "now dead.").format(hlt, var.get_role(hlt)))
+                    if var.ROLE_REVEAL in ("on", "team"):
+                        message.append(("\u0002{0}\u0002, a \u0002{1}\u0002, made the unfortunate mistake of " +
+                                        "visiting the victim's house last night and is "+
+                                        "now dead.").format(hlt, var.get_role(hlt)))
+                    else:
+                        message.append(("\u0002{0}\u0002 made the unfortunate mistake of visiting the victim's " +
+                                        "house last night and is now dead.").format(hlt))
                     bywolves.add(hlt)
                     onlybywolves.add(hlt)
                     dead.append(hlt)
@@ -5479,6 +5505,9 @@ def kill(cli, nick, chan, rest):
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
         return
+    if role == "dullahan" and not var.DULLAHAN_TARGETS[nick] & set(var.list_players()):
+        # all their targets are dead
+        return
     if role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS:
         # they are a hunter and did not kill this night (if they killed this night, this allows them to switch)
         pm(cli, nick, "You have already killed someone this game.")
@@ -5511,6 +5540,9 @@ def kill(cli, nick, chan, rest):
 
     victim = get_victim(cli, nick, victim, False)
     if not victim:
+        return
+    if role == "dullahan" and victim not in var.DULLAHAN_TARGETS[nick]:
+        pm(cli, nick, "\u0002{0}\u0002 is not one of your targets.".format(victim))
         return
     if is_safe(nick, victim):
         pm(cli, nick, "You may not target a succubus.")
@@ -5976,6 +6008,17 @@ def hvisit(cli, nick, chan, rest):
             if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
                 pm(cli, victim, "You discover that \u0002{0}\u0002 is a succubus and have retracted your kill as a result.".format(var.BITE_PREFERENCES[victim]))
                 del var.BITE_PREFERENCES[victim]
+            if var.DULLAHAN_TARGETS.get(victim, set()) & var.ROLES["succubus"]:
+                to_rem = var.ROLES["succubus"] & var.DULLAHAN_TARGETS[victim]
+                if len(to_rem) == 1 and nick in to_rem:
+                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002 to win.".format(nick))
+                elif len(to_rem) == 2:
+                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002 and \u0002{1}\u0002 to win.".format(*to_rem))
+                else: # that should never happen, but we should still account for it (e.g. random)
+                    t = list(to_rem)
+                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002, and \u0002{1}\u0002 to win.".format(", ".join(t[:-1]), t[-1]))
+
+                var.DULLAHAN_TARGETS[victim] -= to_rem
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -7255,6 +7298,21 @@ def transition_night(cli):
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
+    for dullahan in var.ROLES["dullahan"]:
+        targets = var.DULLAHAN_TARGETS[dullahan]
+        for target in var.DEAD:
+            targets.discard(target)
+        if not targets: # already all dead
+            continue
+        if dullahan in var.PLAYERS and not is_user_simple(dullahan):
+            pm(cli, dullahan, ('You are a \u0002dullahan\u0002. Every night, you may kill someone ' +
+                               'by using "kill <nick>". All of your targets must be dead by the end ' +
+                               'of the game, and you will win even if you are not alive at the end.'))
+        else:
+            pm(cli, dullahan, "You are a \u0002dullahan\u0002.")
+        t = "Targets: " if var.FIRST_NIGHT else "Remaining targets: "
+        pm(cli, dullahan, t + ", ".join(targets))
+
     for succubus in var.ROLES["succubus"]:
         pl = ps[:]
         random.shuffle(pl)
@@ -7764,6 +7822,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ENTRANCED_DYING = set()
     var.PRAYED = {}
     var.SICK = set()
+    var.DULLAHAN_TARGETS = {}
 
     var.DEADCHAT_PLAYERS = set()
 
@@ -7839,6 +7898,21 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_STATS = None
     var.LAST_TIME = None
     var.LAST_VOTES = None
+
+    if var.ROLES["dullahan"]: # assign random targets to dullahan to kill
+        max_targets = len(pl) // 2 - 1
+        for dull in var.ROLES["dullahan"]:
+            var.DULLAHAN_TARGETS[dull] = set()
+        dull_targets = Event("dullahan_targets", {"targets": var.DULLAHAN_TARGETS}) # support sleepy
+        dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
+
+        for dull, ts in var.DULLAHAN_TARGETS.items():
+            ps = pl[:]
+            ps.remove(dull)
+            while len(ts) < max_targets:
+                target = random.choice(ps)
+                ps.remove(target)
+                ts.add(target)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
