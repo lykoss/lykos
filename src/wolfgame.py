@@ -2163,6 +2163,8 @@ def chk_decision(cli, force = ""):
                 if p not in var.NO_LYNCH:
                     cli.msg(botconfig.CHANNEL, "\u0002{0}\u0002 meekly votes not to lynch anyone today.".format(p))
             cli.msg(botconfig.CHANNEL, "The villagers have agreed not to lynch anybody today.")
+            if var.ROLES["succubus"] & var.NO_LYNCH:
+                var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH)
             var.ABSTAINED = True
             transition_night(cli)
             return
@@ -2263,6 +2265,15 @@ def chk_decision(cli, force = ""):
                     # Other
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
+
+                    voted_along = set()
+                    for person, all_voters in var.VOTES.items():
+                        if var.ROLES["succubus"] & set(all_voters):
+                            for v in all_voters:
+                                if v in var.ENTRANCED:
+                                    voted_along.add(v)
+
+                    var.ENTRANCED_DYING.update(var.ENTRANCED - voted_along) # can be the empty set
 
                     if var.ROLE_REVEAL in ("on", "team"):
                         rrole = var.get_reveal_role(votee)
@@ -2605,8 +2616,16 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                         iwon = False
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
-            elif winner == "succubi" and plr in var.ROLES["succubi"] | var.ENTRANCED:
-                iwon = True
+            elif winner == "succubi":
+                if splr in var.ENTRANCED:
+                    won = False
+                    iwon = True
+                elif rol == "succubus":
+                    won = True
+                    if splr in survived:
+                        iwon = True
+            elif winner != "succubi" and splr in var.ENTRANCED:
+                won = False
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
 
@@ -3175,6 +3194,11 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         del var.OTHER_KILLS[k]
                 if nick in var.DISCONNECTED:
                     del var.DISCONNECTED[nick]
+                if nickrole == "succubus" and not var.ROLES["succubus"]:
+                    while var.ENTRANCED:
+                        entranced = var.ENTRANCED.pop()
+                        pm(cli, entranced, "With the succubus now dead, you are no longer entranced.")
+                    var.ENTRANCED_DYING.clear() # for good measure
             if var.PHASE == "night":
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
@@ -3432,6 +3456,10 @@ def return_to_village(cli, chan, nick, show_message):
 def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
+    if prefix in var.ENTRANCED: # need to update this after death, too
+        var.ENTRANCED.remove(prefix)
+        var.ENTRANCED.add(nick)
+
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
         r.add(nick)
@@ -3659,9 +3687,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.CONSECRATING:
                 var.CONSECRATING.remove(prefix)
                 var.CONSECRATING.add(nick)
-            if prefix in var.ENTRANCED:
-                var.ENTRANCED.remove(prefix)
-                var.ENTRANCED.add(nick)
+            if prefix in var.ENTRANCED_DYING:
+                var.ENTRANCED_DYING.remove(prefix)
+                var.ENTRANCED_DYING.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3883,6 +3911,7 @@ def begin_day(cli):
     var.DISEASED = copy.copy(var.TOBEDISEASED)
     var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
     var.ACTIVE_PROTECTIONS = defaultdict(list)
+    var.ENTRANCED_DYING = set()
 
     msg = ('The villagers must now vote for whom to lynch. '+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
@@ -4203,6 +4232,11 @@ def transition_day(cli, gameid=0):
         onlybywolves.discard(d)
         killers[d].append(k)
 
+    for player in var.ENTRANCED_DYING:
+        victims.append(player)
+        onlybywolves.discard(player)
+        killers[player].append("@succubus")
+
     # remove duplicates
     victims_set = set(victims)
     # in the event that ever happens
@@ -4272,6 +4306,8 @@ def transition_day(cli, gameid=0):
     pl = var.list_players()
     for v in pl:
         if v in victims_set:
+            if "@succubus" in killers[v]:
+                continue # bypass protections
             numkills = victims.count(v)
             numtotems = var.PROTECTED.count(v)
             if numtotems >= numkills:
@@ -4462,12 +4498,16 @@ def transition_day(cli, gameid=0):
         novictmsg = False
 
     for victim in vlist:
-        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in dead and victim in onlybywolves:
+        if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in dead and victim in onlybywolves:
             # alpha wolf can bite a harlot visiting another wolf, don't play a message in that case
             # kept as a nested if so that the other victim logic does not run
             if victim not in bitten:
-                message.append("The wolves' selected victim was a harlot, who was not at home last night.")
+                message.append("The wolves' selected victim was not home last night, and avoided the attack.")
                 novictmsg = False
+        elif victim in var.ENTRANCED_DYING:
+            message.append(("\u0002{0}\u0002 was found dead by the village's center, and seem to "
+                            "have died of faithlessness...").format(victim))
+            novictmsg = False
         elif protected.get(victim) == "totem":
             message.append(("\u0002{0}\u0002 was attacked last night, but their totem " +
                             "emitted a brilliant flash of light, blinding the attacker and " +
@@ -5314,7 +5354,12 @@ def shoot(cli, nick, chan, rest):
         var.GUNNERS[nick] -= 1
 
     rand = random.random()
-    if nick in var.ROLES["village drunk"]:
+    if victim in var.ROLES["succubus"] and nick in var.ENTRANCED: # hardcoded chances for entranced targetting succubus
+        if nick in var.ROLES["sharpshooter"]:
+            chances = (1, 0, 0, 0)
+        else:
+            chances = (1, 0, 0, 0)
+    elif nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
     elif nick in var.ROLES["sharpshooter"]:
         chances = var.SHARPSHOOTER_GUN_CHANCES
@@ -5830,7 +5875,7 @@ def hvisit(cli, nick, chan, rest):
         return
     else:
         victim = choose_target(nick, victim)
-        if check_exchange(cli, nick, victim):
+        if role != "succubus" and check_exchange(cli, nick, victim):
             return
         var.HVISITED[nick] = victim
         if role == "harlot":
@@ -5839,8 +5884,13 @@ def hvisit(cli, nick, chan, rest):
             if nick != victim: #prevent luck/misdirection totem weirdness
                 pm(cli, victim, ("You are spending the night with \u0002{0}"+
                                          "\u0002. Have a good time!").format(nick))
+            if var.get_role(victim) == "succubus":
+                pm(cli, nick, "You have become entranced by \u0002{0}\u0002!".format(victim))
+                pm(cli, victim, "You have entranced \u0002{0}\u0002.".format(nick))
+                var.ENTRANCED.add(nick)
         else:
-            var.ENTRANCED.add(victim)
+            if var.get_role(victim) != "succubus":
+                var.ENTRANCED.add(victim)
             pm(cli, nick, "You are entrancing \u0002{0}\u0002 tonight.".format(victim))
             if nick != victim:
                 pm(cli, victim, ("You are being entranced by \u0002{0}\u0002. From this point on, "
@@ -5854,7 +5904,7 @@ def hvisit(cli, nick, chan, rest):
             if var.TARGETED.get(victim) == nick:
                 pm(cli, victim, "You have retracted your targetting on \u0002{0}\u0002.".format(nick))
                 del var.TARGETED[victim]
-            if var.SHAMANS.get(victim) == nick and var.TOTEMS[victim] in var.DETRIMENTAL_TOTEMS:
+            if var.SHAMANS.get(victim) == nick and (var.get_role(victim) == "crazed shaman" or var.TOTEMS[victim] in var.DETRIMENTAL_TOTEMS):
                 pm(cli, victim, "You have retracted your totem on \u0002{0}\u0002.".format(nick))
                 del var.SHAMANS[victim]
             if victim in var.HEXED and var.LASTHEXED[victim] == nick:
@@ -5957,7 +6007,7 @@ def totem(cli, nick, chan, rest, prefix="You"):
     role = var.get_role(nick)
     if role != "crazed shaman":
         totem = " of " + var.TOTEMS[nick]
-    if is_safe(nick, victim) and var.TOTEMS[nick] in var.DETRIMENTAL_TOTEMS:
+    if is_safe(nick, victim) and (role == "crazed shaman" or var.TOTEMS[nick] in var.DETRIMENTAL_TOTEMS):
         pm(cli, nick, "You may not give a totem{0} to a succubus.".format(totem))
         return
     pm(cli, nick, ("{0} have given a totem{1} to \u0002{2}\u0002.").format(prefix, totem, original_victim))
@@ -6770,6 +6820,9 @@ def transition_night(cli):
                 var.ROLES[amnrole].add(amn)
                 var.AMNESIACS.add(amn)
                 var.FINAL_ROLES[amn] = amnrole
+                if amnrole == "succubus" and amn in var.ENTRANCED:
+                    var.ENTRANCED.remove(amn)
+                    pm(cli, amn, "You are no longer entranced.")
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue
                 showrole = amnrole
@@ -7117,6 +7170,18 @@ def transition_night(cli):
             pm(cli, hunter, "You are a \u0002hunter\u0002.")
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
+    for succubus in var.ROLES["succubus"]:
+        pl = ps[:]
+        random.shuffle(pl)
+        pl.remove(succubus)
+        if succubus in var.PLAYERS and not is_user_simple(succubus):
+            pm(cli, succubus, ('You are a \u0002succubus\u0002. You may entrance someone and make '
+                               'them follow you by visiting them at night. If all alive players are '
+                               'entranced, you win. Use "visit <nick>" to visit a player or "pass" '
+                               'to stay home. If you visit the victim of the wolves, you will die.'))
+        else:
+            pm(cli, succubus, "You are a \u0002succubus\u0002.")
+        pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, var.get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
 
     for ms in var.ROLES["mad scientist"]:
         pl = ps[:]
