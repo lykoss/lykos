@@ -436,7 +436,9 @@ def irc_lower(nick):
 def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
-def plural(role):
+def plural(role, count=2):
+    if count == 1:
+        return role
     bits = role.split()
     bits[-1] = {"person": "people",
                 "wolf": "wolves",

@@ -6224,23 +6224,19 @@ def get_bitten_message(nick):
                        "happening.")
     elif role in ("seer", "oracle", "augur"):
         if time_left <= 1:
-            message = ("You were prepared to see some sort of monstruosity, however this time all you see is a person bed-ridden " +
-                       "and unable to move. You see they are sick, and probably contagious. You see a vote taking place outside, " +
-                       "and you're even part of the crowd... The person in bed looks at the window, and longs to get out with the " +
-                       "others. They then turn to look at you, but the vision ends at that very moment. As you look outside, you " +
-                       "realize it's dawn already...")
+            message = ("This time in your vision, you saw your best friend surrounded by wolves. However, instead of dying, they started " +
+                       "to mutate into a werewolf themselves. Looking on in shock, you start wondering how you can find help, when one of " +
+                       "the wolves turns to you and says to get going before day breaks. Confused, you look down and notice that you too " +
+                       "are a wolf; the shock of the realization waking you with a start.")
         elif time_left == 2:
-            message = ("You had a similar vision tonight, except the person wasn't in pain this time, but seemed to mutate " +
-                       "into some sort of monster... You are able to see them a bit more, but suddenly, wolves are all around " +
-                       "both of you. You try to defend yourself, but the wolves just ignore you, and instead take the poor, " +
-                       "harmless villager with them. You try to run after them, but sunlight pierces your eyes, and the vision " +
-                       "wears off as day breaks...")
+            message = ("You had another strange vision last night. You saw an old childhood bully walking along the edge of a cliff. " +
+                       "You follow behind them, and after a while they turn around, noticing you. Their face suddenly becomes devoid " +
+                       "of all emotion, and they melancholily walk off the precipice, falling hundreds of feet into the rocky shoal below. " +
+                       "A sinister grin forms on your face, and you notice that your teeth are pointer than normal as the vision fades.")
         else:
-            message = ("Something felt strange in that vision you had tonight... You could see someone falling in agony to " +
-                       "the ground, but as hard as you try, you're unable to remember who it was, and you can't see it once " +
-                       "again, even though the rest of your vision is very clear in your mind. You try not to worry too much " +
-                       "about it, but, nevertheless, you still attempt to see that strange vision again, and before you realize " +
-                       "it, the sun rises...")
+            message = ("Something felt strange in that vision you had last night. You saw the shadows of a person, bed-ridden " +
+                       "and unable to move. You see they are sick, and probably contagious. They look up, and although you cannot" +
+                       "recognize the face through the pock marks, they seem to recognize you. They point at you, and the vision ends.")
     else:
         if time_left <= 1:
             message = ("You had the same dream again, but this time YOU were the pursuer. You smell fear from your quarry " +
@@ -6937,11 +6933,11 @@ def transition_night(cli):
                 var.ROLES["assassin"].add(chump)
                 debuglog("{0} ({1}) TURNED FALLEN ANGEL".format(chump, chumprole))
             elif chumprole in ("seer", "oracle", "augur"):
-                pm(cli, chump, ("As you gaze out your window and prepare for yet another sleepless night, you look back " +
-                                "on what you remember from the previous nights, and realize it is past the time. The villagers " +
-                                "you once vowed to help track the wolves are no longer your friends. Your newly-gained powers " +
-                                "see no limit, and an evil grin is drawn on your face as you walk towards the forest, to rejoin " +
-                                "with your new comrades..."))
+                pm(cli, chump, ("Reflecting on your visions the previous night, you believe that you have discovered a " +
+                                "way to make them actually happen! This realization is combined with noting that you " +
+                                "seem to have transformed into a werewolf, a fact that doesn't seem to faze you in the " +
+                                "slightest. Your face grins with evil resolve as you head out to the forest, in search of " +
+                                "the other wolves you were until recently trying so hard to kill."))
                 newrole = "doomsayer"
                 debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
             else:
@@ -6954,10 +6950,7 @@ def transition_night(cli):
             var.ROLES[chumprole].remove(chump)
             var.ROLES[newrole].add(chump)
             var.FINAL_ROLES[chump] = newrole
-            for wolf in var.list_players(var.WOLFCHAT_ROLES):
-                if wolf != chump:
-                    # no need for a/an since newrole is either wolf, fallen angel or doomsayer
-                    pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(chump, newrole))
+            relay_wolfchat_command(cli, chump, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
     # convert amnesiac
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
@@ -6985,10 +6978,11 @@ def transition_night(cli):
                 if showrole.startswith(("a", "e", "i", "o", "u")):
                     n = "n"
                 pm(cli, amn, "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!".format(n, showrole))
-                if amnrole in var.WOLFCHAT_ROLES:
-                    for wolf in var.list_players(var.WOLFCHAT_ROLES):
-                        if wolf != amn: # don't send "Foo is now a wolf!" to 'Foo'
-                            pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole))
+                if in_wolflist(amn, amn)
+                    if amnrole in var.WOLF_ROLES:
+                        relay_wolfchat_command(cli, amn, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                    else:
+                        relay_wolfchat_command(cli, amn, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole), var.WOLFCHAT_ROLES)
                 elif amnrole == "turncoat":
                     var.TURNCOATS[amn] = ("none", -1)
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))

@@ -4,6 +4,7 @@ import random
 import math
 
 import src.settings as var
+import src.wolfgame as game # for now; need to split out helper functions into another module
 import botconfig
 
 from src import events
@@ -798,26 +799,34 @@ class SleepyMode(GameMode):
         if death_triggers:
             if nickrole == "priest":
                 pl = evt.data["pl"]
-                seers = [p for p in var.list_players("seer") if p in pl]
-                harlots = [p for p in var.list_players("harlot") if p in pl]
-                cultists = [p for p in var.list_players("cultist") if p in pl]
+                turn_chance = 3/4
+                seers = [p for p in var.list_players("seer") if p in pl and random.random() < turn_chance]
+                harlots = [p for p in var.list_players("harlot") if p in pl and random.random() < turn_chance]
+                cultists = [p for p in var.list_players("cultist") if p in pl and random.random() < turn_chance]
                 total = sum(map(len, (seers, harlots, cultists)))
                 if total > 0:
                     cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
-                                                "in sinister tones, managing to perform \u0002{0}\u0002 tolls before the building is struck repeatedly by lightning, " 
-                                                "setting it alight in a raging inferno...").format(total))
+                                                "in sinister tones, managing to perform \u0002{0}\u0002 {1} before the building is struck repeatedly by lightning, " +
+                                                "setting it alight in a raging inferno...").format(total, var.plural("toll", total)))
                     for seer in seers:
                         var.ROLE["seer"].remove(seer)
                         var.ROLE["doomsayer"].add(seer)
-                        # TODO: message
+                        pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
+                                       "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
+                                       "on the unwary. You are now a \u0002doomsayer\u0002."))
+                        game.relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.", var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                     for harlot in harlots:
                         var.ROLE["harlot"].remove(harlot)
                         var.ROLE["succubus"].add(harlot)
-                        # TODO: message
+                        pm(cli, harlot, ("You feel something rushing into you and taking control over your mind and body. You are now a " +
+                                         "\u0002succubus\u0002. Your job is to entrance the village, bringing them all under your absolute " +
+                                         "control."))
                     for cultist in cultists:
                         var.ROLE["cultist"].remove(cultist)
                         var.ROLE["demoniac"].add(cultist)
-                        # TODO: message
+                        pm(cli, cultist, ("You feel something rushing into you and taking control over your mind and body, showing you your new purpose in life. " +
+                                          "There are far greater evils than the wolves lurking in the shadows, and by sacrificing all of the wolves, you can " +
+                                          "unleash those evils upon the world. You are now a \u0002demoniac\u0002."))
                     # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
 # vim: set expandtab:sw=4:ts=4:
