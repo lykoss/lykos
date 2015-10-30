@@ -2563,27 +2563,28 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             won = False
             iwon = False
             # determine if this player's team won
-            if rol in var.WOLFTEAM_ROLES:  # the player was wolf-aligned
-                if winner == "wolves":
+            if rol in var.TRUE_NEUTRAL_ROLES:
+                # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
+                if rol == "monster" and winner == "monsters":
                     won = True
-            elif rol in var.TRUE_NEUTRAL_ROLES:
-                # most true neutral roles never have a team win, only individual wins
-                if winner == "monsters" and rol == "monster":
+                elif rol == "piper" and winner == "pipers":
                     won = True
-                if winner == "pipers" and rol == "piper":
+                elif rol == "succubus" and winner == "succubi":
                     won = True
-                if rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
+                elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
                     won = (winner == var.TURNCOATS[splr][0])
+            elif winner != "succubi" and splr in var.ENTRANCED:
+                # entranced players can't win with villager or wolf teams
+                won = False
             elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
                 if var.DEFAULT_ROLE == "villager" and winner == "villagers":
                     won = True
                 elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
                     won = True
-            elif winner != "succubi" and splr in var.ENTRANCED:
-                won = False
+            elif rol in var.WOLFTEAM_ROLES:
+                if winner == "wolves":
+                    won = True
             elif winner == "villagers":
-                won = True
-            elif winner == "succubi" and rol == "succubus":
                 won = True
 
             survived = var.list_players()
