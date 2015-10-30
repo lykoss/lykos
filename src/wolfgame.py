@@ -4269,7 +4269,7 @@ def transition_day(cli, gameid=0):
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
         if k in var.ROLES["vigilante"]:
-            if d not in var.WOLF_ROLES | {"monster", "succubus", "demoniac"}:
+            if var.get_role(d) not in var.WOLF_ROLES | {"monster", "succubus", "demoniac"}:
                 victims.append(k)
                 onlybywolves.discard(k)
                 dead_vigilantes.add(k)
