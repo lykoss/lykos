@@ -4630,7 +4630,7 @@ def transition_day(cli, gameid=0):
                         role = var.get_reveal_role(loser)
                         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                         message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
-                                        "\u0002{1}\u0002, a{2} \u0002{3}\u0002, and were found dead at the scene.").format(victim, lower, an, role))
+                                        "\u0002{1}\u0002, a{2} \u0002{3}\u0002, and were found dead at the scene.").format(victim, loser, an, role))
                     else:
                         message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
                                         "\u0002{1}\u0002, and were found dead at the scene.").format(victim, loser))
@@ -9380,6 +9380,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     elif role == "turncoat" and nickname in var.TURNCOATS:
                         special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
                                             if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
+                    elif role == "dullahan" and nickname in var.DULLAHAN_TARGETS:
+                        special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
                     # print out how many bullets wolf gunners have
                     if nickname in var.WOLF_GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
                         special_case.append("wolf gunner with {0} bullet{1}".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s"))
