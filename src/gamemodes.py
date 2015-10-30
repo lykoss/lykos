@@ -765,14 +765,14 @@ class SleepyMode(GameMode):
 
     def startup(self):
         events.add_listener("dullahan_targets", self.dullahan_targets)
-        events.add_listener("transition_night_begin", self.setup_nightmare)
+        events.add_listener("transition_night_begin", self.setup_nightmares)
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
 
     def teardown(self):
         events.remove_listener("dullahan_targets", self.dullahan_targets)
-        events.remove_listener("transition_night_begin", self.setup_nightmare)
+        events.remove_listener("transition_night_begin", self.setup_nightmares)
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
@@ -802,7 +802,7 @@ class SleepyMode(GameMode):
         self.prev_direction = "s" if correct[0] != "s" else "w"
         self.nightmare_step()
 
-    def nightmare_step(self);
+    def nightmare_step(self):
         pass # TODO: finish
 
     def prolong_night(self, evt, cli, var):

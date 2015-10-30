@@ -6978,7 +6978,7 @@ def transition_night(cli):
                 if showrole.startswith(("a", "e", "i", "o", "u")):
                     n = "n"
                 pm(cli, amn, "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!".format(n, showrole))
-                if in_wolflist(amn, amn)
+                if in_wolflist(amn, amn):
                     if amnrole in var.WOLF_ROLES:
                         relay_wolfchat_command(cli, amn, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(amn, showrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                     else:
