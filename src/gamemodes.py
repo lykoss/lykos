@@ -9,7 +9,6 @@ from src.utilities import *
 import botconfig
 
 from src import events
-from src import decorators
 
 def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
@@ -766,6 +765,7 @@ class SleepyMode(GameMode):
         self.having_nightmare = None
 
     def startup(self):
+        from src import decorators
         events.add_listener("dullahan_targets", self.dullahan_targets)
         events.add_listener("transition_night_begin", self.setup_nightmares)
         events.add_listener("chk_nightdone", self.prolong_night)
@@ -777,6 +777,7 @@ class SleepyMode(GameMode):
         self.west_cmd = decorators.cmd("west", "w", chan=False, pm=True, playing=True, phases=("night",))(self.west)
 
     def teardown(self):
+        from src import decorators
         events.remove_listener("dullahan_targets", self.dullahan_targets)
         events.remove_listener("transition_night_begin", self.setup_nightmares)
         events.remove_listener("chk_nightdone", self.prolong_night)

@@ -44,7 +44,10 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import decorators, events, logger, debuglog
+from src import decorators, events, logger, utilities, debuglog
+
+# make debuglog accessible anywhere
+utilities.debuglog = debuglog
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
@@ -4855,6 +4858,8 @@ def chk_nightdone(cli):
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
             transition_day(cli)
+
+utilities.chk_nightdone = chk_nightdone # for some events to access
 
 @cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
 def no_lynch(cli, nick, chan, rest):

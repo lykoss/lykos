@@ -2,8 +2,6 @@ import src.settings as var
 import botconfig
 import re
 
-from src.__init__ import debuglog
-
 # Some miscellaneous helper functions
 
 def mass_mode(cli, md_param, md_plain):
