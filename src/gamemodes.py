@@ -820,7 +820,7 @@ class SleepyMode(GameMode):
         self.step = 0
         self.prev_direction = None
         for i in range(0, 3):
-            dir2 = [d for d in directions where d != self.prev_direction]
+            dir2 = [d for d in directions if d != self.prev_direction]
             self.correct[i] = random.choice(directions)
             self.fake1[i] = random.choice(directions)
             self.fake2[i] = random.choice(directions)
