@@ -3536,7 +3536,7 @@ def rename_player(cli, prefix, nick):
                 del var.PRAYED[prefix]
 
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED,
-                            var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.BLESSED,
+                            var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED,
                             var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
@@ -4815,7 +4815,7 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     pl = var.list_players()
     actedcount = sum(map(len, (var.SEEN, var.HVISITED, var.GUARDED, var.KILLS,
-                               var.OTHER_KILLS, var.PASSED, var.OBSERVED, var.BLESSED,
+                               var.OTHER_KILLS, var.PASSED, var.OBSERVED,
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
 
     nightroles = get_roles("seer", "oracle", "harlot", "succubus", "bodyguard",
@@ -4823,13 +4823,13 @@ def chk_nightdone(cli):
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
                            "fallen angel", "dullahan", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
-                           "prophet", "priest")
+                           "prophet")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
             nightroles.append(ghost)
 
-    for nick, info in var.PRAYED:
+    for nick, info in var.PRAYED.items():
         if info[0] > 0:
             actedcount += 1
 
@@ -4850,11 +4850,6 @@ def chk_nightdone(cli):
         # only remove one instance of their name if they have used hunter ability, in case they have templates
         # the OTHER_KILLS check ensures we only remove them if they acted in a *previous* night
         if p in var.ROLES["hunter"] and p not in var.OTHER_KILLS:
-            nightroles.remove(p)
-
-    for p in var.PRIESTS:
-        # similar to hunters, only remove one instance of their name
-        if p in var.ROLES["priest"] and p not in var.BLESSED:
             nightroles.remove(p)
 
     # but remove all instances of their name if they are silenced
@@ -5335,6 +5330,48 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
+def is_fake_nick(who):
+    return re.search(r"^[0-9]+$", who)
+
+def in_wolfchat(nick, who):
+    myrole = var.get_role(nick)
+    role = var.get_role(who)
+    wolves = var.WOLFCHAT_ROLES
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolves = var.WOLF_ROLES
+        else:
+            wolves = var.WOLF_ROLES | {"traitor"}
+    return myrole in wolves and role in wolves
+
+def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
+    if not is_wolf_command and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
+        return
+    if not is_kill_command and var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
+        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+            return
+        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+            return
+    if not in_wolfchat(nick, nick):
+        return
+
+    wcroles = var.WOLFCHAT_ROLES
+    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
+        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+            wcroles = roles
+        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+            wcroles = roles
+    elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wcroles = var.WOLF_ROLES
+        else:
+            wcroles = var.WOLF_ROLES | {"traitor"}
+
+    wcwolves = var.list_players(wcroles)
+    wcwolves.remove(nick)
+    if wcwolves:
+        mass_privmsg(cli, wcwolves, message)
+
 @cmd("retract", "r", pm=True, phases=("day", "night"))
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
@@ -5362,10 +5399,7 @@ def retract(cli, nick, chan, rest):
         if role in var.WOLF_ROLES and nick in var.KILLS.keys():
             del var.KILLS[nick]
             pm(cli, nick, "You have retracted your kill.")
-            wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-            for wolf in wolfchatwolves:
-                if wolf != nick:
-                    pm(cli, wolf, "\u0002{0}\u0002 has retracted their kill.".format(nick))
+            relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has retracted their kill.".format(nick), var.WOLF_ROLES - {"wolf cub"}, is_wolf_command=True, is_kill_command=True)
         elif role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
             if role == "hunter":
@@ -5375,10 +5409,7 @@ def retract(cli, nick, chan, rest):
             del var.BITE_PREFERENCES[nick]
             var.ALPHA_WOLVES.remove(nick)
             pm(cli, nick, "You have decided not to bite anyone tonight.")
-            wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-            for wolf in wolfchatwolves:
-                if wolf != nick:
-                    pm(cli, wolf, "\u0002{0}\u0002 has decided not to bite anyone tonight.".format(nick))
+            relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has decided not to bite anyone tonight.".format(nick), ("alpha wolf",), is_wolf_command=True)
         elif role == "alpha wolf" and var.ALPHA_ENABLED:
             pm(cli, nick, "You have not chosen to kill or bite anyone yet.")
         else:
@@ -5586,16 +5617,10 @@ def kill(cli, nick, chan, rest):
             return
 
     if role in wolfroles:
-        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            wolfchatwolves = var.list_players(var.WOLF_ROLES)
-            if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wolfchatwolves.extend(var.ROLES["traitor"])
-
-        if victim in wolfchatwolves or victim2 in wolfchatwolves:
+        if in_wolfchat(nick, victim) or (victim2 is not None and in_wolfchat(nick, victim2)):
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
-        if var.ANGRY_WOLVES and victim2 != None:
+        if var.ANGRY_WOLVES and victim2 is not None:
             if victim == victim2:
                 pm(cli, nick, "You should select two different players.")
                 return
@@ -5631,20 +5656,8 @@ def kill(cli, nick, chan, rest):
         if var.ANGRY_WOLVES and role in wolfroles:
             pm(cli, nick, 'You are angry tonight and may kill a second target. Use "kill <nick1> and <nick2>" to select multiple targets.')
 
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        wolfchatwolves = var.list_players(wolfroles)
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD: # bypass the above one if relevant
-        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
-        wolfchatwolves = var.list_players(var.WOLF_ROLES)
-    if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wolfchatwolves.extend(var.ROLES["traitor"])
-
-    if nick in wolfchatwolves:
-        for wolf in wolfchatwolves:
-            if wolf != nick:
-                pm(cli, wolf, "\u0002{0}\u0002 has{1}".format(nick, msg))
+    if in_wolfchat(nick, nick):
+        relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has{1}".format(nick, msg), var.WOLF_ROLES - {"wolf cub"}, is_wolf_command=True, is_kill_command=True)
 
     if victim2:
         debuglog("{0} ({1}) KILL: {2} and {3} ({4})".format(nick, role, victim, victim2, var.get_role(victim2)))
@@ -5707,7 +5720,6 @@ def bless(cli, nick, chan, rest):
         return
 
     var.PRIESTS.add(nick)
-    var.BLESSED[nick] = victim
     var.ROLES["blessed villager"].add(victim)
     pm(cli, nick, "You have given a blessing to \u0002{0}\u0002".format(victim))
     pm(cli, victim, "You suddenly feel very safe.")
@@ -5763,7 +5775,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, "You have already observed tonight.")
         return
-    if var.get_role(victim) in var.WOLFCHAT_ROLES:
+    if in_wolfchat(nick, victim):
         if role == "werecrow":
             pm(cli, nick, "Flying to another wolf's house is a waste of time.")
         else:
@@ -5782,21 +5794,7 @@ def observe(cli, nick, chan, rest):
         pm(cli, nick, ("You transform into a large crow and start your flight "+
                        "to \u0002{0}'s\u0002 house. You will return after "+
                       "collecting your observations when day begins.").format(victim))
-        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-        wolves = var.list_players(var.WOLF_ROLES)
-        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves.extend(var.ROLES["traitor"])
-        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-            wolfchatwolves = []
-        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-            if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
-                wolfchatwolves = var.ROLES["werecrow"]
-            else:
-                wolfchatwolves = var.ROLES["werecrow"] | var.ROLES["sorcerer"]
-
-        for wolf in wolfchatwolves:
-            if wolf != nick:
-                pm(cli, wolf, "\u0002{0}\u0002 is observing \u0002{1}\u0002.".format(nick, victim))
+        relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 is observing \u0002{1}\u0002.".format(nick, victim), ("werecrow",), is_wolf_command=True)
 
     elif role == "sorcerer":
         vrole = var.get_role(victim)
@@ -5809,6 +5807,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, ("After casting your ritual, you determine that \u0002{0}\u0002 " +
                            "does not have paranormal senses.").format(victim))
+        relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 is observing \u0002{1}\u0002.".format(nick, victim), ("sorcerer"))
 
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -6029,9 +6028,6 @@ def hvisit(cli, nick, chan, rest):
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
 
-def is_fake_nick(who):
-    return re.search(r"^[0-9]+$", who)
-
 @cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur", "doomsayer"))
 def see(cli, nick, chan, rest):
     """Use your paranormal powers to determine the role or alignment of a player."""
@@ -6048,6 +6044,9 @@ def see(cli, nick, chan, rest):
         return
     if is_safe(nick, victim):
         pm(cli, nick, "You may not see a succubus.")
+        return
+    if role == "doomsayer" and in_wolfchat(nick, victim):
+        pm(cli, nick, "Seeing another wolf would be a waste.")
         return
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
@@ -6101,7 +6100,9 @@ def see(cli, nick, chan, rest):
             var.TOBEDISEASED.add(victim)
             var.TOBESILENCED.add(victim)
             var.SICK.add(victim) # counts as unable to vote and lets them know at beginning of day that they aren't feeling well
+
         debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, vrole, mode))
+        relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 is predicting \u0002{1}\u0002's doom.".format(nick, victim), ("doomsayer",), is_wolf_command=True)
 
     var.SEEN.add(nick)
     chk_nightdone(cli)
@@ -6268,14 +6269,10 @@ def bite_cmd(cli, nick, chan, rest):
     vrole = var.get_role(victim)
     actual = choose_target(nick, victim)
 
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    if var.RESTRICT_WOLFCHAT & (var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
-        wolfchatwolves = var.list_players(var.WOLF_ROLES)
-        if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolfchatwolves.extend(var.ROLES["traitor"])
-
-    if victim in wolfchatwolves:
+    if in_wolfchat(nick, victim):
         pm(cli, nick, "You may not bite other wolves.")
+        return
+    if check_exchange(cli, nick, actual):
         return
 
     var.ALPHA_WOLVES.add(nick)
@@ -6287,20 +6284,12 @@ def bite_cmd(cli, nick, chan, rest):
         del var.KILLS[nick]
 
     pm(cli, nick, "You have chosen to bite \u0002{0}\u0002.".format(victim))
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-        wolfchatwolves = []
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        wolfchatwolves = var.ROLES["alpha wolf"]
-    for wolf in wolfchatwolves:
-        if wolf != nick:
-            pm(cli, wolf, "\u0002{0}\u0002 has chosen to bite \u0002{1}\u0002.".format(nick, victim))
-
+    relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has chosen to bite \u0002{1}\u0002.".format(nick, victim), ("alpha wolf",), is_wolf_command=True)
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), actual, var.get_role(actual)))
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("hunter", "harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus",
-           "vigilante", "priest"))
+    roles=("hunter", "harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus", "vigilante"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = var.get_role(nick)
@@ -6360,12 +6349,7 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, "You have already cursed someone tonight.")
             return
         pm(cli, nick, "You have chosen not to curse anyone tonight.")
-
-        wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-        for wolf in wolfchatwolves:
-            if wolf != nick:
-                pm(cli, wolf, "\u0002{0}\u0002 has chosen not to curse anyone tonight.".format(nick))
-
+        relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has chosen not to curse anyone tonight.".format(nick), ("warlock",))
         var.PASSED.add(nick)
     elif nickrole == "piper":
         if nick in var.CHARMERS:
@@ -6377,12 +6361,6 @@ def pass_cmd(cli, nick, chan, rest):
         if nick in var.OTHER_KILLS:
             del var.OTHER_KILLS[nick]
         pm(cli, nick, "You have chosen not to kill anyone tonight.")
-        var.PASSED.add(nick)
-    elif nickrole == "priest":
-        if nick in var.PRIESTS:
-            pm(cli, nick, "You have already blessed someone this game.")
-            return
-        pm(cli, nick, "You have chosen not to bless anyone tonight.")
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
@@ -6521,31 +6499,20 @@ def hex_target(cli, nick, chan, rest):
         return
 
     victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        return
-    vrole = var.get_role(victim)
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        wolfchatwolves = []
-
-    if victim in wolfchatwolves:
+    if in_wolfchat(nick, victim):
         pm(cli, nick, "Hexing another wolf would be a waste.")
         return
+    if check_exchange(cli, nick, victim):
+        return
 
+    vrole = var.get_role(victim)
     var.HEXED.add(nick)
     var.LASTHEXED[nick] = victim
-    var.TOBESILENCED.add(victim)
+    if vrole not in var.WOLF_ROLES:
+        var.TOBESILENCED.add(victim)
 
     pm(cli, nick, "You have cast a hex on \u0002{0}\u0002.".format(victim))
-
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    if var.RESTRICT_WOLFCHAT & (var.RW_ONLY_KILL_CMD | var.RW_NO_INTERACTION | var.RW_REM_NON_WOLVES):
-        wolfchatwolves = []
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        wolfchatwolves = var.ROLES["hag"]
-    for wolf in wolfchatwolves:
-        if wolf != nick:
-            pm(cli, wolf, "\u0002{0}\u0002 has cast a hex on \u0002{1}\u0002.".format(nick, victim))
+    relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has cast a hex on \u0002{1}\u0002.".format(nick, victim), ("hag",))
 
     debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -6568,11 +6535,10 @@ def curse(cli, nick, chan, rest):
     # but for now it is not allowed. If someone seems suspicious and shows as
     # villager across multiple nights, safes can use that as a tell that the
     # person is likely wolf-aligned.
-    vrole = var.get_role(victim)
     if victim in var.ROLES["cursed villager"]:
         pm(cli, nick, "\u0002{0}\u0002 is already cursed.".format(victim))
         return
-    if vrole in var.WOLFCHAT_ROLES:
+    if in_wolfchat(nick, victim):
         pm(cli, nick, "Cursing a fellow wolf would be a waste.")
         return
 
@@ -6585,12 +6551,7 @@ def curse(cli, nick, chan, rest):
     var.ROLES["cursed villager"].add(victim)
 
     pm(cli, nick, "You have cast a curse on \u0002{0}\u0002.".format(victim))
-
-    wolfchatwolves = var.list_players(var.WOLFCHAT_ROLES)
-    for wolf in wolfchatwolves:
-        if wolf != nick:
-            pm(cli, wolf, "\u0002{0}\u0002 has cast a curse on \u0002{1}\u0002.".format(nick, victim))
-
+    relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has cast a curse on \u0002{1}\u0002.".format(nick, victim), ("warlock",))
 
     debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -6903,7 +6864,6 @@ def transition_night(cli):
     var.TOTEMS = {}
     var.CONSECRATING = set()
     var.SICK = set()
-    var.BLESSED = {}
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
         var.PRAYED[nick][1] = None
@@ -7085,6 +7045,9 @@ def transition_night(cli):
             elif role == "fallen angel":
                 pm(cli, wolf, ('You are a \u0002fallen angel\u0002. Your sharp claws will rend any protection the villagers ' +
                                'may have, and will likely kill living guardians as well. Use "kill <nick>" to kill a villager.'))
+            elif role == "doomsayer":
+                pm(cli, wolf, ('You are a \u0002doomsayer\u0002. You can see how bad luck will befall someone at night by ' +
+                               'using "see <nick>" on them. You may also use "kill <nick>" to kill a villager.'))
             else:
                 # catchall in case we forgot something above
                 an = 'n' if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -7873,7 +7836,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TURNCOATS = {}
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
-    var.BLESSED = {}
     var.PRIESTS = set()
     var.CONSECRATING = set()
     var.ENTRANCED = set()
