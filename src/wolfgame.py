@@ -1369,7 +1369,7 @@ def fleave(cli, nick, chan, rest):
             continue
         pl = var.list_players()
         pll = [x.lower() for x in pl]
-        dcl = list(var.DEADCHAT_PLAYERS)
+        dcl = list(var.DEADCHAT_PLAYERS) if var.PHASE != "join" else []
         dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
             a = pl[pll.index(a.lower())]
