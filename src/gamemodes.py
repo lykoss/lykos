@@ -949,6 +949,7 @@ class SleepyMode(GameMode):
             self.prev_direction = "w"
         else:
             self.step = 0
+            self.on_path = set()
             self.prev_direction = self.start_direction
         self.nightmare_step(cli)
 
