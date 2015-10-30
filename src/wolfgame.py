@@ -2653,7 +2653,7 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                         iwon = False
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
-            elif rol == "dullahan" and not var.DULLAHAN_TARGETS[splr] & set(var.list_players()):
+            elif rol == "dullahan" and not var.DULLAHAN_TARGETS[splr] & set(survived) - (var.ROLES["succubus"] if splr in var.ENTRANCED else set()):
                 iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
@@ -5548,9 +5548,6 @@ def kill(cli, nick, chan, rest):
     victim = get_victim(cli, nick, victim, False)
     if not victim:
         return
-    if role == "dullahan" and victim not in var.DULLAHAN_TARGETS[nick]:
-        pm(cli, nick, "\u0002{0}\u0002 is not one of your targets.".format(victim))
-        return
     if is_safe(nick, victim):
         pm(cli, nick, "You may not target a succubus.")
         return
@@ -6016,16 +6013,7 @@ def hvisit(cli, nick, chan, rest):
                 pm(cli, victim, "You discover that \u0002{0}\u0002 is a succubus and have retracted your kill as a result.".format(var.BITE_PREFERENCES[victim]))
                 del var.BITE_PREFERENCES[victim]
             if var.DULLAHAN_TARGETS.get(victim, set()) & var.ROLES["succubus"]:
-                to_rem = var.ROLES["succubus"] & var.DULLAHAN_TARGETS[victim]
-                if len(to_rem) == 1 and nick in to_rem:
-                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002 to win.".format(nick))
-                elif len(to_rem) == 2:
-                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002 and \u0002{1}\u0002 to win.".format(*to_rem))
-                else: # that should never happen, but we should still account for it (e.g. random)
-                    t = list(to_rem)
-                    pm(cli, victim, "You no longer have to kill \u0002{0}\u0002, and \u0002{1}\u0002 to win.".format(", ".join(t[:-1]), t[-1]))
-
-                var.DULLAHAN_TARGETS[victim] -= to_rem
+                pm(cli, victim, "While you remain entranced, the succubus does not need to die for you to win.")
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, var.get_role(victim)))
     chk_nightdone(cli)
@@ -7318,8 +7306,7 @@ def transition_night(cli):
             continue
         if dullahan in var.PLAYERS and not is_user_simple(dullahan):
             pm(cli, dullahan, ('You are a \u0002dullahan\u0002. Every night, you may kill someone ' +
-                               'by using "kill <nick>". All of your targets must be dead by the end ' +
-                               'of the game, and you will win even if you are not alive at the end.'))
+                               'by using "kill <nick>". You win when all your targets are dead.'))
         else:
             pm(cli, dullahan, "You are a \u0002dullahan\u0002.")
         t = "Targets: " if var.FIRST_NIGHT else "Remaining targets: "
@@ -7344,9 +7331,8 @@ def transition_night(cli):
         pl.remove(vigilante)
         if vigilante in var.PLAYERS and not is_user_simple(vigilante):
             pm(cli, vigilante, ('You are a \u0002vigilante\u0002. Each night, you may kill someone by '
-                                'doing "kill <nick>", or use "pass" to pass. If the person you kill is '
-                                'one of the wolves or an evil neutral, you will survive. Otherwise, you '
-                                'will die alongside your victim.'))
+                                'using "kill <nick>", or "pass" to pass. If the person you kill is not '
+                                'a wolf or possessed by an evil spirit, you will die alongside your victim.'))
         else:
             pm(cli, vigilante, "You are a \u0002vigilante\u0002.")
         pm(cli, vigilante, "Players: " + ", ".join(pl))
