@@ -8,7 +8,7 @@ import src.settings as var
 from src.utilities import *
 import botconfig
 
-from src import events
+from src import events, utilities
 
 def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
@@ -854,7 +854,7 @@ class SleepyMode(GameMode):
                                                 "legs as you push yourself for one final burst. You make it across the bridge, and not a moment too " +
                                                 "soon as the sun starts rising up, causing you to wake from your dream in a cold sweat."))
                 self.having_nightmare = None
-                chk_nightdone(cli)
+                utilities.chk_nightdone(cli)
             elif "fake1" in self.on_path:
                 pm(cli, self.having_nightmare, ("You break clear of the woods and see a roaring river ahead. However, look as you may you are unable " +
                                                 "to find any means of crossing it. Knowing how expansive the river is, and how fast the beast can chase " +
