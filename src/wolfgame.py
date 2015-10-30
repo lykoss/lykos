@@ -4882,6 +4882,7 @@ def chk_nightdone(cli):
 
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles})
     event.dispatch(cli, var)
+    actedcount = event.data["actedcount"]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         if not event.prevent_default:
