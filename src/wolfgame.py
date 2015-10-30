@@ -4841,6 +4841,11 @@ def chk_nightdone(cli):
         if info[0] > 0:
             actedcount += 1
 
+    for p in var.ROLES["doomsayer"]:
+        if p in var.SEEN and p in var.OTHER_KILLS:
+            # don't count this twice
+            actedcount -= 1
+
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
         nightroles.extend(get_roles("matchmaker", "clone"))
@@ -4848,7 +4853,7 @@ def chk_nightdone(cli):
     if var.DISEASED_WOLVES:
         nightroles = [p for p in nightroles if p not in var.list_players(var.WOLF_ROLES - {"wolf cub", "werecrow", "doomsayer"})]
         # only remove 1 doomsayer instance to indicate they cannot kill but can still see
-        for p in var.list_players("doomsayer"):
+        for p in var.ROLES["doomsayer"]:
             nightroles.remove(p)
     elif var.ALPHA_ENABLED:
         # add in alphas that have bitten (note an alpha can kill or bite, but not both)
