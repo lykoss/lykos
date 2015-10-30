@@ -7222,11 +7222,14 @@ def transition_night(cli):
         pm(cli, hunter, "Players: " + ", ".join(pl))
 
     for dullahan in var.ROLES["dullahan"]:
-        targets = var.DULLAHAN_TARGETS[dullahan]
+        targets = list(var.DULLAHAN_TARGETS[dullahan])
         for target in var.DEAD:
-            targets.discard(target)
+            if target in targets:
+                targets.remove(target)
         if not targets: # already all dead
+            pm(cli, dullahan, "All your targets are already dead!")
             continue
+        random.shuffle(targets)
         if dullahan in var.PLAYERS and not is_user_simple(dullahan):
             pm(cli, dullahan, ('You are a \u0002dullahan\u0002. Every night, you may kill someone ' +
                                'by using "kill <nick>". You win when all your targets are dead.'))
@@ -7843,7 +7846,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 target = random.choice(ps)
                 ps.remove(target)
                 ts.add(target)
-            random.shuffle(ts)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
@@ -8857,6 +8859,19 @@ def myrole(cli, nick, chan, rest):
     if role == "turncoat":
         pm(cli, nick, "Current side: \u0002{0}\u0002.".format(var.TURNCOATS.get(nick, "none")))
 
+    # Remind dullahans of their targets
+    if role == "dullahan":
+        targets = list(var.DULLAHAN_TARGETS[nick])
+        for target in var.DEAD:
+            if target in targets:
+                targets.remove(target)
+        random.shuffle(targets)
+        if targets:
+            t = "Targets: " if var.FIRST_NIGHT else "Remaining targets: "
+            pm(cli, nick, t + ", ".join(targets))
+        else:
+            pm(cli, nick, "All your targets are already dead!")
+
     # Check for gun/bullets
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
         role = "gunner"
@@ -8875,6 +8890,14 @@ def myrole(cli, nick, chan, rest):
     # Check assassin
     if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"]:
         pm(cli, nick, "You are an \u0002assassin\u0002{0}.".format(" and targeting {0}".format(var.TARGETED[nick]) if nick in var.TARGETED else ""))
+
+    # Remind blessed villager of their role
+    if nick in var.ROLES["blessed villager"]:
+        pm(cli, nick, "You are a \u0002blessed villager\u0002")
+
+    # Remind prophet of their role, in sleepy mode only where it is hacked into a template instead of a role
+    if "prophet" in var.TEMPLATE_RESTRICTIONS and nick in var.ROLES["prophet"]:
+        pm(cli, nick, "You are a \u0002prophet\u0002")
 
     # Remind player if they were bitten by alpha wolf
     if nick in var.BITTEN and role not in var.WOLF_ROLES:
@@ -9275,7 +9298,11 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                         special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
                                             if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
                     elif role == "dullahan" and nickname in var.DULLAHAN_TARGETS:
-                        special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
+                        targets = var.DULLAHAN_TARGETS[nickname] - var.DEAD
+                        if targets: 
+                            special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
+                        else:
+                            special_case.append("All targets dead")
                     # print out how many bullets wolf gunners have
                     if nickname in var.WOLF_GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
                         special_case.append("wolf gunner with {0} bullet{1}".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s"))
