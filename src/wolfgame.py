@@ -5347,7 +5347,7 @@ def check_exchange(cli, actor, nick):
 def is_fake_nick(who):
     return re.search(r"^[0-9]+$", who)
 
-def in_wolfchat(nick, who):
+def in_wolflist(nick, who):
     myrole = var.get_role(nick)
     role = var.get_role(who)
     wolves = var.WOLFCHAT_ROLES
@@ -5366,7 +5366,7 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
             return
         if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
             return
-    if not in_wolfchat(nick, nick):
+    if not in_wolflist(nick, nick):
         return
 
     wcroles = var.WOLFCHAT_ROLES
@@ -5631,7 +5631,7 @@ def kill(cli, nick, chan, rest):
             return
 
     if role in wolfroles:
-        if in_wolfchat(nick, victim) or (victim2 is not None and in_wolfchat(nick, victim2)):
+        if in_wolflist(nick, victim) or (victim2 is not None and in_wolflist(nick, victim2)):
             pm(cli, nick, "You may only kill villagers, not other wolves.")
             return
         if var.ANGRY_WOLVES and victim2 is not None:
@@ -5670,7 +5670,7 @@ def kill(cli, nick, chan, rest):
         if var.ANGRY_WOLVES and role in wolfroles:
             pm(cli, nick, 'You are angry tonight and may kill a second target. Use "kill <nick1> and <nick2>" to select multiple targets.')
 
-    if in_wolfchat(nick, nick):
+    if in_wolflist(nick, nick):
         relay_wolfchat_command(cli, nick, "\u0002{0}\u0002 has{1}".format(nick, msg), var.WOLF_ROLES - {"wolf cub"}, is_wolf_command=True, is_kill_command=True)
 
     if victim2:
@@ -5789,7 +5789,7 @@ def observe(cli, nick, chan, rest):
         else:
             pm(cli, nick, "You have already observed tonight.")
         return
-    if in_wolfchat(nick, victim):
+    if in_wolflist(nick, victim):
         if role == "werecrow":
             pm(cli, nick, "Flying to another wolf's house is a waste of time.")
         else:
@@ -6059,7 +6059,7 @@ def see(cli, nick, chan, rest):
     if is_safe(nick, victim):
         pm(cli, nick, "You may not see a succubus.")
         return
-    if role == "doomsayer" and in_wolfchat(nick, victim):
+    if role == "doomsayer" and in_wolflist(nick, victim):
         pm(cli, nick, "Seeing another wolf would be a waste.")
         return
     victim = choose_target(nick, victim)
@@ -6283,7 +6283,7 @@ def bite_cmd(cli, nick, chan, rest):
     vrole = var.get_role(victim)
     actual = choose_target(nick, victim)
 
-    if in_wolfchat(nick, victim):
+    if in_wolflist(nick, victim):
         pm(cli, nick, "You may not bite other wolves.")
         return
     if check_exchange(cli, nick, actual):
@@ -6513,7 +6513,7 @@ def hex_target(cli, nick, chan, rest):
         return
 
     victim = choose_target(nick, victim)
-    if in_wolfchat(nick, victim):
+    if in_wolflist(nick, victim):
         pm(cli, nick, "Hexing another wolf would be a waste.")
         return
     if check_exchange(cli, nick, victim):
@@ -6552,7 +6552,7 @@ def curse(cli, nick, chan, rest):
     if victim in var.ROLES["cursed villager"]:
         pm(cli, nick, "\u0002{0}\u0002 is already cursed.".format(victim))
         return
-    if in_wolfchat(nick, victim):
+    if in_wolflist(nick, victim):
         pm(cli, nick, "Cursing a fellow wolf would be a waste.")
         return
 
