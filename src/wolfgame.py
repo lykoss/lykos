@@ -2989,7 +2989,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                         del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
                                         pl.remove(ga)
                                         break
-                            elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.BLESSED):
+                            elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
                                 if "blessing" in var.ACTIVE_PROTECTIONS[target]:
                                     var.ACTIVE_PROTECTIONS[target].remove("blessing")
                                 # don't message the channel whenever a blessing blocks a kill, but *do* let the assassin know so they don't try to report it as a bug
@@ -3107,9 +3107,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 break
 
                     # do not kill blessed players, they had a premonition to step out of the way before the chemicals hit
-                    if target1 in var.BLESSED:
+                    if target1 in var.ROLES["blessed villager"]:
                         target1 = None
-                    if target2 in var.BLESSED:
+                    if target2 in var.ROLES["blessed villager"]:
                         target2 = None
 
                     if target1 in pl:
@@ -3536,7 +3536,7 @@ def rename_player(cli, prefix, nick):
                 del var.PRAYED[prefix]
 
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.OTHER_KILLS, var.TARGETED,
-                            var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED,
+                            var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED, var.BLESSED,
                             var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
@@ -3710,9 +3710,6 @@ def rename_player(cli, prefix, nick):
             if prefix in var.TOBECHARMED:
                 var.TOBECHARMED.remove(prefix)
                 var.TOBECHARMED.add(nick)
-            if prefix in var.BLESSED:
-                var.BLESSED.remove(prefix)
-                var.BLESSED.add(nick)
             if prefix in var.PRIESTS:
                 var.PRIESTS.remove(prefix)
                 var.PRIESTS.add(nick)
@@ -4379,7 +4376,7 @@ def transition_day(cli, gameid=0):
                         protected[v] = "bodyguard"
                     elif numkills <= 0:
                         var.ACTIVE_PROTECTIONS[v].append("bodyguard")
-            if v in var.BLESSED:
+            if v in var.ROLES["blessed villager"]:
                 numkills -= 1
                 if numkills <= 0 and v not in protected:
                     protected[v] = "blessing"
@@ -4398,7 +4395,7 @@ def transition_day(cli, gameid=0):
             for g in var.ROLES["bodyguard"]:
                 if var.GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("bodyguard")
-            if v in var.BLESSED:
+            if v in var.ROLES["blessed villager"]:
                 var.ACTIVE_PROTECTIONS[v].append("blessing")
 
     fallenkills = set()
@@ -4818,7 +4815,7 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     pl = var.list_players()
     actedcount = sum(map(len, (var.SEEN, var.HVISITED, var.GUARDED, var.KILLS,
-                               var.OTHER_KILLS, var.PASSED, var.OBSERVED,
+                               var.OTHER_KILLS, var.PASSED, var.OBSERVED, var.BLESSED,
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
 
     nightroles = get_roles("seer", "oracle", "harlot", "succubus", "bodyguard",
@@ -4831,6 +4828,10 @@ def chk_nightdone(cli):
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
             nightroles.append(ghost)
+
+    for nick, info in var.PRAYED:
+        if info[0] > 0:
+            actedcount += 1
 
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
@@ -4849,6 +4850,11 @@ def chk_nightdone(cli):
         # only remove one instance of their name if they have used hunter ability, in case they have templates
         # the OTHER_KILLS check ensures we only remove them if they acted in a *previous* night
         if p in var.ROLES["hunter"] and p not in var.OTHER_KILLS:
+            nightroles.remove(p)
+
+    for p in var.PRIESTS:
+        # similar to hunters, only remove one instance of their name
+        if p in var.ROLES["priest"] and p not in var.BLESSED:
             nightroles.remove(p)
 
     # but remove all instances of their name if they are silenced
@@ -5701,7 +5707,8 @@ def bless(cli, nick, chan, rest):
         return
 
     var.PRIESTS.add(nick)
-    var.BLESSED.add(victim)
+    var.BLESSED[nick] = victim
+    var.ROLES["blessed villager"].add(victim)
     pm(cli, nick, "You have given a blessing to \u0002{0}\u0002".format(victim))
     pm(cli, victim, "You suddenly feel very safe.")
     debuglog("{0} ({1}) BLESS: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
@@ -6896,6 +6903,7 @@ def transition_night(cli):
     var.TOTEMS = {}
     var.CONSECRATING = set()
     var.SICK = set()
+    var.BLESSED = {}
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
         var.PRAYED[nick][1] = None
@@ -7865,7 +7873,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TURNCOATS = {}
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
-    var.BLESSED = set()
+    var.BLESSED = {}
     var.PRIESTS = set()
     var.CONSECRATING = set()
     var.ENTRANCED = set()
@@ -7929,9 +7937,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES["sharpshooter"] = set(var.ROLES["sharpshooter"])
 
     var.ROLES["sharpshooter"].discard(None)
-
-    # Handle blessed villager
-    var.BLESSED.update(var.ROLES["blessed villager"])
 
     if not restart:
         var.SPECIAL_ROLES["goat herder"] = []
