@@ -3174,6 +3174,10 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             cli.msg(botconfig.CHANNEL, tmsg)
                             debuglog(nick, "(mad scientist) KILL FAIL")
 
+            pl = refresh_pl(pl)
+            event = Event("del_player", {"pl": pl})
+            event.dispatch(cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers and var.PHASE in ("night", "day"), killer_role, deadlist, original, ismain, refresh_pl)
+
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
             deadchat.append(nick)
@@ -3719,6 +3723,9 @@ def rename_player(cli, prefix, nick):
             if prefix in var.ENTRANCED_DYING:
                 var.ENTRANCED_DYING.remove(prefix)
                 var.ENTRANCED_DYING.add(nick)
+            if prefix in var.DYING:
+                var.DYING.remove(prefix)
+                var.DYING.add(nick)
             if prefix in var.SICK:
                 var.SICK.remove(prefix)
                 var.SICK.add(nick)
@@ -3944,6 +3951,7 @@ def begin_day(cli):
     var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.ENTRANCED_DYING = set()
+    var.DYING = set()
 
     msg = ('The villagers must now vote for whom to lynch. '+
            'Use "{0}lynch <nick>" to cast your vote. {1} votes '+
@@ -4258,7 +4266,6 @@ def transition_day(cli, gameid=0):
                 onlybywolves.discard(monster)
 
     wolfghostvictims = []
-    dead_vigilantes = set()
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
@@ -4267,9 +4274,10 @@ def transition_day(cli, gameid=0):
             wolfghostvictims.append(d)
         if k in var.ROLES["vigilante"]:
             if var.get_role(d) not in var.WOLF_ROLES | {"monster", "succubus", "demoniac"}:
-                victims.append(k)
-                onlybywolves.discard(k)
-                dead_vigilantes.add(k)
+                var.DYING.add(k)
+
+    for v in var.ENTRANCED_DYING:
+        var.DYING.add(v)
 
     # clear list so that it doesn't pm hunter / ghost about being able to kill again
     var.OTHER_KILLS = {}
@@ -4279,7 +4287,7 @@ def transition_day(cli, gameid=0):
         onlybywolves.discard(d)
         killers[d].append(k)
 
-    for player in var.ENTRANCED_DYING:
+    for player in var.DYING:
         victims.append(player)
         onlybywolves.discard(player)
 
@@ -4352,7 +4360,7 @@ def transition_day(cli, gameid=0):
     pl = var.list_players()
     for v in pl:
         if v in victims_set:
-            if v in var.ENTRANCED_DYING | dead_vigilantes:
+            if v in var.DYING:
                 continue # bypass protections
             numkills = victims.count(v)
             numtotems = var.PROTECTED.count(v)
@@ -4440,7 +4448,7 @@ def transition_day(cli, gameid=0):
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
     for v in victims_set:
-        if v in var.ENTRANCED_DYING | dead_vigilantes:
+        if v in var.DYING:
             victims.append(v)
         elif v in var.ROLES["bodyguard"] and var.GUARDED.get(v) in victims_set:
             vappend.append(v)
@@ -4867,31 +4875,32 @@ def chk_nightdone(cli):
         elif tu[1] < var.NIGHT_COUNT - 1:
             nightroles.append(tc)
 
-    event = Event("chk_nightdone", {})
+    event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles})
     event.dispatch(cli, var)
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
-        # check for assassins that have not yet targeted
-        # must be handled separately because assassin only acts on nights when their target is dead
-        # and silenced assassin shouldn't add to actedcount
-        for ass in var.ROLES["assassin"]:
-            if ass not in var.TARGETED.keys() | var.SILENCED:
-                return
-        if not var.DISEASED_WOLVES:
-            # flatten var.KILLS
-            kills = set()
-            for ls in var.KILLS.values():
-                if not isinstance(ls, str):
-                    kills.update(ls)
-                else:
-                    kills.add(ls)
-            # check if wolves are actually agreeing
-            # allow len(kills) == 0 through as that means that crow was dumb and observed instead
-            # of killingor alpha wolf was alone and chose to bite instead of kill
-            if not var.ANGRY_WOLVES and len(kills) > 1:
-                return
-            elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
-                return
+        if not event.prevent_default:
+            # check for assassins that have not yet targeted
+            # must be handled separately because assassin only acts on nights when their target is dead
+            # and silenced assassin shouldn't add to actedcount
+            for ass in var.ROLES["assassin"]:
+                if ass not in var.TARGETED.keys() | var.SILENCED:
+                    return
+            if not var.DISEASED_WOLVES:
+                # flatten var.KILLS
+                kills = set()
+                for ls in var.KILLS.values():
+                    if not isinstance(ls, str):
+                        kills.update(ls)
+                    else:
+                        kills.add(ls)
+                # check if wolves are actually agreeing
+                # allow len(kills) == 0 through as that means that crow was dumb and observed instead
+                # of killingor alpha wolf was alone and chose to bite instead of kill
+                if not var.ANGRY_WOLVES and len(kills) > 1:
+                    return
+                elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
+                    return
 
         for x, t in var.TIMERS.items():
             t[0].cancel()
@@ -7840,6 +7849,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.CONSECRATING = set()
     var.ENTRANCED = set()
     var.ENTRANCED_DYING = set()
+    var.DYING = set()
     var.PRAYED = {}
     var.SICK = set()
     var.DULLAHAN_TARGETS = {}

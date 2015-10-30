@@ -4,6 +4,7 @@ import random
 import math
 
 import src.settings as var
+import botconfig
 
 from src import events
 
@@ -756,3 +757,67 @@ class SleepyMode(GameMode):
         self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
         # this ensures that village drunk will always receive the gunner template
         self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
+        # disable wolfchat
+        self.RESTRICT_WOLFCHAT = 0x0f
+
+        self.having_nightmare = None
+
+    def startup(self):
+        events.add_listener("dullahan_targets", self.dullahan_targets)
+        events.add_listener("transition_night_begin", self.setup_nightmare)
+        events.add_listener("chk_nightdone", self.prolong_night)
+        events.add_listener("transition_day_begin", self.nightmare_kill)
+        events.add_listener("del_player", self.happy_fun_times)
+
+    def teardown(self):
+        events.remove_listener("dullahan_targets", self.dullahan_targets)
+        events.remove_listener("transition_night_begin", self.setup_nightmare)
+        events.remove_listener("chk_nightdone", self.prolong_night)
+        events.remove_listener("transition_day_begin", self.nightmare_kill)
+        events.remove_listener("del_player", self.happy_fun_times)
+
+    def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
+        for dull in dullahans:
+            evt.data["targets"][dull] = set(var.ROLES["priest"])
+
+    def setup_nightmares(self, evt, cli, var):
+        if random.random() < 1/5:
+            self.having_nightmare = random.choice(var.list_players())
+        else:
+            self.having_nightmare = None
+
+    def prolong_night(self, evt, cli, var):
+        if self.having_nightmare is not None:
+            evt.data["actedcount"] = -1
+
+    def nightmare_kill(self, evt, cli, var):
+        if self.having_nightmare is not None:
+            var.DYING.add(self.having_nightmare)
+
+    def happy_fun_times(self, evt, cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
+        if death_triggers:
+            if nickrole == "priest":
+                pl = evt.data["pl"]
+                seers = [p for p in var.list_players("seer") if p in pl]
+                harlots = [p for p in var.list_players("harlot") if p in pl]
+                cultists = [p for p in var.list_players("cultist") if p in pl]
+                total = sum(map(len, (seers, harlots, cultists)))
+                if total > 0:
+                    cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
+                                                "in sinister tones, managing to perform \u0002{0}\u0002 tolls before the building is struck repeatedly by lightning, " 
+                                                "setting it alight in a raging inferno...").format(total))
+                    for seer in seers:
+                        var.ROLE["seer"].remove(seer)
+                        var.ROLE["doomsayer"].add(seer)
+                        # TODO: message
+                    for harlot in harlots:
+                        var.ROLE["harlot"].remove(harlot)
+                        var.ROLE["succubus"].add(harlot)
+                        # TODO: message
+                    for cultist in cultists:
+                        var.ROLE["cultist"].remove(cultist)
+                        var.ROLE["demoniac"].add(cultist)
+                        # TODO: message
+                    # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
+
+# vim: set expandtab:sw=4:ts=4:
