@@ -6125,7 +6125,7 @@ def get_bitten_message(nick):
             message = ("This time in your vision, you saw your best friend surrounded by wolves. However, instead of dying, they started " +
                        "to mutate into a werewolf themselves. Looking on in shock, you start wondering how you can find help, when one of " +
                        "the wolves turns to you and says to get going before day breaks. Confused, you look down and notice that you too " +
-                       "are a wolf; the shock of the realization waking you with a start.")
+                       "are a wolf; the shock of the realization wakes you with a start.")
         elif time_left == 2:
             message = ("You had another strange vision last night. You saw an old childhood bully walking along the edge of a cliff. " +
                        "You follow behind them, and after a while they turn around, noticing you. Their face suddenly becomes devoid " +

@@ -9,6 +9,7 @@ from src.utilities import *
 import botconfig
 
 from src import events
+from src import decorators
 
 def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
@@ -770,6 +771,10 @@ class SleepyMode(GameMode):
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
+        self.north_cmd = decorators.cmd("north", "n", chan=False, pm=True, playing=True, phases=("night",))(self.north)
+        self.east_cmd = decorators.cmd("east", "e", chan=False, pm=True, playing=True, phases=("night",))(self.east)
+        self.south_cmd = decorators.cmd("south", "s", chan=False, pm=True, playing=True, phases=("night",))(self.south)
+        self.west_cmd = decorators.cmd("west", "w", chan=False, pm=True, playing=True, phases=("night",))(self.west)
 
     def teardown(self):
         events.remove_listener("dullahan_targets", self.dullahan_targets)
@@ -777,6 +782,14 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
+        decorators.COMMANDS["north"].remove(self.north_cmd)
+        decorators.COMMANDS["n"].remove(self.north_cmd)
+        decorators.COMMANDS["east"].remove(self.east_cmd)
+        decorators.COMMANDS["e"].remove(self.east_cmd)
+        decorators.COMMANDS["south"].remove(self.south_cmd)
+        decorators.COMMANDS["s"].remove(self.south_cmd)
+        decorators.COMMANDS["west"].remove(self.west_cmd)
+        decorators.COMMANDS["west"].remove(self.west_cmd)
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
@@ -786,25 +799,158 @@ class SleepyMode(GameMode):
         if random.random() < 1/5:
             self.having_nightmare = random.choice(var.list_players())
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare)
+                t = threading.Timer(60, self.do_nightmare, (cli,))
         else:
             self.having_nightmare = None
 
-    def do_nightmare(self):
+    def do_nightmare(self, cli):
         pm(cli, self.having_nightmare, ("While walking through the woods, you hear the clopping of hooves behind you. Turning around, " +
                                         "you see a large black horse with dark red eyes and flames where its mane and tail would be. " +
                                         "After a brief period of time, it starts chasing after you! You think if you can cross the bridge " +
                                         "over the nearby river you'll be safe, but your surroundings are almost unrecognizable in this darkness."))
-        correct = [None, None, None, None, None]
+        self.correct = [None, None, None]
+        self.fake1 = [None, None, None]
+        self.fake2 = [None, None, None]
         directions = ["n", "e", "s", "w"]
-        self.nightmare_step = 0
-        for i in range(0, 5):
-            correct[i] = random.choice(directions)
+        self.step = 0
+        for i in range(0, 3):
+            self.correct[i] = random.choice(directions)
+            self.fake1[i] = random.choice(directions)
+            self.fake2[i] = random.choice(directions)
         self.prev_direction = "s" if correct[0] != "s" else "w"
-        self.nightmare_step()
+        self.start_direction = self.prev_direction
+        self.on_path = set()
+        self.nightmare_step(cli)
 
-    def nightmare_step(self):
-        pass # TODO: finish
+    def nightmare_step(self, cli):
+        if self.prev_direction == "n":
+            directions = "east, south, and west"
+        elif self.prev_direction == "e":
+            directions = "north, south, and west"
+        elif self.prev_direction == "s":
+            directions = "north, east, and west"
+        elif self.prev_direction == "w":
+            directions = "north, east, and south"
+
+        if self.step == 0:
+            pm(cli, self.having_nightmare, ("You find yourself deep in the heart of the woods, with imposing trees covering up what little light " +
+                                            "exists with their dense canopy. The paths here are very twisty, and it's easy to wind up going in " +
+                                            "circles if one is not careful. Directions are {0}.").format(directions))
+        elif self.step == 1:
+            pm(cli, self.having_nightmare, ("You come across a small creek, the water babbling softly in the night as if nothing is amiss. " +
+                                            "As you approach, a flock of ravens bathing there disperses into all directions. " +
+                                            "Directions are {0}.").format(directions))
+        elif self.step == 2:
+            pm(cli, self.having_nightmare, ("The treeline starts thinning and you start feeling fresh air for the first time in a while, you " +
+                                            "must be getting close to the edge of the woods! Directions are {0}.").format(directions))
+        elif self.step == 3:
+            if "correct" in self.on_path:
+                pm(cli, self.having_nightmare, ("You break clear of the woods and see a roaring river ahead with a rope bridge going over it. " +
+                                                "You sprint to the bridge with the beast hot on your tail, your adrenaline overcoming your tired " +
+                                                "legs as you push yourself for one final burst. You make it across the bridge, and not a moment too " +
+                                                "soon as the sun starts rising up, causing you to wake from your dream in a cold sweat."))
+                self.having_nightmare = None
+                chk_nightdone(cli)
+            elif "fake1" in self.on_path:
+                pm(cli, self.having_nightmare, ("You break clear of the woods and see a roaring river ahead. However, look as you may you are unable " +
+                                                "to find any means of crossing it. Knowing how expansive the river is, and how fast the beast can chase " +
+                                                "you if it isn't being slowed down by the foliage, you think it's best to look for the correct side of the " +
+                                                "woods again by going back in. Cursing your bad luck, you head back into the woods."))
+                self.step = 0
+                self.prev_direction = self.start_direction
+                self.nightmare_step(cli)
+            elif "fake2" in self.on_path:
+                pm(cli, self.having_nightmare, ("You break clear of the woods only to find an expansive plains ahead of you, with no river in sight. " +
+                                                "You must have found your way out through the wrong side of the woods! Attempting to circle around the " +
+                                                "woods would result in the beast catching you in short order, so you softly curse at your bad luck as you " +
+                                                "head back into the woods to find the correct path."))
+                self.step = 0
+                self.prev_direction = self.start_direction
+                self.nightmare_step(cli)
+
+    def north(self, cli, nick, chan, rest):
+        if nick != self.having_nightmare:
+            return
+        advance = False
+        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
+            self.on_path.add("correct")
+            advance = True
+        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "n":
+            self.on_path.add("fake1")
+            advance = True
+        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "n":
+            self.on_path.add("fake2")
+            advance = True
+        if advance:
+            self.step += 1
+            self.prev_direction = "n"
+        else:
+            self.step = 0
+            self.prev_direction = self.start_direction
+        self.nightmare_step(cli)
+
+    def east(self, cli, nick, chan, rest):
+        if nick != self.having_nightmare:
+            return
+        advance = False
+        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
+            self.on_path.add("correct")
+            advance = True
+        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "e":
+            self.on_path.add("fake1")
+            advance = True
+        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "e":
+            self.on_path.add("fake2")
+            advance = True
+        if advance:
+            self.step += 1
+            self.prev_direction = "e"
+        else:
+            self.step = 0
+            self.prev_direction = self.start_direction
+        self.nightmare_step(cli)
+
+    def south(self, cli, nick, chan, rest):
+        if nick != self.having_nightmare:
+            return
+        advance = False
+        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
+            self.on_path.add("correct")
+            advance = True
+        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "s":
+            self.on_path.add("fake1")
+            advance = True
+        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "s":
+            self.on_path.add("fake2")
+            advance = True
+        if advance:
+            self.step += 1
+            self.prev_direction = "s"
+        else:
+            self.step = 0
+            self.prev_direction = self.start_direction
+        self.nightmare_step(cli)
+
+    def west(self, cli, nick, chan, rest):
+        if nick != self.having_nightmare:
+            return
+        advance = False
+        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
+            self.on_path.add("correct")
+            advance = True
+        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "w":
+            self.on_path.add("fake1")
+            advance = True
+        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "w":
+            self.on_path.add("fake2")
+            advance = True
+        if advance:
+            self.step += 1
+            self.prev_direction = "w"
+        else:
+            self.step = 0
+            self.prev_direction = self.start_direction
+        self.nightmare_step(cli)
 
     def prolong_night(self, evt, cli, var):
         if self.having_nightmare is not None:
