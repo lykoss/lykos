@@ -6194,6 +6194,25 @@ def get_bitten_message(nick):
                        "You figure they are now sharp enough to cut through most anything, but to avoid alarming the village " +
                        "you decide to fashion some gloves and wear them around from now on in an attempt to show nothing is " +
                        "happening.")
+    elif role in ("seer", "oracle", "augur"):
+        if time_left <= 1:
+            message = ("You were prepared to see some sort of monstruosity, however this time all you see is a person bed-ridden " +
+                       "and unable to move. You see they are sick, and probably contagious. You see a vote taking place outside, " +
+                       "and you're even part of the crowd... The person in bed looks at the window, and longs to get out with the " +
+                       "others. They then turn to look at you, but the vision ends at that very moment. As you look outside, you " +
+                       "realize it's dawn already...")
+        elif time_left == 2:
+            message = ("You had a similar vision tonight, except the person wasn't in pain this time, but seemed to mutate " +
+                       "into some sort of monster... You are able to see them a bit more, but suddenly, wolves are all around " +
+                       "both of you. You try to defend yourself, but the wolves just ignore you, and instead take the poor, " +
+                       "harmless villager with them. You try to run after them, but sunlight pierces your eyes, and the vision " +
+                       "wears off as day breaks...")
+        else:
+            message = ("Something felt strange in that vision you had tonight... You could see someone falling in agony to " +
+                       "the ground, but as hard as you try, you're unable to remember who it was, and you can't see it once " +
+                       "again, even though the rest of your vision is very clear in your mind. You try not to worry too much " +
+                       "about it, but, nevertheless, you still attempt to see that strange vision again, and before you realize " +
+                       "it, the sun rises...")
     else:
         if time_left <= 1:
             message = ("You had the same dream again, but this time YOU were the pursuer. You smell fear from your quarry " +
@@ -6921,6 +6940,14 @@ def transition_night(cli):
                 newrole = "fallen angel"
                 var.ROLES["assassin"].add(chump)
                 debuglog("{0} ({1}) TURNED FALLEN ANGEL".format(chump, chumprole))
+            elif chumprole in ("seer", "oracle", "augur"):
+                pm(cli, chump, ("As you gaze out your window and prepare for yet another sleepless night, you look back " +
+                                "on what you remember from the previous nights, and realize it is past the time. The villagers " +
+                                "you once vowed to help track the wolves are no longer your friends. Your newly-gained powers " +
+                                "see no limit, and an evil grin is drawn on your face as you walk towards the forest, to rejoin " +
+                                "with your new comrades..."))
+                newrole = "doomsayer"
+                debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
             else:
                 pm(cli, chump, ("As you prepare for bed, you watch in horror as your body starts growing a coat of fur! " +
                                 "Sudden realization hits you as you grin with your now muzzled face; that mysterious bite " +
@@ -6933,7 +6960,7 @@ def transition_night(cli):
             var.FINAL_ROLES[chump] = newrole
             for wolf in var.list_players(var.WOLFCHAT_ROLES):
                 if wolf != chump:
-                    # no need for a/an since newrole is either wolf or fallen angel
+                    # no need for a/an since newrole is either wolf, fallen angel or doomsayer
                     pm(cli, wolf, "\u0002{0}\u0002 is now a \u0002{1}\u0002!".format(chump, newrole))
 
     # convert amnesiac
