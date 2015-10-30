@@ -5,6 +5,7 @@ import math
 import threading
 
 import src.settings as var
+from src.utilities import *
 import botconfig
 
 from src import events
@@ -827,64 +828,24 @@ class SleepyMode(GameMode):
                                                 "in sinister tones, managing to perform \u0002{0}\u0002 {1} before the building is struck repeatedly by lightning, " +
                                                 "setting it alight in a raging inferno...").format(total, var.plural("toll", total)))
                     for seer in seers:
-                        var.ROLE["seer"].remove(seer)
-                        var.ROLE["doomsayer"].add(seer)
+                        var.ROLES["seer"].remove(seer)
+                        var.ROLES["doomsayer"].add(seer)
                         pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
                                        "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
                                        "on the unwary. You are now a \u0002doomsayer\u0002."))
-                        self.relay_wolfchat_command(var, cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.", var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                        relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.", var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                     for harlot in harlots:
-                        var.ROLE["harlot"].remove(harlot)
-                        var.ROLE["succubus"].add(harlot)
+                        var.ROLES["harlot"].remove(harlot)
+                        var.ROLES["succubus"].add(harlot)
                         pm(cli, harlot, ("You feel something rushing into you and taking control over your mind and body. You are now a " +
                                          "\u0002succubus\u0002. Your job is to entrance the village, bringing them all under your absolute " +
                                          "control."))
                     for cultist in cultists:
-                        var.ROLE["cultist"].remove(cultist)
-                        var.ROLE["demoniac"].add(cultist)
+                        var.ROLES["cultist"].remove(cultist)
+                        var.ROLES["demoniac"].add(cultist)
                         pm(cli, cultist, ("You feel something rushing into you and taking control over your mind and body, showing you your new purpose in life. " +
                                           "There are far greater evils than the wolves lurking in the shadows, and by sacrificing all of the wolves, you can " +
                                           "unleash those evils upon the world. You are now a \u0002demoniac\u0002."))
                     # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
-
-    # TODO: this are duplicated from wolfgame.py, should split both off into a utilities.py or something and call it from there
-    def in_wolflist(self, var, nick, who):
-        myrole = var.get_role(nick)
-        role = var.get_role(who)
-        wolves = var.WOLFCHAT_ROLES
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wolves = var.WOLF_ROLES
-            else:
-                wolves = var.WOLF_ROLES | {"traitor"}
-        return myrole in wolves and role in wolves
-
-    def relay_wolfchat_command(self, var, cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
-        if not is_wolf_command and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
-            return
-        if not is_kill_command and var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-            if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-                return
-            if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-                return
-        if not self.in_wolflist(var, nick, nick):
-            return
-
-        wcroles = var.WOLFCHAT_ROLES
-        if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-            if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-                wcroles = roles
-            if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-                wcroles = roles
-        elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = var.WOLF_ROLES
-            else:
-                wcroles = var.WOLF_ROLES | {"traitor"}
-
-        wcwolves = var.list_players(wcroles)
-        wcwolves.remove(nick)
-        if wcwolves:
-            mass_privmsg(cli, wcwolves, message)
 
 # vim: set expandtab:sw=4:ts=4:

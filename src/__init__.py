@@ -110,6 +110,7 @@ def logger(file, write=True, display=True):
     return log
 
 stream_handler = logger(None)
+debuglog = logger("debug.log", write=False, display=False)
 
 def stream(output, level="normal"):
     if botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:

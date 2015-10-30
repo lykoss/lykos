@@ -5,6 +5,7 @@ from oyoyo.parse import parse_nick
 
 import botconfig
 import src.settings as var
+from src.utilities import *
 from src import logger
 
 adminlog = logger("audit.log")

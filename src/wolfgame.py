@@ -43,12 +43,12 @@ from oyoyo.parse import parse_nick
 
 import botconfig
 import src.settings as var
-from src import decorators, events, logger
+from src.utilities import *
+from src import decorators, events, logger, debuglog
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
 
-debuglog = logger("debug.log", write=False, display=False) # will be True if in debug mode
 errlog = logger("errors.log")
 plog = logger(None) #use this instead of print so that logs have timestamps
 
@@ -362,37 +362,6 @@ def get_roles(*roles):
         all_roles.append(var.ROLES[role])
     return list(itertools.chain(*all_roles))
 
-def mass_mode(cli, md_param, md_plain):
-    """ Example: mass_mode(cli, [('+v', 'asdf'), ('-v','wobosd')], ['-m']) """
-    lmd = len(md_param)  # store how many mode changes to do
-    if md_param:
-        for start_i in range(0, lmd, var.MODELIMIT):  # 4 mode-changes at a time
-            if start_i + var.MODELIMIT > lmd:  # If this is a remainder (mode-changes < 4)
-                z = list(zip(*md_param[start_i:]))  # zip this remainder
-                ei = lmd % var.MODELIMIT  # len(z)
-            else:
-                z = list(zip(*md_param[start_i:start_i+var.MODELIMIT])) # zip four
-                ei = var.MODELIMIT # len(z)
-            # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
-            arg1 = "".join(md_plain) + "".join(z[0])
-            arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
-            cli.mode(botconfig.CHANNEL, arg1, arg2)
-    else:
-            cli.mode(botconfig.CHANNEL, "".join(md_plain))
-
-def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
-    if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        debuglog("Would message fake nick {0}: {1!r}".format(target, message))
-        return
-
-    if is_user_notice(target):
-        cli.notice(target, message)
-        return
-
-    cli.msg(target, message)
-
-decorators.pm = pm
-
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
@@ -697,23 +666,6 @@ def mark_simple_notify(cli, nick, chan, rest):
 
     cli.notice(nick, "You now receive simple role instructions.")
 
-def is_user_simple(nick):
-    if nick in var.USERS:
-        ident = var.USERS[nick]["ident"]
-        host = var.USERS[nick]["host"]
-        acc = var.USERS[nick]["account"]
-    else:
-        return False
-    if acc and acc != "*" and not var.DISABLE_ACCOUNTS:
-        if acc in var.SIMPLE_NOTIFY_ACCS:
-            return True
-        return False
-    elif not var.ACCOUNTS_ONLY:
-        for hostmask in var.SIMPLE_NOTIFY:
-            if var.match_hostmask(hostmask, nick, ident, host):
-                return True
-    return False
-
 @cmd("notice", raw_nick=True, pm=True)
 def mark_prefer_notice(cli, nick, chan, rest):
     """Makes the bot NOTICE you for every interaction."""
@@ -768,18 +720,6 @@ def mark_prefer_notice(cli, nick, chan, rest):
         var.add_prefer_notice(fullmask)
 
     cli.notice(nick, "The bot will now always NOTICE you.")
-
-def is_user_notice(nick):
-    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
-        if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
-            return True
-    if nick in var.USERS and not var.ACCOUNTS_ONLY:
-        ident = var.USERS[nick]["ident"]
-        host = var.USERS[nick]["host"]
-        for hostmask in var.PREFER_NOTICE:
-            if var.match_hostmask(hostmask, nick, ident, host):
-                return True
-    return False
 
 @cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
 def replace(cli, nick, chan, rest):
@@ -5345,48 +5285,6 @@ def check_exchange(cli, actor, nick):
         var.EXCHANGED_ROLES.append((actor, nick))
         return True
     return False
-
-def is_fake_nick(who):
-    return re.search(r"^[0-9]+$", who)
-
-def in_wolflist(nick, who):
-    myrole = var.get_role(nick)
-    role = var.get_role(who)
-    wolves = var.WOLFCHAT_ROLES
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves = var.WOLF_ROLES
-        else:
-            wolves = var.WOLF_ROLES | {"traitor"}
-    return myrole in wolves and role in wolves
-
-def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
-    if not is_wolf_command and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
-        return
-    if not is_kill_command and var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-            return
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-            return
-    if not in_wolflist(nick, nick):
-        return
-
-    wcroles = var.WOLFCHAT_ROLES
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-            wcroles = roles
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-            wcroles = roles
-    elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = var.WOLF_ROLES
-        else:
-            wcroles = var.WOLF_ROLES | {"traitor"}
-
-    wcwolves = var.list_players(wcroles)
-    wcwolves.remove(nick)
-    if wcwolves:
-        mass_privmsg(cli, wcwolves, message)
 
 @cmd("retract", "r", pm=True, phases=("day", "night"))
 def retract(cli, nick, chan, rest):
