@@ -801,6 +801,7 @@ class SleepyMode(GameMode):
             self.having_nightmare = True
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (cli, random.choice(var.list_players())))
+                t.daemon = True
                 t.start()
         else:
             self.having_nightmare = None
@@ -817,7 +818,9 @@ class SleepyMode(GameMode):
         self.fake2 = [None, None, None]
         directions = ["n", "e", "s", "w"]
         self.step = 0
+        self.prev_direction = None
         for i in range(0, 3):
+            dir2 = [d for d in directions where d != self.prev_direction]
             self.correct[i] = random.choice(directions)
             self.fake1[i] = random.choice(directions)
             self.fake2[i] = random.choice(directions)
@@ -828,13 +831,13 @@ class SleepyMode(GameMode):
 
     def nightmare_step(self, cli):
         if self.prev_direction == "n":
-            directions = "east, south, and west"
-        elif self.prev_direction == "e":
-            directions = "north, south, and west"
-        elif self.prev_direction == "s":
             directions = "north, east, and west"
-        elif self.prev_direction == "w":
+        elif self.prev_direction == "e":
             directions = "north, east, and south"
+        elif self.prev_direction == "s":
+            directions = "east, south, and west"
+        elif self.prev_direction == "w":
+            directions = "north, south, and west"
 
         if self.step == 0:
             pm(cli, self.having_nightmare, ("You find yourself deep in the heart of the woods, with imposing trees covering up what little light " +
@@ -877,6 +880,8 @@ class SleepyMode(GameMode):
     def north(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
+        if self.prev_direction == "n":
+            return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
             self.on_path.add("correct")
@@ -899,6 +904,8 @@ class SleepyMode(GameMode):
 
     def east(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
+            return
+        if self.prev_direction == "e":
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
@@ -923,6 +930,8 @@ class SleepyMode(GameMode):
     def south(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
+        if self.prev_direction == "s":
+            return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
             self.on_path.add("correct")
@@ -945,6 +954,8 @@ class SleepyMode(GameMode):
 
     def west(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
+            return
+        if self.prev_direction == "w":
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
