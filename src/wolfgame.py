@@ -2264,7 +2264,7 @@ def chk_decision(cli, force = ""):
                     if votee in var.DESPERATE | var.ROLES["dullahan"]:
                         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
                         target = voters[-1]
-                        if target != votee:
+                        if target != votee and target not in var.ROLES["blessed villager"]:
                             if var.ROLE_REVEAL in ("on", "team") and votee not in var.ROLES["dullahan"]:
                                 r1 = var.get_reveal_role(target)
                                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
@@ -4622,7 +4622,7 @@ def transition_day(cli, gameid=0):
                     else:
                         message.append(("\u0002{0}\u0002 was attacked by \u0002{1}\u0002's spirit last night, " +
                                         "however their strong spiritual powers drove away the spirit.").format(victim, loser))
-                elif loser is not None:
+                elif loser is not None and loser not in var.ROLES["blessed villager"]:
                     dead.append(loser)
                     if var.ROLE_REVEAL in ("on", "team") and victim not in var.ROLES["dullahan"]:
                         role = var.get_reveal_role(loser)

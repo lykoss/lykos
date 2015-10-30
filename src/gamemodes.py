@@ -818,9 +818,9 @@ class SleepyMode(GameMode):
             if nickrole == "priest":
                 pl = evt.data["pl"]
                 turn_chance = 3/4
-                seers = [p for p in var.list_players("seer") if p in pl and random.random() < turn_chance]
-                harlots = [p for p in var.list_players("harlot") if p in pl and random.random() < turn_chance]
-                cultists = [p for p in var.list_players("cultist") if p in pl and random.random() < turn_chance]
+                seers = [p for p in var.ROLES["seer"] if p in pl and random.random() < turn_chance]
+                harlots = [p for p in var.ROLES["harlot"] if p in pl and random.random() < turn_chance]
+                cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
                 total = sum(map(len, (seers, harlots, cultists)))
                 if total > 0:
                     cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
