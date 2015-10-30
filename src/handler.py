@@ -56,7 +56,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
                 raise
 
 
-    for x in decorators.COMMANDS:
+    for x in list(decorators.COMMANDS.keys()):
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):

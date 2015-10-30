@@ -798,13 +798,15 @@ class SleepyMode(GameMode):
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
-            self.having_nightmare = random.choice(var.list_players())
+            self.having_nightmare = True
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare, (cli,))
+                t = threading.Timer(60, self.do_nightmare, (cli, random.choice(var.list_players()))
+                t.start()
         else:
             self.having_nightmare = None
 
-    def do_nightmare(self, cli):
+    def do_nightmare(self, cli, target):
+        self.having_nightmare = target
         pm(cli, self.having_nightmare, ("While walking through the woods, you hear the clopping of hooves behind you. Turning around, " +
                                         "you see a large black horse with dark red eyes and flames where its mane and tail would be. " +
                                         "After a brief period of time, it starts chasing after you! You think if you can cross the bridge " +
@@ -818,7 +820,7 @@ class SleepyMode(GameMode):
             self.correct[i] = random.choice(directions)
             self.fake1[i] = random.choice(directions)
             self.fake2[i] = random.choice(directions)
-        self.prev_direction = "s" if correct[0] != "s" else "w"
+        self.prev_direction = "s" if self.correct[0] != "s" else "w"
         self.start_direction = self.prev_direction
         self.on_path = set()
         self.nightmare_step(cli)
