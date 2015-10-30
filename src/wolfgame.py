@@ -4635,11 +4635,11 @@ def transition_day(cli, gameid=0):
                     elif var.ROLE_REVEAL in ("on", "team"):
                         role = var.get_reveal_role(loser)
                         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                        message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
-                                        "\u0002{1}\u0002, a{2} \u0002{3}\u0002, and were found dead at the scene.").format(victim, loser, an, role))
+                        message.append(("With their dying breath, \u0002{0}\u0002 calls out the name of " +
+                                        "\u0002{1}\u0002, a{2} \u0002{3}\u0002, who died shortly thereafter.").format(victim, loser, an, role))
                     else:
-                        message.append(("\u0002{0}\u0002's spiritual powers surpassed the physical endurance of " +
-                                        "\u0002{1}\u0002, and were found dead at the scene.").format(victim, loser))
+                        message.append(("With their dying breath, \u0002{0}\u0002 calls out the name of " +
+                                        "\u0002{1}\u0002, who died shortly thereafter.").format(victim, loser))
             if var.ROLE_REVEAL in ("on", "team"):
                 role = var.get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
