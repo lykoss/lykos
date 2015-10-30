@@ -4825,7 +4825,8 @@ def chk_nightdone(cli):
                            "guardian angel", "wolf", "werecrow", "alpha wolf",
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
-                           "fallen angel", "dullahan", "vigilante")
+                           "fallen angel", "dullahan", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
+                           "prophet", "priest")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -4836,7 +4837,10 @@ def chk_nightdone(cli):
         nightroles.extend(get_roles("matchmaker", "clone"))
 
     if var.DISEASED_WOLVES:
-        nightroles = [p for p in nightroles if p not in var.list_players(var.WOLF_ROLES - {"wolf cub", "werecrow"})]
+        nightroles = [p for p in nightroles if p not in var.list_players(var.WOLF_ROLES - {"wolf cub", "werecrow", "doomsayer"})]
+        # only remove 1 doomsayer instance to indicate they cannot kill but can still see
+        for p in var.list_players("doomsayer"):
+            nightroles.remove(p)
     elif var.ALPHA_ENABLED:
         # add in alphas that have bitten (note an alpha can kill or bite, but not both)
         actedcount += len([p for p in var.BITE_PREFERENCES if p in var.ROLES["alpha wolf"]])
@@ -6287,7 +6291,9 @@ def bite_cmd(cli, nick, chan, rest):
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, var.get_role(nick), actual, var.get_role(actual)))
     chk_nightdone(cli)
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter","harlot","bodyguard","guardian angel","turncoat","warlock","piper","succubus","vigilante"))
+@cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
+    roles=("hunter", "harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus",
+           "vigilante", "priest"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = var.get_role(nick)
@@ -6364,6 +6370,12 @@ def pass_cmd(cli, nick, chan, rest):
         if nick in var.OTHER_KILLS:
             del var.OTHER_KILLS[nick]
         pm(cli, nick, "You have chosen not to kill anyone tonight.")
+        var.PASSED.add(nick)
+    elif nickrole == "priest":
+        if nick in var.PRIESTS:
+            pm(cli, nick, "You have already blessed someone this game.")
+            return
+        pm(cli, nick, "You have chosen not to bless anyone tonight.")
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, var.get_role(nick)))
