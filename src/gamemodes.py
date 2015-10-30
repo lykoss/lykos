@@ -790,7 +790,7 @@ class SleepyMode(GameMode):
         decorators.COMMANDS["south"].remove(self.south_cmd)
         decorators.COMMANDS["s"].remove(self.south_cmd)
         decorators.COMMANDS["west"].remove(self.west_cmd)
-        decorators.COMMANDS["west"].remove(self.west_cmd)
+        decorators.COMMANDS["w"].remove(self.west_cmd)
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
@@ -800,7 +800,7 @@ class SleepyMode(GameMode):
         if random.random() < 1/5:
             self.having_nightmare = True
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare, (cli, random.choice(var.list_players()))
+                t = threading.Timer(60, self.do_nightmare, (cli, random.choice(var.list_players())))
                 t.start()
         else:
             self.having_nightmare = None
