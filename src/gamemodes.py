@@ -857,6 +857,7 @@ class SleepyMode(GameMode):
                                                 "you if it isn't being slowed down by the foliage, you think it's best to look for the correct side of the " +
                                                 "woods again by going back in. Cursing your bad luck, you head back into the woods."))
                 self.step = 0
+                self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step(cli)
             elif "fake2" in self.on_path:
@@ -865,6 +866,7 @@ class SleepyMode(GameMode):
                                                 "woods would result in the beast catching you in short order, so you softly curse at your bad luck as you " +
                                                 "head back into the woods to find the correct path."))
                 self.step = 0
+                self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step(cli)
 
