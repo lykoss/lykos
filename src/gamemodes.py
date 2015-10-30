@@ -811,6 +811,7 @@ class SleepyMode(GameMode):
                                         "you see a large black horse with dark red eyes and flames where its mane and tail would be. " +
                                         "After a brief period of time, it starts chasing after you! You think if you can cross the bridge " +
                                         "over the nearby river you'll be safe, but your surroundings are almost unrecognizable in this darkness."))
+        pm(cli, self.having_nightmare, 'You can pm me "north", "east", "south", and "west", or their abbreviations "n", "e", "s", and "w" to navigate.')
         self.correct = [None, None, None]
         self.fake1 = [None, None, None]
         self.fake2 = [None, None, None]
@@ -891,7 +892,9 @@ class SleepyMode(GameMode):
             self.prev_direction = "n"
         else:
             self.step = 0
+            self.on_path = set()
             self.prev_direction = self.start_direction
+            pm(cli, self.having_nightmare, "You find yourself back where you started...")
         self.nightmare_step(cli)
 
     def east(self, cli, nick, chan, rest):
@@ -912,7 +915,9 @@ class SleepyMode(GameMode):
             self.prev_direction = "e"
         else:
             self.step = 0
+            self.on_path = set()
             self.prev_direction = self.start_direction
+            pm(cli, self.having_nightmare, "You find yourself back where you started...")
         self.nightmare_step(cli)
 
     def south(self, cli, nick, chan, rest):
@@ -933,7 +938,9 @@ class SleepyMode(GameMode):
             self.prev_direction = "s"
         else:
             self.step = 0
+            self.on_path = set()
             self.prev_direction = self.start_direction
+            pm(cli, self.having_nightmare, "You find yourself back where you started...")
         self.nightmare_step(cli)
 
     def west(self, cli, nick, chan, rest):
@@ -956,6 +963,7 @@ class SleepyMode(GameMode):
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
+            pm(cli, self.having_nightmare, "You find yourself back where you started...")
         self.nightmare_step(cli)
 
     def prolong_night(self, evt, cli, var):

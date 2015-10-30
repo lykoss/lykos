@@ -7843,6 +7843,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 target = random.choice(ps)
                 ps.remove(target)
                 ts.add(target)
+            random.shuffle(ts)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
