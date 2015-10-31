@@ -27,7 +27,9 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
         msg_targs = []
         not_targs = []
         for target in targets:
-            if is_user_notice(target):
+            if is_fake_nick(target):
+                debuglog("Would message fake nick {0}: {1!r}".format(target, msg))
+            elif is_user_notice(target):
                 not_targs.append(target)
             else:
                 msg_targs.append(target)

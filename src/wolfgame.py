@@ -6638,44 +6638,6 @@ def getfeatures(cli, nick, *rest):
                 errlog("Unsupported case mapping: {0!r}; falling back to rfc1459.".format(var.CASEMAPPING))
                 var.CASEMAPPING = "rfc1459"
 
-def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
-    if not notice and not privmsg:
-        msg_targs = []
-        not_targs = []
-        for target in targets:
-            if is_user_notice(target):
-                not_targs.append(target)
-            else:
-                msg_targs.append(target)
-        while msg_targs:
-            if len(msg_targs) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(msg_targs)
-                msg_targs = None
-            else:
-                bgs = ",".join(msg_targs[:var.MAX_PRIVMSG_TARGETS])
-                msg_targs = msg_targs[var.MAX_PRIVMSG_TARGETS:]
-            cli.msg(bgs, msg)
-        while not_targs:
-            if len(not_targs) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(not_targs)
-                not_targs = None
-            else:
-                bgs = ",".join(not_targs[:var.MAX_PRIVMSG_TARGETS])
-                not_targs = not_targs[var.MAX_PRIVMSG_TARGETS:]
-            cli.notice(bgs, msg)
-    else:
-        while targets:
-            if len(targets) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(targets)
-                targets = None
-            else:
-                bgs = ",".join(targets[:var.MAX_PRIVMSG_TARGETS])
-                target = targets[var.MAX_PRIVMSG_TARGETS:]
-            if notice:
-                cli.notice(bgs, msg)
-            else:
-                cli.msg(bgs, msg)
-
 @cmd("", chan=False, pm=True)
 def relay(cli, nick, chan, rest):
     """Wolfchat and Deadchat"""
