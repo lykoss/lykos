@@ -1148,7 +1148,7 @@ def join(cli, nick, chan, rest):
                 cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
 
     else: # join deadchat
-        if chan == nick:
+        if chan == nick and nick != botconfig.NICK:
             join_deadchat(cli, nick)
 
 def join_player(cli, player, chan, who = None, forced = False):
