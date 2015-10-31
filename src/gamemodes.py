@@ -1020,7 +1020,7 @@ class SleepyMode(GameMode):
                         pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
                                        "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
                                        "on the unwary. You are now a \u0002doomsayer\u0002."))
-                        relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.", var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                        relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.".format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                     for harlot in harlots:
                         var.ROLES["harlot"].remove(harlot)
                         var.ROLES["succubus"].add(harlot)
