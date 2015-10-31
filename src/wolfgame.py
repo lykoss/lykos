@@ -5941,8 +5941,8 @@ def hvisit(cli, nick, chan, rest):
                                "you must vote along with them or risk dying. For as long as they "
                                "are alive, you \u0002cannot win with your own team\u0002, but you "
                                "will win if \u0002{0}\u0002 wins as well.").format(victim))
-            pm(cli, victim, "You have entranced \u0002{0}\u0002.".format(nick))
-            var.ENTRANCED.add(nick)
+                pm(cli, victim, "You have entranced \u0002{0}\u0002.".format(nick))
+                var.ENTRANCED.add(nick)
         else:
             if var.get_role(victim) != "succubus":
                 var.ENTRANCED.add(victim)
