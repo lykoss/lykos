@@ -1776,7 +1776,16 @@ def stats(cli, nick, chan, rest):
 
             if overkill:
                 # we tried killing more people than exist in a role, so deduct from amnesiac/clone count instead
-                if pr == "clone":
+                if var.CURRENT_GAMEMODE.name == "sleepy" and pr == "doomsayer":
+                    rolecounts["seer"][0] = max(0, rolecounts["seer"][0] - 1)
+                    rolecounts["seer"][1] = max(0, rolecounts["seer"][1] - 1)
+                elif var.CURRENT_GAMEMODE.name == "sleepy" and pr == "demoniac":
+                    rolecounts["cultist"][0] = max(0, rolecounts["cultist"][0] - 1)
+                    rolecounts["cultist"][1] = max(0, rolecounts["cultist"][1] - 1)
+                elif var.CURRENT_GAMEMODE.name == "sleepy" and pr == "succubus":
+                    rolecounts["harlot"][0] = max(0, rolecounts["harlot"][0] - 1)
+                    rolecounts["harlot"][1] = max(0, rolecounts["harlot"][1] - 1)
+                elif pr == "clone":
                     # in this case, it means amnesiac became a clone (clone becoming amnesiac is impossible so we
                     # do not have the converse check in here - clones always inherit what amnesiac turns into).
                     equiv_sets["amnesiac_clone"] = max(0, equiv_sets["amnesiac_clone"] - 1)
