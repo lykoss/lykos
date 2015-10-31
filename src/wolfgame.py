@@ -7875,7 +7875,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_VOTES = None
 
     if var.ROLES["dullahan"]: # assign random targets to dullahan to kill
-        max_targets = len(pl) // 2 - 1
+        max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
             var.DULLAHAN_TARGETS[dull] = set()
         dull_targets = Event("dullahan_targets", {"targets": var.DULLAHAN_TARGETS}) # support sleepy
