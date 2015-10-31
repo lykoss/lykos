@@ -783,14 +783,19 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
-        del decorators.COMMANDS["north"]
-        del decorators.COMMANDS["n"]
-        del decorators.COMMANDS["east"]
-        del decorators.COMMANDS["e"]
-        del decorators.COMMANDS["south"]
-        del decorators.COMMANDS["s"]
-        del decorators.COMMANDS["west"]
-        del decorators.COMMANDS["w"]
+        def remove_command(name, command):
+            if len(decorators.COMMANDS[name]) > 1:
+                decorators.COMMANDS[name].remove(command)
+            else:
+                del decorators.COMMANDS[name]
+        remove_command("north", self.north_cmd)
+        remove_command("n", self.north_cmd)
+        remove_command("east", self.east_cmd)
+        remove_command("e", self.east_cmd)
+        remove_command("south", self.south_cmd)
+        remove_command("s", self.south_cmd)
+        remove_command("west", self.west_cmd)
+        remove_command("w", self.west_cmd)
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
