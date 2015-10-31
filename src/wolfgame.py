@@ -4579,7 +4579,15 @@ def transition_day(cli, gameid=0):
                 novictmsg = False
         elif victim not in dead: # not already dead via some other means
             if victim in var.RETRIBUTION | var.ROLES["dullahan"]:
-                loser = random.choice(killers[victim]) if killers[victim] else None
+                loser = None
+                while killers[victim]:
+                    loser = random.choice(killers[victim])
+                    if loser in dead:
+                        killers[victim].remove(loser)
+                        continue
+                    break
+                if loser in dead:
+                    loser = None
                 if loser == "@wolves":
                     wolves = var.list_players(var.WOLF_ROLES)
                     for crow in var.ROLES["werecrow"]:
