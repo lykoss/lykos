@@ -1044,8 +1044,9 @@ def join_deadchat(cli, *all_nicks):
         return False
 
     nicks = []
+    pl = var.list_players()
     for nick in all_nicks:
-        if is_user_stasised(nick) or nick in var.list_players() or nick in var.DEADCHAT_PLAYERS or nick in var.VENGEFUL_GHOSTS:
+        if is_user_stasised(nick) or nick in pl or nick in var.DEADCHAT_PLAYERS or nick in var.VENGEFUL_GHOSTS:
             continue
         nicks.append(nick)
 
@@ -1063,10 +1064,7 @@ def join_deadchat(cli, *all_nicks):
 
     people = var.DEADCHAT_PLAYERS | set(nicks)
 
-    if len(people) > 1:
-        for nick in nicks:
-            pm(cli, nick, "Players: {0}".format(", ".join(people - {nick})))
-
+    mass_privmsg(cli, nicks, "Players: {0}".format(", ".join(people)))
     var.DEADCHAT_PLAYERS.update(nicks)
 
     return True
@@ -3142,8 +3140,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if ismain:
                 mass_mode(cli, cmode, [])
                 del cmode[:]
-                join_deadchat(cli, *deadchat)
-                del deadchat[:]
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
                     del var.GAMEMODE_VOTES[nick]
@@ -3165,6 +3161,10 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+nick+"!*@*"))
                 var.DEAD.add(nick)
                 ret = not chk_win(cli, end_game)
+            # only join to deadchat if the game isn't about to end
+            if ismain and not ret:
+                join_deadchat(cli, *deadchat)
+                del deadchat[:]
             if var.PHASE in ("night", "day") and ret:
                 # remove the player from variables if they're in there
                 for a,b in list(var.KILLS.items()):
