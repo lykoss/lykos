@@ -413,6 +413,7 @@ def reset():
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES = set() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
+    var.ENTRANCED = set()
 
     reset_settings()
 
@@ -3455,9 +3456,10 @@ def return_to_village(cli, chan, nick, show_message):
 def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
-    if prefix in var.ENTRANCED: # need to update this after death, too
-        var.ENTRANCED.remove(prefix)
-        var.ENTRANCED.add(nick)
+    if var.PHASE in ("night", "day"):
+        if prefix in var.ENTRANCED: # need to update this after death, too
+            var.ENTRANCED.remove(prefix)
+            var.ENTRANCED.add(nick)
 
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
