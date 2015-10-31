@@ -721,7 +721,7 @@ class CharmingMode(GameMode):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("sleepy", minp=8, maxp=24, likelihood=0)
+@game_mode("sleepy", minp=8, maxp=24, likelihood=20)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
