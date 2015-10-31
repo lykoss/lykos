@@ -760,7 +760,7 @@ class SleepyMode(GameMode):
         # this ensures that village drunk will always receive the gunner template
         self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
         # disable wolfchat
-        self.RESTRICT_WOLFCHAT = 0x0f
+        #self.RESTRICT_WOLFCHAT = 0x0f
 
         self.having_nightmare = None
 
