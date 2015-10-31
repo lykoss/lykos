@@ -843,7 +843,7 @@ class SleepyMode(GameMode):
 
         if self.step == 0:
             pm(cli, self.having_nightmare, ("You find yourself deep in the heart of the woods, with imposing trees covering up what little light " +
-                                            "exists with their dense canopy. The paths re are very twisty, and it's easy to wind up going in " +
+                                            "exists with their dense canopy. The paths are very twisty, and it's easy to wind up going in " +
                                             "circles if one is not careful. Directions are {0}.").format(directions))
         elif self.step == 1:
             pm(cli, self.having_nightmare, ("You come across a small creek, the water babbling softly in the night as if nothing is amiss. " +
@@ -882,7 +882,8 @@ class SleepyMode(GameMode):
     def north(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
-        if self.prev_direction == "n":
+        if self.prev_direction == "s":
+            pm(cli, nick, "That way lies madness and certain death.")
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
@@ -907,7 +908,8 @@ class SleepyMode(GameMode):
     def east(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
-        if self.prev_direction == "e":
+        if self.prev_direction == "w":
+            pm(cli, nick, "That way lies madness and certain death.")
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
@@ -932,7 +934,8 @@ class SleepyMode(GameMode):
     def south(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
-        if self.prev_direction == "s":
+        if self.prev_direction == "n":
+            pm(cli, nick, "That way lies madness and certain death.")
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
@@ -957,7 +960,8 @@ class SleepyMode(GameMode):
     def west(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
-        if self.prev_direction == "w":
+        if self.prev_direction == "e":
+            pm(cli, nick, "That way lies madness and certain death.")
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
