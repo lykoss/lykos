@@ -665,7 +665,19 @@ def init_db():
 
 
         c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
-            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
+            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT, succubuswins SMALLINT, ' +
+            'demoniacwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
+        try:
+            # Check if table has been updated with new stats
+            c.execute('SELECT succubuswins from gamestats')
+        except sqlite3.OperationalError:
+            c.execute('ALTER TABLE gamestats RENAME TO gamestatsold')
+            c.execute('CREATE TABLE gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, wolfwins SMALLINT, ' +
+                        'monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT,succubuswins SMALLINT, ' +
+                        'demoniacwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))')
+            c.execute('INSERT into gamestats (gamemode, size, villagewins, wolfwins, monsterwins, foolwins, piperwins, succubuswins, demoniacwins, totalgames) ' +
+                        'SELECT gamemode, size, villagewins, wolfwins, monsterwins, foolwins, piperwins, 0, 0, totalgames FROM gamestatsold')
+            c.execute('DROP TABLE gamestatsold')
 
 
 def remove_simple_rolemsg(clk):
@@ -781,13 +793,13 @@ def update_role_stats(acc, role, won, iwon):
 
 def update_game_stats(gamemode, size, winner):
     with conn:
-        vwins, wwins, mwins, fwins, pwins, total = 0, 0, 0, 0, 0, 0
+        vwins, wwins, mwins, fwins, pwins, swins, dwins, total = 0, 0, 0, 0, 0, 0, 0, 0
 
-        c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, totalgames "+
-                    "FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
+        c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, piperwins, succubuswins, "
+                  "demoniacwins, totalgames FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
         row = c.fetchone()
         if row:
-            vwins, wwins, mwins, fwins, total = row
+            vwins, wwins, mwins, fwins, pwins, swins, dwins, total = row
 
         if winner == "wolves":
             wwins += 1
@@ -797,12 +809,16 @@ def update_game_stats(gamemode, size, winner):
             mwins += 1
         elif winner == "pipers":
             pwins += 1
+        elif winner == "succubi":
+            swins += 1
+        elif winner == "demoniacs":
+            dwins += 1
         elif winner.startswith("@"):
             fwins += 1
         total += 1
 
-        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?,?)",
-                    (gamemode, size, vwins, wwins, mwins, fwins, pwins, total))
+        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (gamemode, size, vwins, wwins, mwins, fwins, pwins, swins, dwins, total))
 
 def get_player_stats(acc, role):
     if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
@@ -847,14 +863,18 @@ def get_player_totals(acc):
 def get_game_stats(gamemode, size):
     with conn:
         for row in c.execute("SELECT * FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size)):
-            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[7] * 100), row[3], round(row[3]/row[7] * 100))
+            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[9] * 100), row[3], round(row[3]/row[9] * 100))
             if row[4] > 0:
-                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[7] * 100))
+                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[9] * 100))
             if row[5] > 0:
-                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[7] * 100))
+                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[9] * 100))
             if row[6] > 0:
-                msg += ", Piper wins: %d (%d%%)" % (row[6], round(row[6]/row[7] * 100))
-            return msg + ", Total games: {0}".format(row[7])
+                msg += ", Piper wins: %d (%d%%)" % (row[6], round(row[6]/row[9] * 100))
+            if row[7] > 0:
+                msg += ", Succubus wins: %d (%d%%)" % (row[7], round(row[7]/row[9] * 100))
+            if row[8] > 0:
+                msg += ", Demoniac wins: %d (%d%%)" % (row[8], round(row[8]/row[9] * 100))
+            return msg + ", Total games: {0}".format(row[9])
         else:
             return "No stats for \u0002{0}\u0002 player games.".format(size)
 

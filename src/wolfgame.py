@@ -2524,11 +2524,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             # determine if this player's team won
             if rol in var.TRUE_NEUTRAL_ROLES:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
-                if rol == "monster" and winner == "monsters":
-                    won = True
-                elif rol == "piper" and winner == "pipers":
-                    won = True
-                elif rol == "succubus" and winner == "succubi":
+                teams = {"monster":"monsters", "piper":"pipers", "succubus":"succubi", "demoniac":"demoniacs"}
+                if rol in teams and winner == teams[rol]:
                     won = True
                 elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
                     won = (winner == var.TURNCOATS[splr][0])
