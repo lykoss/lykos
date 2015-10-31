@@ -517,7 +517,7 @@ class RandomMode(GameMode):
         lcubs = addroles["wolf cub"]
         lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
         lmonsters = addroles["monster"]
-        ldemoniacs = addroles["demoniacs"]
+        ldemoniacs = addroles["demoniac"]
         ltraitors = addroles["traitor"]
         lpipers = addroles["piper"]
         lsuccubi = addroles["succubus"]
