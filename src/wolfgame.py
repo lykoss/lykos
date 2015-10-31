@@ -411,6 +411,7 @@ def reset():
     var.NO_LYNCH = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
+    var.START_VOTES = set() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
 
     reset_settings()
@@ -1217,7 +1218,7 @@ def join_player(cli, player, chan, who = None, forced = False):
             var.JOINED_THIS_GAME_ACCS.add(acc)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, ('\u0002{0}\u0002 has started a game of Werewolf. '+
-                      'Type "{1}join" to join. Type "{1}start" to start the game. '+
+                      'Type "{1}join" to join. Type "{1}start" to vote to start the game. '+
                       'Type "{1}wait" to increase the start wait time.').format(player, botconfig.CMD_CHAR))
 
         # Set join timer
@@ -2297,6 +2298,11 @@ def show_votes(cli, nick, chan, rest):
         the_message = ", ".join(votelist)
         if len(pl) >= var.MIN_PLAYERS:
             the_message += "{0}Votes needed for a majority: {1}".format("; " if votelist else "", int(math.ceil(len(pl)/2)))
+
+        with var.WARNING_LOCK:
+            if var.START_VOTES:
+                the_message += "; Votes to start the game: {} ({})".format(len(var.START_VOTES), ', '.join(var.START_VOTES))
+
     elif var.PHASE == "night":
         cli.notice(nick, "Voting is only during the day.")
         return
@@ -3143,6 +3149,10 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if var.PHASE == "join":
                 if nick in var.GAMEMODE_VOTES:
                     del var.GAMEMODE_VOTES[nick]
+
+                with var.WARNING_LOCK:
+                    var.START_VOTES.discard(nick)
+
                 # Died during the joining process as a person
                 if var.AUTO_TOGGLE_MODES and nick in var.USERS and var.USERS[nick]["moded"]:
                     for newmode in var.USERS[nick]["moded"]:
@@ -3709,6 +3719,10 @@ def rename_player(cli, prefix, nick):
         if var.PHASE == "join":
             if prefix in var.GAMEMODE_VOTES:
                 var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES.pop(prefix)
+            with var.WARNING_LOCK:
+                if prefix in var.START_VOTES:
+                    var.START_VOTES.discard(prefix)
+                    var.START_VOTES.add(nick)
 
     # Check if player was disconnected
     if var.PHASE in ("night", "day"):
@@ -3782,6 +3796,11 @@ def leave(cli, what, nick, why=""):
 
     if var.PHASE == "join":
         lpl = len(var.list_players()) - 1
+
+        if lpl < var.MIN_PLAYERS:
+            with var.WARNING_LOCK:
+                var.START_VOTES = set()
+
         if lpl == 0:
             population = (" No more players remaining.")
         else:
@@ -5300,7 +5319,7 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", "r", pm=True, phases=("day", "night"))
+@cmd("retract", "r", pm=True, phases=("day", "night", "join"))
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
@@ -5309,6 +5328,19 @@ def retract(cli, nick, chan, rest):
     if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
         cli.notice(nick, "You're not currently playing.")
         return
+
+    with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
+        if var.PHASE == "join":
+            if not nick in var.START_VOTES:
+                cli.notice(nick, "You haven't voted to start.")
+            else:
+                var.START_VOTES.discard(nick)
+                cli.msg(chan, "\u0002{0}\u0002's vote to start was retracted.".format(nick))
+
+                if len(var.START_VOTES) < 1:
+                    var.TIMERS['start_votes'][0].cancel()
+                    del var.TIMERS['start_votes']
+            return
 
     if chan == nick: # PM, use different code
         role = var.get_role(nick)
@@ -7544,6 +7576,15 @@ def cgamemode(cli, arg):
         cli.msg(chan, "Mode \u0002{0}\u0002 not found.".format(modeargs[0]))
 
 
+def expire_start_votes(cli, chan):
+    # Should never happen as the timer is removed on game start, but just to be safe
+    if var.PHASE != 'join':
+        return
+
+    with var.WARNING_LOCK:
+        var.START_VOTES = set()
+        cli.msg(chan, "Not enough votes to start were accumulated in 1 minute, removing start votes.")
+
 @cmd("start", phases=("join",))
 def start_cmd(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
@@ -7598,6 +7639,34 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if len(villagers) > var.MAX_PLAYERS:
             cli.msg(chan, "{0}: At most \u0002{1}\u0002 players may play.".format(nick, var.MAX_PLAYERS))
             return
+
+        with var.WARNING_LOCK:
+            if not forced and nick in var.START_VOTES:
+                cli.notice(nick, "You have already voted to start the game.")
+                return
+
+            start_votes_required = min(math.ceil(len(villagers) * var.START_VOTES_SCALE), var.START_VOTES_MAX)
+            if not forced and len(var.START_VOTES) < start_votes_required:
+                # If there's only one more vote required, start the game immediately.
+                # Checked here to make sure that a player that has already voted can't
+                # vote again for the final start.
+                if len(var.START_VOTES) < start_votes_required - 1:
+                    var.START_VOTES.add(nick)
+                    msg = "\u0002{0}\u0002 has voted to start the game. \u0002{1}\u0002 more {2} required."
+                    remaining_votes = start_votes_required - len(var.START_VOTES)
+
+                    if remaining_votes == 1:
+                        cli.msg(chan, msg.format(nick, remaining_votes, 'vote'))
+                    else:
+                        cli.msg(chan, msg.format(nick, remaining_votes, 'votes'))
+
+                    # If this was the first vote
+                    if len(var.START_VOTES) == 1:
+                        t = threading.Timer(60, expire_start_votes, (cli, chan))
+                        var.TIMERS["start_votes"] = (t, time.time(), 60)
+                        t.daemon = True
+                        t.start()
+                    return
 
         if not var.FGAMED:
             votes = {} #key = gamemode, not hostmask
@@ -7794,7 +7863,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     with var.WARNING_LOCK: # cancel timers
-        for name in ("join", "join_pinger"):
+        for name in ("join", "join_pinger", "start_votes"):
             if name in var.TIMERS:
                 var.TIMERS[name][0].cancel()
                 del var.TIMERS[name]
