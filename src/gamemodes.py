@@ -831,7 +831,7 @@ class SleepyMode(GameMode):
                 f1dir.remove(opposite[self.fake1[i-1]])
                 f2dir.remove(opposite[self.fake2[i-1]])
             else:
-                coordir.remove("s")
+                corrdir.remove("s")
                 f1dir.remove("s")
                 f2dir.remove("s")
             self.correct[i] = random.choice(corrdir)
@@ -854,7 +854,7 @@ class SleepyMode(GameMode):
 
         if self.step == 0:
             pm(cli, self.having_nightmare, ("You find yourself deep in the heart of the woods, with imposing trees covering up what little light " +
-                                            "exists with their dense canopy. The paths are very twisty, and it's easy to wind up going in " +
+                                            "exists with their dense canopy. The paths here are very twisty, and it's easy to wind up going in " +
                                             "circles if one is not careful. Directions are {0}.").format(directions))
         elif self.step == 1:
             pm(cli, self.having_nightmare, ("You come across a small creek, the water babbling softly in the night as if nothing is amiss. " +
