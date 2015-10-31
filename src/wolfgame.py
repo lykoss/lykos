@@ -8524,6 +8524,7 @@ def get_help(cli, rnick, chan, rest):
     rest = splitted[0] if splitted else ""
     if cname:
         if cname in COMMANDS.keys():
+            got = False
             for fn in COMMANDS[cname]:
                 if fn.__doc__:
                     got = True
