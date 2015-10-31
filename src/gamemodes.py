@@ -821,21 +821,24 @@ class SleepyMode(GameMode):
         directions = ["n", "e", "s", "w"]
         self.step = 0
         self.prev_direction = None
-        for i in range(0, 3):
-            dir2 = directions[:]
-            if self.prev_direction == "n":
-                dir2.remove("s")
-            elif self.prev_direction == "e":
-                dir2.remove("w")
-            elif self.prev_direction == "s":
-                dir2.remove("n")
-            elif self.prev_direction == "w":
-                dir2.remove("e")
-            self.correct[i] = random.choice(directions)
-            self.fake1[i] = random.choice(directions)
-            self.fake2[i] = random.choice(directions)
-        self.prev_direction = "s" if self.correct[0] != "s" else "w"
-        self.start_direction = self.prev_direction
+        opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
+        for i in range(3):
+            corrdir = directions[:]
+            f1dir = directions[:]
+            f2dir = directions[:]
+            if i > 0:
+                corrdir.remove(opposite[self.correct[i-1]])
+                f1dir.remove(opposite[self.fake1[i-1]])
+                f2dir.remove(opposite[self.fake2[i-1]])
+            else:
+                coordir.remove("s")
+                f1dir.remove("s")
+                f2dir.remove("s")
+            self.correct[i] = random.choice(corrdir)
+            self.fake1[i] = random.choice(f1dir)
+            self.fake2[i] = random.choice(f2dir)
+        self.prev_direction = "n"
+        self.start_direction = "n"
         self.on_path = set()
         self.nightmare_step(cli)
 
