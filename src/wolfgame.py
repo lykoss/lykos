@@ -6909,7 +6909,7 @@ def transition_night(cli):
         role = var.get_role(wolf)
         cursed = "cursed " if wolf in var.ROLES["cursed villager"] else ""
 
-        if normal_notify:
+        if normal_notify or role == "doomsayer":
             if role == "wolf":
                 pm(cli, wolf, ('You are a \u0002wolf\u0002. It is your job to kill all the '+
                                'villagers. Use "kill <nick>" to kill a villager.'))
@@ -7121,7 +7121,7 @@ def transition_night(cli):
         if chance2 > 0:
             warning += ("The second time each night you use your ability, you risk a {0}% chance of having " +
                         "your identity revealed to that person. ").format(chance2)
-        if pht in var.PLAYERS and not is_user_simple(pht):
+        if True:#pht in var.PLAYERS and not is_user_simple(pht):
             pm(cli, pht, ("You are a \u0002prophet\u0002. Each night you may pray up to twice to learn who has " +
                           "a particular role. The first time, you are given a list of players. The second time, " +
                           'you are given the exact player name. {0}Use "pray <role>" in PM to learn who has that role.').format(warning))
@@ -7233,7 +7233,7 @@ def transition_night(cli):
             pm(cli, dullahan, "All your targets are already dead!")
             continue
         random.shuffle(targets)
-        if dullahan in var.PLAYERS and not is_user_simple(dullahan):
+        if True:#dullahan in var.PLAYERS and not is_user_simple(dullahan):
             pm(cli, dullahan, ('You are a \u0002dullahan\u0002. Every night, you may kill someone ' +
                                'by using "kill <nick>". You win when all your targets are dead.'))
         else:
@@ -7245,7 +7245,7 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(succubus)
-        if succubus in var.PLAYERS and not is_user_simple(succubus):
+        if True:#succubus in var.PLAYERS and not is_user_simple(succubus):
             pm(cli, succubus, ('You are a \u0002succubus\u0002. You may entrance someone and make '
                                'them follow you by visiting them at night. If all alive players are '
                                'entranced, you win. Use "visit <nick>" to visit a player or "pass" '
@@ -7258,7 +7258,7 @@ def transition_night(cli):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)
-        if vigilante in var.PLAYERS and not is_user_simple(vigilante):
+        if True:#vigilante in var.PLAYERS and not is_user_simple(vigilante):
             pm(cli, vigilante, ('You are a \u0002vigilante\u0002. Each night, you may kill someone by '
                                 'using "kill <nick>", or "pass" to pass. If the person you kill is not '
                                 'a wolf or possessed by an evil spirit, you will die alongside your victim.'))
@@ -7336,7 +7336,7 @@ def transition_night(cli):
             pm(cli, monster, "You are a \u0002monster\u0002.")
 
     for demoniac in var.ROLES["demoniac"]:
-        if demoniac in var.PLAYERS and not is_user_simple(demoniac):
+        if True:#demoniac in var.PLAYERS and not is_user_simple(demoniac):
             pm(cli, demoniac, ('You are a \u0002demoniac\u0002. You win instead of the normal winners '+
                                'if all wolves are killed while you are alive.'))
         else:
@@ -7431,7 +7431,7 @@ def transition_night(cli):
             pm(cli, turncoat, 'You are a \u0002turncoat\u0002. Current side: \u0002{0}\u0002.'.format(var.TURNCOATS[turncoat][0]))
 
     for priest in var.ROLES["priest"]:
-        if priest in var.PLAYERS and not is_user_simple(priest):
+        if True:#priest in var.PLAYERS and not is_user_simple(priest):
             pm(cli, priest, ('You are a \u0002priest\u0002. Once per game during the day, you may bless someone with ' +
                              '"bless <nick>" to prevent them from being killed. Furthermore, you may consecrate the dead ' +
                              'during the day with "consecrate <nick>" to settle down restless spirits and prevent the ' +
