@@ -805,14 +805,16 @@ class SleepyMode(GameMode):
         if random.random() < 1/5:
             self.having_nightmare = True
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare, (cli, random.choice(var.list_players()), var.NIGHT_COUNT))
+                t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(var.list_players()), var.NIGHT_COUNT))
                 t.daemon = True
                 t.start()
         else:
             self.having_nightmare = None
 
-    def do_nightmare(self, cli, target, night):
+    def do_nightmare(self, cli, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
+            return
+        if target not in var.list_players():
             return
         self.having_nightmare = target
         pm(cli, self.having_nightmare, ("While walking through the woods, you hear the clopping of hooves behind you. Turning around, " +
@@ -1029,7 +1031,7 @@ class SleepyMode(GameMode):
 
     def nightmare_kill(self, evt, cli, var):
         # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare is not True:
+        if self.having_nightmare is not None and self.having_nightmare is not True and self.having_nightmare in var.list_players():
             var.DYING.add(self.having_nightmare)
             pm(cli, self.having_nightmare, ("As the sun starts rising, your legs give out, causing the beast to descend upon you and snuff out your life."))
 
