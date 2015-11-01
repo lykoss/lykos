@@ -1040,8 +1040,11 @@ def get_deadchat_pref(nick):
     return True
 
 def join_deadchat(cli, *all_nicks):
+    if not var.ENABLE_DEADCHAT:
+        return
+
     if var.PHASE not in ("day", "night"):
-        return False
+        return
 
     nicks = []
     pl = var.list_players()
@@ -1051,7 +1054,7 @@ def join_deadchat(cli, *all_nicks):
         nicks.append(nick)
 
     if not nicks:
-        return False
+        return
 
     if len(nicks) == 1:
         msg = "\u0002{0}\u0002 has joined the chat.".format(nicks[0])
@@ -1067,11 +1070,12 @@ def join_deadchat(cli, *all_nicks):
     mass_privmsg(cli, nicks, "Players: {0}".format(", ".join(people)))
     var.DEADCHAT_PLAYERS.update(nicks)
 
-    return True
-
 def leave_deadchat(cli, nick, force=""):
+    if not var.ENABLE_DEADCHAT:
+        return
+
     if var.PHASE not in ("day", "night") or nick not in var.DEADCHAT_PLAYERS:
-        return False
+        return
 
     var.DEADCHAT_PLAYERS.remove(nick)
     if force:
@@ -1081,10 +1085,11 @@ def leave_deadchat(cli, nick, force=""):
         pm(cli, nick, "You have left the chat.")
         mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the chat.".format(nick))
 
-    return True
-
 @cmd("deadchat", pm=True)
 def deadchat_pref(cli, nick, chan, rest):
+    if not var.ENABLE_DEADCHAT:
+        return
+
     if nick in var.USERS:
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
