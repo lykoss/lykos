@@ -1044,7 +1044,7 @@ class SleepyMode(GameMode):
                 harlots = [p for p in var.ROLES["harlot"] if p in pl and random.random() < turn_chance]
                 cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
                 cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
-                                            "in sinister tones before the building is struck repeatedly by lightning, setting it alight in a raging inferno...").format(total, var.plural("toll", total)))
+                                            "in sinister tones before the building is struck repeatedly by lightning, setting it alight in a raging inferno..."))
                 for seer in seers:
                     var.ROLES["seer"].remove(seer)
                     var.ROLES["doomsayer"].add(seer)
