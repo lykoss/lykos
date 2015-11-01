@@ -3162,7 +3162,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 var.DEAD.add(nick)
                 ret = not chk_win(cli, end_game)
             # only join to deadchat if the game isn't about to end
-            if ismain and not ret:
+            if ismain and ret:
                 join_deadchat(cli, *deadchat)
                 del deadchat[:]
             if var.PHASE in ("night", "day") and ret:

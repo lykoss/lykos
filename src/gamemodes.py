@@ -905,12 +905,18 @@ class SleepyMode(GameMode):
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
             self.on_path.add("correct")
             advance = True
+        else:
+            self.on_path.discard("correct")
         if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "n":
             self.on_path.add("fake1")
             advance = True
+        else:
+            self.on_path.discard("fake1")
         if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "n":
             self.on_path.add("fake2")
             advance = True
+        else:
+            self.on_path.discard("fake2")
         if advance:
             self.step += 1
             self.prev_direction = "n"
@@ -931,12 +937,18 @@ class SleepyMode(GameMode):
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
             self.on_path.add("correct")
             advance = True
+        else:
+            self.on_path.discard("correct")
         if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "e":
             self.on_path.add("fake1")
             advance = True
+        else:
+            self.on_path.discard("fake1")
         if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "e":
             self.on_path.add("fake2")
             advance = True
+        else:
+            self.on_path.discard("fake2")
         if advance:
             self.step += 1
             self.prev_direction = "e"
@@ -957,12 +969,18 @@ class SleepyMode(GameMode):
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
             self.on_path.add("correct")
             advance = True
+        else:
+            self.on_path.discard("correct")
         if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "s":
             self.on_path.add("fake1")
             advance = True
+        else:
+            self.on_path.discard("fake1")
         if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "s":
             self.on_path.add("fake2")
             advance = True
+        else:
+            self.on_path.discard("fake2")
         if advance:
             self.step += 1
             self.prev_direction = "s"
@@ -983,12 +1001,18 @@ class SleepyMode(GameMode):
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
             self.on_path.add("correct")
             advance = True
+        else:
+            self.on_path.discard("correct")
         if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "w":
             self.on_path.add("fake1")
             advance = True
+        else:
+            self.on_path.discard("fake1")
         if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "w":
             self.on_path.add("fake2")
             advance = True
+        else:
+            self.on_path.discard("fake2")
         if advance:
             self.step += 1
             self.prev_direction = "w"
