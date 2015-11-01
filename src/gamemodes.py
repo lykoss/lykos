@@ -1043,33 +1043,30 @@ class SleepyMode(GameMode):
                 seers = [p for p in var.ROLES["seer"] if p in pl and random.random() < turn_chance]
                 harlots = [p for p in var.ROLES["harlot"] if p in pl and random.random() < turn_chance]
                 cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
-                total = sum(map(len, (seers, harlots, cultists)))
-                if total > 0:
-                    cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
-                                                "in sinister tones, managing to perform \u0002{0}\u0002 {1} before the building is struck repeatedly by lightning, " +
-                                                "setting it alight in a raging inferno...").format(total, var.plural("toll", total)))
-                    for seer in seers:
-                        var.ROLES["seer"].remove(seer)
-                        var.ROLES["doomsayer"].add(seer)
-                        var.FINAL_ROLES[seer] = "doomsayer"
-                        pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
-                                       "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
-                                       "on the unwary. You are now a \u0002doomsayer\u0002."))
-                        relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.".format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-                    for harlot in harlots:
-                        var.ROLES["harlot"].remove(harlot)
-                        var.ROLES["succubus"].add(harlot)
-                        var.FINAL_ROLES[harlot] = "succubus"
-                        pm(cli, harlot, ("You feel something rushing into you and taking control over your mind and body. You are now a " +
-                                         "\u0002succubus\u0002. Your job is to entrance the village, bringing them all under your absolute " +
-                                         "control."))
-                    for cultist in cultists:
-                        var.ROLES["cultist"].remove(cultist)
-                        var.ROLES["demoniac"].add(cultist)
-                        var.FINAL_ROLES[cultist] = "demoniac"
-                        pm(cli, cultist, ("You feel something rushing into you and taking control over your mind and body, showing you your new purpose in life. " +
-                                          "There are far greater evils than the wolves lurking in the shadows, and by sacrificing all of the wolves, you can " +
-                                          "unleash those evils upon the world. You are now a \u0002demoniac\u0002."))
-                    # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
+                cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
+                                            "in sinister tones before the building is struck repeatedly by lightning, setting it alight in a raging inferno...").format(total, var.plural("toll", total)))
+                for seer in seers:
+                    var.ROLES["seer"].remove(seer)
+                    var.ROLES["doomsayer"].add(seer)
+                    var.FINAL_ROLES[seer] = "doomsayer"
+                    pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
+                                   "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
+                                   "on the unwary. You are now a \u0002doomsayer\u0002."))
+                    relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.".format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                for harlot in harlots:
+                    var.ROLES["harlot"].remove(harlot)
+                    var.ROLES["succubus"].add(harlot)
+                    var.FINAL_ROLES[harlot] = "succubus"
+                    pm(cli, harlot, ("You feel something rushing into you and taking control over your mind and body. You are now a " +
+                                     "\u0002succubus\u0002. Your job is to entrance the village, bringing them all under your absolute " +
+                                     "control."))
+                for cultist in cultists:
+                    var.ROLES["cultist"].remove(cultist)
+                    var.ROLES["demoniac"].add(cultist)
+                    var.FINAL_ROLES[cultist] = "demoniac"
+                    pm(cli, cultist, ("You feel something rushing into you and taking control over your mind and body, showing you your new purpose in life. " +
+                                      "There are far greater evils than the wolves lurking in the shadows, and by sacrificing all of the wolves, you can " +
+                                      "unleash those evils upon the world. You are now a \u0002demoniac\u0002."))
+                # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
 # vim: set expandtab:sw=4:ts=4:
