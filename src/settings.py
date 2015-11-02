@@ -670,6 +670,9 @@ def init_db():
         try:
             # Check if table has been updated with new stats
             c.execute('SELECT succubuswins from gamestats')
+            for row in c:
+                # Read all the very important data
+                pass
         except sqlite3.OperationalError:
             c.execute('ALTER TABLE gamestats RENAME TO gamestatsold')
             c.execute('CREATE TABLE gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, wolfwins SMALLINT, ' +
