@@ -1380,7 +1380,7 @@ def fleave(cli, nick, chan, rest):
             a = pl[pll.index(a.lower())]
 
             message = "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.".format(nick, a)
-            if var.get_role(a) != "person" and var.ROLE_REVEAL:
+            if var.get_role(a) != "person" and var.ROLE_REVEAL in ("on", "team"):
                 message += " Say goodbye to the \u0002{0}\u0002.".format(var.get_reveal_role(a))
             if var.PHASE == "join":
                 lpl = len(var.list_players()) - 1
@@ -1389,6 +1389,14 @@ def fleave(cli, nick, chan, rest):
                 else:
                     message += " New player count: \u0002{0}\u0002".format(lpl)
             cli.msg(chan, message)
+            if var.PHASE != "join":
+                for r, rset in var.ORIGINAL_ROLES.items():
+                    if a in rset:
+                        var.ORIGINAL_ROLES[r].remove(a)
+                        var.ORIGINAL_ROLES[r].add("(dced)"+a)
+                make_stasis(a, var.LEAVE_STASIS_PENALTY)
+                if a in var.PLAYERS:
+                    var.DCED_PLAYERS[a] = var.PLAYERS.pop(a)
 
             del_player(cli, a, death_triggers=False)
 
