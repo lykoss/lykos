@@ -2212,7 +2212,10 @@ def chk_decision(cli, force = ""):
                     # roles that end the game upon being lynched
                     if votee in var.ROLES["fool"]:
                         # ends game immediately, with fool as only winner
-                        lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_reveal_role(votee))
+                        # we don't need var.get_reveal_role as the game ends on this point
+                        # point: games with role reveal turned off will still call out fool
+                        # games with team reveal will be inconsistent, but this is by design, not a bug
+                        lmsg = random.choice(var.LYNCH_MESSAGES).format(votee, "", var.get_role(votee))
                         cli.msg(botconfig.CHANNEL, lmsg)
                         if chk_win(cli, winner="@" + votee):
                             return
