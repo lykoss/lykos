@@ -3576,129 +3576,25 @@ def rename_player(cli, prefix, nick):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            if prefix in var.SEEN:
-                var.SEEN.remove(prefix)
-                var.SEEN.add(nick)
-            if prefix in var.HEXED:
-                var.HEXED.remove(prefix)
-                var.HEXED.add(nick)
-            if prefix in var.ASLEEP:
-                var.ASLEEP.remove(prefix)
-                var.ASLEEP.add(nick)
-            if prefix in var.DESPERATE:
-                var.DESPERATE.remove(prefix)
-                var.DESPERATE.add(nick)
+            for setvar in (var.SEEN, var.HEXED, var.ASLEEP, var.DESPERATE, var.REVEALED, var.SILENCED, var.TOBESILENCED,
+                           var.REVEALED_MAYORS, var.MATCHMAKERS, var.HUNTERS, var.PASSED, var.JESTERS, var.AMNESIACS,
+                           var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY, var.SICK,
+                           var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
+                           var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
+                           var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING):
+                if prefix in setvar:
+                    setvar.remove(prefix)
+                    setvar.add(nick)
+            for listvar in (var.PROTECTED, var.IMPATIENT, var.PACIFISTS):
+                while prefix in listvar:
+                    listvar.remove(prefix)
+                    listvar.append(nick)
             for k, d in list(var.DEATH_TOTEM):
                 if k == prefix or d == prefix:
                     var.DEATH_TOTEM.remove((k, d))
                     nk = nick if k == prefix else k
                     nd = nick if d == prefix else d
                     var.DEATH_TOTEM.append((nk, nd))
-            while prefix in var.PROTECTED:
-                var.PROTECTED.remove(prefix)
-                var.PROTECTED.append(nick)
-            if prefix in var.REVEALED:
-                var.REVEALED.remove(prefix)
-                var.REVEALED.add(nick)
-            if prefix in var.SILENCED:
-                var.SILENCED.remove(prefix)
-                var.SILENCED.add(nick)
-            if prefix in var.TOBESILENCED:
-                var.TOBESILENCED.remove(prefix)
-                var.TOBESILENCED.add(nick)
-            if prefix in var.REVEALED_MAYORS:
-                var.REVEALED_MAYORS.remove(prefix)
-                var.REVEALED_MAYORS.add(nick)
-            if prefix in var.MATCHMAKERS:
-                var.MATCHMAKERS.remove(prefix)
-                var.MATCHMAKERS.add(nick)
-            if prefix in var.HUNTERS:
-                var.HUNTERS.remove(prefix)
-                var.HUNTERS.add(nick)
-            if prefix in var.PASSED:
-                var.PASSED.remove(prefix)
-                var.PASSED.add(nick)
-            if prefix in var.JESTERS:
-                var.JESTERS.remove(prefix)
-                var.JESTERS.add(nick)
-            if prefix in var.AMNESIACS:
-                var.AMNESIACS.remove(prefix)
-                var.AMNESIACS.add(nick)
-            while prefix in var.IMPATIENT:
-                var.IMPATIENT.remove(prefix)
-                var.IMPATIENT.append(nick)
-            while prefix in var.PACIFISTS:
-                var.PACIFISTS.remove(prefix)
-                var.PACIFISTS.append(nick)
-            if prefix in var.INFLUENTIAL:
-                var.INFLUENTIAL.remove(prefix)
-                var.INFLUENTIAL.add(nick)
-            if prefix in var.LYCANTHROPES:
-                var.LYCANTHROPES.remove(prefix)
-                var.LYCANTHROPES.add(nick)
-            if prefix in var.TOBELYCANTHROPES:
-                var.TOBELYCANTHROPES.remove(prefix)
-                var.TOBELYCANTHROPES.add(nick)
-            if prefix in var.LUCKY:
-                var.LUCKY.remove(prefix)
-                var.LUCKY.add(nick)
-            if prefix in var.TOBELUCKY:
-                var.TOBELUCKY.remove(prefix)
-                var.TOBELUCKY.add(nick)
-            if prefix in var.DISEASED:
-                var.DISEASED.remove(prefix)
-                var.DISEASED.add(nick)
-            if prefix in var.TOBEDISEASED:
-                var.TOBEDISEASED.remove(prefix)
-                var.TOBEDISEASED.add(nick)
-            if prefix in var.RETRIBUTION:
-                var.RETRIBUTION.remove(prefix)
-                var.RETRIBUTION.add(nick)
-            if prefix in var.MISDIRECTED:
-                var.MISDIRECTED.remove(prefix)
-                var.MISDIRECTED.add(nick)
-            if prefix in var.TOBEMISDIRECTED:
-                var.TOBEMISDIRECTED.remove(prefix)
-                var.TOBEMISDIRECTED.add(nick)
-            if prefix in var.EXCHANGED:
-                var.EXCHANGED.remove(prefix)
-                var.EXCHANGED.add(nick)
-            if prefix in var.IMMUNIZED:
-                var.IMMUNIZED.remove(prefix)
-                var.IMMUNIZED.add(nick)
-            if prefix in var.CURED_LYCANS:
-                var.CURED_LYCANS.remove(prefix)
-                var.CURED_LYCANS.add(nick)
-            if prefix in var.ALPHA_WOLVES:
-                var.ALPHA_WOLVES.remove(prefix)
-                var.ALPHA_WOLVES.add(nick)
-            if prefix in var.CURSED:
-                var.CURSED.remove(prefix)
-                var.CURSED.add(nick)
-            if prefix in var.CHARMERS:
-                var.CHARMERS.remove(prefix)
-                var.CHARMERS.add(nick)
-            if prefix in var.CHARMED:
-                var.CHARMED.remove(prefix)
-                var.CHARMED.add(nick)
-            if prefix in var.TOBECHARMED:
-                var.TOBECHARMED.remove(prefix)
-                var.TOBECHARMED.add(nick)
-            if prefix in var.PRIESTS:
-                var.PRIESTS.remove(prefix)
-                var.PRIESTS.add(nick)
-            if prefix in var.CONSECRATING:
-                var.CONSECRATING.remove(prefix)
-                var.CONSECRATING.add(nick)
-            if prefix in var.ENTRANCED_DYING:
-                var.ENTRANCED_DYING.remove(prefix)
-                var.ENTRANCED_DYING.add(nick)
-            if prefix in var.DYING:
-                var.DYING.remove(prefix)
-                var.DYING.add(nick)
-            if prefix in var.SICK:
-                var.SICK.remove(prefix)
-                var.SICK.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3710,12 +3606,10 @@ def rename_player(cli, prefix, nick):
                     var.IDLE_WARNED_PM.add(nick)
 
         if var.PHASE == "day":
-            if prefix in var.WOUNDED:
-                var.WOUNDED.remove(prefix)
-                var.WOUNDED.add(nick)
-            if prefix in var.INVESTIGATED:
-                var.INVESTIGATED.remove(prefix)
-                var.INVESTIGATED.add(nick)
+            for setvar in (var.WOUNDED, var.INVESTIGATED):
+                if prefix in setvar:
+                    setvar.remove(prefix)
+                    setvar.add(nick)
             if prefix in var.VOTES:
                 var.VOTES[nick] = var.VOTES.pop(prefix)
             for v in var.VOTES.values():
