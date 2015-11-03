@@ -3463,6 +3463,9 @@ def rename_player(cli, prefix, nick):
             var.ENTRANCED.remove(prefix)
             var.ENTRANCED.add(nick)
 
+    event = Event("rename_player", {})
+    event.dispatch(cli, var, prefix, nick)
+
     if prefix in var.list_players():
         r = var.ROLES[var.get_role(prefix)]
         r.add(nick)

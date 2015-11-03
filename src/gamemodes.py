@@ -771,6 +771,7 @@ class SleepyMode(GameMode):
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
+        events.add_listener("rename_player", self.rename_player)
         self.north_cmd = decorators.cmd("north", "n", chan=False, pm=True, playing=True, phases=("night",))(self.north)
         self.east_cmd = decorators.cmd("east", "e", chan=False, pm=True, playing=True, phases=("night",))(self.east)
         self.south_cmd = decorators.cmd("south", "s", chan=False, pm=True, playing=True, phases=("night",))(self.south)
@@ -783,6 +784,7 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
+        events.remove_listener("rename_player", self.rename_player)
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:
                 decorators.COMMANDS[name].remove(command)
@@ -810,6 +812,10 @@ class SleepyMode(GameMode):
                 t.start()
         else:
             self.having_nightmare = None
+
+    def rename_player(self, cli, var, prefix, nick):
+        if self.having_nightmare == prefix:
+            self.having_nightmare = nick
 
     def do_nightmare(self, cli, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
