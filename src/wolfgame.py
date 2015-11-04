@@ -3746,25 +3746,25 @@ hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 @cmd("quit", "leave", pm=True, phases=("join", "day", "night"))
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
-    if var.PHASE == "join" and nick in var.list_players():
-        lpl = len(var.list_players()) - 1
-
-        if lpl == 0:
-            population = (" No more players remaining.")
-        else:
-            population = (" New player count: \u0002{0}\u0002").format(lpl)
-
-    elif chan == nick and var.PHASE in ("day", "night") and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
-        leave_deadchat(cli, nick)
-        return
-
-    elif nick in var.list_players():
-        dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
-        if var.START_QUIT_DELAY and dur > 0:
-            cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
+    if chan == botconfig.CHANNEL:
+        if nick not in var.list_players():
             return
-        population = ""
-
+        if var.PHASE == "join":
+            lpl = len(var.list_players()) - 1
+            if lpl == 0:
+                population = (" No more players remaining.")
+            else:
+                population = (" New player count: \u0002{0}\u0002").format(lpl)
+        else:
+            dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
+            if var.START_QUIT_DELAY and dur > 0:
+                cli.notice(nick, "The game already started! If you still want to quit, try again in {0} second{1}.".format(dur, "" if dur == 1 else "s"))
+                return
+            population = ""
+    elif chan == nick:
+        if var.PHASE in ("day", "night") and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
+            leave_deadchat(cli, nick)
+        return
     else:
         return
 
