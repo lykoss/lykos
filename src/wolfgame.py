@@ -8965,6 +8965,12 @@ def player_stats(cli, nick, chan, rest):
         reply(cli, nick, chan, var.get_player_totals(acc), True)
     else:
         role = " ".join(params[1:])
+        if role not in var.ROLE_GUIDE.keys():
+            match, _ = complete_match(role, var.ROLE_GUIDE.keys() | ["lover"])
+            if not match:
+                reply(cli, nick, chan, "No such role: {0}".format(role))
+                return
+            role = match
         # Attempt to find the player's stats
         reply(cli, nick, chan, var.get_player_stats(acc, role))
 
