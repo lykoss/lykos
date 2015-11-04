@@ -1116,16 +1116,8 @@ def join(cli, nick, chan, rest):
             if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
                 cli.notice(nick, "You are not logged in to NickServ.")
                 return
-        if join_player(cli, nick, chan) and rest and not var.FGAMED:
-            gamemode = rest.lower().split()[0]
-            if gamemode not in var.GAME_MODES.keys():
-                match, _ = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"})
-                if not match:
-                    return
-                gamemode = match
-            if gamemode != "roles":
-                var.GAMEMODE_VOTES[nick] = gamemode
-                cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
+        if join_player(cli, nick, chan) and rest:
+            vote_gamemode(cli, nick, chan, rest.lower().split()[0], False)
 
     else: # join deadchat
         if chan == nick and nick != botconfig.NICK:
@@ -8982,25 +8974,18 @@ def my_stats(cli, nick, chan, rest):
     rest = rest.split()
     player_stats.func(cli, nick, chan, " ".join([nick] + rest))
 
-@cmd("game", playing=True, phases=("join",))
-def game(cli, nick, chan, rest):
-    """Vote for a game mode to be picked."""
-    if rest:
-        gamemode = rest.lower().split()[0]
-    else:
-        gamemodes = ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1],
-        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
-        cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
-        return
-
+# Called from !game and !join, used to vote for a game mode
+def vote_gamemode(cli, nick, chan, gamemode, doreply):
     if var.FGAMED:
-        cli.notice(nick, "A game mode has already been forced by an admin.")
+        if doreply:
+            cli.notice(nick, "A game mode has already been forced by an admin.")
         return
 
     if gamemode not in var.GAME_MODES.keys():
         match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
         if not match:
-            cli.notice(nick, "\u0002{0}\u0002 is not a valid game mode.".format(gamemode))
+            if doreply:
+                cli.notice(nick, "\u0002{0}\u0002 is not a valid game mode.".format(gamemode))
             return
         gamemode = match
 
@@ -9009,7 +8994,19 @@ def game(cli, nick, chan, rest):
             var.GAMEMODE_VOTES[nick] = gamemode
             cli.msg(chan, "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.".format(nick, gamemode))
     else:
-        cli.notice(nick, "You can't vote for that game mode.")
+        if doreply:
+            cli.notice(nick, "You can't vote for that game mode.")
+
+@cmd("game", playing=True, phases=("join",))
+def game(cli, nick, chan, rest):
+    """Vote for a game mode to be picked."""
+    if rest:
+        vote_gamemode(cli, nick, chan, rest.lower().split()[0], True)
+    else:
+        gamemodes = ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1],
+        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
+        cli.notice(nick, "No game mode specified. Available game modes: " + gamemodes)
+        return
 
 @cmd("games", "modes", pm=True)
 def show_modes(cli, nick, chan, rest):
