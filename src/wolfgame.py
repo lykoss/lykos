@@ -2076,6 +2076,7 @@ def fday(cli, nick, chan, rest):
         transition_day(cli)
 
 # Specify force = "nick" to force nick to be lynched
+@handle_error
 def chk_decision(cli, force = ""):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
@@ -3868,6 +3869,7 @@ def night_warn(cli, gameid):
                                 "The night is almost over and there are " +
                                 "still whispers heard in the village.\u0002"))
 
+@handle_error
 def transition_day(cli, gameid=0):
     if gameid:
         if gameid != var.NIGHT_ID:
@@ -6621,6 +6623,7 @@ def relay(cli, nick, chan, rest):
             mass_privmsg(cli, [x for x in badguys if x in var.PLAYERS],
                          "\u0002{0}\u0002 says: {1}".format(nick, rest))
 
+@handle_error
 def transition_night(cli):
     if var.PHASE == "night":
         return

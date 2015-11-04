@@ -805,6 +805,8 @@ class SleepyMode(GameMode):
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
+            from src import decorators
+            self.do_nightmare = decorators.handle_error(self.do_nightmare)
             self.having_nightmare = True
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(var.list_players()), var.NIGHT_COUNT))

@@ -20,10 +20,17 @@ HOOKS = defaultdict(list)
 # Error handler decorators
 
 class handle_error:
-    def __init__(self, func):
+    def __new__(cls, func):
+        if isinstance(func, cls): # already decorated
+            return func
+
+        self = super().__new__(cls)
+
         self.func = func
         self.instance = None
         self.owner = object
+
+        return self
 
     def __get__(self, instance, owner):
         self.instance = instance
