@@ -62,7 +62,8 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
             else:
                 cli.msg(bgs, msg)
 
-def pm(cli, target, message):  # message either privmsg or notice, depending on user settings
+# message either privmsg or notice, depending on user settings
+def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
         debuglog("Would message fake nick {0}: {1!r}".format(target, message))
         return
@@ -72,6 +73,15 @@ def pm(cli, target, message):  # message either privmsg or notice, depending on 
         return
 
     cli.msg(target, message)
+
+# Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
+def reply(cli, nick, chan, msg, private=False):
+    if chan == nick:
+        pm(cli, nick, msg)
+    elif private or (nick not in var.list_players() and var.PHASE not in ("none", "join") and chan == botconfig.CHANNEL):
+        cli.notice(nick, msg)
+    else:
+        cli.msg(chan, msg)
 
 def is_user_simple(nick):
     if nick in var.USERS:

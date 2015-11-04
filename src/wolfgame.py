@@ -608,12 +608,7 @@ def restart_program(cli, nick, chan, rest):
 @cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
     """Check if you or the bot is still connected."""
-    message = random.choice(var.PING_MESSAGES).format(nick=nick)
-
-    if chan == nick:
-        pm(cli, nick, message)
-    else:
-        cli.msg(chan, message)
+    reply(cli, nick, chan, random.choice(var.PING_MESSAGES).format(nick=nick))
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
@@ -814,17 +809,11 @@ def altpinger(cli, nick, chan, rest):
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
-        if chan == nick:
-            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
-        else: # former message: "You won the lottery! This is a bug though, so report it to the admins."
-            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), True)
         return
 
     if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        if chan == nick:
-            pm(cli, nick, "You are not logged in to NickServ.")
-        else:
-            cli.notice(nick, "You are not logged in to NickServ.")
+        reply(cli, nick, chan, "You are not logged in to NickServ.", True)
         return
 
     msg = []
@@ -863,10 +852,7 @@ def altpinger(cli, nick, chan, rest):
     else:
         msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
 
-    if chan == nick:
-        pm(cli, nick, "\n".join(msg))
-    else:
-        cli.notice(nick, "\n".join(msg))
+    reply(cli, nick, chan, "\n".join(msg), True)
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
@@ -1094,17 +1080,11 @@ def deadchat_pref(cli, nick, chan, rest):
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
-        if chan == nick:
-            pm(cli, nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
-        else:
-            cli.notice(nick, "You need to be in {0} to use that command.".format(botconfig.CHANNEL))
+        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), True)
         return
 
     if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        if chan == nick:
-            pm(cli, nick, "You are not logged in to NickServ.")
-        else:
-            cli.notice(nick, "You are not logged in to NickServ.")
+        reply(cli, nick, chan, "You are not logged in to NickServ.", True)
         return
 
     if acc and acc != "*":
@@ -1124,10 +1104,7 @@ def deadchat_pref(cli, nick, chan, rest):
         variable.add(value)
         var.add_deadchat_pref(value, value == acc)
 
-    if chan == nick:
-        pm(cli, nick, msg)
-    else:
-        cli.notice(nick, msg)
+    reply(cli, nick, chan, msg, True)
 
 @cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
@@ -1509,13 +1486,7 @@ def stats(cli, nick, chan, rest):
     else:
         msg = "{0}\u00021\u0002 player: {1}".format(_nick, pl[0])
 
-    if nick == chan:
-        pm(cli, nick, msg)
-    else:
-        if nick in pl or var.PHASE == "join":
-            cli.msg(chan, msg)
-        else:
-            cli.notice(nick, msg)
+    reply(cli, nick, chan, msg)
 
     if var.PHASE == "join" or var.STATS_TYPE == "disabled":
         return
@@ -2029,13 +2000,7 @@ def stats(cli, nick, chan, rest):
                                                         message[-1],
                                                         vb,
                                                         var.PHASE)
-    if nick == chan:
-        pm(cli, nick, stats_mssg)
-    else:
-        if nick in pl or var.PHASE == "join":
-            cli.msg(chan, stats_mssg)
-        else:
-            cli.notice(nick, stats_mssg)
+    reply(cli, nick, chan, stats_mssg)
 
 def hurry_up(cli, gameid, change):
     if var.PHASE != "day": return
@@ -2340,12 +2305,7 @@ def show_votes(cli, nick, chan, rest):
                         for votee in var.VOTES.keys()]
             msg = "{0}{1}".format(_nick, ", ".join(votelist))
 
-        if chan == nick:
-            pm(cli, nick, msg)
-        elif nick not in pl and var.PHASE not in ("none", "join"):
-            cli.notice(nick, msg)
-        else:
-            cli.msg(chan, msg)
+        reply(cli, nick, chan, msg)
 
         pl = var.list_players()
         avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
@@ -2361,12 +2321,7 @@ def show_votes(cli, nick, chan, rest):
         if var.ABSTAIN_ENABLED:
             the_message += " \u0002{0}\u0002 player{1} refrained from voting.".format(not_voting, plural)
 
-    if chan == nick:
-        pm(cli, nick, the_message)
-    elif nick not in pl and var.PHASE != "join":
-        cli.notice(nick, the_message)
-    else:
-        cli.msg(chan, the_message)
+    reply(cli, nick, chan, the_message)
 
 def chk_traitor(cli):
     realwolves = var.WOLF_ROLES - {"wolf cub"}
@@ -8636,11 +8591,7 @@ def show_admins(cli, nick, chan, rest):
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
 
-    if var.PHASE in ("day", "night") and nick not in var.list_players() and chan == botconfig.CHANNEL:
-        cli.notice(nick, "You may not use this command right now.")
-        return
-
-    cli.msg(chan, "\2{0}\2 tosses a coin into the air...".format(nick))
+    reply(cli, nick, chan, "\2{0}\2 tosses a coin into the air...".format(nick))
     coin = random.choice(("heads", "tails"))
     specialty = random.randrange(0,10)
     if specialty == 0:
@@ -8648,20 +8599,16 @@ def coin(cli, nick, chan, rest):
     if specialty == 1:
         coin = botconfig.NICK
     cmsg = "The coin lands on \2{0}\2.".format(coin)
-    cli.msg(chan, cmsg)
+    reply(cli, nick, chan, cmsg)
 
 @cmd("pony", pm=True)
 def pony(cli, nick, chan, rest):
     """For entertaining bronies."""
 
-    if var.PHASE in ("day", "night") and nick not in var.list_players() and chan == botconfig.CHANNEL:
-        cli.notice(nick, "You may not use this command right now.")
-        return
-
-    cli.msg(chan, "\2{0}\2 tosses a pony into the air...".format(nick))
+    reply(cli, nick, chan, "\2{0}\2 tosses a pony into the air...".format(nick))
     pony = random.choice(("hoof", "plot"))
     cmsg = "The pony lands on \2{0}\2.".format(pony)
-    cli.msg(chan, cmsg)
+    reply(cli, nick, chan, cmsg)
 
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
@@ -8685,10 +8632,7 @@ def timeleft(cli, nick, chan, rest):
             msg = "There is \u00021\u0002 second remaining until the game may be started."
 
         if msg is not None:
-            if nick == chan:
-                pm(cli, nick, msg)
-            else:
-                cli.msg(chan, msg)
+            reply(cli, nick, chan, msg)
 
     if var.PHASE in var.TIMERS:
         remaining = timeleft_internal(var.PHASE)
@@ -8702,12 +8646,7 @@ def timeleft(cli, nick, chan, rest):
     else:
         msg = "{0} timers are currently disabled.".format(var.PHASE.capitalize())
 
-    if nick == chan:
-        pm(cli, nick, msg)
-    elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
-        cli.notice(nick, msg)
-    else:
-        cli.msg(chan, msg)
+    reply(cli, nick, chan, msg)
 
 def timeleft_internal(phase):
     return int((var.TIMERS[phase][1] + var.TIMERS[phase][2]) - time.time()) if phase in var.TIMERS else -1
@@ -8794,14 +8733,7 @@ def listroles(cli, nick, chan, rest):
     if not msg:
         msg = ["No roles are defined for {0}p games.".format(index)]
 
-    msg = " ".join(msg)
-
-    if chan == nick:
-        pm(cli, nick, msg)
-    elif nick not in var.list_players() and var.PHASE not in ("none", "join"):
-        cli.notice(nick, msg)
-    else:
-        cli.msg(chan, msg)
+    reply(cli, nick, chan, " ".join(msg))
 
 @cmd("myrole", pm=True, phases=("day", "night"))
 def myrole(cli, nick, chan, rest):
@@ -8991,16 +8923,10 @@ def game_stats(cli, nick, chan, rest):
 
     # List all games sizes and totals if no size is given
     if not gamesize:
-        if chan == nick:
-            pm(cli, nick, var.get_game_totals(gamemode))
-        else:
-            cli.msg(chan, var.get_game_totals(gamemode))
+        reply(cli, nick, chan, var.get_game_totals(gamemode))
     else:
         # Attempt to find game stats for the given game size
-        if chan == nick:
-            pm(cli, nick, var.get_game_stats(gamemode, gamesize))
-        else:
-            cli.msg(chan, var.get_game_stats(gamemode, gamesize))
+        reply(cli, nick, chan, var.get_game_stats(gamemode, gamesize))
 
 @cmd("playerstats", "pstats", "player", "p", pm=True)
 def player_stats(cli, nick, chan, rest):
@@ -9010,6 +8936,10 @@ def player_stats(cli, nick, chan, rest):
             datetime.now()):
         cli.notice(nick, ("This command is rate-limited. Please wait a while "
                           "before using it again."))
+        return
+
+    if chan != nick and chan == botconfig.CHANNEL and var.PHASE not in ("none", "join"):
+        cli.notice(nick, "You cannot use this command in channel right now")
         return
 
     if chan != nick:
@@ -9040,22 +8970,11 @@ def player_stats(cli, nick, chan, rest):
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        message = var.get_player_totals(acc)
-        if chan == nick:
-            pm(cli, nick, message)
-        else:
-            cli.notice(nick, message)
+        reply(cli, nick, chan, var.get_player_totals(acc), True)
     else:
         role = " ".join(params[1:])
         # Attempt to find the player's stats
-        message = var.get_player_stats(acc, role)
-
-        if chan == nick:
-            pm(cli, nick, message)
-        elif var.PHASE not in ("none", "join"):
-            cli.notice(nick, message)
-        else:
-            cli.msg(chan, message)
+        reply(cli, nick, chan, var.get_player_stats(acc, role))
 
 @cmd("mystats", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
@@ -9098,10 +9017,7 @@ def show_modes(cli, nick, chan, rest):
     msg = "Available game modes: \u0002"
     modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles"}))
 
-    if chan == nick:
-        pm(cli, nick, msg + modes + "\u0002")
-    else:
-        cli.notice(nick, msg + modes + "\u0002")
+    reply(cli, nick, chan, msg + modes + "\u0002", True)
 
 def game_help(args=""):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
