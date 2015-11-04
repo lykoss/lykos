@@ -9501,7 +9501,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             if var.STATS_TYPE == "default":
                 var.ORIGINAL_SETTINGS["STATS_TYPE"] = var.STATS_TYPE
                 var.STATS_TYPE = "accurate"
-                cli.msg(chan, "!stats type changed to accurate due to use of !frole.")
+                cli.msg(chan, "{0}stats type changed to accurate due to use of {0}frole.".format(botconfig.CMD_CHAR))
             chk_win(cli)
 
 
