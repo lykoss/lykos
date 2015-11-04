@@ -1043,13 +1043,13 @@ def join_deadchat(cli, *all_nicks):
         return
 
     if len(nicks) == 1:
-        msg = "\u0002{0}\u0002 has joined the chat.".format(nicks[0])
+        msg = "\u0002{0}\u0002 has joined the deadchat.".format(nicks[0])
     elif len(nicks) == 2:
-        msg = "\u0002{0}\u0002 and \u0002{1}\u0002 have joined the chat.".format(*nicks)
+        msg = "\u0002{0}\u0002 and \u0002{1}\u0002 have joined the deadchat.".format(*nicks)
     else:
-        msg = "\u0002{0}\u0002, and \u0002{1}\u0002 have joined the chat.".format("\u0002, \u0002".join(nicks[:-1]), nicks[-1])
+        msg = "\u0002{0}\u0002, and \u0002{1}\u0002 have joined the deadchat.".format("\u0002, \u0002".join(nicks[:-1]), nicks[-1])
     mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
-    mass_privmsg(cli, nicks, "You are now in the chat.")
+    mass_privmsg(cli, nicks, "You are now in the deadchat.")
 
     people = var.DEADCHAT_PLAYERS | set(nicks)
 
@@ -1065,14 +1065,15 @@ def leave_deadchat(cli, nick, force=""):
 
     var.DEADCHAT_PLAYERS.remove(nick)
     if force:
-        pm(cli, nick, "You have been forcibly removed from the chat by \u0002{0}\u0002.".format(force))
-        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has been removed from the chat by \u0002{1}\u0002.".format(nick, force))
+        pm(cli, nick, "You have been forcibly removed from the deadchat by \u0002{0}\u0002.".format(force))
+        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has been removed from the deadchat by \u0002{1}\u0002.".format(nick, force))
     else:
         pm(cli, nick, "You have left the chat.")
-        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the chat.".format(nick))
+        mass_privmsg(cli, var.DEADCHAT_PLAYERS, "\u0002{0}\u0002 has left the deadchat.".format(nick))
 
 @cmd("deadchat", pm=True)
 def deadchat_pref(cli, nick, chan, rest):
+    """Toggles auto joining deadchat on death."""
     if not var.ENABLE_DEADCHAT:
         return
 
