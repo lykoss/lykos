@@ -815,7 +815,7 @@ class SleepyMode(GameMode):
         else:
             self.having_nightmare = None
 
-    def rename_player(self, cli, var, prefix, nick):
+    def rename_player(self, evt, cli, var, prefix, nick):
         if self.having_nightmare == prefix:
             self.having_nightmare = nick
 
