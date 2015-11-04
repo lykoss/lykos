@@ -20,16 +20,16 @@ HOOKS = defaultdict(list)
 # Error handler decorators
 
 class handle_error:
+
+    instance = None
+    owner = object
+
     def __new__(cls, func):
         if isinstance(func, cls): # already decorated
             return func
 
         self = super().__new__(cls)
-
         self.func = func
-        self.instance = None
-        self.owner = object
-
         return self
 
     def __get__(self, instance, owner):
@@ -39,7 +39,7 @@ class handle_error:
 
     def __call__(self, *args, **kwargs):
         try:
-            self.func.__get__(self.instance, self.owner)(*args, **kwargs)
+            return self.func.__get__(self.instance, self.owner)(*args, **kwargs)
         except Exception:
             traceback.print_exc() # no matter what, we want it to print
             if kwargs.get("cli"): # client
