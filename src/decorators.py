@@ -1,6 +1,9 @@
+import traceback
 import fnmatch
+import socket
 from collections import defaultdict
 
+from oyoyo.client import IRCClient
 from oyoyo.parse import parse_nick
 
 import botconfig
@@ -9,9 +12,52 @@ from src.utilities import *
 from src import logger
 
 adminlog = logger("audit.log")
+errlog = logger("errors.log")
 
 COMMANDS = defaultdict(list)
 HOOKS = defaultdict(list)
+
+# Error handler decorators
+
+class handle_error:
+    def __init__(self, func):
+        self.func = func
+        self.instance = None
+        self.owner = object
+
+    def __get__(self, instance, owner):
+        self.instance = instance
+        self.owner = owner
+        return self
+
+    def __call__(self, *args, **kwargs):
+        try:
+            self.func.__get__(self.instance, self.owner)(*args, **kwargs)
+        except Exception:
+            traceback.print_exc() # no matter what, we want it to print
+            if kwargs.get("cli"): # client
+                cli = kwargs["cli"]
+            else:
+                for cli in args:
+                    if isinstance(cli, IRCClient):
+                        break
+                else:
+                    cli = None
+
+            if cli is not None:
+                msg = "An error has occurred and has been logged."
+                if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
+                    cli.msg(botconfig.CHANNEL, msg)
+                if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
+                    try:
+                        with socket.socket() as sock:
+                            sock.connect(("termbin.com", 9999))
+                            sock.send(traceback.format_exc().encode("utf-8", "replace") + b"\n")
+                            url = sock.recv(1024).decode("utf-8")
+                    except socket.error:
+                        pass
+                    else:
+                        cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, admin_only=False, owner_only=False,
@@ -49,6 +95,7 @@ class cmd:
         self.__doc__ = self.func.__doc__
         return self
 
+    @handle_error
     def caller(self, *args):
         largs = list(args)
 
@@ -189,6 +236,10 @@ class hook:
             self.func = func
         self.__doc__ = self.func.__doc__
         return self
+
+    @handle_error
+    def caller(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
 
     @staticmethod
     def unhook(hookid):

@@ -14,8 +14,6 @@ from src import decorators, logger, wolfgame
 log = logger("errors.log")
 alog = logger(None)
 
-sys.stderr.target_logger = log
-
 hook = decorators.hook
 
 def on_privmsg(cli, rawnick, chan, msg, notice = False):
@@ -48,12 +46,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         chan = parse_nick(rawnick)[0]
 
     for fn in decorators.COMMANDS[""]:
-        try:
-            fn.caller(cli, rawnick, chan, msg)
-        except Exception:
-            sys.stderr.write(traceback.format_exc())
-            if botconfig.DEBUG_MODE:
-                raise
+        fn.caller(cli, rawnick, chan, msg)
 
 
     for x in list(decorators.COMMANDS.keys()):
@@ -67,12 +60,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             continue
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
-                try:
-                    fn.caller(cli, rawnick, chan, h.lstrip())
-                except Exception:
-                    sys.stderr.write(traceback.format_exc())
-                    if botconfig.DEBUG_MODE:
-                        raise
+                fn.caller(cli, rawnick, chan, h.lstrip())
 
 
 def unhandled(cli, prefix, cmd, *args):
@@ -81,12 +69,7 @@ def unhandled(cli, prefix, cmd, *args):
         for i,arg in enumerate(largs):
             if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
         for fn in decorators.HOOKS.get(cmd, []):
-            try:
-                fn.func(cli, prefix, *largs)
-            except Exception:
-                sys.stderr.write(traceback.format_exc())
-                if botconfig.DEBUG_MODE:
-                    raise
+            fn.caller(cli, prefix, *largs)
 
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
@@ -171,9 +154,6 @@ def connect_callback(cli):
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
             alog("Server refused capabilities: {0}".format(" ".join(caps)))
-
-    if sys.stderr.cli is None:
-        sys.stderr.cli = cli # first connection
 
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")

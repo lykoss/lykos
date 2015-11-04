@@ -60,6 +60,7 @@ is_owner = var.is_owner
 
 cmd = decorators.cmd
 hook = decorators.hook
+handle_error = decorators.handle_error
 COMMANDS = decorators.COMMANDS
 
 # Game Logic Begins:
@@ -918,6 +919,7 @@ def toggle_altpinged_status(nick, value, old=None):
                         var.PING_IF_NUMS[old].discard(host)
                         var.PING_IF_NUMS[old].discard(hostmask)
 
+@handle_error
 def join_timer_handler(cli):
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
@@ -1267,6 +1269,7 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     return True
 
+@handle_error
 def kill_join(cli, chan):
     pl = var.list_players()
     pl.sort(key=lambda x: x.lower())
@@ -1995,6 +1998,7 @@ def stats(cli, nick, chan, rest):
                                                         var.PHASE)
     reply(cli, nick, chan, stats_mssg)
 
+@handle_error
 def hurry_up(cli, gameid, change):
     if var.PHASE != "day": return
     if gameid:
@@ -2764,6 +2768,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             stop_game(cli, winner, additional_winners=event.data["additional_winners"])
         return True
 
+@handle_error
 def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original="", cmode=[], deadchat=[], ismain=True):
     """
     Returns: False if one side won.
@@ -3212,7 +3217,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
 
         return ret
 
-
+@handle_error
 def reaper(cli, gameid):
     # check to see if idlers need to be killed.
     var.IDLE_WARNED    = set()
@@ -3414,6 +3419,7 @@ def fgoat(cli, nick, chan, rest):
 
     cli.msg(chan, "\u0002{0}\u0002's goat walks by and {1} \u0002{2}\u0002.".format(nick, goatact, togoat))
 
+@handle_error
 def return_to_village(cli, chan, nick, show_message):
     with var.GRAVEYARD_LOCK:
         if nick in var.DISCONNECTED.keys():
@@ -3849,6 +3855,7 @@ def begin_day(cli):
     event = Event("begin_day", {})
     event.dispatch(cli, var)
 
+@handle_error
 def night_warn(cli, gameid):
     if gameid != var.NIGHT_ID:
         return
@@ -7459,7 +7466,7 @@ def cgamemode(cli, arg):
     else:
         cli.msg(chan, "Mode \u0002{0}\u0002 not found.".format(modeargs[0]))
 
-
+@handle_error
 def expire_start_votes(cli, chan):
     # Should never happen as the timer is removed on game start, but just to be safe
     if var.PHASE != 'join':
