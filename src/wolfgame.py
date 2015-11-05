@@ -2945,7 +2945,8 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                     pl.remove(bg)
                                     break
                         elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
-                            var.ACTIVE_PROTECTIONS[target].remove("blessing")
+                            if "blessing" in var.ACTIVE_PROTECTIONS[target]:
+                                var.ACTIVE_PROTECTIONS[target].remove("blessing")
                             # don't message the channel whenever a blessing blocks a kill, but *do* let the dullahan know so they don't try to report it as a bug
                             pm(cli, nick, "\u0002{0}\u0002 seems to be blessed, causing your assassination attempt to fail.".format(target))
                         else:
