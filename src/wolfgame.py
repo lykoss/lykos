@@ -810,11 +810,11 @@ def altpinger(cli, nick, chan, rest):
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
-        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), True)
+        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), private=True)
         return
 
     if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, "You are not logged in to NickServ.", True)
+        reply(cli, nick, chan, "You are not logged in to NickServ.", private=True)
         return
 
     msg = []
@@ -853,7 +853,7 @@ def altpinger(cli, nick, chan, rest):
     else:
         msg.append("Invalid parameter. Please enter a non-negative integer or a valid preference.")
 
-    reply(cli, nick, chan, "\n".join(msg), True)
+    reply(cli, nick, chan, "\n".join(msg), private=True)
 
 def is_user_altpinged(nick):
     if nick in var.USERS.keys():
@@ -1083,11 +1083,11 @@ def deadchat_pref(cli, nick, chan, rest):
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
-        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), True)
+        reply(cli, nick, chan, "You need to be in {0} to use that command.".format(botconfig.CHANNEL), private=True)
         return
 
     if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, "You are not logged in to NickServ.", True)
+        reply(cli, nick, chan, "You are not logged in to NickServ.", private=True)
         return
 
     if acc and acc != "*":
@@ -1107,7 +1107,7 @@ def deadchat_pref(cli, nick, chan, rest):
         variable.add(value)
         var.add_deadchat_pref(value, value == acc)
 
-    reply(cli, nick, chan, msg, True)
+    reply(cli, nick, chan, msg, private=True)
 
 @cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
@@ -1349,7 +1349,7 @@ def fleave(cli, nick, chan, rest):
         dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
             if chan != botconfig.CHANNEL:
-                reply(cli, nick, chan, "Forcing a live player to leave must be done in channel", True)
+                reply(cli, nick, chan, "Forcing a live player to leave must be done in channel", private=True)
                 return
             a = pl[pll.index(a.lower())]
 
@@ -1379,7 +1379,7 @@ def fleave(cli, nick, chan, rest):
 
             leave_deadchat(cli, a, force=nick)
             if nick.lower() not in dcll:
-                reply(cli, nick, chan, "You have forced {0} to leave the deadchat".format(a), True)
+                reply(cli, nick, chan, "You have forced {0} to leave the deadchat".format(a), private=True)
 
         else:
             cli.msg(chan, nick+": That person is not playing.")
@@ -8977,7 +8977,7 @@ def player_stats(cli, nick, chan, rest):
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        reply(cli, nick, chan, var.get_player_totals(acc), True)
+        reply(cli, nick, chan, var.get_player_totals(acc), private=True)
     else:
         role = " ".join(params[1:])
         if role not in var.ROLE_GUIDE.keys():
@@ -9035,7 +9035,7 @@ def show_modes(cli, nick, chan, rest):
     msg = "Available game modes: \u0002"
     modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles"}))
 
-    reply(cli, nick, chan, msg + modes + "\u0002", True)
+    reply(cli, nick, chan, msg + modes + "\u0002", private=True)
 
 def game_help(args=""):
     return "Votes to make a specific game mode more likely. Available game mode setters: " +\
