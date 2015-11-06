@@ -1349,7 +1349,7 @@ def fleave(cli, nick, chan, rest):
         dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
             if chan != botconfig.CHANNEL:
-                reply(cli, nick, chan, "Forcing a live player to leave must be done in channel", private=True)
+                reply(cli, nick, chan, "Forcing a live player to leave must be done in channel.", private=True)
                 return
             a = pl[pll.index(a.lower())]
 
@@ -1379,7 +1379,7 @@ def fleave(cli, nick, chan, rest):
 
             leave_deadchat(cli, a, force=nick)
             if nick.lower() not in dcll:
-                reply(cli, nick, chan, "You have forced {0} to leave the deadchat".format(a), private=True)
+                reply(cli, nick, chan, "You have forced {0} to leave the deadchat.".format(a), private=True)
 
         else:
             cli.msg(chan, nick+": That person is not playing.")
