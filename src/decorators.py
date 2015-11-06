@@ -10,6 +10,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import logger
+from src.messages import messages
 
 adminlog = logger("audit.log")
 errlog = logger("errors.log")
@@ -146,16 +147,16 @@ class cmd:
 
         if self.playing and (nick not in var.list_players() or nick in var.DISCONNECTED):
             if chan == nick:
-                pm(cli, nick, "You're not currently playing.")
+                pm(cli, nick, messages["player_not_playing"])
             else:
-                cli.notice(nick, "You're not currently playing.")
+                cli.notice(nick, messages["player_not_playing"])
             return
 
         if self.silenced and nick in var.SILENCED:
             if chan == nick:
-                pm(cli, nick, "You have been silenced, and are unable to use any special powers.")
+                pm(cli, nick, messages["silenced"])
             else:
-                cli.notice(nick, "You have been silenced, and are unable to use any special powers.")
+                cli.notice(nick, messages["silenced"])
             return
 
         if self.roles:
@@ -173,9 +174,9 @@ class cmd:
                 return self.func(*largs)
 
             if chan == nick:
-                pm(cli, nick, "You are not the owner.")
+                pm(cli, nick, messages["not_owner"])
             else:
-                cli.notice(nick, "You are not the owner.")
+                cli.notice(nick, messages["not_owner"])
             return
 
         if var.is_admin(nick, ident, host):
@@ -188,9 +189,9 @@ class cmd:
                 for command in self.cmds:
                     if command in var.DENY_ACCOUNTS[acc]:
                         if chan == nick:
-                            pm(cli, nick, "You do not have permission to use that command.")
+                            pm(cli, nick, messages["invalid_permissions"])
                         else:
-                            cli.notice(nick, "You do not have permission to use that command.")
+                            cli.notice(nick, messages["invalid_permissions"])
                         return
 
             if acc in var.ALLOW_ACCOUNTS:
@@ -206,9 +207,9 @@ class cmd:
                     for command in self.cmds:
                         if command in var.DENY[pattern]:
                             if chan == nick:
-                                pm(cli, nick, "You do not have permission to use that command.")
+                                pm(cli, nick, messages["invalid_permissions"])
                             else:
-                                cli.notice(nick, "You do not have permission to use that command.")
+                                cli.notice(nick, messages["invalid_permissions"])
                             return
 
             for pattern in var.ALLOW:
@@ -221,9 +222,9 @@ class cmd:
 
         if self.admin_only:
             if chan == nick:
-                pm(cli, nick, "You are not an admin.")
+                pm(cli, nick, messages["not_an_admin"])
             else:
-                cli.notice(nick, "You are not an admin.")
+                cli.notice(nick, messages["not_an_admin"])
             return
 
         return self.func(*largs)

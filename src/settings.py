@@ -5,6 +5,7 @@ from collections import defaultdict, OrderedDict
 
 import botconfig
 
+LANGUAGE = 'en'
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
@@ -285,68 +286,6 @@ TEMPLATE_RESTRICTIONS["assassin"] -= {"fallen angel"}
 
 # Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
 DISABLED_ROLES = frozenset()
-
-NO_VICTIMS_MESSAGES = ("The body of a young penguin pet is found.",
-                       "Paw prints are found circling around the village.",
-                       "A pool of blood and wolf paw prints are found.",
-                       "The body of a slain cat is found.",
-                       "Some house doors have been opened, but nothing has changed.",
-                       "A scent much like that of a wolf permeates the air.",
-                       "Half-buried wolf droppings are found.",
-                       "Traces of wolf fur are found.")
-LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching \u0002{0}\u0002, who turned out to be... a{1} \u0002{2}\u0002.",
-                  "After a prolonged struggle, \u0002{0}\u0002 is forced to the gallows, and is discovered after death to be a{1} \u0002{2}\u0002.",
-                  "The villagers choose to hang \u0002{0}\u0002; however, the rope stretches and breaks, and the ensuing fall kills the \u0002{2}\u0002.",
-                  "The villagers, heavy with the pain of death, reluctantly lynch \u0002{0}\u0002, a{1} \u0002{2}\u0002.",
-                  "Compliant with the will of the village, the gallows prove effective in killing \u0002{0}\u0002, a{1} \u0002{2}\u0002.",
-                  "Galvanized by fear, the mob puts \u0002{0}\u0002 to death. After inspection, they find that they have killed a{1} \u0002{2}\u0002.",
-                  "In a fit of hysteria, the villagers lynch \u0002{0}\u0002, killing a{1} \u0002{2}\u0002.",
-                  "Believing their fellow neighbor and friend to be dangerous, the mob puts \u0002{0}\u0002, a{1} \u0002{2}\u0002, to death.",
-                  "Under a lot of noise, the pitchfork-bearing villagers lynch \u0002{0}\u0002, who turned out to be... a{1} \u0002{2}\u0002.",
-                  "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged. The villagers have killed a{1} \u0002{2}\u0002.",
-                  "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows. Once the twitching stops, it is discovered that the village lynched a{1} \u0002{2}\u0002.",
-                  "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, pulls the pin on a grenade. They hesitate, and it explodes, killing them.",
-                  "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, throws a grenade at the mob. The grenade explodes early.")
-LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on lynching \u0002{0}\u0002.",
-                            "After a prolonged struggle, \u0002{0}\u0002 is forced to the gallows.",
-                            "The villagers choose to hang \u0002{0}\u0002; however, the rope stretches and breaks, and the ensuing fall kills them.",
-                            "The villagers, heavy with the pain of death, reluctantly lynch \u0002{0}\u0002.",
-                            "Compliant with the will of the village, the gallows prove effective in killing \u0002{0}\u0002.",
-                            "Galvanized by fear, the mob puts \u0002{0}\u0002 to death.",
-                            "In a fit of hysteria, the villagers lynch \u0002{0}\u0002.",
-                            "Believing their fellow neighbor and friend to be dangerous, the mob puts \u0002{0}\u0002 to death.",
-                            "Under a lot of noise, the pitchfork-bearing villagers lynch \u0002{0}\u0002.",
-                            "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged.",
-                            "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
-                            "Before the rope is pulled, \u0002{0}\u0002 pulls the pin on a grenade. They hesitate, and it explodes, killing them.",
-                            "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
-QUIT_MESSAGES= ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
-                "While wearing a fake pair of antlers, \u0002{0}\u0002, a{1} \u0002{2}\u0002, is shot dead by a hunter.",
-                "Standing under a tree, \u0002{0}\u0002, a{1} \u0002{2}\u0002, is killed by a falling branch.",
-                "\u0002{0}\u0002, a{1} \u0002{2}\u0002, is killed by lightning before the villagers' eyes. The air smells of burnt flesh.",
-                "Rampaging through the village, a bull gores \u0002{0}\u0002, a{1} \u0002{2}\u0002.",
-                "\u0002{0}\u0002, a{1} \u0002{2}\u0002, falls into a vat of molasses and drowns.",
-                "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomachs.",
-                "\u0002{0}\u0002, a{1} \u0002{2}\u0002, fell off the roof of their house and is now dead.",
-                "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{2}\u0002, but it is too late.",
-                "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory. The survivors bury the \u0002{2}\u0002's ashes.")
-QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
-                           "While wearing a fake pair of antlers, \u0002{0}\u0002 is shot dead by a hunter.",
-                           "Standing under a tree, \u0002{0}\u0002 is killed by a falling branch.",
-                           "\u0002{0}\u0002 is killed by lightning before the villagers' eyes. The air smells of burnt flesh.",
-                           "Rampaging through the village, a bull gores \u0002{0}\u0002.",
-                           "\u0002{0}\u0002 falls into a vat of molasses and drowns.",
-                           "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomachs.",
-                           "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
-                           "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.",
-                           "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.")
-PING_MESSAGES = ("Pong!", "Ping!", "Sure thing.", "No.", "!gniP", "!gnoP", "Segmentation fault", "Segmentation fault (core dumped)",
-                 "{0}.exe has stopped working. Windows is checking for a solution to the problem...".format(botconfig.NICK), "HTTP Error 418: I'm a teapot",
-                 "An error has pinged and has been ponged.", "I'm here!", "I refuse!", "What?", "Don't you mean \u0002{0}ping\u0002?".format(botconfig.CMD_CHAR),
-                 "skynet.exe has stopped working. Windows is checking for a solution to the problem...", "No ping received for 1337 seconds.",
-                 "Congratulations! You're the 1337th person to use {0}ping. You win a goat!".format(botconfig.CMD_CHAR), "PING! {nick}",
-                 "I'm sorry Dave, I'm afraid I can't do that.", "Give me a ping, Vasily. One ping only, please.")
-
 
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25

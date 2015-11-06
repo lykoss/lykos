@@ -11,6 +11,7 @@ __pycache__/
 # Config files
 botconfig.py
 /gamemodes.py
+/messages.json
 
 # Database files
 *.sqlite3
