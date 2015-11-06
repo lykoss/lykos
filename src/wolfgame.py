@@ -4145,7 +4145,7 @@ def transition_day(cli, gameid=0):
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
         if k in var.ROLES["vigilante"]:
-            if var.get_role(d) not in var.WOLF_ROLES | {"monster", "succubus", "demoniac"}:
+            if var.get_role(d) not in var.WOLF_ROLES | {"monster", "succubus", "demoniac", "piper", "fool"}:
                 var.DYING.add(k)
 
     for v in var.ENTRANCED_DYING:
@@ -7159,7 +7159,7 @@ def transition_night(cli):
         if vigilante in var.PLAYERS and not is_user_simple(vigilante):
             pm(cli, vigilante, ('You are a \u0002vigilante\u0002. Each night, you may kill someone by '
                                 'using "kill <nick>", or "pass" to pass. If the person you kill is not '
-                                'a wolf or possessed by an evil spirit, you will die alongside your victim.'))
+                                'a wolf or a win stealer, you will die alongside your victim.'))
         else:
             pm(cli, vigilante, "You are a \u0002vigilante\u0002.")
         pm(cli, vigilante, "Players: " + ", ".join(pl))
