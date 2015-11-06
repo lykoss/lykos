@@ -1338,8 +1338,6 @@ def fjoin(cli, nick, chan, rest):
 @cmd("fleave", "fquit", admin_only=True, pm=True, phases=("join", "day", "night"))
 def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
-    if chan != botconfig.CHANNEL:
-        return
 
     for a in re.split(" +",rest):
         a = a.strip()
@@ -1350,6 +1348,9 @@ def fleave(cli, nick, chan, rest):
         dcl = list(var.DEADCHAT_PLAYERS) if var.PHASE != "join" else []
         dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
+            if chan != botconfig.CHANNEL:
+                reply(cli, nick, chan, "Forcing a live player to leave must be done in channel", True)
+                return
             a = pl[pll.index(a.lower())]
 
             message = "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.".format(nick, a)
@@ -1377,6 +1378,8 @@ def fleave(cli, nick, chan, rest):
             a = dcl[dcll.index(a.lower())]
 
             leave_deadchat(cli, a, force=nick)
+            if nick.lower() not in dcll:
+                reply(cli, nick, chan, "You have forced {0} to leave the deadchat".format(a), True)
 
         else:
             cli.msg(chan, nick+": That person is not playing.")
