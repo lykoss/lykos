@@ -12,6 +12,14 @@ CHANNEL = "##mywolfgame"
 
 CMD_CHAR = "!"
 
+# If your server requires a connection password, or your services package expects
+# a different format if authenticating to NickServ via the PASS command, modify this.
+# The default should work fine on Atheme-based services packages.
+#
+# Note: Do not put the account and password here; they will be automatically substituted
+#       from the USERNAME (or NICK) and PASS variables on the top of the file.
+
+SERVER_PASS = "{account}:{password}"
 
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # The comma is required at the end if there is only one owner.
 ADMINS = ("unaffiliated/wolfbot_admin2", "unaffiliated/wolfbot_test*")
