@@ -2757,7 +2757,10 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
                 for plr in var.list_players(var.WOLFTEAM_ROLES):
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             elif winner == "villagers":
-                vroles = (role for role in var.ROLES.keys() if var.ROLES[role] and role not in (var.WOLFTEAM_ROLES | var.TRUE_NEUTRAL_ROLES | var.TEMPLATE_RESTRICTIONS.keys()))
+                # There is a regression issue in the 3.2 collections module - and possibly 3.3, cannot tell - where OrderedDict.keys is not set-like
+                # this was fixed in later releases, and since development and main instance are on 3.4 or 3.5, this was not noticed
+                # collections.OrderedDict being a dict subclass, dict methods all work. Thus, we can pass the instance to dict.keys and be done with it (since it's set-like)
+                vroles = (role for role in var.ROLES.keys() if var.ROLES[role] and role not in (var.WOLFTEAM_ROLES | var.TRUE_NEUTRAL_ROLES | dict.keys(var.TEMPLATE_RESTRICTIONS)))
                 for plr in var.list_players(vroles):
                     players.append("{0} ({1})".format(plr, var.get_role(plr)))
             elif winner == "pipers":
