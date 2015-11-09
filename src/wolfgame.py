@@ -5334,7 +5334,7 @@ def shoot(cli, nick, chan, rest):
         chances = var.GUN_CHANCES
 
     if victim in var.ROLES["succubus"]:
-        chances = chances[:2] + (0,)
+        chances = chances[:3] + (0,)
 
     wolfvictim = victim in var.list_players(var.WOLF_ROLES)
     realrole = var.get_role(victim)
