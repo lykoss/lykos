@@ -20,10 +20,22 @@
 import sys
 
 if sys.version_info < (3, 2):
-    print('Python 3.2 or newer is required to run the bot.')
+    print("Python 3.2 or newer is required to run the bot.")
     sys.exit(1)
 
-import time
+if sys.version_info < (3, 3):
+    print("*** WARNING ***".center(80),
+          "Starting February 2016, Python 3.2 support will be officially dropped.",
+          "The minimum requirement will be increased to Python 3.3",
+          "Please make sure to upgrade by then, or stick with an older revision.", "",
+          "Concerns and questions may be asked on the official development channel",
+          "  in ##werewolf-dev over at irc.freenode.net", "",
+          "You may also open an issue on the issue tracker in the GitHub repository",
+          "  located at https://github.com/lykoss/lykos", "",
+          "The lifetime of Python 3.2 support may be extended on request.", "",
+          "Thank you for your interest in this IRC bot!", "",
+          "- The lykos development team", "", sep="\n", file=sys.stderr)
+
 import traceback
 
 from oyoyo.client import IRCClient
@@ -31,7 +43,6 @@ from oyoyo.client import IRCClient
 import botconfig
 import src
 from src import handler
-
 
 def main():
     cli = IRCClient(
