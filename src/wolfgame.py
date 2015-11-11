@@ -44,18 +44,11 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import decorators, events, logger, utilities, debuglog
-
-# make debuglog accessible anywhere
-utilities.debuglog = debuglog
-
+from src import decorators, events, logger, proxy, debuglog, errlog, plog
 from src.messages import messages
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
-
-errlog = logger("errors.log")
-plog = logger(None) #use this instead of print so that logs have timestamps
 
 is_admin = var.is_admin
 is_owner = var.is_owner
@@ -2074,6 +2067,7 @@ def fday(cli, nick, chan, rest):
 
 # Specify force = "nick" to force nick to be lynched
 @handle_error
+@proxy.impl
 def chk_decision(cli, force = ""):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
@@ -2595,6 +2589,7 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
 
     return True
 
+@proxy.impl
 def chk_win(cli, end_game=True, winner=None):
     """ Returns True if someone won """
     chan = botconfig.CHANNEL
@@ -4604,6 +4599,7 @@ def transition_day(cli, gameid=0):
 
     begin_day(cli)
 
+@proxy.impl
 def chk_nightdone(cli):
     if var.PHASE != "night":
         return
@@ -4702,8 +4698,6 @@ def chk_nightdone(cli):
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
             transition_day(cli)
-
-utilities.chk_nightdone = chk_nightdone # for some events to access
 
 @cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
 def no_lynch(cli, nick, chan, rest):

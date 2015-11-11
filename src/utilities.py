@@ -1,6 +1,8 @@
-import src.settings as var
-import botconfig
 import re
+
+import botconfig
+import src.settings as var
+from src import proxy, debuglog
 
 # Some miscellaneous helper functions
 
@@ -155,5 +157,17 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
     wcwolves.remove(nick)
     mass_privmsg(cli, wcwolves, message)
     mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] " + message)
+
+@proxy.stub
+def chk_nightdone(cli):
+    pass
+
+@proxy.stub
+def chk_decision(cli, force=""):
+    pass
+
+@proxy.stub
+def chk_win(cli, end_game=True, winner=None):
+    pass
 
 # vim: set expandtab:sw=4:ts=4:

@@ -7,8 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src.messages import messages
-# utilities imported per Vgr's temporary fix to chk_nightdone(cli) in Sleepy
-from src import events, utilities
+from src import events
 
 def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
@@ -852,7 +851,7 @@ class SleepyMode(GameMode):
             if "correct" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_wake"])
                 self.having_nightmare = None
-                utilities.chk_nightdone(cli)
+                chk_nightdone(cli)
             elif "fake1" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_1"])
                 self.step = 0

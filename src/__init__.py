@@ -5,6 +5,32 @@ import time
 import botconfig
 import src.settings as var
 
+# Segue to logger, since src.gamemodes requires it
+# TODO: throw this into a logger.py perhaps so we aren't breaking up imports with non-import stuff
+def logger(file, write=True, display=True):
+    if file is not None:
+        open(file, "a").close() # create the file if it doesn't exist
+    def log(*output, write=write, display=display):
+        output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\\x02", "") # remove bold
+        if botconfig.DEBUG_MODE:
+            write = True
+        if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:
+            display = True
+        timestamp = get_timestamp()
+        if display:
+            print(timestamp + output, file=utf8stdout)
+        if write and file is not None:
+            with open(file, "a", errors="replace") as f:
+                f.seek(0, 2)
+                f.write(timestamp + output + "\n")
+
+    return log
+
+stream_handler = logger(None)
+debuglog = logger("debug.log", write=False, display=False)
+errlog = logger("errors.log")
+plog = logger(None) # use this instead of print so that logs have timestamps
+
 # Import the user-defined game modes
 # These are not required, so failing to import it doesn't matter
 # The file then imports our game modes
@@ -85,28 +111,6 @@ def get_timestamp(use_utc=None, ts_format=None):
             offset = "-"
         offset += str(time.timezone // 36).zfill(4)
     return tmf.format(tzname=tz, tzoffset=offset).strip().upper() + " "
-
-def logger(file, write=True, display=True):
-    if file is not None:
-        open(file, "a").close() # create the file if it doesn't exist
-    def log(*output, write=write, display=display):
-        output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\\x02", "") # remove bold
-        if botconfig.DEBUG_MODE:
-            write = True
-        if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:
-            display = True
-        timestamp = get_timestamp()
-        if display:
-            print(timestamp + output, file=utf8stdout)
-        if write and file is not None:
-            with open(file, "a", errors="replace") as f:
-                f.seek(0, 2)
-                f.write(timestamp + output + "\n")
-
-    return log
-
-stream_handler = logger(None)
-debuglog = logger("debug.log", write=False, display=False)
 
 def stream(output, level="normal"):
     if botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
