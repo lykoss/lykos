@@ -1,13 +1,13 @@
-from collections import OrderedDict
-
 import random
 import math
 import threading
+from collections import OrderedDict
 
+import botconfig
 import src.settings as var
 from src.utilities import *
-import botconfig
-
+from src.messages import messages
+# utilities imported per Vgr's temporary fix to chk_nightdone(cli) in Sleepy
 from src import events, utilities
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -64,13 +64,12 @@ class GameMode:
             pair, *pairs = pairs[0].split(",", 1)
             change = pair.lower().replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
-                raise var.InvalidModeException("Invalid syntax for mode arguments. arg={0}".format(arg))
+                raise var.InvalidModeException(messages["invalid_mode_args"].format(arg))
 
             key, val = change
             if key in ("role reveal", "reveal roles"):
                 if val not in ("on", "off", "team"):
-                    raise var.InvalidModeException(("Did not recognize value \u0002{0}\u0002 for role reveal. "+
-                                               "Allowed values: on, off, team").format(val))
+                    raise var.InvalidModeException(messages["invalid_reveal"].format(val))
                 self.ROLE_REVEAL = val
                 if val == "off" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "disabled"
@@ -78,13 +77,11 @@ class GameMode:
                     self.STATS_TYPE = "team"
             elif key in ("stats type", "stats"):
                 if val not in ("default", "accurate", "team", "disabled"):
-                    raise var.InvalidModeException(("Did not recognize value \u0002{0}\u0002 for stats type. "+
-                                               "Allowed values: default, accurate, team, disabled").format(val))
+                    raise var.InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val
             elif key == "abstain":
                 if val not in ("enabled", "restricted", "disabled"):
-                    raise var.InvalidModeException(("Did not recognize value \u0002{0}\u0002 for abstain. "+
-                                               "Allowed values: enabled, restricted, disabled").format(val))
+                    raise var.InvalidModeException(messages["invalid_abstain"].format(val))
                 if val == "enabled":
                     self.ABSTAIN_ENABLED = True
                     self.LIMIT_ABSTAIN = False
@@ -114,9 +111,7 @@ class GameMode:
         if len(lovers) == lpl:
             evt.data["winner"] = "lovers"
             evt.data["additional_winners"] = list(lovers)
-            evt.data["message"] = ("Game over! The remaining villagers through their inseparable "
-                                   "love for each other have agreed to stop all of this senseless "
-                                   "violence and coexist in peace forever more. All remaining players win.")
+            evt.data["message"] = messages["lovers_win"]
 
 @game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(GameMode):
@@ -137,11 +132,11 @@ class ChangedRolesMode(GameMode):
             pair, *pairs = pairs[0].split(",", 1)
             change = pair.replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
-                raise var.InvalidModeException("Invalid syntax for mode roles. arg={0}".format(arg))
+                raise var.InvalidModeException(messages["invalid_mode_roles"].format(arg))
             role, num = change
             try:
                 if role.lower() in var.DISABLED_ROLES:
-                    raise var.InvalidModeException("The role \u0002{0}\u0002 has been disabled.".format(role))
+                    raise var.InvalidModeException(messages["role_disabled"].format(role))
                 elif role.lower() in self.ROLE_GUIDE:
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(var.ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
@@ -150,10 +145,9 @@ class ChangedRolesMode(GameMode):
                     # handled in parent constructor
                     pass
                 else:
-                    raise var.InvalidModeException(("The role \u0002{0}\u0002 "+
-                                                "is not valid.").format(role))
+                    raise var.InvalidModeException(messages["specific_invalid_role"].format(role))
             except ValueError:
-                raise var.InvalidModeException("A bad value was used in mode roles.")
+                raise var.InvalidModeException(messages["bad_role_value"])
 
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(GameMode):
@@ -265,30 +259,22 @@ class EvilVillageMode(GameMode):
 
         if lrealwolves == 0 and lsafes == 0:
             evt.data["winner"] = "none"
-            evt.data["message"] = ("Game over! All the villagers are dead, but the cult needed to sacrifice " +
-                                 "the wolves to accomplish that. The cult disperses shortly thereafter, " +
-                                 "and nobody wins.")
+            evt.data["message"] = messages["evil_no_win"]
         elif lrealwolves == 0:
             evt.data["winner"] = "villagers"
-            evt.data["message"] = ("Game over! All the wolves are dead! The villagers " +
-                                   "round up the remaining cultists, hang them, and live " +
-                                   "happily ever after.")
+            evt.data["message"] = messages["evil_villager_win"]
         elif lsafes == 0:
             evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! All the villagers are dead! The cultists rejoice " +
-                                   "with their wolf buddies and start plotting to take over the " +
-                                   "next village.")
+            evt.data["message"] = messages["evil_wolf_win"]
         elif lcultists == 0:
             evt.data["winner"] = "villagers"
-            evt.data["message"] = ("Game over! All the cultists are dead! The now-exposed wolves " +
-                                   "are captured and killed by the remaining villagers. A BBQ party " +
-                                   "commences shortly thereafter.")
-        elif lsafes >= lpl / 2:
+            evt.data["message"] = messages["evil_cultists_dead"]
+        elif lsafes == lpl / 2:
             evt.data["winner"] = "villagers"
-            evt.data["message"] = ("Game over! There are {0} villagers {1} cultists. They " +
-                                   "manage to regain control of the village and dispose of the remaining " +
-                                   "cultists.").format("more" if lsafes > lpl / 2 else "the same number of",
-                                                       "than" if lsafes > lpl / 2 else "as")
+            evt.data["message"] = messages["evil_villager_tie"]
+        elif lsafes > lpl / 2:
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = messages["evil_more_villagers"]
         else:
             try:
                 if evt.data["winner"][0] != "@":
@@ -667,27 +653,19 @@ class GuardianMode(GameMode):
             return
         elif not lguardians and lwolves > lpl / 2:
             evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! There are more wolves than uninjured villagers. With the ancestral " +
-                                   "guardians dead, the wolves overpower the defenseless villagers and win.")
+            evt.data["message"] = messages["guardian_wolf_win"]
         elif not lguardians and lwolves == lpl / 2:
             evt.data["winner"] = "wolves"
-            evt.data["message"] = ("Game over! There are the same number of wolves as uninjured villagers. With the ancestral " +
-                                   "guardians dead, the wolves overpower the defenseless villagers and win.")
+            evt.data["message"] = messages["guardian_wolf_tie_no_guards"]
         elif not lrealwolves and lguardians:
             evt.data["winner"] = "villagers"
-            evt.data["message"] = ("Game over! All the wolves are dead! The remaining villagers throw a party in honor " +
-                                   "of the guardian angels that watched over the village, and live happily ever after.")
+            evt.data["message"] = messages["guardian_villager_win"]
         elif not lrealwolves and not lguardians:
             evt.data["winner"] = "none"
-            evt.data["message"] = ("Game over! The remaining villagers managed to destroy the wolves, however the guardians " +
-                                   "that used to watch over the village are nowhere to be found. The village lives on in an " +
-                                   "uneasy peace, not knowing when they will be destroyed completely now that they are " +
-                                   "defenseless. Nobody wins.")
+            evt.data["message"] = messages["guardian_lose_no_guards"]
         elif lwolves == lguardians and lpl - lwolves - lguardians == 0:
             evt.data["winner"] = "none"
-            evt.data["message"] = ("Game over! The guardians, angered by the loss of everyone they were meant to guard, " +
-                                   "engage the wolves in battle and mutually assured destruction. After the dust settles " +
-                                   "the village is completely dead, and nobody wins.")
+            evt.data["message"] = messages["guardian_lose_with_guards"]
         else:
             evt.data["winner"] = None
 
@@ -825,11 +803,8 @@ class SleepyMode(GameMode):
         if target not in var.list_players():
             return
         self.having_nightmare = target
-        pm(cli, self.having_nightmare, ("While walking through the woods, you hear the clopping of hooves behind you. Turning around, " +
-                                        "you see a large black horse with dark red eyes and flames where its mane and tail would be. " +
-                                        "After a brief period of time, it starts chasing after you! You think if you can cross the bridge " +
-                                        "over the nearby river you'll be safe, but your surroundings are almost unrecognizable in this darkness."))
-        pm(cli, self.having_nightmare, 'You can pm me "north", "east", "south", and "west", or their abbreviations "n", "e", "s", and "w" to navigate.')
+        pm(cli, self.having_nightmare, messages["sleepy_nightmare_begin"])
+        pm(cli, self.having_nightmare, messages["sleepy_nightmare_navigate"])
         self.correct = [None, None, None]
         self.fake1 = [None, None, None]
         self.fake2 = [None, None, None]
@@ -868,38 +843,24 @@ class SleepyMode(GameMode):
             directions = "north, south, and west"
 
         if self.step == 0:
-            pm(cli, self.having_nightmare, ("You find yourself deep in the heart of the woods, with imposing trees covering up what little light " +
-                                            "exists with their dense canopy. The paths here are very twisty, and it's easy to wind up going in " +
-                                            "circles if one is not careful. Directions are {0}.").format(directions))
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_0"].format(directions))
         elif self.step == 1:
-            pm(cli, self.having_nightmare, ("You come across a small creek, the water babbling softly in the night as if nothing is amiss. " +
-                                            "As you approach, a flock of ravens bathing there disperses into all directions. " +
-                                            "Directions are {0}.").format(directions))
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_1"].format(directions))
         elif self.step == 2:
-            pm(cli, self.having_nightmare, ("The treeline starts thinning and you start feeling fresh air for the first time in a while, you " +
-                                            "must be getting close to the edge of the woods! Directions are {0}.").format(directions))
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_2"].format(directions))
         elif self.step == 3:
             if "correct" in self.on_path:
-                pm(cli, self.having_nightmare, ("You break clear of the woods and see a roaring river ahead with a rope bridge going over it. " +
-                                                "You sprint to the bridge with the beast hot on your tail, your adrenaline overcoming your tired " +
-                                                "legs as you push yourself for one final burst. You make it across the bridge, and not a moment too " +
-                                                "soon as the sun starts rising up, causing you to wake from your dream in a cold sweat."))
+                pm(cli, self.having_nightmare, messages["sleepy_nightmare_wake"])
                 self.having_nightmare = None
                 utilities.chk_nightdone(cli)
             elif "fake1" in self.on_path:
-                pm(cli, self.having_nightmare, ("You break clear of the woods and see a roaring river ahead. However, look as you may you are unable " +
-                                                "to find any means of crossing it. Knowing how expansive the river is, and how fast the beast can chase " +
-                                                "you if it isn't being slowed down by the foliage, you think it's best to look for the correct side of the " +
-                                                "woods again by going back in. Cursing your bad luck, you head back into the woods."))
+                pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_1"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step(cli)
             elif "fake2" in self.on_path:
-                pm(cli, self.having_nightmare, ("You break clear of the woods only to find an expansive plains ahead of you, with no river in sight. " +
-                                                "You must have found your way out through the wrong side of the woods! Attempting to circle around the " +
-                                                "woods would result in the beast catching you in short order, so you softly curse at your bad luck as you " +
-                                                "head back into the woods to find the correct path."))
+                pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_2"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
@@ -909,7 +870,7 @@ class SleepyMode(GameMode):
         if nick != self.having_nightmare:
             return
         if self.prev_direction == "s":
-            pm(cli, nick, "That way lies madness and certain death.")
+            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
@@ -934,14 +895,14 @@ class SleepyMode(GameMode):
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, "You find yourself back where you started...")
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
         self.nightmare_step(cli)
 
     def east(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
         if self.prev_direction == "w":
-            pm(cli, nick, "That way lies madness and certain death.")
+            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
@@ -966,14 +927,14 @@ class SleepyMode(GameMode):
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, "You find yourself back where you started...")
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
         self.nightmare_step(cli)
 
     def south(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
         if self.prev_direction == "n":
-            pm(cli, nick, "That way lies madness and certain death.")
+            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
@@ -998,14 +959,14 @@ class SleepyMode(GameMode):
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, "You find yourself back where you started...")
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
         self.nightmare_step(cli)
 
     def west(self, cli, nick, chan, rest):
         if nick != self.having_nightmare:
             return
         if self.prev_direction == "e":
-            pm(cli, nick, "That way lies madness and certain death.")
+            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
             return
         advance = False
         if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
@@ -1030,7 +991,7 @@ class SleepyMode(GameMode):
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, "You find yourself back where you started...")
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
         self.nightmare_step(cli)
 
     def prolong_night(self, evt, cli, var):
@@ -1041,7 +1002,7 @@ class SleepyMode(GameMode):
         # if True, it means night ended before 1 minute
         if self.having_nightmare is not None and self.having_nightmare is not True and self.having_nightmare in var.list_players():
             var.DYING.add(self.having_nightmare)
-            pm(cli, self.having_nightmare, ("As the sun starts rising, your legs give out, causing the beast to descend upon you and snuff out your life."))
+            pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
 
     def happy_fun_times(self, evt, cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
         if death_triggers:
@@ -1051,30 +1012,23 @@ class SleepyMode(GameMode):
                 seers = [p for p in var.ROLES["seer"] if p in pl and random.random() < turn_chance]
                 harlots = [p for p in var.ROLES["harlot"] if p in pl and random.random() < turn_chance]
                 cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
-                cli.msg(botconfig.CHANNEL, ("The sky suddenly darkens as a thunderstorm appears from nowhere. The bell on the newly-abandoned church starts ringing " +
-                                            "in sinister tones before the building is struck repeatedly by lightning, setting it alight in a raging inferno..."))
+                cli.msg(botconfig.CHANNEL, messages["sleepy_priest_death"])
                 for seer in seers:
                     var.ROLES["seer"].remove(seer)
                     var.ROLES["doomsayer"].add(seer)
                     var.FINAL_ROLES[seer] = "doomsayer"
-                    pm(cli, seer, ("You feel something rushing into you and taking control over your mind and body. It causes you to rapidly " +
-                                   "start transforming into a werewolf, and you realize your vision powers can now be used to inflict malady " +
-                                   "on the unwary. You are now a \u0002doomsayer\u0002."))
-                    relay_wolfchat_command(cli, seer, "\u0002{0}\u0002 is now a \u0002doomsayer\u0002.".format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                    pm(cli, seer, messages["sleepy_doomsayer_turn"])
+                    relay_wolfchat_command(cli, seer, messages["sleepy_doomsayer_wolfchat"].format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                 for harlot in harlots:
                     var.ROLES["harlot"].remove(harlot)
                     var.ROLES["succubus"].add(harlot)
                     var.FINAL_ROLES[harlot] = "succubus"
-                    pm(cli, harlot, ("You feel something rushing into you and taking control over your mind and body. You are now a " +
-                                     "\u0002succubus\u0002. Your job is to entrance the village, bringing them all under your absolute " +
-                                     "control."))
+                    pm(cli, harlot, messages["sleepy_succubus_turn"])
                 for cultist in cultists:
                     var.ROLES["cultist"].remove(cultist)
                     var.ROLES["demoniac"].add(cultist)
                     var.FINAL_ROLES[cultist] = "demoniac"
-                    pm(cli, cultist, ("You feel something rushing into you and taking control over your mind and body, showing you your new purpose in life. " +
-                                      "There are far greater evils than the wolves lurking in the shadows, and by sacrificing all of the wolves, you can " +
-                                      "unleash those evils upon the world. You are now a \u0002demoniac\u0002."))
+                    pm(cli, cultist, messages["sleepy_demoniac_turn"])
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
 # vim: set expandtab:sw=4:ts=4:

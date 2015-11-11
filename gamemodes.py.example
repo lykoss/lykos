@@ -1,8 +1,9 @@
 # To add new game modes, rename this file to 'gamemodes.py' then add them in
 # Basic frame for the game modes in src/gamemodes.py
 
-# *** DO NOT TOUCH ANY OF THE CODE BETWEEN THE LINES 4 AND 16 ***
+# *** DO NOT TOUCH ANY OF THE CODE BETWEEN THE LINES 4 AND 17 ***
 
+from src.messages import messages
 import src.settings as var
 
 from src.gamemodes import (
