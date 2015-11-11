@@ -8975,7 +8975,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 parts[0] = gamemode
 
             if cgamemode(cli, "=".join(parts)):
-                cli.msg(chan, ('fgame_success').format(nick))
+                cli.msg(chan, messages["fgame_success"].format(nick))
                 var.FGAMED = True
         else:
             cli.notice(nick, fgame.__doc__())
