@@ -610,7 +610,7 @@ def restart_program(cli, nick, chan, rest):
 @cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
     """Check if you or the bot is still connected."""
-    reply(cli, nick, chan, random.choice(messages["ping"]).format(nick=nick, cmd_char=botconfig.CMD_CHAR))
+    reply(cli, nick, chan, random.choice(messages["ping"]).format(bot_nick=nick, cmd_char=botconfig.CMD_CHAR))
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
