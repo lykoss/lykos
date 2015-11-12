@@ -112,6 +112,7 @@ class IRCClient(object):
         self.blocking = True
         self.sasl_auth = False
         self.use_ssl = False
+        self.server_pass = None
         self.lock = threading.RLock()
         self.stream_handler = lambda output, level=None: print(output)
 
@@ -189,9 +190,11 @@ class IRCClient(object):
 
             self.cap("LS", "302")
 
-            if not self.sasl_auth:
-                self.send("PASS {0}:{1}".format(self.authname if self.authname else self.nickname,
-                    self.password if self.password else "NOPASS"))
+            if self.server_pass and (not self.sasl_auth or "{password}" not in self.server_pass):
+                message = "PASS :{0}".format(self.server_pass).format(
+                    account=self.authname if self.authname else self.nickname,
+                    password=self.password)
+                self.send(message)
 
             self.nick(self.nickname)
             self.user(self.ident, self.real_name)

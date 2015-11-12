@@ -57,6 +57,7 @@ def main():
                      ident=botconfig.IDENT,
                      real_name=botconfig.REALNAME,
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
+                     server_pass=botconfig.SERVER_PASS,
                      use_ssl=botconfig.USE_SSL,
                      connect_cb=handler.connect_callback,
                      stream_handler=src.stream,
