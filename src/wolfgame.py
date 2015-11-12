@@ -8048,7 +8048,7 @@ def fwait(cli, nick, chan, rest):
     if extra >= 0:
         cli.msg(chan, messages["forced_wait_time_increase"].format(nick, abs(extra), "s" if extra != 1 else ""))
     else:
-        cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != 1 else ""))
+        cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
 @cmd("fstop", admin_only=True, phases=("join", "day", "night"))
