@@ -8145,25 +8145,16 @@ def wiki(cli, nick, chan, rest):
 
     # no arguments, just print a link to the wiki
     if not rest:
-        if chan == nick:
-            pm(cli, nick, "https://github.com/lykoss/lykos/wiki")
-        else:
-            cli.msg(chan, "https://github.com/lykoss/lykos/wiki")
+        reply(cli, nick, chan, "https://github.com/lykoss/lykos/wiki")
         return
 
     try:
         page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode("ascii", errors="replace")
     except (urllib.error.URLError, socket.timeout):
-        if chan == nick:
-            pm(cli, nick, messages["wiki_request_timed_out"])
-        else:
-            cli.notice(nick, messages["wiki_request_timed_out"])
+        reply(cli, nick, chan, messages["wiki_request_timed_out"], private=True)
         return
     if not page:
-        if chan == nick:
-            pm(cli, nick, messages["wiki_no_open"])
-        else:
-            cli.notice(nick, messages["wiki_no_open"])
+        reply(cli, nick, chan, messages["wiki_no_open"], private=True)
         return
 
     query = re.escape(rest.strip())
