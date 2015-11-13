@@ -54,7 +54,7 @@ if args.debug: debug_mode = True
 if args.verbose: verbose = True
 if args.normal: normal = True
 
-botconfig.DEBUG_MODE = debug_mode if not botconfig.DISABLE_DEBUG_MODE and not normal else False
+botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False
 
 # Initialize Database
