@@ -3164,12 +3164,30 @@ def reaper(cli, gameid):
     var.IDLE_WARNED_PM = set()
     chan = botconfig.CHANNEL
 
+    last_day_id = var.DAY_COUNT
+    num_night_iters = 0
+
     while gameid == var.GAME_ID:
+        skip = False
         with var.GRAVEYARD_LOCK:
             # Terminate reaper when game ends
             if var.PHASE not in ("day", "night"):
                 return
-            if var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME:  # only if enabled
+            if var.DEVOICE_DURING_NIGHT:
+                if var.PHASE == "night":
+                    # don't count nighttime towards idling
+                    # this doesn't do an exact count, but is good enough
+                    num_night_iters += 1
+                    skip = True
+                elif var.PHASE == "day" and var.DAY_COUNT != last_day_id:
+                    last_day_id = var.DAY_COUNT
+                    num_night_iters += 1
+                    for nick in var.LAST_SAID_TIME:
+                        var.LAST_SAID_TIME[nick] += timedelta(seconds=10*num_night_iters)
+                    num_night_iters = 0
+
+
+            if not skip and (var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME):  # only if enabled
                 to_warn    = []
                 to_warn_pm = []
                 to_kill    = []
