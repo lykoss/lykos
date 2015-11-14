@@ -3310,7 +3310,8 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
             hm = var.DISCONNECTED[nick][1]
             act = var.DISCONNECTED[nick][0]
             if (acc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
-                cli.mode(chan, "+v", nick, nick+"!*@*")
+                if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
+                    cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
                 var.LAST_SAID_TIME[nick] = datetime.now()
                 cli.msg(chan, messages["player_return"].format(nick))
