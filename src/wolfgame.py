@@ -4424,11 +4424,11 @@ def transition_day(cli, gameid=0):
                 loser = None
                 while killers[victim]:
                     loser = random.choice(killers[victim])
-                    if loser in dead:
+                    if loser in dead or victim == loser:
                         killers[victim].remove(loser)
                         continue
                     break
-                if loser in dead:
+                if loser in dead or victim == loser:
                     loser = None
                 if loser == "@wolves":
                     wolves = var.list_players(var.WOLF_ROLES)
