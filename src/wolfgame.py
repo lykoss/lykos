@@ -424,6 +424,8 @@ def reset():
     var.PLAYERS.clear()
     var.DCED_PLAYERS.clear()
     var.DISCONNECTED.clear()
+    var.SPECTATING_WOLFCHAT = set()
+    var.SPECTATING_DEADCHAT = set()
 
 reset()
 
@@ -1052,12 +1054,14 @@ def join_deadchat(cli, *all_nicks):
     else:
         msg = messages["multiple_joined_deadchat"].format("\u0002, \u0002".join(nicks[:-1]), nicks[-1])
     mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
+    mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] " + msg)
     mass_privmsg(cli, nicks, messages["joined_deadchat"])
 
     people = var.DEADCHAT_PLAYERS | set(nicks)
 
     mass_privmsg(cli, nicks, messages["list_deadchat"].format(", ".join(people)))
     var.DEADCHAT_PLAYERS.update(nicks)
+    var.SPECTATING_DEADCHAT.difference_update(nicks)
 
 def leave_deadchat(cli, nick, force=""):
     if not var.ENABLE_DEADCHAT:
@@ -1067,12 +1071,15 @@ def leave_deadchat(cli, nick, force=""):
         return
 
     var.DEADCHAT_PLAYERS.remove(nick)
+    msg = ""
     if force:
         pm(cli, nick, messages["force_leave_deadchat"].format(force))
-        mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["player_force_leave_deadchat"].format(nick, force))
+        msg = messages["player_force_leave_deadchat"].format(nick, force)
     else:
         pm(cli, nick, messages["leave_deadchat"])
-        mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["player_left_deadchat"].format(nick))
+        msg = messages["player_left_deadchat"].format(nick)
+    mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
+    mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] " + msg)
 
 @cmd("deadchat", pm=True)
 def deadchat_pref(cli, nick, chan, rest):
@@ -3403,6 +3410,16 @@ def rename_player(cli, prefix, nick):
             var.ENTRANCED.remove(prefix)
             var.ENTRANCED.add(nick)
 
+    if prefix in var.DEADCHAT_PLAYERS:
+        var.DEADCHAT_PLAYERS.remove(prefix)
+        var.DEADCHAT_PLAYERS.add(nick)
+    if prefix in var.SPECTATING_DEADCHAT:
+        var.SPECTATING_DEADCHAT.remove(prefix)
+        var.SPECTATING_DEADCHAT.add(nick)
+    if prefix in var.SPECTATING_WOLFCHAT:
+        var.SPECTATING_WOLFCHAT.remove(prefix)
+        var.SPECTATING_WOLFCHAT.add(nick)
+
     event = Event("rename_player", {})
     event.dispatch(cli, var, prefix, nick)
 
@@ -3672,6 +3689,9 @@ def leave(cli, what, nick, why=""):
             msg = (messages["leave_death_no_reveal"] + "{1}").format(nick, population)
         make_stasis(nick, var.LEAVE_STASIS_PENALTY)
     cli.msg(botconfig.CHANNEL, msg)
+    var.SPECTATING_WOLFCHAT.discard(nick)
+    var.SPECTATING_DEADCHAT.discard(nick)
+    leave_deadchat(cli, nick)
     if what not in ("badnick", "account") and nick in var.USERS:
         var.USERS[nick]["modes"] = set()
         var.USERS[nick]["moded"] = set()
@@ -6421,13 +6441,14 @@ def relay(cli, nick, chan, rest):
 
     if nick not in pl:
         if var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
+            to_msg = var.DEADCHAT_PLAYERS - {nick}
             if rest.startswith("\u0001ACTION"):
                 rest = rest[7:-1]
-                mass_privmsg(cli, [x for x in var.DEADCHAT_PLAYERS if x != nick],
-                             "* \u0002{0}\u0002{1}".format(nick, rest))
+                mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
+                mass_privmsg(cli, var.SPECTATING_DEADCHAT, "* [deadchat] \u0002{0}\u0002{1}".format(nick, rest))
             else:
-                mass_privmsg(cli, [x for x in var.DEADCHAT_PLAYERS if x != nick],
-                             "\u0002{0}\u0002 says: {1}".format(nick, rest))
+                mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
+                mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
 
     elif nick in badguys and len(badguys) > 1:
         # handle wolfchat toggles
@@ -6443,13 +6464,14 @@ def relay(cli, nick, chan, rest):
             return
 
         badguys.remove(nick)
+        to_msg = set(badguys) & var.PLAYERS.keys()
         if rest.startswith("\u0001ACTION"):
             rest = rest[7:-1]
-            mass_privmsg(cli, [x for x in badguys if x in var.PLAYERS],
-                         "* \u0002{0}\u0002{1}".format(nick, rest))
+            mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
+            mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(nick, rest))
         else:
-            mass_privmsg(cli, [x for x in badguys if x in var.PLAYERS],
-                         "\u0002{0}\u0002 says: {1}".format(nick, rest))
+            mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
+            mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
 
 @handle_error
 def transition_night(cli):
@@ -7396,6 +7418,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DULLAHAN_TARGETS = {}
 
     var.DEADCHAT_PLAYERS = set()
+    var.SPECTATING_WOLFCHAT = set()
+    var.SPECTATING_DEADCHAT = set()
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -8801,6 +8825,67 @@ def fact(cli, raw_nick, chan, rest):
     """Act through the bot as an action."""
     _say(cli, raw_nick, rest, "fact", action=True)
 
+def can_run_restricted_cmd(nick):
+    # if allowed in normal games, restrict it so that it can only be used by dead players and
+    # non-players (don't allow active vengeful ghosts either).
+    # also don't allow in-channel (e.g. make it pm only)
+
+    if botconfig.DEBUG_MODE:
+        return True
+
+    pl = var.list_players() + [vg for (vg, against) in var.VENGEFUL_GHOSTS.items() if not against.startswith("!")]
+
+    if nick in pl:
+        return False
+
+    if nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
+        return False
+
+    hostmask = var.USERS[nick]["ident"] + "@" + var.USERS[nick]["host"]
+    if nick in var.USERS and hostmask in [var.USERS[player]["ident"] + "@" + var.USERS[player]["host"] for player in pl if player in var.USERS]:
+        return False
+
+    return True
+
+@cmd("fspectate", admin_only=True, pm=True, phases=("day", "night"))
+def fspectate(cli, nick, chan, rest):
+    """Spectate wolfchat or deadchat."""
+    if not can_run_restricted_cmd(nick):
+        pm(cli, nick, messages["fspectate_restricted"])
+        return
+
+    params = rest.split(" ")
+    on = "on"
+    if not len(params):
+        pm(cli, nick, messages["fspectate_help"])
+        return
+    elif len(params) > 1:
+        on = params[1].lower()
+    what = params[0].lower()
+    if what not in ("wolfchat", "deadchat") or on not in ("on", "off"):
+        pm(cli, nick, messages["fspectate_help"])
+        return
+
+    if on == "off":
+        if what == "wolfchat":
+            var.SPECTATING_WOLFCHAT.discard(nick)
+        else:
+            var.SPECTATING_DEADCHAT.discard(nick)
+        pm(cli, nick, messages["fspectate_off"].format(what))
+    else:
+        players = []
+        if what == "wolfchat":
+            var.SPECTATING_WOLFCHAT.add(nick)
+            players = (p for p in var.list_players() if in_wolflist(p, p))
+        elif var.ENABLE_DEADCHAT:
+            var.SPECTATING_DEADCHAT.add(nick)
+            players = var.DEADCHAT_PLAYERS
+        else:
+            pm(cli, nick, messages["fspectate_deadchat_disabled"])
+            return
+        pm(cli, nick, messages["fspectate_on"].format(what))
+        pm(cli, nick, "People in {0}: {1}".format(what, ", ".join(players)))
+
 before_debug_mode_commands = list(COMMANDS.keys())
 
 if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
@@ -8828,29 +8913,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
     @cmd("revealroles", admin_only=True, pm=True, phases=("day", "night"))
     def revealroles(cli, nick, chan, rest):
         """Reveal role information."""
-        def is_authorized():
-            # if allowed in normal games, restrict it so that it can only be used by dead players and
-            # non-players (don't allow active vengeful ghosts either).
-            # also don't allow in-channel (e.g. make it pm only)
 
-            if botconfig.DEBUG_MODE:
-                return True
-
-            pl = var.list_players() + [vg for (vg, against) in var.VENGEFUL_GHOSTS.items() if not against.startswith("!")]
-
-            if nick in pl:
-                return False
-
-            if nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
-                return False
-
-            hostmask = var.USERS[nick]["ident"] + "@" + var.USERS[nick]["host"]
-            if nick in var.USERS and hostmask in [var.USERS[player]["ident"] + "@" + var.USERS[player]["host"] for player in pl if player in var.USERS]:
-                return False
-
-            return True
-
-        if not is_authorized():
+        if not can_run_restricted_cmd(nick):
             if chan == nick:
                 pm(cli, nick, messages["temp_invalid_perms"])
             else:

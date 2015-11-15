@@ -23,6 +23,8 @@ def mass_mode(cli, md_param, md_plain):
             cli.mode(botconfig.CHANNEL, "".join(md_plain))
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
+    if not targets:
+        return
     if not notice and not privmsg:
         msg_targs = []
         not_targs = []
@@ -151,5 +153,7 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
 
     wcwolves = var.list_players(wcroles)
     wcwolves.remove(nick)
-    if wcwolves:
-        mass_privmsg(cli, wcwolves, message)
+    mass_privmsg(cli, wcwolves, message)
+    mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] " + message)
+
+# vim: set expandtab:sw=4:ts=4:

@@ -745,5 +745,10 @@
     "available_modes": "Available game modes: \u0002",
     "process_exited": "Process %s exited with %s %d",
     "admin_fleave_deadchat": "You have forced {0} to leave the deadchat.",
-    "available_mode_setters_help": "Votes to make a specific game mode more likely. Available game mode setters: "    
+    "available_mode_setters_help": "Votes to make a specific game mode more likely. Available game mode setters: ",
+    "fspectate_help": "Usage: fspectate <wolfchat|deadchat> [on|off]",
+    "fspectate_restricted": "You may not spectate while playing.",
+    "fspectate_deadchat_disabled": "Deadchat is disabled and may not be spectated.",
+    "fspectate_on": "You are now spectating {0}.",
+    "fspectate_off": "You are no longer spectating {0}."
 }
