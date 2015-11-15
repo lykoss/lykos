@@ -8877,6 +8877,9 @@ def fspectate(cli, nick, chan, rest):
             var.SPECTATING_WOLFCHAT.add(nick)
             players = (p for p in var.list_players() if in_wolflist(p, p))
         elif var.ENABLE_DEADCHAT:
+            if nick in var.DEADCHAT_PLAYERS:
+                pm(cli, nick, messages["fspectate_in_deadchat"])
+                return
             var.SPECTATING_DEADCHAT.add(nick)
             players = var.DEADCHAT_PLAYERS
         else:

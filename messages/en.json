@@ -749,6 +749,7 @@
     "fspectate_help": "Usage: fspectate <wolfchat|deadchat> [on|off]",
     "fspectate_restricted": "You may not spectate while playing.",
     "fspectate_deadchat_disabled": "Deadchat is disabled and may not be spectated.",
+    "fspectate_in_deadchat": "You are currently in deadchat.",
     "fspectate_on": "You are now spectating {0}.",
     "fspectate_off": "You are no longer spectating {0}."
 }
