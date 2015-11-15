@@ -3409,16 +3409,15 @@ def rename_player(cli, prefix, nick):
         if prefix in var.ENTRANCED: # need to update this after death, too
             var.ENTRANCED.remove(prefix)
             var.ENTRANCED.add(nick)
-
-    if prefix in var.DEADCHAT_PLAYERS:
-        var.DEADCHAT_PLAYERS.remove(prefix)
-        var.DEADCHAT_PLAYERS.add(nick)
-    if prefix in var.SPECTATING_DEADCHAT:
-        var.SPECTATING_DEADCHAT.remove(prefix)
-        var.SPECTATING_DEADCHAT.add(nick)
-    if prefix in var.SPECTATING_WOLFCHAT:
-        var.SPECTATING_WOLFCHAT.remove(prefix)
-        var.SPECTATING_WOLFCHAT.add(nick)
+        if prefix in var.DEADCHAT_PLAYERS:
+            var.DEADCHAT_PLAYERS.remove(prefix)
+            var.DEADCHAT_PLAYERS.add(nick)
+        if prefix in var.SPECTATING_DEADCHAT:
+            var.SPECTATING_DEADCHAT.remove(prefix)
+            var.SPECTATING_DEADCHAT.add(nick)
+        if prefix in var.SPECTATING_WOLFCHAT:
+            var.SPECTATING_WOLFCHAT.remove(prefix)
+            var.SPECTATING_WOLFCHAT.add(nick)
 
     event = Event("rename_player", {})
     event.dispatch(cli, var, prefix, nick)
