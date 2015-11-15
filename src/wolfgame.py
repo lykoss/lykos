@@ -4356,7 +4356,9 @@ def transition_day(cli, gameid=0):
         if crow not in var.ROLES["werecrow"]:
             continue
         if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
-            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target])):
+            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target]) or
+            target in var.OTHER_KILLS or (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
+            target in var.OBSERVED or target in var.KILLS or target in var.HEXED or target in var.CURSED):
             pm(cli, crow, messages["werecrow_success"].format(target))
 
         else:
