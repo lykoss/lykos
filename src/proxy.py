@@ -3,21 +3,26 @@ import inspect
 from src.decorators import handle_error
 
 """ This module introduces two decorators - @proxy.stub and @proxy.impl
+
 @proxy.stub is used to decorate a stub method that should be filled in
 with an implementation in some other module. Calling the stub method
 calls the implementation method in the other module instead of the stub
 method itself (or raises a NotImplementedError if no such
 implementation exists)
+
 @proxy.impl is used to define a previously-declared stub with an actual
 implementation to call -- the signature for the implementation must
 exactly match the signature for the stub (enforced for Python 3.3+).
+
 Attempting to implement a non-existent stub is an error, as is trying
 to re-implement a stub that is already implemented.
+
 Example:
 (foo.py)
 @proxy.stub
 def my_method(foo, bar=10):
     pass
+
 (bar.py)
 @proxy.impl
 def my_method(foo, bar=10):
