@@ -4011,6 +4011,17 @@ def transition_day(cli, gameid=0):
     for victim in var.SICK:
         pm(cli, victim, messages["player_sick"])
 
+    for crow, target in iter(var.OBSERVED.items()):
+        if crow not in var.ROLES["werecrow"]:
+            continue
+        if ((target in var.HVISITED and var.HVISITED[target]) or target in var.SEEN or target in var.SHAMANS or
+                (target in var.GUARDED and var.GUARDED[target]) or target in var.OTHER_KILLS or
+                (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
+                target in var.OBSERVED or target in var.KILLS or target in var.HEXED or target in var.CURSED):
+            pm(cli, crow, messages["werecrow_success"].format(target))
+        else:
+            pm(cli, crow, messages["werecrow_failure"].format(target))
+
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
         # but this is good enough for now to prevent it from crashing
@@ -4352,18 +4363,6 @@ def transition_day(cli, gameid=0):
     var.ALPHA_ENABLED = False
 
     dead = []
-    for crow, target in iter(var.OBSERVED.items()):
-        if crow not in var.ROLES["werecrow"]:
-            continue
-        if ((target in list(var.HVISITED.keys()) and var.HVISITED[target]) or  # if var.HVISITED[target] is None, harlot visited self
-            target in var.SEEN or target in var.SHAMANS or (target in list(var.GUARDED.keys()) and var.GUARDED[target]) or
-            target in var.OTHER_KILLS or (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
-            target in var.OBSERVED or target in var.KILLS or target in var.HEXED or target in var.CURSED):
-            pm(cli, crow, messages["werecrow_success"].format(target))
-
-        else:
-            pm(cli, crow, messages["werecrow_failure"].format(target))
-
     vlist = copy.copy(victims)
     novictmsg = True
     if new_wolf:
