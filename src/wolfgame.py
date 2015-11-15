@@ -2650,9 +2650,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             winner = "none"
         elif var.PHASE == "day" and lpl - lsuccubi == lentranced:
             winner = "succubi"
-            message = ("Game over! The succub{0} ha{1} won! The succub{0} then take{2} all of the "
-                       "entranced players with them, and go{3} out of the village, never to return"
-                       "...").format(*(("us", "s", "s", "es") if lsuccubi == 1 else ("i", "ve", "", "")))
+            message = messages["succubus_win"].format(var.plural("succubus", lsuccubi), var.plural("has", lsuccubi), var.plural("master's", lsuccubi))
         elif var.PHASE == "day" and lpipers and len(var.list_players()) - lpipers == len(var.CHARMED - var.ROLES["piper"]):
             winner = "pipers"
             message = messages["piper_win"].format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")

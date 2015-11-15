@@ -379,12 +379,18 @@ def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
 def plural(role, count=2):
+    # TODO: use the "inflect" pip package, pass part-of-speech as a kwarg
     if count == 1:
         return role
     bits = role.split()
-    bits[-1] = {"person": "people",
-                "wolf": "wolves",
-                "succubus": "succubi"}.get(bits[-1], bits[-1] + "s")
+    if bits[-1][-2:] == "'s":
+        bits[-1] = plural(bits[-1][:-2], count)
+        bits[-1] += "'" if bits[-1][-1] == "s" else "'s"
+    else:
+        bits[-1] = {"person": "people",
+                    "wolf": "wolves",
+                    "has": "have",
+                    "succubus": "succubi"}.get(bits[-1], bits[-1] + "s")
     return " ".join(bits)
 
 def list_players(roles = None):
