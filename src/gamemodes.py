@@ -187,7 +187,7 @@ class FoolishMode(GameMode):
               "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("mad", minp = 7, maxp = 22, likelihood = 8)
+@game_mode("mad", minp = 7, maxp = 22, likelihood = 4)
 class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self, arg=""):
