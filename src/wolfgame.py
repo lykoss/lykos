@@ -2066,7 +2066,6 @@ def fday(cli, nick, chan, rest):
         transition_day(cli)
 
 # Specify force = "nick" to force nick to be lynched
-@handle_error
 @proxy.impl
 def chk_decision(cli, force = ""):
     with var.GRAVEYARD_LOCK:

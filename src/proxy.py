@@ -59,7 +59,7 @@ def impl(f):
     IMPLS[f.__name__] = handle_error(f)
     # allows this method to be called directly in our module rather
     # than forcing use of the stub's module
-    return f
+    return handle_error(f)
 
 def _sigmatch(f):
     rs = inspect.signature(f)
