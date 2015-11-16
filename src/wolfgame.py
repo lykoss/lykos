@@ -1459,7 +1459,6 @@ def stats(cli, nick, chan, rest):
 
     if chan == nick and nick in pl and var.get_role(nick) in badguys | {"warlock"}:
         ps = pl[:]
-        random.shuffle(ps)
         for i, player in enumerate(ps):
             prole = var.get_role(player)
             if prole in badguys and var.get_role(nick) in badguys:
