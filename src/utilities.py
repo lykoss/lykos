@@ -2,6 +2,20 @@ import re
 
 import botconfig
 import src.settings as var
+
+# message either privmsg or notice, depending on user settings
+# used in decorators (imported by proxy), so needs to go here
+def pm(cli, target, message):
+    if is_fake_nick(target) and botconfig.DEBUG_MODE:
+        debuglog("Would message fake nick {0}: {1!r}".format(target, message))
+        return
+
+    if is_user_notice(target):
+        cli.notice(target, message)
+        return
+
+    cli.msg(target, message)
+
 from src import proxy, debuglog
 
 # Some miscellaneous helper functions
@@ -65,18 +79,6 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
                 cli.notice(bgs, msg)
             else:
                 cli.msg(bgs, msg)
-
-# message either privmsg or notice, depending on user settings
-def pm(cli, target, message):
-    if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        debuglog("Would message fake nick {0}: {1!r}".format(target, message))
-        return
-
-    if is_user_notice(target):
-        cli.notice(target, message)
-        return
-
-    cli.msg(target, message)
 
 # Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
 def reply(cli, nick, chan, msg, private=False):
