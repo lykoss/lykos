@@ -5869,7 +5869,7 @@ def totem(cli, nick, chan, rest, prefix="You"):
         return
     pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))
     var.SHAMANS[nick] = (victim, original_victim)
-    debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, totem))
+    debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, var.TOTEMS[nick]))
     chk_nightdone(cli)
 
 @cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
