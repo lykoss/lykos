@@ -168,7 +168,14 @@ class cmd:
 
             return self.func(*largs) # don't check restrictions for role commands
 
-        if self.owner_only:
+        forced_owner_only = False
+        if hasattr(botconfig, "OWNERS_ONLY_COMMANDS"):
+            for command in self.cmds:
+                if command in botconfig.OWNERS_ONLY_COMMANDS:
+                    forced_owner_only = True
+                    break
+
+        if self.owner_only or forced_owner_only:
             if var.is_owner(nick, ident, host):
                 adminlog(chan, rawnick, self.name, rest)
                 return self.func(*largs)
