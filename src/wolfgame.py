@@ -1378,7 +1378,7 @@ def fleave(cli, nick, chan, rest):
                 reply(cli, nick, chan, messages["admin_fleave_deadchat"].format(a), private=True)
 
         else:
-            cli.msg(chan, nick+messages["not_playing"])
+            cli.msg(chan, messages["not_playing"].format(a))
             return
 
 @cmd("fstart", admin_only=True, phases=("join",))
