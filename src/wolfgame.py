@@ -3069,7 +3069,11 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
-            deadchat.append(nick)
+            if nick in var.USERS:
+                host = var.USERS[nick]["host"]
+                acc = var.USERS[nick]["account"]
+                if acc not in var.DEADCHAT_PREFS_ACCS and host not in var.DEADCHAT_PREFS:
+                    deadchat.append(nick)
             # devoice all players that died as a result, if we are in the original del_player
             if ismain:
                 mass_mode(cli, cmode, [])
