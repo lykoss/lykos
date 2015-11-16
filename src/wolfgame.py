@@ -9233,6 +9233,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                                 var.TOTEMS[shaman] = t
                                 break
             var.ROLES[rol].add(who)
+            if who not in pl:
+                var.ORIGINAL_ROLES[rol].add(who)
+            else:
+                var.FINAL_ROLES[who] = rol
             if not is_fake_nick(who):
                 cli.mode(chan, "+v", who)
         else:
