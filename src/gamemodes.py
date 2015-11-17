@@ -123,7 +123,7 @@ class ChangedRolesMode(GameMode):
         self.ROLE_INDEX = (var.MIN_PLAYERS,)
         arg = arg.replace("=", ":").replace(";", ",")
 
-        for role in self.ROLE_GUIDE.keys():
+        for role in self.ROLE_GUIDE:
             self.ROLE_GUIDE[role] = (0,)
 
         pairs = [arg]
@@ -732,10 +732,10 @@ class SleepyMode(GameMode):
         # prophet is normally a role by itself, but we're turning it into a template for this mode
         self.TEMPLATE_RESTRICTIONS = var.TEMPLATE_RESTRICTIONS.copy()
         self.TEMPLATE_RESTRICTIONS["cursed villager"] |= {"priest"}
-        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
-        self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
+        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE) - {"priest", "blessed villager", "prophet"}
+        self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE) - {"priest", "blessed villager", "prophet"}
         # this ensures that village drunk will always receive the gunner template
-        self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
+        self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE) - {"village drunk", "cursed villager", "gunner"}
         # disable wolfchat
         #self.RESTRICT_WOLFCHAT = 0x0f
 

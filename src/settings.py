@@ -275,7 +275,7 @@ TEMPLATE_RESTRICTIONS = OrderedDict([
                         ("mayor"            , frozenset({"fool", "jester", "monster"})),
                         ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"}),
                         ("bureaucrat"       , frozenset()),
-                        ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
+                        ("blessed villager" , frozenset(ROLE_GUIDE) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
                         ])
 
 # make sharpshooter restrictions at least the same as gunner
@@ -335,7 +335,7 @@ def check_priv(priv):
         accounts.update(botconfig.ADMINS_ACCOUNTS)
 
     def do_check(nick, ident=None, host=None, acc=None):
-        if nick in USERS.keys():
+        if nick in USERS:
             if not ident:
                 ident = USERS[nick]["ident"]
             if not host:
@@ -394,11 +394,11 @@ def plural(role, count=2):
     return " ".join(bits)
 
 def list_players(roles = None):
-    if roles == None:
-        roles = ROLES.keys()
+    if roles is None:
+        roles = ROLES
     pl = set()
     for x in roles:
-        if x in TEMPLATE_RESTRICTIONS.keys():
+        if x in TEMPLATE_RESTRICTIONS:
             continue
         for p in ROLES.get(x, ()):
             pl.add(p)
@@ -406,8 +406,8 @@ def list_players(roles = None):
 
 def list_players_and_roles():
     plr = {}
-    for x in ROLES.keys():
-        if x in TEMPLATE_RESTRICTIONS.keys():
+    for x in ROLES:
+        if x in TEMPLATE_RESTRICTIONS:
             continue # only get actual roles
         for p in ROLES[x]:
             plr[p] = x
@@ -415,7 +415,7 @@ def list_players_and_roles():
 
 def get_role(p):
     for role, pl in ROLES.items():
-        if role in TEMPLATE_RESTRICTIONS.keys():
+        if role in TEMPLATE_RESTRICTIONS:
             continue # only get actual roles
         if p in pl:
             return role
@@ -455,7 +455,7 @@ def del_player(pname):
 
 def get_templates(nick):
     tpl = []
-    for x in TEMPLATE_RESTRICTIONS.keys():
+    for x in TEMPLATE_RESTRICTIONS:
         try:
             if nick in ROLES[x]:
                 tpl.append(x)
@@ -600,7 +600,7 @@ def init_db():
         c.execute('DROP TABLE IF EXISTS roles')
         c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
 
-        for x in list(ROLE_GUIDE):
+        for x in ROLE_GUIDE:
             c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
 
 
@@ -769,7 +769,7 @@ def update_game_stats(gamemode, size, winner):
                     (gamemode, size, vwins, wwins, mwins, fwins, pwins, swins, dwins, total))
 
 def get_player_stats(acc, role):
-    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
+    if role.lower() not in [k.lower() for k in ROLE_GUIDE] and role != "lover":
         return "No such role: {0}".format(role)
     with conn:
         c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
