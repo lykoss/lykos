@@ -49,7 +49,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         fn.caller(cli, rawnick, chan, msg)
 
 
-    for x in list(decorators.COMMANDS.keys()):
+    for x in decorators.COMMANDS:
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):
@@ -61,7 +61,6 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
                 fn.caller(cli, rawnick, chan, h.lstrip())
-
 
 def unhandled(cli, prefix, cmd, *args):
     if cmd in decorators.HOOKS:
@@ -127,7 +126,6 @@ def connect_callback(cli):
 
     supported_caps = set()
 
-
     @hook("cap")
     def on_cap(cli, svr, mynick, cmd, caps, star=None):
         if cmd == "LS":
@@ -176,8 +174,6 @@ def connect_callback(cli):
             alog("Authentication failed.  Did you fill the account name "
                  "in botconfig.USERNAME if it's different from the bot nick?")
             cli.quit()
-
-
 
 @hook("ping")
 def on_ping(cli, prefix, server):

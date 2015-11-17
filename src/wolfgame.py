@@ -236,7 +236,6 @@ def connect_callback(cli):
         # Unhook the WHO hooks
         hook.unhook(295)
 
-
     #bot can be tricked into thinking it's still opped by doing multiple modes at once
     @hook("mode", hookid=296)
     def on_give_me_ops(cli, nick, chan, modeaction, target="", *other):
@@ -261,7 +260,6 @@ def connect_callback(cli):
         elif modeaction == "-o" and target == botconfig.NICK:
             var.OPPED = False
             cli.msg("ChanServ", "op " + botconfig.CHANNEL)
-
 
     if var.DISABLE_ACCOUNTS:
         cli.who(botconfig.CHANNEL)
@@ -471,7 +469,6 @@ def sync_modes(cli):
 
     mass_mode(cli, voices, other)
 
-
 @cmd("fdie", "fbye", admin_only=True, pm=True)
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
@@ -507,7 +504,6 @@ def forced_exit(cli, nick, chan, rest):
     finally:
         cli.socket.close() # in case it didn't close, force it to
 
-
 def _restart_program(cli, mode=None):
     plog("RESTARTING")
 
@@ -518,7 +514,6 @@ def _restart_program(cli, mode=None):
         os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
         os.execl(python, python, *sys.argv)
-
 
 @cmd("frestart", admin_only=True, pm=True)
 def restart_program(cli, nick, chan, rest):
@@ -601,7 +596,6 @@ def restart_program(cli, nick, chan, rest):
     # handler now, but I'm keeping it for now just in case.
     var.RESTARTING = True
 
-
 @cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
     """Check if you or the bot is still connected."""
@@ -646,10 +640,10 @@ def mark_simple_notify(cli, nick, chan, rest):
         if host in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(host)
             var.remove_simple_rolemsg(host)
-        
+
             cli.notice(nick, messages["simple_off"])
             return
-      
+
         fullmask = ident + "@" + host
         if fullmask in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(fullmask)
@@ -1281,7 +1275,6 @@ def kill_join(cli, chan):
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
 
-
 @cmd("fjoin", admin_only=True, phases=("none", "join"))
 def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
@@ -1578,7 +1571,6 @@ def stats(cli, nick, chan, rest):
                         rolecounts["clone"][1] = maxcount
 
                     equiv_sets["amnesiac_clone"] = maxcount
-
 
                 if extra_lycans > 0:
                     extra_lycans -= 1
@@ -1880,7 +1872,6 @@ def stats(cli, nick, chan, rest):
             else:
                 message.append("\u0002{0}-{1}\u0002 {2}".format(count[0], count[1], var.plural(role)))
 
-
     # Show everything mostly as-is; the only hidden information is which
     # role was turned into wolf due to alpha bite or lycanthropy totem.
     # Amnesiac and clone show which roles they turned into. Time lords
@@ -2005,7 +1996,6 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["daylight_warning"])
         return
 
-
     var.DAY_ID = 0
 
     pl = var.list_players()
@@ -2044,9 +2034,6 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["sunset"])
         transition_night(cli)
 
-
-
-
 @cmd("fnight", admin_only=True)
 def fnight(cli, nick, chan, rest):
     """Forces the day to end and night to begin."""
@@ -2054,7 +2041,6 @@ def fnight(cli, nick, chan, rest):
         cli.notice(nick, messages["not_daytime"])
     else:
         hurry_up(cli, 0, True)
-
 
 @cmd("fday", admin_only=True)
 def fday(cli, nick, chan, rest):
@@ -3188,7 +3174,6 @@ def reaper(cli, gameid):
                         var.LAST_SAID_TIME[nick] += timedelta(seconds=10*num_night_iters)
                     num_night_iters = 0
 
-
             if not skip and (var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME):  # only if enabled
                 to_warn    = []
                 to_warn_pm = []
@@ -3269,8 +3254,6 @@ def reaper(cli, gameid):
                         return
         time.sleep(10)
 
-
-
 @cmd("")  # update last said
 def update_last_said(cli, nick, chan, rest):
     if chan != botconfig.CHANNEL:
@@ -3328,7 +3311,6 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
         var.OPPED = False
     if nick == "ChanServ" and not var.OPPED:
         cli.msg("ChanServ", "op " + chan)
-
 
 @cmd("goat", playing=True, phases=("day",))
 def goat(cli, nick, chan, rest):
@@ -3701,7 +3683,6 @@ hook("part")(lambda cli, nick, *rest: leave(cli, "part", nick, rest[0]))
 hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 
-
 @cmd("quit", "leave", pm=True, phases=("join", "day", "night"))
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
@@ -3910,7 +3891,6 @@ def transition_day(cli, gameid=0):
                     choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False)
                     pm(cli, mm, messages["random_matchmaker"])
 
-
     # Reset daytime variables
     var.INVESTIGATED = set()
     var.WOUNDED = set()
@@ -4003,7 +3983,7 @@ def transition_day(cli, gameid=0):
 
     var.CHARMED.update(var.TOBECHARMED)
     var.TOBECHARMED.clear()
-    
+
     # send PMs to sick players
     for victim in var.SICK:
         pm(cli, victim, messages["player_sick"])
@@ -4067,7 +4047,6 @@ def transition_day(cli, gameid=0):
         onlybywolves.add(victim)
         # special key to let us know to randomly select a wolf
         killers[victim].append("@wolves")
-
 
     if victims and var.ANGRY_WOLVES:
         # they got a 2nd kill
@@ -4794,7 +4773,6 @@ def lynch(cli, nick, chan, rest):
 
     chk_decision(cli)
 
-
 # chooses a target given nick, taking luck totem/misdirection totem into effect
 # returns the actual target
 def choose_target(actor, nick):
@@ -4918,7 +4896,6 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "turncoat":
             del var.TURNCOATS[actor]
 
-
         # var.PASSED is used by many roles
         var.PASSED.discard(nick)
 
@@ -4980,7 +4957,6 @@ def check_exchange(cli, actor, nick):
             var.CURSED.discard(nick)
         elif nick_role == "turncoat":
             del var.TURNCOATS[nick]
-
 
         var.FINAL_ROLES[actor] = nick_role
         var.FINAL_ROLES[nick] = actor_role
@@ -6987,7 +6963,6 @@ def transition_night(cli):
         else:
             pm(cli, demoniac, messages["demoniac_simple"])
 
-
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and not is_user_simple(lycan):
             pm(cli, lycan, (messages["lycan_notify"]))
@@ -7154,7 +7129,6 @@ def transition_night(cli):
     debuglog("BEGIN NIGHT")
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone(cli)
-
 
 def cgamemode(cli, arg):
     chan = botconfig.CHANNEL
@@ -7604,8 +7578,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
         reapertimer.daemon = True
         reapertimer.start()
 
-
-
 @hook("error")
 def on_error(cli, pfx, msg):
     if var.RESTARTING or msg.endswith("(Excess Flood)"):
@@ -7970,7 +7942,6 @@ def allow_deny(cli, nick, chan, rest, mode):
                     else:
                         users_to_cmds[hostmask+" (Host)"] = sorted(varied, key=str.lower)
 
-
         if not users_to_cmds: # Deny or Allow list is empty
             msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
         else:
@@ -8054,7 +8025,6 @@ def wait(cli, nick, chan, rest):
             var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
         cli.msg(chan, messages["wait_time_increase"].format(nick, var.EXTRA_WAIT))
 
-
 @cmd("fwait", admin_only=True, phases=("join",))
 def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
@@ -8081,7 +8051,6 @@ def fwait(cli, nick, chan, rest):
     else:
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
-
 @cmd("fstop", admin_only=True, phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
@@ -8096,7 +8065,6 @@ def reset_game(cli, nick, chan, rest):
         reset_modes_timers(cli)
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
-
 
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
@@ -8558,7 +8526,6 @@ def aftergame(cli, rawnick, chan, rest):
     cli.msg(botconfig.CHANNEL, messages["command_scheduled"].format(fullcmd, nick))
     var.AFTER_FLASTGAME = do_action
 
-
 @cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
 def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
@@ -8723,7 +8690,6 @@ def game_help(args=""):
         else gamemode for gamemode in var.GAME_MODES if gamemode != "roles")
 game.__doc__ = game_help
 
-
 @cmd("vote", "v", pm=True, phases=("join", "day"))
 def vote(cli, nick, chan, rest):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
@@ -8800,7 +8766,6 @@ def _say(cli, raw_nick, rest, command, action=False):
         message = "\u0001ACTION {0}\u0001".format(message)
 
     cli.send("PRIVMSG {0} :{1}".format(target, message))
-
 
 @cmd("fsay", admin_only=True, raw_nick=True, pm=True)
 def fsay(cli, raw_nick, chan, rest):
@@ -9008,7 +8973,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             else:
                 cli.notice(nick, var.break_long_message(output, " | "))
 
-
     @cmd("fgame", admin_only=True, raw_nick=True, phases=("join",))
     def fgame(cli, nick, chan, rest):
         """Force a certain game mode to be picked. Disable voting for game modes upon use."""
@@ -9053,9 +9017,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         else:
             return messages["setter_not_found"].format(args)
 
-
     fgame.__doc__ = fgame_help
-
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
     @cmd("force", admin_only=True)
@@ -9100,7 +9062,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         else:
             cli.msg(chan, messages["command_not_found"])
 
-
     @cmd("rforce", admin_only=True)
     def rforce(cli, nick, chan, rest):
         """Force all players of a given role to perform a certain action."""
@@ -9139,8 +9100,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])
-
-
 
     @cmd("frole", admin_only=True)
     def frole(cli, nick, chan, rest):
@@ -9242,7 +9201,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
                 cli.msg(chan, messages["stats_accurate"].format(botconfig.CMD_CHAR))
             chk_win(cli)
-
 
 if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
     for comd in set(COMMANDS): # dict
