@@ -3534,7 +3534,8 @@ def rename_player(cli, prefix, nick):
                            var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY, var.SICK,
                            var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
                            var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
-                           var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING):
+                           var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING,
+                           var.DECEIVED):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3929,6 +3930,7 @@ def transition_day(cli, gameid=0):
     var.TOBEDISEASED = set()
     var.RETRIBUTION = set()
     var.MISDIRECTION = set()
+    var.DECEIVED = set()
 
     # Give out totems here
     for shaman, (victim, target) in var.SHAMANS.items():
@@ -3963,6 +3965,8 @@ def transition_day(cli, gameid=0):
             var.RETRIBUTION.add(victim)
         elif totemname == "misdirection":
             var.TOBEMISDIRECTED.add(victim)
+        elif totemname == "deceit":
+            var.DECEIVED.add(victim)
         else:
             debuglog("{0} {1}: INVALID TOTEM {2} TO {3}".format(shaman, var.get_role(shaman), totemname, victim))
         if target != victim:
@@ -4616,7 +4620,7 @@ def chk_nightdone(cli):
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
                            "fallen angel", "dullahan", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
-                           "prophet")
+                           "prophet", "wolf shaman", "wolf shaman") # wolf shaman also must be listed twice
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -5799,12 +5803,27 @@ def see(cli, nick, chan, rest):
             victimrole = var.DEFAULT_ROLE
             if var.DEFAULT_SEEN_AS_VILL:
                 victimrole = "villager"
+        if victim in var.DECEIVED:
+            if victimrole == "wolf":
+                victimrole = "villager"
+            else:
+                victimrole = "wolf"
+
+        if nick in var.DECEIVED: # it DOES stack! so if both victim and seer have the totem, it's canceled out
+            if victimrole == "wolf":
+                victimrole = "villager"
+            else:
+                victimrole = "wolf"
+
         pm(cli, nick, (messages["seer_success"]).format(victim, victimrole))
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
         if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             iswolf = True
+        # deceit totem acts on both target and actor, so if both have them, they cancel each other out
+        if (victim in var.DECEIVED) ^ (nick in var.DECEIVED):
+            iswolf = not iswolf
         pm(cli, nick, (messages["oracle_success"]).format(victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
         debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":
@@ -5919,7 +5938,6 @@ def immunize(cli, nick, chan, rest):
 def get_bitten_message(nick):
     time_left = var.BITTEN[nick]
     role = var.get_role(nick)
-    message = ""
     if role == "guardian angel":
         if time_left <= 1:
             message = messages["angel_bit_1"]
@@ -5934,6 +5952,13 @@ def get_bitten_message(nick):
             message = messages["seer_bit_2"]
         else:
             message = messages["seer_bit_3"]
+    elif role in var.TOTEM_ORDER and role != "wolf shaman":
+        if time_left <= 1:
+            message = messages["shaman_bit_1"]
+        elif time_left == 2:
+            message = messages["shaman_bit_2"]
+        else:
+            message = messages["shaman_bit_3"]
     else:
         if time_left <= 1:
             message = messages["villager_bit_1"]
@@ -6578,6 +6603,10 @@ def transition_night(cli):
                 pm(cli, chump, messages["seer_turn"])
                 newrole = "doomsayer"
                 debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
+            elif chumprole in var.TOTEM_ORDER:
+                pm(cli, chump, messages["shaman_turn"])
+                newrole = "wolf shaman"
+                debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
             else:
                 pm(cli, chump, messages["bitten_turn"])
                 debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
@@ -6662,6 +6691,8 @@ def transition_night(cli):
                 pm(cli, wolf, messages["warlock_notify"].format(cursed))
             elif role == "wolf mystic":
                 pm(cli, wolf, messages["wolf_mystic_notify"])
+            elif role == "wolf shaman":
+                pm(cli, wolf, messages["wolf_shaman_notify"])
             elif role == "fallen angel":
                 pm(cli, wolf, messages["fallen_angel_notify"])
             elif role == "doomsayer":
@@ -6838,7 +6869,8 @@ def transition_night(cli):
                 var.TOTEMS[shaman] = t
                 break
         if shaman in var.PLAYERS and not is_user_simple(shaman):
-            pm(cli, shaman, messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
+            if role not in var.WOLFCHAT_ROLES:
+                pm(cli, shaman, messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
             if role != "crazed shaman":
                 totem = var.TOTEMS[shaman]
                 tmsg = messages["shaman_totem"].format(totem)
@@ -6872,14 +6904,18 @@ def transition_night(cli):
                     tmsg += messages["retribution_totem"]
                 elif totem == "misdirection":
                     tmsg += messages["misdirection_totem"]
+                elif totem == "deceit":
+                    tmsg += messages["deceit_totem"]
                 else:
                     tmsg += messages["generic_bug_totem"]
                 pm(cli, shaman, tmsg)
         else:
-            pm(cli, shaman, messages["shaman_simple"].format(role))
+            if role not in var.WOLFCHAT_ROLES:
+                pm(cli, shaman, messages["shaman_simple"].format(role))
             if role != "crazed shaman":
                 pm(cli, shaman, messages["totem_simple"].format(var.TOTEMS[shaman]))
-        pm(cli, shaman, "Players: " + ", ".join(pl))
+        if role not in var.WOLFCHAT_ROLES:
+            pm(cli, shaman, "Players: " + ", ".join(pl))
 
     for hunter in var.ROLES["hunter"]:
         if hunter in var.HUNTERS:
@@ -7412,6 +7448,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.PRAYED = {}
     var.SICK = set()
     var.DULLAHAN_TARGETS = {}
+    var.DECEIVED = set()
 
     var.DEADCHAT_PLAYERS = set()
     var.SPECTATING_WOLFCHAT = set()

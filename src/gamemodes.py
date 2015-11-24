@@ -455,22 +455,23 @@ class RandomMode(GameMode):
         self.ALPHA_WOLF_NIGHTS = 2
         self.TEMPLATE_RESTRICTIONS = {template: frozenset() for template in var.TEMPLATE_RESTRICTIONS}
 
-        self.TOTEM_CHANCES = { #  shaman , crazed
-                        "death": (   8   ,   1   ),
-                   "protection": (   6   ,   1   ),
-                      "silence": (   4   ,   1   ),
-                    "revealing": (   2   ,   1   ),
-                  "desperation": (   4   ,   1   ),
-                   "impatience": (   7   ,   1   ),
-                     "pacifism": (   7   ,   1   ),
-                    "influence": (   7   ,   1   ),
-                   "narcolepsy": (   4   ,   1   ),
-                     "exchange": (   1   ,   1   ),
-                  "lycanthropy": (   1   ,   1   ),
-                         "luck": (   6   ,   1   ),
-                   "pestilence": (   3   ,   1   ),
-                  "retribution": (   5   ,   1   ),
-                 "misdirection": (   6   ,   1   ),
+        self.TOTEM_CHANCES = { #  shaman , crazed , wolf
+                        "death": (   8   ,   1    ,   1   ),
+                   "protection": (   6   ,   1    ,   6   ),
+                      "silence": (   4   ,   1    ,   3   ),
+                    "revealing": (   2   ,   1    ,   5   ),
+                  "desperation": (   4   ,   1    ,   7   ),
+                   "impatience": (   7   ,   1    ,   2   ),
+                     "pacifism": (   7   ,   1    ,   2   ),
+                    "influence": (   7   ,   1    ,   2   ),
+                   "narcolepsy": (   4   ,   1    ,   3   ),
+                     "exchange": (   1   ,   1    ,   1   ),
+                  "lycanthropy": (   1   ,   1    ,   3   ),
+                         "luck": (   6   ,   1    ,   7   ),
+                   "pestilence": (   3   ,   1    ,   1   ),
+                  "retribution": (   5   ,   1    ,   6   ),
+                 "misdirection": (   6   ,   1    ,   4   ),
+                       "deceit": (   3   ,   1    ,   6   ),
                             }
 
     def startup(self):
@@ -520,23 +521,29 @@ class AleatoireMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.SHARPSHOOTER_CHANCE = 1
-                                              #    SHAMAN   , CRAZED SHAMAN
-        self.TOTEM_CHANCES = {       "death": (      4      ,      1      ),
-                                "protection": (      8      ,      1      ),
-                                   "silence": (      2      ,      1      ),
-                                 "revealing": (      0      ,      1      ),
-                               "desperation": (      1      ,      1      ),
-                                "impatience": (      0      ,      1      ),
-                                  "pacifism": (      0      ,      1      ),
-                                 "influence": (      0      ,      1      ),
-                                "narcolepsy": (      0      ,      1      ),
-                                  "exchange": (      0      ,      1      ),
-                               "lycanthropy": (      0      ,      1      ),
-                                      "luck": (      0      ,      1      ),
-                                "pestilence": (      1      ,      1      ),
-                               "retribution": (      4      ,      1      ),
-                              "misdirection": (      0      ,      1      ),
+                                              #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
+        self.TOTEM_CHANCES = {       "death": (      4      ,       1       ,      0      ),
+                                "protection": (      8      ,       1       ,      0      ),
+                                   "silence": (      2      ,       1       ,      0      ),
+                                 "revealing": (      0      ,       1       ,      0      ),
+                               "desperation": (      1      ,       1       ,      0      ),
+                                "impatience": (      0      ,       1       ,      0      ),
+                                  "pacifism": (      0      ,       1       ,      0      ),
+                                 "influence": (      0      ,       1       ,      0      ),
+                                "narcolepsy": (      0      ,       1       ,      0      ),
+                                  "exchange": (      0      ,       1       ,      0      ),
+                               "lycanthropy": (      0      ,       1       ,      0      ),
+                                      "luck": (      0      ,       1       ,      0      ),
+                                "pestilence": (      1      ,       1       ,      0      ),
+                               "retribution": (      4      ,       1       ,      0      ),
+                              "misdirection": (      0      ,       1       ,      0      ),
+                                    "deceit": (      0      ,       1       ,      0      ),
                              }
+
+        # get default values for wolf shaman's chances
+        for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
+            self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
+
         self.ROLE_INDEX =         (   8   ,  10   ,  12   ,  13   ,  14   ,  15   ,  17   ,  18   ,  21   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({ # village roles
@@ -620,23 +627,27 @@ class GuardianMode(GameMode):
             "cursed villager"   : (   1   ,   1   ,   2   ,   2   ,   2   ),
             })
 
-        self.TOTEM_CHANCES = { #  shaman , crazed
-                        "death": (   4   ,   1   ),
-                   "protection": (   8   ,   1   ),
-                      "silence": (   2   ,   1   ),
-                    "revealing": (   0   ,   1   ),
-                  "desperation": (   0   ,   1   ),
-                   "impatience": (   0   ,   1   ),
-                     "pacifism": (   0   ,   1   ),
-                    "influence": (   0   ,   1   ),
-                   "narcolepsy": (   0   ,   1   ),
-                     "exchange": (   0   ,   1   ),
-                  "lycanthropy": (   0   ,   1   ),
-                         "luck": (   3   ,   1   ),
-                   "pestilence": (   0   ,   1   ),
-                  "retribution": (   6   ,   1   ),
-                 "misdirection": (   4   ,   1   ),
+        self.TOTEM_CHANCES = { #  shaman , crazed , wolf
+                        "death": (   4   ,   1   ,   0   ),
+                   "protection": (   8   ,   1   ,   0   ),
+                      "silence": (   2   ,   1   ,   0   ),
+                    "revealing": (   0   ,   1   ,   0   ),
+                  "desperation": (   0   ,   1   ,   0   ),
+                   "impatience": (   0   ,   1   ,   0   ),
+                     "pacifism": (   0   ,   1   ,   0   ),
+                    "influence": (   0   ,   1   ,   0   ),
+                   "narcolepsy": (   0   ,   1   ,   0   ),
+                     "exchange": (   0   ,   1   ,   0   ),
+                  "lycanthropy": (   0   ,   1   ,   0   ),
+                         "luck": (   3   ,   1   ,   0   ),
+                   "pestilence": (   0   ,   1   ,   0   ),
+                  "retribution": (   6   ,   1   ,   0   ),
+                 "misdirection": (   4   ,   1   ,   0   ),
+                       "deceit": (   0   ,   1   ,   0   ),
                                  }
+
+        for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
+            self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
