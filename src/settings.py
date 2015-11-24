@@ -143,22 +143,23 @@ ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many 
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
-TOTEM_ORDER   =                  (   "shaman"  , "crazed shaman" )
-TOTEM_CHANCES = {       "death": (      1      ,        1        ),
-                   "protection": (      1      ,        1        ),
-                      "silence": (      1      ,        1        ),
-                    "revealing": (      1      ,        1        ),
-                  "desperation": (      1      ,        1        ),
-                   "impatience": (      1      ,        1        ),
-                     "pacifism": (      1      ,        1        ),
-                    "influence": (      1      ,        1        ),
-                   "narcolepsy": (      0      ,        1        ),
-                     "exchange": (      0      ,        1        ),
-                  "lycanthropy": (      0      ,        1        ),
-                         "luck": (      0      ,        1        ),
-                   "pestilence": (      0      ,        1        ),
-                  "retribution": (      0      ,        1        ),
-                 "misdirection": (      0      ,        1        ),
+TOTEM_ORDER   =                  (   "shaman"  , "crazed shaman" , "wolf shaman" )
+TOTEM_CHANCES = {       "death": (      1      ,        1        ,       0       ),
+                   "protection": (      1      ,        1        ,       1       ),
+                      "silence": (      1      ,        1        ,       1       ),
+                    "revealing": (      1      ,        1        ,       0       ),
+                  "desperation": (      1      ,        1        ,       0       ),
+                   "impatience": (      1      ,        1        ,       1       ),
+                     "pacifism": (      1      ,        1        ,       1       ),
+                    "influence": (      1      ,        1        ,       0       ),
+                   "narcolepsy": (      0      ,        1        ,       0       ),
+                     "exchange": (      0      ,        1        ,       0       ),
+                  "lycanthropy": (      0      ,        1        ,       1       ),
+                         "luck": (      0      ,        1        ,       1       ),
+                   "pestilence": (      0      ,        1        ,       0       ),
+                  "retribution": (      0      ,        1        ,       1       ),
+                 "misdirection": (      0      ,        1        ,       1       ),
+                       "deceit": (      0      ,        1        ,       1       ),
                 }
 
 GAME_MODES = {}
@@ -192,6 +193,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("werecrow"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ("werekitten"       , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("wolf mystic"      , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("wolf shaman"      , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("fallen angel"     , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("doomsayer"        , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("wolf cub"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
@@ -248,7 +250,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
 
 # Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
-WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "fallen angel", "doomsayer"})
+WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "wolf shaman", "fallen angel", "doomsayer"})
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
 WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock"}
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
