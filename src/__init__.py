@@ -63,7 +63,7 @@ for setting, value in botconfig.__dict__.items():
         verbose = value
     if setting == "NORMAL_MODE":
         normal = value
-    if not setting in var.__dict__.keys():
+    if not setting in var.__dict__:
         continue # Don't carry over config-only settings
 
     # If we got that far, it's valid

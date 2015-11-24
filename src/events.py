@@ -28,7 +28,7 @@ class Event:
         if self.name not in EVENT_CALLBACKS:
             return True
 
-        for item in list(EVENT_CALLBACKS[self.name]):
+        for item in EVENT_CALLBACKS[self.name]:
             item[1](self, *args)
             if self.stop_processing:
                 break

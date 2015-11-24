@@ -258,8 +258,8 @@ class hook:
 
     @staticmethod
     def unhook(hookid):
-        for each in list(HOOKS):
-            for inner in list(HOOKS[each]):
+        for each in set(HOOKS): # dict
+            for inner in set(HOOKS[each]): # list
                 if inner.hookid == hookid:
                     HOOKS[each].remove(inner)
             if not HOOKS[each]:
