@@ -448,7 +448,7 @@ class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self, arg=""):
         self.ROLE_REVEAL = random.choice(("on", "off", "team"))
-        self.STATS_TYPE = "disabled"
+        self.STATS_TYPE = "disabled" if self.ROLE_REVEAL == "off" else random.choice(("disabled", "team"))
         super().__init__(arg)
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
