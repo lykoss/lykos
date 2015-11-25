@@ -3103,31 +3103,32 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if ret:
                     join_deadchat(cli, *deadchat)
                 del deadchat[:]
-            if var.PHASE in ("night", "day") and ret:
+            if var.PHASE in ("night", "day"):
                 # remove the player from variables if they're in there
-                for a,b in list(var.KILLS.items()):
-                    for n in b: #var.KILLS can have 2 kills in a list
-                        if n == nick:
-                            var.KILLS[a].remove(nick)
-                    if a == nick or len(var.KILLS[a]) == 0:
-                        del var.KILLS[a]
-                for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
-                    for k in list(x):
-                        if nick in (k, x[k]):
-                            del x[k]
-                for x in (var.SHAMANS,):
-                    for k in list(x):
-                        if nick in (k, x[k][0]):
-                            del x[k]
-                for k in list(var.OTHER_KILLS):
-                    if var.OTHER_KILLS[k] == nick:
-                        var.HUNTERS.discard(k)
-                        pm(cli, k, messages["hunter_discard"])
-                        del var.OTHER_KILLS[k]
-                    elif nick == k:
-                        del var.OTHER_KILLS[k]
-                if nick in var.DISCONNECTED:
-                    del var.DISCONNECTED[nick]
+                if ret:
+                    for a,b in list(var.KILLS.items()):
+                        for n in b: #var.KILLS can have 2 kills in a list
+                            if n == nick:
+                                var.KILLS[a].remove(nick)
+                        if a == nick or len(var.KILLS[a]) == 0:
+                            del var.KILLS[a]
+                    for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
+                        for k in list(x):
+                            if nick in (k, x[k]):
+                                del x[k]
+                    for x in (var.SHAMANS,):
+                        for k in list(x):
+                            if nick in (k, x[k][0]):
+                                del x[k]
+                    for k in list(var.OTHER_KILLS):
+                        if var.OTHER_KILLS[k] == nick:
+                            var.HUNTERS.discard(k)
+                            pm(cli, k, messages["hunter_discard"])
+                            del var.OTHER_KILLS[k]
+                        elif nick == k:
+                            del var.OTHER_KILLS[k]
+                    if nick in var.DISCONNECTED:
+                        del var.DISCONNECTED[nick]
                 if nickrole == "succubus" and not var.ROLES["succubus"]:
                     while var.ENTRANCED:
                         entranced = var.ENTRANCED.pop()
