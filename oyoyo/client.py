@@ -174,7 +174,6 @@ class IRCClient(object):
 
         """
         try:
-            self.stream_handler('connecting to {0}:{1}'.format(self.host, self.port))
             retries = 0
             while True:
                 try:

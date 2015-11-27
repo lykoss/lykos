@@ -74,7 +74,9 @@ def unhandled(cli, prefix, cmd, *args):
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
-    def prepare_stuff(cli, *args):
+    def prepare_stuff(cli, prefix, *args):
+        alog("Received end of MOTD from {0}".format(prefix))
+
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
             cli.ns_identify(botconfig.USERNAME or botconfig.NICK,

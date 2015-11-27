@@ -3295,16 +3295,17 @@ def update_last_said(cli, nick, chan, rest):
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick, _, ident, host = parse_nick(raw_nick)
-    if nick != botconfig.NICK:
-        if nick not in var.USERS.keys():
-            var.USERS[nick] = dict(ident=ident,host=host,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
-        else:
-            var.USERS[nick]["ident"] = ident
-            var.USERS[nick]["host"] = host
-            var.USERS[nick]["account"] = acc
-            if not var.USERS[nick]["inchan"]:
-                # Will be True if the user joined the main channel, else False
-                var.USERS[nick]["inchan"] = (chan == botconfig.CHANNEL)
+    if nick == botconfig.NICK:
+        plog("Joined {0}".format(chan))
+    elif nick not in var.USERS.keys():
+        var.USERS[nick] = dict(ident=ident,host=host,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
+    else:
+        var.USERS[nick]["ident"] = ident
+        var.USERS[nick]["host"] = host
+        var.USERS[nick]["account"] = acc
+        if not var.USERS[nick]["inchan"]:
+            # Will be True if the user joined the main channel, else False
+            var.USERS[nick]["inchan"] = (chan == botconfig.CHANNEL)
     if chan != botconfig.CHANNEL:
         return
     with var.GRAVEYARD_LOCK:
