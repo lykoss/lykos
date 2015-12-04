@@ -5140,15 +5140,16 @@ def retract(cli, nick, chan, rest):
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
         if var.PHASE == "join":
-            if not nick in var.START_VOTES:
-                cli.notice(nick, messages["start_novote"])
-            else:
-                var.START_VOTES.discard(nick)
-                cli.msg(chan, messages["start_retract"].format(nick))
+            if chan == botconfig.CHANNEL:
+                if not nick in var.START_VOTES:
+                    cli.notice(nick, messages["start_novote"])
+                else:
+                    var.START_VOTES.discard(nick)
+                    cli.msg(chan, messages["start_retract"].format(nick))
 
-                if len(var.START_VOTES) < 1:
-                    var.TIMERS['start_votes'][0].cancel()
-                    del var.TIMERS['start_votes']
+                    if len(var.START_VOTES) < 1:
+                        var.TIMERS['start_votes'][0].cancel()
+                        del var.TIMERS['start_votes']
             return
 
     if chan == nick: # PM, use different code
