@@ -6463,16 +6463,19 @@ def relay(cli, nick, chan, rest):
     badguys = var.list_players(var.WOLFCHAT_ROLES)
     wolves = var.list_players(var.WOLF_ROLES)
 
-    if nick not in pl:
-        if var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
-            to_msg = var.DEADCHAT_PLAYERS - {nick}
-            if rest.startswith("\u0001ACTION"):
-                rest = rest[7:-1]
-                mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
-                mass_privmsg(cli, var.SPECTATING_DEADCHAT, "* [deadchat] \u0002{0}\u0002{1}".format(nick, rest))
-            else:
-                mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
-                mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
+    if nick not in pl and var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
+        to_msg = var.DEADCHAT_PLAYERS - {nick}
+
+        if rest.startswith(botconfig.CMD_CHAR):
+            return
+
+        if rest.startswith("\u0001ACTION"):
+            rest = rest[7:-1]
+            mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
+            mass_privmsg(cli, var.SPECTATING_DEADCHAT, "* [deadchat] \u0002{0}\u0002{1}".format(nick, rest))
+        else:
+            mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
+            mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
 
     elif nick in badguys and len(badguys) > 1:
         # handle wolfchat toggles
