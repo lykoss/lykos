@@ -1172,6 +1172,8 @@ def join_player(cli, player, chan, who = None, forced = False):
             return
 
     cmodes = [("+v", player)]
+    var.LAST_SAID_TIME[player] = datetime.now()
+
     if var.PHASE == "none":
 
         if var.AUTO_TOGGLE_MODES and player in var.USERS and var.USERS[player]["modes"]:
@@ -1196,12 +1198,12 @@ def join_player(cli, player, chan, who = None, forced = False):
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         cli.msg(chan, messages["new_game"].format(player, botconfig.CMD_CHAR))
 
-        # Set join timer
-        if var.JOIN_TIME_LIMIT > 0:
-            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
-            var.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
-            t.daemon = True
-            t.start()
+        if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
+            # DEATH TO IDLERS!
+            reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
+            reapertimer.daemon = True
+            reapertimer.start()
+
 
     elif player in pl:
         cli.notice(who, messages["already_playing"].format("You" if who == player else "They"))
@@ -1267,20 +1269,6 @@ def join_player(cli, player, chan, who = None, forced = False):
         t.start()
 
     return True
-
-@handle_error
-def kill_join(cli, chan):
-    pl = var.list_players()
-    pl.sort(key=lambda x: x.lower())
-    msg = "PING! " + var.break_long_message(pl).replace("\n", "\nPING! ")
-    reset_modes_timers(cli)
-    reset()
-    cli.msg(chan, msg)
-    cli.msg(chan, messages["game_idle_cancel"])
-    if var.AFTER_FLASTGAME is not None:
-        var.AFTER_FLASTGAME()
-        var.AFTER_FLASTGAME = None
-
 
 @cmd("fjoin", admin_only=True, phases=("none", "join"))
 def fjoin(cli, nick, chan, rest):
@@ -3167,15 +3155,25 @@ def reaper(cli, gameid):
     var.IDLE_WARNED_PM = set()
     chan = botconfig.CHANNEL
 
-    last_day_id = var.DAY_COUNT
+    last_day_id = getattr(var, 'DAY_COUNT', None)
     num_night_iters = 0
+
+    idle_timeouts_enabled = any((
+        var.WARN_IDLE_TIME,
+        var.PM_WARN_IDLE_TIME,
+        var.KILL_IDLE_TIME,
+        var.JOIN_PHASE_KILL_IDLE_TIME,
+        var.JOIN_PHASE_WARN_IDLE_TIME
+    ))
 
     while gameid == var.GAME_ID:
         skip = False
+
         with var.GRAVEYARD_LOCK:
             # Terminate reaper when game ends
-            if var.PHASE not in ("day", "night"):
+            if var.PHASE not in ("day", "night", "join"):
                 return
+
             if var.DEVOICE_DURING_NIGHT:
                 if var.PHASE == "night":
                     # don't count nighttime towards idling
@@ -3189,56 +3187,86 @@ def reaper(cli, gameid):
                         var.LAST_SAID_TIME[nick] += timedelta(seconds=10*num_night_iters)
                     num_night_iters = 0
 
-
-            if not skip and (var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME):  # only if enabled
+            if not skip and idle_timeouts_enabled:  # only if enabled
                 to_warn    = []
                 to_warn_pm = []
                 to_kill    = []
+
                 for nick in var.list_players():
                     if is_fake_nick(nick):
                         continue
+
                     lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
-                    if var.WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
+
+                    if var.PHASE in ('day', 'night'):
+                        warn_idle_time = var.WARN_IDLE_TIME
+                        pm_warn_idle_time = var.PM_WARN_IDLE_TIME
+                        kill_idle_time = var.KILL_IDLE_TIME
+                    else:
+                        warn_idle_time = None
+                        pm_warn_idle_time = var.JOIN_PHASE_WARN_IDLE_TIME
+                        kill_idle_time = var.JOIN_PHASE_KILL_IDLE_TIME
+
+                    if warn_idle_time and (tdiff > timedelta(seconds=warn_idle_time) and
                                             nick not in var.IDLE_WARNED):
                         to_warn.append(nick)
                         var.IDLE_WARNED.add(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
-                            timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
-                    elif var.PM_WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.PM_WARN_IDLE_TIME) and
+                            timedelta(seconds=warn_idle_time))  # Give them a chance
+                    elif pm_warn_idle_time and (tdiff > timedelta(seconds=pm_warn_idle_time) and
                                             nick not in var.IDLE_WARNED_PM):
                         to_warn_pm.append(nick)
                         var.IDLE_WARNED_PM.add(nick)
                         var.LAST_SAID_TIME[nick] = (datetime.now() -
-                            timedelta(seconds=var.PM_WARN_IDLE_TIME))
-                    elif var.KILL_IDLE_TIME and (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                                            (not var.WARN_IDLE_TIME or nick in var.IDLE_WARNED) and
-                                            (not var.PM_WARN_IDLE_TIME or nick in var.IDLE_WARNED_PM)):
+                            timedelta(seconds=pm_warn_idle_time))
+                    elif kill_idle_time and (tdiff > timedelta(seconds=kill_idle_time) and
+                                            (not warn_idle_time or nick in var.IDLE_WARNED) and
+                                            (not pm_warn_idle_time or nick in var.IDLE_WARNED_PM)):
                         to_kill.append(nick)
-                    elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
+                    elif (tdiff < timedelta(seconds=warn_idle_time if warn_idle_time else pm_warn_idle_time) and
                                             (nick in var.IDLE_WARNED or nick in var.IDLE_WARNED_PM)):
                         var.IDLE_WARNED.discard(nick)  # player saved themselves from death
                         var.IDLE_WARNED_PM.discard(nick)
+
                 for nck in to_kill:
                     if nck not in var.list_players():
                         continue
-                    if var.ROLE_REVEAL in ("on", "team"):
+
+                    if var.ROLE_REVEAL in ("on", "team") and var.PHASE in ('day', 'night'):
                         cli.msg(chan, messages["idle_death"].format(nck, var.get_reveal_role(nck)))
                     else:
-                        cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
-                    for r,rlist in var.ORIGINAL_ROLES.items():
-                        if nck in rlist:
-                            var.ORIGINAL_ROLES[r].remove(nck)
-                            var.ORIGINAL_ROLES[r].add("(dced)"+nck)
-                    make_stasis(nck, var.IDLE_STASIS_PENALTY)
+                        if var.PHASE in ('day', 'night'):
+                            mesage = 'idle_death_no_reveal'
+                        else:
+                            message = 'idle_death_join_phase'
+                        cli.msg(chan, (messages[message]).format(nck))
+
+                    if var.PHASE in ('day', 'night'):
+                        for r,rlist in var.ORIGINAL_ROLES.items():
+                            if nck in rlist:
+                                var.ORIGINAL_ROLES[r].remove(nck)
+                                var.ORIGINAL_ROLES[r].add("(dced)"+nck)
+
+                        make_stasis(nck, var.IDLE_STASIS_PENALTY)
+
                     del_player(cli, nck, end_game = False, death_triggers = False)
+
                 chk_win(cli)
                 pl = var.list_players()
                 x = [a for a in to_warn if a in pl]
+
                 if x:
                     cli.msg(chan, messages["channel_idle_warning"].format(", ".join(x)))
+
                 msg_targets = [p for p in to_warn_pm if p in pl]
-                mass_privmsg(cli, msg_targets, messages["player_idle_warning"].format(chan), privmsg=True)
+
+                if var.PHASE in ('day', 'night'):
+                    mesage = 'player_idle_warning'
+                else:
+                    message = 'player_idle_warning_join_phase'
+                mass_privmsg(cli, msg_targets, messages[message].format(chan), privmsg=True)
+
             for dcedplayer in list(var.DISCONNECTED.keys()):
                 acc, hostmask, timeofdc, what = var.DISCONNECTED[dcedplayer]
                 if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
@@ -3277,7 +3305,7 @@ def update_last_said(cli, nick, chan, rest):
     if chan != botconfig.CHANNEL:
         return
 
-    if var.PHASE not in ("join", "none"):
+    if var.PHASE != "none":
         var.LAST_SAID_TIME[nick] = datetime.now()
 
     fullstring = "".join(rest)
@@ -7338,6 +7366,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cgamemode(cli, restart)
         var.GAME_ID = time.time() # restart reaper timer
 
+    now = datetime.now()
+    var.LAST_SAID_TIME = dict(map(lambda player: (player, now), villagers))
+
     addroles = {}
 
     event = Event("role_attribution", {"addroles": addroles})
@@ -7642,12 +7673,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
             var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
             if var.STASISED_ACCS[acc] <= 0:
                 del var.STASISED_ACCS[acc]
-
-    if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
-        # DEATH TO IDLERS!
-        reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
-        reapertimer.daemon = True
-        reapertimer.start()
 
 
 
@@ -8378,6 +8403,7 @@ def timeleft(cli, nick, chan, rest):
 
         if msg is not None:
             reply(cli, nick, chan, msg)
+        return
 
     if var.PHASE in var.TIMERS:
         remaining = timeleft_internal(var.PHASE)
@@ -8385,8 +8411,6 @@ def timeleft(cli, nick, chan, rest):
             what = "sunset"
         elif var.PHASE == "night":
             what = "sunrise"
-        elif var.PHASE == "join":
-            what = "the game is canceled if it's not started"
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
         msg = messages["timers_disabled"].format(var.PHASE.capitalize())
