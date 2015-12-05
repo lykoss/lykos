@@ -8360,6 +8360,10 @@ def pony(cli, nick, chan, rest):
     cmsg = messages["pony_land"].format(pony)
     reply(cli, nick, chan, cmsg)
 
+@cmd("choice", pm=True)
+def choice(cli, nick, chan, rest):
+    reply(cli, nick, chan, random.choice(rest.split()))
+
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
