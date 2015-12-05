@@ -21,7 +21,6 @@ import sys
 import threading
 import time
 import traceback
-import os
 
 from oyoyo.parse import parse_raw_irc_command
 
@@ -100,7 +99,7 @@ class IRCClient(object):
         To enable blocking pass blocking=True.
         """
 
-        self.socket = None
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.nickname = ""
         self.hostmask = ""
         self.ident = ""
@@ -178,14 +177,13 @@ class IRCClient(object):
             retries = 0
             while True:
                 try:
-                    self.socket = socket.create_connection(("{0}".format(self.host), self.port))
+                    self.socket.connect(("{0}".format(self.host), self.port))
                     break
                 except socket.error as e:
                     retries += 1
                     self.stream_handler('Error: {0}'.format(e), level="warning")
                     if retries > 3:
-                        exit(os.EX_UNAVAILABLE)
-
+                        break
             if not self.blocking:
                 self.socket.setblocking(0)
 
