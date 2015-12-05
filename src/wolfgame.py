@@ -8362,6 +8362,7 @@ def pony(cli, nick, chan, rest):
 
 @cmd("choice", pm=True)
 def choice(cli, nick, chan, rest):
+    """Chooses one nick among a list."""
     choices = rest.split()
     if choices:
       reply(cli, nick, chan, random.choice(choices))
