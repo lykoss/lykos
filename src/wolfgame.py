@@ -8363,7 +8363,7 @@ def pony(cli, nick, chan, rest):
 @cmd("choice", pm=True)
 def choice(cli, nick, chan, rest):
     choices = rest.split()
-    if choices != []:
+    if choices:
       reply(cli, nick, chan, random.choice(choices))
 
 @cmd("time", pm=True, phases=("join", "day", "night"))
