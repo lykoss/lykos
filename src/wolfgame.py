@@ -4714,7 +4714,7 @@ def no_lynch(cli, nick, chan, rest):
             cli.notice(nick, messages["command_disabled"])
             return
         elif var.LIMIT_ABSTAIN and var.ABSTAINED:
-            cli.notice(nick, messages["exhusted_abstain"])
+            cli.notice(nick, messages["exhausted_abstain"])
             return
         elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
             cli.notice(nick, messages["no_abstain_day_one"])
