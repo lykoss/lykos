@@ -7196,7 +7196,7 @@ def transition_night(cli):
 
     dmsg = (daydur_msg + messages["night_begin"])
 
-    if not var.FIRST_NIGHT:
+    if var.FIRST_NIGHT:
         dmsg = (dmsg + messages["first_night_begin"])
     cli.msg(chan, dmsg)
     debuglog("BEGIN NIGHT")
