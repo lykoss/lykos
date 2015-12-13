@@ -1,6 +1,7 @@
 import traceback
 import fnmatch
 import socket
+import types
 from collections import defaultdict
 
 from oyoyo.client import IRCClient
@@ -22,9 +23,6 @@ HOOKS = defaultdict(list)
 
 class handle_error:
 
-    instance = None
-    owner = object
-
     def __new__(cls, func):
         if isinstance(func, cls): # already decorated
             return func
@@ -34,13 +32,13 @@ class handle_error:
         return self
 
     def __get__(self, instance, owner):
-        self.instance = instance
-        self.owner = owner
+        if instance is not None:
+            return types.MethodType(self, instance)
         return self
 
     def __call__(self, *args, **kwargs):
         try:
-            return self.func.__get__(self.instance, self.owner)(*args, **kwargs)
+            return self.func(*args, **kwargs)
         except Exception:
             traceback.print_exc() # no matter what, we want it to print
             if kwargs.get("cli"): # client
