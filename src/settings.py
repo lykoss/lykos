@@ -264,7 +264,9 @@ LYNCH_MESSAGES = ("The villagers, after much debate, finally decide on lynching 
                   "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged. The villagers have killed a{1} \u0002{2}\u0002.",
                   "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows. Once the twitching stops, it is discovered that the village lynched a{1} \u0002{2}\u0002.",
                   "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, pulls the pin on a grenade. They hesitate, and it explodes, killing them.",
-                  "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, throws a grenade at the mob. The grenade explodes early.")
+                  "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, throws a grenade at the mob. The grenade explodes early.",
+                  "Convinced that \u0002{0}\u0002 is a wolf, the villagers beat a{1} \u0002{2}\u0002 to death",
+                  "Uttering a terifying war cry, the villagers drag \u0002{0}\u0002 to the edge of a cliff and fling them off. The rock face is now covered in bits of \u0002{2}\u0002.")
 LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on lynching \u0002{0}\u0002.",
                             "After a prolonged struggle, \u0002{0}\u0002 is forced to the gallows.",
                             "The villagers choose to hang \u0002{0}\u0002; however, the rope stretches and breaks, and the ensuing fall kills them.",
@@ -277,7 +279,9 @@ LYNCH_MESSAGES_NO_REVEAL = ("The villagers, after much debate, finally decide on
                             "Despite protests, the mob drags their victim to the hanging tree. \u0002{0}\u0002 succumbs to the will of the horde, and is hanged.",
                             "Resigned to the inevitable, \u0002{0}\u0002 is led to the gallows.",
                             "Before the rope is pulled, \u0002{0}\u0002 pulls the pin on a grenade. They hesitate, and it explodes, killing them.",
-                            "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.")
+                            "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.",
+                            "Convinced that \u0002{0}\u0002 is a wolf, the villagers beat them to death",
+                            "Uttering a terifying war cry, the villagers drag \u0002{0}\u0002 to the edge of a cliff and fling them off.")
 QUIT_MESSAGES= ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
                 "While wearing a fake pair of antlers, \u0002{0}\u0002, a{1} \u0002{2}\u0002, is shot dead by a hunter.",
                 "Standing under a tree, \u0002{0}\u0002, a{1} \u0002{2}\u0002, is killed by a falling branch.",
@@ -287,7 +291,8 @@ QUIT_MESSAGES= ("\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead
                 "A pack of wild animals sets upon \u0002{0}\u0002. Soon the \u0002{2}\u0002 is only a pile of bones and a lump in the beasts' stomachs.",
                 "\u0002{0}\u0002, a{1} \u0002{2}\u0002, fell off the roof of their house and is now dead.",
                 "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save the \u0002{2}\u0002, but it is too late.",
-                "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory. The survivors bury the \u0002{2}\u0002's ashes.")
+                "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory. The survivors bury the \u0002{2}\u0002's ashes.",
+                "\u0002{0}\u0002 played Russian Roulete with some of their so called friends, and lost. The survivors bury the \u0002{2}\u0002's left overs.")
 QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
                            "While wearing a fake pair of antlers, \u0002{0}\u0002 is shot dead by a hunter.",
                            "Standing under a tree, \u0002{0}\u0002 is killed by a falling branch.",
@@ -297,7 +302,8 @@ QUIT_MESSAGES_NO_REVEAL = ("\u0002{0}\u0002 suddenly falls over dead before the 
                            "A pack of wild animals sets upon \u0002{0}\u0002. Soon they are only a pile of bones and a lump in the beasts' stomachs.",
                            "\u0002{0}\u0002 fell off the roof of their house and is now dead.",
                            "\u0002{0}\u0002 is crushed to death by a falling tree. The villagers desperately try to save them, but it is too late.",
-                           "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.")
+                           "\u0002{0}\u0002 suddenly bursts into flames and is now all but a memory.",
+                           "\u0002{0}\u0002 played Russian Roulete with some of their so called friends, and lost. The survivors bury the left overs.")
 PING_MESSAGES = ("Pong!", "Ping!", "Sure thing.", "No.", "!gniP", "!gnoP", "Segmentation fault", "Segmentation fault (core dumped)",
                  "{0}.exe has stopped working. Windows is checking for a solution to the problem...".format(botconfig.NICK), "HTTP Error 418: I'm a teapot",
                  "An error has pinged and has been ponged.", "I'm here!", "I refuse!", "What?", "Don't you mean \u0002{0}ping\u0002?".format(botconfig.CMD_CHAR),
