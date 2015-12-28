@@ -7280,6 +7280,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
 
         now = datetime.now()
+        var.GAME_START_TIME = now  # Only used for the idler checker
         dur = int((var.CAN_START_TIME - now).total_seconds())
         if dur > 0 and not forced:
             plural = "" if dur == 1 else "s"
@@ -7652,7 +7653,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         reapertimer.daemon = True
         reapertimer.start()
 
-    var.GAME_START_TIME = datetime.now()
+
 
 @hook("error")
 def on_error(cli, pfx, msg):
