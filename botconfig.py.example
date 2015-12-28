@@ -73,3 +73,5 @@ TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
 #NICKSERV_REGAIN_COMMAND = ""
 #CHANSERV = "x@channels.undernet.org"
 #CHANSERV_OP_COMMAND = "OP {channel}"
+
+# vim: set ft=python:
