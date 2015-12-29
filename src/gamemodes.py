@@ -428,6 +428,8 @@ class MatchmakerMode(GameMode):
     """Love is in the air!"""
     def __init__(self, arg=""):
         super().__init__(arg)
+        self.NIGHT_TIME_LIMIT = 150
+        self.NIGHT_TIME_WARN = 105
         self.ROLE_INDEX = range(8, 25)
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
