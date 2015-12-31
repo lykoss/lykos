@@ -5806,13 +5806,7 @@ def see(cli, nick, chan, rest):
             victimrole = var.DEFAULT_ROLE
             if var.DEFAULT_SEEN_AS_VILL:
                 victimrole = "villager"
-        if victim in var.DECEIVED:
-            if victimrole == "wolf":
-                victimrole = "villager"
-            else:
-                victimrole = "wolf"
-
-        if nick in var.DECEIVED: # it DOES stack! so if both victim and seer have the totem, it's canceled out
+        if (victim in var.DECEIVED) ^ (nick in var.DECEIVED):
             if victimrole == "wolf":
                 victimrole = "villager"
             else:
