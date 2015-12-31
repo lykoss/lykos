@@ -7797,7 +7797,7 @@ def is_user_stasised(nick):
         host = var.USERS[nick]["host"]
         acc = var.USERS[nick]["account"]
     else:
-        return 0
+        return -1
     amount = 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
         if acc in var.STASISED_ACCS:
