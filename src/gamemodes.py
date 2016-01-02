@@ -498,7 +498,7 @@ class RandomMode(GameMode):
             lpl -= 1
 
         addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
-        addroles["assassin"] = random.randrange(int(len(villagers) ** 1.2 / 8))
+        addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 
         lpl = len(villagers)
         lwolves = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
