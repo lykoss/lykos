@@ -770,12 +770,10 @@ def replace(cli, nick, chan, rest):
         pl = var.list_players() + list(var.VENGEFUL_GHOSTS.keys())
         pll = [var.irc_lower(i) for i in pl]
 
-        lc_target, _ = complete_match(var.irc_lower(rest[0]), pll)
+        target, _ = complete_match(var.irc_lower(rest[0]), pll)
 
-        if lc_target != None:
-            target = pl[pll.index(lc_target)]
-        else:
-            target = ""
+        if target is not None:
+            target = pl[pll.index(target)]
 
         if target not in var.list_players() and target not in var.VENGEFUL_GHOSTS:
             msg = messages["target_not_playing"].format(" longer" if target in var.DEAD else "t")
