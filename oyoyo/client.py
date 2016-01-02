@@ -180,7 +180,7 @@ class IRCClient(object):
                     retries += 1
                     self.stream_handler('Error: {0}'.format(e), level="warning")
                     if retries > 3:
-                        exit(os.EX_UNAVAILABLE)
+                        sys.exit(1)
 
             if self.use_ssl:
                 self.socket = ssl.wrap_socket(self.socket)
