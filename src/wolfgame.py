@@ -2438,12 +2438,16 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             orol = rol # original role, since we overwrite rol in case of clone
             splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
             # TODO: figure out how player stats should work when var.DISABLE_ACCOUNTS is True; likely track by nick
-            if plr.startswith("(dced)") and plr[6:] in var.DCED_PLAYERS.keys():
+            if plr.startswith("(dced)"):
                 splr = plr[6:]
                 if var.DISABLE_ACCOUNTS:
                     acc = splr
+                elif splr in var.DCED_PLAYERS.keys():
+                    acc = var.DCED_PLAYERS[splr]["account"]
+                elif splr in var.PLAYERS.keys():
+                    acc = var.PLAYERS[splr]["account"]
                 else:
-                    acc = var.DCED_PLAYERS[plr[6:]]["account"]
+                    acc = "*"
             elif plr in var.PLAYERS.keys():
                 if var.DISABLE_ACCOUNTS:
                     acc = plr
