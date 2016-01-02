@@ -775,7 +775,7 @@ def replace(cli, nick, chan, rest):
         if target is not None:
             target = pl[pll.index(target)]
 
-        if target not in var.list_players() and target not in var.VENGEFUL_GHOSTS:
+        if (target not in var.list_players() and target not in var.VENGEFUL_GHOSTS) or target not in var.USERS:
             msg = messages["target_not_playing"].format(" longer" if target in var.DEAD else "t")
             if chan == nick:
                 pm(cli, nick, msg)
@@ -783,13 +783,12 @@ def replace(cli, nick, chan, rest):
                 cli.notice(nick, msg)
             return
 
-        if target in var.USERS:
-            if var.USERS[target]["account"] == "*":
-                if chan == nick:
-                    pm(cli, nick, messages["target_not_logged_in"])
-                else:
-                    cli.notice(nick, messages["target_not_logged_in"])
-                return
+        if var.USERS[target]["account"] == "*":
+            if chan == nick:
+                pm(cli, nick, messages["target_not_logged_in"])
+            else:
+                cli.notice(nick, messages["target_not_logged_in"])
+            return
 
     if var.USERS[target]["account"] == account and nick != target:
         rename_player(cli, target, nick)
