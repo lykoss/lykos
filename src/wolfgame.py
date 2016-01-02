@@ -1156,7 +1156,7 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     stasis = is_user_stasised(player)
 
-    if stasis:
+    if stasis > 0:
         if forced and stasis == 1:
             for hostmask in list(var.STASISED.keys()):
                 if var.match_hostmask(hostmask, player, ident, host):
