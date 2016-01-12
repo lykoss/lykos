@@ -3163,7 +3163,10 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 var.ASLEEP.discard(nick)
                 var.CONSECRATING.discard(nick)
                 var.SICK.discard(nick)
-                chk_decision(cli)
+                # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
+                # we only want to induce a lynch if it's actually day
+                if var.GAMEPHASE == "day":
+                    chk_decision(cli)
             elif var.PHASE == "night" and ret:
                 chk_nightdone(cli)
 
@@ -3825,6 +3828,8 @@ def begin_day(cli):
 
     event = Event("begin_day", {})
     event.dispatch(cli, var)
+    # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
+    chk_decision(cli)
 
 @handle_error
 def night_warn(cli, gameid):
