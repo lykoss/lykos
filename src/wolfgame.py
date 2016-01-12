@@ -7701,9 +7701,9 @@ def fstasis(cli, nick, chan, rest):
             if len(data) == 1:
                 if hostmask in var.STASISED:
                     plural = "" if var.STASISED[hostmask] == 1 else "s"
-                    msg = messages["target_in_stasis"].format(data[0], hostmask, var.STASISED[hostmask], plural)
+                    msg = messages["hostmask_in_stasis"].format(data[0], hostmask, var.STASISED[hostmask], plural)
                 else:
-                    msg = messages["target_not_in_stasis"].format(data[0], hostmask)
+                    msg = messages["hostmask_not_in_stasis"].format(data[0], hostmask)
             else:
                 try:
                     amt = int(data[1])
@@ -7729,19 +7729,19 @@ def fstasis(cli, nick, chan, rest):
                     var.STASISED[hostmask] = amt
                     var.set_stasis(hostmask, amt)
                     plural = "" if amt == 1 else "s"
-                    msg = messages["fstasis_add_success"].format(data[0], hostmask, amt, plural)
+                    msg = messages["fstasis_hostmask_add"].format(data[0], hostmask, amt, plural)
                 elif amt == 0:
                     if hostmask in var.STASISED:
                         del var.STASISED[hostmask]
                         var.set_stasis(hostmask, 0)
-                        msg = messages["fstasis_remove_success"].format(data[0], hostmask)
+                        msg = messages["fstasis_hostmask_remove"].format(data[0], hostmask)
                     else:
-                        msg = messages["target_not_in_stasis"].format(data[0], hostmask)
+                        msg = messages["hostmask_not_in_stasis"].format(data[0], hostmask)
         if not var.DISABLE_ACCOUNTS and acc:
             if len(data) == 1:
                 if acc in var.STASISED_ACCS:
                     plural = "" if var.STASISED_ACCS[acc] == 1 else "s"
-                    msg = messages["fstasis_account_add_success"].format(data[0], acc, var.STASISED_ACCS[acc], plural)
+                    msg = messages["account_in_stasis"].format(data[0], acc, var.STASISED_ACCS[acc], plural)
                 else:
                     msg = messages["account_not_in_stasis"].format(data[0], acc)
             else:
@@ -7767,12 +7767,12 @@ def fstasis(cli, nick, chan, rest):
                     var.STASISED_ACCS[acc] = amt
                     var.set_stasis_acc(acc, amt)
                     plural = "" if amt == 1 else "s"
-                    msg = messages["fstasis_account_add_success"].format(data[0], acc, amt, plural)
+                    msg = messages["fstasis_account_add"].format(data[0], acc, amt, plural)
                 elif amt == 0:
                     if acc in var.STASISED_ACCS:
                         del var.STASISED_ACCS[acc]
                         var.set_stasis_acc(acc, 0)
-                        msg = messages["fstasis_account_remove_success"].format(data[0], acc)
+                        msg = messages["fstasis_account_remove"].format(data[0], acc)
                     else:
                         msg = messages["account_not_in_stasis"].format(data[0], acc)
     elif var.STASISED or var.STASISED_ACCS:
