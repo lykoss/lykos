@@ -1,6 +1,7 @@
 import random
 import math
 import threading
+import copy
 from collections import OrderedDict
 
 import botconfig
@@ -1042,5 +1043,97 @@ class SleepyMode(GameMode):
                     var.FINAL_ROLES[cultist] = "demoniac"
                     pm(cli, cultist, messages["sleepy_demoniac_turn"])
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
+
+@game_mode("maelstrom", minp = 8, maxp = 24, likelihood = 0)
+class MaelstromMode(GameMode):
+    """Some people just want to watch the world burn."""
+    def __init__(self, arg=""):
+        self.ROLE_REVEAL = "on"
+        self.STATS_TYPE = "disabled"
+        super().__init__(arg)
+        self.LOVER_WINS_WITH_FOOL = True
+        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
+
+    def startup(self):
+        events.add_listener("role_attribution", self.role_attribution)
+        events.add_listener("transition_night_begin", self.transition_night_begin)
+
+    def teardown(self):
+        events.remove_listener("role_attribution", self.role_attribution)
+        events.remove_listener("transition_night_begin", self.transition_night_begin)
+
+    def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
+        self.chk_win_conditions = chk_win_conditions
+        evt.data["addroles"] = self._role_attribution(cli, var, villagers, True)
+
+    def transition_night_begin(self, evt, cli, var):
+        # don't do this n1
+        if var.FIRST_NIGHT:
+            return
+        villagers = var.list_players()
+        lpl = len(villagers)
+        addroles = self._role_attribution(cli, var, villagers, False)
+
+        # shameless copy/paste of regular role attribution
+        for role, count in addroles.items():
+            selected = random.sample(villagers, count)
+            var.ROLES[role] = set(selected)
+            for x in selected:
+                villagers.remove(x)
+
+        # Handle roles that need extra help
+        for doctor in var.ROLES["doctor"]:
+            var.DOCTORS[doctor] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
+
+        # for end of game stats to show what everyone ended up as on game end
+        for role, pl in var.ROLES.items():
+            if role in var.TEMPLATE_RESTRICTIONS.keys():
+                continue
+            for p in pl:
+                var.FINAL_ROLES[p] = role
+
+    def _role_attribution(self, cli, var, villagers, do_templates):
+        lpl = len(villagers) - 1
+        addroles = {}
+        for role in var.ROLE_GUIDE:
+            addroles[role] = 0
+
+        wolves = var.WOLF_ROLES - {"wolf cub"}
+        addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
+        # clone is pointless in this mode
+        # dullahan doesn't really work in this mode either, if enabling anyway special logic to determine kill list
+        # needs to be added above for when dulls are added during the game
+        roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan"})
+        if not do_templates:
+            # mm only works night 1, do_templates is also only true n1
+            roles.remove("matchmaker")
+        while lpl:
+            addroles[random.choice(roles)] += 1
+            lpl -= 1
+
+        if do_templates:
+            addroles["gunner"] = random.randrange(4)
+            addroles["sharpshooter"] = random.randrange(addroles["gunner"] + 1)
+            addroles["assassin"] = random.randrange(3)
+            addroles["cursed villager"] = random.randrange(3)
+            addroles["mayor"] = random.randrange(2)
+            addroles["bureaucrat"] = random.randrange(2)
+            if random.randrange(100) == 0 and addroles.get("villager", 0) > 0:
+                addroles["blessed villager"] = 1
+
+        lpl = len(villagers)
+        lwolves = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
+        lcubs = addroles["wolf cub"]
+        lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
+        lmonsters = addroles["monster"]
+        ldemoniacs = addroles["demoniac"]
+        ltraitors = addroles["traitor"]
+        lpipers = addroles["piper"]
+        lsuccubi = addroles["succubus"]
+
+        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
+            return self._role_attribution(cli, chk_win_conditions, var, villagers, do_templates)
+
+        return addroles
 
 # vim: set expandtab:sw=4:ts=4:
