@@ -1097,6 +1097,8 @@ class MaelstromMode(GameMode):
         lpl = len(villagers) - 1
         addroles = {}
         for role in var.ROLE_GUIDE:
+            if role in var.TEMPLATE_RESTRICTIONS.keys() and not do_templates:
+                continue
             addroles[role] = 0
 
         wolves = var.WOLF_ROLES - {"wolf cub"}
