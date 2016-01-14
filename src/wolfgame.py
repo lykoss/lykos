@@ -7124,7 +7124,7 @@ def transition_night(cli):
         else:
             pm(cli, priest, messages["priest_simple"])
 
-    if var.FIRST_NIGHT:
+    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
         for mm in var.ROLES["matchmaker"]:
             pl = ps[:]
             random.shuffle(pl)
@@ -7354,6 +7354,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     event = Event("role_attribution", {"addroles": addroles})
     if event.dispatch(cli, chk_win_conditions, var, villagers):
+        addroles = event.data["addroles"]
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
                 for role, num in var.ROLE_GUIDE.items(): # allow event to override some roles

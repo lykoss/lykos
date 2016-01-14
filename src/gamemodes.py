@@ -1053,6 +1053,7 @@ class MaelstromMode(GameMode):
         super().__init__(arg)
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
+        self.ALWAYS_PM_ROLE = True
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
