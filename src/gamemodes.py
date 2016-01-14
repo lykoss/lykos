@@ -1132,7 +1132,7 @@ class MaelstromMode(GameMode):
         lsuccubi = addroles["succubus"]
 
         if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
-            return self._role_attribution(cli, self.chk_win_conditions, var, villagers, do_templates)
+            return self._role_attribution(cli, var, villagers, do_templates)
 
         return addroles
 
