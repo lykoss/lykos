@@ -2776,7 +2776,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if var.PHASE in ("night", "day"):
                 clones = copy.copy(var.ROLES["clone"])
                 for clone in clones:
-                    if clone in var.CLONED:
+                    if clone in var.CLONED and clone not in deadlist:
                         target = var.CLONED[clone]
                         if nick == target and clone in var.CLONED:
                             # clone is cloning nick, so clone becomes nick's role
