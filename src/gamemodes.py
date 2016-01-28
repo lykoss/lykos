@@ -1070,6 +1070,13 @@ class MaelstromMode(GameMode):
     def transition_night_begin(self, evt, cli, var):
         # don't do this n1
         if var.FIRST_NIGHT:
+            # except we still need to fill var.FINAL_ROLES during n1
+            # since we use that to track what role someone was previously
+            for role, pl in var.ROLES.items():
+                if role in var.TEMPLATE_RESTRICTIONS.keys():
+                    continue
+                for p in pl:
+                    var.FINAL_ROLES[p] = role
             return
         villagers = var.list_players()
         lpl = len(villagers)
@@ -1091,6 +1098,9 @@ class MaelstromMode(GameMode):
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
             for p in pl:
+                prevrole = var.FINAL_ROLES[p]
+                var.ORIGINAL_ROLES[prevrole].discard(p)
+                var.ORIGINAL_ROLES[role].add(p)
                 var.FINAL_ROLES[p] = role
 
     def _role_attribution(self, cli, var, villagers, do_templates):
