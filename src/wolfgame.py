@@ -4627,6 +4627,7 @@ def chk_nightdone(cli):
 
     # TODO: alphabetize and/or arrange sensibly
     pl = var.list_players()
+    spl = set(pl)
     actedcount = sum(map(len, (var.SEEN, var.HVISITED, var.GUARDED, var.KILLS,
                                var.OTHER_KILLS, var.PASSED, var.OBSERVED,
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
@@ -4635,7 +4636,7 @@ def chk_nightdone(cli):
                            "guardian angel", "wolf", "werecrow", "alpha wolf",
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
-                           "fallen angel", "dullahan", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
+                           "fallen angel", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
                            "prophet", "wolf shaman", "wolf shaman") # wolf shaman also must be listed twice
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
@@ -4650,6 +4651,11 @@ def chk_nightdone(cli):
         if p in var.SEEN and p in var.OTHER_KILLS:
             # don't count this twice
             actedcount -= 1
+
+    for p in var.ROLES["dullahan"]:
+        # dullahans without targets cannot act, so don't count them
+        if var.DULLAHAN_TARGETS[p] & spl:
+            nightroles.append(p)
 
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
