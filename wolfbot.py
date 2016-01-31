@@ -17,30 +17,37 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import traceback
 import sys
+
+import botconfig
 
 if sys.version_info < (3, 2):
     print("Python 3.2 or newer is required to run the bot.")
     sys.exit(1)
 
 if sys.version_info < (3, 3):
-    print("*** WARNING ***".center(80),
-          "Starting February 2016, Python 3.2 support will be officially dropped.",
-          "The minimum requirement will be increased to Python 3.3",
-          "Please make sure to upgrade by then, or stick with an older revision.", "",
-          "Concerns and questions may be asked on the official development channel",
-          "  in ##werewolf-dev over at irc.freenode.net", "",
-          "You may also open an issue on the issue tracker in the GitHub repository",
-          "  located at https://github.com/lykoss/lykos", "",
-          "The lifetime of Python 3.2 support may be extended on request.", "",
-          "Thank you for your interest in this IRC bot!", "",
-          "- The lykos development team", "", sep="\n", file=sys.stderr)
+    allow_unsup = getattr(botconfig, "allow_unsupported_Python", None)
+    # add an "allow_unsupported_Python" attribute in botconfig
+    # set it to the tuple (3, 2) to prevent the bot from exiting
+    # this backwards-compatibility fix will not remain for long
+    # please update to 3.3 if you can. if you can't, you will need
+    # to stick with an older revision, and new bugfixes/features
+    # will not be applied to the 3.2-supported versions
+    # we will also not provide any more support
+    print("As of the 1st of February 2016, support for Python 3.2 is gone.",
+          "You need Python 3.3 or above to run the bot from this point onwards.",
+          "Please upgrade your installed Python version to run the bot.",
+          "", "Thank you for your interest!", "- The lykos development team",
+          sep="\n", file=sys.stderr)
 
-import traceback
+    if allow_unsup != (3, 2):
+        sys.exit(1)
+    else:
+        print("\n...\nFine, fine, I'll run anyway", file=sys.stderr)
 
 from oyoyo.client import IRCClient
 
-import botconfig
 import src
 from src import handler
 
