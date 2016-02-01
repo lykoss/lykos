@@ -367,6 +367,7 @@
     "augur_success": "You have a vision; in this vision, you see that \u0002{0}\u0002 exudes a \u0002{1}\u0002 aura!",
     "shaman_no_target_twice": "You gave your totem to \u0002{0}\u0002 last time, you must choose someone else.",
     "shaman_success": "{0} have given a totem{1} to \u0002{2}\u0002.",
+    "shaman_wolfchat": "\u0002{0}\u0002 has given a totem to \u0002{1}\u0002.",
     "doctor_fail": "You have run out of immunizations.",
     "doctor_success": "You have given an immunization to \u0002{0}\u0002.",
     "lycan_cured": "You feel as if a curse has been lifted from you... It seems that your lycanthropy is cured and you will no longer become a werewolf if targeted by the wolves!",

@@ -5907,6 +5907,8 @@ def totem(cli, nick, chan, rest, prefix="You"):
         pm(cli, nick, messages["no_acting_on_succubus"].format("give a totem{0} to".format(totem)))
         return
     pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))
+    if role == "wolf shaman":
+        relay_wolfchat_command(cli, nick, messages["shaman_wolfchat"].format(nick, original_victim), ("wolf shaman",), is_wolf_command=True)
     var.SHAMANS[nick] = (victim, original_victim)
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, var.TOTEMS[nick]))
     chk_nightdone(cli)
@@ -6474,14 +6476,14 @@ def relay(cli, nick, chan, rest):
         cli.msg(nick, messages["privmsg_idle_warning"].format(botconfig.CHANNEL))
         var.IDLE_WARNED_PM.add(nick)
 
+    if rest.startswith(botconfig.CMD_CHAR):
+        return
+
     badguys = var.list_players(var.WOLFCHAT_ROLES)
     wolves = var.list_players(var.WOLF_ROLES)
 
     if nick not in pl and var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {nick}
-
-        if rest.startswith(botconfig.CMD_CHAR):
-            return
 
         if rest.startswith("\u0001ACTION"):
             rest = rest[7:-1]
