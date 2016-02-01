@@ -120,8 +120,12 @@ MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16
 
 CARE_BOLD = False
 CARE_COLOR = False
+CARE_STARTSPAM = False
+CARE_STARTSPAM_LIMIT = 3
 KILL_COLOR = False
 KILL_BOLD = False
+KILL_STARTSPAM = False
+KILL_STARTSPAM_LIMIT = 4
 
                          #       HIT    MISS    SUICIDE   HEADSHOT
 GUN_CHANCES              =   (   5/7  ,  1/7  ,   1/7   ,   2/5   )

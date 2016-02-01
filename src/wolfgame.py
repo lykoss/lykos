@@ -7264,9 +7264,17 @@ def start_cmd(cli, nick, chan, rest):
 
 def start(cli, nick, chan, forced = False, restart = ""):
     if (not forced and var.LAST_START and nick in var.LAST_START and
-            var.LAST_START[nick] + timedelta(seconds=var.START_RATE_LIMIT) >
+            var.LAST_START[nick][0] + timedelta(seconds=var.START_RATE_LIMIT) >
             datetime.now() and not restart):
-        cli.notice(nick, messages["command_ratelimited"])
+        var.LAST_START[nick][1] += 1
+        if (var.CARE_STARTSPAM and var.KILL_STARTSPAM and
+                var.LAST_START[nick][1] >= var.KILL_STARTSPAM_LIMIT):
+            cli.send("KICK " + messages["startspam_kick"].format(botconfig.CHANNEL, nick))
+        elif var.CARE_STARTSPAM and var.LAST_START[nick][1] >= var.CARE_STARTSPAM_LIMIT:
+            cli.msg(chan, messages["startspam_warn"].format(nick))
+            cli.notice(nick, messages["command_ratelimited"])
+        else:
+            cli.notice(nick, messages["command_ratelimited"])
         return
 
     if restart:
@@ -7276,7 +7284,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         return
 
     if not restart:
-        var.LAST_START[nick] = datetime.now()
+        var.LAST_START[nick] = [datetime.now(), 1]
 
     if chan != botconfig.CHANNEL:
         return
