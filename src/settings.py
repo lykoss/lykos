@@ -167,10 +167,7 @@ TOTEM_CHANCES = {       "death": (      1      ,        1        ,       0      
                        "deceit": (      0      ,        1        ,       1       ),
                 }
 
-try:
-    GAME_MODES
-except:
-     GAME_MODES = {}
+GAME_MODES = {}
 SIMPLE_NOTIFY = set()  # cloaks of people who !simple, who don't want detailed instructions
 SIMPLE_NOTIFY_ACCS = set() # same as above, except accounts. takes precedence
 PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
