@@ -588,7 +588,7 @@
     "incorrect_syntax": "Incorrect syntax for this command.",
     "command_scheduled": "The command \u0002{0}\u0002 has been scheduled to run after this game by \u0002{1}\u0002.",
     "disable_new_games": "Creating a new game has now been disabled by \u0002{0}\u0002.",
-    "stats_wait_for_game": "Wait until the game is over to view stats.",
+    "stats_wait_for_game_end": "Wait until the game is over to view stats.",
     "invalid_mode_no_list": "{0} is not a valid game mode.",
     "integer_range": "Please enter an integer between {0} and {1}.",
     "no_mode_specified": "No game mode specified. Available game modes: ",

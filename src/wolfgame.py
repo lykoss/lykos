@@ -8663,8 +8663,8 @@ def game_stats(cli, nick, chan, rest):
 
     if chan != nick:
         var.LAST_GSTATS = datetime.now()
-        if var.PHASE not in ("none", "join"):
-            cli.notice(nick, messages["stats_wait_for_game"])
+        if var.PHASE not in ("none", "join") and chan == botconfig.CHANNEL:
+            cli.notice(nick, messages["stats_wait_for_game_end"])
             return
 
     gamemode = var.CURRENT_GAMEMODE.name
