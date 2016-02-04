@@ -1118,6 +1118,14 @@ def deadchat_pref(cli, nick, chan, rest):
 @cmd("join", "j", pm=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
+    # keep this and the event in fjoin() in sync
+    evt = Event("join", {
+        "join_player": join_player,
+        "join_deadchat": join_deadchat,
+        "vote_gamemode": vote_gamemode
+        })
+    if not evt.dispatch(cli, var, nick, chan, rest, forced=False):
+        return
     if var.PHASE in ("none", "join"):
         if chan == nick:
             return
@@ -1125,25 +1133,25 @@ def join(cli, nick, chan, rest):
             if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
                 cli.notice(nick, messages["not_logged_in"])
                 return
-        if join_player(cli, nick, chan) and rest:
-            vote_gamemode(cli, nick, chan, rest.lower().split()[0], False)
+        if evt.data["join_player"](cli, nick, chan) and rest:
+            evt.data["vote_gamemode"](cli, nick, chan, rest.lower().split()[0], False)
 
     else: # join deadchat
         if chan == nick and nick != botconfig.NICK:
-            join_deadchat(cli, nick)
+            evt.data["join_deadchat"](cli, nick)
 
-def join_player(cli, player, chan, who = None, forced = False):
+def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
     if who is None:
         who = player
 
     pl = var.list_players()
     if chan != botconfig.CHANNEL:
-        return
+        return False
 
     if not var.OPPED:
         cli.notice(who, messages["bot_not_opped"].format(chan))
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
-        return
+        return False
 
     if player in var.USERS:
         ident = var.USERS[player]["ident"]
@@ -1155,7 +1163,7 @@ def join_player(cli, player, chan, who = None, forced = False):
         host = None
         acc = None
     else:
-        return # Not normal
+        return False # Not normal
     if not acc or acc == "*" or var.DISABLE_ACCOUNTS:
         acc = None
 
@@ -1174,11 +1182,10 @@ def join_player(cli, player, chan, who = None, forced = False):
             cli.notice(who, messages["stasis"].format(
                 "you are" if player == who else player + " is", stasis,
                 "s" if stasis != 1 else ""))
-            return
+            return False
 
     cmodes = [("+v", player)]
     if var.PHASE == "none":
-
         if var.AUTO_TOGGLE_MODES and player in var.USERS and var.USERS[player]["modes"]:
             for mode in var.USERS[player]["modes"]:
                 cmodes.append(("-"+mode, player))
@@ -1210,13 +1217,16 @@ def join_player(cli, player, chan, who = None, forced = False):
 
     elif player in pl:
         cli.notice(who, messages["already_playing"].format("You" if who == player else "They"))
-        return True
+        # if we're not doing insane stuff, return True so that one can use !join to vote for a game mode
+        # even if they are already joined. If we ARE doing insane stuff, return False to indicate that
+        # the player was not successfully joined by this call.
+        return sanity
     elif len(pl) >= var.MAX_PLAYERS:
         cli.notice(who, messages["too_many_players"])
-        return
-    elif var.PHASE != "join":
+        return False
+    elif sanity and var.PHASE != "join":
         cli.notice(who, messages["game_already_running"])
-        return
+        return False
     else:
         if acc is not None and not botconfig.DEBUG_MODE:
             for user in pl:
@@ -1228,7 +1238,6 @@ def join_player(cli, player, chan, who = None, forced = False):
                         cli.notice(who, msg.format(user, "their", ""))
                     return
 
-        var.ROLES["person"].add(player)
         var.ALL_PLAYERS.append(player)
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
             if var.AUTO_TOGGLE_MODES and var.USERS[player]["modes"]:
@@ -1238,6 +1247,13 @@ def join_player(cli, player, chan, who = None, forced = False):
                 var.USERS[player]["modes"] = set()
             mass_mode(cli, cmodes, [])
             cli.msg(chan, messages["player_joined"].format(player, len(pl) + 1))
+        if not sanity:
+            # Abandon Hope All Ye Who Enter Here
+            leave_deadchat(cli, player)
+            var.SPECTATING_DEADCHAT.discard(player)
+            var.SPECTATING_WOLFCHAT.discard(player)
+            return True
+        var.ROLES["person"].add(player)
         if not is_fake_nick(player):
             hostmask = ident + "@" + host
             if hostmask not in var.JOINED_THIS_GAME and (not acc or acc not in var.JOINED_THIS_GAME_ACCS):
@@ -1287,9 +1303,17 @@ def kill_join(cli, chan):
         var.AFTER_FLASTGAME = None
 
 
-@cmd("fjoin", admin_only=True, phases=("none", "join"))
+@cmd("fjoin", admin_only=True)
 def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
+    # keep this and the event in def join() in sync
+    evt = Event("join", {
+        "join_player": join_player,
+        "join_deadchat": join_deadchat,
+        "vote_gamemode": vote_gamemode
+        })
+    if not evt.dispatch(cli, var, nick, chan, rest, forced=True):
+        return
     noticed = False
     fake = False
     if not var.OPPED:
@@ -1297,7 +1321,7 @@ def fjoin(cli, nick, chan, rest):
         cli.msg("ChanServ", "op " + botconfig.CHANNEL)
         return
     if not rest.strip():
-        join_player(cli, nick, chan, forced=True)
+        evt.data["join_player"](cli, nick, chan, forced=True)
 
     for tojoin in re.split(" +",rest):
         tojoin = tojoin.strip()
@@ -1309,7 +1333,7 @@ def fjoin(cli, nick, chan, rest):
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    join_player(cli, str(i), chan, forced=True, who=nick)
+                    evt.data["join_player"](cli, str(i), chan, forced=True, who=nick)
                 continue
         if not tojoin:
             continue
@@ -1330,7 +1354,7 @@ def fjoin(cli, nick, chan, rest):
         elif botconfig.DEBUG_MODE:
             fake = True
         if tojoin != botconfig.NICK:
-            join_player(cli, tojoin, chan, forced=True, who=nick)
+            evt.data["join_player"](cli, tojoin, chan, forced=True, who=nick)
         else:
             cli.notice(nick, messages["not_allowed"])
     if fake:
@@ -6636,7 +6660,7 @@ def transition_night(cli):
             var.ROLES[chumprole].remove(chump)
             var.ROLES[newrole].add(chump)
             var.FINAL_ROLES[chump] = newrole
-            relay_wolfchat_command(cli, chump, messages["bitten_turn_wolfchat"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+            relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
     # convert amnesiac
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:

@@ -24,12 +24,12 @@ class Event:
         self.name = name
         self.data = data
 
-    def dispatch(self, *args):
+    def dispatch(self, *args, **kwargs):
         if self.name not in EVENT_CALLBACKS:
             return True
 
         for item in list(EVENT_CALLBACKS[self.name]):
-            item[1](self, *args)
+            item[1](self, *args, **kwargs)
             if self.stop_processing:
                 break
 

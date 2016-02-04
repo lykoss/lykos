@@ -432,7 +432,7 @@
     "day_lasted": "Day lasted \u0002{0:0>2}:{1:0>2}\u0002. ",
     "fallen_angel_turn": "As the moonlight filters through your window, you think back on the past few days. Your power has been growing, but the villagers you protect subconsciously detected your shift and have been keeping more distant from you. Grinning with wicked resolve, you vow to show them what fools they have been as you take to the skies once more with an unholy vengeance. Soon they will know true fear.",
     "bitten_turn": "As you prepare for bed, you watch in horror as your body starts growing a coat of fur! Sudden realization hits you as you grin with your now muzzled face; that mysterious bite earlier slowly changed you into a werewolf! You feel bigger, stronger, faster, and ready to seize the night as you stealthily exit your home and search for the rest of your pack...",
-    "bitten_turn_wolfchat": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
+    "wolfchat_new_member": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
     "amnesia_clear": "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!",
     "amnesia_wolfchat": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
     "wolf_notify": "You are a \u0002wolf\u0002. It is your job to kill all the villagers. Use \"kill <nick>\" to kill a villager.",

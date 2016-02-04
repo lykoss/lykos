@@ -1055,14 +1055,63 @@ class MaelstromMode(GameMode):
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALWAYS_PM_ROLE = True
+        # clone is pointless in this mode
+        # dullahan doesn't really work in this mode either, if enabling anyway special logic to determine kill list
+        # needs to be added above for when dulls are added during the game
+        # matchmaker is conditionally enabled during night 1 only
+        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker"})
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
         events.add_listener("transition_night_begin", self.transition_night_begin)
+        events.add_listener("join", self.on_join)
 
     def teardown(self):
         events.remove_listener("role_attribution", self.role_attribution)
         events.remove_listener("transition_night_begin", self.transition_night_begin)
+        events.remove_listener("join", self.on_join)
+
+    def on_join(self, evt, cli, var, nick, chan, rest, forced=False):
+        if var.PHASE != "day" or (nick != chan and chan != botconfig.CHANNEL):
+            return
+        if not forced and evt.data["join_player"](cli, nick, botconfig.CHANNEL, sanity=False):
+            self._on_join(cli, var, nick, chan)
+            evt.prevent_default = True
+        elif forced:
+            # in fjoin, handle this differently
+            jp = evt.data["join_player"]
+            evt.data["join_player"] = lambda cli, nick, chan, who=None, forced=False: jp(cli, nick, chan, who=who, forced=forced, sanity=False) and self._on_join(cli, var, nick, chan)
+
+    def _on_join(self, cli, var, nick, chan):
+        role = random.choice(self.roles)
+        var.ROLES[role].add(nick)
+        var.ORIGINAL_ROLES[role].add(nick)
+        var.FINAL_ROLES[nick] = role
+        if role == "doctor":
+            lpl = len(var.list_players())
+            var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
+        # let them know their role
+        # FIXME: this is fugly
+        from src.decorators import COMMANDS
+        COMMANDS["myrole"][0].caller(cli, nick, chan, "")
+        # if they're a wolfchat role, alert the other wolves
+        if role in var.WOLFCHAT_ROLES:
+            relay_wolfchat_command(cli, nick, messages["wolfchat_new_member"].format(nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
+            # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
+            wolves = var.list_players(var.WOLFCHAT_ROLES)
+            pl = var.list_players()
+            random.shuffle(pl)
+            pl.remove(nick)
+            for i, player in enumerate(pl):
+                prole = var.get_role(player)
+                if prole in var.WOLFCHAT_ROLES:
+                    cursed = ""
+                    if player in var.ROLES["cursed villager"]:
+                        cursed = "cursed "
+                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                elif player in var.ROLES["cursed villager"]:
+                    pl[i] = player + " (cursed)"
+            pm(cli, nick, "Players: " + ", ".join(pl))
 
     def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
         self.chk_win_conditions = chk_win_conditions
@@ -1112,13 +1161,10 @@ class MaelstromMode(GameMode):
 
         wolves = var.WOLF_ROLES - {"wolf cub"}
         addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
-        # clone is pointless in this mode
-        # dullahan doesn't really work in this mode either, if enabling anyway special logic to determine kill list
-        # needs to be added above for when dulls are added during the game
-        roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan"})
-        if not do_templates:
+        roles = self.roles[:]
+        if do_templates:
             # mm only works night 1, do_templates is also only true n1
-            roles.remove("matchmaker")
+            self.roles.append("matchmaker")
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
