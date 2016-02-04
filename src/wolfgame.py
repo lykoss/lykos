@@ -9219,7 +9219,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
 
-    @cmd("frole", admin_only=True)
+    @cmd("frole", admin_only=True, phases=("day", "night"))
     def frole(cli, nick, chan, rest):
         """Change the role or template of a player."""
         rst = re.split(" +",rest)
@@ -9311,14 +9311,13 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["invalid_role"])
             return
         cli.msg(chan, messages["operation_successful"])
-        if var.PHASE not in ("none", "join"):
-            # default stats determination does not work if we're mucking with !frole
-            if var.STATS_TYPE == "default":
-                var.ORIGINAL_SETTINGS["STATS_TYPE"] = var.STATS_TYPE
-                var.STATS_TYPE = "accurate"
+        # default stats determination does not work if we're mucking with !frole
+        if var.STATS_TYPE == "default":
+            var.ORIGINAL_SETTINGS["STATS_TYPE"] = var.STATS_TYPE
+            var.STATS_TYPE = "accurate"
 
-                cli.msg(chan, messages["stats_accurate"].format(botconfig.CMD_CHAR))
-            chk_win(cli)
+            cli.msg(chan, messages["stats_accurate"].format(botconfig.CMD_CHAR))
+        chk_win(cli)
 
 
 if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
