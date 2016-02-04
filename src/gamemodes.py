@@ -1074,6 +1074,9 @@ class MaelstromMode(GameMode):
     def on_join(self, evt, cli, var, nick, chan, rest, forced=False):
         if var.PHASE != "day" or (nick != chan and chan != botconfig.CHANNEL):
             return
+        if nick in var.ALL_PLAYERS:
+            cli.notice(nick, messages["maelstrom_dead"])
+            return
         if not forced and evt.data["join_player"](cli, nick, botconfig.CHANNEL, sanity=False):
             self._on_join(cli, var, nick, chan)
             evt.prevent_default = True
@@ -1087,6 +1090,20 @@ class MaelstromMode(GameMode):
         var.ROLES[role].add(nick)
         var.ORIGINAL_ROLES[role].add(nick)
         var.FINAL_ROLES[nick] = role
+
+        lpl = len(var.list_players())
+        lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+        lcubs = len(var.ROLES["wolf cub"])
+        lrealwolves = len(var.list_players(var.WOLF_ROLES)) - lcubs
+        lmonsters = len(var.ROLES["monster"])
+        ldemoniacs = len(var.ROLES["demoniac"])
+        ltraitors = len(var.ROLES["traitor"])
+        lpipers = len(var.ROLES["piper"])
+        lsuccubi = len(var.ROLES["succubus"])
+
+        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
+            return self._on_join(cli, var, nick, chan)
+
         if role == "doctor":
             lpl = len(var.list_players())
             var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
