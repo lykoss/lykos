@@ -1164,7 +1164,7 @@ class MaelstromMode(GameMode):
         roles = self.roles[:]
         if do_templates:
             # mm only works night 1, do_templates is also only true n1
-            self.roles.append("matchmaker")
+            roles.append("matchmaker")
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
