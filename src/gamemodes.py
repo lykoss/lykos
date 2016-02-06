@@ -2,6 +2,7 @@ import random
 import math
 import threading
 import copy
+from datetime import datetime
 from collections import OrderedDict
 
 import botconfig
@@ -1087,11 +1088,8 @@ class MaelstromMode(GameMode):
 
     def _on_join(self, cli, var, nick, chan):
         role = random.choice(self.roles)
-        var.ROLES[role].add(nick)
-        var.ORIGINAL_ROLES[role].add(nick)
-        var.FINAL_ROLES[nick] = role
 
-        lpl = len(var.list_players())
+        lpl = len(var.list_players()) + 1
         lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
         lcubs = len(var.ROLES["wolf cub"])
         lrealwolves = len(var.list_players(var.WOLF_ROLES)) - lcubs
@@ -1101,8 +1099,30 @@ class MaelstromMode(GameMode):
         lpipers = len(var.ROLES["piper"])
         lsuccubi = len(var.ROLES["succubus"])
 
+        if role in var.WOLFCHAT_ROLES:
+            lwolves += 1
+            if role == "wolf cub":
+                lcubs += 1
+            elif role == "traitor":
+                ltraitors += 1
+            elif role in var.WOLF_ROLES:
+                lrealwolves += 1
+        elif role == "monster":
+            lmonsters += 1
+        elif role == "demoniac":
+            ldemoniacs += 1
+        elif role == "piper":
+            lpipers += 1
+        elif role == "succubus":
+            lsuccubi += 1
+
         if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
             return self._on_join(cli, var, nick, chan)
+
+        var.ROLES[role].add(nick)
+        var.ORIGINAL_ROLES[role].add(nick)
+        var.FINAL_ROLES[nick] = role
+        var.LAST_SAID_TIME[nick] = datetime.now()
 
         if role == "doctor":
             lpl = len(var.list_players())
