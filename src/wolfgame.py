@@ -5674,7 +5674,6 @@ def pray(cli, nick, chan, rest):
         valid_roles = set(r for r, p in var.ROLES.items() if p) | set(r for p, r in var.AMNESIAC_ROLES.items() if p in pl)
 
         if role in valid_roles:
-            # looking for a specific role, as opposed to whatever we decide to randomly give them
             # this sees through amnesiac, so the amnesiac's final role counts as their role
             # also, if we're the only person with that role, say so and don't allow a second vision
             people = set(var.ROLES[role]) | set(p for p, r in var.AMNESIAC_ROLES.items() if p in pl and r == role)
@@ -5703,7 +5702,9 @@ def pray(cli, nick, chan, rest):
             if target not in half:
                 half[0] = target
             random.shuffle(half)
-            if len(half) > 1:
+            # if prophet never reveals, there is no point making them pray twice,
+            # so just give them the player the first time around
+            if len(half) > 1 and (var.PROPHET_REVEALED_CHANCE[0] > 0 or var.PROPHET_REVEALED_CHANCE[1] > 0):
                 msg = messages["vision_players"].format(role)
                 if len(half) > 2:
                     msg += "{0}, and {1}.".format(", ".join(half[:-1]), half[-1])
@@ -5717,6 +5718,7 @@ def pray(cli, nick, chan, rest):
                     var.PRAYED[nick][0] = 2
             else:
                 # only one, go straight to second chance
+                var.PRAYED[nick][0] = 2
                 pm(cli, nick, messages["vision_role"].format(target, role))
                 debuglog("{0} ({1}) PRAY {2} ({3}) - FULL".format(nick, var.get_role(nick), role, target))
                 if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
@@ -6871,13 +6873,15 @@ def transition_night(cli):
     for pht in var.ROLES["prophet"]:
         chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)
         chance2 = math.floor(var.PROPHET_REVEALED_CHANCE[1] * 100)
-        warning = ""
-        if chance1 > 0:
-            warning = messages["prophet_chance_1"].format(chance1)
-        if chance2 > 0:
-            warning += messages["prophet_chance_2"].format(chance2).format(chance2)
+        an1 = "n" if chance1 >= 80 and chance1 < 90 else ""
+        an2 = "n" if chance2 >= 80 and chance2 < 90 else ""
         if pht in var.PLAYERS and not is_user_simple(pht):
-            pm(cli, pht, messages["prophet_notify"].format(warning))
+            if chance1 > 0:
+                pm(cli, pht, messages["prophet_notify_both"].format(an1, chance1, an2, chance2))
+            elif chance2 > 0:
+                pm(cli, pht, messages["prophet_notify_second"].format(an2, chance2))
+            else:
+                pm(cli, pht, messages["prophet_notify_none"])
         else:
             pm(cli, pht, messages["prophet_simple"])
 
