@@ -3715,6 +3715,7 @@ def leave(cli, what, nick, why=""):
         else:
             msg = (messages["account_death_no_reveal_2"] + "{1}").format(nick, population)
     elif what != "kick":
+        cli.msg(nick, messages["part_grace_time_notice"].format(botconfig.CHANNEL, var.PART_GRACE_TIME))
         msg = messages["player_missing"].format(nick)
         killplayer = False
     else:

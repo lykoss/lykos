@@ -228,6 +228,7 @@
         "headbutts"
     ],
     "goat_success": "\u0002{0}\u0002's goat walks by and {1} \u0002{2}\u0002.",
+    "part_grace_time_notice": "It appears you have left {0}. Please rejoin within {1} seconds or you will be declared dead.",
     "player_missing": "\u0002{0}\u0002 has gone missing.",
     "leave_death": "\u0002{0}\u0002 died due to falling off a cliff. The \u0002{1}\u0002 is lost to the ravine forever.",
     "leave_death_no_reveal": "\u0002{0}\u0002 died due to falling off a cliff.",
