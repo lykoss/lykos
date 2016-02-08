@@ -2205,6 +2205,7 @@ def chk_decision(cli, force = ""):
                         cli.msg(botconfig.CHANNEL, lmsg)
                         if chk_win(cli, winner="@" + votee):
                             return
+                    deadlist = [votee]
                     # roles that eliminate other players upon being lynched
                     # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
                     if votee in var.DESPERATE:
@@ -2219,7 +2220,8 @@ def chk_decision(cli, force = ""):
                                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
                             cli.msg(botconfig.CHANNEL, tmsg)
                             # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
-                            del_player(cli, target, True, end_game=False, killer_role="shaman", ismain=False) # do not end game just yet, we have more killin's to do!
+                            deadlist.append(target)
+                            del_player(cli, target, True, end_game=False, killer_role="shaman", deadlist=deadlist, original=target, ismain=False) # do not end game just yet, we have more killin's to do!
                     # Other
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
@@ -2250,7 +2252,7 @@ def chk_decision(cli, force = ""):
                 cli.msg(botconfig.CHANNEL, lmsg)
                 if aftermessage != None:
                     cli.msg(botconfig.CHANNEL, aftermessage)
-                if del_player(cli, votee, True, killer_role="villager"):
+                if del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
                     transition_night(cli)
                 break
 
@@ -2896,7 +2898,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                         message = messages["assassin_fail_bodyguard"].format(nick, target, ga)
                                         cli.msg(botconfig.CHANNEL, message)
                                         del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
-                                        pl.remove(ga)
+                                        pl = refresh_pl(pl)
                                         break
                             elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
                                 if "blessing" in var.ACTIVE_PROTECTIONS[target]:
@@ -2930,7 +2932,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 if var.GUARDED.get(bg) == target:
                                     cli.msg(botconfig.CHANNEL, messages["dullahan_die_bodyguard"].format(nick, target, bg))
                                     del_player(cli, bg, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
-                                    pl.remove(bg)
+                                    pl = refresh_pl(pl)
                                     break
                         elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
                             if "blessing" in var.ACTIVE_PROTECTIONS[target]:
