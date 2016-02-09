@@ -3455,6 +3455,8 @@ def rename_player(cli, prefix, nick):
         if prefix in var.SPECTATING_WOLFCHAT:
             var.SPECTATING_WOLFCHAT.remove(prefix)
             var.SPECTATING_WOLFCHAT.add(nick)
+
+    if var.PHASE in ("join", "day", "night"):
         if prefix in var.ALL_PLAYERS:
             # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
             # it also needs updating after death to disallow epic breakages
