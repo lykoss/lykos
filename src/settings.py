@@ -190,7 +190,7 @@ STASISED_ACCS = defaultdict(int)
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
-ROLE_INDEX =                      (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )
+ROLE_INDEX =                       (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )
 ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code rely on this order!
              # wolf roles
              ("wolf"             , (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  )),
@@ -401,7 +401,7 @@ def plural(role, count=2):
     return " ".join(bits)
 
 def list_players(roles = None):
-    if roles == None:
+    if roles is None:
         roles = ROLES.keys()
     pl = set()
     for x in roles:
