@@ -3457,12 +3457,6 @@ def rename_player(cli, prefix, nick):
             var.SPECTATING_WOLFCHAT.remove(prefix)
             var.SPECTATING_WOLFCHAT.add(nick)
 
-    if var.PHASE in ("join", "day", "night"):
-        if prefix in var.ALL_PLAYERS:
-            # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
-            # it also needs updating after death to disallow epic breakages
-            var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
-
     event = Event("rename_player", {})
     event.dispatch(cli, var, prefix, nick)
 
@@ -3474,6 +3468,10 @@ def rename_player(cli, prefix, nick):
         for t in tpls:
             var.ROLES[t].add(nick)
             var.ROLES[t].remove(prefix)
+
+        if prefix in var.ALL_PLAYERS:
+            # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
+            var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
 
         if var.PHASE in ("night", "day"):
             for k,v in var.ORIGINAL_ROLES.items():
@@ -3621,6 +3619,10 @@ def rename_player(cli, prefix, nick):
                 if prefix in var.START_VOTES:
                     var.START_VOTES.discard(prefix)
                     var.START_VOTES.add(nick)
+
+    elif prefix in var.ALL_PLAYERS:
+        # this needs updating after death to disallow epic breakages
+        var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
 
     # Check if player was disconnected
     if var.PHASE in ("night", "day"):
