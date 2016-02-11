@@ -2104,6 +2104,7 @@ def chk_decision(cli, force = ""):
         avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
         votesneeded = avail // 2 + 1
         not_lynching = list(var.NO_LYNCH)
+        deadlist = []
         for p in var.PACIFISTS:
             if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
                 not_lynching.append(p)
@@ -2205,7 +2206,7 @@ def chk_decision(cli, force = ""):
                         cli.msg(botconfig.CHANNEL, lmsg)
                         if chk_win(cli, winner="@" + votee):
                             return
-                    deadlist = [votee]
+                    deadlist.append(votee)
                     # roles that eliminate other players upon being lynched
                     # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
                     if votee in var.DESPERATE:
