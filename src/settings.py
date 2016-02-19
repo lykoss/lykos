@@ -168,6 +168,7 @@ TOTEM_CHANCES = {       "death": (      1      ,        1        ,       0      
                 }
 
 GAME_MODES = {}
+GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 SIMPLE_NOTIFY = set()  # cloaks of people who !simple, who don't want detailed instructions
 SIMPLE_NOTIFY_ACCS = set() # same as above, except accounts. takes precedence
 PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd

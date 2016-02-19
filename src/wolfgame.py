@@ -464,7 +464,7 @@ def sync_modes(cli):
             voices.append(("+v", nick))
         elif nick not in pl and "v" in u.get("modes", set()):
             voices.append(("-v", nick))
-    if var.PHASE in ("day", "night"):
+    if var.PHASE in var.GAME_PHASES:
         other = ["+m"]
     else:
         other = ["-m"]
@@ -476,7 +476,7 @@ def sync_modes(cli):
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
-    if var.PHASE in ("day", "night"):
+    if var.PHASE in var.GAME_PHASES:
         try:
             stop_game(cli)
         except Exception:
@@ -524,7 +524,7 @@ def _restart_program(cli, mode=None):
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
-    if var.PHASE in ("day", "night"):
+    if var.PHASE in var.GAME_PHASES:
         try:
             stop_game(cli)
         except Exception:
@@ -793,7 +793,7 @@ def replace(cli, nick, chan, rest):
     if var.USERS[target]["account"] == account and nick != target:
         rename_player(cli, target, nick)
         # Make sure to remove player from var.DISCONNECTED if they were in there
-        if var.PHASE in ("day", "night"):
+        if var.PHASE in var.GAME_PHASES:
             return_to_village(cli, chan, target, False)
 
         mass_mode(cli, [("-v", target), ("+v", nick)], [])
@@ -1126,7 +1126,7 @@ def join(cli, nick, chan, rest):
         })
     if not evt.dispatch(cli, var, nick, chan, rest, forced=False):
         return
-    if var.PHASE in ("none", "join"):
+    if var.PHASE in var.GAME_PHASES:
         if chan == nick:
             return
         if var.ACCOUNTS_ONLY:
@@ -2800,7 +2800,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 pl.remove(nick)
             # handle roles that trigger on death
             # clone happens regardless of death_triggers being true or not
-            if var.PHASE in ("night", "day"):
+            if var.PHASE in var.GAME_PHASES:
                 clones = copy.copy(var.ROLES["clone"])
                 for clone in clones:
                     if clone in var.CLONED and clone not in deadlist:
@@ -2859,7 +2859,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if nickrole == "clone" and nick in var.CLONED:
                     del var.CLONED[nick]
 
-            if death_triggers and var.PHASE in ("night", "day"):
+            if death_triggers and var.PHASE in var.GAME_PHASES:
                 if nick in var.LOVERS:
                     others = var.LOVERS[nick].copy()
                     var.LOVERS[nick].clear()
@@ -3100,7 +3100,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
 
             pl = refresh_pl(pl)
             event = Event("del_player", {"pl": pl})
-            event.dispatch(cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers and var.PHASE in ("night", "day"), killer_role, deadlist, original, ismain, refresh_pl)
+            event.dispatch(cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers and var.PHASE in var.GAME_PHASES, killer_role, deadlist, original, ismain, refresh_pl)
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
@@ -3139,7 +3139,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if ret:
                     join_deadchat(cli, *deadchat)
                 del deadchat[:]
-            if var.PHASE in ("night", "day"):
+            if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
                 if ret:
                     for a,b in list(var.KILLS.items()):
@@ -3443,7 +3443,7 @@ def return_to_village(cli, chan, nick, show_message):
 def rename_player(cli, prefix, nick):
     chan = botconfig.CHANNEL
 
-    if var.PHASE in ("night", "day"):
+    if var.PHASE in var.GAME_PHASES:
         if prefix in var.ENTRANCED: # need to update this after death, too
             var.ENTRANCED.remove(prefix)
             var.ENTRANCED.add(nick)
@@ -3474,7 +3474,7 @@ def rename_player(cli, prefix, nick):
         # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
         var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
 
-        if var.PHASE in ("night", "day"):
+        if var.PHASE in var.GAME_PHASES:
             for k,v in var.ORIGINAL_ROLES.items():
                 if prefix in v:
                     var.ORIGINAL_ROLES[k].remove(prefix)
@@ -3622,7 +3622,7 @@ def rename_player(cli, prefix, nick):
                     var.START_VOTES.add(nick)
 
     # Check if player was disconnected
-    if var.PHASE in ("night", "day"):
+    if var.PHASE in var.GAME_PHASES:
         return_to_village(cli, chan, nick, True)
 
     if prefix in var.NO_LYNCH:
@@ -3765,7 +3765,7 @@ def leave_game(cli, nick, chan, rest):
                 return
             population = ""
     elif chan == nick:
-        if var.PHASE in ("day", "night") and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
+        if var.PHASE in var.GAME_PHASES and nick not in var.list_players() and nick in var.DEADCHAT_PLAYERS:
             leave_deadchat(cli, nick)
         return
 
@@ -8208,7 +8208,7 @@ def reset_game(cli, nick, chan, rest):
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
-    if (var.PHASE in ("day", "night") and nick not in var.list_players()) and chan != botconfig.CHANNEL:
+    if (var.PHASE in var.GAME_PHASES and nick not in var.list_players()) and chan != botconfig.CHANNEL:
         cli.notice(nick, var.RULES)
         return
     cli.msg(chan, var.RULES)
@@ -8357,7 +8357,7 @@ def show_admins(cli, nick, chan, rest):
         cli.notice(nick, messages["command_ratelimited"])
         return
 
-    if chan != nick or (var.PHASE in ("day", "night") or nick in pl):
+    if chan != nick or (var.PHASE in var.GAME_PHASES or nick in pl):
         var.LAST_ADMINS = datetime.now()
 
     if var.ADMIN_PINGING:
@@ -8384,7 +8384,7 @@ def show_admins(cli, nick, chan, rest):
 
         if chan == nick:
             pm(cli, nick, msg)
-        elif var.PHASE in ("day", "night") and nick not in pl:
+        elif var.PHASE in var.GAME_PHASES and nick not in pl:
             cli.notice(nick, msg)
         else:
             cli.msg(chan, msg)
@@ -8480,7 +8480,7 @@ def listroles(cli, nick, chan, rest):
     #prepend player count if called without any arguments
     elif not rest[0] and lpl > 0:
         msg.append("{0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if lpl == 1 else "are", lpl))
-        if var.PHASE in ["night", "day"]:
+        if var.PHASE in var.GAME_PHASES:
             msg.append("Using the {0} game mode.".format(var.CURRENT_GAMEMODE.name))
             rest = [str(lpl)]
 
