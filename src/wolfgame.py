@@ -2105,6 +2105,7 @@ def chk_decision(cli, force = ""):
         votesneeded = avail // 2 + 1
         not_lynching = list(var.NO_LYNCH)
         deadlist = []
+        votelist = copy.deepcopy(var.VOTES)
         for p in var.PACIFISTS:
             if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
                 not_lynching.append(p)
@@ -2116,6 +2117,20 @@ def chk_decision(cli, force = ""):
 
         # remove duplicates
         not_lynching = set(not_lynching)
+
+        # fire off an event (right now if people want to mess with votes, they need to reimplement all the impatience/pacifism stuff)
+        event = Event("chk_decision", {
+            "avail": avail,
+            "votesneeded": votesneeded,
+            "not_lynching": not_lynching,
+            "votelist": votelist,
+            "transition_night": transition_night
+            })
+        event.dispatch(cli, var, force)
+        avail = event.data["avail"]
+        votesneeded = event.data["votesneeded"]
+        not_lynching = event.data["not_lynching"]
+        votelist = event.data["votelist"]
 
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
@@ -2129,10 +2144,9 @@ def chk_decision(cli, force = ""):
             else:
                 var.ENTRANCED_DYING.update(var.ENTRANCED & var.NO_LYNCH)
             var.ABSTAINED = True
-            transition_night(cli)
+            event.data["transition_night"](cli)
             return
         aftermessage = None
-        votelist = copy.deepcopy(var.VOTES)
         for votee, voters in votelist.items():
             if votee in var.ROLES["succubus"]:
                 for vtr in var.ENTRANCED:
@@ -2254,7 +2268,7 @@ def chk_decision(cli, force = ""):
                 if aftermessage != None:
                     cli.msg(botconfig.CHANNEL, aftermessage)
                 if del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
-                    transition_night(cli)
+                    event.data["transition_night"](cli)
                 break
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
@@ -3865,7 +3879,7 @@ def night_warn(cli, gameid):
     if gameid != var.NIGHT_ID:
         return
 
-    if var.PHASE == "day":
+    if var.PHASE != "night":
         return
 
     cli.msg(botconfig.CHANNEL, (messages["twilight_warning"]))
@@ -4641,13 +4655,13 @@ def transition_day(cli, gameid=0):
         message.append(messages["totem_broken"].format(brokentotem))
     cli.msg(chan, "\n".join(message))
 
-    event_end = Event("transition_day_end", {})
+    event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(cli, var)
 
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
 
-    begin_day(cli)
+    event_end.data["begin_day"](cli)
 
 @proxy.impl
 def chk_nightdone(cli):
@@ -4720,7 +4734,7 @@ def chk_nightdone(cli):
         elif tu[1] < var.NIGHT_COUNT - 1:
             nightroles.append(tc)
 
-    event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles})
+    event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(cli, var)
     actedcount = event.data["actedcount"]
 
@@ -4753,7 +4767,7 @@ def chk_nightdone(cli):
 
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
-            transition_day(cli)
+            event.data["transition_day"](cli)
 
 @cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
 def no_lynch(cli, nick, chan, rest):
