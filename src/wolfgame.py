@@ -1126,7 +1126,7 @@ def join(cli, nick, chan, rest):
         })
     if not evt.dispatch(cli, var, nick, chan, rest, forced=False):
         return
-    if var.PHASE in var.GAME_PHASES:
+    if var.PHASE in ("none", "join"):
         if chan == nick:
             return
         if var.ACCOUNTS_ONLY:
