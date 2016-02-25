@@ -1060,7 +1060,8 @@ class MaelstromMode(GameMode):
         # dullahan doesn't really work in this mode either, if enabling anyway special logic to determine kill list
         # needs to be added above for when dulls are added during the game
         # matchmaker is conditionally enabled during night 1 only
-        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker"})
+        # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
+        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac"})
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
