@@ -3381,9 +3381,14 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
                     var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
     if nick == botconfig.NICK:
         var.OPPED = False
+        cli.send("NAMES " + chan)
     if nick == "ChanServ" and not var.OPPED:
         cli.msg("ChanServ", "op " + chan)
 
+@hook("namreply")
+def on_names(cli, _, __, *names):
+    if "@" + botconfig.NICK in names:
+        var.OPPED = True
 
 @cmd("goat", playing=True, phases=("day",))
 def goat(cli, nick, chan, rest):
