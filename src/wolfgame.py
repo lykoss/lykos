@@ -260,7 +260,8 @@ def connect_callback(cli):
                 cli.mode(botconfig.CHANNEL, var.QUIET_MODE)  # unquiet all
         elif modeaction == "-o" and target == botconfig.NICK:
             var.OPPED = False
-            cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+            if var.CHANSERV_OP_COMMAND:
+                cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
 
     if var.DISABLE_ACCOUNTS:
@@ -1150,7 +1151,8 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
 
     if not var.OPPED:
         cli.notice(who, messages["bot_not_opped"].format(chan))
-        cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+        if var.CHANSERV_OP_COMMAND:
+            cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
         return False
 
     if player in var.USERS:
@@ -1318,7 +1320,8 @@ def fjoin(cli, nick, chan, rest):
     fake = False
     if not var.OPPED:
         cli.notice(nick, messages["bot_not_opped"].format(chan))
-        cli.msg("ChanServ", "op " + botconfig.CHANNEL)
+        if var.CHANSERV_OP_COMMAND:
+            cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
         return
     if not rest.strip():
         evt.data["join_player"](cli, nick, chan, forced=True)
@@ -1420,8 +1423,8 @@ def fstart(cli, nick, chan, rest):
 def on_kicked(cli, nick, chan, victim, reason):
     if victim == botconfig.NICK:
         cli.join(chan)
-        if chan == botconfig.CHANNEL:
-            cli.msg("ChanServ", "op "+botconfig.CHANNEL)
+        if chan == botconfig.CHANNEL and var.CHANSERV_OP_COMMAND:
+            cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
     if var.AUTO_TOGGLE_MODES and victim in var.USERS:
         var.USERS[victim]["modes"] = set()
         var.USERS[victim]["moded"] = set()
@@ -3382,8 +3385,8 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     if nick == botconfig.NICK:
         var.OPPED = False
         cli.send("NAMES " + chan)
-    if nick == "ChanServ" and not var.OPPED:
-        cli.msg("ChanServ", "op " + chan)
+    if nick == var.CHANSERV and not var.OPPED and var.CHANSERV_OP_COMMAND:
+        cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
 @hook("namreply")
 def on_names(cli, _, __, *names):
