@@ -31,7 +31,9 @@
         "PING! {nick}",
         "I'm sorry Dave, I'm afraid I can't do that.",
         "Give me a ping, Vasily. One ping only, please.",
-        "Would you people please leave me alone? Seriously."
+        "Would you people please leave me alone? Seriously.",
+        "Did you know the plural of lykos is lykoi?",
+        "42. Sorry, what was your question?"
     ],
     "lynch_reveal": [
         "The villagers, after much debate, finally decide on lynching \u0002{0}\u0002, who turned out to be... a{1} \u0002{2}\u0002.",
@@ -48,7 +50,11 @@
         "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, pulls the pin on a grenade. They hesitate, and it explodes, killing them.",
         "Before the rope is pulled, \u0002{0}\u0002, a{1} \u0002{2}\u0002, throws a grenade at the mob. The grenade explodes early.",
         "Uttering a chilling war cry, the villagers drag \u0002{0}\u0002 to the edge of a cliff and throw them off. The cliff face is now covered with the leftover remains of the late \u0002{2}\u0002.",
-        "For SCIENCE, the villagers throw \u0002{0}\u0002 into a volcano. They discover the melting point of a{1} \u0002{2}\u0002 is less than that of lava."
+        "For SCIENCE, the villagers throw \u0002{0}\u0002 into a volcano. They discover the melting point of a{1} \u0002{2}\u0002 is less than that of lava.",
+        "The villagers drag \u0002{0}\u0002 to a guillotine. A whirring sound later, the \u0002{2}\u0002 is no more.",
+        "The villagers drag \u0002{0}\u0002 to the gallows. As they splutter their last words, the gallow collapses, burying the \u0002{2}\u0002 under rubble.",
+        "In the chaotic scenes of the lynch mob, \u0002{0}\u0002 manages to grab someone's gun. Before the \u0002{2}\u0002 is able to fire the weapon, it explodes, killing them.",
+        "Lusting for revenge, the village bans \u0002{0}\u0002 into exile, where the \u0002{2}\u0002 gets mauled by wild animals."
     ],
     "lynch_no_reveal": [
         "The villagers, after much debate, finally decide on lynching \u0002{0}\u0002.",
@@ -66,6 +72,10 @@
         "Before the rope is pulled, \u0002{0}\u0002 throws a grenade at the mob. The grenade explodes early.",
         "Uttering a chilling war cry, the villagers drag \u0002{0}\u0002 to the edge of a cliff and throw them off. The cliff face is now covered with the leftover remains of their late comrade.",
         "For SCIENCE, the villagers throw \u0002{0}\u0002 into a volcano. They discover that \u0002{0}\u0002's melting point is less than that of lava."
+        "The villagers drag \u0002{0}\u0002 to a guillotine. A whirring sound later, they are no more.",
+        "The villagers drag \u0002{0}\u0002 to the gallows. As they splutter their last words, the gallow collapses, burying them under rubble.",
+        "In the chaotic scenes of the lynch mob, \u0002{0}\u0002 manages to grab someone's gun. Before they are able to fire the weapon, it explodes, killing them.",
+        "Lusting for revenge, the village bans \u0002{0}\u0002 into exile, where they get mauled by wild animals."
     ],
     "quit_reveal": [
         "\u0002{0}\u0002, a{1} \u0002{2}\u0002, suddenly falls over dead before the astonished villagers.",
@@ -81,7 +91,15 @@
         "\u0002{0}\u0002 played Russian roulette, and lost. The villagers bury the \u0002{2}\u0002's remains.",
         "\u0002{0}\u0002, a{1} \u0002{2}\u0002, poked a bear in the eye with a stick and has paid the price.",
         "\u0002{0}\u0002 tried to smoke dynamite. The resulting explosion has left a crater in place of the \u0002{2}\u0002.",
-        "\u0002{0}\u0002, a{1} \u0002{2}\u0002, went spelunking and never made it back."
+        "\u0002{0}\u0002, a{1} \u0002{2}\u0002, went spelunking and never made it back.",
+        "\u0002{0}\u0002 found a concealed death totem and picked it up. Only dust in the shape of a{1} \u0002{2}\u0002 remains of them.",
+        "While building a gallow to lynch wolves, \u0002{0}\u0002 fell of a ladder. The distraught villagers bury the \u0002{2}\u0002.",
+        "Believing it to be water, \u0002{0}\u0002 drank poison left lying around by a mad scientist. All attempts to save the \u0002{2}\u0002 fail.",
+        "While sleepwalking, \u0002{0}\u0002 fell of a cliff. While unable to save them, the doctor is able to make out they were a{1} \u0002{2}\u0002.",
+        "\u0002{0}\u0002 went on a trip with the time lord. The \u0002{2}\u0002 never made it back.",
+        "\u0002{0}\u0002, a{1} \u0002{2}\u0002, was accidentally punctured by a matchmaker's arrow and has died.",
+        "\u0002{0}\u0002 went to a doctor who didn't properly clean their syringes. The resulting infection kills the \u0002{2}\u0002.",
+        "On their way home, \u0002{0}\u0002 was inadvertedly shot dead by a drunk gunner. The village mourns the loss of a{1} \u0002{2}\u0002."
     ],
     "quit_no_reveal": [
         "\u0002{0}\u0002 suddenly falls over dead before the astonished villagers.",
@@ -97,10 +115,18 @@
         "\u0002{0}\u0002 played Russian roulette, and lost. The villagers bury their remains.",
         "\u0002{0}\u0002 poked a bear in the eye with a stick and has paid the price.",
         "\u0002{0}\u0002 tried to smoke dynamite. The resulting explosion has left a crater in their place.",
-        "\u0002{0}\u0002 went spelunking and never made it back."
+        "\u0002{0}\u0002 went spelunking and never made it back.",
+        "\u0002{0}\u0002 found a concealed death totem and picked it up. Only dust remains of them.",
+        "While building a gallow to lynch wolves, \u0002{0}\u0002 fell of a ladder.",
+        "Believing it to be water, \u0002{0}\u0002 drank poison left lying around by a mad scientist.",
+        "While sleepwalking, \u0002{0}\u0002 fell of a cliff.",
+        "\u0002{0}\u0002 went on a trip with the time lord and never made it back.",
+        "\u0002{0}\u0002 was accidentally punctured by a matchmaker's arrow and has died."
+        "\u0002{0}\u0002 went to a doctor who didn't properly clean their syringes. The resulting infection kills them.",
+        "On their way home, \u0002{0}\u0002 was inadvertedly shot dead by a drunk gunner."
     ],
-    "fool_win": "Game over! The fool has been lynched, causing them to win.",
-    "no_win": "Game over! There are no players remaining. Nobody wins.",
+    "fool_win": "Game over! The fool has been lynched. Aghast by their failure, all villagers faint in shock, never to wake again.",
+    "no_win": "Game over! There are no players remaining. Nobody wins. You're all losers.",
     "piper_win": "Game over! Everyone has fallen victim to the charms of the piper{0}. The piper{0} lead{1} the villagers away from the village, never to return...",
     "monster_win": "Game over! All the wolves are dead! As the villagers start preparing the BBQ, the monster{0} quickly kill{1} the remaining villagers, causing the monster{0} to win.",
     "monster_wolf_win": "Game over! There are the same number of wolves as uninjured villagers. The wolves overpower the villagers but then get destroyed by the monster{0}, causing the monster{0} to win.",
@@ -615,14 +641,14 @@
     "invalid_permissions": "You do not have permission to use that command.",
     "player_joined_deadchat": "\u0002{0}\u0002 has joined the deadchat.",
     "multiple_joined_deadchat": "\u0002{0}\u0002 and \u0002{1}\u0002 have joined the deadchat.",
-    "joined_deadchat": "You are now in the deadchat.",
+    "joined_deadchat": "You are now in the deadchat. You can leave by sending !leave and disable automatic joining on death using !deadchat.",
     "list_deadchat": "Players: {0}",
     "force_leave_deadchat": "You have been forcibly removed from the deadchat by \u0002{0}\u0002.",
     "player_force_leave_deadchat": "\u0002{0}\u0002 has been removed from the deadchat by \u0002{1}\u0002.",
     "leave_deadchat": "You have left the deadchat.",
     "player_left_deadchat": "\u0002{0}\u0002 has left the deadchat.",
     "chat_on_death": "You will now join the deadchat on death.",
-    "no_chat_on_death": "You will no longer join the deadchat on death.",
+    "no_chat_on_death": "You will no longer join the deadchat on death. You can still manually join by sending !join in a private message.",
     "already_prayed": "You are exhausted and unable to receive any more visions tonight.",
     "specific_invalid_role": "\u0002{0}\u0002 is not a valid role.",
     "vision_only_role_self": "You receive a vision that you are the only \u0002{0}\u0002.",
