@@ -1,5 +1,4 @@
 import fnmatch
-import sqlite3
 import re
 from collections import defaultdict, OrderedDict
 
@@ -52,10 +51,6 @@ START_QUIT_DELAY = 10
 MAX_PRIVMSG_TARGETS = 4
 # how many mode values can be specified at once; used only as fallback
 MODELIMIT = 3
-LEAVE_STASIS_PENALTY = 1
-IDLE_STASIS_PENALTY = 1
-PART_STASIS_PENALTY = 1
-ACC_STASIS_PENALTY = 1
 QUIET_DEAD_PLAYERS = False
 DEVOICE_DURING_NIGHT = False
 ALWAYS_PM_ROLE = False
@@ -63,6 +58,32 @@ QUIET_MODE = "q" # "q" or "b"
 QUIET_PREFIX = "" # "" or "~q:"
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
+
+LEAVE_PENALTY = 1
+LEAVE_EXPIRY = "30d"
+IDLE_PENALTY = 1
+IDLE_EXPIRY = "30d"
+PART_PENALTY = 1
+PART_EXPIRY = "30d"
+ACC_PENALTY = 1
+ACC_EXPIRY = "30d"
+
+# The formatting of this sucks, sorry. This is used to automatically apply sanctions to warning levels
+# When a user crosses from below the min threshold to min or above points, the listed sanctions apply
+# Sanctions also apply while moving within the same threshold bracket (such as from min to max)
+# Valid sanctions are deny, stasis, scalestasis, and tempban
+# Scalestasis applies stasis equal to the formula ax^2 + bx + c, where x is the number of warning points
+# Tempban number can either be a duration (ending in d, h, or m) or a number meaning it expires when
+# warning points fall below that threshold.
+# Tempban is currently not implemented and does nothing right now.
+AUTO_SANCTION = (
+        #min max sanctions
+        (1, 4, {"ack": True}),
+        (5, 9, {"stasis": 1}),
+        (10, 10, {"ack": True, "stasis": 3}),
+        (15, 24, {"scalestasis": (0, 1, -10)}),
+        (25, 25, {"tempban": 15})
+        )
 
 # The following is a bitfield, and they can be mixed together
 # Defaults to none of these, can be changed on a per-game-mode basis
@@ -306,22 +327,19 @@ FORTUNE_CHANCE = 1/25
 
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
-DENY = {}
-ALLOW = {}
-
-DENY_ACCOUNTS = {}
-ALLOW_ACCOUNTS = {}
 
 # pingif-related mappings
 
 PING_IF_PREFS = {}
 PING_IF_PREFS_ACCS = {}
 
-PING_IF_NUMS = {}
-PING_IF_NUMS_ACCS = {}
+PING_IF_NUMS = defaultdict(set)
+PING_IF_NUMS_ACCS = defaultdict(set)
 
 DEADCHAT_PREFS = set()
 DEADCHAT_PREFS_ACCS = set()
+
+#TODO: move all of these to util.py or other files, as they are certainly NOT settings!
 
 is_role = lambda plyr, rol: rol in ROLES and plyr in ROLES[rol]
 
@@ -336,43 +354,40 @@ def match_hostmask(hostmask, nick, ident, host):
 
     return False
 
-
-def check_priv(priv):
-    assert priv in ("owner", "admin")
-
-    # Owners can do everything
+def is_owner(nick, ident=None, host=None, acc=None):
     hosts = set(botconfig.OWNERS)
     accounts = set(botconfig.OWNERS_ACCOUNTS)
+    if nick in USERS:
+        if not ident:
+            ident = USERS[nick]["ident"]
+        if not host:
+            host = USERS[nick]["host"]
+        if not acc:
+            acc = USERS[nick]["account"]
 
-    if priv == "admin":
-        hosts.update(botconfig.ADMINS)
-        accounts.update(botconfig.ADMINS_ACCOUNTS)
+    if not DISABLE_ACCOUNTS and acc and acc != "*":
+        for pattern in accounts:
+            if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                return True
 
-    def do_check(nick, ident=None, host=None, acc=None):
-        if nick in USERS.keys():
-            if not ident:
-                ident = USERS[nick]["ident"]
-            if not host:
-                host = USERS[nick]["host"]
-            if not acc:
-                acc = USERS[nick]["account"]
+    if host:
+        for hostmask in hosts:
+            if match_hostmask(hostmask, nick, ident, host):
+                return True
 
-        if not DISABLE_ACCOUNTS and acc and acc != "*":
-            for pattern in accounts:
-                if fnmatch.fnmatch(acc.lower(), pattern.lower()):
-                    return True
+    return False
 
-        if host:
-            for hostmask in hosts:
-                if match_hostmask(hostmask, nick, ident, host):
-                    return True
-
-        return False
-
-    return do_check
-
-is_admin = check_priv("admin")
-is_owner = check_priv("owner")
+def is_admin(nick, ident=None, host=None, acc=None):
+    if nick in USERS:
+        if not ident:
+            ident = USERS[nick]["ident"]
+        if not host:
+            host = USERS[nick]["host"]
+        if not acc:
+            acc = USERS[nick]["account"]
+    hostmask = nick + "!" + ident + "@" + host
+    flags = db.get_flags(acc, hostmask)
+    return "F" in flags
 
 def irc_lower(nick):
     mapping = {
@@ -393,7 +408,6 @@ def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
 def plural(role, count=2):
-    # TODO: use the "inflect" pip package, pass part-of-speech as a kwarg
     if count == 1:
         return role
     bits = role.split()
@@ -407,6 +421,17 @@ def plural(role, count=2):
                     "succubus": "succubi",
                     "child": "children"}.get(bits[-1], bits[-1] + "s")
     return " ".join(bits)
+
+def singular(plural):
+    # converse of plural above (kinda)
+    # this is used to map plural role names back to singular,
+    # so we don't need to worry about stuff like possessives
+    conv = {"wolves": "wolf",
+            "succubi": "succubus"}
+    if plural in conv:
+        return conv[plural]
+    # otherwise we just added an s on the end
+    return plural[:-1]
 
 def list_players(roles = None):
     if roles is None:
@@ -500,363 +525,5 @@ def break_long_message(phrases, joinstr = " "):
     return joinstr.join(message)
 
 class InvalidModeException(Exception): pass
-
-# Persistence
-
-conn = sqlite3.connect("data.sqlite3", check_same_thread = False)
-c = conn.cursor()
-
-def init_db():
-    with conn:
-
-        c.execute('CREATE TABLE IF NOT EXISTS simple_role_notify (cloak TEXT)') # people who understand each role (hostmasks - backup)
-
-        c.execute('CREATE TABLE IF NOT EXISTS simple_role_accs (acc TEXT)') # people who understand each role (accounts - primary)
-
-        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice (cloak TEXT)') # people who prefer /notice (hostmasks - backup)
-
-        c.execute('CREATE TABLE IF NOT EXISTS prefer_notice_acc (acc TEXT)') # people who prefer /notice (accounts - primary)
-
-        c.execute('CREATE TABLE IF NOT EXISTS stasised (cloak TEXT, games INTEGER, UNIQUE(cloak))') # stasised people (cloaks)
-
-        c.execute('CREATE TABLE IF NOT EXISTS stasised_accs (acc TEXT, games INTEGER, UNIQUE(acc))') # stasised people (accounts - takes precedence)
-
-        c.execute('CREATE TABLE IF NOT EXISTS denied (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # DENY
-
-        c.execute('CREATE TABLE IF NOT EXISTS denied_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # DENY_ACCOUNTS
-
-        c.execute('CREATE TABLE IF NOT EXISTS allowed (cloak TEXT, command TEXT, UNIQUE(cloak, command))') # ALLOW
-
-        c.execute('CREATE TABLE IF NOT EXISTS allowed_accs (acc TEXT, command TEXT, UNIQUE(acc, command))') # ALLOW_ACCOUNTS
-
-        c.execute('CREATE TABLE IF NOT EXISTS pingif_prefs (user TEXT, is_account BOOLEAN, players INTEGER, PRIMARY KEY(user, is_account))') # pingif player count preferences
-        c.execute('CREATE INDEX IF NOT EXISTS ix_ping_prefs_pingif ON pingif_prefs (players ASC)') # index apparently makes it faster
-
-        c.execute('CREATE TABLE IF NOT EXISTS deadchat_prefs (user TEXT, is_account BOOLEAN)') # deadcht preferences
-
-        c.execute('PRAGMA table_info(pre_restart_state)')
-        try:
-            next(c)
-        except StopIteration:
-            c.execute('CREATE TABLE pre_restart_state (players TEXT)')
-            c.execute('INSERT INTO pre_restart_state (players) VALUES (NULL)')
-
-        c.execute('SELECT * FROM simple_role_notify')
-        for row in c:
-            SIMPLE_NOTIFY.add(row[0])
-
-        c.execute('SELECT * FROM simple_role_accs')
-        for row in c:
-            SIMPLE_NOTIFY_ACCS.add(row[0])
-
-        c.execute('SELECT * FROM prefer_notice')
-        for row in c:
-            PREFER_NOTICE.add(row[0])
-
-        c.execute('SELECT * FROM prefer_notice_acc')
-        for row in c:
-            PREFER_NOTICE_ACCS.add(row[0])
-
-        c.execute('SELECT * FROM stasised')
-        for row in c:
-            STASISED[row[0]] = row[1]
-
-        c.execute('SELECT * FROM stasised_accs')
-        for row in c:
-            STASISED_ACCS[row[0]] = row[1]
-
-        c.execute('SELECT * FROM denied')
-        for row in c:
-            if row[0] not in DENY:
-                DENY[row[0]] = set()
-            DENY[row[0]].add(row[1])
-
-        c.execute('SELECT * FROM denied_accs')
-        for row in c:
-            if row[0] not in DENY_ACCOUNTS:
-                DENY_ACCOUNTS[row[0]] = set()
-            DENY_ACCOUNTS[row[0]].add(row[1])
-
-        c.execute('SELECT * FROM allowed')
-        for row in c:
-            if row[0] not in ALLOW:
-                ALLOW[row[0]] = set()
-            ALLOW[row[0]].add(row[1])
-
-        c.execute('SELECT * FROM allowed_accs')
-        for row in c:
-            if row[0] not in ALLOW_ACCOUNTS:
-                ALLOW_ACCOUNTS[row[0]] = set()
-            ALLOW_ACCOUNTS[row[0]].add(row[1])
-
-        c.execute('SELECT * FROM pingif_prefs')
-        for row in c:
-            # is an account
-            if row[1]:
-                if row[0] not in PING_IF_PREFS_ACCS:
-                    PING_IF_PREFS_ACCS[row[0]] = row[2]
-                if row[2] not in PING_IF_NUMS_ACCS:
-                    PING_IF_NUMS_ACCS[row[2]] = set()
-                PING_IF_NUMS_ACCS[row[2]].add(row[0])
-            # is a host
-            else:
-                if row[0] not in PING_IF_PREFS:
-                    PING_IF_PREFS[row[0]] = row[2]
-                if row[2] not in PING_IF_NUMS:
-                    PING_IF_NUMS[row[2]] = set()
-                PING_IF_NUMS[row[2]].add(row[0])
-
-        c.execute('SELECT * FROM deadchat_prefs')
-        for user, is_acc in c:
-            if is_acc:
-                DEADCHAT_PREFS_ACCS.add(user)
-            else:
-                DEADCHAT_PREFS.add(user)
-
-        # populate the roles table
-        c.execute('DROP TABLE IF EXISTS roles')
-        c.execute('CREATE TABLE roles (id INTEGER PRIMARY KEY AUTOINCREMENT, role TEXT)')
-
-        for x in list(ROLE_GUIDE):
-            c.execute("INSERT OR REPLACE INTO roles (role) VALUES (?)", (x,))
-
-
-        c.execute(('CREATE TABLE IF NOT EXISTS rolestats (player TEXT, role TEXT, '+
-            'teamwins SMALLINT, individualwins SMALLINT, totalgames SMALLINT, '+
-            'UNIQUE(player, role))'))
-
-
-        c.execute(('CREATE TABLE IF NOT EXISTS gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, ' +
-            'wolfwins SMALLINT, monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT, succubuswins SMALLINT, ' +
-            'demoniacwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))'))
-        try:
-            # Check if table has been updated with new stats
-            c.execute('SELECT succubuswins from gamestats')
-            for row in c:
-                # Read all the very important data
-                pass
-        except sqlite3.OperationalError:
-            c.execute('ALTER TABLE gamestats RENAME TO gamestatsold')
-            c.execute('CREATE TABLE gamestats (gamemode TEXT, size SMALLINT, villagewins SMALLINT, wolfwins SMALLINT, ' +
-                        'monsterwins SMALLINT, foolwins SMALLINT, piperwins SMALLINT,succubuswins SMALLINT, ' +
-                        'demoniacwins SMALLINT, totalgames SMALLINT, UNIQUE(gamemode, size))')
-            c.execute('INSERT into gamestats (gamemode, size, villagewins, wolfwins, monsterwins, foolwins, piperwins, succubuswins, demoniacwins, totalgames) ' +
-                        'SELECT gamemode, size, villagewins, wolfwins, monsterwins, foolwins, piperwins, 0, 0, totalgames FROM gamestatsold')
-            c.execute('DROP TABLE gamestatsold')
-
-
-def remove_simple_rolemsg(clk):
-    with conn:
-        c.execute('DELETE from simple_role_notify where cloak=?', (clk,))
-
-def add_simple_rolemsg(clk):
-    with conn:
-        c.execute('INSERT into simple_role_notify VALUES (?)', (clk,))
-
-def remove_simple_rolemsg_acc(acc):
-    with conn:
-        c.execute('DELETE from simple_role_accs where acc=?', (acc,))
-
-def add_simple_rolemsg_acc(acc):
-    with conn:
-        c.execute('INSERT into simple_role_accs VALUES (?)', (acc,))
-
-def remove_prefer_notice(clk):
-    with conn:
-        c.execute('DELETE from prefer_notice where cloak=?', (clk,))
-
-def add_prefer_notice(clk):
-    with conn:
-        c.execute('INSERT into prefer_notice VALUES (?)', (clk,))
-
-def remove_prefer_notice_acc(acc):
-    with conn:
-        c.execute('DELETE from prefer_notice_acc where acc=?', (acc,))
-
-def add_prefer_notice_acc(acc):
-    with conn:
-        c.execute('INSERT into prefer_notice_acc VALUES (?)', (acc,))
-
-def set_stasis(clk, games):
-    with conn:
-        if games <= 0:
-            c.execute('DELETE FROM stasised WHERE cloak=?', (clk,))
-        else:
-            c.execute('INSERT OR REPLACE INTO stasised VALUES (?,?)', (clk, games))
-
-def set_stasis_acc(acc, games):
-    with conn:
-        if games <= 0:
-            c.execute('DELETE FROM stasised_accs WHERE acc=?', (acc,))
-        else:
-            c.execute('INSERT OR REPLACE INTO stasised_accs VALUES (?,?)', (acc, games))
-
-def add_deny(clk, command):
-    with conn:
-        c.execute('INSERT OR IGNORE INTO denied VALUES (?,?)', (clk, command))
-
-def remove_deny(clk, command):
-    with conn:
-        c.execute('DELETE FROM denied WHERE cloak=? AND command=?', (clk, command))
-
-def add_deny_acc(acc, command):
-    with conn:
-        c.execute('INSERT OR IGNORE INTO denied_accs VALUES (?,?)', (acc, command))
-
-def remove_deny_acc(acc, command):
-    with conn:
-        c.execute('DELETE FROM denied_accs WHERE acc=? AND command=?', (acc, command))
-
-def add_allow(clk, command):
-    with conn:
-        c.execute('INSERT OR IGNORE INTO allowed VALUES (?,?)', (clk, command))
-
-def remove_allow(clk, command):
-    with conn:
-        c.execute('DELETE FROM allowed WHERE cloak=? AND command=?', (clk, command))
-
-def add_allow_acc(acc, command):
-    with conn:
-        c.execute('INSERT OR IGNORE INTO allowed_accs VALUES (?,?)', (acc, command))
-
-def remove_allow_acc(acc, command):
-    with conn:
-        c.execute('DELETE FROM allowed_accs WHERE acc=? AND command=?', (acc, command))
-
-def set_pingif_status(user, is_account, players):
-    with conn:
-        c.execute('DELETE FROM pingif_prefs WHERE user=? AND is_account=?', (user, is_account))
-        if players != 0:
-            c.execute('INSERT OR REPLACE INTO pingif_prefs VALUES (?,?,?)', (user, is_account, players))
-
-def add_deadchat_pref(user, is_account):
-    with conn:
-        c.execute('INSERT OR REPLACE INTO deadchat_prefs VALUES (?,?)', (user, is_account))
-
-def remove_deadchat_pref(user, is_account):
-    with conn:
-        c.execute('DELETE FROM deadchat_prefs WHERE user=? AND is_account=?', (user, is_account))
-
-def update_role_stats(acc, role, won, iwon):
-    with conn:
-        wins, iwins, total = 0, 0, 0
-
-        c.execute(("SELECT teamwins, individualwins, totalgames FROM rolestats "+
-                   "WHERE player=? AND role=?"), (acc, role))
-        row = c.fetchone()
-        if row:
-            wins, iwins, total = row
-
-        if won:
-            wins += 1
-        if iwon:
-            iwins += 1
-        total += 1
-
-        c.execute("INSERT OR REPLACE INTO rolestats VALUES (?,?,?,?,?)",
-                  (acc, role, wins, iwins, total))
-
-def update_game_stats(gamemode, size, winner):
-    with conn:
-        vwins, wwins, mwins, fwins, pwins, swins, dwins, total = 0, 0, 0, 0, 0, 0, 0, 0
-
-        c.execute("SELECT villagewins, wolfwins, monsterwins, foolwins, piperwins, succubuswins, "
-                  "demoniacwins, totalgames FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
-        row = c.fetchone()
-        if row:
-            vwins, wwins, mwins, fwins, pwins, swins, dwins, total = row
-
-        if winner == "wolves":
-            wwins += 1
-        elif winner == "villagers":
-            vwins += 1
-        elif winner == "monsters":
-            mwins += 1
-        elif winner == "pipers":
-            pwins += 1
-        elif winner == "succubi":
-            swins += 1
-        elif winner == "demoniacs":
-            dwins += 1
-        elif winner.startswith("@"):
-            fwins += 1
-        total += 1
-
-        c.execute("INSERT OR REPLACE INTO gamestats VALUES (?,?,?,?,?,?,?,?,?,?)",
-                    (gamemode, size, vwins, wwins, mwins, fwins, pwins, swins, dwins, total))
-
-def get_player_stats(acc, role):
-    if role.lower() not in [k.lower() for k in ROLE_GUIDE.keys()] and role != "lover":
-        return "No such role: {0}".format(role)
-    with conn:
-        c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
-        player = c.fetchone()
-        if player:
-            for row in c.execute("SELECT * FROM rolestats WHERE player=? COLLATE NOCASE AND role=? COLLATE NOCASE", (acc, role)):
-                msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}".format(*row)
-                return msg % (round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
-            else:
-                return "No stats for {0} as {1}.".format(player[0], role)
-        return "{0} has not played any games.".format(acc)
-
-def get_player_totals(acc):
-    role_totals = []
-    with conn:
-        c.execute("SELECT player FROM rolestats WHERE player=? COLLATE NOCASE", (acc,))
-        player = c.fetchone()
-        if player:
-            c.execute("SELECT role, totalgames FROM rolestats WHERE player=? COLLATE NOCASE ORDER BY totalgames DESC", (acc,))
-            role_tmp = defaultdict(int)
-            totalgames = 0
-            while True:
-                row = c.fetchone()
-                if row:
-                    role_tmp[row[0]] += row[1]
-                    if row[0] not in TEMPLATE_RESTRICTIONS and row[0] != "lover":
-                        totalgames += row[1]
-                else:
-                    break
-            order = role_order()
-            #ordered role stats
-            role_totals = ["\u0002{0}\u0002: {1}".format(role, role_tmp[role]) for role in order if role in role_tmp]
-            #lover or any other special stats
-            role_totals += ["\u0002{0}\u0002: {1}".format(role, count) for role, count in role_tmp.items() if role not in order]
-            return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(player[0], totalgames, break_long_message(role_totals, ", "))
-        else:
-            return "\u0002{0}\u0002 has not played any games.".format(acc)
-
-def get_game_stats(gamemode, size):
-    with conn:
-        for row in c.execute("SELECT * FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size)):
-            msg = "\u0002%d\u0002 player games | Village wins: %d (%d%%), Wolf wins: %d (%d%%)" % (row[1], row[2], round(row[2]/row[9] * 100), row[3], round(row[3]/row[9] * 100))
-            if row[4] > 0:
-                msg += ", Monster wins: %d (%d%%)" % (row[4], round(row[4]/row[9] * 100))
-            if row[5] > 0:
-                msg += ", Fool wins: %d (%d%%)" % (row[5], round(row[5]/row[9] * 100))
-            if row[6] > 0:
-                msg += ", Piper wins: %d (%d%%)" % (row[6], round(row[6]/row[9] * 100))
-            if row[7] > 0:
-                msg += ", Succubus wins: %d (%d%%)" % (row[7], round(row[7]/row[9] * 100))
-            if row[8] > 0:
-                msg += ", Demoniac wins: %d (%d%%)" % (row[8], round(row[8]/row[9] * 100))
-            return msg + ", Total games: {0}".format(row[9])
-        else:
-            return "No stats for \u0002{0}\u0002 player games.".format(size)
-
-def get_game_totals(gamemode):
-    size_totals = []
-    total = 0
-    with conn:
-        for size in range(MIN_PLAYERS, MAX_PLAYERS + 1):
-            c.execute("SELECT size, totalgames FROM gamestats WHERE gamemode=? AND size=?", (gamemode, size))
-            row = c.fetchone()
-            if row:
-                size_totals.append("\u0002{0}p\u0002: {1}".format(*row))
-                total += row[1]
-
-    if len(size_totals) == 0:
-        return "No games have been played in the {0} game mode.".format(gamemode)
-    else:
-        return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
 
 # vim: set sw=4 expandtab:
