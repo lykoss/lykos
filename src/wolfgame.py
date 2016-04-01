@@ -1557,7 +1557,7 @@ def stats(cli, nick, chan, rest):
                 rolecounts["villager"][0] -= 2
                 rolecounts["villager"][1] -= 2
                 rolecounts["wolf"] = [1, 1]
-                rolecounts["traitor"] = [1, ]
+                rolecounts["traitor"] = [1, 1]
             elif pcount == 7:
                 rolecounts["villager"][0] -= 2
                 rolecounts["villager"][1] -= 2
