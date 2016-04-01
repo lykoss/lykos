@@ -118,6 +118,11 @@ DISABLE_DEBUG_MODE_STASIS = True
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
 MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16
 
+# How likely a default game is replaced by a villagergame game, 1 = 100% 0 = 0%
+# villagergame has no wolves, the bot kills someone each night
+# village wins if and only if they can unanimously !vote the bot during the day
+VILLAGERGAME_CHANCE = 0
+
 CARE_BOLD = False
 CARE_COLOR = False
 CARE_STARTSPAM = False

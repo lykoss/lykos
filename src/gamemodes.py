@@ -159,6 +159,73 @@ class DefaultMode(GameMode):
         self.ROLE_INDEX = role_index
         self.ROLE_GUIDE = role_guide
 
+@game_mode("villagergame", minp = 4, maxp = 9, likelihood = 0)
+class VillagergameMode(GameMode):
+    """This mode definitely does not exist, now please go away."""
+    def __init__(self, arg=""):
+        super().__init__(arg)
+        self.fake_index = var.ROLE_INDEX
+        self.fake_guide = var.ROLE_GUIDE.copy()
+        self.ROLE_INDEX =       (  4  ,  6  ,  7  ,  8  ,  9  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({
+            "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ),
+            "harlot"          : (  0  ,  0  ,  0  ,  1  ,  1  ),
+            "crazed shaman"   : (  0  ,  0  ,  0  ,  0  ,  1  ),
+            "cursed villager" : (  1  ,  2  ,  2  ,  2  ,  2  ),
+            })
+
+    def startup(self):
+        events.add_listener("chk_win", self.chk_win)
+        events.add_listener("transition_day_begin", self.transition_day)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.chk_win)
+        events.remove_listener("transition_day_begin", self.transition_day)
+
+    def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+        # village can only win via unanimous vote on the bot nick
+        # villagergame_lose should probably explain that mechanic
+        # Note: not implemented here since that needs to work in default too
+        pc = len(var.ALL_PLAYERS)
+        if (pc >= 8 and lpl <= 4) or lpl <= 2:
+            evt.data["winner"] = "none"
+            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, botconfig.NICK)
+        else:
+            evt.data["winner"] = None
+
+    def transition_day(self, evt, cli, var):
+        # 30% chance we kill a safe, otherwise kill at random
+        # when killing safes, go after seer, then harlot, then shaman
+        pl = var.list_players()
+        tgt = None
+        seer = None
+        hlt = None
+        hvst = None
+        shmn = None
+        if len(var.ROLES["seer"]) == 1:
+            seer = list(var.ROLES["seer"])[0]
+        if len(var.ROLES["harlot"]) == 1:
+            hlt = list(var.ROLES["harlot"])[0]
+            hvst = var.HVISITED.get(hlt)
+            if hvst:
+                pl.remove(hlt)
+        if len(var.ROLES["shaman"]) == 1:
+            shmn = list(var.ROLES["shaman"])[0]
+        if random.random() < 0.3:
+            if seer:
+                tgt = seer
+            elif hvst:
+                tgt = hvst
+            elif shmn:
+                tgt = shmn
+            elif hlt and not hvst:
+                tgt = hlt
+        if not tgt:
+            tgt = random.choice(pl)
+        var.KILLS[botconfig.NICK] = [tgt]
+
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""

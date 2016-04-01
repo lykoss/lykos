@@ -334,7 +334,7 @@ def complete_match(string, matches):
         return bestmatch, 1
 
 #wrapper around complete_match() used for roles
-def get_victim(cli, nick, victim, in_chan, self_in_list = False):
+def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
     if not victim:
         if in_chan:
             cli.notice(nick, messages["not_enough_parameters"])
@@ -343,6 +343,10 @@ def get_victim(cli, nick, victim, in_chan, self_in_list = False):
         return
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
+
+    if bot_in_list: # for villagergame
+        pl.append(botconfig.NICK)
+        pll.append(botconfig.NICK.lower())
 
     tempvictim, num_matches = complete_match(victim.lower(), pll)
     if not tempvictim:
@@ -1546,6 +1550,24 @@ def stats(cli, nick, chan, rest):
                     p = p[6:]
                 orig_roles[p] = r
 
+        if var.CURRENT_GAMEMODE.name == "villagergame":
+            # hacky hacks that hack
+            pcount = len(var.ALL_PLAYERS)
+            if pcount >= 8:
+                rolecounts["villager"][0] -= 2
+                rolecounts["villager"][1] -= 2
+                rolecounts["wolf"] = [1, 1]
+                rolecounts["traitor"] = [1, ]
+            elif pcount == 7:
+                rolecounts["villager"][0] -= 2
+                rolecounts["villager"][1] -= 2
+                rolecounts["wolf"] = [1, 1]
+                rolecounts["cultist"] = [1, 1]
+            else:
+                rolecounts["villager"][0] -= 1
+                rolecounts["villager"][1] -= 1
+                rolecounts["wolf"] = [1, 1]
+
         total_immunizations = rolecounts["doctor"][0] * math.ceil(len(var.ALL_PLAYERS) * var.DOCTOR_IMMUNIZATION_MULTIPLIER)
         if "amnesiac" in start_roles and "doctor" not in var.AMNESIAC_BLACKLIST:
             total_immunizations += rolecounts["amnesiac"][0] * math.ceil(len(var.ALL_PLAYERS) * var.DOCTOR_IMMUNIZATION_MULTIPLIER)
@@ -2134,6 +2156,21 @@ def chk_decision(cli, force = ""):
         votesneeded = event.data["votesneeded"]
         not_lynching = event.data["not_lynching"]
         votelist = event.data["votelist"]
+
+        gm = var.CURRENT_GAMEMODE.name
+        if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
+            if botconfig.NICK in votelist:
+                if len(votelist[botconfig.NICK]) == avail:
+                    if gm == "default":
+                        cli.msg(botconfig.CHANNEL, messages["villagergame_nope"])
+                        stop_game(cli, "wolves")
+                        return
+                    else:
+                        cli.msg(botconfig.CHANNEL, messages["villagergame_win"])
+                        stop_game(cli, "villagers")
+                        return
+                else:
+                    del votelist[botconfig.NICK]
 
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
@@ -4840,7 +4877,12 @@ def lynch(cli, nick, chan, rest):
 
     var.NO_LYNCH.discard(nick)
 
-    voted = get_victim(cli, nick, rest, True, var.SELF_LYNCH_ALLOWED)
+    troll = False
+    if ((var.CURRENT_GAMEMODE.name == "default" or var.CURRENT_GAMEMODE.name == "villagergame")
+            and var.VILLAGERGAME_CHANCE > 0 and len(var.ALL_PLAYERS) <= 9):
+        troll = True
+
+    voted = get_victim(cli, nick, rest, True, var.SELF_LYNCH_ALLOWED, bot_in_list=troll)
     if not voted:
         return
 
@@ -7286,6 +7328,8 @@ def cgamemode(cli, arg):
     if modeargs[0] in var.GAME_MODES.keys():
         md = modeargs.pop(0)
         try:
+            if md == "default" and len(var.PLAYERS) < 10 and random.random() < var.VILLAGERGAME_CHANCE:
+                md = "villagergame"
             gm = var.GAME_MODES[md][0](*modeargs)
             gm.startup()
             for attr in dir(gm):
@@ -7440,7 +7484,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
         if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys())):
             cli.msg(chan, messages["custom_too_few_players_custom"])
-        elif not wvs:
+        elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
             cli.msg(chan, messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
             cli.msg(chan, messages["too_many_wolves"])
@@ -7626,6 +7670,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
+        if gamemode == "villagergame":
+            gamemode = "default"
 
         # Alert the players to option changes they may not be aware of
         options = []
@@ -8490,28 +8536,33 @@ def listroles(cli, nick, chan, rest):
     lpl = len(var.list_players()) + len(var.DEAD)
     roleindex = var.ROLE_INDEX
     roleguide = var.ROLE_GUIDE
+    gamemode = var.CURRENT_GAMEMODE.name
+    if gamemode == "villagergame":
+        gamemode = "default"
+        roleindex = var.CURRENT_GAMEMODE.fake_index
+        roleguide = var.CURRENT_GAMEMODE.fake_guide
 
     rest = re.split(" +", rest.strip(), 1)
 
     #message if this game mode has been disabled
     if (not rest[0] or rest[0].isdigit()) and not hasattr(var.CURRENT_GAMEMODE, "ROLE_GUIDE"):
         msg.append("{0}: There {1} \u0002{2}\u0002 playing. {3}roles is disabled for the {4} game mode.".format(nick,
-                   "is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, var.CURRENT_GAMEMODE.name))
+                   "is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode))
         rest = []
         roleindex = {}
     #prepend player count if called without any arguments
     elif not rest[0] and lpl > 0:
         msg.append("{0}: There {1} \u0002{2}\u0002 playing.".format(nick, "is" if lpl == 1 else "are", lpl))
         if var.PHASE in var.GAME_PHASES:
-            msg.append("Using the {0} game mode.".format(var.CURRENT_GAMEMODE.name))
+            msg.append("Using the {0} game mode.".format(gamemode))
             rest = [str(lpl)]
 
     #read game mode to get roles for
     elif rest[0] and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles"])
-        if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+            gamemode, _ = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"])
+        if gamemode in var.GAME_MODES.keys() and gamemode != "roles" and gamemode != "villagergame" and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
             mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
@@ -8521,7 +8572,7 @@ def listroles(cli, nick, chan, rest):
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
             rest.pop(0)
         else:
-            if gamemode in var.GAME_MODES and gamemode != "roles" and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+            if gamemode in var.GAME_MODES and gamemode != "roles" and gamemode != "villagergame" and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
                 msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
             else:
                 msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
@@ -8815,14 +8866,14 @@ def vote_gamemode(cli, nick, chan, gamemode, doreply):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles"])
+        match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles", "villagergame"])
         if not match:
             if doreply:
                 cli.notice(nick, messages["invalid_mode_no_list"].format(gamemode))
             return
         gamemode = match
 
-    if gamemode != "roles":
+    if gamemode != "roles" and gamemode != "villagergame":
         if var.GAMEMODE_VOTES.get(nick) != gamemode:
             var.GAMEMODE_VOTES[nick] = gamemode
             cli.msg(chan, messages["vote_game_mode"].format(nick, gamemode))
@@ -8837,7 +8888,7 @@ def game(cli, nick, chan, rest):
         vote_gamemode(cli, nick, chan, rest.lower().split()[0], True)
     else:
         gamemodes = ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1],
-        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
+        var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and gamemode != "villagergame")
         cli.notice(nick, messages["no_mode_specified"] + gamemodes)
         return
 
@@ -8845,14 +8896,14 @@ def game(cli, nick, chan, rest):
 def show_modes(cli, nick, chan, rest):
     """Show the available game modes."""
     msg = messages["available_modes"]
-    modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles"}))
+    modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles", "villagergame"}))
 
     reply(cli, nick, chan, msg + modes + "\u0002", private=True)
 
 def game_help(args=""):
-    return messages["available_mode_setters_help"] +\
+    return (messages["available_mode_setters_help"] +
         ", ".join("\u0002{0}\u0002".format(gamemode) if len(var.list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles")
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles"))
 game.__doc__ = game_help
 
 
