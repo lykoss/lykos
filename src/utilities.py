@@ -84,7 +84,7 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
 def reply(cli, nick, chan, msg, private=False):
     if chan == nick:
         pm(cli, nick, msg)
-    elif private or (nick not in var.list_players() and var.PHASE not in ("none", "join") and chan == botconfig.CHANNEL):
+    elif private or (nick not in var.list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL):
         cli.notice(nick, msg)
     else:
         cli.msg(chan, msg)
