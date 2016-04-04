@@ -6567,7 +6567,7 @@ def relay(cli, nick, chan, rest):
         try:
             ans = subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
             reply = "\u0001VERSION lykos {0}, Python {1} -- https://github.com/lykoss/lykos\u0001".format(str(ans.decode()), platform.python_version())
-        except CalledProcessError:
+        except (OSError, subprocess.CalledProcessError):
             reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
         cli.notice(nick, reply)
         return
