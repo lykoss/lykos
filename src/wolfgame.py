@@ -24,6 +24,7 @@ import fnmatch
 import itertools
 import math
 import os
+import platform
 import random
 import re
 import signal
@@ -6561,6 +6562,14 @@ def relay(cli, nick, chan, rest):
     """Wolfchat and Deadchat"""
     if rest.startswith("\u0001PING"):
         cli.notice(nick, rest)
+        return
+    if rest.startswith("\u0001VERSION"):
+        try:
+          ans=subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
+          reply = "lykos "+str(ans.decode())+", python v"+platform.python_version()+" -- https://github.com/lykoss/lykos"
+        except:
+            reply = "lykos, python v"+platform.python_version()+" -- https://github.com/lykoss/lykos"
+        cli.notice(nick, reply)
         return
     if var.PHASE not in ("night", "day"):
         return
