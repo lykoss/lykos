@@ -8450,12 +8450,7 @@ def show_admins(cli, nick, chan, rest):
 
         msg = messages["available_admins"] + ", ".join(admins)
 
-        if chan == nick:
-            pm(cli, nick, msg)
-        elif var.PHASE in var.GAME_PHASES and nick not in pl:
-            cli.notice(nick, msg)
-        else:
-            cli.msg(chan, msg)
+        reply(cli, nick, chan, msg)
 
         hook.unhook(4)
         var.ADMIN_PINGING = False
