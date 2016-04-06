@@ -532,7 +532,7 @@
     "night_begin": "It is now nighttime. All players check for PMs from me for instructions.",
     "first_night_begin": " If you did not receive one, simply sit back, relax, and wait patiently for morning.",
     "game_mode_not_found": "Mode \u0002{0}\u0002 not found.",
-    "no_game_running": "No game is currently running.",
+    "no_game_running": "No game is currently running. Use \"{0}join\" to start one.",
     "werewolf_already_running": "Werewolf is already in play.",
     "please_wait": "Please wait at least {0} more second{1}.",
     "not_enough_players": "{0}: \u0002{1}\u0002 or more players are required to play.",

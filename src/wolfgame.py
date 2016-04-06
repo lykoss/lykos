@@ -7361,7 +7361,7 @@ def expire_start_votes(cli, chan):
         var.START_VOTES = set()
         cli.msg(chan, messages["start_expired"])
 
-@cmd("start", phases=("join",))
+@cmd("start", phases=("none", "join"))
 def start_cmd(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
     start(cli, nick, chan)
@@ -7398,7 +7398,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if not restart:
         if var.PHASE == "none":
-            cli.notice(nick, messages["no_game_running"])
+            cli.notice(nick, messages["no_game_running"].format(botconfig.CMD_CHAR))
             return
         if var.PHASE != "join":
             cli.notice(nick, messages["werewolf_already_running"])
