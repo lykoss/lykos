@@ -4659,9 +4659,11 @@ def transition_day(cli, gameid=0):
                         looters.remove(guntaker)
                 if guntaker not in dead:
                     numbullets = var.GUNNERS[victim]
-                    if guntaker not in var.WOLF_GUNNERS:
-                        var.WOLF_GUNNERS[guntaker] = 0
-                    var.WOLF_GUNNERS[guntaker] += 1  # transfer bullets a wolf
+                    if guntaker not in var.GUNNERS:
+                        var.GUNNERS[guntaker] = 0
+                    if guntaker not in var.ROLES["gunner"] and guntaker not in var.ROLES["sharpshooter"]:
+                        var.ROLES["gunner"].add(guntaker)
+                    var.GUNNERS[guntaker] += 1  # only transfer one bullet
                     mmsg = (messages["wolf_gunner"])
                     mmsg = mmsg.format(victim)
                     pm(cli, guntaker, mmsg)
@@ -5326,10 +5328,10 @@ def shoot(cli, nick, chan, rest):
     if chan != botconfig.CHANNEL:
         return
 
-    if nick not in var.GUNNERS.keys() | var.WOLF_GUNNERS.keys():
+    if nick not in var.GUNNERS.keys():
         cli.notice(nick, messages["no_gun"])
         return
-    elif not var.GUNNERS.get(nick) and not var.WOLF_GUNNERS.get(nick):
+    elif not var.GUNNERS.get(nick):
         cli.notice(nick, messages["no_bullets"])
         return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
@@ -5342,11 +5344,7 @@ def shoot(cli, nick, chan, rest):
     victim = choose_target(nick, victim)
 
     wolfshooter = nick in var.list_players(var.WOLFCHAT_ROLES)
-
-    if wolfshooter and nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
-        var.WOLF_GUNNERS[nick] -= 1
-    else:
-        var.GUNNERS[nick] -= 1
+    var.GUNNERS[nick] -= 1
 
     rand = random.random()
     if nick in var.ROLES["village drunk"]:
@@ -6853,8 +6851,6 @@ def transition_night(cli):
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
             numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-        if wolf in var.WOLF_GUNNERS.keys() and var.WOLF_GUNNERS[wolf] > 0:
-            pm(cli, wolf, messages["gunner_info"].format(var.WOLF_GUNNERS[wolf], "s" if var.WOLF_GUNNERS[wolf] > 1 else ""))
         if var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
         elif var.ANGRY_WOLVES and role in var.WOLF_ROLES and role != "wolf cub":
@@ -7514,7 +7510,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     var.ROLES = {}
     var.GUNNERS = {}
-    var.WOLF_GUNNERS = {}
     var.SEEN = set()
     var.OBSERVED = {}
     var.KILLS = {}
@@ -8680,8 +8675,6 @@ def myrole(cli, nick, chan, rest):
         if nick in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
         pm(cli, nick, messages["gunner_simple"].format(role, var.GUNNERS[nick], "" if var.GUNNERS[nick] == 1 else "s"))
-    elif nick in var.WOLF_GUNNERS and var.WOLF_GUNNERS[nick]:
-        pm(cli, nick, messages["gunner_info"].format(var.WOLF_GUNNERS[nick], "" if var.WOLF_GUNNERS[nick] == 1 else "s"))
 
     # Check assassin
     if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"]:
@@ -9132,9 +9125,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                             special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
                         else:
                             special_case.append("All targets dead")
-                    # print out how many bullets wolf gunners have
-                    if nickname in var.WOLF_GUNNERS and role not in var.TEMPLATE_RESTRICTIONS:
-                        special_case.append("wolf gunner with {0} bullet{1}".format(var.WOLF_GUNNERS[nickname], "" if var.WOLF_GUNNERS[nickname] == 1 else "s"))
                     if nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
                         for old_role in var.role_order(): # order doesn't matter here, but oh well
                             if nickname in var.ORIGINAL_ROLES[old_role] and nickname not in var.ROLES[old_role]:
@@ -9361,10 +9351,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     if len(rolargs) == 2 and rolargs[1].isdigit():
                         if len(rolargs[1]) < 7:
                             var.GUNNERS[who] = int(rolargs[1])
-                            var.WOLF_GUNNERS[who] = int(rolargs[1])
                         else:
                             var.GUNNERS[who] = 999
-                            var.WOLF_GUNNERS[who] = 999
                     elif rol == "gunner":
                         var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
                     else:
