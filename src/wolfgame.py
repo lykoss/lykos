@@ -2440,7 +2440,7 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
 
     if not abort:
         cli.msg(chan, gameend_msg)
-        
+
     roles_msg = []
 
     origroles = {} #nick based list of original roles
