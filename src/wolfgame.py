@@ -2440,7 +2440,9 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
 
     if not abort:
         cli.msg(chan, gameend_msg)
-
+        #cyberfawkes addition
+        mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["endgame_deadchat"].format(chan))
+        
     roles_msg = []
 
     origroles = {} #nick based list of original roles
