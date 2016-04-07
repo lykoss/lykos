@@ -1190,6 +1190,8 @@ class MaelstromMode(GameMode):
         var.ORIGINAL_ROLES[role].add(nick)
         var.FINAL_ROLES[nick] = role
         var.LAST_SAID_TIME[nick] = datetime.now()
+        if nick in var.USERS:
+            var.PLAYERS[nick] = var.USERS[nick]
 
         if role == "doctor":
             lpl = len(var.list_players())

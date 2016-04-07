@@ -6569,7 +6569,7 @@ def relay(cli, nick, chan, rest):
             reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
         cli.notice(nick, reply)
         return
-    if var.PHASE not in ("night", "day"):
+    if var.PHASE not in var.GAME_PHASES:
         return
 
     pl = var.list_players()
