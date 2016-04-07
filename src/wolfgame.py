@@ -2440,8 +2440,6 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
 
     if not abort:
         cli.msg(chan, gameend_msg)
-        # Message Players in Deadchat letting them know that the game has ended. cyberfawkes
-        mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["endgame_deadchat"].format(chan))
         
     roles_msg = []
 
@@ -2665,6 +2663,9 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
         elif len(winners) > 2:
             nicklist = ("\u0002" + x + "\u0002" for x in winners[0:-1])
             cli.msg(chan, messages["many_winners"].format(", ".join(nicklist), winners[-1]))
+
+    # Message Players in Deadchat letting them know that the game has ended.
+    mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["endgame_deadchat"].format(chan))
 
     reset_modes_timers(cli)
 
