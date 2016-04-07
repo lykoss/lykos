@@ -2664,6 +2664,9 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             nicklist = ("\u0002" + x + "\u0002" for x in winners[0:-1])
             cli.msg(chan, messages["many_winners"].format(", ".join(nicklist), winners[-1]))
 
+    # Message players in deadchat letting them know that the game has ended
+    mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["endgame_deadchat"].format(chan))
+
     reset_modes_timers(cli)
 
     reset()

@@ -178,6 +178,7 @@
     "traitor_turn_channel": "\u0002The villagers, during their celebrations, are frightened as they hear a loud howl. The wolves are not gone!\u0002",
     "role_attribution_failed": "The role attribution failed 3 times. Game was canceled.",
     "endgame_stats": "Game lasted \u0002{0:0>2}:{1:0>2}\u0002. \u0002{2:0>2}:{3:0>2}\u0002 was day. \u0002{4:0>2}:{5:0>2}\u0002 was night. ",
+    "endgame_deadchat": "The game has ended, check {0} for the results.",
     "single_winner": "The winner is \u0002{0}\u0002.",
     "two_winners": "The winners are \u0002{0}\u0002 and \u0002{1}\u0002.",
     "many_winners": "The winners are {0}, and \u0002{1}\u0002.",
