@@ -173,7 +173,7 @@ class VillagergameMode(GameMode):
             "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ),
             "harlot"          : (  0  ,  0  ,  0  ,  1  ,  1  ),
             "crazed shaman"   : (  0  ,  0  ,  0  ,  0  ,  1  ),
-            "cursed villager" : (  1  ,  2  ,  2  ,  2  ,  2  ),
+            "cursed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ),
             })
 
     def startup(self):
