@@ -97,6 +97,8 @@ class cmd:
             alias = True
 
     def __call__(self, func):
+        if isinstance(func, cmd):
+            func = func.func
         self.func = func
         self.__doc__ = self.func.__doc__
         return self
