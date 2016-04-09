@@ -245,6 +245,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("turncoat"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("clone"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("lycan"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("wild child"       , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("vengeful ghost"   , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("succubus"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("demoniac"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
@@ -269,7 +270,7 @@ WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
 # These roles either steal away wins or can otherwise win with any team
 TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac", "dullahan"})
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
-AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan"})
+AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
 # These roles are seen as wolf by the seer/oracle
 SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
@@ -283,10 +284,10 @@ BENEFICIAL_TOTEMS = frozenset({"protection", "revealing", "desperation", "influe
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead
 TEMPLATE_RESTRICTIONS = OrderedDict([
                         ("cursed villager"  , SEEN_WOLF | {"seer", "oracle", "fool", "jester", "priest"}),
-                        ("gunner"           , WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest"}),
+                        ("gunner"           , WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest", "wild child"}),
                         ("sharpshooter"     , frozenset()), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
                         ("mayor"            , frozenset({"fool", "jester", "monster"})),
-                        ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest"}),
+                        ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest", "wild child"}),
                         ("bureaucrat"       , frozenset()),
                         ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
                         ])
@@ -403,7 +404,8 @@ def plural(role, count=2):
         bits[-1] = {"person": "people",
                     "wolf": "wolves",
                     "has": "have",
-                    "succubus": "succubi"}.get(bits[-1], bits[-1] + "s")
+                    "succubus": "succubi",
+                    "child": "children"}.get(bits[-1], bits[-1] + "s")
     return " ".join(bits)
 
 def list_players(roles = None):
@@ -440,6 +442,8 @@ def get_reveal_role(nick):
         role = "amnesiac"
     elif HIDDEN_CLONE and nick in ORIGINAL_ROLES["clone"]:
         role = "clone"
+    elif nick in WILD_CHILDREN:
+        role = "wild child"
     else:
         role = get_role(nick)
 

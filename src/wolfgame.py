@@ -416,6 +416,7 @@ def reset():
     var.START_VOTES = set() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
     var.ENTRANCED = set()
+    var.WILD_CHILDREN = set()
 
     reset_settings()
 
@@ -2917,6 +2918,31 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if nickrole == "clone" and nick in var.CLONED:
                     del var.CLONED[nick]
 
+                for child in var.ROLES["wild child"].copy():
+                    if child in var.IDOLS and child not in deadlist:
+                        if var.IDOLS[child] in deadlist:
+                            pm(cli, child, messages["idol_died"])
+                            var.WILD_CHILDREN.add(child)
+                            var.ROLES["wild child"].remove(child)
+                            var.ROLES["wolf"].add(child)
+                            var.FINAL_ROLES[child] = "wolf"
+                            wolves = var.list_players(var.WOLFCHAT_ROLES)
+                            wolves.remove(child)
+                            mass_privmsg(cli, wolves, messages["wild_child_as_wolf"].format(child))
+                            if var.PHASE == "day":
+                                random.shuffle(wolves)
+                                for i, wolf in enumerate(wolves):
+                                    wolfroles = var.get_role(wolf)
+                                    cursed = ""
+                                    if wolf in var.ROLES["cursed villager"]:
+                                        cursed = "cursed "
+                                    wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles)
+
+                                if wolves:
+                                    pm(cli, child, "Wolves: " + ", ".join(wolves))
+                                else:
+                                    pm(cli, child, messages["no_other_wolves"])
+
             if death_triggers and var.PHASE in var.GAME_PHASES:
                 if nick in var.LOVERS:
                     others = var.LOVERS[nick].copy()
@@ -3594,7 +3620,7 @@ def rename_player(cli, prefix, nick):
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
             for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.TURNCOATS,
-                            var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
+                            var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES, var.IDOLS):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
             # Looks like {'jacob2': ['5'], '7': ['3']}
@@ -3640,7 +3666,7 @@ def rename_player(cli, prefix, nick):
                            var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
                            var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
                            var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING,
-                           var.DECEIVED):
+                           var.DECEIVED, var.WILD_CHILDREN):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -4018,6 +4044,15 @@ def transition_day(cli, gameid=0):
                     lovers = random.sample(pl, 2)
                     choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False)
                     pm(cli, mm, messages["random_matchmaker"])
+
+            for child in var.ROLES["wild child"]:
+                if child not in var.IDOLS:
+                    ps = pl[:]
+                    pl.remove(child)
+                    if ps:
+                        target = random.choice(ps)
+                        var.IDOLS[child] = target
+                        pm(cli, child, messages["wild_child_random_idol"].format(target))
 
 
     # Reset daytime variables
@@ -4752,8 +4787,8 @@ def chk_nightdone(cli):
             nightroles.append(p)
 
     if var.FIRST_NIGHT:
-        actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
-        nightroles.extend(get_roles("matchmaker", "clone"))
+        actedcount += len(var.MATCHMAKERS | var.CLONED.keys() | var.IDOLS.keys())
+        nightroles.extend(get_roles("matchmaker", "clone", "wild child"))
 
     if var.DISEASED_WOLVES:
         nightroles = [p for p in nightroles if p not in var.list_players(var.WOLF_ROLES - {"wolf cub", "werecrow", "doomsayer"})]
@@ -5003,6 +5038,7 @@ def check_exchange(cli, actor, nick):
         elif actor_role in var.WOLF_ROLES - {"werecrow", "wolf cub", "alpha wolf"}:
             if actor in var.KILLS:
                 del var.KILLS[actor]
+            var.WILD_CHILDREN.discard(actor)
         elif actor_role == "hunter":
             if actor in var.OTHER_KILLS:
                 del var.OTHER_KILLS[actor]
@@ -5024,6 +5060,8 @@ def check_exchange(cli, actor, nick):
                 del var.HVISITED[actor]
         elif actor_role in ("seer", "oracle", "augur"):
             var.SEEN.discard(actor)
+        elif actor_role == "wild child": # would that ever happen?
+            var.IDOLS[nick] = var.IDOLS.pop(actor)
         elif actor_role == "hag":
             if actor in var.LASTHEXED:
                 if var.LASTHEXED[actor] in var.TOBESILENCED and actor in var.HEXED:
@@ -5067,6 +5105,7 @@ def check_exchange(cli, actor, nick):
         elif nick_role in var.WOLF_ROLES - {"werecrow", "wolf cub", "alpha wolf"}:
             if nick in var.KILLS:
                 del var.KILLS[nick]
+            var.WILD_CHILDREN.discard(nick)
         elif nick_role == "hunter":
             if nick in var.OTHER_KILLS:
                 del var.OTHER_KILLS[nick]
@@ -5088,6 +5127,8 @@ def check_exchange(cli, actor, nick):
                 del var.HVISITED[nick]
         elif nick_role in ("seer", "oracle", "augur"):
             var.SEEN.discard(nick)
+        elif nick_role == "wild child":
+            var.IDOLS[actor] = var.IDOLS.pop(nick)
         elif nick_role == "hag":
             if nick in var.LASTHEXED:
                 if var.LASTHEXED[nick] in var.TOBESILENCED and nick in var.HEXED:
@@ -5161,6 +5202,8 @@ def check_exchange(cli, actor, nick):
 
         if nick_role == "clone":
             pm(cli, actor, messages["clone_target"].format(nick_target))
+        elif nick_role == "wild child":
+            pm(cli, actor, messages["wild_child_idol"].format(var.IDOLS[actor]))
         elif nick_role in var.TOTEM_ORDER:
             if nick_role == "shaman":
                 pm(cli, actor, messages["shaman_totem"].format(nick_totem))
@@ -5203,6 +5246,8 @@ def check_exchange(cli, actor, nick):
 
         if actor_role == "clone":
             pm(cli, nick, messages["clone_target"].format(actor_target))
+        elif actor_role == "wild child":
+            pm(cli, nick, messages["wild_child_idol"].format(var.IDOLS[nick]))
         elif actor_role in var.TOTEM_ORDER:
             if actor_role == "shaman":
                 pm(cli, nick, messages["shaman_totem"].format(actor_totem))
@@ -5917,7 +5962,9 @@ def see(cli, nick, chan, rest):
     victimrole = var.get_role(victim)
     vrole = victimrole # keep a copy for logging
     if role == "seer":
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
+        if victim in var.WILD_CHILDREN:
+            victimrole = "wild child"
+        elif (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
@@ -6214,8 +6261,9 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
     debuglog("{0} ({1}) SIDE {2}".format(nick, var.get_role(nick), team))
     chk_nightdone(cli)
 
-@cmd("choose", "match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(cli, nick, chan, rest, sendmsg=True):
+@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
+@cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
+def choose_lovers(cli, nick, chan, rest, sendmsg=True):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
         return
@@ -6482,6 +6530,29 @@ def charm(cli, nick, chan, rest):
         debuglog("{0} ({1}) CHARM {2} ({3})".format(nick, var.get_role(nick),
                                                     victim, var.get_role(victim)))
 
+    chk_nightdone(cli)
+
+@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
+def choose_idol(cli, nick, chan, rest):
+    """Pick your idol, if they die, you'll become a wolf!"""
+    if not var.FIRST_NIGHT:
+        return
+    if nick in var.IDOLS:
+        pm(cli, nick, messages["wild_child_already_picked"])
+        return
+
+    victim = get_victim(cli, nick, re.split(" +", rest)[0], False)
+    if not victim:
+        return
+
+    if nick == victim:
+        pm(cli, nick, messages["no_target_self"])
+        return
+
+    var.IDOLS[nick] = victim
+    pm(cli, nick, messages["wild_child_success"].format(victim))
+
+    debuglog("{0} ({1}) IDOLIZE: {2} ({3})".format(nick, var.get_role(nick), victim, var.get_role(victim)))
     chk_nightdone(cli)
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
@@ -7152,9 +7223,15 @@ def transition_night(cli):
 
     for lycan in var.ROLES["lycan"]:
         if lycan in var.PLAYERS and not is_user_simple(lycan):
-            pm(cli, lycan, (messages["lycan_notify"]))
+            pm(cli, lycan, messages["lycan_notify"])
         else:
             pm(cli, lycan, messages["lycan_simple"])
+
+    for child in var.ROLES["wild child"]:
+        if child in var.PLAYERS and not is_user_simple(child):
+            pm(cli, child, messages["child_notify"])
+        else:
+            pm(cli, child, messages["child_simple"])
 
     for v_ghost, who in var.VENGEFUL_GHOSTS.items():
         if who[0] == "!":
@@ -7579,6 +7656,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SICK = set()
     var.DULLAHAN_TARGETS = {}
     var.DECEIVED = set()
+    var.IDOLS = {}
 
     var.DEADCHAT_PLAYERS = set()
     var.SPECTATING_WOLFCHAT = set()
@@ -9121,6 +9199,11 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                             special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
                         else:
                             special_case.append("All targets dead")
+                    elif role == "wild child":
+                        if nickname in var.IDOLS:
+                            special_case.append("picked {0} as idol".format(var.IDOLS[nickname]))
+                        else:
+                            special_case.append("no idol picked yet")
                     if nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
                         for old_role in var.role_order(): # order doesn't matter here, but oh well
                             if nickname in var.ORIGINAL_ROLES[old_role] and nickname not in var.ROLES[old_role]:
