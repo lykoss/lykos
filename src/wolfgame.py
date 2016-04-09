@@ -5973,15 +5973,7 @@ def see(cli, nick, chan, rest):
     var.SEEN.add(nick)
     chk_nightdone(cli)
 
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day", "night"), roles=var.TOTEM_ORDER+("doctor",))
-def give(cli, nick, chan, rest):
-    """Give a totem or immunization to a player."""
-    role = var.get_role(nick)
-    if role in var.TOTEM_ORDER:
-        totem.caller(cli, nick, chan, rest)
-    elif role == "doctor":
-        immunize.caller(cli, nick, chan, rest)
-
+@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 def totem(cli, nick, chan, rest, prefix="You"):
     """Give a totem to a player."""
@@ -6010,6 +6002,7 @@ def totem(cli, nick, chan, rest, prefix="You"):
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, var.TOTEMS[nick]))
     chk_nightdone(cli)
 
+@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 @cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(cli, nick, chan, rest):
     """Immunize a player, preventing them from turning into a wolf."""
