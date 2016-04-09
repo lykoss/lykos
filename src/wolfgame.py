@@ -5980,7 +5980,9 @@ def see(cli, nick, chan, rest):
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
+        if victim in var.WILD_CHILDREN:
+            pass
+        elif (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             iswolf = True
         # deceit totem acts on both target and actor, so if both have them, they cancel each other out
         if (victim in var.DECEIVED) ^ (nick in var.DECEIVED):
