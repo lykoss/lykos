@@ -8718,6 +8718,9 @@ def myrole(cli, nick, chan, rest):
     if role == "clone" and nick in var.CLONED:
         pm(cli, nick, messages["clone_target"].format(var.CLONED[nick]))
 
+    if role == "wild child" and nick in var.IDOLS:
+        pm(cli, nick, messages["wild_child_idol"].format(var.IDOLS[nick]))
+
     # Give minion the wolf list they would have recieved night one
     if role == "minion":
         wolves = []
