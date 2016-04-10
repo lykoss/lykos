@@ -4640,7 +4640,7 @@ def transition_day(cli, gameid=0):
 
     for harlot in var.ROLES["harlot"]:
         if var.HVISITED.get(harlot) in var.list_players(var.WOLF_ROLES) and harlot not in dead and harlot not in bitten:
-            message.append((messages["harlot_visited_wolf"]).format(harlot))
+            message.append(messages["harlot_visited_wolf"].format(harlot))
             bywolves.add(harlot)
             onlybywolves.add(harlot)
             dead.append(harlot)
@@ -4651,9 +4651,9 @@ def transition_day(cli, gameid=0):
                 bywolves.add(bodyguard)
                 onlybywolves.add(bodyguard)
                 if var.ROLE_REVEAL == "on":
-                    message.append((messages["bodyguard_protected_wolf"]).format(bodyguard))
+                    message.append(messages["bodyguard_protected_wolf"].format(bodyguard))
                 else: # off and team
-                    message.append(().format(bodyguard))
+                    message.append(messages["bodyguard_protection"].format(bodyguard))
                 dead.append(bodyguard)
     for gangel in var.ROLES["guardian angel"]:
         if var.GUARDED.get(gangel) in var.list_players(var.WOLF_ROLES) and gangel not in dead and gangel not in bitten:
@@ -4662,9 +4662,9 @@ def transition_day(cli, gameid=0):
                 bywolves.add(gangel)
                 onlybywolves.add(gangel)
                 if var.ROLE_REVEAL == "on":
-                    message.append((messages["guardian_angel_protected_wolf"]).format(gangel))
+                    message.append(messages["guardian_angel_protected_wolf"].format(gangel))
                 else: # off and team
-                    message.append((messages["guardian_angel_protected_wolf_no_reveal"]).format(gangel))
+                    message.append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
                 dead.append(gangel)
 
     for victim in list(dead):
@@ -4675,9 +4675,9 @@ def transition_day(cli, gameid=0):
                 if killlist:
                     deadwolf = random.choice(killlist)
                     if var.ROLE_REVEAL in ("on", "team"):
-                        message.append((messages["gunner_killed_wolf_overnight"]).format(victim, deadwolf, var.get_reveal_role(deadwolf)))
+                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, var.get_reveal_role(deadwolf)))
                     else:
-                        message.append((messages["gunner_killed_wolf_overnight_no_reveal"]).format(victim, deadwolf))
+                        message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
