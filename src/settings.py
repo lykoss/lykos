@@ -249,6 +249,7 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("vengeful ghost"   , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("succubus"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ("demoniac"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
+             ("thief"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              # templates
              ("cursed villager"  , (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  )),
              ("blessed villager" , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
@@ -268,7 +269,7 @@ WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock"}
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
 # These roles either steal away wins or can otherwise win with any team
-TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac", "dullahan"})
+TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac", "dullahan", "thief"})
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
 # These roles are seen as wolf by the seer/oracle
@@ -456,6 +457,25 @@ def get_reveal_role(nick):
         return "neutral player"
     else:
         return "villager"
+
+def get_reveal_role_from_role(nick, role):
+    if role == "traitor" and HIDDEN_TRAITOR:
+        role = DEFAULT_ROLE
+    elif nick in ORIGINAL_ROLES["amnesiac"] and HIDDEN_AMNESIAC:
+        role = "amnesiac"
+    elif nick in ORIGINAL_ROLES["clone"] and HIDDEN_CLONE:
+        role = "clone"
+    elif nick in WILD_CHILDREN:
+        role = "wild child"
+
+    if ROLE_REVEAL != "team":
+        return role
+
+    if role in WOLFTEAM_ROLES:
+        return "wolf"
+    elif role in TRUE_NEUTRAL_ROLES:
+        return "neutral player"
+    return "villager"
 
 def del_player(pname):
     prole = get_role(pname)
