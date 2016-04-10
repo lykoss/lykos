@@ -765,6 +765,7 @@
         "plot"
     ],
     "pony_land": "The pony lands on \u0002{0}\u0002.",
+    "pony_fly": "The pony flies away.",
     "vengeful_role": "You are a \u0002vengeful ghost\u0002 who is against the \u0002{0}\u0002.",
     "show_role": "You are a{0} \u0002{1}\u0002.",
     "original_wolves": "Original wolves: ",

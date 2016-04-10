@@ -8554,12 +8554,16 @@ def coin(cli, nick, chan, rest):
 
 @cmd("pony", pm=True)
 def pony(cli, nick, chan, rest):
-    """For entertaining bronies."""
+    """Toss a magical pony into the air and see what happens!"""
 
     reply(cli, nick, chan, messages["pony_toss"].format(nick))
-    pony = random.choice(messages["pony_choices"])
-    cmsg = messages["pony_land"].format(pony)
-    reply(cli, nick, chan, cmsg)
+
+    if random.random() < 1/3:
+        reply(cli, nick, chan, messages["pony_fly"])
+    else:
+        pony = random.choice(messages["pony_choices"])
+        cmsg = messages["pony_land"].format(pony)
+        reply(cli, nick, chan, cmsg)
 
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
