@@ -6265,7 +6265,7 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
 
 @cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 @cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose_lovers(cli, nick, chan, rest, sendmsg=True):
+def choose(cli, nick, chan, rest, sendmsg=True):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
         return
