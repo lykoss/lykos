@@ -762,7 +762,8 @@
     "pony_toss": "\u0002{0}\u0002 tosses a pony into the air...",
     "pony_choices": [
         "hoof",
-        "plot"
+        "plot",
+        "{nick}"
     ],
     "pony_land": "The pony lands on \u0002{0}\u0002.",
     "pony_fly": "The pony flies away.",

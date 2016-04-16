@@ -8558,10 +8558,10 @@ def pony(cli, nick, chan, rest):
 
     reply(cli, nick, chan, messages["pony_toss"].format(nick))
 
-    if random.random() < 1/3:
+    if random.random() < 1 / (len(messages["pony_choices"]) + 1):
         reply(cli, nick, chan, messages["pony_fly"])
     else:
-        pony = random.choice(messages["pony_choices"])
+        pony = random.choice(messages["pony_choices"]).format(nick=nick)
         cmsg = messages["pony_land"].format(pony)
         reply(cli, nick, chan, cmsg)
 
