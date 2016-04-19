@@ -81,13 +81,16 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
                 cli.msg(bgs, msg)
 
 # Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
-def reply(cli, nick, chan, msg, private=False):
+def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
     if chan == nick:
         pm(cli, nick, msg)
     elif private or (nick not in var.list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL):
         cli.notice(nick, msg)
     else:
-        cli.msg(chan, msg)
+        if prefix_nick:
+            cli.msg(chan, "{0}: {1}".format(nick, msg))
+        else:
+            cli.msg(chan, msg)
 
 def is_user_simple(nick):
     if nick in var.USERS:
