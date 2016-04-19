@@ -483,11 +483,24 @@ def sync_modes(cli):
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
+    args = rest.split()
+
+    if args and args[0] == "-force":
+        force = True
+        rest = " ".join(args[1:])
+    else:
+        force = False
+
     if var.PHASE in var.GAME_PHASES:
-        try:
-            stop_game(cli)
-        except Exception:
-            traceback.print_exc()
+        if var.PHASE == "join" or force:
+            try:
+                stop_game(cli)
+            except Exception:
+                traceback.print_exc()
+        else:
+            reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
+                what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR), private=True)
+            return
 
     try:
         reset_modes_timers(cli)
@@ -531,11 +544,24 @@ def _restart_program(cli, mode=None):
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
+    args = rest.split()
+
+    if args and args[0] == "-force":
+        force = True
+        rest = " ".join(args[1:])
+    else:
+        force = False
+
     if var.PHASE in var.GAME_PHASES:
-        try:
-            stop_game(cli)
-        except Exception:
-            traceback.print_exc()
+        if var.PHASE == "join" or force:
+            try:
+                stop_game(cli)
+            except Exception:
+                traceback.print_exc()
+        else:
+            reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
+                what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR), private=True)
+            return
 
     try:
         reset_modes_timers(cli)
