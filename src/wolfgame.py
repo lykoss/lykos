@@ -7877,10 +7877,7 @@ def stasis(cli, nick, chan, rest):
     else:
         msg = messages["you_not_in_stasis"]
 
-    if chan == nick:
-        pm(cli, nick, msg)
-    else:
-        cli.msg(chan, "{0}: {1}".format(nick, msg))
+    reply(cli, nick, chan, msg, prefix_nick=True)
 
 @cmd("fstasis", admin_only=True, pm=True)
 def fstasis(cli, nick, chan, rest):
