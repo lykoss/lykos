@@ -7868,6 +7868,20 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
+@cmd("stasis", chan=True, pm=True)
+def stasis(cli, nick, chan, rest):
+    st = is_user_stasised(nick)
+
+    if st:
+        msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
+    else:
+        msg = messages["you_not_in_stasis"]
+
+    if chan == nick:
+        pm(cli, nick, msg)
+    else:
+        cli.msg(chan, "{0}: {1}".format(nick, msg))
+
 @cmd("fstasis", admin_only=True, pm=True)
 def fstasis(cli, nick, chan, rest):
     """Removes or sets stasis penalties."""

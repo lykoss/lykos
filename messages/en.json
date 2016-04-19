@@ -108,6 +108,8 @@
     "wolf_win": "Game over! There are the same number of wolves as uninjured villagers. The wolves overpower the villagers and win.",
     "new_game": "\u0002{0}\u0002 has started a game of Werewolf. Type \"{1}join\" to join. Type \"{1}start\" to vote to start the game. Type \"{1}wait\" to increase the start wait time.",
     "stasis": "Sorry, but {0} in stasis for {1} game{2}.",
+    "your_current_stasis": "You are currently in stasis for \u0002{0}\u0002 game{1}.",
+    "you_not_in_stasis": "You are not currently in stasis.",
     "not_playing": "\u0002{0}\u0002 is not currently playing.",
     "invalid_mode": "\u0002{0}\u0002 is not a valid mode. Valid modes are: {1}",
     "simple_off": "You now no longer receive simple role instructions.",
