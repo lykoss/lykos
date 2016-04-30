@@ -492,7 +492,7 @@ def forced_exit(cli, nick, chan, rest):
         force = False
 
     if var.PHASE in var.GAME_PHASES:
-        if var.PHASE == "join" or force:
+        if var.PHASE == "join" or force or nick == "<console>":
             try:
                 stop_game(cli)
             except Exception:
