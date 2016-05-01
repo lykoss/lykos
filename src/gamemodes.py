@@ -326,7 +326,7 @@ class EvilVillageMode(GameMode):
         evt.stop_processing = True
 
         if lrealwolves == 0 and lsafes == 0:
-            evt.data["winner"] = "none"
+            evt.data["winner"] = "no_team_wins"
             evt.data["message"] = messages["evil_no_win"]
         elif lrealwolves == 0:
             evt.data["winner"] = "villagers"
@@ -742,10 +742,10 @@ class GuardianMode(GameMode):
             evt.data["winner"] = "villagers"
             evt.data["message"] = messages["guardian_villager_win"]
         elif not lrealwolves and not lguardians:
-            evt.data["winner"] = "none"
+            evt.data["winner"] = "no_team_wins"
             evt.data["message"] = messages["guardian_lose_no_guards"]
         elif lwolves == lguardians and lpl - lwolves - lguardians == 0:
-            evt.data["winner"] = "none"
+            evt.data["winner"] = "no_team_wins"
             evt.data["message"] = messages["guardian_lose_with_guards"]
         else:
             evt.data["winner"] = None

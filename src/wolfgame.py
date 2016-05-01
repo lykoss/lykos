@@ -2768,7 +2768,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             message = messages["fool_win"]
         elif lpl < 1:
             message = messages["no_win"]
-            winner = "none"
+            winner = "no_team_wins"
         elif var.PHASE == "day" and lpl - lsuccubi == lentranced:
             winner = "succubi"
             message = messages["succubus_win"].format(var.plural("succubus", lsuccubi), var.plural("has", lsuccubi), var.plural("master's", lsuccubi))
