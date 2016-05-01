@@ -446,6 +446,7 @@
     "amnesia_clear": "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!",
     "amnesia_wolfchat": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
     "wolf_notify": "You are a \u0002wolf\u0002. It is your job to kill all the villagers. Use \"kill <nick>\" to kill a villager.",
+    "lone_wolf_notify": "You are a \u0002lone wolf\u0002. Like a normal wolf, it is your job to kill all the villagers, but you accomplish your job separately from the other wolves. Use \"kill <nick>\" to kill a villager.",
     "cursed_traitor_notify": "You are a \u0002cursed traitor\u0002. Normally, you would be seen as a villager by the seer and oracle, but since you're cursed, you are seen as a wolf.",
     "traitor_notify": "You are a \u0002traitor\u0002. You are exactly like a villager and not even a seer or oracle can see your true identity, only detectives and augurs can.",
     "werecrow_notify": "You are a \u0002werecrow\u0002. You are able to fly at night. Use \"kill <nick>\" to kill a villager. Alternatively, you can use \"observe <nick>\" to check if someone is in bed or not. Observing will prevent you from participating in a killing.",

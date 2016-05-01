@@ -2632,7 +2632,7 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                 iwon = True
             elif rol == "piper" and splr in survived and winner == "pipers":
                 iwon = True
-            elif rol == "crazed shaman" or rol == "clone":
+            elif rol == "crazed shaman" or rol == "lone wolf" or rol == "clone": # Modified
                 # For clone, this means they ended game while being clone and not some other role
                 if splr in survived and not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                     iwon = True
@@ -2736,7 +2736,7 @@ def chk_win(cli, end_game=True, winner=None):
         if var.PHASE not in ("day", "night"):
             return False #some other thread already ended game probably
 
-        lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+        lwolves = len(var.list_players(var.WOLFCHAT_ROLES | var.CHKWOLF_ROLES)) # uh, I kinda modified it...slightly...?
         lcubs = len(var.ROLES.get("wolf cub", ()))
         lrealwolves = len(var.list_players(var.WOLF_ROLES - {"wolf cub"}))
         lmonsters = len(var.ROLES.get("monster", ()))
@@ -4792,7 +4792,7 @@ def chk_nightdone(cli):
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
                            "augur", "werekitten", "warlock", "piper", "wolf mystic",
                            "fallen angel", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
-                           "prophet", "wolf shaman", "wolf shaman") # wolf shaman also must be listed twice
+                           "prophet", "wolf shaman", "wolf shaman", "lone wolf") # wolf shaman also must be listed twice Modified
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -5496,7 +5496,7 @@ def kill(cli, nick, chan, rest):
     wolfroles = var.WOLF_ROLES - {"wolf cub"}
     if role in var.WOLFCHAT_ROLES and role not in wolfroles:
         return  # they do this a lot.
-    if role not in wolfroles | {"hunter", "dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in wolfroles | {"hunter", "dullahan", "vigilante", "lone wolf"} and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
@@ -6880,7 +6880,7 @@ def transition_night(cli):
 
     # send PMs
     ps = var.list_players()
-    wolves = var.list_players(var.WOLFCHAT_ROLES)
+    wolves = var.list_players(var.WOLFCHAT_ROLES | var.CHKWOLF_ROLES)
     for wolf in wolves:
         normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
         role = var.get_role(wolf)
@@ -6889,6 +6889,8 @@ def transition_night(cli):
         if normal_notify:
             if role == "wolf":
                 pm(cli, wolf, messages["wolf_notify"])
+            elif role == "lone wolf": # Modified
+                pm(cli, wolf, messages["lone_wolf_notify"])
             elif role == "traitor":
                 if cursed:
                     pm(cli, wolf, messages["cursed_traitor_notify"])
@@ -6944,7 +6946,7 @@ def transition_night(cli):
         if role == "wolf mystic":
             # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
+            numvills = len(ps) - len(var.list_players(var.WOLFTEAM_ROLES | var.CHKWOLF_ROLES)) - len(var.list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(var.list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
         if var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
@@ -7065,7 +7067,7 @@ def transition_night(cli):
         else:
             pm(cli, mystic, messages["mystic_simple"])
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
-        numevil = len(var.list_players(var.WOLFTEAM_ROLES))
+        numevil = len(var.list_players(var.WOLFTEAM_ROLES | var.CHKWOLF_ROLES))
         pm(cli, mystic, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
     max_totems = defaultdict(int)

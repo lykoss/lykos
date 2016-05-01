@@ -258,13 +258,17 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("mayor"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  )),
              ("assassin"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ("bureaucrat"       , (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
+             ("lone wolf"        , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  )),
              ])
+
+# Counts as a wolf in the win check, but doesn't necessarily win with wolves - opposite of WOLFTEAM_ROLES
+CHKWOLF_ROLES = {"lone wolf"}
 
 # Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
 # If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
-WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "wolf shaman", "fallen angel", "doomsayer"})
+WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "wolf shaman", "fallen angel", "doomsayer"})# | LONEWOLF_ROLES
 # Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock"}
+WOLFCHAT_ROLES = (WOLF_ROLES) | {"traitor", "hag", "sorcerer", "warlock"}
 # Wins with the wolves, even if the roles are not necessarily wolves themselves
 WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
 # These roles either steal away wins or can otherwise win with any team
@@ -272,7 +276,7 @@ TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "c
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
 # These roles are seen as wolf by the seer/oracle
-SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
+SEEN_WOLF = WOLF_ROLES | CHKWOLF_ROLES | {"monster", "mad scientist", "succubus"}
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
 SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
                           "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper", "demoniac"})
