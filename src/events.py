@@ -1,21 +1,15 @@
 # event system
+from collections import defaultdict
+EVENT_CALLBACKS = defaultdict(list)
 
-EVENT_CALLBACKS = {}
-
-def add_listener(event, callback, priority = 5):
-    if event not in EVENT_CALLBACKS:
-        EVENT_CALLBACKS[event] = []
-
+def add_listener(event, callback, priority=5):
     if (priority, callback) not in EVENT_CALLBACKS[event]:
         EVENT_CALLBACKS[event].append((priority, callback))
         EVENT_CALLBACKS[event].sort(key = lambda x: x[0])
 
 def remove_listener(event, callback, priority = 5):
-    if event in EVENT_CALLBACKS and (priority, callback) in EVENT_CALLBACKS[event]:
+    if (priority, callback) in EVENT_CALLBACKS[event]:
         EVENT_CALLBACKS[event].remove((priority, callback))
-
-    if event in EVENT_CALLBACKS and not EVENT_CALLBACKS[event]:
-        del EVENT_CALLBACKS[event]
 
 class Event:
     def __init__(self, name, data):
@@ -25,9 +19,6 @@ class Event:
         self.data = data
 
     def dispatch(self, *args, **kwargs):
-        if self.name not in EVENT_CALLBACKS:
-            return True
-
         for item in list(EVENT_CALLBACKS[self.name]):
             item[1](self, *args, **kwargs)
             if self.stop_processing:
