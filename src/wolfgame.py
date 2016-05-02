@@ -37,6 +37,7 @@ import time
 import traceback
 import urllib.request
 from collections import defaultdict, deque
+import json
 from datetime import datetime, timedelta
 
 from oyoyo.parse import parse_nick
@@ -718,7 +719,7 @@ def replace(cli, nick, chan, rest):
 
 @cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(cli, nick, chan, rest):
-    """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://github.com/lykoss/lykos/wiki/Pingif"""
+    """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
     players = is_user_altpinged(nick)
     rest = rest.split()
     if nick in var.USERS:
@@ -6682,42 +6683,71 @@ def get_help(cli, rnick, chan, rest):
         afns.sort()
         reply(cli, nick, chan, messages["admin_commands_list"].format(break_long_message(afns, ", ")), private=True)
 
+def get_wiki_page(URI):
+    print(URI)
+    try:
+        response = urllib.request.urlopen(URI, timeout=2).read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, socket.timeout):
+        return False, messages["wiki_request_timed_out"]
+    if not response:
+        return False, messages["wiki_open_failure"]
+    parsed = json.loads(response)
+    if not parsed:
+        return False, messages["wiki_open_failure"]
+    return True, parsed
+
 @cmd("wiki", pm=True)
 def wiki(cli, nick, chan, rest):
     """Prints information on roles from the wiki."""
 
     # no arguments, just print a link to the wiki
     if not rest:
-        reply(cli, nick, chan, "https://github.com/lykoss/lykos/wiki")
+        reply(cli, nick, chan, "https://werewolf.chat")
+        return
+    # Check for valid page name
+    if not re.fullmatch("[\w ]+", rest):
+        reply(cli, nick, chan, messages["wiki_invalid_page"])
+        return
+    rest = rest.replace(" ", "_").lower()
+
+    # Get suggestions, for autocompletion
+    URI = "https://werewolf.chat/w/api.php?action=opensearch&format=json&search={0}".format(rest)
+    success, suggestionjson = get_wiki_page(URI)
+    if not success:
+        reply(cli, nick, chan, suggestionjson, private=True)
+        return
+
+    # Parse suggested pages, take the first result
+    try:
+        suggestion = suggestionjson[1][0].replace(" ", "_")
+    except IndexError:
+        reply(cli, nick, chan, messages["wiki_no_info"], private=True)
+        return
+
+    # Fetch a page from the api, in json format
+    URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&format=json".format(suggestion)
+    success, pagejson = get_wiki_page(URI)
+    if not success:
+        reply(cli, nick, chan, pagejson, private=True)
         return
 
     try:
-        page = urllib.request.urlopen("https://raw.githubusercontent.com/wiki/lykoss/lykos/Home.md", timeout=2).read().decode("ascii", errors="replace")
-    except (urllib.error.URLError, socket.timeout):
-        reply(cli, nick, chan, messages["wiki_request_timed_out"], private=True)
-        return
-    if not page:
-        reply(cli, nick, chan, messages["wiki_no_open"], private=True)
+        page = pagejson["query"]["pages"].popitem()[1]["extract"]
+    except (KeyError, IndexError):
+        reply(cli, nick, chan, messages["wiki_no_info"], private=True)
         return
 
-    query = re.escape(rest.strip())
-    # look for exact match first, then for a partial match
-    match = re.search(r"^##+ ({0})$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
-    if not match:
-        match = re.search(r"^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
-    if not match:
-        reply(cli, nick, chan, messages["wiki_no_role_info"], private=True)
-        return
+    # We only want the first paragraph
+    if page.find("\n") >= 0:
+        page = page[:page.find("\n")]
 
-    # wiki links only have lowercase ascii chars, and spaces are replaced with a dash
-    wikilink = "https://github.com/lykoss/lykos/wiki#{0}".format("".join(
-                x.lower() for x in match.group(1).replace(" ", "-") if x in string.ascii_letters+"-"))
+    wikilink = "https://werewolf.chat/{0}".format(suggestion.capitalize())
     if nick == chan:
         pm(cli, nick, wikilink)
-        pm(cli, nick, break_long_message(match.group(2).split()))
+        pm(cli, nick, break_long_message(page.split()))
     else:
         cli.msg(chan, wikilink)
-        cli.notice(nick, break_long_message(match.group(2).split()))
+        cli.notice(nick, break_long_message(page.split()))
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
