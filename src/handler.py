@@ -48,7 +48,7 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
     for fn in decorators.COMMANDS[""]:
         fn.caller(cli, rawnick, chan, msg)
 
-
+    phase = var.PHASE
     for x in list(decorators.COMMANDS.keys()):
         if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
@@ -60,7 +60,8 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
             continue
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
-                fn.caller(cli, rawnick, chan, h.lstrip())
+                if phase == var.PHASE:
+                    fn.caller(cli, rawnick, chan, h.lstrip())
 
 
 def unhandled(cli, prefix, cmd, *args):
