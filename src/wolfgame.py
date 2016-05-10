@@ -8602,6 +8602,12 @@ def pony(cli, nick, chan, rest):
         cmsg = messages["pony_land"].format(pony)
         reply(cli, nick, chan, cmsg)
 
+@cmd("cat", pm=True)
+def cat(cli, nick, chan, rest):
+    """Toss a cat into the air and see what happens!"""
+    reply(cli, nick, chan, messages["cat_toss"].format(nick))
+    reply(cli, nick, chan, messages["cat_land"])
+
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
