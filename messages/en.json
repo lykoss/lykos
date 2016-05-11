@@ -769,8 +769,8 @@
     ],
     "pony_land": "The pony lands on \u0002{0}\u0002.",
     "pony_fly": "The pony flies away.",
-	"cat_toss": "\u0002{0}\u0002 tosses a cat into the air...",
-	"cat_land": "The cat lands on its \u0002feet\u0002.",
+    "cat_toss": "\u0002{0}\u0002 tosses a cat into the air...",
+    "cat_land": "The cat lands on its \u0002feet\u0002.",
     "vengeful_role": "You are a \u0002vengeful ghost\u0002 who is against the \u0002{0}\u0002.",
     "show_role": "You are a{0} \u0002{1}\u0002.",
     "original_wolves": "Original wolves: ",
@@ -795,5 +795,7 @@
     "villagergame_lose": "Game over! The villagers realize too late that there are actually no wolves, and never manage to rebuild to what they had before this fiasco. Nobody wins. (Hint: next time if you suspect there are no wolves, have everyone {0}vote {1}.)",
     "villagergame_win": "Game over! The villagers come to their senses and realize there are actually no wolves, and live in harmony forevermore. Everybody wins.",
     "villagergame_nope": "Game over! The villagers decided incorrectly that there are actually no wolves, allowing the wolves to slaughter the remainder of them in their sleep with impunity.",
-    "stop_bot_ingame_safeguard": "Warning: A game is currently running. If you want to {what} the bot anyway, use \"{prefix}{cmd} -force\"."
+    "stop_bot_ingame_safeguard": "Warning: A game is currently running. If you want to {what} the bot anyway, use \"{prefix}{cmd} -force\".",
+
+    "_": " vim: set sw=4 expandtab:"
 }
