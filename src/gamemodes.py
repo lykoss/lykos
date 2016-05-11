@@ -1300,4 +1300,4 @@ class MaelstromMode(GameMode):
 
         return addroles
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

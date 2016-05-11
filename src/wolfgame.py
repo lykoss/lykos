@@ -9555,4 +9555,4 @@ if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
             comd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
             del COMMANDS[comd]
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

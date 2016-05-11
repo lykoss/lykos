@@ -39,4 +39,4 @@ class Messages:
 messages = Messages()
 
 # Because woffle is needy
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

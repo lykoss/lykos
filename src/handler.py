@@ -186,4 +186,4 @@ def connect_callback(cli):
 def on_ping(cli, prefix, server):
     cli.send('PONG', server)
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

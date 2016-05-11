@@ -26,4 +26,4 @@ class Event:
 
         return not self.prevent_default
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

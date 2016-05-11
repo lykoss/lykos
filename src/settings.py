@@ -859,4 +859,4 @@ def get_game_totals(gamemode):
     else:
         return "Total games ({0}) | {1}".format(total, ", ".join(size_totals))
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

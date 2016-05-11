@@ -175,4 +175,4 @@ def chk_decision(cli, force=""):
 def chk_win(cli, end_game=True, winner=None):
     pass
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:

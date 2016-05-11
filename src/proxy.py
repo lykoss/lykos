@@ -98,4 +98,4 @@ def _sigmatch(f):
                 "parameter {0}, expected {1} but got {2}.").format(
                     op.name, str(tp.kind), str(op.kind)))
 
-# vim: set expandtab:sw=4:ts=4:
+# vim: set sw=4 expandtab:
