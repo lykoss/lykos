@@ -506,7 +506,7 @@
     "totem_simple": "You have the \u0002{0}\u0002 totem.",
     "hunter_notify": "You are a \u0002hunter\u0002. Once per game, you may kill another player with \"kill <nick>\". If you do not wish to kill anyone tonight, use \"pass\" instead.",
     "hunter_simple": "You are a \u0002hunter\u0002.",
-    "mad_scientist_notify": "You are the \u0002mad scientist\u0002. If you die, you will let loose a potent chemical concoction that will kill \u0002{0}\u0002 and \u0002{1}\u0002 if they are still alive.",
+    "mad_scientist_notify": "You are the \u0002mad scientist\u0002. You win with the villagers, and should you die you will let loose a potent chemical concoction that will kill \u0002{0}\u0002 and \u0002{1}\u0002 if they are still alive.",
     "mad_scientist_simple": "You are the \u0002mad scientist\u0002. Targets: \u0002{0}\u0002 and \u0002{1}\u0002",
     "doctor_notify": "You are a \u0002doctor\u0002. You can give out immunizations to villagers by using \"give <nick>\" in PM during the daytime. An immunized villager will die instead of turning into a wolf due to the alpha wolf's or lycan's power.",
     "doctor_simple": "You are a \u0002doctor\u0002.",
