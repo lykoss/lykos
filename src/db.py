@@ -1,3 +1,4 @@
+import botconfig
 import src.settings as var
 import sqlite3
 import os
@@ -265,6 +266,8 @@ def get_flags(acc, hostmask):
                    ON at.id = a.template
                  WHERE a.person = ?""", (peid,))
     row = c.fetchone()
+    if row is None:
+        return ""
     return row[0]
 
 def get_denied_commands(acc, hostmask):
@@ -312,17 +315,18 @@ def list_all_warnings(list_all=False, skip=0, show=0):
                warning.issued,
                warning.expires,
                CASE WHEN warning.expires IS NULL OR warning.expires > datetime('now')
-                    THEN 1 ELSE 0 END AS expired,
+                    THEN 0 ELSE 1 END AS expired,
                warning.acknowledged,
                warning.deleted,
                warning.reason
+             FROM warning
              JOIN person pet
                ON pet.id = warning.target
              JOIN player plt
                ON plt.id = pet.primary_player
-             LEFT JOIN pes
+             LEFT JOIN person pes
                ON pes.id = warning.sender
-             LEFT JOIN pls
+             LEFT JOIN player pls
                ON pls.id = pes.primary_player
              """
     if not list_all:
@@ -348,8 +352,8 @@ def list_all_warnings(list_all=False, skip=0, show=0):
                          "expires": row[5],
                          "expired": row[6],
                          "ack": row[7],
-                         "deleted": row[8]},
-                         "reason": row[9])
+                         "deleted": row[8],
+                         "reason": row[9]})
     return warnings
 
 def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
@@ -363,17 +367,18 @@ def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
                warning.issued,
                warning.expires,
                CASE WHEN warning.expires IS NULL OR warning.expires > datetime('now')
-                    THEN 1 ELSE 0 END AS expired,
+                    THEN 0 ELSE 1 END AS expired,
                warning.acknowledged,
                warning.deleted,
                warning.reason
+             FROM warning
              JOIN person pet
                ON pet.id = warning.target
              JOIN player plt
                ON plt.id = pet.primary_player
-             LEFT JOIN pes
+             LEFT JOIN person pes
                ON pes.id = warning.sender
-             LEFT JOIN pls
+             LEFT JOIN player pls
                ON pls.id = pes.primary_player
              WHERE
                warning.target = ?
@@ -404,32 +409,129 @@ def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
                          "reason": row[9]})
     return warnings
 
+def get_warning(warn_id, acc=None, hm=None):
+    pe, pl = _get_ids(acc, hm)
+    c = conn.cursor()
+    sql = """SELECT
+               warning.id,
+               COALESCE(plt.account, plt.hostmask) AS target,
+               COALESCE(pls.account, pls.hostmask, ?) AS sender,
+               warning.amount,
+               warning.issued,
+               warning.expires,
+               CASE WHEN warning.expires IS NULL OR warning.expires > datetime('now')
+                    THEN 0 ELSE 1 END AS expired,
+               warning.acknowledged,
+               warning.deleted,
+               warning.reason,
+               warning.notes,
+               COALESCE(pld.account, pld.hostmask) AS deleted_by,
+               warning.deleted_on
+             FROM warning
+             JOIN person pet
+               ON pet.id = warning.target
+             JOIN player plt
+               ON plt.id = pet.primary_player
+             LEFT JOIN person pes
+               ON pes.id = warning.sender
+             LEFT JOIN player pls
+               ON pls.id = pes.primary_player
+             LEFT JOIN person ped
+               ON ped.id = warning.deleted_by
+             LEFT JOIN player pld
+               ON pld.id = ped.primary_player
+             WHERE
+               warning.id = ?
+             """
+    params = (botconfig.NICK, warn_id)
+    if acc is not None and hm is not None:
+        sql += """  AND warning.target = ?
+                    AND warning.deleted = 0"""
+        params = (botconfig.NICK, warn_id, peid)
+
+    c.execute(sql, params)
+    row = c.fetchone()
+    if not row:
+        return None
+
+    return {"id": row[0],
+            "target": row[1],
+            "sender": row[2],
+            "amount": row[3],
+            "issued": row[4],
+            "expires": row[5],
+            "expired": row[6],
+            "ack": row[7],
+            "deleted": row[8],
+            "reason": row[9],
+            "notes": row[10],
+            "deleted_by": row[11],
+            "deleted_on": row[12],
+            "sanctions": get_warning_sanctions(warn_id)}
+
+def get_warning_sanctions(warn_id):
+    c = conn.cursor()
+    c.execute("SELECT sanction, data FROM warning_sanction WHERE warning=?", (warn_id,))
+    sanctions = {}
+    for sanc, data in c:
+        if sanc == "stasis":
+            sanctions["stasis"] = int(data)
+        elif sanc == "deny command":
+            if "deny" not in sanctions:
+                sanctions["deny"] = set()
+            sanctions["deny"].add(data)
+
+    return sanctions
+
 def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
     teid, tlid = _get_ids(tacc, thm)
     seid, slid = _get_ids(sacc, shm)
-    c = conn.cursor()
-    c.execute("""INSERT INTO warning
-                 (
-                   target, sender, amount,
-                   issued, expires,
-                   reasons, notes,
-                   acknowledged
-                 )
-                 VALUES
-                 (
-                   ?, ?, ?,
-                   datetime('now'), ?,
-                   ?, ?,
-                   ?
-                 )""", (teid, seid, amount, expires, reasons, notes, not need_ack))
+    with conn:
+        c = conn.cursor()
+        c.execute("""INSERT INTO warning
+                     (
+                     target, sender, amount,
+                     issued, expires,
+                     reasons, notes,
+                     acknowledged
+                     )
+                     VALUES
+                     (
+                       ?, ?, ?,
+                       datetime('now'), ?,
+                       ?, ?,
+                       ?
+                     )""", (teid, seid, amount, expires, reasons, notes, not need_ack))
     return c.lastrowid
 
 def add_warning_sanction(warning, sanction, data):
-    c = conn.cursor()
-    c.execute("""INSERT INTO warning_sanction
-                 (warning, sanction, data)
-                 VALUES
-                 (?, ?, ?)""", (warning, sanction, data))
+    with conn:
+        c = conn.cursor()
+        c.execute("""INSERT INTO warning_sanction
+                     (warning, sanction, data)
+                     VALUES
+                     (?, ?, ?)""", (warning, sanction, data))
+
+def del_warning(warning, acc, hm):
+    peid, plid = _get_ids(acc, hm)
+    with conn:
+        c = conn.cursor()
+        c.execute("""UPDATE warning
+                     SET
+                       acknowledged = 1,
+                       deleted = 1,
+                       deleted_on = datetime('now'),
+                       deleted_by = ?
+                     WHERE
+                       id = ?
+                       AND deleted = 0""", (peid, warning))
+
+def set_warning(warning, reason, notes):
+    with conn:
+        c = conn.cursor()
+        c.execute("""UPDATE warning
+                     SET reason = ?, notes = ?
+                     WHERE id = ?""", (reason, notes, warning))
 
 def _upgrade():
     # no upgrades yet, once there are some, add methods like _add_table(), _add_column(), etc.

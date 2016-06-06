@@ -8018,9 +8018,10 @@ def fwarn(cli, nick, chan, rest):
     #     is not online, interpreted as an account name. To specify an account if nick is online,
     #     use =account. If not specified, shows all warnings on the bot.
     # !fwarn view <id> - views details on warning id
-    # !fwarn del <id> <reason> - deletes warning id
-    # !fwarn add <nick> [@]<points> [~expiry] [sanctions] <:reason> [|notes]
-    # e.g. !fwarn add lykos @1 ~30d deny=goat,stats stasis=5 :Spamming|I secretly just hate him
+    # !fwarn del <id> - deletes warning id
+    # !fwarn set <id> <reason> [| notes]
+    # !fwarn add <nick> [@]<points> [~expiry] [sanctions] <:reason> [| notes]
+    # e.g. !fwarn add lykos @1 ~30d deny=goat,gstats stasis=5 :Spamming | I secretly just hate him
     # nick => nick to warn. Can also be a hostmask in nick!user@host form. If nick is not online,
     #    interpreted as an account name. To specify an account if nick is online, use =account.
     # @ => warning requires acknowledgement before user can !join again
@@ -8035,7 +8036,7 @@ def fwarn(cli, nick, chan, rest):
     #    in reasons (no escaping is performed).
 
     params = re.split(" +", rest)
-    nick = None
+    target = None
     points = None
     need_ack = False
     expiry = None
@@ -8055,8 +8056,8 @@ def fwarn(cli, nick, chan, rest):
         except IndexError:
             reply(cli, nick, chan, messages["fwarn_help_syntax"])
             return
-        if subcommand not in ("list", "view", "add", "del", "help"):
-            reply(cli, nick, chan, messages["fwarn_invalid_subcommand"])
+        if subcommand not in ("list", "view", "add", "del", "set", "help"):
+            reply(cli, nick, chan, messages["fwarn_usage"])
             return
         reply(cli, nick, chan, messages["fwarn_{0}_syntax".format(subcommand)])
         return
@@ -8066,12 +8067,12 @@ def fwarn(cli, nick, chan, rest):
         page = 1
         try:
             list_all = params.pop(0)
-            nick = params.pop(0)
+            target = params.pop(0)
             page = int(params.pop(0))
             if list_all and list_all != "-all":
-                if nick is not None:
-                    page = int(nick)
-                nick = list_all
+                if target is not None:
+                    page = int(target)
+                target = list_all
                 list_all = False
             elif show_all == "-all":
                 list_all = True
@@ -8080,14 +8081,14 @@ def fwarn(cli, nick, chan, rest):
         except ValueError:
             reply(cli, nick, chan, messages["fwarn_page_invalid"])
             return
-        if nick is not None:
-            acc, hm = parse_warning_target(nick)
+        if target is not None:
+            acc, hm = parse_warning_target(target)
             if acc is None and hm is None:
                 reply(cli, nick, chan, messages["fwarn_nick_invalid"])
                 return
             warnings = db.list_warnings(acc, hm, list_all=list_all, skip=(page-1)*10, show=11)
             points = db.get_warning_points(acc, hm)
-            reply(cli, nick, chan, messages["fwarn_list_header"].format(nick, points))
+            reply(cli, nick, chan, messages["fwarn_list_header"].format(target, points))
         else:
             warnings = db.list_all_warnings(list_all=list_all, skip=(page-1)*10, show=11)
 
@@ -8098,8 +8099,8 @@ def fwarn(cli, nick, chan, rest):
                 parts = []
                 if list_all:
                     parts.append("-all")
-                if nick is not None:
-                    parts.append(nick)
+                if target is not None:
+                    parts.append(target)
                 parts.append(str(page + 1))
                 reply(cli, nick, chan, messages["fwarn_list_footer"].format(" ".join(parts)))
                 break
@@ -8109,29 +8110,123 @@ def fwarn(cli, nick, chan, rest):
             expires = warn["expires"] if warn["expires"] is not None else messages["fwarn_never_expires"]
             if warn["deleted"]:
                 start = "\u000314"
-                end = " [\u00033{0}\u000314]\u0003".format(messages["fwarn_deleted"])
+                end = " [\u00034{0}\u000314]\u0003".format(messages["fwarn_deleted"])
             elif warn["expired"]:
                 start = "\u000314"
-                end = " [\u00037{1}\u000314]\u0003".format(messages["fwarn_expired"])
-            if not warn["acknowledged"]:
-                ack = " \u0002!\u0002 "
+                end = " [\u00037{0}\u000314]\u0003".format(messages["fwarn_expired"])
+            if not warn["ack"]:
+                ack = "\u0002!\u0002 "
             reply(cli, nick, chan, messages["fwarn_list"].format(
                 start, ack, warn["id"], warn["issued"], warn["target"],
-                warn["sender"], warn["reason"], warn["points"], expires, end))
+                warn["sender"], warn["reason"], warn["amount"], expires, end))
         if i == 0:
             reply(cli, nick, chan, messages["fwarn_list_empty"])
         return
 
+    if command == "view":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_view_syntax"])
+            return
+
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        if warning["deleted"]:
+            expires = messages["fwarn_view_deleted"].format(warning["deleted_on"], warning["deleted_by"])
+        elif warning["expired"]:
+            expires = messages["fwarn_view_expired"].format(warning["expires"])
+        elif warning["expires"] is None:
+            expires = messages["fwarn_view_active"].format(messages["fwarn_never_expires"])
+        else:
+            expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
+
+        reply(cli, nick, chan, messages["fwarn_view_header"].format(
+            warning["id"], warning["target"], warning["issued"], warning["sender"],
+            warning["amount"], expires))
+
+        reason = [warning["reason"]]
+        if warning["notes"] is not None:
+            reason.append(warning["notes"])
+        reply(cli, nick, chan, " | ".join(reason))
+        
+        sanctions = []
+        if not warning["ack"]:
+            sanctions.append(messages["fwarn_view_ack"])
+        if warning["sanctions"]:
+            sanctions.append(messages["fwarn_view_sanctions"])
+            if "stasis" in warning["sanctions"]:
+                sanctions.append(messages["fwarn_view_stasis"].format(warning["sanctions"]["stasis"]))
+            if "deny" in warning["sanctions"]:
+                sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
+        if sanctions:
+            reply(cli, nick, chan, " ".join(sanctions))
+        return
+
+    if command == "del":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_del_syntax"])
+            return
+
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        acc, hm = parse_warning_target(nick)
+        db.del_warning(warn_id, acc, hm)
+        reply(cli, nick, chan, messages["fwarn_done"])
+        return
+
+    if command == "set":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_del_syntax"])
+            return
+
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        rsp = " ".join(params).split("|", 1)
+        if len(rsp) == 1:
+            rsp.append(None)
+        reason, notes = rsp
+
+        reason = reason.strip()
+        if not reason:
+            reply(cli, nick, chan, messages["fwarn_reason_required"])
+            return
+
+        # maintain existing notes if none were specified
+        if notes is not None:
+            notes = notes.strip()
+            if not notes:
+                notes = None
+        else:
+            notes = warning["notes"]
+
+        db.set_warning(warn_id, reason, notes)
+        reply(cli, nick, chan, messages["fwarn_done"])
+        return
+
     if command != "add":
-        reply(cli, nick, chan, messages["fwarn_invalid_subcommand"])
+        reply(cli, nick, chan, messages["fwarn_usage"])
         return
 
     # command == "add"
     while params:
         p = params.pop(0)
-        if nick is None:
-            # figuring out what nick actually is is handled in add_warning
-            nick = p
+        if target is None:
+            # figuring out what target actually is is handled in add_warning
+            target = p
         elif points is None:
             points = p
             if points[0] == "@":
@@ -8148,13 +8243,10 @@ def fwarn(cli, nick, chan, rest):
         elif notes is not None:
             notes += " " + p
         elif reason is not None:
-            if p[0] == "|":
-                if p == "|":
-                    notes = ""
-                else:
-                    notes = p[1:]
-                continue
-            reason += " " + p
+            rsp = p.split("|", 1)
+            if len(rsp) > 1:
+                notes = rsp[1]
+            reason += " " + rsp[0]
         elif p[0] == ":":
             if p == ":":
                 reason = ""
@@ -8167,7 +8259,7 @@ def fwarn(cli, nick, chan, rest):
             expiry = p[1:]
         else:
             # sanctions are the only thing left here
-            sanc = p.split("=", 2)
+            sanc = p.split("=", 1)
             if sanc[0] == "deny":
                 try:
                     cmds = sanc[1].split(",")
@@ -8193,15 +8285,15 @@ def fwarn(cli, nick, chan, rest):
             elif sanc[0] == "stasis":
                 try:
                     sanctions["stasis"] = int(sanc[1])
-                except IndexError, ValueError:
+                except (IndexError, ValueError):
                     reply(cli, nick, messages["fwarn_stasis_invalid"])
                     return
             else:
                 reply(cli, nick, chan, messages["fwarn_sanction_invalid"])
                 return
 
-    if nick is None or points is None or reason is None:
-        cli.notice(nick, messages["fwarn_syntax"])
+    if target is None or points is None or reason is None:
+        reply(cli, nick, chan, messages["fwarn_add_syntax"])
         return
 
     reason = reason.strip()
@@ -8220,6 +8312,12 @@ def fwarn(cli, nick, chan, rest):
         else:
             reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
             return
+
+    warn_id = add_warning(target, amount, nick, reason, notes, expires, need_ack, sanctions)
+    if warn_id is False:
+        reply(cli, nick, chan, messages["fwarn_cannot_add"])
+    else:
+        reply(cli, nick, chan, messages["fwarn_added"].format(warn_id))
 
 @cmd("wait", "w", playing=True, phases=("join",))
 def wait(cli, nick, chan, rest):

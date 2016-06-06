@@ -10,7 +10,7 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import logger
+from src import logger, db
 from src.messages import messages
 
 adminlog = logger("audit.log")
@@ -176,8 +176,9 @@ class cmd:
                     forced_owner_only = True
                     break
 
+        is_owner = var.is_owner(nick, ident, host)
         if self.owner_only or forced_owner_only:
-            if var.is_owner(nick, ident, host):
+            if is_owner:
                 adminlog(chan, rawnick, self.name, rest)
                 return self.func(*largs)
 
@@ -190,13 +191,14 @@ class cmd:
         # TODO: cache flags and cmds (below) on init, possibly store in var.USERS
         # that would greatly reduce our db calls
         flags = db.get_flags(acc, hostmask)
-        if self.flag and self.flag in flags:
+        is_full_admin = "F" in flags
+        if self.flag and (is_full_admin or is_owner):
             adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
         denied_cmds = db.get_denied_commands(acc, hostmask)
         for command in self.cmds:
-            if command in denied_commands:
+            if command in denied_cmds:
                 if chan == nick:
                     pm(cli, nick, messages["invalid_permissions"])
                 else:
@@ -204,7 +206,10 @@ class cmd:
                 return
 
         if self.flag:
-            if chan == nick:
+            if self.flag in flags:
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(*largs)
+            elif chan == nick:
                 pm(cli, nick, messages["not_an_admin"])
             else:
                 cli.notice(nick, messages["not_an_admin"])
@@ -240,3 +245,5 @@ class hook:
                     HOOKS[each].remove(inner)
             if not HOOKS[each]:
                 del HOOKS[each]
+
+# vim: set sw=4 expandtab:
