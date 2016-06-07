@@ -8581,6 +8581,167 @@ def fwarn(cli, nick, chan, rest):
     else:
         reply(cli, nick, chan, messages["fwarn_added"].format(warn_id))
 
+@cmd("ftemplate", "F", pm=True)
+def ftemplate(cli, nick, chan, rest):
+    params = re.split(" +", rest)
+
+    if params[0] == "":
+        # display a list of all templates
+        tpls = db.get_templates()
+        if not tpls:
+            reply(cli, nick, chan, messages["no_templates"])
+        else:
+            tpls = ["{0} (+{1})".format(name, "".join(sorted(flags))) for name, flags in tpls]
+            reply(cli, nick, chan, var.break_long_message(tpls, ", "))
+    elif len(params) == 1:
+        reply(cli, nick, chan, messages["not_enough_parameters"])
+    else:
+        name = params[0].upper()
+        flags = params[1]
+        tid, cur_flags = db.get_template(name)
+
+        if flags[0] != "+" and flags[0] != "-":
+            # flags is a template name
+            tpl_name = flags.upper()
+            tpl_id, tpl_flags = db.get_template(tpl_name)
+            if tpl_id is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                return
+            tpl_flags = "".join(sorted(tpl_flags))
+            db.update_template(name, tpl_flags)
+            reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+        else:
+            adding = True
+            for flag in flags:
+                if flag == "+":
+                    adding = True
+                    continue
+                elif flag == "-":
+                    adding = False
+                    continue
+                elif flag == "*":
+                    if adding:
+                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
+                    else:
+                        cur_flags = set()
+                    continue
+                elif flag not in var.ALL_FLAGS:
+                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    return
+                elif adding:
+                    cur_flags.add(flag)
+                else:
+                    cur_flags.discard(flag)
+            if cur_flags:
+                tpl_flags = "".join(sorted(cur_flags))
+                db.update_template(name, tpl_flags)
+                reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+            elif tid is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(name))
+            else:
+                db.delete_template(name)
+                reply(cli, nick, chan, messages["template_deleted"].format(name))
+
+        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        db.init_vars()
+
+@cmd("fflags", flag="F", pm=True)
+def fflags(cli, nick, chan, rest):
+    params = re.split(" +", rest)
+
+    if params[0] == "":
+        # display a list of all access
+        parts = []
+        for acc, flags in var.FLAGS_ACCS.items():
+            if not flags:
+                continue
+            if var.ACCOUNTS_ONLY:
+                parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
+            else:
+                parts.append("{0} (Account) (+{1})".format(acc, "".join(sorted(flags))))
+        for hm, flags in var.FLAGS.items():
+            if not flags:
+                continue
+            if var.DISABLE_ACCOUNTS:
+                parts.append("{0} (+{1})".format(hm, "".join(sorted(flags))))
+            else:
+                parts.append("{0} (Host) (+{1})".format(hm, "".join(sorted(flags))))
+        if not parts:
+            reply(cli, nick, chan, messages["no_access"])
+        else:
+            reply(cli, nick, chan, var.break_long_message(parts, ", "))
+    elif len(params) == 1:
+        # display access for the given user
+        acc, hm = parse_warning_target(params[0])
+        if acc is not None:
+            if not var.FLAGS_ACCS[acc]:
+                msg = messages["no_access_account"].format(acc)
+            else:
+                msg = messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[acc])))
+        elif hm is not None:
+            if not var.FLAGS[hm]:
+                msg = messages["no_access_host"].format(hm)
+            else:
+                msg = messages["access_host"].format(acc, "".join(sorted(var.FLAGS[hm])))
+        reply(cli, nick, chan, msg)
+    else:
+        acc, hm = parse_warning_target(params[0])
+        flags = params[1]
+        cur_flags = set(var.FLAGS_ACCS[acc] + var.FLAGS[hm])
+
+        if flags[0] != "+" and flags[0] != "-":
+            # flags is a template name
+            tpl_name = flags.upper()
+            tpl_id, tpl_flags = db.get_template(tpl_name)
+            if tpl_id is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                return
+            tpl_flags = "".join(sorted(tpl_flags))
+            db.set_access(acc, hm, tid=tpl_id)
+            if acc is not None:
+                reply(cli, nick, chan, messages["access_set_account"].format(acc, tpl_flags))
+            else:
+                reply(cli, nick, chan, messages["access_set_host"].format(hm, tpl_flags))
+        else:
+            adding = True
+            for flag in flags:
+                if flag == "+":
+                    adding = True
+                    continue
+                elif flag == "-":
+                    adding = False
+                    continue
+                elif flag == "*":
+                    if adding:
+                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
+                    else:
+                        cur_flags = set()
+                    continue
+                elif flag not in var.ALL_FLAGS:
+                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    return
+                elif adding:
+                    cur_flags.add(flag)
+                else:
+                    cur_flags.discard(flag)
+            if cur_flags:
+                flags = "".join(sorted(cur_flags))
+                db.set_access(acc, hm, flags=flags)
+                if acc is not None:
+                    reply(cli, nick, chan, messages["access_set_account"].format(acc, flags))
+                else:
+                    reply(cli, nick, chan, messages["access_set_host"].format(hm, flags))
+            else:
+                db.set_access(acc, hm, flags=None)
+                if acc is not None:
+                    reply(cli, nick, chan, messages["access_deleted_account"].format(acc))
+                else:
+                    reply(cli, nick, chan, messages["access_deleted_host"].format(hm))
+
+        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        db.init_vars()
+
+
 @cmd("wait", "w", playing=True, phases=("join",))
 def wait(cli, nick, chan, rest):
     """Increases the wait time until !start can be used."""

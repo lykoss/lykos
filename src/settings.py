@@ -319,6 +319,7 @@ DISABLED_ROLES = frozenset()
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25
 
+ALL_FLAGS = frozenset("AaDdFjms")
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 

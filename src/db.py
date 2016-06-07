@@ -168,6 +168,56 @@ def expire_stasis():
                        stasis_expires IS NOT NULL
                        AND stasis_expires <= datetime('now')""")
 
+def get_template(name):
+    c = conn.cursor()
+    c.execute("SELECT id, flags FROM access_template WHERE name = ?", (name,))
+    row = c.fetchone()
+    if row is None:
+        return (None, set())
+    return (row[0], row[1])
+
+def get_templates():
+    c = conn.cursor()
+    c.execute("SELECT name, flags FROM access_template ORDER BY name ASC")
+    tpls = []
+    for name, flags in c:
+        tpls.append((name, flags))
+    return tpls
+
+def update_template(name, flags):
+    with conn:
+        tid, _ = get_template(name)
+        c = conn.cursor()
+        if tid is None:
+            c.execute("INSERT INTO access_template (name, flags) VALUES (?, ?)", (name, flags))
+        else:
+            c.execute("UPDATE access_template SET flags = ? WHERE id = ?", (flags, tid))
+
+def delete_template(name):
+    with conn:
+        tid, _ = get_template(name)
+        if tid is not None:
+            c = conn.cursor()
+            c.execute("DELETE FROM access WHERE template = ?", (tid,))
+            c.execute("DELETE FROM template WHERE id = ?", (tid,))
+
+def set_access(acc, hostmask, flags=None, tid=None):
+    peid, plid = _get_ids(acc, hostmask)
+    if peid is None:
+        return
+    with conn:
+        c = conn.cursor()
+        if flags is None and tid is None:
+            c.execute("DELETE FROM access WHERE person = ?", (peid,))
+        elif tid is not None:
+            c.execute("""INSERT OR REPLACE INTO access
+                         (person, template, flags)
+                         VALUES (?, ?, NULL)""", (peid, tid))
+        else:
+            c.execute("""INSERT OR REPLACE INTO access
+                         (person, template, flags)
+                         VALUES (?, NULL, ?)""", (peid, flags))
+
 def toggle_simple(acc, hostmask):
     _toggle_thing("simple", acc, hostmask)
 

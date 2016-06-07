@@ -846,6 +846,19 @@
     "fwarn_view_deny": "denied {0}.",
     "fwarn_reason_required": "A public warning reason is required.",
     "warn_unacked": "You have unacknowledged warnings and cannot join at this time. Use \"warn list\" to view them.",
+    "no_templates": "There are no access templates defined.",
+    "template_not_found": "There is no template named {0}.",
+    "template_set": "Set template {0} to flags +{1}.",
+    "template_deleted": "Removed template {0}. Any access entries using this template have also been deleted.",
+    "access_set_account": "Set access for account {0} to +{1}.",
+    "access_set_host": "Set access for host {0} to +{1}.",
+    "access_deleted_account": "Deleted access for account {0}.",
+    "access_deleted_host": "Deleted access for host {0}.",
+    "invalid_flag": "Invalid flag {0}. Valid flags are +{1}.",
+    "no_access_account": "Account {0} does not have any access.",
+    "access_account": "Account {0} has access +{1}.",
+    "no_access_host": "Host {0} does not have any access.",
+    "access_host": "Host {0} has access +{1}.",
 
     "_": " vim: set sw=4 expandtab:"
 }
