@@ -84,10 +84,6 @@ if args.normal: normal = True
 botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False
 
-# Initialize Database
-
-db.init()
-
 # Logger
 
 # replace characters that can't be encoded with '?'

@@ -3,34 +3,37 @@ import src.settings as var
 import sqlite3
 import os
 import json
+from collections import defaultdict
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
 SCHEMA_VERSION = 1
 
-conn = None
+need_install = not os.path.isfile("data.sqlite3")
+conn = sqlite3.connect("data.sqlite3")
+with conn:
+    c = conn.cursor()
+    c.execute("PRAGMA foreign_keys = ON")
+    if need_install:
+        _install()
+    c.execute("PRAGMA user_version")
+    row = c.fetchone()
+    if row[0] == 0:
+        # new schema does not exist yet, migrate from old schema
+        # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
+        # will continue to exist to allow queries against it, however given how horribly
+        # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
+        # statistics over to the new schema which has the capability of actually being accurate.
+        _migrate()
+    elif row[0] < SCHEMA_VERSION:
+        _upgrade()
+    c.close()
 
-def init():
-    global conn
-    need_install = not os.path.isfile("data.sqlite3")
-    conn = sqlite3.connect("data.sqlite3")
-    with conn:
+del need_install, c
+
+def init_vars():
+    with var.GRAVEYARD_LOCK:
         c = conn.cursor()
-        c.execute("PRAGMA foreign_keys = ON")
-        if need_install:
-            _install()
-        c.execute("PRAGMA user_version")
-        row = c.fetchone()
-        if row[0] == 0:
-            # new schema does not exist yet, migrate from old schema
-            # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
-            # will continue to exist to allow queries against it, however given how horribly
-            # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
-            # statistics over to the new schema which has the capability of actually being accurate.
-            _migrate()
-        elif row[0] < SCHEMA_VERSION:
-            _upgrade()
-
         c.execute("""SELECT
                        pl.account,
                        pl.hostmask,
@@ -39,14 +42,37 @@ def init():
                        pe.deadchat,
                        pe.pingif,
                        pe.stasis_amount,
-                       pe.stasis_expires
+                       pe.stasis_expires,
+                       COALESCE(at.flags, a.flags)
                      FROM person pe
                      JOIN person_player pp
                        ON pp.person = pe.id
                      JOIN player pl
                        ON pl.id = pp.player
+                     LEFT JOIN access a
+                       ON a.person = pe.id
+                     LEFT JOIN access_template at
+                       ON at.id = a.template
                      WHERE pl.active = 1""")
-        for (acc, host, notice, simple, dc, pi, stasis, stasisexp) in c:
+
+        var.SIMPLE_NOTIFY = set()  # cloaks of people who !simple, who don't want detailed instructions
+        var.SIMPLE_NOTIFY_ACCS = set() # same as above, except accounts. takes precedence
+        var.PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
+        var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
+        var.STASISED = defaultdict(int)
+        var.STASISED_ACCS = defaultdict(int)
+        var.PING_IF_PREFS = {}
+        var.PING_IF_PREFS_ACCS = {}
+        var.PING_IF_NUMS = defaultdict(set)
+        var.PING_IF_NUMS_ACCS = defaultdict(set)
+        var.DEADCHAT_PREFS = set()
+        var.DEADCHAT_PREFS_ACCS = set()
+        var.FLAGS = defaultdict(str)
+        var.FLAGS_ACCS = defaultdict(str)
+        var.DENY = defaultdict(set)
+        var.DENY_ACCS = defaultdict(set)
+
+        for acc, host, notice, simple, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
                 if simple == 1:
                     var.SIMPLE_NOTIFY_ACCS.add(acc)
@@ -59,6 +85,8 @@ def init():
                     var.PING_IF_NUMS_ACCS[pi].add(acc)
                 if dc == 1:
                     var.DEADCHAT_PREFS_ACCS.add(acc)
+                if flags:
+                    var.FLAGS_ACCS[acc] = flags
             elif host is not None:
                 if simple == 1:
                     var.SIMPLE_NOTIFY.add(host)
@@ -71,6 +99,74 @@ def init():
                     var.PING_IF_NUMS[pi].add(host)
                 if dc == 1:
                     var.DEADCHAT_PREFS.add(host)
+                if flags:
+                    var.FLAGS[host] = flags
+
+        c.execute("""SELECT
+                       pl.account,
+                       pl.hostmask,
+                       ws.data
+                     FROM warning w
+                     JOIN warning_sanction ws
+                       ON ws.warning = w.id
+                     JOIN person pe
+                       ON pe.id = w.target
+                     JOIN person_player pp
+                       ON pp.person = pe.id
+                     JOIN player pl
+                       ON pl.id = pp.player
+                     WHERE
+                       ws.sanction = 'deny command'
+                       AND w.deleted = 0
+                       AND (
+                         w.expires IS NULL
+                         OR w.expires > datetime('now')
+                       )""")
+        for acc, host, command in c:
+            if acc is not None:
+                var.DENY_ACCS[acc].add(command)
+            if host is not None:
+                var.DENY[host].add(command)
+
+init_vars()
+
+def decrement_stasis(acc=None, hostmask=None):
+    peid, plid = _get_ids(acc, hostmask)
+    if (acc is not None or hostmask is not None) and peid is None:
+        return
+    sql = "UPDATE person SET stasis_amount = MAX(0, stasis_amount - 1)"
+    params = ()
+    if peid is not None:
+        sql += " WHERE id = ?"
+        params = (peid,)
+
+    with conn:
+        c = conn.cursor()
+        c.execute(sql, params)
+
+def decrease_stasis(newamt, acc=None, hostmask=None):
+    peid, plid = _get_ids(acc, hostmask)
+    if peid is None:
+        return
+    if newamt < 0:
+        newamt = 0
+
+    with conn:
+        c = conn.cursor()
+        c.execute("""UPDATE person
+                     SET stasis_amount = MIN(stasis_amount, ?)
+                     WHERE id = ?""", (newamt, peid))
+
+def expire_stasis():
+    with conn:
+        c = conn.cursor()
+        c.execute("""UPDATE person
+                     SET
+                       stasis_amount = 0,
+                       stasis_expires = NULL
+                     WHERE
+                       stasis_expires IS NOT NULL
+                       AND stasis_expires <= datetime('now')""")
 
 def toggle_simple(acc, hostmask):
     _toggle_thing("simple", acc, hostmask)
@@ -83,9 +179,6 @@ def toggle_deadchat(acc, hostmask):
 
 def set_pingif(val, acc, hostmask):
     _set_thing("pingif", val, acc, hostmask, raw=False)
-
-def set_stasis(val, acc, hostmask):
-    _set_thing("stasis_amount", val, acc, hostmask, raw=False)
 
 def add_game(mode, size, started, finished, winner, players, options):
     """ Adds a game record to the database.
@@ -257,39 +350,6 @@ def get_game_totals(mode):
         totals.append("\u0002{0}p\u0002: {1}".format(*row))
     return "Total games ({0}) | {1}".format(total_games, ", ".join(totals))
 
-def get_flags(acc, hostmask):
-    peid, plid = _get_ids(acc, hostmask)
-    c = conn.cursor()
-    c.execute("""SELECT COALESCE(at.flags, a.flags)
-                 FROM access a
-                 LEFT JOIN access_template at
-                   ON at.id = a.template
-                 WHERE a.person = ?""", (peid,))
-    row = c.fetchone()
-    if row is None:
-        return ""
-    return row[0]
-
-def get_denied_commands(acc, hostmask):
-    peid, plid = _get_ids(acc, hostmask)
-    c = conn.cursor()
-    c.execute("""SELECT ws.data
-                 FROM warning w
-                 JOIN warning_sanction ws
-                   ON ws.warning = w.id
-                 WHERE
-                   ws.sanction = 'deny command'
-                   AND w.target = ?
-                   AND w.deleted = 0
-                   AND (
-                     w.expires IS NULL
-                     OR w.expires > datetime('now')
-                   )""", (peid,))
-    cmds = set()
-    for row in c:
-        cmds.add(row[0])
-    return cmds
-
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     c = conn.cursor()
@@ -304,6 +364,23 @@ def get_warning_points(acc, hostmask):
                    )""", (peid,))
     row = c.fetchone()
     return row[0]
+
+def has_unacknowledged_warnings(acc, hostmask):
+    peid, plid = _get_ids(acc, hostmask)
+    if peid is None:
+        return False
+    c = conn.cursor()
+    c.execute("""SELECT MIN(acknowledged)
+                 FROM warning
+                 WHERE
+                   target = ?
+                   AND deleted = 0
+                   AND (
+                     expires IS NULL
+                     OR expires > datetime('now')
+                   )""", (peid,))
+    row = c.fetchone()
+    return not bool(row[0])
 
 def list_all_warnings(list_all=False, skip=0, show=0):
     c = conn.cursor()
@@ -356,7 +433,7 @@ def list_all_warnings(list_all=False, skip=0, show=0):
                          "reason": row[9]})
     return warnings
 
-def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
+def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
     peid, plid = _get_ids(acc, hostmask)
     c = conn.cursor()
     sql = """SELECT
@@ -383,16 +460,16 @@ def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
              WHERE
                warning.target = ?
              """
-    if not list_all:
-        sql += """  AND deleted = 0
-                    AND (
+    if not deleted:
+        sql += " AND deleted = 0"
+    if not expired:
+        sql += """ AND (
                       expires IS NULL
                       OR expires > datetime('now')
-                    )
-               """
-    sql += "ORDER BY warning.issued DESC\n"
+                    )"""
+    sql += " ORDER BY warning.issued DESC"
     if show > 0:
-        sql += "LIMIT {0} OFFSET {1}".format(show, skip)
+        sql += " LIMIT {0} OFFSET {1}".format(show, skip)
 
     c.execute(sql, (botconfig.NICK, peid))
     warnings = []
@@ -410,7 +487,7 @@ def list_warnings(acc, hostmask, list_all=False, skip=0, show=0):
     return warnings
 
 def get_warning(warn_id, acc=None, hm=None):
-    pe, pl = _get_ids(acc, hm)
+    peid, plid = _get_ids(acc, hm)
     c = conn.cursor()
     sql = """SELECT
                warning.id,
@@ -486,13 +563,14 @@ def get_warning_sanctions(warn_id):
 def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
     teid, tlid = _get_ids(tacc, thm)
     seid, slid = _get_ids(sacc, shm)
+    ack = 0 if need_ack else 1
     with conn:
         c = conn.cursor()
         c.execute("""INSERT INTO warning
                      (
                      target, sender, amount,
                      issued, expires,
-                     reasons, notes,
+                     reason, notes,
                      acknowledged
                      )
                      VALUES
@@ -501,7 +579,7 @@ def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
                        datetime('now'), ?,
                        ?, ?,
                        ?
-                     )""", (teid, seid, amount, expires, reasons, notes, not need_ack))
+                     )""", (teid, seid, amount, expires, reason, notes, ack))
     return c.lastrowid
 
 def add_warning_sanction(warning, sanction, data):
@@ -511,6 +589,19 @@ def add_warning_sanction(warning, sanction, data):
                      (warning, sanction, data)
                      VALUES
                      (?, ?, ?)""", (warning, sanction, data))
+
+        if sanction == "stasis":
+            c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
+            peid = c.fetchone()[0]
+            c.execute("""UPDATE person
+                         SET
+                           stasis_amount = stasis_amount + ?,
+                           stasis_expires = datetime(CASE WHEN stasis_expires IS NULL
+                                                            OR stasis_expires <= datetime('now')
+                                                          THEN 'now'
+                                                          ELSE stasis_expires END,
+                                                     '+{0} hours')
+                         WHERE id = ?""".format(int(data)), (data, peid))
 
 def del_warning(warning, acc, hm):
     peid, plid = _get_ids(acc, hm)
@@ -532,6 +623,11 @@ def set_warning(warning, reason, notes):
         c.execute("""UPDATE warning
                      SET reason = ?, notes = ?
                      WHERE id = ?""", (reason, notes, warning))
+
+def acknowledge_warning(warning):
+    with conn:
+        c = conn.cursor()
+        c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
 
 def _upgrade():
     # no upgrades yet, once there are some, add methods like _add_table(), _add_column(), etc.

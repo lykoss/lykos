@@ -1,5 +1,6 @@
 import fnmatch
 import re
+import threading
 from collections import defaultdict, OrderedDict
 
 import botconfig
@@ -195,10 +196,6 @@ TOTEM_CHANCES = {       "death": (      1      ,        1        ,       0      
 
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
-SIMPLE_NOTIFY = set()  # cloaks of people who !simple, who don't want detailed instructions
-SIMPLE_NOTIFY_ACCS = set() # same as above, except accounts. takes precedence
-PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
-PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
 
 ACCOUNTS_ONLY = False # If True, will use only accounts for everything
 DISABLE_ACCOUNTS = False # If True, all account-related features are disabled. Automatically set if we discover we do not have proper ircd support for accounts
@@ -211,9 +208,6 @@ NICKSERV_RELEASE_COMMAND = "RELEASE {nick}"
 NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
 CHANSERV = "ChanServ"
 CHANSERV_OP_COMMAND = "OP {channel}"
-
-STASISED = defaultdict(int)
-STASISED_ACCS = defaultdict(int)
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
@@ -328,16 +322,9 @@ FORTUNE_CHANCE = 1/25
 
 RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
 
-# pingif-related mappings
-
-PING_IF_PREFS = {}
-PING_IF_PREFS_ACCS = {}
-
-PING_IF_NUMS = defaultdict(set)
-PING_IF_NUMS_ACCS = defaultdict(set)
-
-DEADCHAT_PREFS = set()
-DEADCHAT_PREFS_ACCS = set()
+GRAVEYARD_LOCK = threading.RLock()
+WARNING_LOCK = threading.RLock()
+WAIT_TB_LOCK = threading.RLock()
 
 #TODO: move all of these to util.py or other files, as they are certainly NOT settings!
 
@@ -386,7 +373,7 @@ def is_admin(nick, ident=None, host=None, acc=None):
         if not acc:
             acc = USERS[nick]["account"]
     hostmask = nick + "!" + ident + "@" + host
-    flags = db.get_flags(acc, hostmask)
+    flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
     return "F" in flags
 
 def irc_lower(nick):

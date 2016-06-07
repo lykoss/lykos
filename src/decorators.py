@@ -188,15 +188,13 @@ class cmd:
                 cli.notice(nick, messages["not_owner"])
             return
 
-        # TODO: cache flags and cmds (below) on init, possibly store in var.USERS
-        # that would greatly reduce our db calls
-        flags = db.get_flags(acc, hostmask)
+        flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
         is_full_admin = "F" in flags
         if self.flag and (is_full_admin or is_owner):
             adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
-        denied_cmds = db.get_denied_commands(acc, hostmask)
+        denied_cmds = var.DENY[hostmask] | var.DENY_ACCS[acc]
         for command in self.cmds:
             if command in denied_cmds:
                 if chan == nick:
