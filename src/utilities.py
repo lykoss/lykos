@@ -20,6 +20,8 @@ from src import proxy, debuglog
 
 # Some miscellaneous helper functions
 
+is_fake_nick = re.compile(r"^[0-9]+$").search
+
 def mass_mode(cli, md_param, md_plain):
     """ Example: mass_mode(cli, [('+v', 'asdf'), ('-v','wobosd')], ['-m']) """
     lmd = len(md_param)  # store how many mode changes to do
@@ -120,9 +122,6 @@ def is_user_notice(nick):
             if var.match_hostmask(hostmask, nick, ident, host):
                 return True
     return False
-
-def is_fake_nick(who):
-    return re.search(r"^[0-9]+$", who)
 
 def in_wolflist(nick, who):
     myrole = var.get_role(nick)
