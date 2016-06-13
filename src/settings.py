@@ -82,6 +82,7 @@ AUTO_SANCTION = (
         (1, 4, {"ack": True}),
         (5, 9, {"stasis": 1}),
         (10, 10, {"ack": True, "stasis": 3}),
+        (11, 14, {"stasis": 3}),
         (15, 24, {"scalestasis": (0, 1, -10)}),
         (25, 25, {"tempban": 15})
         )

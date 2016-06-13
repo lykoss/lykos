@@ -9,28 +9,6 @@ from collections import defaultdict
 # they do not run by default for performance reasons
 SCHEMA_VERSION = 1
 
-need_install = not os.path.isfile("data.sqlite3")
-conn = sqlite3.connect("data.sqlite3")
-with conn:
-    c = conn.cursor()
-    c.execute("PRAGMA foreign_keys = ON")
-    if need_install:
-        _install()
-    c.execute("PRAGMA user_version")
-    row = c.fetchone()
-    if row[0] == 0:
-        # new schema does not exist yet, migrate from old schema
-        # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
-        # will continue to exist to allow queries against it, however given how horribly
-        # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
-        # statistics over to the new schema which has the capability of actually being accurate.
-        _migrate()
-    elif row[0] < SCHEMA_VERSION:
-        _upgrade()
-    c.close()
-
-del need_install, c
-
 def init_vars():
     with var.GRAVEYARD_LOCK:
         c = conn.cursor()
@@ -127,8 +105,6 @@ def init_vars():
                 var.DENY_ACCS[acc].add(command)
             if host is not None:
                 var.DENY[host].add(command)
-
-init_vars()
 
 def decrement_stasis(acc=None, hostmask=None):
     peid, plid = _get_ids(acc, hostmask)
@@ -794,5 +770,28 @@ def _set_thing(thing, val, acc, hostmask, raw=False):
 
 def _toggle_thing(thing, acc, hostmask):
     _set_thing(thing, "CASE {0} WHEN 1 THEN 0 ELSE 1 END".format(thing), acc, hostmask, raw=True)
+
+need_install = not os.path.isfile("data.sqlite3")
+conn = sqlite3.connect("data.sqlite3")
+with conn:
+    c = conn.cursor()
+    c.execute("PRAGMA foreign_keys = ON")
+    if need_install:
+        _install()
+    c.execute("PRAGMA user_version")
+    row = c.fetchone()
+    if row[0] == 0:
+        # new schema does not exist yet, migrate from old schema
+        # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
+        # will continue to exist to allow queries against it, however given how horribly
+        # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
+        # statistics over to the new schema which has the capability of actually being accurate.
+        _migrate()
+    elif row[0] < SCHEMA_VERSION:
+        _upgrade()
+    c.close()
+
+del need_install, c
+init_vars()
 
 # vim: set expandtab:sw=4:ts=4:
