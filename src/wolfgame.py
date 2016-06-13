@@ -8575,7 +8575,7 @@ def fwarn(cli, nick, chan, rest):
             reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
             return
 
-    warn_id = add_warning(target, amount, nick, reason, notes, expires, need_ack, sanctions)
+    warn_id = add_warning(target, points, nick, reason, notes, expires, need_ack, sanctions)
     if warn_id is False:
         reply(cli, nick, chan, messages["fwarn_cannot_add"])
     else:

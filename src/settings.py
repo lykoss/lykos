@@ -375,7 +375,7 @@ def is_admin(nick, ident=None, host=None, acc=None):
         if not acc:
             acc = USERS[nick]["account"]
     hostmask = nick + "!" + ident + "@" + host
-    flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
+    flags = FLAGS[hostmask] + FLAGS_ACCS[acc]
     return "F" in flags
 
 def irc_lower(nick):
