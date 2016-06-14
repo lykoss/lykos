@@ -189,7 +189,7 @@ class cmd:
             return
 
         flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-        is_full_admin = "F" in flags
+        is_full_admin = var.is_admin(nick, ident, host)
         if self.flag and (is_full_admin or is_owner):
             adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)

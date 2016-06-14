@@ -377,7 +377,27 @@ def is_admin(nick, ident=None, host=None, acc=None):
             acc = USERS[nick]["account"]
     hostmask = nick + "!" + ident + "@" + host
     flags = FLAGS[hostmask] + FLAGS_ACCS[acc]
-    return "F" in flags
+
+    if not "F" in flags:
+        try:
+            hosts = set(botconfig.ADMINS)
+            accounts = set(botconfig.ADMINS_ACCOUNTS)
+
+            if not DISABLE_ACCOUNTS and acc and acc != "*":
+                for pattern in accounts:
+                    if fnmatch.fnmatch(acc.lower(), pattern.lower()):
+                        return True
+
+            if host:
+                for hostmask in hosts:
+                    if match_hostmask(hostmask, nick, ident, host):
+                        return True
+        except AttributeError:
+            pass
+
+        return is_owner(nick, ident, host, acc)
+
+    return True
 
 def irc_lower(nick):
     mapping = {
