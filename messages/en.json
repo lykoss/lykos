@@ -811,7 +811,7 @@
     "fwarn_add_syntax": "Usage: fwarn add <nick[!user@host]|=account> [@]<points> [~expiry] [sanctions] <:reason> [| notes]",
     "fwarn_page_invalid": "Invalid page, must be a number 1 or greater.",
     "fwarn_points_invalid": "Invalid points, must be a number above 0.",
-    "fwarn_expiry_invalid": "Invalid expiration amount, must be a number above 0.",
+    "fwarn_expiry_invalid": "Invalid expiration amount, must be a number above 0 or 'never' for a warning that never expires.",
     "fwarn_expiry_invalid_suffix": "Invalid expiration suffix, must use either d, h, or m.",
     "fwarn_cannot_add": "Cannot add warning, double-check your parameters (the nick might be wrong or you are not joined to the channel).",
     "fwarn_added": "Added warning {0}.",
@@ -859,6 +859,7 @@
     "access_account": "Account {0} has access +{1}.",
     "no_access_host": "Host {0} does not have any access.",
     "access_host": "Host {0} has access +{1}.",
+    "never_aliases": ["never", "infinite", "infinity", "permanent", "p"],
 
     "_": " vim: set sw=4 expandtab:"
 }

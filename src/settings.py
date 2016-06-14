@@ -60,6 +60,7 @@ QUIET_PREFIX = "" # "" or "~q:"
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
 
+DEFAULT_EXPIRY = "30d"
 LEAVE_PENALTY = 1
 LEAVE_EXPIRY = "30d"
 IDLE_PENALTY = 1

@@ -396,7 +396,7 @@ def has_unacknowledged_warnings(acc, hostmask):
     if peid is None:
         return False
     c = conn.cursor()
-    c.execute("""SELECT MIN(acknowledged)
+    c.execute("""SELECT COALESCE(MIN(acknowledged), 1)
                  FROM warning
                  WHERE
                    target = ?
@@ -419,7 +419,12 @@ def list_all_warnings(list_all=False, skip=0, show=0):
                warning.expires,
                CASE WHEN warning.expires IS NULL OR warning.expires > datetime('now')
                     THEN 0 ELSE 1 END AS expired,
-               warning.acknowledged,
+               CASE WHEN warning.deleted
+                         OR (
+                             warning.expires IS NOT NULL
+                             AND warning.expires <= datetime('now')
+                         )
+                    THEN 1 ELSE warning.acknowledged END AS acknowledged,
                warning.deleted,
                warning.reason
              FROM warning
@@ -471,7 +476,12 @@ def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
                warning.expires,
                CASE WHEN warning.expires IS NULL OR warning.expires > datetime('now')
                     THEN 0 ELSE 1 END AS expired,
-               warning.acknowledged,
+               CASE WHEN warning.deleted
+                         OR (
+                             warning.expires IS NOT NULL
+                             AND warning.expires <= datetime('now')
+                         )
+                    THEN 1 ELSE warning.acknowledged END AS acknowledged,
                warning.deleted,
                warning.reason
              FROM warning
@@ -643,12 +653,12 @@ def del_warning(warning, acc, hm):
                        id = ?
                        AND deleted = 0""", (peid, warning))
 
-def set_warning(warning, reason, notes):
+def set_warning(warning, expires, reason, notes):
     with conn:
         c = conn.cursor()
         c.execute("""UPDATE warning
-                     SET reason = ?, notes = ?
-                     WHERE id = ?""", (reason, notes, warning))
+                     SET reason = ?, notes = ?, expires = ?
+                     WHERE id = ?""", (reason, notes, expires, warning))
 
 def acknowledge_warning(warning):
     with conn:

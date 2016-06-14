@@ -8443,7 +8443,7 @@ def fwarn(cli, nick, chan, rest):
         try:
             warn_id = int(params.pop(0))
         except (IndexError, ValueError):
-            reply(cli, nick, chan, messages["fwarn_del_syntax"])
+            reply(cli, nick, chan, messages["fwarn_set_syntax"])
             return
 
         warning = db.get_warning(warn_id)
@@ -8455,11 +8455,46 @@ def fwarn(cli, nick, chan, rest):
         if len(rsp) == 1:
             rsp.append(None)
         reason, notes = rsp
-
         reason = reason.strip()
+
+        # check for modified expiry
+        expires = warning["expires"]
+        rsp = reason.split(" ", 1)
+        if rsp[0] and rsp[0][0] == "~":
+            if len(rsp) == 1:
+                rsp.append("")
+            expires, reason = rsp
+            expires = expires[1:]
+            reason = reason.strip()
+
+            if expires in messages["never_aliases"]:
+                expires = None
+            else:
+                suffix = expires[-1]
+                try:
+                    amount = int(expires[:-1])
+                except ValueError:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+                    return
+
+                if amount <= 0:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+                    return
+
+                issued = datetime.strptime(warning["issued"], "%Y-%m-%d %H:%M:%S")
+                if suffix == "d":
+                    expires = issued + timedelta(days=amount)
+                elif suffix == "h":
+                    expires = issued + timedelta(hours=amount)
+                elif suffix == "m":
+                    expires = issued + timedelta(minutes=amount)
+                else:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
+                    return
+
+        # maintain existing reason if none was specified
         if not reason:
-            reply(cli, nick, chan, messages["fwarn_reason_required"])
-            return
+            reason = warning["reason"]
 
         # maintain existing notes if none were specified
         if notes is not None:
@@ -8469,7 +8504,7 @@ def fwarn(cli, nick, chan, rest):
         else:
             notes = warning["notes"]
 
-        db.set_warning(warn_id, reason, notes)
+        db.set_warning(warn_id, expires, reason, notes)
         reply(cli, nick, chan, messages["fwarn_done"])
         return
 
@@ -8553,7 +8588,12 @@ def fwarn(cli, nick, chan, rest):
         notes = notes.strip()
 
     # convert expires into a proper datetime
-    if expires is not None:
+    if expires is None:
+        expires = var.DEFAULT_EXPIRY
+
+    if expires.lower() in messages["never_aliases"]:
+        expires = None
+    else:
         suffix = expires[-1]
         try:
             amount = int(expires[:-1])
