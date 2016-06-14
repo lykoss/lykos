@@ -8250,7 +8250,7 @@ def fwarn(cli, nick, chan, rest):
     #     use =account. If not specified, shows all warnings on the bot.
     # !fwarn view <id> - views details on warning id
     # !fwarn del <id> - deletes warning id
-    # !fwarn set <id> <reason> [| notes]
+    # !fwarn set <id> [~expiry] [reason] [| notes]
     # !fwarn add <nick> [@]<points> [~expiry] [sanctions] <:reason> [| notes]
     # e.g. !fwarn add lykos @1 ~30d deny=goat,gstats stasis=5 :Spamming | I secretly just hate him
     # nick => nick to warn. Can also be a hostmask in nick!user@host form. If nick is not online,

@@ -802,7 +802,7 @@
     "fwarn_list_syntax": "Usage: fwarn list [-all] [nick[!user@host]|=account] [page]",
     "fwarn_view_syntax": "Usage: fwarn view <id>",
     "fwarn_del_syntax": "Usage: fwarn del <id>",
-    "fwarn_set_syntax": "Usage: fwarn set <id> <reason> [| notes]",
+    "fwarn_set_syntax": "Usage: fwarn set <id> [~expiry] [reason] [| notes]",
     "fwarn_help_syntax": "Usage: fwarn help <subcommand>",
     "warn_list_syntax": "Usage: warn list [-all] [page]",
     "warn_view_syntax": "Usage: warn view <id>",
