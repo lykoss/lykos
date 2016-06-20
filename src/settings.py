@@ -434,8 +434,10 @@ def plural(role, count=2):
 
 def singular(plural):
     # converse of plural above (kinda)
-    # this is used to map plural role names back to singular,
+    # this is used to map plural team names back to singular,
     # so we don't need to worry about stuff like possessives
+    # Note that this is currently only ever called on team names,
+    # and will require adjustment if one wishes to use it on roles.
     conv = {"wolves": "wolf",
             "succubi": "succubus"}
     if plural in conv:
