@@ -4,6 +4,7 @@ import time
 
 import botconfig
 import src.settings as var
+from src import db
 
 # Segue to logger, since src.gamemodes requires it
 # TODO: throw this into a logger.py perhaps so we aren't breaking up imports with non-import stuff
@@ -82,10 +83,6 @@ if args.normal: normal = True
 
 botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False
-
-# Initialize Database
-
-var.init_db()
 
 # Logger
 

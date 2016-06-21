@@ -10,7 +10,7 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import logger
+from src import logger, db
 from src.messages import messages
 
 adminlog = logger("audit.log")
@@ -66,12 +66,12 @@ class handle_error:
                         cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
 
 class cmd:
-    def __init__(self, *cmds, raw_nick=False, admin_only=False, owner_only=False,
+    def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
                  chan=True, pm=False, playing=False, silenced=False, phases=(), roles=()):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
-        self.admin_only = admin_only
+        self.flag = flag
         self.owner_only = owner_only
         self.chan = chan
         self.pm = pm
@@ -88,7 +88,7 @@ class cmd:
         for name in cmds:
             for func in COMMANDS[name]:
                 if (func.owner_only != owner_only or
-                    func.admin_only != admin_only):
+                    func.flag != flag):
                     raise ValueError("unmatching protection levels for " + func.name)
 
             COMMANDS[name].append(self)
@@ -125,7 +125,7 @@ class cmd:
         if not self.chan and chan != nick:
             return # channel command, not allowed
 
-        if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.admin_only or self.owner_only):
+        if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.flag or self.owner_only):
             if "" in self.cmds:
                 return # don't have empty commands triggering in other channels
             for command in self.cmds:
@@ -138,6 +138,7 @@ class cmd:
             acc = var.USERS[nick]["account"]
         else:
             acc = None
+        hostmask = nick + "!" + ident + "@" + host
 
         if "" in self.cmds:
             return self.func(*largs)
@@ -175,8 +176,9 @@ class cmd:
                     forced_owner_only = True
                     break
 
+        is_owner = var.is_owner(nick, ident, host)
         if self.owner_only or forced_owner_only:
-            if var.is_owner(nick, ident, host):
+            if is_owner:
                 adminlog(chan, rawnick, self.name, rest)
                 return self.func(*largs)
 
@@ -186,49 +188,26 @@ class cmd:
                 cli.notice(nick, messages["not_owner"])
             return
 
-        if var.is_admin(nick, ident, host):
-            if self.admin_only:
-                adminlog(chan, rawnick, self.name, rest)
+        flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
+        is_full_admin = var.is_admin(nick, ident, host)
+        if self.flag and (is_full_admin or is_owner):
+            adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 
-        if not var.DISABLE_ACCOUNTS and acc:
-            if acc in var.DENY_ACCOUNTS:
-                for command in self.cmds:
-                    if command in var.DENY_ACCOUNTS[acc]:
-                        if chan == nick:
-                            pm(cli, nick, messages["invalid_permissions"])
-                        else:
-                            cli.notice(nick, messages["invalid_permissions"])
-                        return
+        denied_cmds = var.DENY[hostmask] | var.DENY_ACCS[acc]
+        for command in self.cmds:
+            if command in denied_cmds:
+                if chan == nick:
+                    pm(cli, nick, messages["invalid_permissions"])
+                else:
+                    cli.notice(nick, messages["invalid_permissions"])
+                return
 
-            if acc in var.ALLOW_ACCOUNTS:
-                for command in self.cmds:
-                    if command in var.ALLOW_ACCOUNTS[acc]:
-                        if self.admin_only:
-                            adminlog(chan, rawnick, self.name, rest)
-                        return self.func(*largs)
-
-        if host:
-            for pattern in var.DENY:
-                if var.match_hostmask(pattern, nick, ident, host):
-                    for command in self.cmds:
-                        if command in var.DENY[pattern]:
-                            if chan == nick:
-                                pm(cli, nick, messages["invalid_permissions"])
-                            else:
-                                cli.notice(nick, messages["invalid_permissions"])
-                            return
-
-            for pattern in var.ALLOW:
-                if var.match_hostmask(pattern, nick, ident, host):
-                    for command in self.cmds:
-                        if command in var.ALLOW[pattern]:
-                            if self.admin_only:
-                                adminlog(chan, rawnick, self.name, rest)
-                            return self.func(*largs)
-
-        if self.admin_only:
-            if chan == nick:
+        if self.flag:
+            if self.flag in flags:
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(*largs)
+            elif chan == nick:
                 pm(cli, nick, messages["not_an_admin"])
             else:
                 cli.notice(nick, messages["not_an_admin"])
@@ -264,3 +243,5 @@ class hook:
                     HOOKS[each].remove(inner)
             if not HOOKS[each]:
                 del HOOKS[each]
+
+# vim: set sw=4 expandtab:

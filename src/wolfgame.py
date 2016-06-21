@@ -45,7 +45,7 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import decorators, events, logger, proxy, debuglog, errlog, plog
+from src import db, decorators, events, logger, proxy, debuglog, errlog, plog
 from src.messages import messages
 
 # done this way so that events is accessible in !eval (useful for debugging)
@@ -89,9 +89,6 @@ var.LAST_SAID_TIME = {}
 
 var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
-var.GRAVEYARD_LOCK = threading.RLock()
-var.WARNING_LOCK = threading.RLock()
-var.WAIT_TB_LOCK = threading.RLock()
 var.STARTED_DAY_PLAYERS = 0
 
 var.DISCONNECTED = {}  # players who got disconnected
@@ -361,6 +358,15 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
+# wrapper around complete_match() used for any nick on the channel
+def get_nick(cli, nick):
+    ul = [x for x in var.USERS]
+    ull = [x.lower() for x in var.USERS]
+    lnick, num_matches = complete_match(nick.lower(), ull)
+    if not lnick:
+        return None
+    return ul[ull.index(lnick)]
+
 def get_roles(*roles):
     all_roles = []
     for role in roles:
@@ -429,36 +435,7 @@ def reset():
 
 reset()
 
-def make_stasis(nick, penalty):
-    if nick in var.USERS:
-        ident = var.USERS[nick]["ident"]
-        host = var.USERS[nick]["host"]
-        acc = var.USERS[nick]["account"]
-    else:
-        return # Can't do it
-    if not acc or acc == "*":
-        acc = None
-    if not host and not acc:
-        return # Can't do it, either
-    if acc:
-        if penalty == 0:
-            if acc in var.STASISED_ACCS:
-                del var.STASISED_ACCS[acc]
-                var.set_stasis_acc(acc, 0)
-        else:
-            var.STASISED_ACCS[acc] += penalty
-            var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
-    if (not var.ACCOUNTS_ONLY or not acc) and host:
-        hostmask = ident + "@" + host
-        if penalty == 0:
-            if hostmask in var.STASISED:
-                del var.STASISED[hostmask]
-                var.set_stasis(hostmask, 0)
-        else:
-            var.STASISED[hostmask] += penalty
-            var.set_stasis(hostmask, var.STASISED[hostmask])
-
-@cmd("fsync", admin_only=True, pm=True)
+@cmd("fsync", flag="m", pm=True)
 def fsync(cli, nick, chan, rest):
     """Makes the bot apply the currently appropriate channel modes."""
     sync_modes(cli)
@@ -478,8 +455,12 @@ def sync_modes(cli):
 
     mass_mode(cli, voices, other)
 
+@cmd("refreshdb", flag="m", pm=True)
+def refreshdb(cli, nick, chan, rest):
+    """Updates our tracking vars to the current db state."""
+    db.init_vars()
 
-@cmd("fdie", "fbye", admin_only=True, pm=True)
+@cmd("fdie", "fbye", flag="D", pm=True)
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
@@ -540,7 +521,7 @@ def _restart_program(cli, mode=None):
         os.execl(python, python, *sys.argv)
 
 
-@cmd("frestart", admin_only=True, pm=True)
+@cmd("frestart", flag="D", pm=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
@@ -657,20 +638,20 @@ def mark_simple_notify(cli, nick, chan, rest):
     if acc: # Prioritize account
         if acc in var.SIMPLE_NOTIFY_ACCS:
             var.SIMPLE_NOTIFY_ACCS.remove(acc)
-            var.remove_simple_rolemsg_acc(acc)
+            db.toggle_simple(acc, None)
             if host in var.SIMPLE_NOTIFY:
                 var.SIMPLE_NOTIFY.remove(host)
-                var.remove_simple_rolemsg(host)
+                db.toggle_simple(None, host)
             fullmask = ident + "@" + host
             if fullmask in var.SIMPLE_NOTIFY:
                 var.SIMPLE_NOTIFY.remove(fullmask)
-                var.remove_simple_rolemsg(fullmask)
+                db.toggle_simple(None, fullmask)
 
             cli.notice(nick, messages["simple_off"])
             return
 
         var.SIMPLE_NOTIFY_ACCS.add(acc)
-        var.add_simple_rolemsg_acc(acc)
+        db.toggle_simple(acc, None)
     elif var.ACCOUNTS_ONLY:
         cli.notice(nick, messages["not_logged_in"])
         return
@@ -678,7 +659,7 @@ def mark_simple_notify(cli, nick, chan, rest):
     else: # Not logged in, fall back to ident@hostmask
         if host in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(host)
-            var.remove_simple_rolemsg(host)
+            db.toggle_simple(None, host)
         
             cli.notice(nick, messages["simple_off"])
             return
@@ -686,13 +667,13 @@ def mark_simple_notify(cli, nick, chan, rest):
         fullmask = ident + "@" + host
         if fullmask in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(fullmask)
-            var.remove_simple_rolemsg(fullmask)
+            db.toggle_simple(None, fullmask)
 
             cli.notice(nick, messages["simple_off"])
             return
 
         var.SIMPLE_NOTIFY.add(fullmask)
-        var.add_simple_rolemsg(fullmask)
+        db.toggle_simple(None, fullmask)
 
     cli.notice(nick, messages["simple_on"])
 
@@ -713,20 +694,20 @@ def mark_prefer_notice(cli, nick, chan, rest):
     if acc and not var.DISABLE_ACCOUNTS: # Do things by account if logged in
         if acc in var.PREFER_NOTICE_ACCS:
             var.PREFER_NOTICE_ACCS.remove(acc)
-            var.remove_prefer_notice_acc(acc)
+            db.toggle_notice(acc, None)
             if host in var.PREFER_NOTICE:
                 var.PREFER_NOTICE.remove(host)
-                var.remove_prefer_notice(host)
+                db.toggle_notice(None, host)
             fullmask = ident + "@" + host
             if fullmask in var.PREFER_NOTICE:
                 var.PREFER_NOTICE.remove(fullmask)
-                var.remove_prefer_notice(fullmask)
+                db.toggle_notice(None, fullmask)
 
             cli.notice(nick, messages["notice_off"])
             return
 
         var.PREFER_NOTICE_ACCS.add(acc)
-        var.add_prefer_notice_acc(acc)
+        db.toggle_notice(acc, None)
     elif var.ACCOUNTS_ONLY:
         cli.notice(nick, messages["not_logged_in"])
         return
@@ -734,20 +715,20 @@ def mark_prefer_notice(cli, nick, chan, rest):
     else: # Not logged in
         if host in var.PREFER_NOTICE:
             var.PREFER_NOTICE.remove(host)
-            var.remove_prefer_notice(host)
+            db.toggle_notice(None, host)
 
             cli.notice(nick, messages["notice_off"])
             return
         fullmask = ident + "@" + host
         if fullmask in var.PREFER_NOTICE:
             var.PREFER_NOTICE.remove(fullmask)
-            var.remove_prefer_notice(fullmask)
+            db.toggle_notice(None, fullmask)
 
             cli.notice(nick, messages["notice_off"])
             return
 
         var.PREFER_NOTICE.add(fullmask)
-        var.add_prefer_notice(fullmask)
+        db.toggle_notice(None, fullmask)
 
     cli.notice(nick, messages["notice_on"])
 
@@ -914,7 +895,7 @@ def toggle_altpinged_status(nick, value, old=None):
         if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             if acc in var.PING_IF_PREFS_ACCS:
                 del var.PING_IF_PREFS_ACCS[acc]
-                var.set_pingif_status(acc, True, 0)
+                db.set_pingif(0, acc, None)
                 if old is not None:
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
@@ -923,7 +904,7 @@ def toggle_altpinged_status(nick, value, old=None):
             for hostmask in list(var.PING_IF_PREFS.keys()):
                 if var.match_hostmask(hostmask, nick, ident, host):
                     del var.PING_IF_PREFS[hostmask]
-                    var.set_pingif_status(hostmask, False, 0)
+                    db.set_pingif(0, None, hostmask)
                     if old is not None:
                         with var.WARNING_LOCK:
                             if old in var.PING_IF_NUMS.keys():
@@ -932,7 +913,7 @@ def toggle_altpinged_status(nick, value, old=None):
     else:
         if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             var.PING_IF_PREFS_ACCS[acc] = value
-            var.set_pingif_status(acc, True, value)
+            db.set_pingif(value, acc, None)
             with var.WARNING_LOCK:
                 if value not in var.PING_IF_NUMS_ACCS:
                     var.PING_IF_NUMS_ACCS[value] = set()
@@ -943,7 +924,7 @@ def toggle_altpinged_status(nick, value, old=None):
         elif not var.ACCOUNTS_ONLY:
             hostmask = ident + "@" + host
             var.PING_IF_PREFS[hostmask] = value
-            var.set_pingif_status(hostmask, False, value)
+            db.set_pingif(value, None, hostmask)
             with var.WARNING_LOCK:
                 if value not in var.PING_IF_NUMS.keys():
                     var.PING_IF_NUMS[value] = set()
@@ -1139,12 +1120,12 @@ def deadchat_pref(cli, nick, chan, rest):
     if value in variable:
         msg = messages["chat_on_death"]
         variable.remove(value)
-        var.remove_deadchat_pref(value, value == acc)
+        db.toggle_deadchat(acc, host)
 
     else:
         msg = messages["no_chat_on_death"]
         variable.add(value)
-        var.add_deadchat_pref(value, value == acc)
+        db.toggle_deadchat(acc, host)
 
     reply(cli, nick, chan, msg, private=True)
 
@@ -1191,11 +1172,13 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
         ident = var.USERS[player]["ident"]
         host = var.USERS[player]["host"]
         acc = var.USERS[player]["account"]
+        hostmask = player + "!" + ident + "@" + host
     elif is_fake_nick(player) and botconfig.DEBUG_MODE:
         # fakenick
         ident = None
         host = None
         acc = None
+        hostmask = None
     else:
         return False # Not normal
     if not acc or acc == "*" or var.DISABLE_ACCOUNTS:
@@ -1205,18 +1188,17 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
 
     if stasis > 0:
         if forced and stasis == 1:
-            for hostmask in list(var.STASISED.keys()):
-                if var.match_hostmask(hostmask, player, ident, host):
-                    var.set_stasis(hostmask, 0)
-                    del var.STASISED[hostmask]
-            if not var.DISABLE_ACCOUNTS and acc in var.STASISED_ACCS:
-                var.set_stasis_acc(acc, 0)
-                del var.STASISED_ACCS[acc]
+            decrement_stasis(player)
         else:
             cli.notice(who, messages["stasis"].format(
                 "you are" if player == who else player + " is", stasis,
                 "s" if stasis != 1 else ""))
             return False
+
+    # don't check unacked warnings on fjoin
+    if who == player and db.has_unacknowledged_warnings(acc, hostmask):
+        cli.notice(player, messages["warn_unacked"])
+        return False
 
     cmodes = [("+v", player)]
     if var.PHASE == "none":
@@ -1332,12 +1314,15 @@ def kill_join(cli, chan):
     reset()
     cli.msg(chan, msg)
     cli.msg(chan, messages["game_idle_cancel"])
+    # use this opportunity to expire pending stasis
+    db.expire_stasis()
+    db.init_vars()
     if var.AFTER_FLASTGAME is not None:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
 
 
-@cmd("fjoin", admin_only=True)
+@cmd("fjoin", flag="A")
 def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
     # keep this and the event in def join() in sync
@@ -1395,7 +1380,7 @@ def fjoin(cli, nick, chan, rest):
     if fake:
         cli.msg(chan, messages["fjoin_success"].format(nick, len(var.list_players())))
 
-@cmd("fleave", "fquit", admin_only=True, pm=True, phases=("join", "day", "night"))
+@cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
 
@@ -1428,7 +1413,7 @@ def fleave(cli, nick, chan, rest):
                     if a in rset:
                         var.ORIGINAL_ROLES[r].remove(a)
                         var.ORIGINAL_ROLES[r].add("(dced)"+a)
-                make_stasis(a, var.LEAVE_STASIS_PENALTY)
+                add_warning(a, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
                 if a in var.PLAYERS:
                     var.DCED_PLAYERS[a] = var.PLAYERS.pop(a)
 
@@ -1445,7 +1430,7 @@ def fleave(cli, nick, chan, rest):
             cli.msg(chan, messages["not_playing"].format(a))
             return
 
-@cmd("fstart", admin_only=True, phases=("join",))
+@cmd("fstart", flag="A", phases=("join",))
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
     cli.msg(botconfig.CHANNEL, messages["fstart_success"].format(nick))
@@ -2129,7 +2114,7 @@ def hurry_up(cli, gameid, change):
 
 
 
-@cmd("fnight", admin_only=True)
+@cmd("fnight", flag="d")
 def fnight(cli, nick, chan, rest):
     """Forces the day to end and night to begin."""
     if var.PHASE != "day":
@@ -2138,7 +2123,7 @@ def fnight(cli, nick, chan, rest):
         hurry_up(cli, 0, True)
 
 
-@cmd("fday", admin_only=True)
+@cmd("fday", flag="d")
 def fday(cli, nick, chan, rest):
     """Forces the night to end and the next day to begin."""
     if var.PHASE != "night":
@@ -2536,14 +2521,19 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
     # Only update if someone actually won, "" indicates everyone died or abnormal game stop
     if winner != "":
         plrl = {}
+        pltp = defaultdict(list)
         winners = []
+        player_list = []
         if additional_winners is not None:
             winners.extend(additional_winners)
         for role,ppl in var.ORIGINAL_ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
+                for x in ppl:
+                    if x is not None:
+                        pltp[x].append(role)
                 continue
             for x in ppl:
-                if x != None:
+                if x is not None:
                     if x in var.FINAL_ROLES:
                         plrl[x] = var.FINAL_ROLES[x]
                     else:
@@ -2551,24 +2541,42 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
         for plr, rol in plrl.items():
             orol = rol # original role, since we overwrite rol in case of clone
             splr = plr # plr stripped of the (dced) bit at the front, since other dicts don't have that
-            # TODO: figure out how player stats should work when var.DISABLE_ACCOUNTS is True; likely track by nick
+            pentry = {"nick": None,
+                      "account": None,
+                      "ident": None,
+                      "host": None,
+                      "role": None,
+                      "templates": [],
+                      "special": [],
+                      "won": False,
+                      "iwon": False,
+                      "dced": False}
             if plr.startswith("(dced)"):
+                pentry["dced"] = True
                 splr = plr[6:]
-                if var.DISABLE_ACCOUNTS:
-                    acc = splr
-                elif splr in var.DCED_PLAYERS.keys():
-                    acc = var.DCED_PLAYERS[splr]["account"]
-                elif splr in var.PLAYERS.keys():
-                    acc = var.PLAYERS[splr]["account"]
-                else:
-                    acc = "*"
-            elif plr in var.PLAYERS.keys():
-                if var.DISABLE_ACCOUNTS:
-                    acc = plr
-                else:
-                    acc = var.PLAYERS[plr]["account"]
-            else:
-                acc = "*"  #probably fjoin'd fake
+                if splr in var.USERS:
+                    if not var.DISABLE_ACCOUNTS:
+                        pentry["account"] = var.USERS[splr]["account"]
+                    pentry["nick"] = splr
+                    pentry["ident"] = var.USERS[splr]["ident"]
+                    pentry["host"] = var.USERS[splr]["host"]
+            elif plr in var.USERS:
+                if not var.DISABLE_ACCOUNTS:
+                    pentry["account"] = var.USERS[plr]["account"]
+                pentry["nick"] = plr
+                pentry["ident"] = var.USERS[plr]["ident"]
+                pentry["host"] = var.USERS[plr]["host"]
+
+            pentry["role"] = rol
+            pentry["templates"] = pltp[plr]
+            if splr in var.LOVERS:
+                pentry["special"].append("lover")
+            if splr in var.ENTRANCED:
+                pentry["special"].append("entranced")
+            if splr in var.VENGEFUL_GHOSTS:
+                pentry["special"].append("vg activated")
+                if var.VENGEFUL_GHOSTS[splr][0] == "!":
+                    pentry["special"].append("vg driven off")
 
             won = False
             iwon = False
@@ -2668,18 +2676,31 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
 
-            if acc != "*":
-                var.update_role_stats(acc, orol, won, iwon)
-                for role in var.TEMPLATE_RESTRICTIONS.keys():
-                    if plr in var.ORIGINAL_ROLES[role]:
-                        var.update_role_stats(acc, role, won, iwon)
-                if splr in var.LOVERS:
-                    var.update_role_stats(acc, "lover", won, iwon)
+            pentry["won"] = won
+            pentry["iwon"] = iwon
 
             if won or iwon:
                 winners.append(splr)
 
-        var.update_game_stats(var.CURRENT_GAMEMODE.name, len(survived) + len(var.DEAD), winner)
+            if pentry["nick"] is not None:
+                # don't record fjoined fakes
+                player_list.append(pentry)
+
+        game_options = {"role reveal": var.ROLE_REVEAL,
+                        "stats": var.STATS_TYPE,
+                        "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
+                        "roles": {}}
+        for role,pl in var.ORIGINAL_ROLES.items():
+            if len(pl) > 0:
+                game_options["roles"][role] = len(pl)
+
+        db.add_game(var.CURRENT_GAMEMODE.name,
+                    len(survived) + len(var.DEAD),
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
+                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                    winner,
+                    player_list,
+                    game_options)
 
         # spit out the list of winners
         winners.sort()
@@ -3379,7 +3400,7 @@ def reaper(cli, gameid):
                         if nck in rlist:
                             var.ORIGINAL_ROLES[r].remove(nck)
                             var.ORIGINAL_ROLES[r].add("(dced)"+nck)
-                    make_stasis(nck, var.IDLE_STASIS_PENALTY)
+                    add_warning(nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"])
                     del_player(cli, nck, end_game = False, death_triggers = False)
                 chk_win(cli)
                 pl = var.list_players()
@@ -3396,7 +3417,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
+                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"])
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
@@ -3405,7 +3426,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        make_stasis(dcedplayer, var.PART_STASIS_PENALTY)
+                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"])
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
@@ -3414,7 +3435,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        make_stasis(dcedplayer, var.ACC_STASIS_PENALTY)
+                        add_warning(dcedplayer, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"])
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
         time.sleep(10)
@@ -3514,7 +3535,7 @@ def goat(cli, nick, chan, rest):
 
     var.GOATED = True
 
-@cmd("fgoat", admin_only=True)
+@cmd("fgoat", flag="j")
 def fgoat(cli, nick, chan, rest):
     """Forces a goat to interact with anyone or anything, without limitations."""
     nick_ = rest.split(' ')[0].strip()
@@ -3842,7 +3863,7 @@ def leave(cli, what, nick, why=""):
             msg = (messages["leave_death"] + "{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = (messages["leave_death_no_reveal"] + "{1}").format(nick, population)
-        make_stasis(nick, var.LEAVE_STASIS_PENALTY)
+        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
     cli.msg(botconfig.CHANNEL, msg)
     var.SPECTATING_WOLFCHAT.discard(nick)
     var.SPECTATING_DEADCHAT.discard(nick)
@@ -3907,7 +3928,7 @@ def leave_game(cli, nick, chan, rest):
             if nick in rset:
                 var.ORIGINAL_ROLES[r].remove(nick)
                 var.ORIGINAL_ROLES[r].add("(dced)"+nick)
-        make_stasis(nick, var.LEAVE_STASIS_PENALTY)
+        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
@@ -7866,18 +7887,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         var.GAMEPHASE = "day"
         transition_day(cli)
 
-    for hostmask in list(var.STASISED.keys()):
-        var.STASISED[hostmask] -= 1
-        var.set_stasis(hostmask, var.STASISED[hostmask])
-        if var.STASISED[hostmask] <= 0:
-            del var.STASISED[hostmask]
-
-    if not var.DISABLE_ACCOUNTS:
-        for acc in list(var.STASISED_ACCS.keys()):
-            var.STASISED_ACCS[acc] -= 1
-            var.set_stasis_acc(acc, var.STASISED_ACCS[acc])
-            if var.STASISED_ACCS[acc] <= 0:
-                del var.STASISED_ACCS[acc]
+    decrement_stasis()
 
     if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
         # DEATH TO IDLERS!
@@ -7885,152 +7895,12 @@ def start(cli, nick, chan, forced = False, restart = ""):
         reapertimer.daemon = True
         reapertimer.start()
 
-
-
 @hook("error")
 def on_error(cli, pfx, msg):
     if var.RESTARTING or msg.endswith("(Excess Flood)"):
         _restart_program(cli)
     elif msg.startswith("Closing Link:"):
         raise SystemExit
-
-@cmd("stasis", chan=True, pm=True)
-def stasis(cli, nick, chan, rest):
-    st = is_user_stasised(nick)
-
-    if st:
-        msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
-    else:
-        msg = messages["you_not_in_stasis"]
-
-    reply(cli, nick, chan, msg, prefix_nick=True)
-
-@cmd("fstasis", admin_only=True, pm=True)
-def fstasis(cli, nick, chan, rest):
-    """Removes or sets stasis penalties."""
-
-    data = rest.split()
-    msg = None
-
-    if data:
-        lusers = {k.lower(): v for k, v in var.USERS.items()}
-        user = data[0]
-
-        if user.lower() in lusers:
-            ident = lusers[user.lower()]["ident"]
-            host = lusers[user.lower()]["host"]
-            acc = lusers[user.lower()]["account"]
-            hostmask = ident + "@" + host
-        else:
-            hostmask = user
-            acc = None
-        if var.ACCOUNTS_ONLY and acc == "*":
-            acc = None
-            hostmask = None
-            msg = messages["account_not_logged_in"].format(user)
-        if not acc and user in var.STASISED_ACCS:
-            acc = user
-
-        err_msg = messages["stasis_non_negative"]
-        if (not var.ACCOUNTS_ONLY or not acc) and hostmask:
-            if len(data) == 1:
-                if hostmask in var.STASISED:
-                    plural = "" if var.STASISED[hostmask] == 1 else "s"
-                    msg = messages["hostmask_in_stasis"].format(data[0], hostmask, var.STASISED[hostmask], plural)
-                else:
-                    msg = messages["hostmask_not_in_stasis"].format(data[0], hostmask)
-            else:
-                try:
-                    amt = int(data[1])
-                except ValueError:
-                    if chan == nick:
-                        pm(cli, nick, err_msg)
-                    else:
-                        cli.notice(nick, err_msg)
-
-                    return
-
-                if amt < 0:
-                    if chan == nick:
-                        pm(cli, nick, err_msg)
-                    else:
-                        cli.notice(nick, err_msg)
-
-                    return
-                elif amt > 2**31-1:
-                    amt = 2**31-1
-
-                if amt > 0:
-                    var.STASISED[hostmask] = amt
-                    var.set_stasis(hostmask, amt)
-                    plural = "" if amt == 1 else "s"
-                    msg = messages["fstasis_hostmask_add"].format(data[0], hostmask, amt, plural)
-                elif amt == 0:
-                    if hostmask in var.STASISED:
-                        del var.STASISED[hostmask]
-                        var.set_stasis(hostmask, 0)
-                        msg = messages["fstasis_hostmask_remove"].format(data[0], hostmask)
-                    else:
-                        msg = messages["hostmask_not_in_stasis"].format(data[0], hostmask)
-        if not var.DISABLE_ACCOUNTS and acc:
-            if len(data) == 1:
-                if acc in var.STASISED_ACCS:
-                    plural = "" if var.STASISED_ACCS[acc] == 1 else "s"
-                    msg = messages["account_in_stasis"].format(data[0], acc, var.STASISED_ACCS[acc], plural)
-                else:
-                    msg = messages["account_not_in_stasis"].format(data[0], acc)
-            else:
-                try:
-                    amt = int(data[1])
-                except ValueError:
-                    if chan == nick:
-                        pm(cli, nick, err_msg)
-                    else:
-                        cli.notice(nick, err_msg)
-                    return
-
-                if amt < 0:
-                    if chan == nick:
-                        pm(cli, nick, err_msg)
-                    else:
-                        cli.notice(nick, err_msg)
-                    return
-                elif amt > 2**31-1:
-                    amt = 2**31-1
-
-                if amt > 0:
-                    var.STASISED_ACCS[acc] = amt
-                    var.set_stasis_acc(acc, amt)
-                    plural = "" if amt == 1 else "s"
-                    msg = messages["fstasis_account_add"].format(data[0], acc, amt, plural)
-                elif amt == 0:
-                    if acc in var.STASISED_ACCS:
-                        del var.STASISED_ACCS[acc]
-                        var.set_stasis_acc(acc, 0)
-                        msg = messages["fstasis_account_remove"].format(data[0], acc)
-                    else:
-                        msg = messages["account_not_in_stasis"].format(data[0], acc)
-    elif var.STASISED or var.STASISED_ACCS:
-        stasised = {}
-        for hostmask in var.STASISED:
-            if var.DISABLE_ACCOUNTS:
-                stasised[hostmask] = var.STASISED[hostmask]
-            else:
-                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
-        if not var.DISABLE_ACCOUNTS:
-            for acc in var.STASISED_ACCS:
-                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
-        msg = messages["currently_stasised"].format(", ".join(
-            "\u0002{0}\u0002 ({1})".format(usr, number)
-            for usr, number in stasised.items()))
-    else:
-        msg = messages["noone_stasised"]
-
-    if msg:
-        if chan == nick:
-            pm(cli, nick, msg)
-        else:
-            cli.msg(chan, msg)
 
 def is_user_stasised(nick):
     """Checks if a user is in stasis. Returns a number of games in stasis."""
@@ -8050,271 +7920,867 @@ def is_user_stasised(nick):
            amount = max(amount, var.STASISED[hostmask])
     return amount
 
-def allow_deny(cli, nick, chan, rest, mode):
+def decrement_stasis(nick=None):
+    if nick and nick in var.USERS:
+        ident = var.USERS[nick]["ident"]
+        host = var.USERS[nick]["host"]
+        acc = var.USERS[nick]["account"]
+        # decrement account stasis even if accounts are disabled
+        if acc in var.STASISED_ACCS:
+            db.decrement_stasis(acc=acc)
+        for hostmask in var.STASISED:
+            if var.match_hostmask(hostmask, nick, ident, host):
+                db.decrement_stasis(hostmask=hostmask)
+    else:
+        db.decrement_stasis()
+    # Also expire any expired stasis and update our tracking vars
+    db.expire_stasis()
+    db.init_vars()
+
+def parse_warning_target(target):
+    if target[0] == "=":
+        if var.DISABLE_ACCOUNTS:
+            return (None, None)
+        tacc = target[1:]
+        thm = None
+    elif target in var.USERS:
+        tacc = var.USERS[target]["account"]
+        thm = target + "!" + var.USERS[target]["ident"] + "@" + var.USERS[target]["host"]
+    elif "@" in target:
+        tacc = None
+        thm = target
+    elif not var.DISABLE_ACCOUNTS:
+        tacc = target
+        thm = None
+    else:
+        return (None, None)
+    return (tacc, thm)
+
+def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ack=False, sanctions={}):
+    tacc, thm = parse_warning_target(target)
+    if tacc is None and thm is None:
+        return False
+
+    if actor not in var.USERS and actor != botconfig.NICK:
+        return False
+    sacc = None
+    shm = None
+    if actor in var.USERS:
+        sacc = var.USERS[actor]["account"]
+        shm = actor + "!" + var.USERS[actor]["ident"] + "@" + var.USERS[actor]["host"]
+
+    # determine if we need to automatically add any sanctions
+    prev = db.get_warning_points(tacc, thm)
+    cur = prev + amount
+    for (mn, mx, sanc) in var.AUTO_SANCTION:
+        if (prev < mn and cur >= mn) or (prev >= mn and prev <= mx and cur <= mx):
+            if "ack" in sanc:
+                need_ack = True
+            if "stasis" in sanc:
+                if "stasis" not in sanctions:
+                    sanctions["stasis"] = sanc["stasis"]
+                else:
+                    sanctions["stasis"] = max(sanctions["stasis"], sanc["stasis"])
+            if "scalestasis" in sanc:
+                (a, b, c) = sanc["scalestasis"]
+                amt = (a * cur * cur) + (b * cur) + c
+                if "stasis" not in sanctions:
+                    sanctions["stasis"] = amt
+                else:
+                    sanctions["stasis"] = max(sanctions["stasis"], amt)
+            if "deny" in sanc:
+                if "deny" not in sanctions:
+                    sanctions["deny"] = set(sanc["deny"])
+                else:
+                    sanctions["deny"].update(sanc["deny"])
+            if "tempban" in sanc:
+                # XXX: need to do this somehow, leaving here as a reminder for later
+                pass
+
+    sid = db.add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack)
+    if "stasis" in sanctions:
+        db.add_warning_sanction(sid, "stasis", sanctions["stasis"])
+    if "deny" in sanctions:
+        for cmd in sanctions["deny"]:
+            db.add_warning_sanction(sid, "deny command", cmd)
+
+    # Update any tracking vars that may have changed due to this
+    db.init_vars()
+
+    return sid
+
+@cmd("stasis", chan=True, pm=True)
+def stasis(cli, nick, chan, rest):
+    st = is_user_stasised(nick)
+    if st:
+        msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
+    else:
+        msg = messages["you_not_in_stasis"]
+
+    reply(cli, nick, chan, msg, prefix_nick=True)
+
+@cmd("fstasis", flag="A", chan=True, pm=True)
+def fstasis(cli, nick, chan, rest):
+    """Removes or views stasis penalties."""
+
     data = rest.split()
     msg = None
 
-    modes = ("allow", "deny")
-    assert mode in modes, "mode not in {!r}".format(modes)
+    if data:
+        lusers = {k.lower(): v for k, v in var.USERS.items()}
+        acc, hostmask = parse_warning_target(data[0])
+        cur = max(var.STASISED[hostmask], var.STASISED_ACCS[acc])
 
-    opts = defaultdict(bool)
-
-    if data and data[0].startswith("-"):
-        if data[0] == "-cmds":
-            opts["cmds"] = True
-        elif data[0] == "-cmd":
-            if len(data) < 2:
-                if chan == nick:
-                    pm(cli, nick, messages["no_command_specified"])
-                else:
-                    cli.notice(nick, messages["no_command_specified"])
-
+        if len(data) == 1:
+            if acc is not None and var.STASISED_ACCS[acc] == cur:
+                plural = "" if cur == 1 else "s"
+                reply(cli, nick, chan, messages["account_in_stasis"].format(data[0], acc, cur, plural))
+            elif hostmask is not None and var.STASISED[hostmask] == cur:
+                plural = "" if cur == 1 else "s"
+                reply(cli, nick, chan, messages["hostmask_in_stasis"].format(data[0], hostmask, cur, plural))
+            elif acc is not None:
+                reply(cli, nick, chan, messages["account_not_in_stasis"].format(data[0], acc))
+            else:
+                reply(cli, nick, chan, messages["hostmask_not_in_stasis"].format(data[0], hostmask))
+        else:
+            try:
+                amt = int(data[1])
+            except ValueError:
+                reply(cli, nick, chan, messages["stasis_not_negative"])
                 return
 
-            opts["cmd"] = data[1]
-            data = data[1:]
-        elif data[0] == "-acc" or data[0] == "-account":
-            opts["acc"] = True
-        elif data[0] == "-host":
-            opts["host"] = True
-        else:
-            if chan == nick:
-                pm(cli, nick, messages["invalid_option"].format(data[0][1:]))
-            else:
-                cli.notice(nick, messages["invalid_option"].format(data[0][1:]))
+            if amt < 0:
+                reply(cli, nick, chan, messages["stasis_not_negative"])
+                return
+            elif amt > cur:
+                reply(cli, nick, chan, messages["stasis_cannot_increase"])
+                return
+            elif cur == 0:
+                if acc is not None:
+                    reply(cli, nick, chan, messages["account_not_in_stasis"].format(data[0], acc))
+                    return
+                else:
+                    reply(cli, nick, chan, messages["hostmask_not_in_stasis"].format(data[0], hostmask))
+                    return
 
+            db.decrease_stasis(amt, acc, hostmask)
+            db.init_vars()
+            if amt > 0:
+                plural = "" if amt == 1 else "s"
+                if acc is not None:
+                    reply(cli, nick, chan, messages["fstasis_account_add"].format(data[0], acc, amt, plural))
+                else:
+                    reply(cli, nick, chan, messages["fstasis_hostmask_add"].format(data[0], hostmask, amt, plural))
+            elif acc is not None:
+                reply(cli, nick, chan, messages["fstasis_account_remove"].format(data[0], acc))
+            else:
+                reply(cli, nick, chan, messages["fstasis_hostmask_remove"].format(data[0], hostmask))
+    elif var.STASISED or var.STASISED_ACCS:
+        stasised = {}
+        for hostmask in var.STASISED:
+            if var.DISABLE_ACCOUNTS:
+                stasised[hostmask] = var.STASISED[hostmask]
+            else:
+                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
+        if not var.DISABLE_ACCOUNTS:
+            for acc in var.STASISED_ACCS:
+                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
+        msg = messages["currently_stasised"].format(", ".join(
+            "\u0002{0}\u0002 ({1})".format(usr, number)
+            for usr, number in stasised.items()))
+        reply(cli, nick, chan, msg)
+    else:
+        reply(cli, nick, chan, messages["noone_stasised"])
+
+@cmd("warn", pm=True)
+def warn(cli, nick, chan, rest):
+    """View and acknowledge your warnings."""
+    # !warn list [-all] [page] - lists all active warnings, or all warnings if all passed
+    # !warn view <id> - views details on warning id
+    # !warn ack <id> - acknowledges warning id
+    # Default if only !warn is given is to do !warn list.
+    params = re.split(" +", rest)
+
+    try:
+        command = params.pop(0)
+        if command == "":
+            command = "list"
+    except IndexError:
+        command = "list"
+
+    if command not in ("list", "view", "ack", "help"):
+        reply(cli, nick, chan, messages["warn_usage"])
+        return
+
+    if command == "help":
+        try:
+            subcommand = params.pop(0)
+        except IndexError:
+            reply(cli, nick, chan, messages["warn_help_syntax"])
+            return
+        if subcommand not in ("list", "view", "ack", "help"):
+            reply(cli, nick, chan, messages["warn_usage"])
+            return
+        reply(cli, nick, chan, messages["warn_{0}_syntax".format(subcommand)])
+        return
+
+    if command == "list":
+        list_all = False
+        page = 1
+        try:
+            list_all = params.pop(0)
+            target = params.pop(0)
+            page = int(params.pop(0))
+        except IndexError:
+            pass
+        except ValueError:
+            reply(cli, nick, chan, messages["fwarn_page_invalid"])
             return
 
-        data = data[1:]
+        try:
+            if list_all and list_all != "-all":
+                page = int(list_all)
+                list_all = False
+            elif list_all == "-all":
+                list_all = True
+        except ValueError:
+            reply(cli, nick, chan, messages["fwarn_page_invalid"])
+            return
 
-    if data and not opts["cmd"]:
-        lusers = {k.lower(): v for k, v in var.USERS.items()}
-        user = data[0]
+        acc, hm = parse_warning_target(nick)
+        warnings = db.list_warnings(acc, hm, expired=list_all, skip=(page-1)*10, show=11)
+        points = db.get_warning_points(acc, hm)
+        cli.notice(nick, messages["warn_list_header"].format(points))
 
-        if opts["acc"] and user != "*":
-            hostmask = None
-            acc = user
-        elif not opts["host"] and user.lower() in lusers:
-            ident = lusers[user.lower()]["ident"]
-            host = lusers[user.lower()]["host"]
-            acc = lusers[user.lower()]["account"]
-            hostmask = ident + "@" + host
+        i = 0
+        for warn in warnings:
+            i += 1
+            if (i == 11):
+                parts = []
+                if list_all:
+                    parts.append("-all")
+                parts.append(str(page + 1))
+                cli.notice(nick, messages["warn_list_footer"].format(" ".join(parts)))
+                break
+            start = ""
+            end = ""
+            ack = ""
+            if warn["expires"] is not None:
+                if warn["expired"]:
+                    expires = messages["fwarn_list_expired"].format(warn["expires"])
+                else:
+                    expires = messages["fwarn_view_expires"].format(warn["expires"])
+            else:
+                expires = messages["fwarn_never_expires"]
+            if warn["expired"]:
+                start = "\u000314"
+                end = " [\u00037{0}\u000314]\u0003".format(messages["fwarn_expired"])
+            if not warn["ack"]:
+                ack = "\u0002!\u0002 "
+            cli.notice(nick, messages["warn_list"].format(
+                start, ack, warn["id"], warn["issued"], warn["reason"], warn["amount"], expires, end))
+        if i == 0:
+            cli.notice(nick, messages["fwarn_list_empty"])
+        return
+
+    if command == "view":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["warn_view_syntax"])
+            return
+
+        acc, hm = parse_warning_target(nick)
+        warning = db.get_warning(warn_id, acc, hm)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        if warning["expired"]:
+            expires = messages["fwarn_view_expired"].format(warning["expires"])
+        elif warning["expires"] is None:
+            expires = messages["fwarn_view_active"].format(messages["fwarn_never_expires"])
         else:
-            hostmask = user
-            m = re.match('(?:(?:(.*?)!)?(.*)@)?(.*)', hostmask)
-            user = m.group(1) or ""
-            ident = m.group(2) or ""
-            host = m.group(3)
-            acc = None
+            expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
 
-        if user == "*":
-            opts["host"] = True
+        cli.notice(nick, messages["warn_view_header"].format(
+            warning["id"], warning["issued"], warning["amount"], expires))
+        cli.notice(nick, warning["reason"])
 
-        if not var.DISABLE_ACCOUNTS and acc:
-            if mode == "allow":
-                variable = var.ALLOW_ACCOUNTS
-                noaccvar = var.ALLOW
-            else:
-                variable = var.DENY_ACCOUNTS
-                noaccvar = var.DENY
-            if len(data) == 1:
-                cmds = set()
-                if acc in variable:
-                    cmds |= set(variable[acc])
-
-                if hostmask and not opts["acc"]:
-                    for mask in noaccvar:
-                        if var.match_hostmask(mask, user, ident, host):
-                            cmds |= set(noaccvar[mask])
-
-                if cmds:
-                    msg = "\u0002{0}\u0002 (Account: {1}) is {2} the following {3}commands: {4}.".format(
-                        data[0], acc, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(cmds))
+        sanctions = []
+        if not warning["ack"]:
+            sanctions.append(messages["warn_view_ack"].format(warning["id"]))
+        if warning["sanctions"]:
+            sanctions.append(messages["fwarn_view_sanctions"])
+            if "stasis" in warning["sanctions"]:
+                if warning["sanctions"]["stasis"] != 1:
+                    sanctions.append(messages["fwarn_view_stasis_plural"].format(warning["sanctions"]["stasis"]))
                 else:
-                    msg = "\u0002{0}\u0002 (Account: {1}) is not {2} commands.".format(data[0], acc, "allowed any special" if mode == "allow" else "denied any")
-            else:
-                if acc not in variable:
-                    variable[acc] = set()
-                commands = data[1:]
-                for command in commands: # Add or remove commands one at a time to a specific account
-                    if "-*" in commands: # Remove all
-                        for cmd in variable[acc]:
-                            if mode == "allow":
-                                var.remove_allow_acc(acc, cmd)
-                            else:
-                                var.remove_deny_acc(acc, cmd)
-                        del variable[acc]
-                        break
-                    if command[0] == "-": # Starting with - (to remove)
-                        rem = True
-                        command = command[1:]
-                    else:
-                        rem = False
-                    if command.startswith(botconfig.CMD_CHAR): # ignore command prefix
-                        command = command[len(botconfig.CMD_CHAR):]
+                    sanctions.append(messages["fwarn_view_stasis_sing"])
+            if "deny" in warning["sanctions"]:
+                sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
+        if sanctions:
+            cli.notice(nick, " ".join(sanctions))
+        return
 
-                    if not rem:
-                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[acc]:
-                            variable[acc].add(command)
-                            if mode == "allow":
-                                var.add_allow_acc(acc, command)
-                            else:
-                                var.add_deny_acc(acc, command)
-                    elif command in variable[acc]:
-                        variable[acc].remove(command)
-                        if mode == "allow":
-                            var.remove_allow_acc(acc, command)
-                        else:
-                            var.remove_deny_acc(acc, command)
-                if acc in variable and variable[acc]:
-                    msg = "\u0002{0}\u0002 (Account: {1}) is now {2} the following {3}commands: {4}{5}.".format(
-                        data[0], acc, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[acc]))
-                else:
-                    if acc in variable:
-                        del variable[acc]
-                    msg = "\u0002{0}\u0002 (Account: {1}) is no longer {2} commands.".format(data[0], acc, "allowed any special" if mode == 'allow' else "denied any")
-        elif var.ACCOUNTS_ONLY and not opts["host"]:
-            msg = "Error: \u0002{0}\u0002 is not logged in to NickServ.".format(data[0])
+    if command == "ack":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["warn_ack_syntax"])
+            return
+
+        acc, hm = parse_warning_target(nick)
+        warning = db.get_warning(warn_id, acc, hm)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        db.acknowledge_warning(warn_id)
+        reply(cli, nick, chan, messages["fwarn_done"])
+        return
+
+@cmd("fwarn", flag="A", pm=True)
+def fwarn(cli, nick, chan, rest):
+    """Issues a warning to someone or views warnings."""
+    # !fwarn list [-all] [nick] [page]
+    # -all => Shows all warnings, if omitted only shows active (non-expired and non-deleted) ones.
+    # nick => nick to view warnings for. Can also be a hostmask in nick!user@host form. If nick
+    #     is not online, interpreted as an account name. To specify an account if nick is online,
+    #     use =account. If not specified, shows all warnings on the bot.
+    # !fwarn view <id> - views details on warning id
+    # !fwarn del <id> - deletes warning id
+    # !fwarn set <id> [~expiry] [reason] [| notes]
+    # !fwarn add <nick> [@]<points> [~expiry] [sanctions] <:reason> [| notes]
+    # e.g. !fwarn add lykos @1 ~30d deny=goat,gstats stasis=5 :Spamming | I secretly just hate him
+    # nick => nick to warn. Can also be a hostmask in nick!user@host form. If nick is not online,
+    #    interpreted as an account name. To specify an account if nick is online, use =account.
+    # @ => warning requires acknowledgement before user can !join again
+    # points => Warning points, must be above 0
+    # ~expiry => Expiration time, must be suffixed with d (days), h (hours), or m (minutes)
+    # sanctions => list of sanctions. Valid sanctions are:
+    #    deny: denies access to the listed commands
+    #    stasis: gives the user stasis
+    # :reason => Reason, required. Must be prefixed with :
+    # |notes => Secret notes, not shown to the user (only shown if viewing the warning in PM)
+    #    If specified, must be prefixed with |. This means | is not a valid character for use
+    #    in reasons (no escaping is performed).
+
+    params = re.split(" +", rest)
+    target = None
+    points = None
+    need_ack = False
+    expires = None
+    sanctions = {}
+    reason = None
+    notes = None
+
+    try:
+        command = params.pop(0)
+    except IndexError:
+        reply(cli, nick, chan, messages["fwarn_usage"])
+        return
+
+    if command not in ("list", "view", "add", "del", "set", "help"):
+        reply(cli, nick, chan, messages["fwarn_usage"])
+        return
+
+    if command == "help":
+        try:
+            subcommand = params.pop(0)
+        except IndexError:
+            reply(cli, nick, chan, messages["fwarn_help_syntax"])
+            return
+        if subcommand not in ("list", "view", "add", "del", "set", "help"):
+            reply(cli, nick, chan, messages["fwarn_usage"])
+            return
+        reply(cli, nick, chan, messages["fwarn_{0}_syntax".format(subcommand)])
+        return
+
+    if command == "list":
+        list_all = False
+        page = 1
+        try:
+            list_all = params.pop(0)
+            target = params.pop(0)
+            page = int(params.pop(0))
+        except IndexError:
+            pass
+        except ValueError:
+            reply(cli, nick, chan, messages["fwarn_page_invalid"])
+            return
+
+        try:
+            if list_all and list_all != "-all":
+                if target is not None:
+                    page = int(target)
+                target = list_all
+                list_all = False
+            elif list_all == "-all":
+                list_all = True
+        except ValueError:
+            reply(cli, nick, chan, messages["fwarn_page_invalid"])
+            return
+
+        try:
+            page = int(target)
+            target = None
+        except (TypeError, ValueError):
+            pass
+
+        if target is not None:
+            acc, hm = parse_warning_target(target)
+            if acc is None and hm is None:
+                reply(cli, nick, chan, messages["fwarn_nick_invalid"])
+                return
+            warnings = db.list_warnings(acc, hm, list_all=list_all, skip=(page-1)*10, show=11)
+            points = db.get_warning_points(acc, hm)
+            cli.notice(nick, messages["fwarn_list_header"].format(target, points))
         else:
-            if mode == "allow":
-                variable = var.ALLOW
-            else:
-                variable = var.DENY
-            if len(data) == 1: # List commands for a specific hostmask
-                cmds = []
-                for mask in variable:
-                    if var.match_hostmask(mask, user, ident, host):
-                        cmds.extend(variable[mask])
+            warnings = db.list_all_warnings(list_all=list_all, skip=(page-1)*10, show=11)
 
-                if cmds:
-                    msg = "\u0002{0}\u0002 (Host: {1}) is {2} the following {3}commands: {4}.".format(
-                        data[0], hostmask, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", ", ".join(cmds))
+        i = 0
+        for warn in warnings:
+            i += 1
+            if (i == 11):
+                parts = []
+                if list_all:
+                    parts.append("-all")
+                if target is not None:
+                    parts.append(target)
+                parts.append(str(page + 1))
+                cli.notice(nick, messages["fwarn_list_footer"].format(" ".join(parts)))
+                break
+            start = ""
+            end = ""
+            ack = ""
+            if warn["expires"] is not None:
+                if warn["expired"]:
+                    expires = messages["fwarn_list_expired"].format(warn["expires"])
                 else:
-                    msg = "\u0002{0}\u0002 (Host: {1}) is not {2} commands.".format(data[0], hostmask, "allowed any special" if mode == "allow" else "denied any")
+                    expires = messages["fwarn_view_expires"].format(warn["expires"])
             else:
-                if hostmask not in variable:
-                    variable[hostmask] = set()
-                commands = data[1:]
-                for command in commands: #add or remove commands one at a time to a specific hostmask
-                    if "-*" in commands: # Remove all
-                        for cmd in variable[hostmask]:
-                            if mode == "allow":
-                                var.remove_allow(hostmask, cmd)
-                            else:
-                                var.remove_deny(hostmask, cmd)
-                        del variable[hostmask]
-                        break
-                    if command[0] == '-': #starting with - removes
-                        rem = True
-                        command = command[1:]
-                    else:
-                        rem = False
-                    if command.startswith(botconfig.CMD_CHAR): #ignore command prefix
-                        command = command[len(botconfig.CMD_CHAR):]
+                expires = messages["fwarn_never_expires"]
+            if warn["deleted"]:
+                start = "\u000314"
+                end = " [\u00034{0}\u000314]\u0003".format(messages["fwarn_deleted"])
+            elif warn["expired"]:
+                start = "\u000314"
+                end = " [\u00037{0}\u000314]\u0003".format(messages["fwarn_expired"])
+            if not warn["ack"]:
+                ack = "\u0002!\u0002 "
+            cli.notice(nick, messages["fwarn_list"].format(
+                start, ack, warn["id"], warn["issued"], warn["target"],
+                warn["sender"], warn["reason"], warn["amount"], expires, end))
+        if i == 0:
+            cli.notice(nick, messages["fwarn_list_empty"])
+        return
 
-                    if not rem:
-                        if command in COMMANDS and command not in ("fdeny", "fallow", "fsend", "exec", "eval") and command not in variable[hostmask]:
-                            variable[hostmask].add(command)
-                            if mode == "allow":
-                                var.add_allow(hostmask, command)
-                            else:
-                                var.add_deny(hostmask, command)
-                    elif command in variable[hostmask]:
-                        variable[hostmask].remove(command)
-                        if mode == "allow":
-                            var.remove_allow(hostmask, command)
-                        else:
-                            var.remove_deny(hostmask, command)
+    if command == "view":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_view_syntax"])
+            return
 
-                if hostmask in variable and variable[hostmask]:
-                    msg = "\u0002{0}\u0002 (Host: {1}) is now {2} the following {3}commands: {4}{5}.".format(
-                        data[0], hostmask, "allowed" if mode == "allow" else "denied", "special " if mode == "allow" else "", botconfig.CMD_CHAR, ", {0}".format(botconfig.CMD_CHAR).join(variable[hostmask]))
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        if warning["deleted"]:
+            expires = messages["fwarn_view_deleted"].format(warning["deleted_on"], warning["deleted_by"])
+        elif warning["expired"]:
+            expires = messages["fwarn_view_expired"].format(warning["expires"])
+        elif warning["expires"] is None:
+            expires = messages["fwarn_view_active"].format(messages["fwarn_never_expires"])
+        else:
+            expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
+
+        cli.notice(nick, messages["fwarn_view_header"].format(
+            warning["id"], warning["target"], warning["issued"], warning["sender"],
+            warning["amount"], expires))
+
+        reason = [warning["reason"]]
+        if warning["notes"] is not None:
+            reason.append(warning["notes"])
+        cli.notice(nick, " | ".join(reason))
+        
+        sanctions = []
+        if not warning["ack"]:
+            sanctions.append(messages["fwarn_view_ack"])
+        if warning["sanctions"]:
+            sanctions.append(messages["fwarn_view_sanctions"])
+            if "stasis" in warning["sanctions"]:
+                if warning["sanctions"]["stasis"] != 1:
+                    sanctions.append(messages["fwarn_view_stasis_plural"].format(warning["sanctions"]["stasis"]))
                 else:
-                    if hostmask in variable:
-                        del variable[hostmask]
-                    msg = "\u0002{0}\u0002 (Host: {1}) is no longer {2} commands.".format(data[0], hostmask, "allowed any special" if mode == "allow" else "denied any")
+                    sanctions.append(messages["fwarn_view_stasis_sing"])
+            if "deny" in warning["sanctions"]:
+                sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
+        if sanctions:
+            cli.notice(nick, " ".join(sanctions))
+        return
 
+    if command == "del":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_del_syntax"])
+            return
+
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        acc, hm = parse_warning_target(nick)
+        db.del_warning(warn_id, acc, hm)
+        reply(cli, nick, chan, messages["fwarn_done"])
+        return
+
+    if command == "set":
+        try:
+            warn_id = int(params.pop(0))
+        except (IndexError, ValueError):
+            reply(cli, nick, chan, messages["fwarn_set_syntax"])
+            return
+
+        warning = db.get_warning(warn_id)
+        if warning is None:
+            reply(cli, nick, chan, messages["fwarn_invalid_warning"])
+            return
+
+        rsp = " ".join(params).split("|", 1)
+        if len(rsp) == 1:
+            rsp.append(None)
+        reason, notes = rsp
+        reason = reason.strip()
+
+        # check for modified expiry
+        expires = warning["expires"]
+        rsp = reason.split(" ", 1)
+        if rsp[0] and rsp[0][0] == "~":
+            if len(rsp) == 1:
+                rsp.append("")
+            expires, reason = rsp
+            expires = expires[1:]
+            reason = reason.strip()
+
+            if expires in messages["never_aliases"]:
+                expires = None
+            else:
+                suffix = expires[-1]
+                try:
+                    amount = int(expires[:-1])
+                except ValueError:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+                    return
+
+                if amount <= 0:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+                    return
+
+                issued = datetime.strptime(warning["issued"], "%Y-%m-%d %H:%M:%S")
+                if suffix == "d":
+                    expires = issued + timedelta(days=amount)
+                elif suffix == "h":
+                    expires = issued + timedelta(hours=amount)
+                elif suffix == "m":
+                    expires = issued + timedelta(minutes=amount)
+                else:
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
+                    return
+
+        # maintain existing reason if none was specified
+        if not reason:
+            reason = warning["reason"]
+
+        # maintain existing notes if none were specified
+        if notes is not None:
+            notes = notes.strip()
+            if not notes:
+                notes = None
+        else:
+            notes = warning["notes"]
+
+        db.set_warning(warn_id, expires, reason, notes)
+        reply(cli, nick, chan, messages["fwarn_done"])
+        return
+
+    # command == "add"
+    while params:
+        p = params.pop(0)
+        if target is None:
+            # figuring out what target actually is is handled in add_warning
+            target = p
+        elif points is None:
+            points = p
+            if points[0] == "@":
+                points = points[1:]
+                need_ack = True
+            try:
+                points = int(points)
+            except ValueError:
+                reply(cli, nick, chan, messages["fwarn_points_invalid"])
+                return
+            if points < 1:
+                reply(cli, nick, chan, messages["fwarn_points_invalid"])
+                return
+        elif notes is not None:
+            notes += " " + p
+        elif reason is not None:
+            rsp = p.split("|", 1)
+            if len(rsp) > 1:
+                notes = rsp[1]
+            reason += " " + rsp[0]
+        elif p[0] == ":":
+            if p == ":":
+                reason = ""
+            else:
+                reason = p[1:]
+        elif p[0] == "~":
+            if p == "~":
+                reply(cli, nick, chan, messages["fwarn_syntax"])
+                return
+            expires = p[1:]
+        else:
+            # sanctions are the only thing left here
+            sanc = p.split("=", 1)
+            if sanc[0] == "deny":
+                try:
+                    cmds = sanc[1].split(",")
+                    normalized_cmds = set()
+                    for cmd in cmds:
+                        normalized = None
+                        for obj in COMMANDS[cmd]:
+                            # do not allow denying in-game commands (vote, see, etc.)
+                            # this technically traps goat too, so special case that, as we want
+                            # goat to be deny-able. Furthermore, the warn command cannot be denied.
+                            if (not obj.playing and not obj.roles) or obj.name == "goat":
+                                normalized = obj.name
+                            if normalized == "warn":
+                                normalized = None
+                        if normalized is None:
+                            reply(cli, nick, chan, messages["fwarn_deny_invalid_command"].format(cmd))
+                            return
+                        normalized_cmds.add(normalized)
+                    sanctions["deny"] = normalized_cmds
+                except IndexError:
+                    reply(cli, nick, chan, messages["fwarn_deny_invalid"])
+                    return
+            elif sanc[0] == "stasis":
+                try:
+                    sanctions["stasis"] = int(sanc[1])
+                except (IndexError, ValueError):
+                    reply(cli, nick, messages["fwarn_stasis_invalid"])
+                    return
+            else:
+                reply(cli, nick, chan, messages["fwarn_sanction_invalid"])
+                return
+
+    if target is None or points is None or reason is None:
+        reply(cli, nick, chan, messages["fwarn_add_syntax"])
+        return
+
+    reason = reason.strip()
+    if notes is not None:
+        notes = notes.strip()
+
+    # convert expires into a proper datetime
+    if expires is None:
+        expires = var.DEFAULT_EXPIRY
+
+    if expires.lower() in messages["never_aliases"]:
+        expires = None
     else:
-        users_to_cmds = {}
-        if not var.DISABLE_ACCOUNTS and not opts["host"]:
-            if mode == "allow":
-                variable = var.ALLOW_ACCOUNTS
-                noaccvar = var.ALLOW
-            else:
-                variable = var.DENY_ACCOUNTS
-                noaccvar = var.DENY
+        suffix = expires[-1]
+        try:
+            amount = int(expires[:-1])
+        except ValueError:
+            reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+            return
 
-            if variable:
-                for acc, varied in variable.items():
-                    if opts["acc"] or (var.ACCOUNTS_ONLY and not noaccvar):
-                        users_to_cmds[acc] = sorted(varied, key=str.lower)
-                    else:
-                        users_to_cmds[acc+" (Account)"] = sorted(varied, key=str.lower)
-        if not opts["acc"]:
-            if mode == "allow":
-                variable = var.ALLOW
-            else:
-                variable = var.DENY
-            if variable:
-                for hostmask, varied in variable.items():
-                    if var.DISABLE_ACCOUNTS or opts["host"]:
-                        users_to_cmds[hostmask] = sorted(varied, key=str.lower)
-                    else:
-                        users_to_cmds[hostmask+" (Host)"] = sorted(varied, key=str.lower)
+        if amount <= 0:
+            reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+            return
 
-
-        if not users_to_cmds: # Deny or Allow list is empty
-            msg = "Nobody is {0} commands.".format("allowed any special" if mode == "allow" else "denied any")
+        if suffix == "d":
+            expires = datetime.now() + timedelta(days=amount)
+        elif suffix == "h":
+            expires = datetime.now() + timedelta(hours=amount)
+        elif suffix == "m":
+            expires = datetime.now() + timedelta(minutes=amount)
         else:
-            if opts["cmds"] or opts["cmd"]:
-                cmds_to_users = defaultdict(list)
+            reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
+            return
 
-                for user in sorted(users_to_cmds, key=str.lower):
-                    for cmd in users_to_cmds[user]:
-                        cmds_to_users[cmd].append(user)
+    warn_id = add_warning(target, points, nick, reason, notes, expires, need_ack, sanctions)
+    if warn_id is False:
+        reply(cli, nick, chan, messages["fwarn_cannot_add"])
+    else:
+        reply(cli, nick, chan, messages["fwarn_added"].format(warn_id))
 
-                if opts["cmd"]:
-                    cmd = opts["cmd"]
-                    users = cmds_to_users[cmd]
+@cmd("ftemplate", "F", pm=True)
+def ftemplate(cli, nick, chan, rest):
+    params = re.split(" +", rest)
 
-                    if cmd not in COMMANDS:
-                        if chan == nick:
-                            pm(cli, nick, messages["command_does_not_exist"])
-                        else:
-                            cli.notice(nick, messages["command_does_not_exist"])
+    if params[0] == "":
+        # display a list of all templates
+        tpls = db.get_templates()
+        if not tpls:
+            reply(cli, nick, chan, messages["no_templates"])
+        else:
+            tpls = ["{0} (+{1})".format(name, "".join(sorted(flags))) for name, flags in tpls]
+            reply(cli, nick, chan, var.break_long_message(tpls, ", "))
+    elif len(params) == 1:
+        reply(cli, nick, chan, messages["not_enough_parameters"])
+    else:
+        name = params[0].upper()
+        flags = params[1]
+        tid, cur_flags = db.get_template(name)
 
-                        return
-
-                    if users:
-                        msg = "\u0002{0}{1}\u0002 is {2} to the following people: {3}".format(
-                            botconfig.CMD_CHAR, opts["cmd"], "allowed" if mode == "allow" else "denied", ", ".join(users))
+        if flags[0] != "+" and flags[0] != "-":
+            # flags is a template name
+            tpl_name = flags.upper()
+            tpl_id, tpl_flags = db.get_template(tpl_name)
+            if tpl_id is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                return
+            tpl_flags = "".join(sorted(tpl_flags))
+            db.update_template(name, tpl_flags)
+            reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+        else:
+            adding = True
+            for flag in flags:
+                if flag == "+":
+                    adding = True
+                    continue
+                elif flag == "-":
+                    adding = False
+                    continue
+                elif flag == "*":
+                    if adding:
+                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
                     else:
-                        msg = "\u0002{0}{1}\u0002 is not {2} to any special people.".format(
-                            botconfig.CMD_CHAR, opts["cmd"], "allowed" if mode == "allow" else "denied")
+                        cur_flags = set()
+                    continue
+                elif flag not in var.ALL_FLAGS:
+                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    return
+                elif adding:
+                    cur_flags.add(flag)
                 else:
-                    msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
-                        cmd, ", ".join(users)) for cmd, users in sorted(cmds_to_users.items(), key=lambda t: t[0].lower())))
+                    cur_flags.discard(flag)
+            if cur_flags:
+                tpl_flags = "".join(sorted(cur_flags))
+                db.update_template(name, tpl_flags)
+                reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+            elif tid is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(name))
             else:
-                msg = "{0}: {1}".format("Allowed" if mode == "allow" else "Denied", "; ".join("\u0002{0}\u0002 ({1})".format(
-                    user, ", ".join(cmds)) for user, cmds in sorted(users_to_cmds.items(), key=lambda t: t[0].lower())))
+                db.delete_template(name)
+                reply(cli, nick, chan, messages["template_deleted"].format(name))
 
-    if msg:
-        msg = var.break_long_message(msg.split("; "), "; ")
+        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        db.init_vars()
 
-        if chan == nick:
-            pm(cli, nick, msg)
+@cmd("fflags", flag="F", pm=True)
+def fflags(cli, nick, chan, rest):
+    params = re.split(" +", rest)
+
+    if params[0] == "":
+        # display a list of all access
+        parts = []
+        for acc, flags in var.FLAGS_ACCS.items():
+            if not flags:
+                continue
+            if var.ACCOUNTS_ONLY:
+                parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
+            else:
+                parts.append("{0} (Account) (+{1})".format(acc, "".join(sorted(flags))))
+        for hm, flags in var.FLAGS.items():
+            if not flags:
+                continue
+            if var.DISABLE_ACCOUNTS:
+                parts.append("{0} (+{1})".format(hm, "".join(sorted(flags))))
+            else:
+                parts.append("{0} (Host) (+{1})".format(hm, "".join(sorted(flags))))
+        if not parts:
+            reply(cli, nick, chan, messages["no_access"])
         else:
-            cli.msg(chan, msg)
+            reply(cli, nick, chan, var.break_long_message(parts, ", "))
+    elif len(params) == 1:
+        # display access for the given user
+        acc, hm = parse_warning_target(params[0])
+        if acc is not None:
+            if not var.FLAGS_ACCS[acc]:
+                msg = messages["no_access_account"].format(acc)
+            else:
+                msg = messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[acc])))
+        elif hm is not None:
+            if not var.FLAGS[hm]:
+                msg = messages["no_access_host"].format(hm)
+            else:
+                msg = messages["access_host"].format(acc, "".join(sorted(var.FLAGS[hm])))
+        reply(cli, nick, chan, msg)
+    else:
+        acc, hm = parse_warning_target(params[0])
+        flags = params[1]
+        cur_flags = set(var.FLAGS_ACCS[acc] + var.FLAGS[hm])
 
-@cmd("fallow", admin_only=True, pm=True)
-def fallow(cli, nick, chan, rest):
-    """Allow someone to use an admin command."""
-    allow_deny(cli, nick, chan, rest, "allow")
+        if flags[0] != "+" and flags[0] != "-":
+            # flags is a template name
+            tpl_name = flags.upper()
+            tpl_id, tpl_flags = db.get_template(tpl_name)
+            if tpl_id is None:
+                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                return
+            tpl_flags = "".join(sorted(tpl_flags))
+            db.set_access(acc, hm, tid=tpl_id)
+            if acc is not None:
+                reply(cli, nick, chan, messages["access_set_account"].format(acc, tpl_flags))
+            else:
+                reply(cli, nick, chan, messages["access_set_host"].format(hm, tpl_flags))
+        else:
+            adding = True
+            for flag in flags:
+                if flag == "+":
+                    adding = True
+                    continue
+                elif flag == "-":
+                    adding = False
+                    continue
+                elif flag == "*":
+                    if adding:
+                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
+                    else:
+                        cur_flags = set()
+                    continue
+                elif flag not in var.ALL_FLAGS:
+                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    return
+                elif adding:
+                    cur_flags.add(flag)
+                else:
+                    cur_flags.discard(flag)
+            if cur_flags:
+                flags = "".join(sorted(cur_flags))
+                db.set_access(acc, hm, flags=flags)
+                if acc is not None:
+                    reply(cli, nick, chan, messages["access_set_account"].format(acc, flags))
+                else:
+                    reply(cli, nick, chan, messages["access_set_host"].format(hm, flags))
+            else:
+                db.set_access(acc, hm, flags=None)
+                if acc is not None:
+                    reply(cli, nick, chan, messages["access_deleted_account"].format(acc))
+                else:
+                    reply(cli, nick, chan, messages["access_deleted_host"].format(hm))
 
-@cmd("fdeny", admin_only=True, pm=True)
-def fdeny(cli, nick, chan, rest):
-    """Deny someone from using a command."""
-    allow_deny(cli, nick, chan, rest, "deny")
+        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        db.init_vars()
+
 
 @cmd("wait", "w", playing=True, phases=("join",))
 def wait(cli, nick, chan, rest):
@@ -8347,7 +8813,7 @@ def wait(cli, nick, chan, rest):
         cli.msg(chan, messages["wait_time_increase"].format(nick, var.EXTRA_WAIT))
 
 
-@cmd("fwait", admin_only=True, phases=("join",))
+@cmd("fwait", flag="A", phases=("join",))
 def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
@@ -8374,7 +8840,7 @@ def fwait(cli, nick, chan, rest):
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
-@cmd("fstop", admin_only=True, phases=("join", "day", "night"))
+@cmd("fstop", flag="A", phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     if nick == "<stderr>":
@@ -8442,13 +8908,13 @@ def get_help(cli, rnick, chan, rest):
 
     # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
-        if (name and not fn[0].admin_only and not fn[0].owner_only and
+        if (name and not fn[0].flag and not fn[0].owner_only and
             name not in fn[0].aliases and fn[0].chan):
             fns.append("{0}{1}{0}".format("\u0002", name))
     afns = []
     if is_admin(nick, ident, host):
         for name, fn in COMMANDS.items():
-            if fn[0].admin_only and name not in fn[0].aliases:
+            if fn[0].flag and name not in fn[0].aliases:
                 afns.append("{0}{1}{0}".format("\u0002", name))
     fns.sort() # Output commands in alphabetical order
     if chan == nick:
@@ -8511,7 +8977,7 @@ def on_invite(cli, raw_nick, something, chan):
     else:
         pm(cli, parse_nick(nick)[0], messages["not_an_admin"])
 
-@cmd("fpart", raw_nick=True, admin_only=True, pm=True)
+@cmd("fpart", raw_nick=True, flag="A", pm=True)
 def fpart(cli, rnick, chan, rest):
     """Makes the bot forcibly leave a channel."""
     nick = parse_nick(rnick)[0]
@@ -8831,7 +9297,7 @@ def myrole(cli, nick, chan, rest):
         message += "."
         pm(cli, nick, message)
 
-@cmd("faftergame", admin_only=True, raw_nick=True, pm=True)
+@cmd("faftergame", flag="D", raw_nick=True, pm=True)
 def aftergame(cli, rawnick, chan, rest):
     """Schedule a command to be run after the current game."""
     nick = parse_nick(rawnick)[0]
@@ -8865,7 +9331,7 @@ def aftergame(cli, rawnick, chan, rest):
     var.AFTER_FLASTGAME = do_action
 
 
-@cmd("flastgame", admin_only=True, raw_nick=True, pm=True)
+@cmd("flastgame", flag="D", raw_nick=True, pm=True)
 def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     nick, _, ident, host = parse_nick(rawnick)
@@ -8917,10 +9383,10 @@ def game_stats(cli, nick, chan, rest):
 
     # List all games sizes and totals if no size is given
     if not gamesize:
-        reply(cli, nick, chan, var.get_game_totals(gamemode))
+        reply(cli, nick, chan, db.get_game_totals(gamemode))
     else:
         # Attempt to find game stats for the given game size
-        reply(cli, nick, chan, var.get_game_stats(gamemode, gamesize))
+        reply(cli, nick, chan, db.get_game_stats(gamemode, gamesize))
 
 @cmd("playerstats", "pstats", "player", "p", pm=True)
 def player_stats(cli, nick, chan, rest):
@@ -8949,21 +9415,25 @@ def player_stats(cli, nick, chan, rest):
     # Find the player's account if possible
     luser = user.lower()
     lusers = {k.lower(): v for k, v in var.USERS.items()}
-    if luser in lusers and not var.DISABLE_ACCOUNTS:
+    if luser in lusers:
         acc = lusers[luser]["account"]
-        if acc == "*":
+        hostmask = luser + "!" + lusers[luser]["ident"] + "@" + lusers[luser]["host"]
+        if acc == "*" and var.ACCOUNTS_ONLY:
             if luser == nick.lower():
                 cli.notice(nick, messages["not_logged_in"])
             else:
                 cli.notice(nick, messages["account_not_logged_in"].format(user))
-
             return
+    elif "@" in user:
+        acc = None
+        hostmask = user
     else:
         acc = user
+        hostmask = None
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        reply(cli, nick, chan, var.get_player_totals(acc), private=True)
+        reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True)
     else:
         role = " ".join(params[1:])
         if role not in var.ROLE_GUIDE.keys():
@@ -8973,7 +9443,7 @@ def player_stats(cli, nick, chan, rest):
                 return
             role = match
         # Attempt to find the player's stats
-        reply(cli, nick, chan, var.get_player_stats(acc, role))
+        reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
 @cmd("mystats", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
@@ -9041,7 +9511,7 @@ def vote(cli, nick, chan, rest):
     else:
         return show_votes.caller(cli, nick, chan, rest)
 
-@cmd("fpull", admin_only=True, pm=True)
+@cmd("fpull", flag="D", pm=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
@@ -9073,7 +9543,7 @@ def fpull(cli, nick, chan, rest):
             else:
                 pm(cli, nick, messages["process_exited"] % (command, cause, ret))
 
-@cmd("fsend", admin_only=True, pm=True)
+@cmd("fsend", flag="F", pm=True)
 def fsend(cli, nick, chan, rest):
     """Forcibly send raw IRC commands to the server."""
     cli.send(rest)
@@ -9108,12 +9578,12 @@ def _say(cli, raw_nick, rest, command, action=False):
     cli.send("PRIVMSG {0} :{1}".format(target, message))
 
 
-@cmd("fsay", admin_only=True, raw_nick=True, pm=True)
+@cmd("fsay", flag="s", raw_nick=True, pm=True)
 def fsay(cli, raw_nick, chan, rest):
     """Talk through the bot as a normal message."""
     _say(cli, raw_nick, rest, "fsay")
 
-@cmd("fact", "fdo", "fme", admin_only=True, raw_nick=True, pm=True)
+@cmd("fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
 def fact(cli, raw_nick, chan, rest):
     """Act through the bot as an action."""
     _say(cli, raw_nick, rest, "fact", action=True)
@@ -9140,7 +9610,7 @@ def can_run_restricted_cmd(nick):
 
     return True
 
-@cmd("fspectate", admin_only=True, pm=True, phases=("day", "night"))
+@cmd("fspectate", flag="A", pm=True, phases=("day", "night"))
 def fspectate(cli, nick, chan, rest):
     """Spectate wolfchat or deadchat."""
     if not can_run_restricted_cmd(nick):
@@ -9206,7 +9676,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             cli.msg(chan, str(type(e))+":"+str(e))
 
-    @cmd("revealroles", admin_only=True, pm=True, phases=("day", "night"))
+    @cmd("revealroles", flag="a", pm=True, phases=("day", "night"))
     def revealroles(cli, nick, chan, rest):
         """Reveal role information."""
 
@@ -9317,7 +9787,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 cli.notice(nick, var.break_long_message(output, " | "))
 
 
-    @cmd("fgame", admin_only=True, raw_nick=True, phases=("join",))
+    @cmd("fgame", flag="d", raw_nick=True, phases=("join",))
     def fgame(cli, nick, chan, rest):
         """Force a certain game mode to be picked. Disable voting for game modes upon use."""
         nick = parse_nick(nick)[0]
@@ -9366,7 +9836,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
-    @cmd("force", admin_only=True)
+    @cmd("force", flag="d")
     def force(cli, nick, chan, rest):
         """Force a certain player to use a specific command."""
         rst = re.split(" +",rest)
@@ -9395,7 +9865,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             for fn in COMMANDS[comm]:
                 if fn.owner_only:
                     continue
-                if fn.admin_only and nick in var.USERS and not is_admin(nick):
+                if fn.flag and nick in var.USERS and not is_admin(nick):
                     # Not a full admin
                     cli.notice(nick, messages["admin_only_force"])
                     continue
@@ -9409,7 +9879,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["command_not_found"])
 
 
-    @cmd("rforce", admin_only=True)
+    @cmd("rforce", flag="d")
     def rforce(cli, nick, chan, rest):
         """Force all players of a given role to perform a certain action."""
         rst = re.split(" +",rest)
@@ -9435,7 +9905,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             for fn in COMMANDS[comm]:
                 if fn.owner_only:
                     continue
-                if fn.admin_only and nick in var.USERS and not is_admin(nick):
+                if fn.flag and nick in var.USERS and not is_admin(nick):
                     # Not a full admin
                     cli.notice(nick, messages["admin_only_force"])
                     continue
@@ -9450,7 +9920,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
 
-    @cmd("frole", admin_only=True, phases=("day", "night"))
+    @cmd("frole", flag="d", phases=("day", "night"))
     def frole(cli, nick, chan, rest):
         """Change the role or template of a player."""
         rst = re.split(" +",rest)
