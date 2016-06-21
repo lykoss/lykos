@@ -4,13 +4,17 @@ import sqlite3
 import os
 import json
 from collections import defaultdict
+import threading
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
 SCHEMA_VERSION = 1
 
+_ts = threading.local()
+
 def init_vars():
     with var.GRAVEYARD_LOCK:
+        conn = _conn()
         c = conn.cursor()
         c.execute("""SELECT
                        pl.account,
@@ -116,6 +120,7 @@ def decrement_stasis(acc=None, hostmask=None):
         sql += " WHERE id = ?"
         params = (peid,)
 
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute(sql, params)
@@ -127,6 +132,7 @@ def decrease_stasis(newamt, acc=None, hostmask=None):
     if newamt < 0:
         newamt = 0
 
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""UPDATE person
@@ -134,6 +140,7 @@ def decrease_stasis(newamt, acc=None, hostmask=None):
                      WHERE id = ?""", (newamt, peid))
 
 def expire_stasis():
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""UPDATE person
@@ -145,6 +152,7 @@ def expire_stasis():
                        AND stasis_expires <= datetime('now')""")
 
 def get_template(name):
+    conn = _conn()
     c = conn.cursor()
     c.execute("SELECT id, flags FROM access_template WHERE name = ?", (name,))
     row = c.fetchone()
@@ -153,6 +161,7 @@ def get_template(name):
     return (row[0], row[1])
 
 def get_templates():
+    conn = _conn()
     c = conn.cursor()
     c.execute("SELECT name, flags FROM access_template ORDER BY name ASC")
     tpls = []
@@ -161,6 +170,7 @@ def get_templates():
     return tpls
 
 def update_template(name, flags):
+    conn = _conn()
     with conn:
         tid, _ = get_template(name)
         c = conn.cursor()
@@ -170,6 +180,7 @@ def update_template(name, flags):
             c.execute("UPDATE access_template SET flags = ? WHERE id = ?", (flags, tid))
 
 def delete_template(name):
+    conn = _conn()
     with conn:
         tid, _ = get_template(name)
         if tid is not None:
@@ -181,6 +192,7 @@ def set_access(acc, hostmask, flags=None, tid=None):
     peid, plid = _get_ids(acc, hostmask)
     if peid is None:
         return
+    conn = _conn()
     with conn:
         c = conn.cursor()
         if flags is None and tid is None:
@@ -237,6 +249,7 @@ def add_game(mode, size, started, finished, winner, players, options):
         return
 
     # Normalize players dict
+    conn = _conn()
     for p in players:
         if p["account"] == "*":
             p["account"] = None
@@ -276,6 +289,7 @@ def get_player_stats(acc, hostmask, role):
     peid, plid = _get_ids(acc, hostmask)
     if not _total_games(peid):
         return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
                    gpr.role AS role,
@@ -304,6 +318,7 @@ def get_player_totals(acc, hostmask):
     total_games = _total_games(peid)
     if not total_games:
         return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
                    gpr.role AS role,
@@ -330,6 +345,7 @@ def get_player_totals(acc, hostmask):
     return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(name, total_games, var.break_long_message(totals, ", "))
 
 def get_game_stats(mode, size):
+    conn = _conn()
     c = conn.cursor()
     c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ? AND gamesize = ?", (mode, size))
     total_games = c.fetchone()[0]
@@ -359,6 +375,7 @@ def get_game_stats(mode, size):
     return msg.format(size, ", ".join(bits))
 
 def get_game_totals(mode):
+    conn = _conn()
     c = conn.cursor()
     c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
     total_games = c.fetchone()[0]
@@ -378,6 +395,7 @@ def get_game_totals(mode):
 
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT COALESCE(SUM(amount), 0)
                  FROM warning
@@ -395,6 +413,7 @@ def has_unacknowledged_warnings(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     if peid is None:
         return False
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT COALESCE(MIN(acknowledged), 1)
                  FROM warning
@@ -409,6 +428,7 @@ def has_unacknowledged_warnings(acc, hostmask):
     return not bool(row[0])
 
 def list_all_warnings(list_all=False, skip=0, show=0):
+    conn = _conn()
     c = conn.cursor()
     sql = """SELECT
                warning.id,
@@ -466,6 +486,7 @@ def list_all_warnings(list_all=False, skip=0, show=0):
 
 def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
     peid, plid = _get_ids(acc, hostmask)
+    conn = _conn()
     c = conn.cursor()
     sql = """SELECT
                warning.id,
@@ -524,6 +545,7 @@ def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
 
 def get_warning(warn_id, acc=None, hm=None):
     peid, plid = _get_ids(acc, hm)
+    conn = _conn()
     c = conn.cursor()
     sql = """SELECT
                warning.id,
@@ -583,6 +605,7 @@ def get_warning(warn_id, acc=None, hm=None):
             "sanctions": get_warning_sanctions(warn_id)}
 
 def get_warning_sanctions(warn_id):
+    conn = _conn()
     c = conn.cursor()
     c.execute("SELECT sanction, data FROM warning_sanction WHERE warning=?", (warn_id,))
     sanctions = {}
@@ -600,6 +623,7 @@ def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
     teid, tlid = _get_ids(tacc, thm)
     seid, slid = _get_ids(sacc, shm)
     ack = 0 if need_ack else 1
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""INSERT INTO warning
@@ -619,6 +643,7 @@ def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
     return c.lastrowid
 
 def add_warning_sanction(warning, sanction, data):
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""INSERT INTO warning_sanction
@@ -641,6 +666,7 @@ def add_warning_sanction(warning, sanction, data):
 
 def del_warning(warning, acc, hm):
     peid, plid = _get_ids(acc, hm)
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""UPDATE warning
@@ -654,6 +680,7 @@ def del_warning(warning, acc, hm):
                        AND deleted = 0""", (peid, warning))
 
 def set_warning(warning, expires, reason, notes):
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("""UPDATE warning
@@ -661,6 +688,7 @@ def set_warning(warning, expires, reason, notes):
                      WHERE id = ?""", (reason, notes, expires, warning))
 
 def acknowledge_warning(warning):
+    conn = _conn()
     with conn:
         c = conn.cursor()
         c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
@@ -673,6 +701,7 @@ def _upgrade():
 
 def _migrate():
     dn = os.path.dirname(__file__)
+    conn = _conn()
     with conn, open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:
         c = conn.cursor()
         #######################################################
@@ -692,12 +721,14 @@ def _migrate():
 
 def _install():
     dn = os.path.dirname(__file__)
+    conn = _conn()
     with conn, open(os.path.join(dn, "db.sql"), "rt") as f1:
         c = conn.cursor()
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
 
 def _get_ids(acc, hostmask, add=False):
+    conn = _conn()
     c = conn.cursor()
     if acc == "*":
         acc = None
@@ -743,6 +774,7 @@ def _get_ids(acc, hostmask, add=False):
 def _get_display_name(peid):
     if peid is None:
         return None
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT COALESCE(pp.account, pp.hostmask)
                  FROM person pe
@@ -754,6 +786,7 @@ def _get_display_name(peid):
 def _total_games(peid):
     if peid is None:
         return 0
+    conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT COUNT(DISTINCT gp.game)
                  FROM person pe
@@ -768,6 +801,7 @@ def _total_games(peid):
     return c.fetchone()[0]
 
 def _set_thing(thing, val, acc, hostmask, raw=False):
+    conn = _conn()
     with conn:
         c = conn.cursor()
         peid, plid = _get_ids(acc, hostmask, add=True)
@@ -780,6 +814,13 @@ def _set_thing(thing, val, acc, hostmask, raw=False):
 
 def _toggle_thing(thing, acc, hostmask):
     _set_thing(thing, "CASE {0} WHEN 1 THEN 0 ELSE 1 END".format(thing), acc, hostmask, raw=True)
+
+def _conn():
+    try:
+        return _ts.conn
+    except AttributeError:
+        _ts.conn = sqlite3.connect("data.sqlite3")
+        return _ts.conn
 
 need_install = not os.path.isfile("data.sqlite3")
 conn = sqlite3.connect("data.sqlite3")
@@ -801,7 +842,7 @@ with conn:
         _upgrade()
     c.close()
 
-del need_install, c
+del need_install, conn, c
 init_vars()
 
 # vim: set expandtab:sw=4:ts=4:
