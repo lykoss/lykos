@@ -8256,7 +8256,7 @@ def warn(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["fwarn_done"])
         return
 
-@cmd("fwarn", flag="A", pm=True)
+@cmd("fwarn", flag="F", pm=True)
 def fwarn(cli, nick, chan, rest):
     """Issues a warning to someone or views warnings."""
     # !fwarn list [-all] [nick] [page]
@@ -8637,7 +8637,7 @@ def fwarn(cli, nick, chan, rest):
     else:
         reply(cli, nick, chan, messages["fwarn_added"].format(warn_id))
 
-@cmd("ftemplate", "F", pm=True)
+@cmd("ftemplate", flag="F", pm=True)
 def ftemplate(cli, nick, chan, rest):
     params = re.split(" +", rest)
 
