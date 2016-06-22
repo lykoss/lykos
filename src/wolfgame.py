@@ -1413,7 +1413,7 @@ def fleave(cli, nick, chan, rest):
                     if a in rset:
                         var.ORIGINAL_ROLES[r].remove(a)
                         var.ORIGINAL_ROLES[r].add("(dced)"+a)
-                add_warning(a, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
+                add_warning(a, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
                 if a in var.PLAYERS:
                     var.DCED_PLAYERS[a] = var.PLAYERS.pop(a)
 
@@ -3400,7 +3400,7 @@ def reaper(cli, gameid):
                         if nck in rlist:
                             var.ORIGINAL_ROLES[r].remove(nck)
                             var.ORIGINAL_ROLES[r].add("(dced)"+nck)
-                    add_warning(nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"])
+                    add_warning(nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(cli, nck, end_game = False, death_triggers = False)
                 chk_win(cli)
                 pl = var.list_players()
@@ -3417,7 +3417,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"])
+                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
@@ -3426,7 +3426,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"])
+                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
@@ -3435,7 +3435,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        add_warning(dcedplayer, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"])
+                        add_warning(dcedplayer, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
         time.sleep(10)
@@ -3863,7 +3863,7 @@ def leave(cli, what, nick, why=""):
             msg = (messages["leave_death"] + "{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = (messages["leave_death_no_reveal"] + "{1}").format(nick, population)
-        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
+        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
     cli.msg(botconfig.CHANNEL, msg)
     var.SPECTATING_WOLFCHAT.discard(nick)
     var.SPECTATING_DEADCHAT.discard(nick)
@@ -3928,7 +3928,7 @@ def leave_game(cli, nick, chan, rest):
             if nick in rset:
                 var.ORIGINAL_ROLES[r].remove(nick)
                 var.ORIGINAL_ROLES[r].add("(dced)"+nick)
-        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"])
+        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
@@ -7968,6 +7968,22 @@ def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ac
     if actor in var.USERS:
         sacc = var.USERS[actor]["account"]
         shm = actor + "!" + var.USERS[actor]["ident"] + "@" + var.USERS[actor]["host"]
+
+    # Turn expires into a datetime if we were passed a string; note that no error checking is performed here
+    if isinstance(expires, str):
+        exp_suffix = expires[-1]
+        exp_amount = int(expires[:-1])
+
+        if exp_suffix == "d":
+            expires = datetime.now() + timedelta(days=exp_amount)
+        elif exp_suffix == "h":
+            expires = datetime.now() + timedelta(hours=exp_amount)
+        elif exp_suffix == "m":
+            expires = datetime.now() + timedelta(minutes=exp_amount)
+        else:
+            raise ValueError("Invalid expiration string")
+    elif isinstance(expires, int):
+        expires = datetime.now() + timedelta(days=expires)
 
     # determine if we need to automatically add any sanctions
     prev = db.get_warning_points(tacc, thm)

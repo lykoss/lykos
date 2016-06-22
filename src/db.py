@@ -262,7 +262,7 @@ def add_game(mode, size, started, finished, winner, players, options):
             # fool won, convert the nick portion into a player id
             for p in players:
                 if p["nick"] == winner[1:]:
-                    winner = "@" + p["playerid"]
+                    winner = "@" + str(p["playerid"])
                     break
             else:
                 # invalid winner? We can't find the fool's nick in the player list
