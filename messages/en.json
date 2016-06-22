@@ -860,6 +860,10 @@
     "no_access_host": "Host {0} does not have any access.",
     "access_host": "Host {0} has access +{1}.",
     "never_aliases": ["never", "infinite", "infinity", "permanent", "p"],
+    "leave_warning": "Leaving during game. If you think you may have to leave shortly after a game would start, !leave during the join phase instead.",
+    "idle_warning": "Idling out during game. If you !join please pay attention to the channel and ensure that your client notifies you when highlighted.",
+    "part_warning": "Parting during game. You only have a short time to re-join the channel after parting to stay alive.",
+    "acc_warning": "Changing accounts during game. Please do not change accounts while playing.",
 
     "_": " vim: set sw=4 expandtab:"
 }
