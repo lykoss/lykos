@@ -8349,7 +8349,7 @@ def fwarn(cli, nick, chan, rest):
             if acc is None and hm is None:
                 reply(cli, nick, chan, messages["fwarn_nick_invalid"])
                 return
-            warnings = db.list_warnings(acc, hm, list_all=list_all, skip=(page-1)*10, show=11)
+            warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page-1)*10, show=11)
             points = db.get_warning_points(acc, hm)
             cli.notice(nick, messages["fwarn_list_header"].format(target, points))
         else:
