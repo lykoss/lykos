@@ -2096,7 +2096,7 @@ def hurry_up(cli, gameid, change):
                 weight = 0 # more pacifists than impatience totems
             elif imp_count == pac_count and v not in var.VOTES[votee]:
                 weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-            if v in var.ROLES["bureaucrat"] or v in var.INFLUENTIAL: # the two do not stack
+            if v in var.INFLUENTIAL:
                 weight *= 2
             numvotes += weight
         if numvotes > maxfound[0]:
@@ -2230,7 +2230,7 @@ def chk_decision(cli, force = ""):
                     weight = 0 # more pacifists than impatience totems
                 elif imp_count == pac_count and v not in var.VOTES[votee]:
                     weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-                if v in var.ROLES["bureaucrat"] | var.INFLUENTIAL: # the two do not stack
+                if v in var.INFLUENTIAL:
                     weight *= 2
                 numvotes += weight
 

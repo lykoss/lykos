@@ -1281,7 +1281,6 @@ class MaelstromMode(GameMode):
             addroles["assassin"] = random.randrange(3)
             addroles["cursed villager"] = random.randrange(3)
             addroles["mayor"] = random.randrange(2)
-            addroles["bureaucrat"] = random.randrange(2)
             if random.randrange(100) == 0 and addroles.get("villager", 0) > 0:
                 addroles["blessed villager"] = 1
 

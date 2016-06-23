@@ -274,7 +274,6 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("sharpshooter"     , (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ("mayor"            , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  )),
              ("assassin"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
-             ("bureaucrat"       , (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ])
 
 # Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
@@ -305,8 +304,7 @@ TEMPLATE_RESTRICTIONS = OrderedDict([
                         ("sharpshooter"     , frozenset()), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
                         ("mayor"            , frozenset({"fool", "jester", "monster"})),
                         ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest", "wild child"}),
-                        ("bureaucrat"       , frozenset()),
-                        ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor", "bureaucrat"}),
+                        ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor"}),
                         ])
 
 # make sharpshooter restrictions at least the same as gunner
