@@ -700,6 +700,12 @@ def _upgrade():
     pass
 
 def _migrate():
+    # try to make a backup copy of the database
+    import shutil
+    try:
+        shutil.copyfile("data.sqlite3", "data.sqlite3.bak")
+    except OSError:
+        pass
     dn = os.path.dirname(__file__)
     conn = _conn()
     with conn, open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:

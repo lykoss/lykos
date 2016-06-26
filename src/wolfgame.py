@@ -3863,7 +3863,7 @@ def leave(cli, what, nick, why=""):
             msg = (messages["leave_death"] + "{2}").format(nick, var.get_reveal_role(nick), population)
         else:
             msg = (messages["leave_death_no_reveal"] + "{1}").format(nick, population)
-        add_warning(nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
+        # kick used to give stasis, now it does not; the op that performed the kick should add their own warning
     cli.msg(botconfig.CHANNEL, msg)
     var.SPECTATING_WOLFCHAT.discard(nick)
     var.SPECTATING_DEADCHAT.discard(nick)
@@ -8729,7 +8729,7 @@ def fflags(cli, nick, chan, rest):
     elif len(params) == 1:
         # display access for the given user
         acc, hm = parse_warning_target(params[0])
-        if acc is not None:
+        if acc is not None and acc != "*":
             if not var.FLAGS_ACCS[acc]:
                 msg = messages["no_access_account"].format(acc)
             else:
@@ -8754,7 +8754,7 @@ def fflags(cli, nick, chan, rest):
                 return
             tpl_flags = "".join(sorted(tpl_flags))
             db.set_access(acc, hm, tid=tpl_id)
-            if acc is not None:
+            if acc is not None and acc != "*":
                 reply(cli, nick, chan, messages["access_set_account"].format(acc, tpl_flags))
             else:
                 reply(cli, nick, chan, messages["access_set_host"].format(hm, tpl_flags))
@@ -8789,7 +8789,7 @@ def fflags(cli, nick, chan, rest):
                     reply(cli, nick, chan, messages["access_set_host"].format(hm, flags))
             else:
                 db.set_access(acc, hm, flags=None)
-                if acc is not None:
+                if acc is not None and acc != "*":
                     reply(cli, nick, chan, messages["access_deleted_account"].format(acc))
                 else:
                     reply(cli, nick, chan, messages["access_deleted_host"].format(hm))
