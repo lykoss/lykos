@@ -8201,7 +8201,10 @@ def warn(cli, nick, chan, rest):
 
     if command == "view":
         try:
-            warn_id = int(params.pop(0))
+            warn_id = params.pop(0)
+            if warn_id[0] == "#":
+                warn_id = warn_id[1:]
+            warn_id = int(warn_id)
         except (IndexError, ValueError):
             reply(cli, nick, chan, messages["warn_view_syntax"])
             return
@@ -8241,7 +8244,10 @@ def warn(cli, nick, chan, rest):
 
     if command == "ack":
         try:
-            warn_id = int(params.pop(0))
+            warn_id = params.pop(0)
+            if warn_id[0] == "#":
+                warn_id = warn_id[1:]
+            warn_id = int(warn_id)
         except (IndexError, ValueError):
             reply(cli, nick, chan, messages["warn_ack_syntax"])
             return
@@ -8394,7 +8400,10 @@ def fwarn(cli, nick, chan, rest):
 
     if command == "view":
         try:
-            warn_id = int(params.pop(0))
+            warn_id = params.pop(0)
+            if warn_id[0] == "#":
+                warn_id = warn_id[1:]
+            warn_id = int(warn_id)
         except (IndexError, ValueError):
             reply(cli, nick, chan, messages["fwarn_view_syntax"])
             return
@@ -8440,7 +8449,10 @@ def fwarn(cli, nick, chan, rest):
 
     if command == "del":
         try:
-            warn_id = int(params.pop(0))
+            warn_id = params.pop(0)
+            if warn_id[0] == "#":
+                warn_id = warn_id[1:]
+            warn_id = int(warn_id)
         except (IndexError, ValueError):
             reply(cli, nick, chan, messages["fwarn_del_syntax"])
             return
@@ -8457,7 +8469,10 @@ def fwarn(cli, nick, chan, rest):
 
     if command == "set":
         try:
-            warn_id = int(params.pop(0))
+            warn_id = params.pop(0)
+            if warn_id[0] == "#":
+                warn_id = warn_id[1:]
+            warn_id = int(warn_id)
         except (IndexError, ValueError):
             reply(cli, nick, chan, messages["fwarn_set_syntax"])
             return
