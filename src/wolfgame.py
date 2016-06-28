@@ -7975,15 +7975,23 @@ def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ac
         exp_amount = int(expires[:-1])
 
         if exp_suffix == "d":
-            expires = datetime.now() + timedelta(days=exp_amount)
+            expires = datetime.utcnow() + timedelta(days=exp_amount)
         elif exp_suffix == "h":
-            expires = datetime.now() + timedelta(hours=exp_amount)
+            expires = datetime.utcnow() + timedelta(hours=exp_amount)
         elif exp_suffix == "m":
-            expires = datetime.now() + timedelta(minutes=exp_amount)
+            expires = datetime.utcnow() + timedelta(minutes=exp_amount)
         else:
             raise ValueError("Invalid expiration string")
     elif isinstance(expires, int):
-        expires = datetime.now() + timedelta(days=expires)
+        expires = datetime.utcnow() + timedelta(days=expires)
+
+    # Round expires to the nearest minute (30s rounds up)
+    if isinstance(expires, datetime):
+        round_add = 0
+        if expires.second >= 30:
+            round_add = 1
+        expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
+        expires += timedelta(minutes=round_add)
 
     # determine if we need to automatically add any sanctions
     prev = db.get_warning_points(tacc, thm)
@@ -8523,8 +8531,14 @@ def fwarn(cli, nick, chan, rest):
                 elif suffix == "m":
                     expires = issued + timedelta(minutes=amount)
                 else:
-                    reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
+                    reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
                     return
+
+                round_add = 0
+                if expires.second >= 30:
+                    round_add = 1
+                expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
+                expires += timedelta(minutes=round_add)
 
         # maintain existing reason if none was specified
         if not reason:
@@ -8627,29 +8641,12 @@ def fwarn(cli, nick, chan, rest):
 
     if expires.lower() in messages["never_aliases"]:
         expires = None
-    else:
-        suffix = expires[-1]
-        try:
-            amount = int(expires[:-1])
-        except ValueError:
-            reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
-            return
 
-        if amount <= 0:
-            reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
-            return
+    try:
+        warn_id = add_warning(target, points, nick, reason, notes, expires, need_ack, sanctions)
+    except ValueError:
+        reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
 
-        if suffix == "d":
-            expires = datetime.now() + timedelta(days=amount)
-        elif suffix == "h":
-            expires = datetime.now() + timedelta(hours=amount)
-        elif suffix == "m":
-            expires = datetime.now() + timedelta(minutes=amount)
-        else:
-            reply(cli, nick, chan, messages["fwarn_expiry_invalid_suffix"])
-            return
-
-    warn_id = add_warning(target, points, nick, reason, notes, expires, need_ack, sanctions)
     if warn_id is False:
         reply(cli, nick, chan, messages["fwarn_cannot_add"])
     else:
