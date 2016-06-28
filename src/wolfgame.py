@@ -8166,7 +8166,7 @@ def warn(cli, nick, chan, rest):
         acc, hm = parse_warning_target(nick)
         warnings = db.list_warnings(acc, hm, expired=list_all, skip=(page-1)*10, show=11)
         points = db.get_warning_points(acc, hm)
-        cli.notice(nick, messages["warn_list_header"].format(points))
+        cli.notice(nick, messages["warn_list_header"].format(points, "" if points == 1 else "s"))
 
         i = 0
         for warn in warnings:
@@ -8194,7 +8194,8 @@ def warn(cli, nick, chan, rest):
             if not warn["ack"]:
                 ack = "\u0002!\u0002 "
             cli.notice(nick, messages["warn_list"].format(
-                start, ack, warn["id"], warn["issued"], warn["reason"], warn["amount"], expires, end))
+                start, ack, warn["id"], warn["issued"], warn["reason"], warn["amount"],
+                "" if warn["amount"] == 1 else "s", expires, end))
         if i == 0:
             cli.notice(nick, messages["fwarn_list_empty"])
         return
@@ -8223,7 +8224,8 @@ def warn(cli, nick, chan, rest):
             expires = messages["fwarn_view_active"].format(messages["fwarn_view_expires"].format(warning["expires"]))
 
         cli.notice(nick, messages["warn_view_header"].format(
-            warning["id"], warning["issued"], warning["amount"], expires))
+            warning["id"], warning["issued"], warning["amount"],
+            "" if warning["amount"] == 1 else "s", expires))
         cli.notice(nick, warning["reason"])
 
         sanctions = []
@@ -8357,7 +8359,7 @@ def fwarn(cli, nick, chan, rest):
                 return
             warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page-1)*10, show=11)
             points = db.get_warning_points(acc, hm)
-            cli.notice(nick, messages["fwarn_list_header"].format(target, points))
+            cli.notice(nick, messages["fwarn_list_header"].format(target, points, "" if points == 1 else "s"))
         else:
             warnings = db.list_all_warnings(list_all=list_all, skip=(page-1)*10, show=11)
 
@@ -8393,7 +8395,8 @@ def fwarn(cli, nick, chan, rest):
                 ack = "\u0002!\u0002 "
             cli.notice(nick, messages["fwarn_list"].format(
                 start, ack, warn["id"], warn["issued"], warn["target"],
-                warn["sender"], warn["reason"], warn["amount"], expires, end))
+                warn["sender"], warn["reason"], warn["amount"],
+                "" if warn["amount"] == 1 else "s", expires, end))
         if i == 0:
             cli.notice(nick, messages["fwarn_list_empty"])
         return
@@ -8424,13 +8427,13 @@ def fwarn(cli, nick, chan, rest):
 
         cli.notice(nick, messages["fwarn_view_header"].format(
             warning["id"], warning["target"], warning["issued"], warning["sender"],
-            warning["amount"], expires))
+            warning["amount"], "" if warning["amount"] == 1 else "s", expires))
 
         reason = [warning["reason"]]
         if warning["notes"] is not None:
             reason.append(warning["notes"])
         cli.notice(nick, " | ".join(reason))
-        
+
         sanctions = []
         if not warning["ack"]:
             sanctions.append(messages["fwarn_view_ack"])
