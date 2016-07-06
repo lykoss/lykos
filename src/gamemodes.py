@@ -1127,7 +1127,8 @@ class MaelstromMode(GameMode):
         # needs to be added above for when dulls are added during the game
         # matchmaker is conditionally enabled during night 1 only
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
-        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child"})
+        # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
+        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child", "succubus"})
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
