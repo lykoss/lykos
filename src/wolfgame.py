@@ -9069,10 +9069,7 @@ def show_admins(cli, nick, chan, rest):
         hook.unhook(4)
         var.ADMIN_PINGING = False
 
-    if nick == chan:
-        cli.who(botconfig.CHANNEL)
-    else:
-        cli.who(chan)
+    cli.who(botconfig.CHANNEL)
 
 @cmd("coin", pm=True)
 def coin(cli, nick, chan, rest):
