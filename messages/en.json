@@ -27,7 +27,7 @@
         "Don't you mean \u0002{cmd_char}ping\u0002?",
         "skynet.exe has stopped working. Windows is checking for a solution to the problem...",
         "No ping received for 1337 seconds.",
-        "Congratulations! You're the 1337th person to use {cmd_char}ping. You win a goat!",
+        "Congratulations! You're the 1337th person to use {cmd_char}ping. You win a goat!\n\u0001ACTION \u030ds goat walks by and {goat_action} \u0002{nick}\u0002.\u0001",
         "PING! {nick}",
         "I'm sorry Dave, I'm afraid I can't do that.",
         "Give me a ping, Vasily. One ping only, please.",
