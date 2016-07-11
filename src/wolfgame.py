@@ -7960,7 +7960,7 @@ def parse_warning_target(target):
         return (None, None)
     return (tacc, thm)
 
-def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ack=False, sanctions={}):
+def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ack=False, sanctions=None):
     tacc, thm = parse_warning_target(target)
     if tacc is None and thm is None:
         return False
@@ -7998,6 +7998,8 @@ def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ac
         expires += timedelta(minutes=round_add)
 
     # determine if we need to automatically add any sanctions
+    if sanctions is None:
+        sanctions = {}
     prev = db.get_warning_points(tacc, thm)
     cur = prev + amount
     for (mn, mx, sanc) in var.AUTO_SANCTION:
