@@ -3455,16 +3455,6 @@ def update_last_said(cli, nick, chan, rest):
         var.LAST_SAID_TIME[nick] = datetime.now()
 
     fullstring = "".join(rest)
-    if var.CARE_BOLD and BOLD in fullstring:
-        if var.KILL_BOLD:
-            cli.send("KICK " + messages["kick_bold"].format(botconfig.CHANNEL, nick))
-        else:
-            cli.notice(nick, messages["notice_no_bold"])
-    if var.CARE_COLOR and any(code in fullstring for code in ["\u0003", "\u0016", "\u001f" ]):
-        if var.KILL_COLOR:
-            cli.send("KICK " + messages["kick_color"].format(botconfig.CHANNEL, nick))
-        else:
-            cli.notice(nick, messages["notice_no_color"])
 
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
@@ -7497,14 +7487,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             var.LAST_START[nick][0] + timedelta(seconds=var.START_RATE_LIMIT) >
             datetime.now() and not restart):
         var.LAST_START[nick][1] += 1
-        if (var.CARE_STARTSPAM and var.KILL_STARTSPAM and
-                var.LAST_START[nick][1] >= var.KILL_STARTSPAM_LIMIT):
-            cli.send("KICK " + messages["startspam_kick"].format(botconfig.CHANNEL, nick))
-        elif var.CARE_STARTSPAM and var.LAST_START[nick][1] >= var.CARE_STARTSPAM_LIMIT:
-            cli.msg(chan, messages["startspam_warn"].format(nick))
-            cli.notice(nick, messages["command_ratelimited"])
-        else:
-            cli.notice(nick, messages["command_ratelimited"])
+        cli.notice(nick, messages["command_ratelimited"])
         return
 
     if restart:
