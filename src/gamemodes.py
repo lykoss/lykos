@@ -384,6 +384,7 @@ class RapidFireMode(GameMode):
         self.DAY_TIME_WARN = 360
         self.SHORT_DAY_LIMIT = 240
         self.SHORT_DAY_WARN = 180
+        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0
         self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  22   )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
