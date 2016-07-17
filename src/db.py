@@ -620,7 +620,7 @@ def get_warning_sanctions(warn_id):
     return sanctions
 
 def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
-    teid, tlid = _get_ids(tacc, thm)
+    teid, tlid = _get_ids(tacc, thm, add=True)
     seid, slid = _get_ids(sacc, shm)
     ack = 0 if need_ack else 1
     conn = _conn()
