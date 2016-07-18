@@ -334,10 +334,7 @@ def complete_match(string, matches):
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
     if not victim:
-        if in_chan:
-            cli.notice(nick, messages["not_enough_parameters"])
-        else:
-            pm(cli, nick, messages["not_enough_parameters"])
+        reply(cli, nick, chan, messages["not_enough_parameters"], private=True)
         return
     pl = [x for x in var.list_players() if x != nick or self_in_list]
     pll = [x.lower() for x in pl]
@@ -351,10 +348,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         #ensure messages about not being able to act on yourself work
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
-        if in_chan:
-            cli.notice(nick, messages["not_playing"].format(victim))
-        else:
-            pm(cli, nick, messages["not_playing"].format(victim))
+        reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
@@ -580,11 +574,7 @@ def restart_program(cli, nick, chan, rest):
 
             if mode not in VALID_MODES:
                 err_msg = messages["invalid_mode"].format(mode, ", ".join(VALID_MODES))
-
-                if chan == nick:
-                    pm(cli, nick, err_msg)
-                else:
-                    cli.notice(nick, err_msg)
+                reply(cli, nick, chan, err_msg, private=True)
 
                 return
 
@@ -651,35 +641,35 @@ def mark_simple_notify(cli, nick, chan, rest):
                 var.SIMPLE_NOTIFY.remove(fullmask)
                 db.toggle_simple(None, fullmask)
 
-            cli.notice(nick, messages["simple_off"])
+            reply(cli, nick, chan, messages["simple_off"], private=True)
             return
 
         var.SIMPLE_NOTIFY_ACCS.add(acc)
         db.toggle_simple(acc, None)
     elif var.ACCOUNTS_ONLY:
-        cli.notice(nick, messages["not_logged_in"])
+        reply(cli, nick, chan, messages["not_logged_in"], private=True)
         return
 
     else: # Not logged in, fall back to ident@hostmask
         if host in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(host)
             db.toggle_simple(None, host)
-        
-            cli.notice(nick, messages["simple_off"])
+
+            reply(cli, nick, chan, messages["simple_off"], private=True)
             return
-      
+
         fullmask = ident + "@" + host
         if fullmask in var.SIMPLE_NOTIFY:
             var.SIMPLE_NOTIFY.remove(fullmask)
             db.toggle_simple(None, fullmask)
 
-            cli.notice(nick, messages["simple_off"])
+            reply(cli, nick, chan, messages["simple_off"], private=True)
             return
 
         var.SIMPLE_NOTIFY.add(fullmask)
         db.toggle_simple(None, fullmask)
 
-    cli.notice(nick, messages["simple_on"])
+    reply(cli, nick, chan, messages["simple_on"], private=True)
 
 @cmd("notice", raw_nick=True, pm=True)
 def mark_prefer_notice(cli, nick, chan, rest):
@@ -707,13 +697,13 @@ def mark_prefer_notice(cli, nick, chan, rest):
                 var.PREFER_NOTICE.remove(fullmask)
                 db.toggle_notice(None, fullmask)
 
-            cli.notice(nick, messages["notice_off"])
+            reply(cli, nick, chan, messages["notice_off"], private=True)
             return
 
         var.PREFER_NOTICE_ACCS.add(acc)
         db.toggle_notice(acc, None)
     elif var.ACCOUNTS_ONLY:
-        cli.notice(nick, messages["not_logged_in"])
+        reply(cli, nick, chan, messages["not_logged_in"], private=True)
         return
 
     else: # Not logged in
@@ -721,20 +711,20 @@ def mark_prefer_notice(cli, nick, chan, rest):
             var.PREFER_NOTICE.remove(host)
             db.toggle_notice(None, host)
 
-            cli.notice(nick, messages["notice_off"])
+            reply(cli, nick, chan, messages["notice_off"], private=True)
             return
         fullmask = ident + "@" + host
         if fullmask in var.PREFER_NOTICE:
             var.PREFER_NOTICE.remove(fullmask)
             db.toggle_notice(None, fullmask)
 
-            cli.notice(nick, messages["notice_off"])
+            reply(cli, nick, chan, messages["notice_off"], private=True)
             return
 
         var.PREFER_NOTICE.add(fullmask)
         db.toggle_notice(None, fullmask)
 
-    cli.notice(nick, messages["notice_on"])
+    reply(cli, nick, chan, messages["notice_on"], private=True)
 
 @cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
 def replace(cli, nick, chan, rest):
@@ -744,20 +734,12 @@ def replace(cli, nick, chan, rest):
         return
 
     if nick in var.list_players():
-        if chan == nick:
-            pm(cli, nick, messages["already_playing"].format("You"))
-        else:
-            cli.notice(nick, messages["already_playing"].format("You"))
-        return
+        reply(cli, nick, chan, messages["already_playing"].format("You"), private=True)
 
     account = var.USERS[nick]["account"]
 
     if not account or account == "*":
-        if chan == nick:
-            pm(cli, nick, messages["not_logged_in"])
-        else:
-            cli.notice(nick, messages["not_logged_in"])
-        return
+        reply(cli, nick, chan, messages["not_logged_in"], private=True)
 
     rest = rest.split()
 
@@ -771,19 +753,11 @@ def replace(cli, nick, chan, rest):
                 elif target is None:
                     target = user
                 else:
-                    if chan == nick:
-                        pm(cli, nick, messages["swap_privmsg"])
-                    else:
-                        cli.notice(nick, messages["swap_notice"].format(botconfig.CMD_CHAR))
-                    return
+                    reply(cli, nick, chan, messages["swap_notice"].format(botconfig.CMD_CHAR), private=True)
 
         if target is None:
             msg = messages["account_not_playing"]
-            if chan == nick:
-                pm(cli, nick, msg)
-            else:
-                cli.notice(nick, msg)
-            return
+            reply(cli, nick, chan, msg, private=True)
     else:
         pl = var.list_players() + list(var.VENGEFUL_GHOSTS.keys())
         pll = [var.irc_lower(i) for i in pl]
@@ -795,17 +769,10 @@ def replace(cli, nick, chan, rest):
 
         if (target not in var.list_players() and target not in var.VENGEFUL_GHOSTS) or target not in var.USERS:
             msg = messages["target_not_playing"].format(" longer" if target in var.DEAD else "t")
-            if chan == nick:
-                pm(cli, nick, msg)
-            else:
-                cli.notice(nick, msg)
-            return
+            reply(cli, nick, chan, msg, private=True)
 
         if var.USERS[target]["account"] == "*":
-            if chan == nick:
-                pm(cli, nick, messages["target_not_logged_in"])
-            else:
-                cli.notice(nick, messages["target_not_logged_in"])
+            reply(cli, nick, chan, messages["target_not_logged_in"], private=True)
             return
 
     if var.USERS[target]["account"] == account and nick != target:
@@ -5502,7 +5469,7 @@ def is_safe(nick, victim): # helper function
 def kill(cli, nick, chan, rest):
     """Kill a player. Behaviour varies depending on your role."""
     if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in var.list_players()) or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, messages["player_not_playing"])
+        reply(cli, nick, chan, messages["player_not_playing"], private=True)
         return
     try:
         role = var.get_role(nick)
@@ -8879,10 +8846,7 @@ def reset_game(cli, nick, chan, rest):
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
-    if (var.PHASE in var.GAME_PHASES and nick not in var.list_players()) and chan != botconfig.CHANNEL:
-        cli.notice(nick, var.RULES)
-        return
-    cli.msg(chan, var.RULES)
+    reply(cli, nick, chan, var.RULES)
 
 @cmd("help", raw_nick=True, pm=True)
 def get_help(cli, rnick, chan, rest):
@@ -8904,26 +8868,17 @@ def get_help(cli, rnick, chan, rest):
                         msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest)
                     else:
                         msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__
-                    if chan == nick:
-                        pm(cli, nick, msg)
-                    else:
-                        cli.notice(nick, msg)
-                    return
+                    reply(cli, nick, chan, msg, private=True)
                 else:
                     got = False
                     continue
             else:
                 if got:
                     return
-                elif chan == nick:
-                    pm(cli, nick, messages["documentation_unavailable"])
-                else:
-                    cli.notice(nick, messages["documentation_unavailable"])
+                reply(cli, nick, chan, messages["documentation_unavailable"], private=True)
 
-        elif chan == nick:
-            pm(cli, nick, messages["command_not_found"])
         else:
-            cli.notice(nick, messages["command_not_found"])
+            reply(cli, nick, chan, messages["command_not_found"], private=True)
         return
 
     # if command was not found, or if no command was given:
@@ -8937,16 +8892,10 @@ def get_help(cli, rnick, chan, rest):
             if fn[0].flag and name not in fn[0].aliases:
                 afns.append("{0}{1}{0}".format("\u0002", name))
     fns.sort() # Output commands in alphabetical order
-    if chan == nick:
-        pm(cli, nick, messages["commands_list"].format(var.break_long_message(fns, ", ")))
-    else:
-        cli.notice(nick, messages["commands_list"].format(var.break_long_message(fns, ", ")))
+    reply(cli, nick, chan, messages["commands_list"].format(var.break_long_message(fns, ", ")), private=True)
     if afns:
         afns.sort()
-        if chan == nick:
-            pm(cli, nick, messages["admin_commands_list"].format(var.break_long_message(afns, ", ")))
-        else:
-            cli.notice(nick, messages["admin_commands_list"].format(var.break_long_message(afns, ", ")))
+        reply(cli, nick, chan, messages["admin_commands_list"].format(var.break_long_message(afns, ", ")), private=True)
 
 @cmd("wiki", pm=True)
 def wiki(cli, nick, chan, rest):
@@ -8972,7 +8921,7 @@ def wiki(cli, nick, chan, rest):
     if not match:
         match = re.search(r"^##+ ({0}.*)$\r?\n\r?\n^(.*)$".format(query), page, re.MULTILINE + re.IGNORECASE)
     if not match:
-        cli.notice(nick, messages["wiki_no_role_info"])
+        reply(cli, nick, chan, messages["wiki_no_role_info"], private=True)
         return
 
     # wiki links only have lowercase ascii chars, and spaces are replaced with a dash
@@ -9698,11 +9647,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         """Reveal role information."""
 
         if not can_run_restricted_cmd(nick):
-            if chan == nick:
-                pm(cli, nick, messages["temp_invalid_perms"])
-            else:
-                cli.notice(nick, messages["temp_invalid_perms"])
-            return
+            reply(cli, nick, chan, messages["temp_invalid_perms"], private=True)
 
         output = []
         for role in var.role_order():
@@ -9795,13 +9740,10 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         if var.CHARMED | var.TOBECHARMED:
             output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
 
-        if chan == nick:
-            pm(cli, nick, var.break_long_message(output, " | "))
+        if botconfig.DEBUG_MODE:
+            cli.msg(chan, var.break_long_message(output, " | "))
         else:
-            if botconfig.DEBUG_MODE:
-                cli.msg(chan, var.break_long_message(output, " | "))
-            else:
-                cli.notice(nick, var.break_long_message(output, " | "))
+            reply(cli, nick, chan, var.break_long_message(output, " | "), private=True)
 
 
     @cmd("fgame", flag="d", raw_nick=True, phases=("join",))
