@@ -676,6 +676,12 @@ def mark_prefer_notice(cli, nick, chan, rest):
     """Makes the bot NOTICE you for every interaction."""
 
     nick, _, ident, host = parse_nick(nick)
+
+    if chan == "nick" and rest:
+        # Ignore if called in PM with parameters, likely a message to wolfchat
+        # and not an intentional invocation of this command
+        return
+
     if nick in var.USERS:
         ident = var.USERS[nick]["ident"]
         host = var.USERS[nick]["host"]
