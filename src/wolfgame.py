@@ -460,7 +460,7 @@ def forced_exit(cli, nick, chan, rest):
 
     args = rest.split()
 
-    if args and args[0] == "-force":
+    if botconfig.DEBUG_MODE or (args and args[0] == "-force"):
         force = True
         rest = " ".join(args[1:])
     else:
@@ -521,7 +521,7 @@ def restart_program(cli, nick, chan, rest):
 
     args = rest.split()
 
-    if args and args[0] == "-force":
+    if botconfig.DEBUG_MODE or (args and args[0] == "-force"):
         force = True
         rest = " ".join(args[1:])
     else:
