@@ -97,7 +97,6 @@ var.RESTARTING = False
 
 var.OPPED = False  # Keeps track of whether the bot is opped
 
-var.BITTEN = {}
 var.BITTEN_ROLES = {}
 var.LYCAN_ROLES = {}
 var.VENGEFUL_GHOSTS = {}
@@ -3120,11 +3119,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     var.ANGRY_WOLVES = True
                 if nickrole in var.WOLF_ROLES:
                     var.ALPHA_ENABLED = True
-                    for bitten, days in var.BITTEN.items():
-                        brole = var.get_role(bitten)
-                        if brole not in var.WOLF_ROLES and days > 0:
-                            var.BITTEN[bitten] -= 1
-                            pm(cli, bitten, messages["bitten"].format(nick))
 
                 if nickrole == "mad scientist":
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
@@ -3633,7 +3627,7 @@ def rename_player(cli, prefix, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.BITTEN, var.GUNNERS, var.TURNCOATS,
+            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES, var.IDOLS):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
@@ -4191,13 +4185,6 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
-    # determine if we need to play the new wolf message due to bitten people
-    new_wolf = False
-    for (p, v) in var.BITTEN.items():
-        if v <= 0:
-            new_wolf = True
-            break
-
     found = defaultdict(int)
     for v in var.KILLS.values():
         for p in v:
@@ -4291,6 +4278,8 @@ def transition_day(cli, gameid=0):
     vappend = []
     var.ACTIVE_PROTECTIONS = defaultdict(list)
 
+    # set to True if we play chilling howl message due to a bitten person turning
+    new_wolf = False
     if var.ALPHA_ENABLED: # check for bites
         for (alpha, target) in var.BITE_PREFERENCES.items():
             # bite is now separate but some people may try to double up still, if bitten person is
@@ -4334,7 +4323,7 @@ def transition_day(cli, gameid=0):
                 victims_set.add(target)
                 bywolves.add(target)
             elif got_bit:
-                var.BITTEN[target] = var.ALPHA_WOLF_NIGHTS
+                new_wolf = True
                 bitten.append(target)
             else:
                 # bite failed due to some other reason (namely harlot)
@@ -4725,16 +4714,39 @@ def transition_day(cli, gameid=0):
 
     cli.msg(chan, "\n".join(message))
 
-    for chump in var.BITTEN.keys():
-        if chump not in dead and var.get_role(chump) not in var.WOLF_ROLES:
-            pm(cli, chump, get_bitten_message(chump))
-
     for chump in bitten:
-        if chump not in dead and chump not in var.WOLF_ROLES:
-            if chump in var.ROLES["harlot"] and var.HVISITED.get(chump):
-                pm(cli, chump, messages["harlot_bit"])
-            else:
-                pm(cli, chump, messages["generic_bit"])
+        # turn all bitten people into wolves
+        # short-circuit if they are already a wolf or are dying
+        chumprole = var.get_role(chump)
+        if chump in dead or chumprole in var.WOLF_ROLES:
+            continue
+
+        newrole = "wolf"
+        if chumprole == "guardian angel":
+            pm(cli, chump, messages["fallen_angel_turn"])
+            # fallen angels also automatically gain the assassin template if they don't already have it
+            newrole = "fallen angel"
+            var.ROLES["assassin"].add(chump)
+            debuglog("{0} ({1}) TURNED FALLEN ANGEL".format(chump, chumprole))
+        elif chumprole in ("seer", "oracle", "augur"):
+            pm(cli, chump, messages["seer_turn"])
+            newrole = "doomsayer"
+            debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
+        elif chumprole in var.TOTEM_ORDER:
+            pm(cli, chump, messages["shaman_turn"])
+            newrole = "wolf shaman"
+            debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
+        elif chumprole == "harlot":
+            pm(cli, chump, messages["harlot_turn"])
+            debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
+        else:
+            pm(cli, chump, messages["bitten_turn"])
+            debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
+        var.BITTEN_ROLES[chump] = chumprole
+        var.ROLES[chumprole].remove(chump)
+        var.ROLES[newrole].add(chump)
+        var.FINAL_ROLES[chump] = newrole
+        relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
     for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
         # take a shortcut for killer_role here since vengeful ghost only cares about team and not particular roles
@@ -4742,7 +4754,7 @@ def transition_day(cli, gameid=0):
         # we check if they have already been killed as well since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
         if deadperson in var.list_players():
-            del_player(cli, deadperson, end_game = False, killer_role = "wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist = dead, original = deadperson)
+            del_player(cli, deadperson, end_game=False, killer_role="wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist=dead, original=deadperson)
 
     message = []
 
@@ -5251,7 +5263,7 @@ def check_exchange(cli, actor, nick):
             elif var.ANGRY_WOLVES and actor_role in var.WOLF_ROLES and actor_role != "wolf cub":
                 pm(cli, actor, messages["angry_wolves"])
             if var.ALPHA_ENABLED and actor_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
-                pm(cli, actor, messages["wolf_bite"].format(var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
+                pm(cli, actor, messages["wolf_bite"])
         elif nick_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -5295,7 +5307,7 @@ def check_exchange(cli, actor, nick):
             elif var.ANGRY_WOLVES and nick_role in ("wolf", "werecrow", "alpha wolf", "werekitten"):
                 pm(cli, nick, messages["angry_wolves"])
             if var.ALPHA_ENABLED and nick_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
-                pm(cli, nick, messages["wolf_bite"].format(var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
+                pm(cli, nick, messages["wolf_bite"])
         elif actor_role == "minion":
             wolves = var.list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -6089,54 +6101,12 @@ def immunize(cli, nick, chan, rest):
         var.FINAL_ROLES[victim] = "villager"
         var.CURED_LYCANS.add(victim)
         var.IMMUNIZED.add(victim)
-    elif victim in var.BITTEN:
-        # fun fact: immunizations in real life are done by injecting a small amount of (usually neutered) virus into the person
-        # so that their immune system can fight it off and build up antibodies. This doesn't work very well if that person is
-        # currently afflicted with the virus however, as you're just adding more virus to the mix...
-        # naturally, we would want to mimic that behavior here, and what better way of indicating that things got worse than
-        # by making the turning happen a night earlier? :)
-        var.BITTEN[victim] -= 1
-        lycan_message = (messages["immunized_already_bitten"]).format(
-                                 "the events of" if vrole == "guardian angel" else "your dream")
     else:
         lycan_message = messages["villager_immunized"]
         var.IMMUNIZED.add(victim)
     pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
     var.DOCTORS[nick] -= 1
     debuglog("{0} ({1}) IMMUNIZE: {2} ({3})".format(nick, var.get_role(nick), victim, "lycan" if lycan else var.get_role(victim)))
-
-def get_bitten_message(nick):
-    time_left = var.BITTEN[nick]
-    role = var.get_role(nick)
-    if role == "guardian angel":
-        if time_left <= 1:
-            message = messages["angel_bit_1"]
-        elif time_left == 2:
-            message = messages["angel_bit_2"]
-        else:
-            message = messages["angel_bit_3"]
-    elif role in ("seer", "oracle", "augur"):
-        if time_left <= 1:
-            message = messages["seer_bit_1"]
-        elif time_left == 2:
-            message = messages["seer_bit_2"]
-        else:
-            message = messages["seer_bit_3"]
-    elif role in var.TOTEM_ORDER and role != "wolf shaman":
-        if time_left <= 1:
-            message = messages["shaman_bit_1"]
-        elif time_left == 2:
-            message = messages["shaman_bit_2"]
-        else:
-            message = messages["shaman_bit_3"]
-    else:
-        if time_left <= 1:
-            message = messages["villager_bit_1"]
-        elif time_left == 2:
-            message = messages["villager_bit_2"]
-        else:
-            message = messages["villager_bit_3"]
-    return message
 
 @cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
 def bite_cmd(cli, nick, chan, rest):
@@ -6776,46 +6746,6 @@ def transition_night(cli):
         t2.daemon = True
         t2.start()
 
-    # convert bitten people to wolves, and advance bite stage
-    bittencopy = copy.copy(var.BITTEN)
-    for chump in bittencopy:
-        var.BITTEN[chump] -= 1
-        # short-circuit if they are already a wolf
-        # this makes playing the day transition message easier since we can keep
-        # var.BITTEN around for a day after they turn
-        chumprole = var.get_role(chump)
-
-        if chumprole in var.WOLF_ROLES:
-            del var.BITTEN[chump]
-            continue
-
-        if var.BITTEN[chump] <= 0:
-            # now a wolf
-            newrole = "wolf"
-            if chumprole == "guardian angel":
-                pm(cli, chump, messages["fallen_angel_turn"])
-                # fallen angels also automatically gain the assassin template if they don't already have it
-                # by default GA can never be assassin, but this guards against non-default cases
-                newrole = "fallen angel"
-                var.ROLES["assassin"].add(chump)
-                debuglog("{0} ({1}) TURNED FALLEN ANGEL".format(chump, chumprole))
-            elif chumprole in ("seer", "oracle", "augur"):
-                pm(cli, chump, messages["seer_turn"])
-                newrole = "doomsayer"
-                debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
-            elif chumprole in var.TOTEM_ORDER:
-                pm(cli, chump, messages["shaman_turn"])
-                newrole = "wolf shaman"
-                debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
-            else:
-                pm(cli, chump, messages["bitten_turn"])
-                debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
-            var.BITTEN_ROLES[chump] = chumprole
-            var.ROLES[chumprole].remove(chump)
-            var.ROLES[newrole].add(chump)
-            var.FINAL_ROLES[chump] = newrole
-            relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-
     # convert amnesiac
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amns = copy.copy(var.ROLES["amnesiac"])
@@ -6932,7 +6862,7 @@ def transition_night(cli):
         elif var.ANGRY_WOLVES and role in var.WOLF_ROLES and role != "wolf cub":
             pm(cli, wolf, messages["angry_wolves"])
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
-            pm(cli, wolf, messages["wolf_bite"].format(var.ALPHA_WOLF_NIGHTS, 's' if var.ALPHA_WOLF_NIGHTS > 1 else ''))
+            pm(cli, wolf, messages["wolf_bite"])
 
     for seer in var.list_players(("seer", "oracle", "augur")):
         pl = ps[:]
@@ -7637,7 +7567,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.CURED_LYCANS = set()
     var.ALPHA_WOLVES = set()
     var.ALPHA_ENABLED = False
-    var.BITTEN = {}
     var.BITE_PREFERENCES = {}
     var.BITTEN_ROLES = {}
     var.LYCAN_ROLES = {}
@@ -9245,10 +9174,6 @@ def myrole(cli, nick, chan, rest):
     if "prophet" in var.TEMPLATE_RESTRICTIONS and nick in var.ROLES["prophet"]:
         pm(cli, nick, messages["prophet_simple"])
 
-    # Remind player if they were bitten by alpha wolf
-    if nick in var.BITTEN and role not in var.WOLF_ROLES:
-        pm(cli, nick, messages["bitten_info"].format(max(var.BITTEN[nick], 0), "" if var.BITTEN[nick] == 1 else "s"))
-
     # Remind lovers of each other
     if nick in ps and nick in var.LOVERS:
         message = messages["matched_info"]
@@ -9721,11 +9646,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002dead vengeful ghost\u0002: {0}".format(", ".join("{0} ({1}against {2})".format(
                    ghost, team.startswith("!") and "driven away, " or "", team.lstrip("!"))
                    for (ghost, team) in var.VENGEFUL_GHOSTS.items())))
-
-        #show bitten users + days until turning
-        if var.BITTEN and next((days for (nickname,days) in var.BITTEN.items() if days > 0 or var.get_role(nickname) not in var.WOLF_ROLES), None) is not None:
-            output.append("\u0002bitten\u0002: {0}".format(", ".join("{0} ({1} night{2} until transformation)".format(
-                nickname, max(days, 0), "" if days == 1 else "s") for (nickname,days) in var.BITTEN.items() if days > 0 or var.get_role(nickname) not in var.WOLF_ROLES)))
 
         #show who got immunized
         if var.IMMUNIZED:

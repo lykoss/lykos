@@ -164,7 +164,6 @@ FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE = 1/2
 PROPHET_REVEALED_CHANCE = (  2/5  ,  4/5  )
 
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
-ALPHA_WOLF_NIGHTS = 3 # alpha wolf turns the target into a wolf after this many nights (note the night they are bitten is considered night 1)
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
@@ -489,8 +488,6 @@ def del_player(pname):
     tpls = get_templates(pname)
     for t in tpls:
         ROLES[t].remove(pname)
-    if pname in BITTEN:
-        del BITTEN[pname]
     if pname in BITTEN_ROLES:
         del BITTEN_ROLES[pname]
     if pname in CHARMED:
