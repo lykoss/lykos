@@ -348,7 +348,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         #ensure messages about not being able to act on yourself work
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
-        reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
+        reply(cli, nick, botconfig.CHANNEL, messages["not_playing"].format(victim), private=True)
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
@@ -9431,7 +9431,9 @@ def vote_gamemode(cli, nick, chan, gamemode, doreply):
         gamemode = match
 
     if gamemode != "roles" and gamemode != "villagergame":
-        if var.GAMEMODE_VOTES.get(nick) != gamemode:
+        if var.GAMEMODE_VOTES.get(nick) == gamemode:
+            cli.notice(nick, messages["already_voted_game"].format(gamemode))
+        else:
             var.GAMEMODE_VOTES[nick] = gamemode
             cli.msg(chan, messages["vote_game_mode"].format(nick, gamemode))
     else:
