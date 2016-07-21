@@ -677,7 +677,7 @@ def mark_prefer_notice(cli, nick, chan, rest):
 
     nick, _, ident, host = parse_nick(nick)
 
-    if chan == "nick" and rest:
+    if chan == nick and rest:
         # Ignore if called in PM with parameters, likely a message to wolfchat
         # and not an intentional invocation of this command
         return
