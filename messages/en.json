@@ -118,7 +118,6 @@
     "notice_off": "Gameplay interactions will now use PRIVMSG for you.",
     "notice_on": "The bot will now always NOTICE you.",
     "invalid_channel": "You need to be in {0} to use that command.",
-    "swap_privmsg": "More than one player is logged in to your account. Use 'swap <nick>' to swap.",
     "swap_notice": "More than one player is logged in to your account. Use '{0}swap <nick>' to swap.",
     "account_not_playing": "You do not appear to be playing. Make sure you are identified to the same account.",
     "target_not_playing": "That person is no{0} playing.",
