@@ -333,6 +333,7 @@ def complete_match(string, matches):
 
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
+    chan = botconfig.CHANNEL if in_chan else nick
     if not victim:
         reply(cli, nick, chan, messages["not_enough_parameters"], private=True)
         return
@@ -348,7 +349,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         #ensure messages about not being able to act on yourself work
         if num_matches == 0 and nick.lower().startswith(victim.lower()):
             return nick
-        reply(cli, nick, botconfig.CHANNEL, messages["not_playing"].format(victim), private=True)
+        reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
     return pl[pll.index(tempvictim)] #convert back to normal casing
 
