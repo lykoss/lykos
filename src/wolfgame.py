@@ -3118,8 +3118,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
                 if nickrole in var.WOLF_ROLES:
-                    if var.GAMEPHASE == "day":
-                        var.ALPHA_ENABLED = True
+                    var.ALPHA_ENABLED = True
                     for bitten, days in var.BITTEN.items():
                         brole = var.get_role(bitten)
                         if brole not in var.WOLF_ROLES and days > 0:
@@ -4810,8 +4809,9 @@ def chk_nightdone(cli):
         for p in var.ROLES["doomsayer"]:
             nightroles.remove(p)
     elif var.ALPHA_ENABLED:
-        # add in alphas that have bitten (note an alpha can kill or bite, but not both)
-        actedcount += len([p for p in var.BITE_PREFERENCES if p in var.ROLES["alpha wolf"]])
+        # alphas both kill and bite if they're activated at night, so add them into the counts
+        nightroles.extend(get_roles("alpha wolf"))
+        actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
 
     for p in var.HUNTERS:
         # only remove one instance of their name if they have used hunter ability, in case they have templates
@@ -5503,9 +5503,6 @@ def kill(cli, nick, chan, rest):
     if role in wolfroles and var.DISEASED_WOLVES:
         pm(cli, nick, messages["ill_wolves"])
         return
-    if role == "alpha wolf" and nick in var.BITE_PREFERENCES:
-        pm(cli, nick, messages["alpha_bite_chosen"])
-        return
     pieces = re.split(" +",rest)
     victim = pieces[0]
     victim2 = None
@@ -6172,12 +6169,7 @@ def bite_cmd(cli, nick, chan, rest):
         return
 
     var.ALPHA_WOLVES.add(nick)
-
     var.BITE_PREFERENCES[nick] = actual
-
-    # biting someone makes them ineligible to participate in the kill
-    if nick in var.KILLS:
-        del var.KILLS[nick]
 
     pm(cli, nick, messages["alpha_bite_target"].format(victim))
     relay_wolfchat_command(cli, nick, messages["alpha_bite_wolfchat"].format(nick, victim), ("alpha wolf",), is_wolf_command=True)
