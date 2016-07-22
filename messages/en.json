@@ -132,6 +132,7 @@
     "set_pingif": "Your ping preferences have been set to {0}.",
     "pingif_invalid": "Invalid parameter. Please enter a non-negative integer or a valid preference.",
     "ping_player": "PING! {0} player{1}! ",
+    "already_voted_game": "You have already voted for the {0} game mode.",
     "vote_game_mode": "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.",
     "bot_not_opped": "Sorry, I'm not opped in {0}.",
     "already_playing": "{0}'re already playing!",

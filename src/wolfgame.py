@@ -9357,7 +9357,9 @@ def vote_gamemode(cli, nick, chan, gamemode, doreply):
         gamemode = match
 
     if gamemode != "roles" and gamemode != "villagergame":
-        if var.GAMEMODE_VOTES.get(nick) != gamemode:
+        if var.GAMEMODE_VOTES.get(nick) == gamemode:
+            cli.notice(nick, messages["already_voted_game"].format(gamemode))
+        else:
             var.GAMEMODE_VOTES[nick] = gamemode
             cli.msg(chan, messages["vote_game_mode"].format(nick, gamemode))
     else:
