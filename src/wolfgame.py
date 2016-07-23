@@ -9574,6 +9574,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
         if not can_run_restricted_cmd(nick):
             reply(cli, nick, chan, messages["temp_invalid_perms"], private=True)
+            return
 
         output = []
         for role in var.role_order():
