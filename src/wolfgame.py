@@ -741,11 +741,13 @@ def replace(cli, nick, chan, rest):
 
     if nick in var.list_players():
         reply(cli, nick, chan, messages["already_playing"].format("You"), private=True)
+        return
 
     account = var.USERS[nick]["account"]
 
     if not account or account == "*":
         reply(cli, nick, chan, messages["not_logged_in"], private=True)
+        return
 
     rest = rest.split()
 
@@ -760,10 +762,12 @@ def replace(cli, nick, chan, rest):
                     target = user
                 else:
                     reply(cli, nick, chan, messages["swap_notice"].format(botconfig.CMD_CHAR), private=True)
+                    return
 
         if target is None:
             msg = messages["account_not_playing"]
             reply(cli, nick, chan, msg, private=True)
+            return
     else:
         pl = var.list_players() + list(var.VENGEFUL_GHOSTS.keys())
         pll = [var.irc_lower(i) for i in pl]
@@ -776,6 +780,7 @@ def replace(cli, nick, chan, rest):
         if (target not in var.list_players() and target not in var.VENGEFUL_GHOSTS) or target not in var.USERS:
             msg = messages["target_not_playing"].format(" longer" if target in var.DEAD else "t")
             reply(cli, nick, chan, msg, private=True)
+            return
 
         if var.USERS[target]["account"] == "*":
             reply(cli, nick, chan, messages["target_not_logged_in"], private=True)
