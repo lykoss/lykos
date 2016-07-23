@@ -2327,7 +2327,7 @@ def show_votes(cli, nick, chan, rest):
                 if num_votes >= len(pl)/2:
                     majority = True
             else:
-                votelist.append("{0}: {1} (not enough players)".format(gamemode, num_votes))
+                votelist.append("{0}: {1}".format(gamemode, num_votes))
         the_message = ", ".join(votelist)
         if len(pl) >= var.MIN_PLAYERS:
             the_message += messages["majority_votes"].format("; " if votelist else "", int(math.ceil(len(pl)/2)))
