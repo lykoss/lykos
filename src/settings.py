@@ -306,6 +306,9 @@ TEMPLATE_RESTRICTIONS["assassin"] -= {"fallen angel"}
 # Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
 DISABLED_ROLES = frozenset()
 
+# Game modes that cannot be randomly picked or voted for
+DISABLED_GAMEMODES = frozenset()
+
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25
 
