@@ -453,6 +453,7 @@ def sync_modes(cli):
 def refreshdb(cli, nick, chan, rest):
     """Updates our tracking vars to the current db state."""
     db.init_vars()
+    reply(cli, nick, chan, "Done.")
 
 @cmd("fdie", "fbye", flag="D", pm=True)
 def forced_exit(cli, nick, chan, rest):
