@@ -7,7 +7,7 @@
 CREATE TABLE IF NOT EXISTS player (
     id INTEGER PRIMARY KEY,
 	-- What person this player record belongs to
-	person INTEGER NOT NULL REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
+	person INTEGER REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
     -- NickServ account name, or NULL if this player is based on a hostmask
     account TEXT COLLATE NOCASE,
     -- Hostmask for the player, if not based on an account (NULL otherwise)
