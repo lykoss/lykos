@@ -286,7 +286,7 @@ def get_player_stats(acc, hostmask, role):
                    COUNT(1) AS total
                  FROM person pe
                  JOIN player pl
-                    ON pl.person = pe.id
+                   ON pl.person = pe.id
                  JOIN game_player gp
                    ON gp.player = pl.id
                  JOIN game_player_role gpr
@@ -820,7 +820,7 @@ def _total_games(peid):
     c.execute("""SELECT COUNT(DISTINCT gp.game)
                  FROM person pe
                  JOIN player pl
-                    ON pl.person = pe.id
+                   ON pl.person = pe.id
                  JOIN game_player gp
                    ON gp.player = pl.id
                  WHERE
