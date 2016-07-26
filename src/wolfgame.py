@@ -3393,7 +3393,7 @@ def reaper(cli, gameid):
                     else:
                         cli.msg(chan, messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join":
-                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY)
+                        add_warning(dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
