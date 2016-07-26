@@ -694,9 +694,9 @@ def _upgrade(oldversion):
 
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn:
-        c = conn.cursor()
-        try:
+    try:
+        with conn:
+            c = conn.cursor()
             if oldversion < 2:
                 print ("Upgrade from version 1 to 2...", file=sys.stderr)
                 # Update FKs to be deferrable, update collations to nocase where it makes sense,
@@ -707,22 +707,19 @@ def _upgrade(oldversion):
 
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
             print ("Upgrades complete!", file=sys.stderr)
-        except sqlite3.Error:
-            # revert any pending transaction and restore the database backup
-            c.execute("ROLLBACK")
-            conn.close()
-            print ("An error has occurred while upgrading the database schema.",
-                   "Please report this issue to ##werewolf-dev on irc.freenode.net.",
-                   "Include all of the following details in your report:",
-                   sep="\n", file=sys.stderr)
-            if have_backup:
-                try:
-                    shutil.copyfile("data.sqlite3.bak", "data.sqlite3")
-                except OSError:
-                    print ("An error has occurred while restoring your database backup.",
-                           "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
-                           sep="\n", file=sys.stderr)
-            raise
+    except sqlite3.Error:
+        print ("An error has occurred while upgrading the database schema.",
+               "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+               "Include all of the following details in your report:",
+               sep="\n", file=sys.stderr)
+        if have_backup:
+            try:
+                shutil.copyfile("data.sqlite3.bak", "data.sqlite3")
+            except OSError:
+                print ("An error has occurred while restoring your database backup.",
+                       "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
+                       sep="\n", file=sys.stderr)
+        raise
 
 def _migrate():
     # try to make a backup copy of the database
@@ -791,13 +788,11 @@ def _get_ids(acc, hostmask, add=False):
         peid, plid = row
     elif add:
         with conn:
-            c.execute("BEGIN TRANSACTION")
             c.execute("INSERT INTO player (account, hostmask) VALUES (?, ?)", (acc, hostmask))
             plid = c.lastrowid
             c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
             peid = c.lastrowid
             c.execute("UPDATE player SET person=? WHERE id=?" (peid, plid))
-            c.execute("COMMIT")
     return (peid, plid)
 
 def _get_display_name(peid):
