@@ -6,16 +6,19 @@
 -- here may end up corresponding to the same actual person (see below).
 CREATE TABLE IF NOT EXISTS player (
     id INTEGER PRIMARY KEY,
+	-- What person this player record belongs to
+	person INTEGER NOT NULL REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
     -- NickServ account name, or NULL if this player is based on a hostmask
-    account TEXT,
+    account TEXT COLLATE NOCASE,
     -- Hostmask for the player, if not based on an account (NULL otherwise)
-    hostmask TEXT,
+    hostmask TEXT COLLATE NOCASE,
     -- If a player entry needs to be retired (for example, an account expired),
     -- setting this to 0 allows for that entry to be re-used without corrupting old stats/logs
     active BOOLEAN NOT NULL DEFAULT 1
 );
 
 CREATE INDEX IF NOT EXISTS player_idx ON player (account, hostmask, active);
+CREATE INDEX IF NOT EXISTS person_idx ON player (person);
 
 -- Person tracking; a person can consist of multiple players (for example, someone may have
 -- an account player for when they are logged in and 3 hostmask players for when they are
@@ -23,7 +26,7 @@ CREATE INDEX IF NOT EXISTS player_idx ON player (account, hostmask, active);
 CREATE TABLE IF NOT EXISTS person (
     id INTEGER PRIMARY KEY,
     -- Primary player for this person
-    primary_player INTEGER NOT NULL UNIQUE REFERENCES player(id),
+    primary_player INTEGER NOT NULL UNIQUE REFERENCES player(id) DEFERRABLE INITIALLY DEFERRED,
     -- If 1, the bot will notice the player instead of sending privmsgs
     notice BOOLEAN NOT NULL DEFAULT 0,
     -- If 1, the bot will send simple role notifications to the player
@@ -39,24 +42,15 @@ CREATE TABLE IF NOT EXISTS person (
     stasis_expires DATETIME
 );
 
--- A person can have multiple attached players, however each player can be attached
--- to only exactly one person
-CREATE TABLE IF NOT EXISTS person_player (
-    person INTEGER NOT NULL REFERENCES person(id),
-    player INTEGER NOT NULL UNIQUE REFERENCES player(id)
-);
-
-CREATE INDEX IF NOT EXISTS person_player_idx ON person_player (person);
-
 -- Sometimes people are bad, this keeps track of that for the purpose of automatically applying
 -- various sanctions and viewing the past history of someone. Outside of specifically-marked
 -- fields, records are never modified or deleted from this table once inserted.
 CREATE TABLE IF NOT EXISTS warning (
     id INTEGER PRIMARY KEY,
     -- The target (recipient) of the warning
-    target INTEGER NOT NULL REFERENCES person(id),
+    target INTEGER NOT NULL REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
     -- The person who gave out the warning, or NULL if it was automatically generated
-    sender INTEGER REFERENCES person(id),
+    sender INTEGER REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
     -- Number of warning points
     amount INTEGER NOT NULL,
     -- When the warning was issued ('YYYY-MM-DD HH:MM:SS')
@@ -74,21 +68,22 @@ CREATE TABLE IF NOT EXISTS warning (
     -- Set to 1 if the warning was rescinded by an admin before it expired
     deleted BOOLEAN NOT NULL DEFAULT 0,
     -- If the warning was rescinded, this tracks by whom
-    deleted_by INTEGER REFERENCES person(id),
+    deleted_by INTEGER REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
     -- If the warning was rescinded, this tracks when that happened ('YYYY-MM-DD HH:MM:SS')
     deleted_on DATETIME
 );
 
 CREATE INDEX IF NOT EXISTS warning_idx ON warning (target, deleted, issued);
+CREATE INDEX IF NOT EXISTS warning_sender_idx ON warning (target, sender, deleted, issued);
 
 -- In addition to giving warning points, a warning may have specific sanctions attached
 -- that apply until the warning expires; for example preventing a user from joining deadchat
 -- or denying them access to a particular command (such as !goat).
 CREATE TABLE IF NOT EXISTS warning_sanction (
     -- The warning this sanction is attached to
-    warning INTEGER NOT NULL REFERENCES warning(id),
+    warning INTEGER NOT NULL REFERENCES warning(id) DEFERRABLE INITIALLY DEFERRED,
     -- The type of sanction this is
-    sanction TEXT NOT NULL,
+    sanction TEXT NOT NULL COLLATE NOCASE,
     -- If the sanction type has additional data attached, it is listed here
     data TEXT
 );
@@ -100,7 +95,7 @@ CREATE TABLE IF NOT EXISTS warning_sanction (
 CREATE TABLE IF NOT EXISTS game (
     id INTEGER PRIMARY KEY,
     -- The gamemode played
-    gamemode TEXT NOT NULL,
+    gamemode TEXT NOT NULL COLLATE NOCASE,
     -- Game options (role reveal, stats type, etc.), stored as JSON string
 	-- The json1 extension can be loaded into sqlite to allow for easy querying of these values
 	-- lykos itself does not make use of this field when calculating stats at this time
@@ -112,7 +107,7 @@ CREATE TABLE IF NOT EXISTS game (
     -- Game size (at game start)
     gamesize INTEGER NOT NULL,
     -- Winning team (NULL if no winner)
-    winner TEXT
+    winner TEXT COLLATE NOCASE
 );
 
 CREATE INDEX IF NOT EXISTS game_idx ON game (gamemode, gamesize);
@@ -120,8 +115,8 @@ CREATE INDEX IF NOT EXISTS game_idx ON game (gamemode, gamesize);
 -- List of people who played in each game
 CREATE TABLE IF NOT EXISTS game_player (
     id INTEGER PRIMARY KEY,
-    game INTEGER NOT NULL REFERENCES game(id),
-    player INTEGER NOT NULL REFERENCES player(id),
+    game INTEGER NOT NULL REFERENCES game(id) DEFERRABLE INITIALLY DEFERRED,
+    player INTEGER NOT NULL REFERENCES player(id) DEFERRABLE INITIALLY DEFERRED,
     -- 1 if the player has a team win for this game
     team_win BOOLEAN NOT NULL,
     -- 1 if the player has an individual win for this game
@@ -135,9 +130,9 @@ CREATE INDEX IF NOT EXISTS game_player_player_idx ON game_player (player);
 
 -- List of all roles and other special qualities (e.g. lover, entranced, etc.) the player had in game
 CREATE TABLE IF NOT EXISTS game_player_role (
-    game_player INTEGER NOT NULL REFERENCES game_player(id),
+    game_player INTEGER NOT NULL REFERENCES game_player(id) DEFERRABLE INITIALLY DEFERRED,
     -- Name of the role or other quality recorded
-    role TEXT NOT NULL,
+    role TEXT NOT NULL COLLATE NOCASE,
     -- 1 if role is a special quality instead of an actual role/template name
     special BOOLEAN NOT NULL
 );
@@ -156,9 +151,9 @@ CREATE TABLE IF NOT EXISTS access_template (
 
 -- Access control, owners still need to be specified in botconfig, but everyone else goes here
 CREATE TABLE IF NOT EXISTS access (
-	person INTEGER NOT NULL PRIMARY KEY REFERENCES person(id),
+	person INTEGER NOT NULL PRIMARY KEY REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
 	-- Template to base this person's access on, or NULL if it is not based on a template
-	template INTEGER REFERENCES access_template(id),
+	template INTEGER REFERENCES access_template(id) DEFERRABLE INITIALLY DEFERRED,
 	-- If template is NULL, this is the list of flags that will be used
 	-- Has no effect if template is not NULL
 	flags TEXT
