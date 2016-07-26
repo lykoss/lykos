@@ -707,7 +707,7 @@ def _upgrade(oldversion):
 
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
             print ("Upgrades complete!", file=sys.stderr)
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             # revert any pending transaction and restore the database backup
             c.execute("ROLLBACK")
             conn.close()
@@ -722,7 +722,7 @@ def _upgrade(oldversion):
                     print ("An error has occurred while restoring your database backup.",
                            "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
                            sep="\n", file=sys.stderr)
-            raise e
+            raise
 
 def _migrate():
     # try to make a backup copy of the database
