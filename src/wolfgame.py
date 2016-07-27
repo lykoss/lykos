@@ -7852,6 +7852,10 @@ def parse_warning_target(target):
     return (tacc, thm)
 
 def add_warning(target, amount, actor, reason, notes=None, expires=None, need_ack=False, sanctions=None):
+    # make 0-point warnings no-op successfully, otherwise we add warnings when things like PART_PENALTY is 0
+    if amount == 0:
+        return True
+
     tacc, thm = parse_warning_target(target)
     if tacc is None and thm is None:
         return False
