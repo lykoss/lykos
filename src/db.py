@@ -3,12 +3,15 @@ import src.settings as var
 import sqlite3
 import os
 import json
+import shutil
+import sys
+import time
 from collections import defaultdict
 import threading
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _ts = threading.local()
 
@@ -27,10 +30,8 @@ def init_vars():
                        pe.stasis_expires,
                        COALESCE(at.flags, a.flags)
                      FROM person pe
-                     JOIN person_player pp
-                       ON pp.person = pe.id
                      JOIN player pl
-                       ON pl.id = pp.player
+                       ON pl.person = pe.id
                      LEFT JOIN access a
                        ON a.person = pe.id
                      LEFT JOIN access_template at
@@ -93,10 +94,8 @@ def init_vars():
                        ON ws.warning = w.id
                      JOIN person pe
                        ON pe.id = w.target
-                     JOIN person_player pp
-                       ON pp.person = pe.id
                      JOIN player pl
-                       ON pl.id = pp.player
+                       ON pl.person = pe.id
                      WHERE
                        ws.sanction = 'deny command'
                        AND w.deleted = 0
@@ -258,17 +257,6 @@ def add_game(mode, size, started, finished, winner, players, options):
         p["personid"], p["playerid"] = _get_ids(p["account"], p["hostmask"], add=True)
     with conn:
         c = conn.cursor()
-        if winner.startswith("@"):
-            # fool won, convert the nick portion into a player id
-            for p in players:
-                if p["nick"] == winner[1:]:
-                    winner = "@" + str(p["playerid"])
-                    break
-            else:
-                # invalid winner? We can't find the fool's nick in the player list
-                # maybe raise an exception here instead of silently failing
-                return
-
         c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)
                      VALUES (?, ?, ?, ?, ?, ?)""", (mode, json.dumps(options), started, finished, size, winner))
         gameid = c.lastrowid
@@ -297,10 +285,10 @@ def get_player_stats(acc, hostmask, role):
                    SUM(gp.indiv_win) AS indiv,
                    COUNT(1) AS total
                  FROM person pe
-                 JOIN person_player pmap
-                   ON pmap.person = pe.id
+                 JOIN player pl
+                   ON pl.person = pe.id
                  JOIN game_player gp
-                   ON gp.player = pmap.player
+                   ON gp.player = pl.id
                  JOIN game_player_role gpr
                    ON gpr.game_player = gp.id
                    AND gpr.role = ?
@@ -324,10 +312,10 @@ def get_player_totals(acc, hostmask):
                    gpr.role AS role,
                    COUNT(1) AS total
                  FROM person pe
-                 JOIN person_player pmap
-                   ON pmap.person = pe.id
+                 JOIN player pl
+                   ON pl.person = pe.id
                  JOIN game_player gp
-                   ON gp.player = pmap.player
+                   ON gp.player = pl.id
                  JOIN game_player_role gpr
                    ON gpr.game_player = gp.id
                  WHERE pe.id = ?
@@ -352,9 +340,7 @@ def get_game_stats(mode, size):
     if not total_games:
         return "No stats for \u0002{0}\u0002 player games.".format(size)
     c.execute("""SELECT
-                   CASE substr(winner, 1, 1)
-                     WHEN '@' THEN 'fools'
-                     ELSE winner END AS team,
+                   winner AS team,
                    COUNT(1) AS games,
                    CASE winner
                      WHEN 'villagers' THEN 0
@@ -693,11 +679,47 @@ def acknowledge_warning(warning):
         c = conn.cursor()
         c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
 
-def _upgrade():
-    # no upgrades yet, once there are some, add methods like _add_table(), _add_column(), etc.
-    # that check for the existence of that table/column/whatever and adds/drops/whatevers them
-    # as needed. We can't do this purely in SQL because sqlite lacks a scripting-level IF statement.
-    pass
+def _upgrade(oldversion):
+    # try to make a backup copy of the database
+    print ("Performing schema upgrades, this may take a while.", file=sys.stderr)
+    have_backup = False
+    try:
+        print ("Creating database backup...", file=sys.stderr)
+        shutil.copyfile("data.sqlite3", "data.sqlite3.bak")
+        have_backup = True
+        print ("Database backup created at data.sqlite3.bak...", file=sys.stderr)
+    except OSError:
+        print ("Database backup failed! Hit Ctrl+C to abort, otherwise upgrade will continue in 5 seconds...", file=sys.stderr)
+        time.sleep(5)
+
+    dn = os.path.dirname(__file__)
+    conn = _conn()
+    try:
+        with conn:
+            c = conn.cursor()
+            if oldversion < 2:
+                print ("Upgrade from version 1 to 2...", file=sys.stderr)
+                # Update FKs to be deferrable, update collations to nocase where it makes sense,
+                # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
+                # player id as a string). When nocasing players, this may cause some records to be merged.
+                with open(os.path.join(dn, "db", "upgrade2.sql"), "rt") as f:
+                    c.executescript(f.read())
+
+            c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
+            print ("Upgrades complete!", file=sys.stderr)
+    except sqlite3.Error:
+        print ("An error has occurred while upgrading the database schema.",
+               "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+               "Include all of the following details in your report:",
+               sep="\n", file=sys.stderr)
+        if have_backup:
+            try:
+                shutil.copyfile("data.sqlite3.bak", "data.sqlite3")
+            except OSError:
+                print ("An error has occurred while restoring your database backup.",
+                       "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
+                       sep="\n", file=sys.stderr)
+        raise
 
 def _migrate():
     # try to make a backup copy of the database
@@ -708,7 +730,7 @@ def _migrate():
         pass
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:
+    with conn, open(os.path.join(dn, "db", "db.sql"), "rt") as f1, open(os.path.join(dn, "db", "migrate.sql"), "rt") as f2:
         c = conn.cursor()
         #######################################################
         # Step 1: install the new schema (from db.sql script) #
@@ -728,7 +750,7 @@ def _migrate():
 def _install():
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1:
+    with conn, open(os.path.join(dn, "db", "db.sql"), "rt") as f1:
         c = conn.cursor()
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
@@ -743,10 +765,8 @@ def _get_ids(acc, hostmask, add=False):
     elif acc is None:
         c.execute("""SELECT pe.id, pl.id
                      FROM player pl
-                     JOIN person_player pp
-                       ON pp.player = pl.id
                      JOIN person pe
-                       ON pe.id = pp.person
+                       ON pe.id = pl.person
                      WHERE
                        pl.account IS NULL
                        AND pl.hostmask = ?
@@ -755,10 +775,8 @@ def _get_ids(acc, hostmask, add=False):
         hostmask = None
         c.execute("""SELECT pe.id, pl.id
                      FROM player pl
-                     JOIN person_player pp
-                       ON pp.player = pl.id
                      JOIN person pe
-                       ON pe.id = pp.person
+                       ON pe.id = pl.person
                      WHERE
                        pl.account = ?
                        AND pl.hostmask IS NULL
@@ -774,7 +792,7 @@ def _get_ids(acc, hostmask, add=False):
             plid = c.lastrowid
             c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
             peid = c.lastrowid
-            c.execute("INSERT INTO person_player (person, player) VALUES (?, ?)", (peid, plid))
+            c.execute("UPDATE player SET person=? WHERE id=?" (peid, plid))
     return (peid, plid)
 
 def _get_display_name(peid):
@@ -796,10 +814,10 @@ def _total_games(peid):
     c = conn.cursor()
     c.execute("""SELECT COUNT(DISTINCT gp.game)
                  FROM person pe
-                 JOIN person_player pmap
-                   ON pmap.person = pe.id
+                 JOIN player pl
+                   ON pl.person = pe.id
                  JOIN game_player gp
-                   ON gp.player = pmap.player
+                   ON gp.player = pl.id
                  WHERE
                    pe.id = ?""", (peid,))
     # aggregates without GROUP BY always have exactly one row,
@@ -826,6 +844,9 @@ def _conn():
         return _ts.conn
     except AttributeError:
         _ts.conn = sqlite3.connect("data.sqlite3")
+        with _ts.conn:
+            c = _ts.conn.cursor()
+            c.execute("PRAGMA foreign_keys = ON")
         return _ts.conn
 
 need_install = not os.path.isfile("data.sqlite3")
@@ -837,18 +858,20 @@ with conn:
         _install()
     c.execute("PRAGMA user_version")
     row = c.fetchone()
-    if row[0] == 0:
-        # new schema does not exist yet, migrate from old schema
-        # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
-        # will continue to exist to allow queries against it, however given how horribly
-        # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
-        # statistics over to the new schema which has the capability of actually being accurate.
-        _migrate()
-    elif row[0] < SCHEMA_VERSION:
-        _upgrade()
+    ver = row[0]
     c.close()
 
-del need_install, conn, c
+if ver == 0:
+    # new schema does not exist yet, migrate from old schema
+    # NOTE: game stats are NOT migrated to the new schema; the old gamestats table
+    # will continue to exist to allow queries against it, however given how horribly
+    # inaccurate the stats on it are, it would be a disservice to copy those inaccurate
+    # statistics over to the new schema which has the capability of actually being accurate.
+    _migrate()
+elif ver < SCHEMA_VERSION:
+    _upgrade(ver)
+
+del need_install, conn, c, ver
 init_vars()
 
 # vim: set expandtab:sw=4:ts=4:

@@ -2571,6 +2571,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
                     won = True
                 elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
                     won = (winner == var.TURNCOATS[splr][0])
+                elif rol == "fool" and "@" + splr == winner:
+                    won = True
             elif winner != "succubi" and splr in var.ENTRANCED:
                 # entranced players can't win with villager or wolf teams
                 won = False
@@ -2676,6 +2678,11 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
         for role,pl in var.ORIGINAL_ROLES.items():
             if len(pl) > 0:
                 game_options["roles"][role] = len(pl)
+
+        # normalize fool wins; to determine which fool won look for who got a team win for the game
+        # not plural (unlike other winner values) since only a singular fool wins
+        if winner.startswith("@"):
+            winner = "fool"
 
         db.add_game(var.CURRENT_GAMEMODE.name,
                     len(survived) + len(var.DEAD),

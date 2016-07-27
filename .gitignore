@@ -15,6 +15,7 @@ botconfig.py
 
 # Database files
 *.sqlite3
+*.bak
 
 # Log files
 *.log
