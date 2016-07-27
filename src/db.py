@@ -1,5 +1,3 @@
-import botconfig
-import src.settings as var
 import sqlite3
 import os
 import json
@@ -8,6 +6,10 @@ import sys
 import time
 from collections import defaultdict
 import threading
+
+import botconfig
+import src.settings as var
+from src.utilities import irc_lower, break_long_message, role_order, singular
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
@@ -57,6 +59,7 @@ def init_vars():
 
         for acc, host, notice, simple, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
+                acc = irc_lower(acc)
                 if simple == 1:
                     var.SIMPLE_NOTIFY_ACCS.add(acc)
                 if notice == 1:
@@ -71,6 +74,12 @@ def init_vars():
                 if flags:
                     var.FLAGS_ACCS[acc] = flags
             elif host is not None:
+                # nick!ident lowercased per irc conventions, host uses normal casing
+                try:
+                    hl, hr = host.split("@", 1)
+                    host = irc_lower(hl) + "@" + hr.lower()
+                except ValueError:
+                    host = host.lower()
                 if simple == 1:
                     var.SIMPLE_NOTIFY.add(host)
                 if notice == 1:
@@ -105,8 +114,10 @@ def init_vars():
                        )""")
         for acc, host, command in c:
             if acc is not None:
+                acc = irc_lower(acc)
                 var.DENY_ACCS[acc].add(command)
             if host is not None:
+                host = irc_lower(host)
                 var.DENY[host].add(command)
 
 def decrement_stasis(acc=None, hostmask=None):
@@ -324,13 +335,13 @@ def get_player_totals(acc, hostmask):
     totals = []
     for row in c:
         tmp[row[0]] = row[1]
-    order = var.role_order()
+    order = role_order()
     name = _get_display_name(peid)
     #ordered role stats
     totals = ["\u0002{0}\u0002: {1}".format(r, tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
     totals += ["\u0002{0}\u0002: {1}".format(r, t) for r, t in tmp.items() if r not in order]
-    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(name, total_games, var.break_long_message(totals, ", "))
+    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(name, total_games, break_long_message(totals, ", "))
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -356,7 +367,7 @@ def get_game_stats(mode, size):
     msg = "\u0002{0}\u0002 player games | {1}"
     bits = []
     for row in c:
-        bits.append("%s wins: %d (%d%%)" % (var.singular(row[0]), row[1], round(row[1]/total_games * 100)))
+        bits.append("%s wins: %d (%d%%)" % (singular(row[0]), row[1], round(row[1]/total_games * 100)))
     bits.append("total games: {0}".format(total_games))
     return msg.format(size, ", ".join(bits))
 
@@ -872,6 +883,5 @@ elif ver < SCHEMA_VERSION:
     _upgrade(ver)
 
 del need_install, conn, c, ver
-init_vars()
 
 # vim: set expandtab:sw=4:ts=4:

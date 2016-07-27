@@ -1,7 +1,5 @@
 import inspect
 
-from src.decorators import handle_error
-
 """ This module introduces two decorators - @proxy.stub and @proxy.impl
 
 @proxy.stub is used to decorate a stub method that should be filled in
@@ -61,6 +59,9 @@ def impl(f):
         _sigmatch(f)
 
     # Always wrap proxy implementations in an error handler
+    # proxy needs to be a top level (no dependencies) module, so can't import this
+    # up top or else we get loops
+    from src.decorators import handle_error
     IMPLS[f.__name__] = handle_error(f)
     # allows this method to be called directly in our module rather
     # than forcing use of the stub's module

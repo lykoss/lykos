@@ -10,11 +10,10 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import logger, db
+from src import logger, errlog
 from src.messages import messages
 
-adminlog = logger("audit.log")
-errlog = logger("errors.log")
+adminlog = logger.logger("audit.log")
 
 COMMANDS = defaultdict(list)
 HOOKS = defaultdict(list)
@@ -135,9 +134,12 @@ class cmd:
                 return
 
         if nick in var.USERS and var.USERS[nick]["account"] != "*":
-            acc = var.USERS[nick]["account"]
+            acc = irc_lower(var.USERS[nick]["account"])
         else:
             acc = None
+        nick = irc_lower(nick)
+        ident = irc_lower(ident)
+        host = host.lower()
         hostmask = nick + "!" + ident + "@" + host
 
         if "" in self.cmds:
@@ -146,7 +148,7 @@ class cmd:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (nick not in var.list_players() or nick in var.DISCONNECTED):
+        if self.playing and (nick not in list_players() or nick in var.DISCONNECTED):
             if chan == nick:
                 pm(cli, nick, messages["player_not_playing"])
             else:
@@ -176,9 +178,9 @@ class cmd:
                     forced_owner_only = True
                     break
 
-        is_owner = var.is_owner(nick, ident, host)
+        owner = is_owner(nick, ident, host)
         if self.owner_only or forced_owner_only:
-            if is_owner:
+            if owner:
                 adminlog(chan, rawnick, self.name, rest)
                 return self.func(*largs)
 
@@ -189,8 +191,8 @@ class cmd:
             return
 
         flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-        is_full_admin = var.is_admin(nick, ident, host)
-        if self.flag and (is_full_admin or is_owner):
+        admin = is_admin(nick, ident, host)
+        if self.flag and (admin or owner):
             adminlog(chan, rawnick, self.name, rest)
             return self.func(*largs)
 

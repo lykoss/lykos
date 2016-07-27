@@ -9,10 +9,8 @@ from oyoyo.parse import parse_nick
 
 import botconfig
 import src.settings as var
-from src import decorators, logger, wolfgame
-
-log = logger("errors.log")
-alog = logger(None)
+from src import decorators, wolfgame, errlog as log, stream_handler as alog
+from src.utilities import irc_equals
 
 hook = decorators.hook
 
@@ -38,11 +36,11 @@ def on_privmsg(cli, rawnick, chan, msg, notice = False):
         log("Server did not send a case mapping; falling back to rfc1459.")
         var.CASEMAPPING = "rfc1459"
 
-    if (notice and ((not var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (var.irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    if (notice and ((not irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
 
-    if var.irc_equals(chan, botconfig.NICK):
+    if irc_equals(chan, botconfig.NICK):
         chan = parse_nick(rawnick)[0]
 
     for fn in decorators.COMMANDS[""]:

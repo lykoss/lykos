@@ -22,7 +22,7 @@ reset_roles = lambda i: OrderedDict([(role, (0,) * len(i)) for role in var.ROLE_
 
 def get_lovers():
     lovers = []
-    pl = var.list_players()
+    pl = list_players()
     for lover in var.LOVERS:
         done = None
         for i, lset in enumerate(lovers):
@@ -65,12 +65,12 @@ class GameMode:
             pair, *pairs = pairs[0].split(",", 1)
             change = pair.lower().replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
-                raise var.InvalidModeException(messages["invalid_mode_args"].format(arg))
+                raise InvalidModeException(messages["invalid_mode_args"].format(arg))
 
             key, val = change
             if key in ("role reveal", "reveal roles"):
                 if val not in ("on", "off", "team"):
-                    raise var.InvalidModeException(messages["invalid_reveal"].format(val))
+                    raise InvalidModeException(messages["invalid_reveal"].format(val))
                 self.ROLE_REVEAL = val
                 if val == "off" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "disabled"
@@ -78,11 +78,11 @@ class GameMode:
                     self.STATS_TYPE = "team"
             elif key in ("stats type", "stats"):
                 if val not in ("default", "accurate", "team", "disabled"):
-                    raise var.InvalidModeException(messages["invalid_stats"].format(val))
+                    raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val
             elif key == "abstain":
                 if val not in ("enabled", "restricted", "disabled"):
-                    raise var.InvalidModeException(messages["invalid_abstain"].format(val))
+                    raise InvalidModeException(messages["invalid_abstain"].format(val))
                 if val == "enabled":
                     self.ABSTAIN_ENABLED = True
                     self.LIMIT_ABSTAIN = False
@@ -133,11 +133,11 @@ class ChangedRolesMode(GameMode):
             pair, *pairs = pairs[0].split(",", 1)
             change = pair.replace(":", " ").strip().rsplit(None, 1)
             if len(change) != 2:
-                raise var.InvalidModeException(messages["invalid_mode_roles"].format(arg))
+                raise InvalidModeException(messages["invalid_mode_roles"].format(arg))
             role, num = change
             try:
                 if role.lower() in var.DISABLED_ROLES:
-                    raise var.InvalidModeException(messages["role_disabled"].format(role))
+                    raise InvalidModeException(messages["role_disabled"].format(role))
                 elif role.lower() in self.ROLE_GUIDE:
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(var.ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
@@ -146,9 +146,9 @@ class ChangedRolesMode(GameMode):
                     # handled in parent constructor
                     pass
                 else:
-                    raise var.InvalidModeException(messages["specific_invalid_role"].format(role))
+                    raise InvalidModeException(messages["specific_invalid_role"].format(role))
             except ValueError:
-                raise var.InvalidModeException(messages["bad_role_value"])
+                raise InvalidModeException(messages["bad_role_value"])
 
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(GameMode):
@@ -198,7 +198,7 @@ class VillagergameMode(GameMode):
     def transition_day(self, evt, cli, var):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
-        pl = var.list_players()
+        pl = list_players()
         tgt = None
         seer = None
         hlt = None
@@ -321,8 +321,8 @@ class EvilVillageMode(GameMode):
         events.remove_listener("chk_win", self.chk_win)
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
-        lsafes = len(var.list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
-        lcultists = len(var.list_players(["cultist"]))
+        lsafes = len(list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
+        lcultists = len(list_players(["cultist"]))
         evt.stop_processing = True
 
         if lrealwolves == 0 and lsafes == 0:
@@ -728,7 +728,7 @@ class GuardianMode(GameMode):
         events.remove_listener("chk_win", self.chk_win)
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
-        lguardians = len(var.list_players(["guardian angel", "bodyguard"]))
+        lguardians = len(list_players(["guardian angel", "bodyguard"]))
 
         if lpl < 1:
             # handled by default win cond checking
@@ -869,7 +869,7 @@ class SleepyMode(GameMode):
             self.do_nightmare = decorators.handle_error(self.do_nightmare)
             self.having_nightmare = True
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(var.list_players()), var.NIGHT_COUNT))
+                t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(list_players()), var.NIGHT_COUNT))
                 t.daemon = True
                 t.start()
         else:
@@ -882,7 +882,7 @@ class SleepyMode(GameMode):
     def do_nightmare(self, cli, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
             return
-        if target not in var.list_players():
+        if target not in list_players():
             return
         self.having_nightmare = target
         pm(cli, self.having_nightmare, messages["sleepy_nightmare_begin"])
@@ -1082,7 +1082,7 @@ class SleepyMode(GameMode):
 
     def nightmare_kill(self, evt, cli, var):
         # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare is not True and self.having_nightmare in var.list_players():
+        if self.having_nightmare is not None and self.having_nightmare is not True and self.having_nightmare in list_players():
             var.DYING.add(self.having_nightmare)
             pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
 
@@ -1158,10 +1158,10 @@ class MaelstromMode(GameMode):
     def _on_join(self, cli, var, nick, chan):
         role = random.choice(self.roles)
 
-        lpl = len(var.list_players()) + 1
-        lwolves = len(var.list_players(var.WOLFCHAT_ROLES))
+        lpl = len(list_players()) + 1
+        lwolves = len(list_players(var.WOLFCHAT_ROLES))
         lcubs = len(var.ROLES["wolf cub"])
-        lrealwolves = len(var.list_players(var.WOLF_ROLES)) - lcubs
+        lrealwolves = len(list_players(var.WOLF_ROLES)) - lcubs
         lmonsters = len(var.ROLES["monster"])
         ldemoniacs = len(var.ROLES["demoniac"])
         ltraitors = len(var.ROLES["traitor"])
@@ -1196,7 +1196,7 @@ class MaelstromMode(GameMode):
             var.PLAYERS[nick] = var.USERS[nick]
 
         if role == "doctor":
-            lpl = len(var.list_players())
+            lpl = len(list_players())
             var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
         # let them know their role
         # FIXME: this is fugly
@@ -1206,12 +1206,12 @@ class MaelstromMode(GameMode):
         if role in var.WOLFCHAT_ROLES:
             relay_wolfchat_command(cli, nick, messages["wolfchat_new_member"].format(nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
             # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
-            wolves = var.list_players(var.WOLFCHAT_ROLES)
-            pl = var.list_players()
+            wolves = list_players(var.WOLFCHAT_ROLES)
+            pl = list_players()
             random.shuffle(pl)
             pl.remove(nick)
             for i, player in enumerate(pl):
-                prole = var.get_role(player)
+                prole = get_role(player)
                 if prole in var.WOLFCHAT_ROLES:
                     cursed = ""
                     if player in var.ROLES["cursed villager"]:
@@ -1229,7 +1229,7 @@ class MaelstromMode(GameMode):
         # don't do this n1
         if var.FIRST_NIGHT:
             return
-        villagers = var.list_players()
+        villagers = list_players()
         lpl = len(villagers)
         addroles = self._role_attribution(cli, var, villagers, False)
 

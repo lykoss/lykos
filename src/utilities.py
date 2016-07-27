@@ -1,10 +1,11 @@
 import re
+import fnmatch
 
 import botconfig
 import src.settings as var
+from src import proxy, debuglog
 
 # message either privmsg or notice, depending on user settings
-# used in decorators (imported by proxy), so needs to go here
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
         debuglog("Would message fake nick {0}: {1!r}".format(target, message))
@@ -15,10 +16,6 @@ def pm(cli, target, message):
         return
 
     cli.msg(target, message)
-
-from src import proxy, debuglog
-
-# Some miscellaneous helper functions
 
 is_fake_nick = re.compile(r"^[0-9]+$").search
 
@@ -86,7 +83,7 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
     if chan == nick:
         pm(cli, nick, msg)
-    elif private or (nick not in var.list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL):
+    elif private or (nick not in list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL):
         cli.notice(nick, msg)
     else:
         if prefix_nick:
@@ -96,9 +93,9 @@ def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
 
 def is_user_simple(nick):
     if nick in var.USERS:
-        ident = var.USERS[nick]["ident"]
-        host = var.USERS[nick]["host"]
-        acc = var.USERS[nick]["account"]
+        ident = irc_lower(var.USERS[nick]["ident"])
+        host = var.USERS[nick]["host"].lower()
+        acc = irc_lower(var.USERS[nick]["account"])
     else:
         return False
     if acc and acc != "*" and not var.DISABLE_ACCOUNTS:
@@ -107,25 +104,25 @@ def is_user_simple(nick):
         return False
     elif not var.ACCOUNTS_ONLY:
         for hostmask in var.SIMPLE_NOTIFY:
-            if var.match_hostmask(hostmask, nick, ident, host):
+            if match_hostmask(hostmask, nick, ident, host):
                 return True
     return False
 
 def is_user_notice(nick):
     if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
-        if var.USERS[nick]["account"] in var.PREFER_NOTICE_ACCS:
+        if irc_lower(var.USERS[nick]["account"]) in var.PREFER_NOTICE_ACCS:
             return True
     if nick in var.USERS and not var.ACCOUNTS_ONLY:
-        ident = var.USERS[nick]["ident"]
-        host = var.USERS[nick]["host"]
+        ident = irc_lower(var.USERS[nick]["ident"])
+        host = var.USERS[nick]["host"].lower()
         for hostmask in var.PREFER_NOTICE:
-            if var.match_hostmask(hostmask, nick, ident, host):
+            if match_hostmask(hostmask, nick, ident, host):
                 return True
     return False
 
 def in_wolflist(nick, who):
-    myrole = var.get_role(nick)
-    role = var.get_role(who)
+    myrole = get_role(nick)
+    role = get_role(who)
     wolves = var.WOLFCHAT_ROLES
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
@@ -157,7 +154,7 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
         else:
             wcroles = var.WOLF_ROLES | {"traitor"}
 
-    wcwolves = var.list_players(wcroles)
+    wcwolves = list_players(wcroles)
     wcwolves.remove(nick)
     mass_privmsg(cli, wcwolves, message)
     mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] " + message)
@@ -174,4 +171,201 @@ def chk_decision(cli, force=""):
 def chk_win(cli, end_game=True, winner=None):
     pass
 
+def irc_lower(nick):
+    if nick is None:
+        return None
+
+    mapping = {
+        "[": "{",
+        "]": "}",
+        "\\": "|",
+        "^": "~",
+    }
+
+    if var.CASEMAPPING == "strict-rfc1459":
+        mapping.pop("^")
+    elif var.CASEMAPPING == "ascii":
+        mapping = {}
+
+    return nick.lower().translate(str.maketrans(mapping))
+
+def irc_equals(nick1, nick2):
+    return irc_lower(nick1) == irc_lower(nick2)
+
+is_role = lambda plyr, rol: rol in var.ROLES and plyr in var.ROLES[rol]
+
+def match_hostmask(hostmask, nick, ident, host):
+    # support n!u@h, u@h, or just h by itself
+    matches = re.match('(?:(?:(.*?)!)?(.*?)@)?(.*)', hostmask)
+
+    if ((not matches.group(1) or fnmatch.fnmatch(irc_lower(nick), irc_lower(matches.group(1)))) and
+            (not matches.group(2) or fnmatch.fnmatch(irc_lower(ident), irc_lower(matches.group(2)))) and
+            fnmatch.fnmatch(host.lower(), matches.group(3).lower())):
+        return True
+
+    return False
+
+def is_owner(nick, ident=None, host=None, acc=None):
+    hosts = set(botconfig.OWNERS)
+    accounts = set(botconfig.OWNERS_ACCOUNTS)
+    if nick in var.USERS:
+        if not ident:
+            ident = var.USERS[nick]["ident"]
+        if not host:
+            host = var.USERS[nick]["host"]
+        if not acc:
+            acc = var.USERS[nick]["account"]
+
+    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
+        for pattern in accounts:
+            if fnmatch.fnmatch(irc_lower(acc), irc_lower(pattern)):
+                return True
+
+    if host:
+        for hostmask in hosts:
+            if match_hostmask(hostmask, nick, ident, host):
+                return True
+
+    return False
+
+def is_admin(nick, ident=None, host=None, acc=None):
+    if nick in var.USERS:
+        if not ident:
+            ident = var.USERS[nick]["ident"]
+        if not host:
+            host = var.USERS[nick]["host"]
+        if not acc:
+            acc = var.USERS[nick]["account"]
+    acc = irc_lower(acc)
+    hostmask = irc_lower(nick) + "!" + irc_lower(ident) + "@" + host.lower()
+    flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
+
+    if not "F" in flags:
+        try:
+            hosts = set(botconfig.ADMINS)
+            accounts = set(botconfig.ADMINS_ACCOUNTS)
+
+            if not var.DISABLE_ACCOUNTS and acc and acc != "*":
+                for pattern in accounts:
+                    if fnmatch.fnmatch(irc_lower(acc), irc_lower(pattern)):
+                        return True
+
+            if host:
+                for hostmask in hosts:
+                    if match_hostmask(hostmask, nick, ident, host):
+                        return True
+        except AttributeError:
+            pass
+
+        return is_owner(nick, ident, host, acc)
+
+    return True
+
+def plural(role, count=2):
+    if count == 1:
+        return role
+    bits = role.split()
+    if bits[-1][-2:] == "'s":
+        bits[-1] = plural(bits[-1][:-2], count)
+        bits[-1] += "'" if bits[-1][-1] == "s" else "'s"
+    else:
+        bits[-1] = {"person": "people",
+                    "wolf": "wolves",
+                    "has": "have",
+                    "succubus": "succubi",
+                    "child": "children"}.get(bits[-1], bits[-1] + "s")
+    return " ".join(bits)
+
+def singular(plural):
+    # converse of plural above (kinda)
+    # this is used to map plural team names back to singular,
+    # so we don't need to worry about stuff like possessives
+    # Note that this is currently only ever called on team names,
+    # and will require adjustment if one wishes to use it on roles.
+    conv = {"wolves": "wolf",
+            "succubi": "succubus"}
+    if plural in conv:
+        return conv[plural]
+    # otherwise we just added an s on the end
+    return plural[:-1]
+
+def list_players(roles = None):
+    if roles is None:
+        roles = var.ROLES.keys()
+    pl = set()
+    for x in roles:
+        if x in var.TEMPLATE_RESTRICTIONS.keys():
+            continue
+        for p in var.ROLES.get(x, ()):
+            pl.add(p)
+    return [p for p in var.ALL_PLAYERS if p in pl]
+
+def list_players_and_roles():
+    plr = {}
+    for x in var.ROLES.keys():
+        if x in var.TEMPLATE_RESTRICTIONS.keys():
+            continue # only get actual roles
+        for p in var.ROLES[x]:
+            plr[p] = x
+    return plr
+
+def get_role(p):
+    for role, pl in var.ROLES.items():
+        if role in var.TEMPLATE_RESTRICTIONS.keys():
+            continue # only get actual roles
+        if p in pl:
+            return role
+
+def get_reveal_role(nick):
+    if var.HIDDEN_TRAITOR and get_role(nick) == "traitor":
+        role = var.DEFAULT_ROLE
+    elif var.HIDDEN_AMNESIAC and nick in var.ORIGINAL_ROLES["amnesiac"]:
+        role = "amnesiac"
+    elif var.HIDDEN_CLONE and nick in var.ORIGINAL_ROLES["clone"]:
+        role = "clone"
+    elif nick in var.WILD_CHILDREN:
+        role = "wild child"
+    else:
+        role = get_role(nick)
+
+    if var.ROLE_REVEAL != "team":
+        return role
+
+    if role in var.WOLFTEAM_ROLES:
+        return "wolf"
+    elif role in var.TRUE_NEUTRAL_ROLES:
+        return "neutral player"
+    else:
+        return "villager"
+
+def get_templates(nick):
+    tpl = []
+    for x in var.TEMPLATE_RESTRICTIONS.keys():
+        try:
+            if nick in var.ROLES[x]:
+                tpl.append(x)
+        except KeyError:
+            pass
+
+    return tpl
+
+role_order = lambda: var.ROLE_GUIDE
+
+def break_long_message(phrases, joinstr = " "):
+    message = []
+    count = 0
+    for phrase in phrases:
+        # IRC max is 512, but freenode splits around 380ish, make 300 to have plenty of wiggle room
+        if count + len(joinstr) + len(phrase) > 300:
+            message.append("\n" + phrase)
+            count = len(phrase)
+        else:
+            if not message:
+                count = len(phrase)
+            else:
+                count += len(joinstr) + len(phrase)
+            message.append(phrase)
+    return joinstr.join(message)
+
+class InvalidModeException(Exception): pass
 # vim: set sw=4 expandtab:

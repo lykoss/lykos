@@ -52,7 +52,7 @@ import src
 from src import handler
 
 def main():
-    src.logger(None)("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
+    src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
     cli = IRCClient(
                       {"privmsg": handler.on_privmsg,
                        "notice": lambda a, b, c, d: handler.on_privmsg(a, b, c, d, True),
@@ -77,4 +77,4 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        src.logger("errors.log")(traceback.format_exc())
+        src.errlog(traceback.format_exc())
