@@ -787,7 +787,7 @@
     "warn_list_syntax": "Usage: warn list [-all] [page]",
     "warn_view_syntax": "Usage: warn view <id>",
     "warn_ack_syntax": "Usage: warn ack <id>",
-    "warn_help_syntax": "Uwage: warn help <subcommand>",
+    "warn_help_syntax": "Usage: warn help <subcommand>",
     "fwarn_add_syntax": "Usage: fwarn add <nick[!user@host]|=account> [@]<points> [~expiry] [sanctions] <:reason> [| notes]",
     "fwarn_page_invalid": "Invalid page, must be a number 1 or greater.",
     "fwarn_points_invalid": "Invalid points, must be a number above 0.",
