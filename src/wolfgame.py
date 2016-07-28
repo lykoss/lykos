@@ -463,7 +463,7 @@ def forced_exit(cli, nick, chan, rest):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force or nick == "<console>":
-            stop_game(cli)
+            stop_game(cli, log=False)
         else:
             reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
                 what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR), private=True)
@@ -516,7 +516,7 @@ def restart_program(cli, nick, chan, rest):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
-            stop_game(cli)
+            stop_game(cli, log=False)
         else:
             reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
                 what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR), private=True)
@@ -2380,7 +2380,7 @@ def chk_traitor(cli):
                 var.TRAITOR_TURNED = True
                 cli.msg(botconfig.CHANNEL, messages["traitor_turn_channel"])
 
-def stop_game(cli, winner = "", abort = False, additional_winners = None):
+def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
     chan = botconfig.CHANNEL
     if abort:
         cli.msg(chan, messages["role_attribution_failed"])
@@ -2469,8 +2469,8 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
 
         cli.msg(chan, break_long_message(roles_msg))
 
-    # Only update if someone actually won, "" indicates everyone died or abnormal game stop
-    if winner != "":
+    # "" indicates everyone died or abnormal game stop
+    if winner != "" or log:
         plrl = {}
         pltp = defaultdict(list)
         winners = []
@@ -2629,16 +2629,23 @@ def stop_game(cli, winner = "", abort = False, additional_winners = None):
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
 
-            pentry["won"] = won
-            pentry["iwon"] = iwon
-
-            if won or iwon:
-                winners.append(splr)
+            if winner == "":
+                pentry["won"] = False
+                pentry["iwon"] = False
+            else:
+                pentry["won"] = won
+                pentry["iwon"] = iwon
+                if won or iwon:
+                    winners.append(splr)
 
             if pentry["nick"] is not None:
                 # don't record fjoined fakes
                 player_list.append(pentry)
 
+    if winner == "":
+        winners = []
+
+    if log:
         game_options = {"role reveal": var.ROLE_REVEAL,
                         "stats": var.STATS_TYPE,
                         "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
@@ -2747,7 +2754,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             message = messages["fool_win"]
         elif lpl < 1:
             message = messages["no_win"]
-            winner = "no_team_wins"
+            winner = ""
         elif var.PHASE == "day" and lpl - lsuccubi == lentranced:
             winner = "succubi"
             message = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
@@ -8767,7 +8774,7 @@ def reset_game(cli, nick, chan, rest):
     else:
         cli.msg(botconfig.CHANNEL, messages["fstop_success"].format(nick))
     if var.PHASE != "join":
-        stop_game(cli)
+        stop_game(cli, log=False)
     else:
         pl = list_players()
         reset_modes_timers(cli)
