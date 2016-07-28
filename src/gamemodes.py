@@ -525,7 +525,6 @@ class RandomMode(GameMode):
         super().__init__(arg)
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
-        self.ALPHA_WOLF_NIGHTS = 2
         self.TEMPLATE_RESTRICTIONS = OrderedDict((template, frozenset()) for template in var.TEMPLATE_RESTRICTIONS)
 
         self.TOTEM_CHANCES = { #  shaman , crazed , wolf
