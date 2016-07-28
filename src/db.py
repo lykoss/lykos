@@ -691,6 +691,29 @@ def acknowledge_warning(warning):
         c = conn.cursor()
         c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
 
+def get_pre_restart_state():
+    conn = _conn()
+    with conn:
+        c = conn.cursor()
+        c.execute("SELECT players FROM pre_restart_state")
+        players = c.fetchone()
+        if players is None:
+            # missing state row
+            c.execute("INSERT INTO pre_restart_state (players) VALUES (NULL)")
+            players = []
+        else:
+            c.execute("UPDATE pre_restart_state SET players=NULL")
+            players = players.split()
+    return players
+
+def set_pre_restart_state(players):
+    if not players:
+        return
+    conn = _conn()
+    with conn:
+        c = conn.cursor()
+        c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
+
 def _upgrade(oldversion):
     # try to make a backup copy of the database
     print ("Performing schema upgrades, this may take a while.", file=sys.stderr)

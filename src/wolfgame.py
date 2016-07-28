@@ -215,18 +215,11 @@ def connect_callback(cli):
         for nick in to_be_devoiced:
             cmodes.append(("-v", nick))
 
-        try:
-            # If the bot was restarted in the middle of the join phase, ping players that were joined.
-            with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
-                c = conn.cursor()
-                c.execute("SELECT players FROM pre_restart_state")
-                players = c.fetchone()[0]
-                if players:
-                    msg = "PING! " + break_long_message(players.split()).replace("\n", "\nPING! ")
-                    cli.msg(botconfig.CHANNEL, msg)
-                    c.execute("UPDATE pre_restart_state SET players = NULL")
-        except Exception:
-            notify_error(cli, botconfig.CHANNEL, errlog)
+        # If the bot was restarted in the middle of the join phase, ping players that were joined.
+        players = db.get_pre_restart_state()
+        if players:
+            msg = "PING! " + break_long_message(players.split()).replace("\n", "\nPING! ")
+            cli.msg(botconfig.CHANNEL, msg)
 
         # Unhook the WHO hooks
         hook.unhook(295)
@@ -528,33 +521,14 @@ def restart_program(cli, nick, chan, rest):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
-            try:
-                stop_game(cli)
-            except Exception:
-                traceback.print_exc()
+            stop_game(cli)
         else:
             reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
                 what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR), private=True)
             return
 
-    try:
-        reset_modes_timers(cli)
-    except Exception:
-        traceback.print_exc()
-
-    try:
-        with sqlite3.connect("data.sqlite3", check_same_thread=False) as conn:
-            c = conn.cursor()
-            players = list_players()
-            if players:
-                c.execute("UPDATE pre_restart_state SET players = ?", (" ".join(players),))
-    except Exception:
-        traceback.print_exc()
-
-    try:
-        reset()
-    except Exception:
-        traceback.print_exc()
+    reset_modes_timers(cli)
+    db.set_pre_restart_state(list_players())
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", nick)
@@ -583,10 +557,7 @@ def restart_program(cli, nick, chan, rest):
     if rest:
         msg += " ({0})".format(rest)
 
-    try:
-        cli.quit(msg.format(nick, rest.strip()))
-    except Exception:
-        traceback.print_exc()
+    cli.quit(msg.format(nick, rest.strip()))
 
     @hook("quit")
     def restart_buffer(cli, raw_nick, reason):
