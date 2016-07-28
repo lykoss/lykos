@@ -827,7 +827,7 @@ def _get_ids(acc, hostmask, add=False):
             plid = c.lastrowid
             c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
             peid = c.lastrowid
-            c.execute("UPDATE player SET person=? WHERE id=?" (peid, plid))
+            c.execute("UPDATE player SET person=? WHERE id=?", (peid, plid))
     return (peid, plid)
 
 def _get_display_name(peid):
