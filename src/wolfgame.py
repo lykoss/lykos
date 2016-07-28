@@ -529,6 +529,7 @@ def restart_program(cli, nick, chan, rest):
 
     reset_modes_timers(cli)
     db.set_pre_restart_state(list_players())
+    reset()
 
     msg = "{0} restart from {1}".format(
         "Scheduled" if restart_program.aftergame else "Forced", nick)
