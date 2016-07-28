@@ -703,7 +703,7 @@ def get_pre_restart_state():
             players = []
         else:
             c.execute("UPDATE pre_restart_state SET players=NULL")
-            players = players.split()
+            players = players[0].split()
     return players
 
 def set_pre_restart_state(players):
