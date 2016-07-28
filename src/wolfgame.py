@@ -218,7 +218,7 @@ def connect_callback(cli):
         # If the bot was restarted in the middle of the join phase, ping players that were joined.
         players = db.get_pre_restart_state()
         if players:
-            msg = "PING! " + break_long_message(players.split()).replace("\n", "\nPING! ")
+            msg = "PING! " + break_long_message(players).replace("\n", "\nPING! ")
             cli.msg(botconfig.CHANNEL, msg)
 
         # Unhook the WHO hooks
