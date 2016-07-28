@@ -100,7 +100,7 @@
         "\u0002{0}\u0002 went spelunking and never made it back."
     ],
     "fool_win": "Game over! The fool has been lynched, causing them to win.",
-    "no_win": "Game over! There are no players remaining. Nobody wins.",
+    "no_win": "Game over! There are no players remaining.",
     "piper_win": "Game over! Everyone has fallen victim to the charms of the piper{0}. The piper{0} lead{1} the villagers away from the village, never to return...",
     "monster_win": "Game over! All the wolves are dead! As the villagers start preparing the BBQ, the monster{0} quickly kill{1} the remaining villagers, causing the monster{0} to win.",
     "monster_wolf_win": "Game over! There are the same number of wolves as uninjured villagers. The wolves overpower the villagers but then get destroyed by the monster{0}, causing the monster{0} to win.",
@@ -497,7 +497,7 @@
     "doctor_notify": "You are a \u0002doctor\u0002. You can give out immunizations to villagers by using \"give <nick>\" in PM during the daytime. An immunized villager will die instead of turning into a wolf due to the alpha wolf's or lycan's power.",
     "doctor_simple": "You are a \u0002doctor\u0002.",
     "doctor_immunizations": "You have \u0002{0}\u0002 immunization{1}.",
-    "fool_notify": "You are a \u0002fool\u0002. The game immediately ends with you being the only winner if you are lynched during the day. You cannot otherwise win this game.",
+    "fool_notify": "You are a \u0002fool\u0002. The game immediately ends with you as the winner if you are lynched during the day. You cannot otherwise win this game.",
     "fool_simple": "You are a \u0002fool\u0002.",
     "jester_notify": "You are a \u0002jester\u0002. You will win alongside the normal winners if you are lynched during the day. You cannot otherwise win this game.",
     "jester_simple": "You are a \u0002jester\u0002.",

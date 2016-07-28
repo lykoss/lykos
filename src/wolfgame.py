@@ -2754,7 +2754,8 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             message = messages["fool_win"]
         elif lpl < 1:
             message = messages["no_win"]
-            winner = ""
+            # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
+            winner = "no_team_wins"
         elif var.PHASE == "day" and lpl - lsuccubi == lentranced:
             winner = "succubi"
             message = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
