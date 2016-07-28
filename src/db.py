@@ -309,8 +309,8 @@ def get_player_stats(acc, hostmask, role):
     row = c.fetchone()
     name = _get_display_name(peid)
     if row:
-        msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Overall wins: {4} (%d%%), Total games: {5}.".format(name, *row)
-        return msg % (round(row[1]/row[4] * 100), round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
+        return ("\u0002{0}\u0002 as \u0002{1[0]}\u0002 | Team wins: {1[1]} ({2:.0%}), "
+                "Individual wins: {1[2]} ({3:.0%}), Overall wins: {1[3]} ({4:.0%}), Total games: {1[4]}.").format(name, row, row[1]/row[4], row[2]/row[4], row[3]/row[4])
     return "No stats for \u0002{0}\u0002 as \u0002{1}\u0002.".format(name, role)
 
 def get_player_totals(acc, hostmask):
