@@ -137,7 +137,6 @@ class cmd:
             acc = irc_lower(var.USERS[nick]["account"])
         else:
             acc = None
-        nick = irc_lower(nick)
         ident = irc_lower(ident)
         host = host.lower()
         hostmask = nick + "!" + ident + "@" + host
