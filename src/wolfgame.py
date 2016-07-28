@@ -452,7 +452,10 @@ def forced_exit(cli, nick, chan, rest):
 
     args = rest.split()
 
-    if botconfig.DEBUG_MODE or (args and args[0] == "-force"):
+    if args and args[0] == "-dirty":
+        # use as a last resort
+        os.abort()
+    elif botconfig.DEBUG_MODE or (args and args[0] == "-force"):
         force = True
         rest = " ".join(args[1:])
     else:
@@ -460,24 +463,14 @@ def forced_exit(cli, nick, chan, rest):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force or nick == "<console>":
-            try:
-                stop_game(cli)
-            except Exception:
-                traceback.print_exc()
+            stop_game(cli)
         else:
             reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
                 what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR), private=True)
             return
 
-    try:
-        reset_modes_timers(cli)
-    except Exception:
-        traceback.print_exc()
-
-    try:
-        reset()
-    except Exception:
-        traceback.print_exc()
+    reset_modes_timers(cli)
+    reset()
 
     msg = "{0} quit from {1}"
 
@@ -489,6 +482,8 @@ def forced_exit(cli, nick, chan, rest):
                             nick,
                             rest.strip()))
     except Exception:
+        # bot may have quit by this point, so can't use regular handler
+        # the operator should see this on console anyway even though it isn't logged
         traceback.print_exc()
         sys.exit()
     finally:
