@@ -294,6 +294,7 @@ def get_player_stats(acc, hostmask, role):
                    gpr.role AS role,
                    SUM(gp.team_win) AS team,
                    SUM(gp.indiv_win) AS indiv,
+                   SUM(gp.team_win OR gp.indiv_win) AS overall,
                    COUNT(1) AS total
                  FROM person pe
                  JOIN player pl
@@ -308,8 +309,8 @@ def get_player_stats(acc, hostmask, role):
     row = c.fetchone()
     name = _get_display_name(peid)
     if row:
-        msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Total games: {4}.".format(name, *row)
-        return msg % (round(row[1]/row[3] * 100), round(row[2]/row[3] * 100))
+        msg = "\u0002{0}\u0002 as \u0002{1}\u0002 | Team wins: {2} (%d%%), Individual wins: {3} (%d%%), Overall wins: {4} (%d%%), Total games: {5}.".format(name, *row)
+        return msg % (round(row[1]/row[4] * 100), round(row[2]/row[4] * 100), round(row[3]/row[4] * 100))
     return "No stats for \u0002{0}\u0002 as \u0002{1}\u0002.".format(name, role)
 
 def get_player_totals(acc, hostmask):
