@@ -9404,7 +9404,7 @@ def show_modes(cli, nick, chan, rest):
 def game_help(args=""):
     return (messages["available_mode_setters_help"] +
         ", ".join("\u0002{0}\u0002".format(gamemode) if len(list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and gamemode not in var.DISABLED_GAMEMODES))
+        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode not in {"roles", "villagergame"} | var.DISABLED_GAMEMODES))
 game.__doc__ = game_help
 
 
