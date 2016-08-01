@@ -9153,7 +9153,7 @@ def myrole(cli, nick, chan, rest):
 
     # Remind turncoats of their side
     if role == "turncoat":
-        pm(cli, nick, messages["turncoat_side"].format(var.TURNCOATS.get(nick, "none")))
+        pm(cli, nick, messages["turncoat_side"].format(var.TURNCOATS.get(nick, "none")[0]))
 
     # Remind dullahans of their targets
     if role == "dullahan":
