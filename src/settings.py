@@ -57,6 +57,7 @@ DEVOICE_DURING_NIGHT = False
 ALWAYS_PM_ROLE = False
 QUIET_MODE = "q" # "q" or "b"
 QUIET_PREFIX = "" # "" or "~q:"
+ACCOUNT_PREFIX = "$a:" # "$a:" or "~a:"
 # The bot will automatically toggle those modes of people joining
 AUTO_TOGGLE_MODES = ""
 
@@ -70,6 +71,9 @@ PART_EXPIRY = "30d"
 ACC_PENALTY = 1
 ACC_EXPIRY = "30d"
 
+# If True, disallows adding stasis via !fstasis (requires warnings instead)
+RESTRICT_FSTASIS = True
+
 # The formatting of this sucks, sorry. This is used to automatically apply sanctions to warning levels
 # When a user crosses from below the min threshold to min or above points, the listed sanctions apply
 # Sanctions also apply while moving within the same threshold bracket (such as from min to max)
@@ -77,13 +81,10 @@ ACC_EXPIRY = "30d"
 # Scalestasis applies stasis equal to the formula ax^2 + bx + c, where x is the number of warning points
 # Tempban number can either be a duration (ending in d, h, or m) or a number meaning it expires when
 # warning points fall below that threshold.
-# Tempban is currently not implemented and does nothing right now.
 AUTO_SANCTION = (
         #min max sanctions
-        (1, 4, {"ack": True}),
         (5, 9, {"stasis": 1}),
-        (10, 10, {"ack": True, "stasis": 3}),
-        (11, 14, {"stasis": 3}),
+        (10, 14, {"stasis": 3}),
         (15, 24, {"scalestasis": (0, 1, -10)}),
         (25, 25, {"tempban": 15})
         )

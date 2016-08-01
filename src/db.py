@@ -6,6 +6,7 @@ import sys
 import time
 from collections import defaultdict
 import threading
+from datetime import datetime, timedelta
 
 import botconfig
 import src.settings as var
@@ -13,7 +14,7 @@ from src.utilities import irc_lower, break_long_message, role_order, singular
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _ts = threading.local()
 
@@ -135,19 +136,37 @@ def decrement_stasis(acc=None, hostmask=None):
         c = conn.cursor()
         c.execute(sql, params)
 
-def decrease_stasis(newamt, acc=None, hostmask=None):
-    peid, plid = _get_ids(acc, hostmask)
-    if peid is None:
-        return
-    if newamt < 0:
-        newamt = 0
+def set_stasis(newamt, acc=None, hostmask=None, relative=False):
+    peid, plid = _get_ids(acc, hostmask, add=True)
+    _set_stasis(int(newamt), peid, relative)
 
+def _set_stasis(newamt, peid, relative=False):
     conn = _conn()
     with conn:
         c = conn.cursor()
-        c.execute("""UPDATE person
-                     SET stasis_amount = MIN(stasis_amount, ?)
-                     WHERE id = ?""", (newamt, peid))
+        c.execute("SELECT stasis_amount, stasis_expires FROM person WHERE id = ?", (peid,))
+        oldamt, expiry = c.fetchone()
+        if relative:
+            newamt = oldamt + newamt
+        if newamt < 0:
+            newamt = 0
+        if newamt > oldamt:
+            delta = newamt - oldamt
+            # increasing stasis, so need to update expiry
+            c.execute("""UPDATE person
+                         SET
+                           stasis_amount = ?,
+                           stasis_expires = datetime(CASE WHEN stasis_expires IS NULL
+                                                            OR stasis_expires <= datetime('now')
+                                                          THEN 'now'
+                                                          ELSE stasis_expires END,
+                                                     '+{0} hours')
+                         WHERE id = ?""".format(int(delta)), (newamt, peid))
+        else:
+            # decreasing stasis, don't touch expiry
+            c.execute("""UPDATE person
+                         SET stasis_amount = ?,
+                         WHERE id = ?""", (newamt, peid))
 
 def expire_stasis():
     conn = _conn()
@@ -617,10 +636,9 @@ def get_warning_sanctions(warn_id):
 
     return sanctions
 
-def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
+def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires):
     teid, tlid = _get_ids(tacc, thm, add=True)
     seid, slid = _get_ids(sacc, shm)
-    ack = 0 if need_ack else 1
     conn = _conn()
     with conn:
         c = conn.cursor()
@@ -636,8 +654,8 @@ def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires, need_ack):
                        ?, ?, ?,
                        datetime('now'), ?,
                        ?, ?,
-                       ?
-                     )""", (teid, seid, amount, expires, reason, notes, ack))
+                       0
+                     )""", (teid, seid, amount, expires, reason, notes))
     return c.lastrowid
 
 def add_warning_sanction(warning, sanction, data):
@@ -652,15 +670,28 @@ def add_warning_sanction(warning, sanction, data):
         if sanction == "stasis":
             c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
             peid = c.fetchone()[0]
-            c.execute("""UPDATE person
-                         SET
-                           stasis_amount = stasis_amount + ?,
-                           stasis_expires = datetime(CASE WHEN stasis_expires IS NULL
-                                                            OR stasis_expires <= datetime('now')
-                                                          THEN 'now'
-                                                          ELSE stasis_expires END,
-                                                     '+{0} hours')
-                         WHERE id = ?""".format(int(data)), (data, peid))
+            _set_stasis(int(data), peid, relative=True)
+        elif sanction == "tempban":
+            # we want to return a list of all banned accounts/hostmasks
+            idlist = set()
+            acclist = set()
+            hmlist = set()
+            c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
+            peid = c.fetchone()[0]
+            c.execute("SELECT id, account, hostmask FROM player WHERE person = ? AND active = 1", (peid,))
+            if isinstance(data, datetime):
+                sql = "INSERT INTO bantrack (player, expires) values (?, ?)"
+            else:
+                sql = "INSERT INTO bantrack (player, warning_amount) values (?, ?)"
+            for row in c:
+                idlist.add(row[0])
+                if row[1] is None:
+                    hmlist.add(row[2])
+                else:
+                    acclist.add(row[1])
+            for plid in idlist:
+                c.execute(sql, (plid, data))
+            return (acclist, hmlist)
 
 def del_warning(warning, acc, hm):
     peid, plid = _get_ids(acc, hm)
@@ -690,6 +721,46 @@ def acknowledge_warning(warning):
     with conn:
         c = conn.cursor()
         c.execute("UPDATE warning SET acknowledged = 1 WHERE id = ?", (warning,))
+
+def expire_tempbans():
+    conn = _conn()
+    with conn:
+        idlist = set()
+        acclist = set()
+        hmlist = set()
+        c = conn.cursor()
+        c.execute("""SELECT
+                       bt.player,
+                       pl.account,
+                       pl.hostmask
+                     FROM bantrack bt
+                     JOIN player pl
+                       ON pl.id = bt.player
+                     WHERE
+                       (bt.expires IS NOT NULL AND bt.expires < datetime('now'))
+                       OR (
+                         warning_amount IS NOT NULL
+                         AND warning_amount <= (
+                           SELECT COALESCE(SUM(amount), 0)
+                           FROM warning
+                           WHERE
+                             target = pl.person
+                             AND deleted = 0
+                             AND (
+                               expires IS NULL
+                               OR expires > datetime('now')
+                             )
+                         )
+                       )""")
+        for row in c:
+            idlist.add(row[0])
+            if row[1] is None:
+                hmlist.add(row[2])
+            else:
+                acclist.add(row[1])
+        for plid in idlist:
+            c.execute("DELETE FROM bantrack WHERE player = ?", (plid,))
+        return (acclist, hmlist)
 
 def get_pre_restart_state():
     conn = _conn()
@@ -740,6 +811,10 @@ def _upgrade(oldversion):
                 # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
                 # player id as a string). When nocasing players, this may cause some records to be merged.
                 with open(os.path.join(dn, "db", "upgrade2.sql"), "rt") as f:
+                    c.executescript(f.read())
+            if oldversion < 3:
+                print ("Upgrade from version 2 to 3...", file=sys.stderr)
+                with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
 
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
