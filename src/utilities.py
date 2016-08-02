@@ -34,7 +34,7 @@ def mass_mode(cli, md_param, md_plain):
             arg1 = "".join(md_plain) + "".join(z[0])
             arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
             cli.mode(botconfig.CHANNEL, arg1, arg2)
-    else:
+    elif md_plain:
             cli.mode(botconfig.CHANNEL, "".join(md_plain))
 
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
