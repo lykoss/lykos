@@ -114,6 +114,11 @@ class GameMode:
             evt.data["additional_winners"] = list(lovers)
             evt.data["message"] = messages["lovers_win"]
 
+    def all_dead_chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+        if evt.data["winner"] == "no_team_wins":
+            evt.data["winner"] = "everyone"
+            evt.data["message"] = messages["everyone_died_won"]
+
 @game_mode("roles", minp = 4, maxp = 35)
 class ChangedRolesMode(GameMode):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
@@ -408,6 +413,12 @@ class RapidFireMode(GameMode):
             "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
+    def startup(self):
+        events.add_listener("chk_win", self.all_dead_chk_win)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.all_dead_chk_win)
+
 @game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
 class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
@@ -439,6 +450,12 @@ class DrunkFireMode(GameMode):
             "gunner"            : (   5   ,   6   ,   7   ,   8   ,   9   ),
             "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
             })
+
+    def startup(self):
+        events.add_listener("chk_win", self.all_dead_chk_win)
+
+    def teardown(self):
+        events.remove_listener("chk_win", self.all_dead_chk_win)
 
 @game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
 class NoRevealMode(GameMode):

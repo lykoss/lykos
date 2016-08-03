@@ -2630,6 +2630,8 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
+            elif winner == "everyone" and not survived:
+                iwon = True # nobody survived but an event made everyone win
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
 

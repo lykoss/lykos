@@ -683,6 +683,7 @@
     "invalid_stats": "Did not recognize value \u0002{0}\u0002 for stats type. Allowed values: default, accurate, team, disabled",
     "invalid_abstain": "Did not recognize value \u0002{0}\u0002 for abstain. Allowed values: enabled, restricted, disabled",
     "lovers_win": "Game over! The remaining villagers through their inseparable love for each other have agreed to stop all of this senseless violence and coexist in peace forever more. All remaining players win.",
+    "everyone_died_won": "Game over! Everyone is dead, and it is in death that they realize this is what they wanted all along. They remain in the village as joyful spirits ever since. Everyone wins.",
     "role_disabled": "The role \u0002{0}\u0002 has been disabled.",
     "invalid_mode_roles": "Invalid syntax for mode roles. arg={0}",
     "bad_role_value": "A bad value was used in mode roles.",
