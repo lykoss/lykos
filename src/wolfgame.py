@@ -2768,28 +2768,28 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             message = messages["piper_win"].format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
         elif lrealwolves == 0 and ltraitors == 0 and lcubs == 0:
             if ldemoniacs > 0:
-                plural = "s" if ldemoniacs > 1 else ""
-                message = (messages["demoniac_win"]).format(plural)
+                s = "s" if ldemoniacs > 1 else ""
+                message = (messages["demoniac_win"]).format(s)
                 winner = "demoniacs"
             elif lmonsters > 0:
-                plural = "s" if lmonsters > 1 else ""
-                message = messages["monster_win"].format(plural, "" if plural else "s")
+                s = "s" if lmonsters > 1 else ""
+                message = messages["monster_win"].format(s, "" if s else "s")
                 winner = "monsters"
             else:
                 message = messages["villager_win"]
                 winner = "villagers"
         elif lwolves == lpl / 2:
             if lmonsters > 0:
-                plural = "s" if lmonsters > 1 else ""
-                message = messages["monster_wolf_win"].format(plural)
+                s = "s" if lmonsters > 1 else ""
+                message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
             else:
                 message = messages["wolf_win"]
                 winner = "wolves"
         elif lwolves > lpl / 2:
             if lmonsters > 0:
-                plural = "s" if lmonsters > 1 else ""
-                message = messages["monster_wolf_win"].format(plural)
+                s = "s" if lmonsters > 1 else ""
+                message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
             else:
                 message = messages["wolf_win"]
