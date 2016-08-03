@@ -2477,10 +2477,10 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
     if winner != "" or log:
         plrl = {}
         pltp = defaultdict(list)
-        winners = []
+        winners = set()
         player_list = []
         if additional_winners is not None:
-            winners.extend(additional_winners)
+            winners.update(additional_winners)
         for role,ppl in var.ORIGINAL_ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 for x in ppl:
@@ -2640,14 +2640,14 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 pentry["won"] = won
                 pentry["iwon"] = iwon
                 if won or iwon:
-                    winners.append(splr)
+                    winners.add(splr)
 
             if pentry["nick"] is not None:
                 # don't record fjoined fakes
                 player_list.append(pentry)
 
     if winner == "":
-        winners = []
+        winners = set()
 
     if log:
         game_options = {"role reveal": var.ROLE_REVEAL,
@@ -2672,7 +2672,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                     game_options)
 
         # spit out the list of winners
-        winners.sort()
+        winners = sorted(winners)
         if len(winners) == 1:
             cli.msg(chan, messages["single_winner"].format(winners[0]))
         elif len(winners) == 2:
