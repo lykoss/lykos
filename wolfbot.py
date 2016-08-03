@@ -22,29 +22,9 @@ import sys
 
 import botconfig
 
-if sys.version_info < (3, 2):
-    print("Python 3.2 or newer is required to run the bot.")
-    sys.exit(1)
-
 if sys.version_info < (3, 3):
-    allow_unsup = getattr(botconfig, "allow_unsupported_Python", None)
-    # add an "allow_unsupported_Python" attribute in botconfig
-    # set it to the tuple (3, 2) to prevent the bot from exiting
-    # this backwards-compatibility fix will not remain for long
-    # please update to 3.3 if you can. if you can't, you will need
-    # to stick with an older revision, and new bugfixes/features
-    # will not be applied to the 3.2-supported versions
-    # we will also not provide any more support
-    print("As of the 1st of February 2016, support for Python 3.2 is gone.",
-          "You need Python 3.3 or above to run the bot from this point onwards.",
-          "Please upgrade your installed Python version to run the bot.",
-          "", "Thank you for your interest!", "- The lykos development team",
-          sep="\n", file=sys.stderr)
-
-    if allow_unsup != (3, 2):
-        sys.exit(1)
-    else:
-        print("\n...\nFine, fine, I'll run anyway", file=sys.stderr)
+    print("Python 3.3 or newer is required to run the bot.")
+    sys.exit(1)
 
 from oyoyo.client import IRCClient
 
