@@ -182,10 +182,13 @@ def irc_lower(nick):
         "^": "~",
     }
 
-    if var.CASEMAPPING == "strict-rfc1459":
-        mapping.pop("^")
-    elif var.CASEMAPPING == "ascii":
-        mapping = {}
+    # var.CASEMAPPING may not be defined yet in some circumstances (like database upgrades)
+    # if so, default to rfc1459
+    if hasattr(var, "CASEMAPPING"):
+        if var.CASEMAPPING == "strict-rfc1459":
+            mapping.pop("^")
+        elif var.CASEMAPPING == "ascii":
+            mapping = {}
 
     return nick.lower().translate(str.maketrans(mapping))
 
