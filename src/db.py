@@ -165,7 +165,7 @@ def _set_stasis(newamt, peid, relative=False):
         else:
             # decreasing stasis, don't touch expiry
             c.execute("""UPDATE person
-                         SET stasis_amount = ?,
+                         SET stasis_amount = ?
                          WHERE id = ?""", (newamt, peid))
 
 def expire_stasis():
