@@ -8217,6 +8217,13 @@ def cat(cli, nick, chan, rest):
     reply(cli, nick, chan, messages["cat_toss"].format(nick))
     reply(cli, nick, chan, messages["cat_land"])
 
+@cmd("choice", pm=True)
+def choice(cli, nick, chan, rest):
+    """Chooses one nick among a list."""
+    choices = rest.split()
+    if choices:
+      reply(cli, nick, chan, random.choice(choices))
+
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
