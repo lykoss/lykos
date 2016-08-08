@@ -12,11 +12,17 @@ from src import db
 # These are not required, so failing to import it doesn't matter
 # The file then imports our game modes
 # Fall back to importing our game modes if theirs fail
+# Do the same with roles
 
 try:
     import gamemodes
 except ImportError:
     import src.gamemodes
+
+try:
+    import roles
+except ImportError:
+    import src.roles
 
 # Handle launch parameters
 

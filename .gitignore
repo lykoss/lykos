@@ -12,6 +12,7 @@ __pycache__/
 botconfig.py
 /gamemodes.py
 /messages.json
+/roles/*.py
 
 # Database files
 *.sqlite3

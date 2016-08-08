@@ -10,7 +10,7 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import logger, errlog
+from src import logger, errlog, events
 from src.messages import messages
 
 adminlog = logger.logger("audit.log")
@@ -247,5 +247,25 @@ class hook:
                     HOOKS[each].remove(inner)
             if not HOOKS[each]:
                 del HOOKS[each]
+
+class event_listener:
+    def __init__(self, event, priority=5):
+        self.event = event
+        self.priority = priority
+        self.func = None
+
+    def __call__(self, *args, **kwargs):
+        if self.func is None:
+            if isinstance(func, event_listener):
+                func = func.func
+            self.func = handle_error(func)
+            events.add_listener(self.event, self.func, self.priority)
+            self.__doc__ = self.func.__doc__
+            return self
+        else:
+            return self.func(*args, **kwargs)
+
+    def remove(self):
+        events.remove_listener(self.event, self.func, self.priority)
 
 # vim: set sw=4 expandtab:
