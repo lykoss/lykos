@@ -8120,8 +8120,6 @@ def on_invite(cli, raw_nick, something, chan):
     if is_admin(nick, ident, host):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
-    else:
-        pm(cli, parse_nick(nick)[0], messages["not_an_admin"])
 
 @cmd("fpart", raw_nick=True, flag="A", pm=True)
 def fpart(cli, rnick, chan, rest):
