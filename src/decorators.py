@@ -133,6 +133,9 @@ class cmd:
             else:
                 return
 
+        if nick not in var.USERS and not is_fake_nick(nick):
+            return
+
         if nick in var.USERS and var.USERS[nick]["account"] != "*":
             acc = irc_lower(var.USERS[nick]["account"])
         else:
