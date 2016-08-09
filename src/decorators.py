@@ -157,18 +157,18 @@ class cmd:
                 cli.notice(nick, messages["player_not_playing"])
             return
 
-        if self.silenced and nick in var.SILENCED:
-            if chan == nick:
-                pm(cli, nick, messages["silenced"])
-            else:
-                cli.notice(nick, messages["silenced"])
-            return
-
         if self.roles:
             for role in self.roles:
                 if nick in var.ROLES[role]:
                     break
             else:
+                return
+
+            if self.silenced and nick in var.SILENCED:
+                if chan == nick:
+                    pm(cli, nick, messages["silenced"])
+                else:
+                    cli.notice(nick, messages["silenced"])
                 return
 
             return self.func(*largs) # don't check restrictions for role commands
