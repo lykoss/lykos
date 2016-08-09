@@ -68,9 +68,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick, role):
-    if role == "wild child" and nick in IDOLS:
-        pm(cli, nick, messages["wild_child_idol"].format(IDOLS[nick]))
+def on_myrole(evt, cli, var, nick):
+    if evt.data["role"] == "wild child" and nick in IDOLS:
+        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
