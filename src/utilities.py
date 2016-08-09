@@ -6,6 +6,7 @@ import botconfig
 import src.settings as var
 from src import proxy, debuglog
 from src.events import Event
+from src.messages import messages
 
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
