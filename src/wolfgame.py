@@ -3171,12 +3171,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
                 if ret:
-                    for a,b in list(var.KILLS.items()):
-                        for n in b: #var.KILLS can have 2 kills in a list
-                            if n == nick:
-                                var.KILLS[a].remove(nick)
-                        if a == nick or len(var.KILLS[a]) == 0:
-                            del var.KILLS[a]
                     for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
                         for k in list(x):
                             if nick in (k, x[k]):
@@ -3558,21 +3552,6 @@ def rename_player(cli, prefix, nick):
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
-            # Looks like {'jacob2': ['5'], '7': ['3']}
-            for dictvar in (var.KILLS,):
-                kvp = []
-                for a,b in dictvar.items():
-                    nl = []
-                    for n in b:
-                        if n == prefix:
-                            n = nick
-                        nl.append(n)
-                    if a == prefix:
-                        a = nick
-                    kvp.append((a,nl))
-                dictvar.update(kvp)
-                if prefix in dictvar.keys():
-                    del dictvar[prefix]
             # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
             for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS, var.DULLAHAN_TARGETS):
                 kvp = []
@@ -3827,7 +3806,6 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.KILLS = {}  # nicknames of kill victims (wolves only)
     var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost)
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of doomsayers that have had visions
@@ -4083,10 +4061,12 @@ def transition_day(cli, gameid=0):
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
+        evt = Event("night_acted", {"acted": False})
+        evt.dispatch(cli, var, target, crow)
         if ((target in var.HVISITED and var.HVISITED[target]) or target in var.SEEN or target in var.SHAMANS or
                 (target in var.GUARDED and var.GUARDED[target]) or target in var.OTHER_KILLS or
                 (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
-                target in var.OBSERVED or target in var.KILLS or target in var.HEXED or target in var.CURSED):
+                target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
             pm(cli, crow, messages["werecrow_success"].format(target))
         else:
             pm(cli, crow, messages["werecrow_failure"].format(target))
@@ -4102,63 +4082,29 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
-    found = defaultdict(int)
-    for v in var.KILLS.values():
-        for p in v:
-            found[p] += 1
-
-    maxc = 0
-    victims = []
-    bitten = []
-    # dict of victim: list of killers (for retribution totem)
-    killers = defaultdict(list)
-    # wolves targeted, others may have as well (needed for harlot visit and maybe other things)
-    bywolves = set()
-    # wolves and nobody else targeted (needed for lycan)
-    onlybywolves = set()
-
-    dups = []
-    for v, c in found.items():
-        if c > maxc:
-            maxc = c
-            dups = [v]
-        elif c == maxc:
-            dups.append(v)
-
-    if maxc and dups:
-        victim = random.choice(dups)
-        victims.append(victim)
-        bywolves.add(victim)
-        onlybywolves.add(victim)
-        # special key to let us know to randomly select a wolf
-        killers[victim].append("@wolves")
-
-
-    if victims and var.ANGRY_WOLVES:
-        # they got a 2nd kill
-        del found[victims[0]]
-        maxc = 0
-        dups = []
-        for v, c in found.items():
-            if c > maxc:
-                maxc = c
-                dups = [v]
-            elif c == maxc:
-                dups.append(v)
-        if maxc and dups:
-            victim = random.choice(dups)
-            victims.append(victim)
-            bywolves.add(victim)
-            onlybywolves.add(victim)
-            # special key to let us know to randomly select a wolf
-            killers[victim].append("@wolves")
-
-    if len(var.ROLES["fallen angel"]) == 0:
-        for monster in var.ROLES["monster"]:
-            if monster in victims:
-                victims.remove(monster)
-                bywolves.discard(monster)
-                onlybywolves.discard(monster)
+    # built-in logic runs at the following priorities:
+    # 1 = wolf kills
+    # 2 = non-wolf kills
+    # 3 = alpha wolf bite
+    # 4 = protections/fallen angel
+    # 5 = rearranging victim list (ensure bodyguard/harlot messages plays),
+    #     fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
+    # Actually killing off the victims happens in transition_day_resolve
+    evt = Event("transition_day", {
+        "victims": [],
+        "killers": defaultdict(list),
+        "bywolves": set(),
+        "onlybywolves": set(),
+        "protected": {},
+        "bitten": []
+        })
+    evt.dispatch(cli, var)
+    victims = evt.data["victims"]
+    killers = evt.data["killers"]
+    bywolves = evt.data["bywolves"]
+    onlybywolves = evt.data["onlybywolves"]
+    protected = evt.data["protected"]
+    bitten = evt.data["bitten"]
 
     wolfghostvictims = []
     for k, d in var.OTHER_KILLS.items():
@@ -4701,16 +4647,14 @@ def chk_nightdone(cli):
     # TODO: alphabetize and/or arrange sensibly
     pl = list_players()
     spl = set(pl)
-    actedcount = sum(map(len, (var.SEEN, var.HVISITED, var.GUARDED, var.KILLS,
+    actedcount = sum(map(len, (var.SEEN, var.HVISITED, var.GUARDED,
                                var.OTHER_KILLS, var.PASSED, var.OBSERVED,
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("harlot", "succubus", "bodyguard",
-                           "guardian angel", "wolf", "werecrow", "alpha wolf",
+    nightroles = get_roles("harlot", "succubus", "bodyguard", "guardian angel",
                            "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
-                           "werekitten", "warlock", "piper", "wolf mystic",
-                           "fallen angel", "vigilante", "doomsayer", "doomsayer", # NOT a mistake, doomsayer MUST be listed twice
-                           "prophet", "wolf shaman", "wolf shaman") # wolf shaman also must be listed twice
+                           "warlock", "piper", "vigilante", "doomsayer",
+                           "prophet", "wolf shaman")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
         if not against.startswith("!"):
@@ -4734,12 +4678,7 @@ def chk_nightdone(cli):
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
         nightroles.extend(get_roles("matchmaker", "clone"))
 
-    if var.DISEASED_WOLVES:
-        nightroles = [p for p in nightroles if p not in list_players(var.WOLF_ROLES - {"wolf cub", "werecrow", "doomsayer"})]
-        # only remove 1 doomsayer instance to indicate they cannot kill but can still see
-        for p in var.ROLES["doomsayer"]:
-            nightroles.remove(p)
-    elif var.ALPHA_ENABLED:
+    if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
         nightroles.extend(get_roles("alpha wolf"))
         actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
@@ -4776,21 +4715,6 @@ def chk_nightdone(cli):
             # and silenced assassin shouldn't add to actedcount
             for ass in var.ROLES["assassin"]:
                 if ass not in var.TARGETED.keys() | var.SILENCED:
-                    return
-            if not var.DISEASED_WOLVES:
-                # flatten var.KILLS
-                kills = set()
-                for ls in var.KILLS.values():
-                    if not isinstance(ls, str):
-                        kills.update(ls)
-                    else:
-                        kills.add(ls)
-                # check if wolves are actually agreeing
-                # allow len(kills) == 0 through as that means that crow was dumb and observed instead
-                # of killingor alpha wolf was alone and chose to bite instead of kill
-                if not var.ANGRY_WOLVES and len(kills) > 1:
-                    return
-                elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
                     return
 
         for x, t in var.TIMERS.items():
@@ -4980,9 +4904,6 @@ def check_exchange(cli, actor, nick):
                 del var.SHAMANS[actor]
             if actor in var.LASTGIVEN:
                 del var.LASTGIVEN[actor]
-        elif actor_role in var.WOLF_ROLES - {"werecrow", "wolf cub", "alpha wolf", "doomsayer"}:
-            if actor in var.KILLS:
-                del var.KILLS[actor]
         elif actor_role == "hunter":
             if actor in var.OTHER_KILLS:
                 del var.OTHER_KILLS[actor]
@@ -4995,8 +4916,6 @@ def check_exchange(cli, actor, nick):
         elif actor_role in ("werecrow", "sorcerer"):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
-            if actor in var.KILLS:
-                del var.KILLS[actor]
         elif actor_role == "harlot":
             if actor in var.HVISITED:
                 if var.HVISITED[actor] is not None:
@@ -5015,12 +4934,8 @@ def check_exchange(cli, actor, nick):
                 var.DOCTORS[nick] = var.DOCTORS.pop(actor)
         elif actor_role == "alpha wolf":
             var.ALPHA_WOLVES.discard(actor)
-            if actor in var.KILLS:
-                del var.KILLS[actor]
         elif actor_role == "doomsayer":
             var.SEEN.discard(actor)
-            if actor in var.KILLS:
-                del var.KILLS[actor]
         elif actor_role == "warlock":
             var.CURSED.discard(actor)
         elif actor_role == "turncoat":
@@ -5046,9 +4961,6 @@ def check_exchange(cli, actor, nick):
                 del var.SHAMANS[nick]
             if nick in var.LASTGIVEN:
                 del var.LASTGIVEN[nick]
-        elif nick_role in var.WOLF_ROLES - {"werecrow", "wolf cub", "alpha wolf", "doomsayer"}:
-            if nick in var.KILLS:
-                del var.KILLS[nick]
         elif nick_role == "hunter":
             if nick in var.OTHER_KILLS:
                 del var.OTHER_KILLS[nick]
@@ -5061,8 +4973,6 @@ def check_exchange(cli, actor, nick):
         elif nick_role in ("werecrow", "sorcerer"):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
-            if nick in var.KILLS:
-                del var.KILLS[nick]
         elif nick_role == "harlot":
             if nick in var.HVISITED:
                 if var.HVISITED[nick] is not None:
@@ -5080,12 +4990,8 @@ def check_exchange(cli, actor, nick):
                 var.DOCTORS[actor] = var.DOCTORS.pop(nick)
         elif nick_role == "alpha wolf":
             var.ALPHA_WOLVES.discard(nick)
-            if nick in var.KILLS:
-                del var.KILLS[nick]
         elif nick_role == "doomsayer":
             var.SEEN.discard(nick)
-            if nick in var.KILLS:
-                del var.KILLS[nick]
         elif nick_role == "warlock":
             var.CURSED.discard(nick)
         elif nick_role == "turncoat":
@@ -5275,11 +5181,7 @@ def retract(cli, nick, chan, rest):
         elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
             return
 
-        if role in var.WOLF_ROLES and nick in var.KILLS.keys():
-            del var.KILLS[nick]
-            pm(cli, nick, messages["retracted_kill"])
-            relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES - {"wolf cub"}, is_wolf_command=True, is_kill_command=True)
-        elif role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
+        if role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
             if role == "hunter":
                 var.HUNTERS.remove(nick)
@@ -5291,8 +5193,6 @@ def retract(cli, nick, chan, rest):
             relay_wolfchat_command(cli, nick, messages["wolfchat_no_bite"].format(nick), ("alpha wolf",), is_wolf_command=True)
         elif role == "alpha wolf" and var.ALPHA_ENABLED:
             pm(cli, nick, messages["kill_bite_pending"])
-        else:
-            pm(cli, nick, messages["kill_pending"])
         return
 
     if var.PHASE != "day":
@@ -5413,10 +5313,7 @@ def kill(cli, nick, chan, rest):
         role = get_role(nick)
     except KeyError:
         role = None
-    wolfroles = var.WOLF_ROLES - {"wolf cub"}
-    if role in var.WOLFCHAT_ROLES and role not in wolfroles:
-        return  # they do this a lot.
-    if role not in wolfroles | {"hunter", "dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in {"hunter", "dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
@@ -5432,24 +5329,8 @@ def kill(cli, nick, chan, rest):
     if nick in var.SILENCED:
         pm(cli, nick, messages["silenced"])
         return
-    if role in wolfroles and var.DISEASED_WOLVES:
-        pm(cli, nick, messages["ill_wolves"])
-        return
     pieces = re.split(" +",rest)
     victim = pieces[0]
-    victim2 = None
-    if role in wolfroles and var.ANGRY_WOLVES:
-        if len(pieces) > 1:
-            if len(pieces) > 2 and pieces[1].lower() == "and":
-                victim2 = pieces[2]
-            else:
-                victim2 = pieces[1]
-        else:
-            victim2 = None
-    if role == "werecrow":  # Check if flying to observe
-        if var.OBSERVED.get(nick):
-            pm(cli, nick, (messages["werecrow_transformed_nokill"]))
-            return
 
     victim = get_victim(cli, nick, victim, False)
     if not victim:
@@ -5457,15 +5338,8 @@ def kill(cli, nick, chan, rest):
     if is_safe(nick, victim):
         pm(cli, nick, messages["no_acting_on_succubus"].format("kill"))
         return
-    if victim2 != None:
-        victim2 = get_victim(cli, nick, victim2, False)
-        if not victim2:
-            return
-        if is_safe(nick, victim2):
-            pm(cli, nick, messages["no_acting_on_succubus"].format("kill"))
-            return
 
-    if victim == nick or victim2 == nick:
+    if victim == nick:
         if nick in var.VENGEFUL_GHOSTS.keys():
             pm(cli, nick, messages["player_dead"])
         else:
@@ -5481,53 +5355,19 @@ def kill(cli, nick, chan, rest):
             pm(cli, nick, messages["vengeful_ghost_villager"])
             return
 
-    if role in wolfroles:
-        if in_wolflist(nick, victim) or (victim2 is not None and in_wolflist(nick, victim2)):
-            pm(cli, nick, messages["wolf_no_target_wolf"])
+    rv = choose_target(nick, victim)
+    if nick not in var.VENGEFUL_GHOSTS.keys():
+        if check_exchange(cli, nick, rv):
             return
-        if var.ANGRY_WOLVES and victim2 is not None:
-            if victim == victim2:
-                pm(cli, nick, messages["wolf_must_target_multiple"])
-                return
-            else:
-                rv = choose_target(nick, victim)
-                rv2 = choose_target(nick, victim2)
-                if check_exchange(cli, nick, rv):
-                    return
-                if check_exchange(cli, nick, rv2):
-                    return
-                var.KILLS[nick] = [rv, rv2]
-        else:
-            rv = choose_target(nick, victim)
-            if check_exchange(cli, nick, rv):
-                return
-            var.KILLS[nick] = [rv]
-    else:
-        rv = choose_target(nick, victim)
-        if nick not in var.VENGEFUL_GHOSTS.keys():
-            if check_exchange(cli, nick, rv):
-                return
-        var.OTHER_KILLS[nick] = rv
-        if role == "hunter":
-            var.HUNTERS.add(nick)
-            var.PASSED.discard(nick)
+    var.OTHER_KILLS[nick] = rv
+    if role == "hunter":
+        var.HUNTERS.add(nick)
+        var.PASSED.discard(nick)
 
-    if victim2 != None:
-        msg = messages["wolf_target_multiple"].format(victim, victim2)
-        pm(cli, nick, messages["player"].format(msg))
-    else:
-        msg = messages["wolf_target"].format(victim)
-        pm(cli, nick, messages["player"].format(msg))
-        if var.ANGRY_WOLVES and role in wolfroles:
-            pm(cli, nick, messages["wolf_target_second"])
+    msg = messages["wolf_target"].format(victim)
+    pm(cli, nick, messages["player"].format(msg))
 
-    if in_wolflist(nick, nick):
-        relay_wolfchat_command(cli, nick, messages["wolfchat"].format(nick, msg), var.WOLF_ROLES - {"wolf cub"}, is_wolf_command=True, is_kill_command=True)
-
-    if victim2:
-        debuglog("{0} ({1}) KILL: {2} and {3} ({4})".format(nick, role, victim, victim2, get_role(victim2)))
-    else:
-        debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, get_role(victim)))
+    debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, get_role(victim)))
 
     chk_nightdone(cli)
 
@@ -5652,8 +5492,10 @@ def observe(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     var.OBSERVED[nick] = victim
-    if nick in var.KILLS.keys():
-        del var.KILLS[nick]
+    # temp hack, will do something better once crow is split off
+    from src.roles import wolf
+    if nick in wolf.KILLS:
+        del wolf.KILLS[nick]
     if role == "werecrow":
         pm(cli, nick, messages["werecrow_observe_success"].format(victim))
         relay_wolfchat_command(cli, nick, messages["wolfchat_observe"].format(nick, victim), ("werecrow",), is_wolf_command=True)
@@ -5863,13 +5705,15 @@ def hvisit(cli, nick, chan, rest):
                 var.TOBESILENCED.remove(nick)
                 var.HEXED.remove(victim)
                 del var.LASTHEXED[victim]
-            if set(var.KILLS.get(victim, ())) & var.ROLES["succubus"]:
+            # temp hack, will do something better once succubus is split off
+            from src.roles import wolf
+            if set(wolf.KILLS.get(victim, ())) & var.ROLES["succubus"]:
                 for s in var.ROLES["succubus"]:
-                    if s in var.KILLS[victim]:
+                    if s in wolf.KILLS[victim]:
                         pm(cli, victim, messages["no_kill_succubus"].format(nick))
-                        var.KILLS[victim].remove(s)
-                if not var.KILLS[victim]:
-                    del var.KILLS[victim]
+                        wolf.KILLS[victim].remove(s)
+                if not wolf.KILLS[victim]:
+                    del wolf.KILLS[victim]
             if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
                 pm(cli, victim, messages["no_kill_succubus"].format(var.BITE_PREFERENCES[victim]))
                 del var.BITE_PREFERENCES[victim]
@@ -6563,7 +6407,6 @@ def transition_night(cli):
     var.TIMERS = {}
 
     # Reset nighttime variables
-    var.KILLS = {}
     var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of seers that have had visions
@@ -6665,78 +6508,6 @@ def transition_night(cli):
 
     # send PMs
     ps = list_players()
-    wolves = list_players(var.WOLFCHAT_ROLES)
-    for wolf in wolves:
-        normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
-        role = get_role(wolf)
-        cursed = "cursed " if wolf in var.ROLES["cursed villager"] else ""
-
-        if normal_notify:
-            if role == "wolf":
-                pm(cli, wolf, messages["wolf_notify"])
-            elif role == "traitor":
-                if cursed:
-                    pm(cli, wolf, messages["cursed_traitor_notify"])
-                else:
-                    pm(cli, wolf, messages["traitor_notify"])
-            elif role == "werecrow":
-                pm(cli, wolf, messages["werecrow_notify"])
-            elif role == "hag":
-                pm(cli, wolf, messages["hag_notify"].format(cursed))
-            elif role == "sorcerer":
-                pm(cli, wolf, messages["sorcerer_notify"].format(cursed))
-            elif role == "wolf cub":
-                pm(cli, wolf, messages["wolf_cub_notify"])
-            elif role == "alpha wolf":
-                pm(cli, wolf, messages["alpha_wolf_notify"])
-            elif role == "werekitten":
-                pm(cli, wolf, messages["werekitten_notify"])
-            elif role == "warlock":
-                pm(cli, wolf, messages["warlock_notify"].format(cursed))
-            elif role == "wolf mystic":
-                pm(cli, wolf, messages["wolf_mystic_notify"])
-            elif role == "wolf shaman":
-                pm(cli, wolf, messages["wolf_shaman_notify"])
-            elif role == "fallen angel":
-                pm(cli, wolf, messages["fallen_angel_notify"])
-            elif role == "doomsayer":
-                pm(cli, wolf, messages["doomsayer_notify"])
-            else:
-                # catchall in case we forgot something above
-                an = 'n' if role.startswith(("a", "e", "i", "o", "u")) else ""
-                pm(cli, wolf, messages["undefined_role_notify"].format(an, role))
-
-            if len(wolves) > 1:
-                pm(cli, wolf, messages["wolfchat_notify"])
-        else:
-            an = "n" if cursed == "" and role.startswith(("a", "e", "i", "o", "u")) else ""
-            pm(cli, wolf, messages["wolf_simple"].format(an, cursed, role))  # !simple
-
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(wolf)  # remove self from list
-        for i, player in enumerate(pl):
-            prole = get_role(player)
-            if prole in var.WOLFCHAT_ROLES:
-                cursed = ""
-                if player in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-            elif player in var.ROLES["cursed villager"]:
-                pl[i] = player + " (cursed)"
-
-        pm(cli, wolf, "Players: " + ", ".join(pl))
-        if role == "wolf mystic":
-            # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
-            # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-            numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
-            pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-        if var.DISEASED_WOLVES:
-            pm(cli, wolf, messages["ill_wolves"])
-        elif var.ANGRY_WOLVES and role in var.WOLF_ROLES and role != "wolf cub":
-            pm(cli, wolf, messages["angry_wolves"])
-        if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
-            pm(cli, wolf, messages["wolf_bite"])
 
     for harlot in var.ROLES["harlot"]:
         pl = ps[:]
@@ -7341,7 +7112,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.GUNNERS = {}
     var.SEEN = set()
     var.OBSERVED = {}
-    var.KILLS = {}
     var.GUARDED = {}
     var.HVISITED = {}
     var.HUNTERS = set()
