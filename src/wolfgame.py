@@ -310,58 +310,6 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
     if "!" not in rnick:
         sync_modes(cli)
 
-#completes a partial nickname or string from a list
-def complete_match(string, matches):
-    num_matches = 0
-    bestmatch = string
-    for possible in matches:
-        if string == possible:
-            return string, 1
-        if possible.startswith(string) or possible.lstrip("[{\\^_`|}]").startswith(string):
-            bestmatch = possible
-            num_matches += 1
-    if num_matches != 1:
-        return None, num_matches
-    else:
-        return bestmatch, 1
-
-#wrapper around complete_match() used for roles
-def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
-    chan = botconfig.CHANNEL if in_chan else nick
-    if not victim:
-        reply(cli, nick, chan, messages["not_enough_parameters"], private=True)
-        return
-    pl = [x for x in list_players() if x != nick or self_in_list]
-    pll = [x.lower() for x in pl]
-
-    if bot_in_list: # for villagergame
-        pl.append(botconfig.NICK)
-        pll.append(botconfig.NICK.lower())
-
-    tempvictim, num_matches = complete_match(victim.lower(), pll)
-    if not tempvictim:
-        #ensure messages about not being able to act on yourself work
-        if num_matches == 0 and nick.lower().startswith(victim.lower()):
-            return nick
-        reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
-        return
-    return pl[pll.index(tempvictim)] #convert back to normal casing
-
-# wrapper around complete_match() used for any nick on the channel
-def get_nick(cli, nick):
-    ul = [x for x in var.USERS]
-    ull = [x.lower() for x in var.USERS]
-    lnick, num_matches = complete_match(nick.lower(), ull)
-    if not lnick:
-        return None
-    return ul[ull.index(lnick)]
-
-def get_roles(*roles):
-    all_roles = []
-    for role in roles:
-        all_roles.append(var.ROLES[role])
-    return list(itertools.chain(*all_roles))
-
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()

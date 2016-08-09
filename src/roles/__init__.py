@@ -11,6 +11,6 @@ for f in glob.iglob(search):
     n, _ = os.path.splitext(f)
     if f == "__init__.py":
         continue
-    importlib.import_module(n, package="src.roles")
+    importlib.import_module("." + n, package="src.roles")
 
 # vim: set sw=4 expandtab:

@@ -21,7 +21,8 @@ except ImportError:
 
 try:
     import roles
-except ImportError:
+    roles.CUSTOM_ROLES_DEFINED
+except (ImportError, AttributeError):
     import src.roles
 
 # Handle launch parameters

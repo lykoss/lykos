@@ -256,6 +256,7 @@ class event_listener:
 
     def __call__(self, *args, **kwargs):
         if self.func is None:
+            func = args[0]
             if isinstance(func, event_listener):
                 func = func.func
             self.func = handle_error(func)

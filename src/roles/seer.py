@@ -1,4 +1,5 @@
 import re
+import random
 
 import src.settings as var
 from src.utilities import *
@@ -25,10 +26,10 @@ def see(cli, nick, chan, rest):
         return
 
     evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
-    evt.dispatch(cli, var, "see", nick, victim, frozenset("info", "immediate"))
+    evt.dispatch(cli, var, "see", nick, victim, frozenset({"info", "immediate"}))
     if evt.prevent_default:
         return
-    victim = evt.data["victim"]
+    victim = evt.data["target"]
     victimrole = get_role(victim)
 
     evt = Event("see", {"role": victimrole})
@@ -121,10 +122,12 @@ def on_transition_night_end(evt, cli, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
+    global SEEN
     SEEN = set()
 
 @event_listener("reset")
 def on_reset(evt, var):
+    global SEEN
     SEEN = set()
 
 # vim: set sw=4 expandtab:

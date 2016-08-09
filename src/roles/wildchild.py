@@ -1,3 +1,5 @@
+import random
+
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
@@ -135,8 +137,14 @@ def on_revealroles_role(evt, cli, var, nick, role):
         else:
             evt.data["special_case"].append("no idol picked yet")
 
+@event_listener("get_reveal_role")
+def on_get_reveal_role(evt, var, nick):
+    if nick in WILD_CHILDREN:
+        evt.data["role"] = "wild child"
+
 @event_listener("reset")
 def on_reset(evt, var):
+    global WILD_CHILDREN, IDOLS
     WILD_CHILDREN = set()
     IDOLS = {}
 
