@@ -2486,6 +2486,19 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
 
             won = False
             iwon = False
+            survived = list_players()
+            if not pentry["dced"]:
+                evt = Event("player_win", {"won": won, "iwon": iwon, "special": pentry["special"]})
+                evt.dispatch(cli, var, splr, rol, winner, splr in survived)
+                won = evt.data["won"]
+                iwon = evt.data["iwon"]
+                # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
+                pentry["special"] = list(evt.data["special"])
+
+                # special-case everyone for after the event
+                if winner == "everyone":
+                    iwon = True
+
             # determine if this player's team won
             if rol in var.TRUE_NEUTRAL_ROLES:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
@@ -2499,19 +2512,8 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             elif winner != "succubi" and splr in var.ENTRANCED:
                 # entranced players can't win with villager or wolf teams
                 won = False
-            elif rol in ("amnesiac", "vengeful ghost") and splr not in var.VENGEFUL_GHOSTS:
-                if var.DEFAULT_ROLE == "villager" and winner == "villagers":
-                    won = True
-                elif var.DEFAULT_ROLE == "cultist" and winner == "wolves":
-                    won = True
-            elif rol in var.WOLFTEAM_ROLES:
-                if winner == "wolves":
-                    won = True
-            elif winner == "villagers":
-                won = True
 
-            survived = list_players()
-            if plr.startswith("(dced)"):
+            if pentry["dced"]:
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
@@ -2581,8 +2583,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
-            elif winner == "everyone" and not survived:
-                iwon = True # nobody survived but an event made everyone win
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
 
@@ -5121,15 +5121,15 @@ def check_exchange(cli, actor, nick):
             del var.LYCAN_ROLES[nick]
 
         actor_rev_role = actor_role
-        if actor_role == "vengeful ghost":
+        if actor_role in var.HIDDEN_ROLES:
             actor_rev_role = var.DEFAULT_ROLE
-        elif actor_role == "time lord":
+        elif actor_role in var.HIDDEN_VILLAGERS:
             actor_rev_role = "villager"
 
         nick_rev_role = nick_role
-        if nick_role == "vengeful ghost":
+        if nick_role in var.HIDDEN_ROLES:
             nick_rev_role = var.DEFAULT_ROLE
-        elif actor_role == "time lord":
+        elif actor_role in var.HIDDEN_VILLAGERS:
             nick_rev_role = "villager"
 
         # don't say who, since misdirection/luck totem may have switched it
@@ -6638,9 +6638,9 @@ def transition_night(cli):
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue
                 showrole = amnrole
-                if showrole == "time lord":
+                if showrole in var.HIDDEN_VILLAGERS:
                     showrole = "villager"
-                elif showrole == "vengeful ghost":
+                elif showrole in var.HIDDEN_ROLES:
                     showrole = var.DEFAULT_ROLE
                 n = ""
                 if showrole.startswith(("a", "e", "i", "o", "u")):
@@ -7117,25 +7117,6 @@ def transition_night(cli):
             else:
                 pm(cli, minion, messages["minion_simple"])
             pm(cli, minion, "Wolves: " + ", ".join(wolves))
-
-        villagers = copy.copy(var.ROLES["villager"])
-        villagers |= var.ROLES["time lord"]
-        if var.DEFAULT_ROLE == "villager":
-            villagers |= var.ROLES["vengeful ghost"] | var.ROLES["amnesiac"]
-        for villager in villagers:
-            if villager in var.PLAYERS and not is_user_simple(villager):
-                pm(cli, villager, messages["villager_notify"])
-            else:
-                pm(cli, villager, messages["villager_simple"])
-
-        cultists = copy.copy(var.ROLES["cultist"])
-        if var.DEFAULT_ROLE == "cultist":
-            cultists |= var.ROLES["vengeful ghost"] | var.ROLES["amnesiac"]
-        for cultist in cultists:
-            if cultist in var.PLAYERS and not is_user_simple(cultist):
-                pm(cli, cultist, messages["cultist_notify"])
-            else:
-                pm(cli, cultist, messages["cultist_simple"])
 
         for blessed in var.ROLES["blessed villager"]:
             if blessed in var.PLAYERS and not is_user_simple(blessed):
@@ -8201,9 +8182,9 @@ def myrole(cli, nick, chan, rest):
         return
 
     role = get_role(nick)
-    if role == "time lord":
+    if role in var.HIDDEN_VILLAGERS:
         role = "villager"
-    elif role in ("amnesiac", "vengeful ghost"):
+    elif role in var.HIDDEN_ROLES:
         role = var.DEFAULT_ROLE
 
     evt = Event("myrole", {"role": role, "messages": []})
