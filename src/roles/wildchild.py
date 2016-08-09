@@ -144,8 +144,7 @@ def on_get_reveal_role(evt, var, nick):
 
 @event_listener("reset")
 def on_reset(evt, var):
-    global WILD_CHILDREN, IDOLS
-    WILD_CHILDREN = set()
-    IDOLS = {}
+    WILD_CHILDREN.clear()
+    IDOLS.clear()
 
 # vim: set sw=4 expandtab:

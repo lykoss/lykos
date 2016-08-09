@@ -127,7 +127,6 @@ def on_begin_day(evt, cli, var):
 
 @event_listener("reset")
 def on_reset(evt, var):
-    global SEEN
-    SEEN = set()
+    SEEN.clear()
 
 # vim: set sw=4 expandtab:
