@@ -1261,6 +1261,10 @@ class MaelstromMode(GameMode):
         for doctor in var.ROLES["doctor"]:
             var.DOCTORS[doctor] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
 
+        # Clear totem tracking; this would let someone that gets shaman twice in a row to give
+        # out a totem to the same person twice in a row, but oh well
+        var.LASTGIVEN = {}
+
         # for end of game stats to show what everyone ended up as on game end
         for role, pl in var.ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
