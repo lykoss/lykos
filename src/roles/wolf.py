@@ -202,13 +202,41 @@ def on_chk_nightdone2(evt, cli, var):
 def on_transition_night_end(evt, cli, var):
     ps = list_players()
     wolves = list_players(var.WOLFCHAT_ROLES)
+    # roles in wolfchat (including those that can only listen in but not speak)
+    wcroles = var.WOLFCHAT_ROLES
+    # roles allowed to talk in wolfchat
+    talkroles = var.WOLFCHAT_ROLES
+    # condition imposed on talking in wolfchat (only during day/night, or None if talking is disabled)
+    wccond = ""
+
+    if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
+        if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+            wccond = None
+        else:
+            wccond = " during day"
+    elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
+        wccond = " during night"
+
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wcroles = var.WOLF_ROLES
+            talkroles = var.WOLF_ROLES
+        else:
+            wcroles = var.WOLF_ROLES | {"traitor"}
+            talkroles = var.WOLF_ROLES | {"traitor"}
+    elif var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            talkroles = var.WOLF_ROLES
+        else:
+            talkroles = var.WOLF_ROLES | {"traitor"}
+
     for wolf in wolves:
         # should make the cursed information an event that cursedvillager can then add to
         # (e.g. an event to change what prefixes are sent with the role message, and a
         # 2nd event to change information in parens in player list)
         normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
         role = get_role(wolf)
-        cursed = "cursed " if wolf in var.ROLES["cursed villager"] else ""
+        cursed = "cursed " if wolf in var.ROLES["cursed villager"] and role in wcroles else ""
 
         if normal_notify:
             msg = "{0}_notify".format(role.replace(" ", "_"))
@@ -226,8 +254,8 @@ def on_transition_night_end(evt, cli, var):
                 an = 'n' if role.startswith(("a", "e", "i", "o", "u")) else ""
                 pm(cli, wolf, messages["undefined_role_notify"].format(an, role))
 
-            if len(wolves) > 1:
-                pm(cli, wolf, messages["wolfchat_notify"])
+            if len(wolves) > 1 and wccond is not None and role in talkroles:
+                pm(cli, wolf, messages["wolfchat_notify"].format(wccond))
         else:
             an = "n" if cursed == "" and role.startswith(("a", "e", "i", "o", "u")) else ""
             pm(cli, wolf, messages["wolf_simple"].format(an, cursed, role))  # !simple
@@ -235,18 +263,23 @@ def on_transition_night_end(evt, cli, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
-        for i, player in enumerate(pl):
-            prole = get_role(player)
-            if prole in var.WOLFCHAT_ROLES:
-                cursed = ""
+        if role in wcroles:
+            for i, player in enumerate(pl):
+                prole = get_role(player)
+                if prole in wcroles:
+                    cursed = ""
+                    if player in var.ROLES["cursed villager"]:
+                        cursed = "cursed "
+                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                elif player in var.ROLES["cursed villager"]:
+                    pl[i] = player + " (cursed)"
+        elif role == "warlock":
+            for i, player in enumerate(pl):
                 if player in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-            elif player in var.ROLES["cursed villager"]:
-                pl[i] = player + " (cursed)"
+                    pl[i] = player + " (cursed)"
 
         pm(cli, wolf, "Players: " + ", ".join(pl))
-        if var.DISEASED_WOLVES:
+        if role in var.WOLF_ROLES - {"wolf cub"} and var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
         # TODO: split the following out into their own files (mystic, cub and alpha)
         if role == "wolf mystic":
@@ -254,7 +287,7 @@ def on_transition_night_end(evt, cli, var):
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
             numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in var.WOLF_ROLES and role != "wolf cub":
+        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in var.WOLF_ROLES - {"wolf cub"}:
             pm(cli, wolf, messages["angry_wolves"])
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
             pm(cli, wolf, messages["wolf_bite"])

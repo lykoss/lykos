@@ -447,7 +447,7 @@
     "wolf_shaman_notify": "You are a \u0002wolf shaman\u0002. You can select a player to receive a totem each night by using \"give <nick>\". You may give yourself a totem, but you may not give the same player a totem two nights in a row. If you do not give the totem to anyone, it will be given to a random player. You may also use \"kill <nick>\" to kill a villager.",
     "fallen_angel_notify": "You are a \u0002fallen angel\u0002. Your sharp claws will rend any protection the villagers may have, and will likely kill living guardians as well. Use \"kill <nick>\" to kill a villager.",
     "undefined_role_notify": "You are a{0} \u0002{1}\u0002. There would normally be instructions here, but someone forgot to add them in. Please report this to the admins, you can PM me \"admins\" for a list of available ones.",
-    "wolfchat_notify": "Also, if you PM me, your message will be relayed to other wolves.",
+    "wolfchat_notify": "Also, if you PM me{0}, your message will be relayed to other wolves.",
     "wolf_simple": "You are a{0} \u0002{1}{2}\u0002.",
     "gunner_info": "You have a \u0002gun\u0002 with {0} bullet{1}.",
     "seer_ability": "the role of a player",
