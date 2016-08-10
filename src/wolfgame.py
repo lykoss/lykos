@@ -3181,7 +3181,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 del x[k]
                     for k in list(var.OTHER_KILLS):
                         if var.OTHER_KILLS[k] == nick:
-                            var.HUNTERS.discard(k)
                             pm(cli, k, messages["hunter_discard"])
                             del var.OTHER_KILLS[k]
                         elif nick == k:
@@ -3197,7 +3196,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
                 # if these aren't cleared properly night may end prematurely
-                for x in (var.SEEN, var.PASSED, var.HUNTERS, var.HEXED, var.MATCHMAKERS, var.CURSED, var.CHARMERS):
+                for x in (var.SEEN, var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED, var.CHARMERS):
                     x.discard(nick)
             if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
                 var.VOTES.pop(nick, None)  #  Delete other people's votes on the player
@@ -3575,7 +3574,7 @@ def rename_player(cli, prefix, nick):
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
             for setvar in (var.SEEN, var.HEXED, var.ASLEEP, var.DESPERATE, var.REVEALED, var.SILENCED, var.TOBESILENCED,
-                           var.REVEALED_MAYORS, var.MATCHMAKERS, var.HUNTERS, var.PASSED, var.JESTERS, var.AMNESIACS,
+                           var.REVEALED_MAYORS, var.MATCHMAKERS, var.PASSED, var.JESTERS, var.AMNESIACS,
                            var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY, var.SICK,
                            var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
                            var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
@@ -3806,7 +3805,7 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.OTHER_KILLS = {} # other kill victims (hunter/vengeful ghost)
+    var.OTHER_KILLS = {} # other kill victims (vigilante/vengeful ghost)
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of doomsayers that have had visions
     var.HEXED = set() # set of hags that have silenced others
@@ -4120,7 +4119,6 @@ def transition_day(cli, gameid=0):
     for v in var.ENTRANCED_DYING:
         var.DYING.add(v)
 
-    # clear list so that it doesn't pm hunter / ghost about being able to kill again
     var.OTHER_KILLS = {}
 
     for k, d in var.DEATH_TOTEM:
@@ -4652,7 +4650,7 @@ def chk_nightdone(cli):
                                var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
 
     nightroles = get_roles("harlot", "succubus", "bodyguard", "guardian angel",
-                           "sorcerer", "hunter", "hag", "shaman", "crazed shaman",
+                           "sorcerer", "hag", "shaman", "crazed shaman",
                            "warlock", "piper", "vigilante", "doomsayer",
                            "prophet", "wolf shaman")
 
@@ -4682,12 +4680,6 @@ def chk_nightdone(cli):
         # alphas both kill and bite if they're activated at night, so add them into the counts
         nightroles.extend(get_roles("alpha wolf"))
         actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
-
-    for p in var.HUNTERS:
-        # only remove one instance of their name if they have used hunter ability, in case they have templates
-        # the OTHER_KILLS check ensures we only remove them if they acted in a *previous* night
-        if p in var.ROLES["hunter"] and p not in var.OTHER_KILLS:
-            nightroles.remove(p)
 
     # but remove all instances of their name if they are silenced
     nightroles = [p for p in nightroles if p not in var.SILENCED]
@@ -4904,10 +4896,6 @@ def check_exchange(cli, actor, nick):
                 del var.SHAMANS[actor]
             if actor in var.LASTGIVEN:
                 del var.LASTGIVEN[actor]
-        elif actor_role == "hunter":
-            if actor in var.OTHER_KILLS:
-                del var.OTHER_KILLS[actor]
-            var.HUNTERS.discard(actor)
         elif actor_role in ("bodyguard", "guardian angel"):
             if actor in var.GUARDED:
                 pm(cli, var.GUARDED.pop(actor), messages["protector_disappeared"])
@@ -4961,10 +4949,6 @@ def check_exchange(cli, actor, nick):
                 del var.SHAMANS[nick]
             if nick in var.LASTGIVEN:
                 del var.LASTGIVEN[nick]
-        elif nick_role == "hunter":
-            if nick in var.OTHER_KILLS:
-                del var.OTHER_KILLS[nick]
-            var.HUNTERS.discard(nick)
         elif nick_role in ("bodyguard", "guardian angel"):
             if nick in var.GUARDED:
                 pm(cli, var.GUARDED.pop(nick), messages["protector_disappeared"])
@@ -5170,7 +5154,7 @@ def retract(cli, nick, chan, rest):
 
     if chan == nick: # PM, use different code
         role = get_role(nick)
-        if role not in var.WOLF_ROLES - {"wolf cub"} and role != "hunter" and nick not in var.VENGEFUL_GHOSTS.keys():
+        if role not in var.WOLF_ROLES - {"wolf cub"} and nick not in var.VENGEFUL_GHOSTS.keys():
             return
         if var.PHASE != "night":
             return
@@ -5178,13 +5162,9 @@ def retract(cli, nick, chan, rest):
             if var.OBSERVED.get(nick):
                 pm(cli, nick, (messages["werecrow_transformed"]))
                 return
-        elif role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS.keys():
-            return
 
         if role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
             del var.OTHER_KILLS[nick]
-            if role == "hunter":
-                var.HUNTERS.remove(nick)
             pm(cli, nick, messages["retracted_kill"])
         elif role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
             del var.BITE_PREFERENCES[nick]
@@ -5313,7 +5293,7 @@ def kill(cli, nick, chan, rest):
         role = get_role(nick)
     except KeyError:
         role = None
-    if role not in {"hunter", "dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role not in {"dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
@@ -5321,10 +5301,6 @@ def kill(cli, nick, chan, rest):
     if role == "dullahan" and not var.DULLAHAN_TARGETS[nick] & set(list_players()):
         # all their targets are dead
         pm(cli, nick, messages["dullahan_targets_dead"])
-        return
-    if role == "hunter" and nick in var.HUNTERS and nick not in var.OTHER_KILLS:
-        # they are a hunter and did not kill this night (if they killed this night, this allows them to switch)
-        pm(cli, nick, messages["hunter_already_killed"])
         return
     if nick in var.SILENCED:
         pm(cli, nick, messages["silenced"])
@@ -5360,9 +5336,6 @@ def kill(cli, nick, chan, rest):
         if check_exchange(cli, nick, rv):
             return
     var.OTHER_KILLS[nick] = rv
-    if role == "hunter":
-        var.HUNTERS.add(nick)
-        var.PASSED.discard(nick)
 
     msg = messages["wolf_target"].format(victim)
     pm(cli, nick, messages["player"].format(msg))
@@ -5687,7 +5660,6 @@ def hvisit(cli, nick, chan, rest):
             if var.OTHER_KILLS.get(victim) in var.ROLES["succubus"]:
                 pm(cli, victim, messages["no_kill_succubus"].format(var.OTHER_KILLS[victim]))
                 del var.OTHER_KILLS[victim]
-                var.HUNTERS.discard(victim)
             if var.TARGETED.get(victim) in var.ROLES["succubus"]:
                 msg = messages["no_target_succubus"].format(var.TARGETED[victim])
                 del var.TARGETED[victim]
@@ -5706,7 +5678,7 @@ def hvisit(cli, nick, chan, rest):
                 var.HEXED.remove(victim)
                 del var.LASTHEXED[victim]
             # temp hack, will do something better once succubus is split off
-            from src.roles import wolf
+            from src.roles import wolf, hunter
             if set(wolf.KILLS.get(victim, ())) & var.ROLES["succubus"]:
                 for s in var.ROLES["succubus"]:
                     if s in wolf.KILLS[victim]:
@@ -5714,6 +5686,10 @@ def hvisit(cli, nick, chan, rest):
                         wolf.KILLS[victim].remove(s)
                 if not wolf.KILLS[victim]:
                     del wolf.KILLS[victim]
+            if hunter.KILLS.get(victim) in var.ROLES["succubus"]:
+                pm(cli, victim, messages["no_kill_succubus"].format(hunter.KILLS[victim]))
+                del hunter.KILLS[victim]
+                hunter.HUNTERS.discard(victim)
             if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
                 pm(cli, victim, messages["no_kill_succubus"].format(var.BITE_PREFERENCES[victim]))
                 del var.BITE_PREFERENCES[victim]
@@ -5871,7 +5847,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("hunter", "harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus", "vigilante"))
+    roles=("harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus", "vigilante"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5884,17 +5860,7 @@ def pass_cmd(cli, nick, chan, rest):
             cli.notice(nick, messages["silenced"])
         return
 
-    if nickrole == "hunter":
-        if nick in var.OTHER_KILLS.keys():
-            del var.OTHER_KILLS[nick]
-            var.HUNTERS.remove(nick)
-        if nick in var.HUNTERS:
-            pm(cli, nick, messages["hunter_already_killed"])
-            return
-
-        pm(cli, nick, messages["hunter_pass"])
-        var.PASSED.add(nick)
-    elif nickrole == "harlot":
+    if nickrole == "harlot":
         if var.HVISITED.get(nick):
             pm(cli, nick, (messages["harlot_already_visited"]).format(var.HVISITED[nick]))
             return
@@ -6413,7 +6379,7 @@ def transition_night(cli):
     var.HEXED = set() # set of hags that have hexed
     var.CURSED = set() # set of warlocks that have cursed
     var.SHAMANS = {}
-    var.PASSED = set() # set of hunters that have chosen not to kill
+    var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
     var.HVISITED = {}
@@ -6666,18 +6632,6 @@ def transition_night(cli):
                 pm(cli, shaman, messages["totem_simple"].format(var.TOTEMS[shaman]))
         if role not in var.WOLFCHAT_ROLES:
             pm(cli, shaman, "Players: " + ", ".join(pl))
-
-    for hunter in var.ROLES["hunter"]:
-        if hunter in var.HUNTERS:
-            continue #already killed
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(hunter)
-        if hunter in var.PLAYERS and not is_user_simple(hunter):
-            pm(cli, hunter, messages["hunter_notify"])
-        else:
-            pm(cli, hunter, messages["hunter_simple"])
-        pm(cli, hunter, "Players: " + ", ".join(pl))
 
     for dullahan in var.ROLES["dullahan"]:
         targets = list(var.DULLAHAN_TARGETS[dullahan])
@@ -7114,7 +7068,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.OBSERVED = {}
     var.GUARDED = {}
     var.HVISITED = {}
-    var.HUNTERS = set()
     var.VENGEFUL_GHOSTS = {}
     var.CLONED = {}
     var.TARGETED = {}
