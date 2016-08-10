@@ -1,6 +1,6 @@
-import traceback
 import fnmatch
 import socket
+import traceback
 import types
 from collections import defaultdict
 
@@ -54,15 +54,7 @@ class handle_error:
                 if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
                     cli.msg(botconfig.CHANNEL, msg)
                 if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
-                    try:
-                        with socket.socket() as sock:
-                            sock.connect(("termbin.com", 9999))
-                            sock.send(traceback.format_exc().encode("utf-8", "replace") + b"\n")
-                            url = sock.recv(1024).decode("utf-8")
-                    except socket.error:
-                        pass
-                    else:
-                        cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
+                    pastebin_tb(cli, msg, traceback.format_exc())
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,

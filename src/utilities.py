@@ -1,6 +1,11 @@
-import re
 import fnmatch
 import itertools
+import json
+import random
+import re
+import string
+import traceback
+import urllib
 
 import botconfig
 import src.settings as var
@@ -428,6 +433,37 @@ def get_nick(cli, nick):
         return None
     return ul[ull.index(lnick)]
 
+def pastebin_tb(cli, msg, exc):
+    try:
+        bot_id = re.sub(r"[^A-Za-z0-9-]", "-", botconfig.NICK)
+        bot_id = re.sub(r"--+", "-", bot_id)
+        bot_id = re.sub(r"^-+|-+$", "", bot_id)
+
+        rand_id = "".join(random.sample(string.ascii_letters + string.digits, 8))
+
+        api_url = "https://ptpb.pw/~{0}-error-{1}".format(bot_id, rand_id)
+
+        req = urllib.request.Request(api_url, urllib.parse.urlencode({
+            "c": traceback.format_exc(),  # contents
+            "s": 86400                    # expiry (seconds)
+        }).encode("utf-8", "replace"))
+
+        req.add_header("Accept", "application/json")
+        resp = urllib.request.urlopen(req)
+        data = json.loads(resp.read().decode("utf-8"))
+        url = data["url"]
+    except urllib.error.HTTPError as e:
+        if e.code == 409:  # paste ID conflict
+            pastebin_tb(exc)  # retry
+        else:
+            # Make sure we print the exception anyway
+            traceback.print_exc()
+            cli.msg(botconfig.DEV_CHANNEL, msg + " (Unable to pastebin traceback; please check the console.)")
+    except Exception:
+        traceback.print_exc()
+        cli.msg(botconfig.DEV_CHANNEL, msg + " (Unable to pastebin traceback; please check the console.)")
+    else:
+        cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))
 
 class InvalidModeException(Exception): pass
 
