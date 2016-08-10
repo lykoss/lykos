@@ -82,11 +82,6 @@ def on_rename(evt, cli, var, prefix, nick):
         SEEN.remove(prefix)
         SEEN.add(nick)
 
-@event_listener("acted")
-def on_acted(evt, cli, var, nick, sender):
-    if nick in SEEN:
-        evt.data["acted"] = True
-
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
     if actor_role in ("seer", "oracle", "augur"):

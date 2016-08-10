@@ -229,8 +229,7 @@ class VillagergameMode(GameMode):
                 tgt = hlt
         if not tgt:
             tgt = random.choice(pl)
-        from src.roles import wolf
-        wolf.KILLS[botconfig.NICK] = [tgt]
+        var.KILLS[botconfig.NICK] = [tgt]
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):

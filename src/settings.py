@@ -283,10 +283,6 @@ SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
 # These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
 SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
                           "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper", "demoniac"})
-# These roles are notified that they are villager
-HIDDEN_VILLAGERS = frozenset({"time lord"})
-# These roles are notified that they are the default role. They also win alongside the default role barring other role-specific win conds.
-HIDDEN_ROLES = frozenset({"vengeful ghost", "amnesiac"})
 
 # these totems are beneficial for the *receiving* person, but can be detrimental to someone else acting on the receiver!
 BENEFICIAL_TOTEMS = frozenset({"protection", "revealing", "desperation", "influence", "luck", "pestilence", "retribution"})
