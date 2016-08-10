@@ -19,6 +19,10 @@ def vigilante_kill(cli, nick, chan, rest):
     if not victim:
         return
 
+    if victim == nick:
+        pm(cli, nick, messages["no_suicide"])
+        return
+
     orig = victim
     evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
     evt.dispatch(cli, var, "kill", nick, victim, frozenset({"detrimental"}))
@@ -58,7 +62,7 @@ def vigilante_pass(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
+def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     for h,v in list(KILLS.items()):
         if v == nick:
             PASSED.discard(h)

@@ -1103,7 +1103,7 @@ class SleepyMode(GameMode):
             var.DYING.add(self.having_nightmare)
             pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
 
-    def happy_fun_times(self, evt, cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
+    def happy_fun_times(self, evt, cli, var, nick, nickrole, nicktpls, death_triggers):
         if death_triggers:
             if nickrole == "priest":
                 pl = evt.data["pl"]

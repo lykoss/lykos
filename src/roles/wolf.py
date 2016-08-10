@@ -98,7 +98,7 @@ def wolf_retract(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
+def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     for a,b in list(KILLS.items()):
         for n in b:
             if n == nick:

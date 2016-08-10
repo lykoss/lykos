@@ -73,7 +73,7 @@ def on_myrole(evt, cli, var, nick):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
+def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     if var.PHASE not in var.GAME_PHASES:
         return
 
@@ -86,7 +86,14 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, de
         var.ROLES["wild child"].remove(child)
         var.ROLES["wolf"].add(child)
         var.FINAL_ROLES[child] = "wolf"
-        wolves = list_players(var.WOLFCHAT_ROLES)
+
+        wcroles = var.WOLFCHAT_ROLES
+        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+                wcroles = var.WOLF_ROLES
+            else:
+                wcroles = var.WOLF_ROLES | {"traitor"}
+        wolves = list_players(wc)
         wolves.remove(child)
         mass_privmsg(cli, wolves, messages["wild_child_as_wolf"].format(child))
         if var.PHASE == "day":

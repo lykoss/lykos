@@ -2586,8 +2586,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                         iwon = False
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
-            elif rol == "dullahan" and not var.DULLAHAN_TARGETS[splr] & set(survived) - (var.ROLES["succubus"] if splr in var.ENTRANCED else set()):
-                iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
             elif not iwon:
@@ -2973,39 +2971,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
                                 del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
                                 pl = refresh_pl(pl)
-                if nickrole == "dullahan":
-                    targets = var.DULLAHAN_TARGETS[nick] & set(pl)
-                    if targets:
-                        target = random.choice(list(targets))
-                        if "totem" in var.ACTIVE_PROTECTIONS[target]:
-                            var.ACTIVE_PROTECTIONS[target].remove("totem")
-                            cli.msg(botconfig.CHANNEL, messages["dullahan_die_totem"].format(nick, target))
-                        elif "angel" in var.ACTIVE_PROTECTIONS[target]:
-                            var.ACTIVE_PROTECTIONS[target].remove("angel")
-                            cli.msg(botconfig.CHANNEL, messages["dullahan_die_angel"].format(nick, target))
-                        elif "bodyguard" in var.ACTIVE_PROTECTIONS[target]:
-                            var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
-                            for bg in var.ROLES["bodyguard"]:
-                                if var.GUARDED.get(bg) == target:
-                                    cli.msg(botconfig.CHANNEL, messages["dullahan_die_bodyguard"].format(nick, target, bg))
-                                    del_player(cli, bg, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
-                                    pl = refresh_pl(pl)
-                                    break
-                        elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
-                            if "blessing" in var.ACTIVE_PROTECTIONS[target]:
-                                var.ACTIVE_PROTECTIONS[target].remove("blessing")
-                            # don't message the channel whenever a blessing blocks a kill, but *do* let the dullahan know so they don't try to report it as a bug
-                            pm(cli, nick, messages["assassin_fail_blessed"].format(target))
-                        else:
-                            if var.ROLE_REVEAL in ("on", "team"):
-                                role = get_reveal_role(target)
-                                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success"].format(nick, target, an, role))
-                            else:
-                                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success_noreveal"].format(nick, target))
-                            debuglog("{0} ({1}) DULLAHAN ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
-                            del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
-                            pl = refresh_pl(pl)
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
                         var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT"] = var.DAY_TIME_LIMIT
@@ -3149,8 +3114,13 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             debuglog(nick, "(mad scientist) KILL FAIL")
 
             pl = refresh_pl(pl)
-            event = Event("del_player", {"pl": pl})
-            event.dispatch(cli, var, nick, nickrole, nicktpls, forced_death, end_game, death_triggers and var.PHASE in var.GAME_PHASES, killer_role, deadlist, original, ismain, refresh_pl)
+            # i herd u liek parameters
+            evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
+            event = Event("del_player", {"pl": pl},
+                    forced_death=forced_death, end_game=end_game,
+                    deadlist=deadlist, original=original, killer_role=killer_role,
+                    ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
+            event.dispatch(cli, var, nick, nickrole, nicktpls, evt_death_triggers)
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
@@ -3573,7 +3543,7 @@ def rename_player(cli, prefix, nick):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
             # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
-            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS, var.DULLAHAN_TARGETS):
+            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS):
                 kvp = []
                 for a,b in dictvar.items():
                     nl = set()
@@ -3826,7 +3796,7 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.OTHER_KILLS = {} # other kill victims (dullahan/vengeful ghost)
+    var.OTHER_KILLS = {} # other kill victims (vengeful ghost)
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of doomsayers that have had visions
     var.HEXED = set() # set of hags that have silenced others
@@ -4685,11 +4655,6 @@ def chk_nightdone(cli):
             # don't count this twice
             actedcount -= 1
 
-    for p in var.ROLES["dullahan"]:
-        # dullahans without targets cannot act, so don't count them
-        if var.DULLAHAN_TARGETS[p] & spl:
-            nightroles.append(p)
-
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
         nightroles.extend(get_roles("matchmaker", "clone"))
@@ -5328,14 +5293,10 @@ def kill(cli, nick, chan, rest):
         role = get_role(nick)
     except KeyError:
         role = None
-    if role != "dullahan" and nick not in var.VENGEFUL_GHOSTS.keys():
+    if nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
-        return
-    if role == "dullahan" and not var.DULLAHAN_TARGETS[nick] & set(list_players()):
-        # all their targets are dead
-        pm(cli, nick, messages["dullahan_targets_dead"])
         return
     if nick in var.SILENCED:
         pm(cli, nick, messages["silenced"])
@@ -5713,7 +5674,7 @@ def hvisit(cli, nick, chan, rest):
                 var.HEXED.remove(victim)
                 del var.LASTHEXED[victim]
             # temp hack, will do something better once succubus is split off
-            from src.roles import wolf, hunter
+            from src.roles import wolf, hunter, dullahan
             if set(wolf.KILLS.get(victim, ())) & var.ROLES["succubus"]:
                 for s in var.ROLES["succubus"]:
                     if s in wolf.KILLS[victim]:
@@ -5728,8 +5689,10 @@ def hvisit(cli, nick, chan, rest):
             if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
                 pm(cli, victim, messages["no_kill_succubus"].format(var.BITE_PREFERENCES[victim]))
                 del var.BITE_PREFERENCES[victim]
-            if var.DULLAHAN_TARGETS.get(victim, set()) & var.ROLES["succubus"]:
+            if dullahan.TARGETS.get(victim, set()) & var.ROLES["succubus"]:
                 pm(cli, victim, messages["dullahan_no_kill_succubus"])
+                if dullahan.KILLS.get(victim) in var.ROLES["succubus"]:
+                    del dullahan.KILLS[victim]
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
@@ -6671,22 +6634,6 @@ def transition_night(cli):
         if role not in var.WOLFCHAT_ROLES:
             pm(cli, shaman, "Players: " + ", ".join(pl))
 
-    for dullahan in var.ROLES["dullahan"]:
-        targets = list(var.DULLAHAN_TARGETS[dullahan])
-        for target in var.DEAD:
-            if target in targets:
-                targets.remove(target)
-        if not targets: # already all dead
-            pm(cli, dullahan, messages["dullahan_targets_dead"])
-            continue
-        random.shuffle(targets)
-        if dullahan in var.PLAYERS and not is_user_simple(dullahan):
-            pm(cli, dullahan, messages["dullahan_notify"])
-        else:
-            pm(cli, dullahan, messages["dullahan_simple"])
-        t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-        pm(cli, dullahan, t + ", ".join(targets))
-
     for succubus in var.ROLES["succubus"]:
         pl = ps[:]
         random.shuffle(pl)
@@ -7160,7 +7107,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DYING = set()
     var.PRAYED = {}
     var.SICK = set()
-    var.DULLAHAN_TARGETS = {}
     var.DECEIVED = set()
 
     var.DEADCHAT_PLAYERS = set()
@@ -7236,20 +7182,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_TIME = None
     var.LAST_VOTES = None
 
-    if var.ROLES["dullahan"]: # assign random targets to dullahan to kill
-        max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
-        for dull in var.ROLES["dullahan"]:
-            var.DULLAHAN_TARGETS[dull] = set()
-        dull_targets = Event("dullahan_targets", {"targets": var.DULLAHAN_TARGETS}) # support sleepy
-        dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
-
-        for dull, ts in var.DULLAHAN_TARGETS.items():
-            ps = pl[:]
-            ps.remove(dull)
-            while len(ts) < max_targets:
-                target = random.choice(ps)
-                ps.remove(target)
-                ts.add(target)
+    event = Event("role_assignment", {})
+    event.dispatch(cli, var, var.CURRENT_GAMEMODE.name, pl[:], restart)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
@@ -7968,19 +7902,6 @@ def myrole(cli, nick, chan, rest):
     if role == "turncoat":
         pm(cli, nick, messages["turncoat_side"].format(var.TURNCOATS.get(nick, "none")[0]))
 
-    # Remind dullahans of their targets
-    if role == "dullahan":
-        targets = list(var.DULLAHAN_TARGETS[nick])
-        for target in var.DEAD:
-            if target in targets:
-                targets.remove(target)
-        random.shuffle(targets)
-        if targets:
-            t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-            pm(cli, nick, t + ", ".join(targets))
-        else:
-            pm(cli, nick, messages["dullahan_targets_dead"])
-
     # Check for gun/bullets
     if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
         role = "gunner"
@@ -8433,12 +8354,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     elif role == "turncoat" and nickname in var.TURNCOATS:
                         special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
                                             if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
-                    elif role == "dullahan" and nickname in var.DULLAHAN_TARGETS:
-                        targets = var.DULLAHAN_TARGETS[nickname] - var.DEAD
-                        if targets: 
-                            special_case.append("need to kill {0}".format(", ".join(var.DULLAHAN_TARGETS[nickname] - var.DEAD)))
-                        else:
-                            special_case.append("All targets dead")
 
                     evt = Event("revealroles_role", {"special_case": special_case})
                     evt.dispatch(cli, var, nickname, role)
