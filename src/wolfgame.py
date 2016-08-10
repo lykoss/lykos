@@ -1420,7 +1420,7 @@ def stats(cli, nick, chan, rest):
         if role in badguys:
             for i, player in enumerate(ps):
                 prole = get_role(player)
-                if prole in wcroles:
+                if prole in badguys:
                     cursed = ""
                     if player in var.ROLES["cursed villager"]:
                         cursed = "cursed "
