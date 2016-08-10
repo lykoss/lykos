@@ -10,15 +10,11 @@ from src.messages import messages
 from src.events import Event
 
 KILLS = {} # type: Dict[str, str]
-HUNTERS = set()
 PASSED = set()
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_kill(cli, nick, chan, rest):
-    """Kill someone once per game."""
-    if nick in HUNTERS and nick not in KILLS:
-        pm(cli, nick, messages["hunter_already_killed"])
-        return
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
+def vigilante_kill(cli, nick, chan, rest):
+    """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
@@ -31,35 +27,30 @@ def hunter_kill(cli, nick, chan, rest):
     victim = evt.data["target"]
 
     KILLS[nick] = victim
-    HUNTERS.add(nick)
     PASSED.discard(nick)
 
     msg = messages["wolf_target"].format(orig)
     pm(cli, nick, messages["player"].format(msg))
 
     debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
+
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
-def hunter_retract(cli, nick, chan, rest):
-    """Removes a hunter's kill selection."""
+@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
+def vigilante_retract(cli, nick, chan, rest):
+    """Removes a vigilante's kill selection."""
     if nick not in KILLS and nick not in PASSED:
         return
     if nick in KILLS:
         del KILLS[nick]
-    HUNTERS.discard(nick)
     PASSED.discard(nick)
     pm(cli, nick, messages["retracted_kill"])
 
-@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
-def hunter_pass(cli, nick, chan, rest):
-    """Do not use hunter's once-per-game kill tonight."""
-    if nick in HUNTERS and nick not in KILLS:
-        pm(cli, nick, messages["hunter_already_killed"])
-        return
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
+def vigilante_pass(cli, nick, chan, rest):
+    """Do not kill anyone tonight as a vigilante."""
     if nick in KILLS:
         del KILLS[nick]
-    HUNTERS.discard(nick)
     PASSED.add(nick)
     pm(cli, nick, messages["hunter_pass"])
 
@@ -70,7 +61,6 @@ def hunter_pass(cli, nick, chan, rest):
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, lynched, end_game, death_triggers, killer_role, deadlist, original, ismain, refresh_pl):
     for h,v in list(KILLS.items()):
         if v == nick:
-            HUNTERS.discard(h)
             PASSED.discard(h)
             pm(cli, h, messages["hunter_discard"])
             del KILLS[h]
@@ -89,9 +79,6 @@ def on_rename(evt, cli, var, prefix, nick):
     KILLS.update(kvp)
     if prefix in KILLS:
         del KILLS[prefix]
-    if prefix in HUNTERS:
-        HUNTERS.discard(prefix)
-        HUNTERS.add(nick)
     if prefix in PASSED:
         PASSED.discard(prefix)
         PASSED.add(nick)
@@ -110,36 +97,35 @@ def on_transition_day(evt, cli, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 
+        if get_role(d) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
+            var.DYING.add(k)
+
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
     if actor in KILLS:
         del KILLS[actor]
     if nick in KILLS:
         del KILLS[nick]
-    HUNTERS.discard(actor)
-    HUNTERS.discard(nick)
     PASSED.discard(actor)
     PASSED.discard(nick)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):
     evt.data["actedcount"] += len(KILLS) + len(PASSED)
-    evt.data["nightroles"].extend([p for p in var.ROLES["hunter"] if p not in HUNTERS or p in KILLS])
+    evt.data["nightroles"].extend(get_roles("vigilante"))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, cli, var):
     ps = list_players()
-    for hunter in var.ROLES["hunter"]:
-        if hunter in HUNTERS:
-            continue #already killed
+    for vigilante in var.ROLES["vigilante"]:
         pl = ps[:]
         random.shuffle(pl)
-        pl.remove(hunter)
-        if hunter in var.PLAYERS and not is_user_simple(hunter):
-            pm(cli, hunter, messages["hunter_notify"])
+        pl.remove(vigilante)
+        if vigilante in var.PLAYERS and not is_user_simple(vigilante):
+            pm(cli, vigilante, messages["vigilante_notify"])
         else:
-            pm(cli, hunter, messages["hunter_simple"])
-        pm(cli, hunter, "Players: " + ", ".join(pl))
+            pm(cli, vigilante, messages["vigilante_simple"])
+        pm(cli, vigilante, "Players: " + ", ".join(pl))
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
@@ -150,6 +136,5 @@ def on_begin_day(evt, cli, var):
 def on_reset(evt, var):
     KILLS.clear()
     PASSED.clear()
-    HUNTERS.clear()
 
 # vim: set sw=4 expandtab:

@@ -282,6 +282,8 @@ SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager",
 HIDDEN_VILLAGERS = frozenset({"time lord"})
 # These roles are notified that they are the default role. They also win alongside the default role barring other role-specific win conds.
 HIDDEN_ROLES = frozenset({"vengeful ghost", "amnesiac"})
+# These roles are win stealers, and are valid kills for vigilante
+WIN_STEALER_ROLES = frozenset({"monster", "succubus", "demoniac", "piper", "fool"})
 
 # these totems are beneficial for the *receiving* person, but can be detrimental to someone else acting on the receiver!
 BENEFICIAL_TOTEMS = frozenset({"protection", "revealing", "desperation", "influence", "luck", "pestilence", "retribution"})

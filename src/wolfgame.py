@@ -3826,7 +3826,7 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.OTHER_KILLS = {} # other kill victims (vigilante/vengeful ghost)
+    var.OTHER_KILLS = {} # other kill victims (dullahan/vengeful ghost)
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of doomsayers that have had visions
     var.HEXED = set() # set of hags that have silenced others
@@ -4133,9 +4133,6 @@ def transition_day(cli, gameid=0):
         killers[d].append(k)
         if var.VENGEFUL_GHOSTS.get(k) == "villagers":
             wolfghostvictims.append(d)
-        if k in var.ROLES["vigilante"]:
-            if get_role(d) not in var.WOLF_ROLES | {"monster", "succubus", "demoniac", "piper", "fool"}:
-                var.DYING.add(k)
 
     for v in var.ENTRANCED_DYING:
         var.DYING.add(v)
@@ -4672,7 +4669,7 @@ def chk_nightdone(cli):
 
     nightroles = get_roles("harlot", "succubus", "bodyguard", "guardian angel",
                            "sorcerer", "hag", "shaman", "crazed shaman",
-                           "warlock", "piper", "vigilante", "doomsayer",
+                           "warlock", "piper", "doomsayer",
                            "prophet", "wolf shaman")
 
     for ghost, against in var.VENGEFUL_GHOSTS.items():
@@ -5331,7 +5328,7 @@ def kill(cli, nick, chan, rest):
         role = get_role(nick)
     except KeyError:
         role = None
-    if role not in {"dullahan", "vigilante"} and nick not in var.VENGEFUL_GHOSTS.keys():
+    if role != "dullahan" and nick not in var.VENGEFUL_GHOSTS.keys():
         return
     if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
         # ghost was driven away by retribution
@@ -5885,7 +5882,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus", "vigilante"))
+    roles=("harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5940,11 +5937,6 @@ def pass_cmd(cli, nick, chan, rest):
             pm(cli, nick, messages["already_charmed"])
             return
         pm(cli, nick, )
-        var.PASSED.add(nick)
-    elif nickrole == "vigilante":
-        if nick in var.OTHER_KILLS:
-            del var.OTHER_KILLS[nick]
-        pm(cli, nick, messages["hunter_pass"])
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
@@ -6704,16 +6696,6 @@ def transition_night(cli):
         else:
             pm(cli, succubus, messages["succubus_simple"])
         pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
-
-    for vigilante in var.ROLES["vigilante"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(vigilante)
-        if vigilante in var.PLAYERS and not is_user_simple(vigilante):
-            pm(cli, vigilante, messages["vigilante_notify"])
-        else:
-            pm(cli, vigilante, messages["vigilante_simple"])
-        pm(cli, vigilante, "Players: " + ", ".join(pl))
 
     for ms in var.ROLES["mad scientist"]:
         pl = ps[:]
