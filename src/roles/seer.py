@@ -127,8 +127,7 @@ def on_transition_night_end(evt, cli, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
-    global SEEN
-    SEEN = set()
+    SEEN.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):
