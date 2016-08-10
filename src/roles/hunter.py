@@ -19,8 +19,10 @@ def hunter_kill(cli, nick, chan, rest):
     if nick in HUNTERS and nick not in KILLS:
         pm(cli, nick, messages["hunter_already_killed"])
         return
-    pieces = re.split(" +", rest)
-    victim = pieces[0]
+    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    if not victim:
+        return
+
     orig = victim
     evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
     evt.dispatch(cli, var, "kill", nick, victim, frozenset({"detrimental"}))

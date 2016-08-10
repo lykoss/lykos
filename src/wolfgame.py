@@ -42,6 +42,7 @@ from datetime import datetime, timedelta
 from oyoyo.parse import parse_nick
 
 import botconfig
+import src
 import src.settings as var
 from src.utilities import *
 from src import db, decorators, events, logger, proxy, debuglog, errlog, plog
