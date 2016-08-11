@@ -451,7 +451,7 @@ def pastebin_tb(cli, msg, exc):
         req.add_header("Accept", "application/json")
         resp = urllib.request.urlopen(req)
         data = json.loads(resp.read().decode("utf-8"))
-        url = data["url"]
+        url = data["url"] + "/py3tb"
     except urllib.error.HTTPError as e:
         if e.code == 409:  # paste ID conflict
             pastebin_tb(exc)  # retry
