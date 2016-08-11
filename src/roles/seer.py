@@ -82,7 +82,7 @@ def on_rename(evt, cli, var, prefix, nick):
         SEEN.remove(prefix)
         SEEN.add(nick)
 
-@event_listener("acted")
+@event_listener("night_acted")
 def on_acted(evt, cli, var, nick, sender):
     if nick in SEEN:
         evt.data["acted"] = True
