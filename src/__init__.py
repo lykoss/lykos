@@ -15,12 +15,12 @@ from src import db
 # Do the same with roles
 
 try:
-    import gamemodes
+    import gamemodes # type: ignore
 except ImportError:
     import src.gamemodes
 
 try:
-    import roles
+    import roles # type: ignore
     roles.CUSTOM_ROLES_DEFINED
 except (ImportError, AttributeError):
     import src.roles
