@@ -143,10 +143,6 @@ class cmd:
             return
 
         if self.playing and (nick not in list_players() or nick in var.DISCONNECTED):
-            if chan == nick:
-                pm(cli, nick, messages["player_not_playing"])
-            else:
-                cli.notice(nick, messages["player_not_playing"])
             return
 
         if self.roles:

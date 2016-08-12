@@ -306,7 +306,6 @@
     "ill_wolves": "You are feeling ill tonight, and are unable to kill anyone.",
     "angry_wolves": "You are \u0002angry\u0002 tonight, and may kill two targets by using \"kill <nick1> and <nick2>\".",
     "wolf_bite": "You may use \"bite <nick>\" tonight in order to turn that person into a wolf.",
-    "player_not_playing": "You're not currently playing.",
     "werecrow_transformed": "You have already transformed into a crow, and cannot turn back until day.",
     "retracted_kill": "You have retracted your kill.",
     "wolfchat_retracted_kill": "\u0002{0}\u0002 has retracted their kill.",

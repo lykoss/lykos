@@ -5135,7 +5135,6 @@ def retract(cli, nick, chan, rest):
     if chan not in (botconfig.CHANNEL, nick):
         return
     if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in list_players()) or nick in var.DISCONNECTED.keys():
-        cli.notice(nick, messages["player_not_playing"])
         return
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
@@ -5287,7 +5286,6 @@ def is_safe(nick, victim): # helper function
 def kill(cli, nick, chan, rest):
     """Kill a player. Behaviour varies depending on your role."""
     if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in list_players()) or nick in var.DISCONNECTED.keys():
-        reply(cli, nick, chan, messages["player_not_playing"], private=True)
         return
     try:
         role = get_role(nick)
@@ -6933,7 +6931,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.notice(nick, messages["werewolf_already_running"])
             return
         if nick not in villagers and nick != chan and not forced:
-            cli.notice(nick, messages["player_not_playing"])
             return
 
         now = datetime.now()
@@ -7863,7 +7860,6 @@ def myrole(cli, nick, chan, rest):
 
     ps = list_players()
     if nick not in ps:
-        cli.notice(nick, messages["player_not_playing"])
         return
 
     role = get_role(nick)
@@ -8423,7 +8419,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         pl = list_players()
 
         if nick not in pl and not is_admin(nick):
-            cli.notice(nick, messages["player_not_playing"])
             return
 
         if rest:
