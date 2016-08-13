@@ -145,7 +145,7 @@ def connect_callback(cli):
                 common_caps = request_caps & supported_caps
 
                 if common_caps:
-                    cli.cap("REQ", ":{0}".format(" ".join(common_caps)))
+                    cli.cap("REQ " ":{0}".format(" ".join(common_caps)))
         elif cmd == "ACK":
             if "sasl" in caps:
                 cli.send("AUTHENTICATE PLAIN")

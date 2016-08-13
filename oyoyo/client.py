@@ -61,22 +61,7 @@ class TokenBucket(object):
     def __repr__(self):
         return "{self.__class__.__name__}(capacity={self.capacity}, fill rate={self.fill_rate}, tokens={self.tokens})".format(self=self)
 
-def add_commands(d):
-    def dec(cls):
-        for c in d:
-            def func(x):
-                def gen(self, *a):
-                    self.send(x.upper(), *a)
-                return gen
-            setattr(cls, c, func(c))
-        return cls
-    return dec
-@add_commands(("join",
-               "mode",
-               "nick",
-               "who",
-               "cap"))
-class IRCClient(object):
+class IRCClient:
     """ IRC Client class. This handles one connection to a server.
     This can be used either with or without IRCApp ( see connect() docs )
     """
@@ -188,7 +173,7 @@ class IRCClient(object):
             if not self.blocking:
                 self.socket.setblocking(0)
 
-            self.cap("LS", "302")
+            self.cap("LS 302")
 
             if self.server_pass and (not self.sasl_auth or "{password}" not in self.server_pass):
                 message = "PASS :{0}".format(self.server_pass).format(
@@ -271,12 +256,22 @@ class IRCClient(object):
                     line = line[:maxchars]
                 self.send("NOTICE", user, ":{0}".format(line))
                 line = extra
+    def join(self, channel):
+        self.send("JOIN {0}".format(channel))
     def quit(self, msg=""):
         self.send("QUIT :{0}".format(msg))
     def part(self, chan, msg=""):
         self.send("PART {0} :{1}".format(chan, msg))
+    def mode(self, *args):
+        self.send("MODE {0}".format(" ".join(args)))
     def kick(self, chan, nick, msg=""):
         self.send("KICK", chan, nick, ":"+msg)
+    def nick(self, nick):
+        self.send("NICK {0}".format(nick))
+    def who(self, *args):
+        self.send("WHO {0}".format(" ".join(args)))
+    def cap(self, req):
+        self.send("CAP {0}".format(req))
     def ns_identify(self, account, passwd, nickserv, command):
         if command:
             self.msg(nickserv, command.format(account=account, password=passwd))
