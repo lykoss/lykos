@@ -9,6 +9,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src.messages import messages
+from src.decorators import handle_error
 from src import events
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -882,8 +883,6 @@ class SleepyMode(GameMode):
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
-            from src import decorators
-            self.do_nightmare = decorators.handle_error(self.do_nightmare)
             self.having_nightmare = True
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(list_players()), var.NIGHT_COUNT))
@@ -896,6 +895,7 @@ class SleepyMode(GameMode):
         if self.having_nightmare == prefix:
             self.having_nightmare = nick
 
+    @handle_error
     def do_nightmare(self, cli, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
             return
