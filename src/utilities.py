@@ -13,6 +13,15 @@ from src import proxy, debuglog
 from src.events import Event
 from src.messages import messages
 
+__all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
+           "is_user_simple", "is_user_notice", "in_wolflist",
+           "relay_wolfchat_command", "chk_nightdone", "chk_decision",
+           "chk_win", "irc_lower", "irc_equals", "is_role", "match_hostmask",
+           "is_owner", "is_admin", "plural", "singular", "list_players",
+           "list_players_and_roles", "get_role", "get_reveal_role",
+           "get_templates", "role_order", "break_long_message",
+           "complete_match", "get_victim", "get_nick", "pastebin_tb",
+           "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
