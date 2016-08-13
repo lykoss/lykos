@@ -6014,6 +6014,8 @@ def relay(cli, nick, chan, rest):
             reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
         cli.notice(nick, reply)
         return
+    elif rest == "\u0001TIME\u0001":
+        cli.notice(nick, "\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())))
     if var.PHASE not in var.GAME_PHASES:
         return
 
