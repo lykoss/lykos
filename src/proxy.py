@@ -1,5 +1,3 @@
-import inspect
-
 """ This module introduces two decorators - @proxy.stub and @proxy.impl
 
 @proxy.stub is used to decorate a stub method that should be filled in
@@ -26,6 +24,9 @@ def my_method(foo, bar=10):
 def my_method(foo, bar=10):
     return foo * bar
 """
+
+import inspect
+
 IMPLS = {}
 SIGS = {}
 
@@ -36,14 +37,9 @@ def stub(f):
                                        "implemented in another module"))
         return IMPLS[f.__name__](*args, **kwargs)
 
-    if hasattr(inspect, "signature"):
-        # Python 3.3+
-        if f.__name__ in SIGS:
-            _sigmatch(f)
-        SIGS[f.__name__] = inspect.signature(f)
-    else:
-        # Python 3.2; not allowed to have nice things
-        SIGS[f.__name__] = None
+    if f.__name__ in SIGS:
+        _sigmatch(f)
+    SIGS[f.__name__] = inspect.signature(f)
 
     return inner
 
@@ -54,9 +50,7 @@ def impl(f):
     if f.__name__ in IMPLS:
         raise SyntaxError(("Attempting to implement a proxy stub {0} that "
                            "already has an implementation").format(f.__name__))
-    if hasattr(inspect, "signature"):
-        # Python 3.3+
-        _sigmatch(f)
+    _sigmatch(f)
 
     # Always wrap proxy implementations in an error handler
     # proxy needs to be a top level (no dependencies) module, so can't import this
