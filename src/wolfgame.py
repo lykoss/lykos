@@ -98,7 +98,6 @@ var.OPPED = False  # Keeps track of whether the bot is opped
 
 var.BITTEN_ROLES = {}
 var.LYCAN_ROLES = {}
-var.VENGEFUL_GHOSTS = {}
 var.CHARMED = set()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
@@ -677,7 +676,7 @@ def replace(cli, nick, chan, rest):
 
         for user in var.USERS:
             if irc_lower(var.USERS[user]["account"]) == account:
-                if user == nick or (user not in list_players() and user not in var.VENGEFUL_GHOSTS):
+                if user == nick or user not in list_participants():
                     pass
                 elif target is None:
                     target = user
@@ -690,7 +689,7 @@ def replace(cli, nick, chan, rest):
             reply(cli, nick, chan, msg, private=True)
             return
     else:
-        pl = list_players() + list(var.VENGEFUL_GHOSTS.keys())
+        pl = list_participants()
         pll = [irc_lower(i) for i in pl]
 
         target, _ = complete_match(irc_lower(rest[0]), pll)
@@ -698,7 +697,7 @@ def replace(cli, nick, chan, rest):
         if target is not None:
             target = pl[pll.index(target)]
 
-        if (target not in list_players() and target not in var.VENGEFUL_GHOSTS) or target not in var.USERS:
+        if target not in pl or target not in var.USERS:
             msg = messages["target_not_playing"].format(" longer" if target in var.DEAD else "t")
             reply(cli, nick, chan, msg, private=True)
             return
@@ -956,9 +955,9 @@ def join_deadchat(cli, *all_nicks):
         return
 
     nicks = []
-    pl = list_players()
+    pl = list_participants()
     for nick in all_nicks:
-        if is_user_stasised(nick) or nick in pl or nick in var.DEADCHAT_PLAYERS or nick in var.VENGEFUL_GHOSTS:
+        if is_user_stasised(nick) or nick in pl or nick in var.DEADCHAT_PLAYERS:
             continue
         nicks.append(nick)
 
@@ -2486,10 +2485,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 pentry["special"].append("lover")
             if splr in var.ENTRANCED:
                 pentry["special"].append("entranced")
-            if splr in var.VENGEFUL_GHOSTS:
-                pentry["special"].append("vg activated")
-                if var.VENGEFUL_GHOSTS[splr][0] == "!":
-                    pentry["special"].append("vg driven off")
 
             won = False
             iwon = False
@@ -2561,29 +2556,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 # For clone, this means they ended game while being clone and not some other role
                 if splr in survived and not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                     iwon = True
-            elif rol == "vengeful ghost":
-                if not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
-                    if winner != "succubi" and splr in var.ENTRANCED:
-                        won = False
-                        iwon = False
-                    elif won and splr in survived:
-                        iwon = True
-                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "villagers" and winner == "wolves":
-                        won = True
-                        iwon = True
-                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "!villagers" and winner == "wolves":
-                        # Starts with ! if they were driven off by retribution totem
-                        won = True
-                        iwon = False
-                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "wolves" and winner == "villagers":
-                        won = True
-                        iwon = True
-                    elif splr in var.VENGEFUL_GHOSTS and var.VENGEFUL_GHOSTS[splr] == "!wolves" and winner == "villagers":
-                        won = True
-                        iwon = False
-                    else:
-                        won = False
-                        iwon = False
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
             elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
@@ -2874,10 +2846,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 var.FINAL_ROLES[clone] = nickrole
                                 sayrole = nickrole
                             debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, sayrole))
-                            # if cloning time lord or vengeful ghost, say they are villager instead
-                            if sayrole == "time lord":
+                            if sayrole in var.HIDDEN_VILLAGERS:
                                 sayrole = "villager"
-                            elif sayrole == "vengeful ghost":
+                            elif sayrole in var.HIDDEN_ROLES:
                                 sayrole = var.DEFAULT_ROLE
                             an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
                             pm(cli, clone, messages["clone_turn"].format(an, sayrole))
@@ -3021,13 +2992,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             t.start()
 
                     debuglog(nick, "(time lord) TRIGGER")
-                if nickrole == "vengeful ghost":
-                    if killer_role in var.WOLFTEAM_ROLES:
-                        var.VENGEFUL_GHOSTS[nick] = "wolves"
-                    else:
-                        var.VENGEFUL_GHOSTS[nick] = "villagers"
-                    pm(cli, nick, messages["vengeful_turn"].format(var.VENGEFUL_GHOSTS[nick]))
-                    debuglog(nick, "(vengeful ghost) TRIGGER", var.VENGEFUL_GHOSTS[nick])
                 if nickrole == "wolf cub":
                     var.ANGRY_WOLVES = True
                 if nickrole in var.WOLF_ROLES:
@@ -3538,7 +3502,7 @@ def rename_player(cli, prefix, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.VENGEFUL_GHOSTS, var.TOTEMS, var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
+            for dictvar in (var.TOTEMS, var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
@@ -3796,7 +3760,7 @@ def begin_day(cli):
 
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.OTHER_KILLS = {} # other kill victims (vengeful ghost)
+    var.OTHER_KILLS = {}
     var.KILLER = ""  # nickname of who chose the victim
     var.SEEN = set()  # set of doomsayers that have had visions
     var.HEXED = set() # set of hags that have silenced others
@@ -3900,21 +3864,6 @@ def transition_day(cli, gameid=0):
 
         # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
         # that isn't going to be dying today, meaning we need to know who is dying first :)
-
-        # Select a random target for vengeful ghost if they didn't kill
-        wolves = set(list_players(var.WOLFTEAM_ROLES))
-        villagers = set(list_players()) - wolves
-        for ghost, target in var.VENGEFUL_GHOSTS.items():
-            if target[0] == "!" or ghost in var.SILENCED:
-                continue
-            if ghost not in var.OTHER_KILLS:
-                if target == "wolves":
-                    choice = wolves.copy()
-                else:
-                    choice = villagers.copy()
-                if ghost in var.ENTRANCED:
-                    choice -= var.ROLES["succubus"]
-                var.OTHER_KILLS[ghost] = random.choice(list(choice))
 
         # Select random totem recipients if shamans didn't act
         shamans = list_players(var.TOTEM_ORDER)
@@ -4096,7 +4045,6 @@ def transition_day(cli, gameid=0):
     protected = evt.data["protected"]
     bitten = evt.data["bitten"]
 
-    wolfghostvictims = []
     for k, d in var.OTHER_KILLS.items():
         victims.append(d)
         onlybywolves.discard(d)
@@ -4425,17 +4373,13 @@ def transition_day(cli, gameid=0):
                     break
                 if loser in dead or victim == loser:
                     loser = None
-                if loser == "@wolves":
-                    wolves = list_players(var.WOLF_ROLES)
-                    for crow in var.ROLES["werecrow"]:
-                        if crow in var.OBSERVED:
-                            wolves.remove(crow)
-                    loser = random.choice(wolves)
-                if loser in var.VENGEFUL_GHOSTS.keys():
-                    # mark ghost as being unable to kill any more
-                    var.VENGEFUL_GHOSTS[loser] = "!" + var.VENGEFUL_GHOSTS[loser]
-                    message.append(messages["totem_banish"].format(victim, loser))
-                elif loser is not None and loser not in var.ROLES["blessed villager"]:
+                evt = Event("retribution_kill", {"target": loser, "message": []})
+                evt.dispatch(cli, var, victim, loser)
+                loser = evt.data["target"]
+                message.extend(evt.data["message"])
+                if loser in dead or victim == loser:
+                    loser = None
+                if loser is not None and loser not in var.ROLES["blessed villager"]:
                     dead.append(loser)
                     if var.ROLE_REVEAL in ("on", "team"):
                         role = get_reveal_role(loser)
@@ -4598,13 +4542,20 @@ def transition_day(cli, gameid=0):
         var.FINAL_ROLES[chump] = newrole
         relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
-    for deadperson in dead:  # kill each player, but don't end the game if one group outnumbers another
-        # take a shortcut for killer_role here since vengeful ghost only cares about team and not particular roles
-        # this will have to be modified to track the actual killer if that behavior changes
-        # we check if they have already been killed as well since del_player could do chain reactions and we want
+    for deadperson in dead:
+        # check if they have already been killed since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
         if deadperson in list_players():
-            del_player(cli, deadperson, end_game=False, killer_role="wolf" if deadperson in onlybywolves or deadperson in wolfghostvictims else "villager", deadlist=dead, original=deadperson)
+            if deadperson in killers:
+                killer = killers[deadperson][0]
+                if killer == "@wolves":
+                    killer_role = "wolf"
+                else:
+                    killer_role = get_role(killer)
+            else:
+                # no killers, so assume suicide
+                killer_role = get_role(deadperson)
+            del_player(cli, deadperson, end_game=False, killer_role=killer_role, deadlist=dead, original=deadperson)
 
     message = []
 
@@ -4642,10 +4593,6 @@ def chk_nightdone(cli):
                            "warlock", "piper", "doomsayer",
                            "prophet", "wolf shaman")
 
-    for ghost, against in var.VENGEFUL_GHOSTS.items():
-        if not against.startswith("!"):
-            nightroles.append(ghost)
-
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
             actedcount += 1
@@ -4664,9 +4611,6 @@ def chk_nightdone(cli):
         nightroles.extend(get_roles("alpha wolf"))
         actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
 
-    # but remove all instances of their name if they are silenced
-    nightroles = [p for p in nightroles if p not in var.SILENCED]
-
     # add in turncoats who should be able to act -- if they passed they're already in var.PASSED
     # but if they can act they're in var.TURNCOATS where the second tuple item is the current night
     # (if said tuple item is the previous night, then they are not allowed to act tonight)
@@ -4682,6 +4626,9 @@ def chk_nightdone(cli):
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(cli, var)
     actedcount = event.data["actedcount"]
+
+    # remove all instances of their name if they are silenced (makes implementing the event easier)
+    nightroles = [p for p in nightroles if p not in var.SILENCED]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         if not event.prevent_default:
@@ -5128,13 +5075,13 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", "r", pm=True, phases=("day", "night", "join"))
+@cmd("retract", "r", pm=True, phases=("day", "join"))
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
-    if chan not in (botconfig.CHANNEL, nick):
+    if chan != botconfig.CHANNEL:
         return
-    if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in list_players()) or nick in var.DISCONNECTED.keys():
+    if nick not in list_players() or nick in var.DISCONNECTED.keys():
         return
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
@@ -5150,29 +5097,6 @@ def retract(cli, nick, chan, rest):
                         var.TIMERS['start_votes'][0].cancel()
                         del var.TIMERS['start_votes']
             return
-
-    if chan == nick: # PM, use different code
-        role = get_role(nick)
-        if role not in var.WOLF_ROLES - {"wolf cub"} and nick not in var.VENGEFUL_GHOSTS.keys():
-            return
-        if var.PHASE != "night":
-            return
-        if role == "werecrow":  # Check if already observed
-            if var.OBSERVED.get(nick):
-                pm(cli, nick, (messages["werecrow_transformed"]))
-                return
-
-        if role not in var.WOLF_ROLES and nick in var.OTHER_KILLS.keys():
-            del var.OTHER_KILLS[nick]
-            pm(cli, nick, messages["retracted_kill"])
-        elif role == "alpha wolf" and nick in var.BITE_PREFERENCES.keys():
-            del var.BITE_PREFERENCES[nick]
-            var.ALPHA_WOLVES.remove(nick)
-            pm(cli, nick, messages["no_bite"])
-            relay_wolfchat_command(cli, nick, messages["wolfchat_no_bite"].format(nick), ("alpha wolf",), is_wolf_command=True)
-        elif role == "alpha wolf" and var.ALPHA_ENABLED:
-            pm(cli, nick, messages["kill_bite_pending"])
-        return
 
     if var.PHASE != "day":
         return
@@ -5282,62 +5206,6 @@ def shoot(cli, nick, chan, rest):
 def is_safe(nick, victim): # helper function
     return nick in var.ENTRANCED and victim in var.ROLES["succubus"]
 
-@cmd("kill", chan=False, pm=True, phases=("night",))
-def kill(cli, nick, chan, rest):
-    """Kill a player. Behaviour varies depending on your role."""
-    if (nick not in var.VENGEFUL_GHOSTS.keys() and nick not in list_players()) or nick in var.DISCONNECTED.keys():
-        return
-    try:
-        role = get_role(nick)
-    except KeyError:
-        role = None
-    if nick not in var.VENGEFUL_GHOSTS.keys():
-        return
-    if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] == "!":
-        # ghost was driven away by retribution
-        return
-    if nick in var.SILENCED:
-        pm(cli, nick, messages["silenced"])
-        return
-    pieces = re.split(" +",rest)
-    victim = pieces[0]
-
-    victim = get_victim(cli, nick, victim, False)
-    if not victim:
-        return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("kill"))
-        return
-
-    if victim == nick:
-        if nick in var.VENGEFUL_GHOSTS.keys():
-            pm(cli, nick, messages["player_dead"])
-        else:
-            pm(cli, nick, messages["no_suicide"])
-        return
-
-    if nick in var.VENGEFUL_GHOSTS.keys():
-        allwolves = list_players(var.WOLFTEAM_ROLES)
-        if var.VENGEFUL_GHOSTS[nick] == "wolves" and victim not in allwolves:
-            pm(cli, nick, messages["vengeful_ghost_wolf"])
-            return
-        elif var.VENGEFUL_GHOSTS[nick] == "villagers" and victim in allwolves:
-            pm(cli, nick, messages["vengeful_ghost_villager"])
-            return
-
-    rv = choose_target(nick, victim)
-    if nick not in var.VENGEFUL_GHOSTS.keys():
-        if check_exchange(cli, nick, rv):
-            return
-    var.OTHER_KILLS[nick] = rv
-
-    msg = messages["wolf_target"].format(victim)
-    pm(cli, nick, messages["player"].format(msg))
-
-    debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victim, get_role(victim)))
-
-    chk_nightdone(cli)
-
 @cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def guard(cli, nick, chan, rest):
     """Guard a player, preventing them from being killed that night."""
@@ -5417,7 +5285,8 @@ def consecrate(cli, nick, chan, rest):
     # but other roles that do stuff after death or impact dead players should have functionality here as well
     # (for example, if there was a role that could raise corpses as undead somethings, this would prevent that from working)
     # regardless if this has any actual effect or not, it still removes the priest from being able to vote
-    if victim in var.VENGEFUL_GHOSTS.keys():
+    from src.roles import vengefulghost
+    if victim in vengefulghost.GHOSTS:
         var.SILENCED.add(victim)
 
     var.CONSECRATING.add(nick)
@@ -6713,26 +6582,6 @@ def transition_night(cli):
         else:
             pm(cli, lycan, messages["lycan_simple"])
 
-    for v_ghost, who in var.VENGEFUL_GHOSTS.items():
-        if who[0] == "!":
-            continue
-        wolves = list_players(var.WOLFTEAM_ROLES)
-        if who == "wolves":
-            pl = wolves
-        else:
-            pl = ps[:]
-            for wolf in wolves:
-                pl.remove(wolf)
-
-        random.shuffle(pl)
-
-        if v_ghost in var.PLAYERS and not is_user_simple(v_ghost):
-            pm(cli, v_ghost, messages["vengeful_ghost_notify"].format(who))
-        else:
-            pm(cli, v_ghost, messages["vengeful_ghost_simple"])
-        pm(cli, v_ghost, who.capitalize() + ": " + ", ".join(pl))
-        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(pl)))
-
     for ass in var.ROLES["assassin"]:
         if ass in var.TARGETED and var.TARGETED[ass] != None:
             continue # someone already targeted
@@ -7040,7 +6889,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.OBSERVED = {}
     var.GUARDED = {}
     var.HVISITED = {}
-    var.VENGEFUL_GHOSTS = {}
     var.CLONED = {}
     var.TARGETED = {}
     var.LASTGUARDED = {}
@@ -7853,12 +7701,7 @@ def listroles(cli, nick, chan, rest):
 def myrole(cli, nick, chan, rest):
     """Reminds you of your current role."""
 
-    #special case vengeful ghost (that hasn't been driven away)
-    if nick in var.VENGEFUL_GHOSTS.keys() and var.VENGEFUL_GHOSTS[nick][0] != "!":
-        pm(cli, nick, messages["vengeful_role"].format(var.VENGEFUL_GHOSTS[nick]))
-        return
-
-    ps = list_players()
+    ps = list_participants()
     if nick not in ps:
         return
 
@@ -7869,7 +7712,8 @@ def myrole(cli, nick, chan, rest):
         role = var.DEFAULT_ROLE
 
     evt = Event("myrole", {"role": role, "messages": []})
-    evt.dispatch(cli, var, nick)
+    if not evt.dispatch(cli, var, nick):
+        return
     role = evt.data["role"]
 
     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -8234,7 +8078,7 @@ def can_run_restricted_cmd(nick):
     if botconfig.DEBUG_MODE:
         return True
 
-    pl = list_players() + [vg for (vg, against) in var.VENGEFUL_GHOSTS.items() if not against.startswith("!")]
+    pl = list_participants()
 
     if nick in pl:
         return False
@@ -8381,12 +8225,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
         elif len(lovers) > 2:
             output.append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
-
-        # print out vengeful ghosts, also vengeful ghosts that were driven away by 'retribution' totem
-        if var.VENGEFUL_GHOSTS:
-            output.append("\u0002dead vengeful ghost\u0002: {0}".format(", ".join("{0} ({1}against {2})".format(
-                   ghost, team.startswith("!") and "driven away, " or "", team.lstrip("!"))
-                   for (ghost, team) in var.VENGEFUL_GHOSTS.items())))
 
         #show who got immunized
         if var.IMMUNIZED:

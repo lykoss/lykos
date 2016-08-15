@@ -91,11 +91,15 @@ def wolf_kill(cli, nick, chan, rest):
 @cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",))
 def wolf_retract(cli, nick, chan, rest):
     """Removes a wolf's kill selection."""
-    if nick not in KILLS:
-        return
-    del KILLS[nick]
-    pm(cli, nick, messages["retracted_kill"])
-    relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+    if nick in KILLS:
+        del KILLS[nick]
+        pm(cli, nick, messages["retracted_kill"])
+        relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+    if get_role(nick) == "alpha wolf" and nick in var.BITE_PREFERENCES:
+        del var.BITE_PREFERENCES[nick]
+        var.ALPHA_WOLVES.remove(nick)
+        pm(cli, nick, messages["no_bite"])
+        relay_wolfchat_command(cli, nick, messages["wolfchat_no_bite"].format(nick), ("alpha wolf",), is_wolf_command=True)
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
@@ -169,6 +173,35 @@ def on_transition_day(evt, cli, var):
                 evt.data["victims"].remove(monster)
                 evt.data["bywolves"].discard(monster)
                 evt.data["onlybywolves"].discard(monster)
+
+@event_listener("transition_day", priority=5)
+def on_transition_day2(evt, cli, var):
+    wolfteam = list_players(var.WOLFTEAM_ROLES)
+    for victim, killers in list(evt.data["killers"].items()):
+        k2 = []
+        kappend = []
+        wolves = False
+        for k in killers:
+            if k in wolfteam:
+                kappend.append(k)
+            elif k == "@wolves":
+                wolves = True
+            else:
+                k2.append(k)
+        k2.extend(kappend)
+        if wolves:
+            k2.append("@wolves")
+        evt.data["killers"][victim] = k2
+
+@event_listener("retribution_kill")
+def on_retribution_kill(evt, cli, var, victim, orig_target):
+    t = evt.data["target"]
+    if t == "@wolves":
+        wolves = list_players(var.WOLF_ROLES)
+        for crow in var.ROLES["werecrow"]:
+            if crow in var.OBSERVED:
+                wolves.remove(crow)
+        evt.data["target"] = random.choice(wolves)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

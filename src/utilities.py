@@ -18,8 +18,8 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "relay_wolfchat_command", "chk_nightdone", "chk_decision",
            "chk_win", "irc_lower", "irc_equals", "is_role", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "list_players_and_roles", "get_role", "get_reveal_role",
-           "get_templates", "role_order", "break_long_message",
+           "list_players_and_roles", "list_participants", "get_role", "get_roles",
+           "get_reveal_role", "get_templates", "role_order", "break_long_message",
            "complete_match", "get_victim", "get_nick", "pastebin_tb",
            "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
@@ -309,7 +309,7 @@ def singular(plural):
     # otherwise we just added an s on the end
     return plural[:-1]
 
-def list_players(roles = None):
+def list_players(roles=None):
     if roles is None:
         roles = var.ROLES.keys()
     pl = set()
@@ -329,19 +329,34 @@ def list_players_and_roles():
             plr[p] = x
     return plr
 
+def list_participants():
+    """List all people who are still able to participate in the game in some fashion."""
+    pl = list_players()
+    evt = Event("list_participants", {"pl": pl})
+    evt.dispatch(var)
+    return evt.data["pl"][:]
+
 def get_role(p):
     for role, pl in var.ROLES.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             continue # only get actual roles
         if p in pl:
             return role
+    # not found in player list, see if they're a special participant
+    role = None
+    if p in list_participants():
+        evt = Event("get_participant_role", {"role": None})
+        evt.dispatch(var, p)
+        role = evt.data["role"]
+    if role is None:
+        raise ValueError("Nick {0} isn't playing and has no defined participant role".format(p))
+    return role
 
 def get_roles(*roles):
     all_roles = []
     for role in roles:
         all_roles.append(var.ROLES[role])
     return list(itertools.chain(*all_roles))
-
 
 def get_reveal_role(nick):
     if var.HIDDEN_TRAITOR and get_role(nick) == "traitor":

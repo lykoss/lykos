@@ -142,7 +142,7 @@ def on_transition_day(evt, cli, var):
     for k, d in list(KILLS.items()):
         evt.data["victims"].append(d)
         evt.data["onlybywolves"].discard(d)
-        evt.data["killers"][d] = k
+        evt.data["killers"][d].append(k)
         del KILLS[k]
 
 @event_listener("exchange_roles")
