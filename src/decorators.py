@@ -58,7 +58,8 @@ class handle_error:
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
-                 chan=True, pm=False, playing=False, silenced=False, phases=(), roles=()):
+                 chan=True, pm=False, playing=False, silenced=False,
+                 phases=(), roles=(), nicks=None):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
@@ -70,6 +71,7 @@ class cmd:
         self.silenced = silenced
         self.phases = phases
         self.roles = roles
+        self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
         self.func = None
         self.aftergame = False
         self.name = cmds[0]
@@ -145,20 +147,21 @@ class cmd:
         if self.playing and (nick not in list_players() or nick in var.DISCONNECTED):
             return
 
-        if self.roles:
-            for role in self.roles:
-                if nick in var.ROLES[role]:
-                    break
+        for role in self.roles:
+            if nick in var.ROLES[role]:
+                break
+        else:
+            if (self.nicks is not None and nick not in self.nicks) or self.roles:
+                return
+
+        if self.silenced and nick in var.SILENCED:
+            if chan == nick:
+                pm(cli, nick, messages["silenced"])
             else:
-                return
+                cli.notice(nick, messages["silenced"])
+            return
 
-            if self.silenced and nick in var.SILENCED:
-                if chan == nick:
-                    pm(cli, nick, messages["silenced"])
-                else:
-                    cli.notice(nick, messages["silenced"])
-                return
-
+        if self.roles or (self.nicks is not None and nick in self.nicks):
             return self.func(*largs) # don't check restrictions for role commands
 
         forced_owner_only = False

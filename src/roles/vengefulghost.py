@@ -12,13 +12,10 @@ from src.events import Event
 KILLS = {} # type: Dict[str, str]
 GHOSTS = {} # type: Dict[str, str]
 
-@cmd("kill", chan=False, pm=True, playing=False, phases=("night",))
+@cmd("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), nicks=GHOSTS)
 def vg_kill(cli, nick, chan, rest):
     """Take revenge on someone each night after you die."""
-    if nick not in GHOSTS or GHOSTS[nick][0] == "!":
-        return
-    if nick in var.SILENCED:
-        pm(cli, nick, messages["silenced"])
+    if GHOSTS[nick][0] == "!":
         return
 
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)

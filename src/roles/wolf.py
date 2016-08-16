@@ -10,17 +10,14 @@ from src.messages import messages
 from src.events import Event
 
 KILLS = {} # type: Dict[str, List[str]]
+# tetrahedron wolves consist of a pack of wolves without any wolf cube
+TETRAHEDRON_WOLVES = set(var.WOLF_ROLES - {"wolf cub"}) # type: Set[str]
 
-@cmd("kill", chan=False, pm=True, playing=True, phases=("night",))
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=TETRAHEDRON_WOLVES)
 def wolf_kill(cli, nick, chan, rest):
     """Kills one or more players as a wolf."""
     role = get_role(nick)
     # eventually cub will listen on targeted_command and block kills that way
-    if role not in var.WOLF_ROLES - {"wolf cub"}:
-        return
-    if nick in var.SILENCED:
-        pm(cli, nick, messages["silenced"])
-        return
     if var.DISEASED_WOLVES:
         pm(cli, nick, messages["ill_wolves"])
         return
@@ -215,7 +212,7 @@ def on_chk_nightdone(evt, cli, var):
     if not var.DISEASED_WOLVES:
         evt.data["actedcount"] += len(KILLS)
         # eventually wolf cub will remove itself from nightroles in wolfcub.py
-        evt.data["nightroles"].extend(list_players(var.WOLF_ROLES - {"wolf cub"}))
+        evt.data["nightroles"].extend(list_players(TETRAHEDRON_WOLVES))
 
 @event_listener("chk_nightdone", priority=20)
 def on_chk_nightdone2(evt, cli, var):
@@ -312,7 +309,7 @@ def on_transition_night_end(evt, cli, var):
                     pl[i] = player + " (cursed)"
 
         pm(cli, wolf, "Players: " + ", ".join(pl))
-        if role in var.WOLF_ROLES - {"wolf cub"} and var.DISEASED_WOLVES:
+        if role in TETRAHEDRON_WOLVES and var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
         # TODO: split the following out into their own files (mystic, cub and alpha)
         if role == "wolf mystic":
@@ -320,7 +317,7 @@ def on_transition_night_end(evt, cli, var):
             # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
             numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
             pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in var.WOLF_ROLES - {"wolf cub"}:
+        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in TETRAHEDRON_WOLVES:
             pm(cli, wolf, messages["angry_wolves"])
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
             pm(cli, wolf, messages["wolf_bite"])
