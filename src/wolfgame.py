@@ -4544,20 +4544,23 @@ def transition_day(cli, gameid=0):
         var.FINAL_ROLES[chump] = newrole
         relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
+    killer_role = {}
+    for deadperson in dead:
+        if deadperson in killers:
+            killer = killers[deadperson][0]
+            if killer == "@wolves":
+                killer_role[deadperson] = "wolf"
+            else:
+                killer_role[deadperson] = get_role(killer)
+        else:
+            # no killers, so assume suicide
+            killer_role[deadperson] = get_role(deadperson)
+
     for deadperson in dead:
         # check if they have already been killed since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
         if deadperson in list_players():
-            if deadperson in killers:
-                killer = killers[deadperson][0]
-                if killer == "@wolves":
-                    killer_role = "wolf"
-                else:
-                    killer_role = get_role(killer)
-            else:
-                # no killers, so assume suicide
-                killer_role = get_role(deadperson)
-            del_player(cli, deadperson, end_game=False, killer_role=killer_role, deadlist=dead, original=deadperson)
+            del_player(cli, deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
 
     message = []
 
