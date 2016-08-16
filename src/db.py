@@ -14,7 +14,7 @@ from src.utilities import irc_lower, break_long_message, role_order, singular
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _ts = threading.local()
 
@@ -816,7 +816,12 @@ def _upgrade(oldversion):
                 print ("Upgrade from version 2 to 3...", file=sys.stderr)
                 with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
+            if oldversion < 4:
+                print ("Upgrade from verison 3 to 4...", file=sys.stderr)
+                # no actual upgrades, just wanted to force an index rebuild
 
+            print ("Rebuilding indexes...", file=sys.stderr)
+            c.execute("REINDEX")
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
             print ("Upgrades complete!", file=sys.stderr)
     except sqlite3.Error:
@@ -985,7 +990,7 @@ def _collate_irc(s1, s2):
         return 1
 
 need_install = not os.path.isfile("data.sqlite3")
-conn = sqlite3.connect("data.sqlite3")
+conn = _conn()
 with conn:
     c = conn.cursor()
     c.execute("PRAGMA foreign_keys = ON")
