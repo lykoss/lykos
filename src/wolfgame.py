@@ -1413,8 +1413,10 @@ def stats(cli, nick, chan, rest):
         else:
             badguys = var.WOLF_ROLES | {"traitor"}
 
-    role = get_role(nick)
-    if chan == nick and nick in pl and role in badguys | {"warlock"}:
+    role = None
+    if nick in pl:
+        role = get_role(nick)
+    if chan == nick and role in badguys | {"warlock"}:
         ps = pl[:]
         if role in badguys:
             for i, player in enumerate(ps):
