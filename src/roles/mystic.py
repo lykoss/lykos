@@ -10,12 +10,12 @@ from src.events import Event
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    evt = Event("get_special", {"special": set()})
-    evt.dispatch(cli, var)
+    evt2 = Event("get_special", {"special": set()})
+    evt2.dispatch(cli, var)
     pl = set(list_players())
     wolves = set(list_players(var.WOLFTEAM_ROLES))
     neutral = set(list_players(var.TRUE_NEUTRAL_ROLES))
-    special = evt.data["special"]
+    special = evt2.data["special"]
 
     if nick_role == "wolf mystic" and actor_role != "wolf mystic":
         # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
@@ -35,12 +35,12 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, cli, var):
-    evt = Event("get_special", {"special": set()})
-    evt.dispatch(cli, var)
+    evt2 = Event("get_special", {"special": set()})
+    evt2.dispatch(cli, var)
     pl = set(list_players())
     wolves = set(list_players(var.WOLFTEAM_ROLES))
     neutral = set(list_players(var.TRUE_NEUTRAL_ROLES))
-    special = evt.data["special"]
+    special = evt2.data["special"]
 
     for wolf in var.ROLES["wolf mystic"]:
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night

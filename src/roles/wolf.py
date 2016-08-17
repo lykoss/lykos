@@ -223,6 +223,8 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         notify = []
         for i, player in enumerate(pl):
             prole = get_role(player)
+            if player == nick:
+                prole = actor_role
             if prole in wcroles:
                 cursed = ""
                 if player in var.ROLES["cursed villager"]:
@@ -232,14 +234,14 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             elif player in var.ROLES["cursed villager"]:
                 pl[i] = player + " (cursed)"
 
-            mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(nick, actor))
-            evt.data["actor_messages"].append("Players: " + ", ".join(pl))
-            if nick_role in CAN_KILL and var.DISEASED_WOLVES:
-                evt.data["actor_messages"].append(messages["ill_wolves"])
-            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and nick_role in CAN_KILL:
-                evt.data["actor_messages"].append(messages["angry_wolves"])
-            if var.ALPHA_ENABLED and nick_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
-                evt.data["actor_messages"].append(messages["wolf_bite"])
+        mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(nick, actor))
+        evt.data["actor_messages"].append("Players: " + ", ".join(pl))
+        if nick_role in CAN_KILL and var.DISEASED_WOLVES:
+            evt.data["actor_messages"].append(messages["ill_wolves"])
+        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and nick_role in CAN_KILL:
+            evt.data["actor_messages"].append(messages["angry_wolves"])
+        if var.ALPHA_ENABLED and nick_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
+            evt.data["actor_messages"].append(messages["wolf_bite"])
     elif actor_role in wcroles and nick_role not in wcroles:
         pl = list_players()
         random.shuffle(pl)
@@ -247,6 +249,8 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         notify = []
         for i, player in enumerate(pl):
             prole = get_role(player)
+            if player == actor:
+                prole = nick_role
             if prole in wcroles:
                 cursed = ""
                 if player in var.ROLES["cursed villager"]:
@@ -256,14 +260,14 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             elif player in var.ROLES["cursed villager"]:
                 pl[i] = player + " (cursed)"
 
-            mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(actor, nick))
-            evt.data["nick_messages"].append("Players: " + ", ".join(pl))
-            if actor_role in CAN_KILL and var.DISEASED_WOLVES:
-                evt.data["nick_messages"].append(messages["ill_wolves"])
-            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and actor_role in CAN_KILL:
-                evt.data["nick_messages"].append(messages["angry_wolves"])
-            if var.ALPHA_ENABLED and actor_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
-                evt.data["nick_messages"].append(messages["wolf_bite"])
+        mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(actor, nick))
+        evt.data["nick_messages"].append("Players: " + ", ".join(pl))
+        if actor_role in CAN_KILL and var.DISEASED_WOLVES:
+            evt.data["nick_messages"].append(messages["ill_wolves"])
+        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and actor_role in CAN_KILL:
+            evt.data["nick_messages"].append(messages["angry_wolves"])
+        if var.ALPHA_ENABLED and actor_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
+            evt.data["nick_messages"].append(messages["wolf_bite"])
 
     if actor in KILLS:
         del KILLS[actor]

@@ -5921,8 +5921,8 @@ def charm(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@event_listener("targeted_cmd", priority=9)
-def on_targeted_cmd(evt, cli, var, cmd, actor, orig_target, tags):
+@event_listener("targeted_command", priority=9)
+def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
     # TODO: move beneficial command check into roles/succubus.py
     if "beneficial" not in tags and is_safe(actor, evt.data["target"]):
         pm(cli, actor, messages["no_acting_on_succubus"].format(cmd))
