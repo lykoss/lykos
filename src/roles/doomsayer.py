@@ -112,6 +112,27 @@ def on_chk_nightdone(evt, cli, var):
     evt.data["actedcount"] += len(SEEN)
     evt.data["nightroles"].extend(get_roles("doomsayer"))
 
+@event_listener("abstain")
+def on_abstain(evt, cli, var, nick):
+    if nick in SICK.values():
+        pm(cli, nick, messages["illness_no_vote"])
+        evt.prevent_default = True
+
+@event_listener("lynch")
+def on_lynch(evt, cli, var, nick):
+    if nick in SICK.values():
+        pm(cli, nick, messages["illness_no_vote"])
+        evt.prevent_default = True
+
+@event_listener("get_voters")
+def on_get_voters(evt, cli, var):
+    evt.data["voters"].difference_update(SICK.values())
+
+@event_listener("transition_day_begin")
+def on_transition_day_begin(evt, cli, var):
+    for victim in SICK.values():
+        pm(cli, victim, messages["player_sick"])
+
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
     for k, d in list(KILLS.items()):
@@ -131,8 +152,11 @@ def on_begin_day(evt, cli, var):
 
     SEEN.clear()
     KILLS.clear()
-    SICK.clear()
     LYCANS.clear()
+
+@event_listener("transition_night_begin")
+def on_transition_night_begin(evt, cli, var):
+    SICK.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):

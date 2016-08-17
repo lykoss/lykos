@@ -1986,11 +1986,14 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["daylight_warning"])
         return
 
-
     var.DAY_ID = 0
 
-    pl = list_players()
-    avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
+    pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+    evt = Event("get_voters", {"voters": pl})
+    evt.dispatch(cli, var)
+    pl = evt.data["voters"]
+
+    avail = len(pl)
     votesneeded = avail // 2 + 1
     not_lynching = len(var.NO_LYNCH)
 
@@ -2025,9 +2028,6 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["sunset"])
         transition_night(cli)
 
-
-
-
 @cmd("fnight", flag="d")
 def fnight(cli, nick, chan, rest):
     """Forces the day to end and night to begin."""
@@ -2052,14 +2052,18 @@ def chk_decision(cli, force = ""):
         if var.PHASE != "day":
             return
         chan = botconfig.CHANNEL
-        pl = list_players()
-        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
+        pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        evt = Event("get_voters", {"voters": pl})
+        evt.dispatch(cli, var)
+        pl = evt.data["voters"]
+
+        avail = len(pl)
         votesneeded = avail // 2 + 1
         not_lynching = list(var.NO_LYNCH)
         deadlist = []
         votelist = copy.deepcopy(var.VOTES)
         for p in var.PACIFISTS:
-            if p in pl and p not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
+            if p in pl:
                 not_lynching.append(p)
 
         # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
@@ -2072,15 +2076,11 @@ def chk_decision(cli, force = ""):
 
         # fire off an event (right now if people want to mess with votes, they need to reimplement all the impatience/pacifism stuff)
         event = Event("chk_decision", {
-            "avail": avail,
-            "votesneeded": votesneeded,
             "not_lynching": not_lynching,
             "votelist": votelist,
             "transition_night": transition_night
             })
         event.dispatch(cli, var, force)
-        avail = event.data["avail"]
-        votesneeded = event.data["votesneeded"]
         not_lynching = event.data["not_lynching"]
         votelist = event.data["votelist"]
 
@@ -2124,7 +2124,7 @@ def chk_decision(cli, force = ""):
             numvotes = 0
             random.shuffle(var.IMPATIENT)
             for v in var.IMPATIENT:
-                if v in pl and v not in voters and v != votee and v not in (var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK):
+                if v in pl and v not in voters and v != votee:
                     # don't add them in if they have the same number or more of pacifism totems
                     # this matters for desperation totem on the votee
                     imp_count = var.IMPATIENT.count(v)
@@ -2299,15 +2299,19 @@ def show_votes(cli, nick, chan, rest):
 
         reply(cli, nick, chan, msg)
 
-        pl = list_players()
-        avail = len(pl) - len(var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK)
+        pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        evt = Event("get_voters", {"voters": pl})
+        evt.dispatch(cli, var)
+        pl = evt.data["voters"]
+
+        avail = len(pl)
         votesneeded = avail // 2 + 1
         not_voting = len(var.NO_LYNCH)
         if not_voting == 1:
             plural = " has"
         else:
             plural = "s have"
-        the_message = messages["vote_stats"].format(_nick, len(pl), votesneeded, avail)
+        the_message = messages["vote_stats"].format(_nick, len(list_players()), votesneeded, avail)
         if var.ABSTAIN_ENABLED:
             the_message += messages["vote_stats_abstain"].format(not_voting, plural)
 
@@ -2665,7 +2669,8 @@ def chk_win(cli, end_game=True, winner=None):
                 wcroles = var.WOLF_ROLES | {"traitor"}
         else:
             wcroles = var.WOLFCHAT_ROLES
-        lwolves = len(list_players(wcroles))
+        wolves = set(list_players(wcroles))
+        lwolves = len(wolves)
         lcubs = len(var.ROLES.get("wolf cub", ()))
         lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}))
         lmonsters = len(var.ROLES.get("monster", ()))
@@ -2674,16 +2679,15 @@ def chk_win(cli, end_game=True, winner=None):
         lpipers = len(var.ROLES.get("piper", ()))
         lsuccubi = len(var.ROLES.get("succubus", ()))
         lentranced = len(var.ENTRANCED - var.DEAD)
+
         if var.PHASE == "day":
-            for p in var.WOUNDED | var.ASLEEP | var.CONSECRATING | var.SICK:
-                try:
-                    role = get_role(p)
-                    if role in var.WOLFCHAT_ROLES:
-                        lwolves -= 1
-                    else:
-                        lpl -= 1
-                except KeyError:
-                    pass
+            pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+            evt = Event("get_voters", {"voters": pl})
+            evt.dispatch(cli, var)
+            pl = evt.data["voters"]
+
+            lpl = len(pl)
+            lwolves = len(wolves & pl)
 
         return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game, winner)
 
@@ -2743,10 +2747,19 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
                     wcroles = var.WOLF_ROLES | {"traitor"}
             else:
                 wcroles = var.WOLFCHAT_ROLES
-            lwolves = len(list_players(wcroles))
+            wolves = set(list_players(wcroles))
+            lwolves = len(wolves)
             lcubs = len(var.ROLES.get("wolf cub", ()))
             lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}))
             ltraitors = len(var.ROLES.get("traitor", ()))
+            if var.PHASE == "day":
+                pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+                evt = Event("get_voters", {"voters": pl})
+                evt.dispatch(cli, var)
+                pl = evt.data["voters"]
+
+                lpl = len(pl)
+                lwolves = len(wolves & pl)
             return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game)
 
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
@@ -3162,7 +3175,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 var.WOUNDED.discard(nick)
                 var.ASLEEP.discard(nick)
                 var.CONSECRATING.discard(nick)
-                var.SICK.discard(nick)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
                 # we only want to induce a lynch if it's actually day
                 if var.GAMEPHASE == "day":
@@ -3526,7 +3538,7 @@ def rename_player(cli, prefix, nick):
                 var.EXCHANGED_ROLES[idx] = (a, b)
             for setvar in (var.HEXED, var.ASLEEP, var.DESPERATE, var.REVEALED, var.SILENCED, var.TOBESILENCED,
                            var.REVEALED_MAYORS, var.MATCHMAKERS, var.PASSED, var.JESTERS, var.AMNESIACS,
-                           var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY, var.SICK,
+                           var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY,
                            var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
                            var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
                            var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING,
@@ -3987,10 +3999,6 @@ def transition_day(cli, gameid=0):
     var.CHARMED.update(var.TOBECHARMED)
     var.TOBECHARMED.clear()
     
-    # send PMs to sick players
-    for victim in var.SICK:
-        pm(cli, victim, messages["player_sick"])
-
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
@@ -4631,6 +4639,7 @@ def chk_nightdone(cli):
 def no_lynch(cli, nick, chan, rest):
     """Allows you to abstain from voting for the day."""
     if chan == botconfig.CHANNEL:
+        evt = Event("abstain", {})
         if not var.ABSTAIN_ENABLED:
             cli.notice(nick, messages["command_disabled"])
             return
@@ -4640,6 +4649,8 @@ def no_lynch(cli, nick, chan, rest):
         elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
             cli.notice(nick, messages["no_abstain_day_one"])
             return
+        elif not evt.dispatch(cli, var, nick):
+            return
         elif nick in var.WOUNDED:
             cli.msg(chan, messages["wounded_no_vote"].format(nick))
             return
@@ -4648,9 +4659,6 @@ def no_lynch(cli, nick, chan, rest):
             return
         elif nick in var.CONSECRATING:
             pm(cli, nick, messages["consecrating_no_vote"])
-            return
-        elif nick in var.SICK:
-            pm(cli, nick, messages["illness_no_vote"])
             return
         candidates = var.VOTES.keys()
         for voter in list(candidates):
@@ -4675,21 +4683,6 @@ def lynch(cli, nick, chan, rest):
 
     rest = re.split(" +",rest)[0].strip()
 
-    if nick in var.WOUNDED:
-        cli.msg(chan, (messages["wounded_no_vote"]).format(nick))
-        return
-    if nick in var.ASLEEP:
-        pm(cli, nick, messages["totem_narcolepsy"])
-        return
-    if nick in var.CONSECRATING:
-        pm(cli, nick, messages["consecrating_no_vote"])
-        return
-    if nick in var.SICK:
-        pm(cli, nick, messages["illness_no_vote"])
-        return
-
-    var.NO_LYNCH.discard(nick)
-
     troll = False
     if ((var.CURRENT_GAMEMODE.name == "default" or var.CURRENT_GAMEMODE.name == "villagergame")
             and var.VILLAGERGAME_CHANCE > 0 and len(var.ALL_PLAYERS) <= 9):
@@ -4699,6 +4692,11 @@ def lynch(cli, nick, chan, rest):
     if not voted:
         return
 
+    evt = Event("lynch", {"target": voted})
+    if not evt.dispatch(cli, var, nick):
+        return
+    voted = evt.data["target"]
+
     if not var.SELF_LYNCH_ALLOWED:
         if nick == voted:
             if nick in var.ROLES["fool"] | var.ROLES["jester"]:
@@ -4706,6 +4704,17 @@ def lynch(cli, nick, chan, rest):
             else:
                 cli.notice(nick, messages["save_self"])
             return
+    if nick in var.WOUNDED:
+        cli.msg(chan, (messages["wounded_no_vote"]).format(nick))
+        return
+    if nick in var.ASLEEP:
+        pm(cli, nick, messages["totem_narcolepsy"])
+        return
+    if nick in var.CONSECRATING:
+        pm(cli, nick, messages["consecrating_no_vote"])
+        return
+
+    var.NO_LYNCH.discard(nick)
 
     lcandidates = list(var.VOTES.keys())
     for voters in lcandidates:  # remove previous vote
@@ -6197,7 +6206,6 @@ def transition_night(cli):
     var.TOBEMISDIRECTED = set()
     var.TOTEMS = {}
     var.CONSECRATING = set()
-    var.SICK = set()
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
         var.PRAYED[nick][1] = None
@@ -6879,7 +6887,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ENTRANCED_DYING = set()
     var.DYING = set()
     var.PRAYED = {}
-    var.SICK = set()
     var.DECEIVED = set()
 
     var.DEADCHAT_PLAYERS = set()
