@@ -137,6 +137,10 @@ def on_acted(evt, cli, var, nick, sender):
     if nick in KILLS:
         evt.data["acted"] = True
 
+@event_listener("get_special")
+def on_get_special(evt, cli, var):
+    evt.data["special"].update(list_players(("dullahan",)))
+
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
     for k, d in list(KILLS.items()):

@@ -131,6 +131,10 @@ def on_acted(evt, cli, var, nick, sender):
     if nick in KILLS:
         evt.data["acted"] = True
 
+@event_listener("get_special")
+def on_get_special(evt, cli, var):
+    evt.data["special"].update(list_players(CAN_KILL))
+
 @event_listener("transition_day", priority=1)
 def on_transition_day(evt, cli, var):
     # figure out wolf target
@@ -203,8 +207,64 @@ def on_retribution_kill(evt, cli, var, victim, orig_target):
                 wolves.remove(crow)
         evt.data["target"] = random.choice(wolves)
 
-@event_listener("exchange_roles")
+@event_listener("exchange_roles", priority=2)
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
+    wcroles = var.WOLFCHAT_ROLES
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wcroles = var.WOLF_ROLES
+        else:
+            wcroles = var.WOLF_ROLES | {"traitor"}
+
+    if nick_role in wcroles and actor_role not in wcroles:
+        pl = list_players()
+        random.shuffle(pl)
+        pl.remove(actor)  # remove self from list
+        notify = []
+        for i, player in enumerate(pl):
+            prole = get_role(player)
+            if prole in wcroles:
+                cursed = ""
+                if player in var.ROLES["cursed villager"]:
+                    cursed = "cursed "
+                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                notify.append(player)
+            elif player in var.ROLES["cursed villager"]:
+                pl[i] = player + " (cursed)"
+
+            mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(nick, actor))
+            evt.data["actor_messages"].append("Players: " + ", ".join(pl))
+            if nick_role in CAN_KILL and var.DISEASED_WOLVES:
+                evt.data["actor_messages"].append(messages["ill_wolves"])
+            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and nick_role in CAN_KILL:
+                evt.data["actor_messages"].append(messages["angry_wolves"])
+            if var.ALPHA_ENABLED and nick_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
+                evt.data["actor_messages"].append(messages["wolf_bite"])
+    elif actor_role in wcroles and nick_role not in wcroles:
+        pl = list_players()
+        random.shuffle(pl)
+        pl.remove(nick)  # remove self from list
+        notify = []
+        for i, player in enumerate(pl):
+            prole = get_role(player)
+            if prole in wcroles:
+                cursed = ""
+                if player in var.ROLES["cursed villager"]:
+                    cursed = "cursed "
+                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                notify.append(player)
+            elif player in var.ROLES["cursed villager"]:
+                pl[i] = player + " (cursed)"
+
+            mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(actor, nick))
+            evt.data["nick_messages"].append("Players: " + ", ".join(pl))
+            if actor_role in CAN_KILL and var.DISEASED_WOLVES:
+                evt.data["nick_messages"].append(messages["ill_wolves"])
+            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and actor_role in CAN_KILL:
+                evt.data["nick_messages"].append(messages["angry_wolves"])
+            if var.ALPHA_ENABLED and actor_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
+                evt.data["nick_messages"].append(messages["wolf_bite"])
+
     if actor in KILLS:
         del KILLS[actor]
     if nick in KILLS:
@@ -314,12 +374,7 @@ def on_transition_night_end(evt, cli, var):
         pm(cli, wolf, "Players: " + ", ".join(pl))
         if role in CAN_KILL and var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
-        # TODO: split the following out into their own files (mystic, cub and alpha)
-        if role == "wolf mystic":
-            # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
-            # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-            numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
-            pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
+        # TODO: split the following out into their own files (cub and alpha)
         if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in CAN_KILL:
             pm(cli, wolf, messages["angry_wolves"])
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:

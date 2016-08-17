@@ -4961,36 +4961,7 @@ def check_exchange(cli, actor, nick):
             if nick_role == "shaman":
                 pm(cli, actor, messages["shaman_totem"].format(nick_totem))
             var.TOTEMS[actor] = nick_totem
-        elif nick_role == "mystic":
-            numevil = len(list_players(var.WOLFTEAM_ROLES))
-            pm(cli, actor, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
-        elif nick_role in wcroles and actor_role not in wcroles:
-            pl = list_players()
-            random.shuffle(pl)
-            pl.remove(actor)  # remove self from list
-            for i, player in enumerate(pl):
-                prole = get_role(player)
-                if prole in wcroles:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-                    pm(cli, player, messages["players_exchanged_roles"].format(nick, actor))
-                elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
-
-            pm(cli, actor, "Players: " + ", ".join(pl))
-            if actor_role == "wolf mystic":
-                # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
-                pm(cli, actor, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-            if actor_role in var.WOLF_ROLES - {"wolf cub"} and var.DISEASED_WOLVES:
-                pm(cli, actor, messages["ill_wolves"])
-            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and actor_role in var.WOLF_ROLES - {"wolf cub"}:
-                pm(cli, actor, messages["angry_wolves"])
-            if var.ALPHA_ENABLED and actor_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
-                pm(cli, actor, messages["wolf_bite"])
-        elif nick_role == "warlock":
+        elif nick_role not in wcroles and nick_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
             random.shuffle(pl)
@@ -5012,36 +4983,7 @@ def check_exchange(cli, actor, nick):
             if actor_role == "shaman":
                 pm(cli, nick, messages["shaman_totem"].format(actor_totem))
             var.TOTEMS[nick] = actor_totem
-        elif actor_role == "mystic":
-            numevil = len(list_players(var.WOLFTEAM_ROLES))
-            pm(cli, nick, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
-        elif actor_role in wcroles and nick_role not in wcroles:
-            pl = list_players()
-            random.shuffle(pl)
-            pl.remove(actor)  # remove self from list
-            for i, player in enumerate(pl):
-                prole = get_role(player)
-                if prole in wcroles:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-                    pm(cli, player, messages["players_exchanged_roles"].format(actor, nick))
-                elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
-
-            pm(cli, nick, "Players: " + ", ".join(pl))
-            if nick_role == "wolf mystic":
-                # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
-                numvills = len(ps) - len(list_players(var.WOLFTEAM_ROLES)) - len(list_players(("villager", "vengeful ghost", "time lord", "amnesiac", "lycan"))) - len(list_players(var.TRUE_NEUTRAL_ROLES))
-                pm(cli, nick, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-            if nick_role in var.WOLF_ROLES - {"wolf cub"} and var.DISEASED_WOLVES:
-                pm(cli, nick, messages["ill_wolves"])
-            if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and nick_role in var.WOLF_ROLES - {"wolf cub"}:
-                pm(cli, nick, messages["angry_wolves"])
-            if var.ALPHA_ENABLED and nick_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
-                pm(cli, nick, messages["wolf_bite"])
-        elif actor_role == "warlock":
+        elif actor_role not in wcroles and actor_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
             random.shuffle(pl)
@@ -6318,15 +6260,6 @@ def transition_night(cli):
             pm(cli, drunk, messages["drunk_notification"])
         else:
             pm(cli, drunk, messages["drunk_simple"])
-
-    for mystic in var.ROLES["mystic"]:
-        if mystic in var.PLAYERS and not is_user_simple(mystic):
-            pm(cli, mystic, messages["mystic_notify"])
-        else:
-            pm(cli, mystic, messages["mystic_simple"])
-        # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
-        numevil = len(list_players(var.WOLFTEAM_ROLES))
-        pm(cli, mystic, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
     max_totems = defaultdict(int)
     for ix in range(len(var.TOTEM_ORDER)):
