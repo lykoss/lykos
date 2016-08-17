@@ -5336,35 +5336,6 @@ def observe(cli, nick, chan, rest):
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
-def investigate(cli, nick, chan, rest):
-    """Investigate a player to determine their exact role."""
-    if nick in var.INVESTIGATED:
-        pm(cli, nick, messages["already_investigated"])
-        return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-    if not victim:
-        return
-
-    if victim == nick:
-        pm(cli, nick, messages["no_investigate_self"])
-        return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("investigate"))
-        return
-    victim = choose_target(nick, victim)
-    var.INVESTIGATED.add(nick)
-    vrole = get_role(victim)
-    if vrole == "amnesiac":
-        vrole = var.AMNESIAC_ROLES[victim]
-    pm(cli, nick, (messages["investigate_success"]).format(victim, vrole))
-    debuglog("{0} ({1}) ID: {2} ({3})".format(nick, get_role(nick), victim, vrole))
-    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
-        # The detective's identity is compromised!
-        for badguy in list_players(var.WOLFCHAT_ROLES):
-            pm(cli, badguy, (messages["investigator_reveal"]).format(nick))
-        debuglog("{0} ({1}) PAPER DROP".format(nick, get_role(nick)))
-
 @cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
 def pray(cli, nick, chan, rest):
     """Receive divine visions of who has a role."""
@@ -6326,20 +6297,6 @@ def transition_night(cli):
         else:
             pm(cli, gangel, messages["guardian_simple"])  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
-
-    for dttv in var.ROLES["detective"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(dttv)
-        chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["detective_chance"].format(chance)
-        if dttv in var.PLAYERS and not is_user_simple(dttv):
-            pm(cli, dttv, messages["detective_notify"].format(warning))
-        else:
-            pm(cli, dttv, messages["detective_simple"])  # !simple
-        pm(cli, dttv, "Players: " + ", ".join(pl))
 
     for pht in var.ROLES["prophet"]:
         chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)

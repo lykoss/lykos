@@ -32,9 +32,16 @@ def see(cli, nick, chan, rest):
     victim = evt.data["target"]
     victimrole = get_role(victim)
 
-    evt = Event("see", {"role": victimrole})
-    evt.dispatch(cli, var, nick, victim)
-    victimrole = evt.data["role"]
+    if role != "augur":
+        evt = Event("see", {"role": victimrole})
+        evt.dispatch(cli, var, nick, victim)
+        victimrole = evt.data["role"]
+    else:
+        evt = Event("investigate", {"role": victimrole})
+        evt.dispatch(cli, var, nick, victim)
+        victimrole = evt.data["role"]
+        if victimrole == "amnesiac":
+            victimrole = var.AMNESIAC_ROLES[victim]
     vrole = victimrole # keep a copy for logging
 
     if role == "seer":
@@ -63,8 +70,6 @@ def see(cli, nick, chan, rest):
         pm(cli, nick, (messages["oracle_success"]).format(victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
         debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":
-        if victimrole == "amnesiac":
-            victimrole = var.AMNESIAC_ROLES[victim]
         aura = "blue"
         if victimrole in var.WOLFTEAM_ROLES:
             aura = "red"
