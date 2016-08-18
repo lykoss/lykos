@@ -197,6 +197,8 @@ NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
 CHANSERV = "ChanServ"
 CHANSERV_OP_COMMAND = "OP {channel}"
 
+LOG_CHANNEL = "" # Log !fwarns to this channel, if set
+
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
 ROLE_INDEX =                       (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )

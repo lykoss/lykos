@@ -38,6 +38,8 @@ ALLOWED_ALT_CHANNELS_COMMANDS = []
 DEV_CHANNEL = ""
 PASTEBIN_ERRORS = False  # If DEV_CHANNEL is set, errors will be posted there.
 
+LOG_CHANNEL = "" # Log !fwarns to this channel, if set
+
 
 IGNORE_HIDDEN_COMMANDS = True  # Ignore commands sent to @#channel or +#channel
 ALLOW_NOTICE_COMMANDS = False  # Allow "/notice #channel !command" to be interpreted as a command

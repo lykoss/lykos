@@ -91,6 +91,9 @@ def connect_callback(cli):
         if botconfig.DEV_CHANNEL:
             channels.update(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(","))
 
+        if var.LOG_CHANNEL:
+            channels.add(var.LOG_CHANNEL.lstrip("".join(var.STATUSMSG_PREFIXES)))
+
         cli.join(",".join(channels))
 
         if var.CHANSERV_OP_COMMAND:

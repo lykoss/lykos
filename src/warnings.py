@@ -671,6 +671,10 @@ def fwarn(cli, nick, chan, rest):
         acc, hm = parse_warning_target(nick)
         db.del_warning(warn_id, acc, hm)
         reply(cli, nick, chan, messages["fwarn_done"])
+
+        if var.LOG_CHANNEL:
+            cli.msg(var.LOG_CHANNEL, messages["fwarn_log_del"].format(warn_id, hm, acc, nick))
+
         return
 
     if command == "set":
@@ -749,6 +753,24 @@ def fwarn(cli, nick, chan, rest):
 
         db.set_warning(warn_id, expires, reason, notes)
         reply(cli, nick, chan, messages["fwarn_done"])
+
+        if var.LOG_CHANNEL:
+            changes = []
+            if expires != warning["expires"]:
+                oldexpiry = warning["expires"] if warning["expires"] else messages["fwarn_log_set_noexpiry"]
+                newexpiry = expires if expires else messages["fwarn_log_set_noexpiry"]
+                changes.append(messages["fwarn_log_set_expiry"].format(oldexpiry, newexpiry))
+            if reason != warning["reason"]:
+                changes.append(messages["fwarn_log_set_reason"].format(warning["reason"], reason))
+            if notes != warning["notes"]:
+                if warning["notes"]:
+                    changes.append(messages["fwarn_log_set_notes"].format(warning["notes"], notes))
+                else:
+                    changes.append(messages["fwarn_log_set_notes_new"].format(notes))
+            if changes:
+                log_msg = messages["fwarn_log_set"].format(warn_id, warning["target"], nick, " | ".join(changes))
+                cli.msg(var.LOG_CHANNEL, log_msg)
+
         return
 
     # command == "add"
@@ -859,6 +881,18 @@ def fwarn(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["fwarn_cannot_add"])
     else:
         reply(cli, nick, chan, messages["fwarn_added"].format(warn_id))
+        # Log to ops/log channel (even if the warning was placed in that channel)
+        if var.LOG_CHANNEL:
+            log_reason = reason
+            if notes is not None:
+                log_reason += " ({0})".format(notes)
+            if expires is None:
+                log_length = messages["fwarn_log_add_noexpiry"]
+            else:
+                log_length = messages["fwarn_log_add_expiry"].format(expires)
+            log_msg = messages["fwarn_log_add"].format(warn_id, target, nick, log_reason, points,
+                                                       "" if points == 1 else "s", log_length)
+            cli.msg(var.LOG_CHANNEL, log_msg)
 
 
 # vim: set sw=4 expandtab:
