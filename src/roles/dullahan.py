@@ -9,6 +9,7 @@ from src import debuglog, errlog, plog
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
+import botconfig
 
 KILLS = {} # type: Dict[str, str]
 TARGETS = {} # type: Dict[str, Set[str]]
