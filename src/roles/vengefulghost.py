@@ -75,14 +75,14 @@ def on_player_win(evt, cli, var, nick, role, winner, survived):
             evt.data["special"].append("vg driven off")
             against = against[1:]
         if against == "villagers" and winner == "wolves":
-            won = True
-            iwon = True
+            evt.data["won"] = True
+            evt.data["iwon"] = True
         elif against == "wolves" and winner == "villagers":
-            won = True
-            iwon = True
+            evt.data["won"] = True
+            evt.data["iwon"] = True
         else:
-            won = False
-            iwon = False
+            evt.data["won"] = False
+            evt.data["iwon"] = False
 
 @event_listener("del_player", priority=6)
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
