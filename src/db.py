@@ -739,16 +739,16 @@ def expire_tempbans():
                      WHERE
                        (bt.expires IS NOT NULL AND bt.expires < datetime('now'))
                        OR (
-                         warning_amount IS NOT NULL
-                         AND warning_amount <= (
-                           SELECT COALESCE(SUM(amount), 0)
-                           FROM warning
+                         bt.warning_amount IS NOT NULL
+                         AND bt.warning_amount >= (
+                           SELECT COALESCE(SUM(w.amount), 0)
+                           FROM warning w
                            WHERE
-                             target = pl.person
-                             AND deleted = 0
+                             w.target = pl.person
+                             AND w.deleted = 0
                              AND (
-                               expires IS NULL
-                               OR expires > datetime('now')
+                               w.expires IS NULL
+                               OR w.expires > datetime('now')
                              )
                          )
                        )""")

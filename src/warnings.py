@@ -159,7 +159,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
                 # within each category, a larger set time or a lower threshold takes precedence
                 exp = None
                 ths = None
-                if sanc["tempban"][-1] in ("d", "h", "m"):
+                if isinstance(sanc["tempban"], str) and sanc["tempban"][-1] in ("d", "h", "m"):
                     amt = int(sanc["tempban"][:-1])
                     dur = sanc["tempban"][-1]
                     if dur == "d":
