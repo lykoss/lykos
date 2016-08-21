@@ -581,7 +581,7 @@ class RandomMode(GameMode):
 
         wolves = var.WOLF_ROLES - {"wolf cub"}
         addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
-        roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"villager", "cultist", "amnesiac", "wild child"})
+        roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"villager", "cultist", "amnesiac"})
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
