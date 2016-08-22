@@ -1,4 +1,5 @@
 import random
+import re
 
 import src.settings as var
 from src.utilities import *
@@ -78,7 +79,7 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
         return
 
     for child in var.ROLES["wild child"].copy():
-        if child not in IDOLS or child in deadlist or IDOLS[child] not in deadlist:
+        if child not in IDOLS or child in evt.params.deadlist or IDOLS[child] not in evt.params.deadlist:
             continue
 
         pm(cli, child, messages["idol_died"])
@@ -93,7 +94,7 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                 wcroles = var.WOLF_ROLES
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
-        wolves = list_players(wc)
+        wolves = list_players(wcroles)
         wolves.remove(child)
         mass_privmsg(cli, wolves, messages["wild_child_as_wolf"].format(child))
         if var.PHASE == "day":
