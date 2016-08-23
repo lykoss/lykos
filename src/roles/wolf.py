@@ -173,7 +173,7 @@ def on_transition_day(evt, cli, var):
     # and fallen angel subsequently removes the ! prefix
     if len(var.ROLES["fallen angel"]) == 0:
         for monster in var.ROLES["monster"]:
-            if monster in victims:
+            if monster in evt.data["victims"]:
                 evt.data["victims"].remove(monster)
                 evt.data["bywolves"].discard(monster)
                 evt.data["onlybywolves"].discard(monster)
