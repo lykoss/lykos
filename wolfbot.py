@@ -35,7 +35,7 @@ except ImportError:
         command = "py -3"
     print("*** Missing dependencies! ***".center(80),
           "Please install the missing dependencies by running the following command:",
-          "{0} -m pip install -r requirements.txt".format(command), "",
+          "{0} -m pip install --user -r requirements.txt".format(command), "",
           "If you don't have pip and don't know how to install it, follow this link:",
           "https://pip.pypa.io/en/stable/installing/", "",
           "If you need any further help with setting up and/or running the bot,",
