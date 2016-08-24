@@ -28,7 +28,7 @@ if sys.version_info < (3, 3):
     sys.exit(1)
 
 try: # need to manually add dependencies here
-    pass #import typing
+    import typing
 except ImportError:
     command = "python3"
     if os.name == "nt":
