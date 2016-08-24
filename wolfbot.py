@@ -38,8 +38,8 @@ except ImportError:
           "{0} -m pip install -r requirements.txt".format(command), "",
           "If you don't have pip and don't know how to install it, follow this link:",
           "https://pip.pypa.io/en/stable/installing/", "",
-          "If you need any further help with setting up and/or running the bot, we",
-          "  will be happy to help you in ##werewolf-dev on irc.freenode.net",
+          "If you need any further help with setting up and/or running the bot,",
+          "  we will be happy to help you in ##werewolf-dev on irc.freenode.net",
           "", "- The lykos developers", sep="\n")
     sys.exit(1)
 
