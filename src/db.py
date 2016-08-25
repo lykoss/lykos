@@ -978,7 +978,7 @@ def _collate_irc(s1, s2):
 
     if "@" in s2:
         hl, hr = s2.split("@", 1)
-        l2 = irc_lower(hl) + "@" + hr.lower()
+        s2 = irc_lower(hl) + "@" + hr.lower()
     else:
         s2 = irc_lower(s2)
 
