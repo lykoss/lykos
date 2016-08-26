@@ -1349,7 +1349,8 @@ def on_kicked(cli, nick, chan, victim, reason):
 @hook("account")
 def on_account(cli, rnick, acc):
     nick, _, ident, host = parse_nick(rnick)
-    hostmask = ident + "@" + host
+    hostmask = irc_lower(ident) + "@" + host.lower()
+    lacc = irc_lower(acc)
     chan = botconfig.CHANNEL
     if acc == "*" and var.ACCOUNTS_ONLY and nick in list_players():
         leave(cli, "account", nick)
@@ -1363,12 +1364,12 @@ def on_account(cli, rnick, acc):
         var.USERS[nick]["host"] = host
         var.USERS[nick]["account"] = acc
     if nick in var.DISCONNECTED.keys():
-        if acc == var.DISCONNECTED[nick][0]:
+        if lacc == var.DISCONNECTED[nick][0]:
             if nick in var.USERS and var.USERS[nick]["inchan"]:
                 with var.GRAVEYARD_LOCK:
                     hm = var.DISCONNECTED[nick][1]
                     act = var.DISCONNECTED[nick][0]
-                    if (acc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
+                    if (lacc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
                         cli.mode(chan, "+v", nick, nick+"!*@*")
                         del var.DISCONNECTED[nick]
                         var.LAST_SAID_TIME[nick] = datetime.now()
@@ -3317,11 +3318,12 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     if chan != botconfig.CHANNEL:
         return
     with var.GRAVEYARD_LOCK:
-        hostmask = ident + "@" + host
+        hostmask = irc_lower(ident) + "@" + host.lower()
+        lacc = irc_lower(acc)
         if nick in var.DISCONNECTED.keys():
             hm = var.DISCONNECTED[nick][1]
             act = var.DISCONNECTED[nick][0]
-            if (acc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
+            if (lacc == act and not var.DISABLE_ACCOUNTS) or (hostmask == hm and not var.ACCOUNTS_ONLY):
                 if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
                     cli.mode(chan, "+v", nick, nick+"!*@*")
                 del var.DISCONNECTED[nick]
