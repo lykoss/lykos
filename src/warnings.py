@@ -673,7 +673,8 @@ def fwarn(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["fwarn_done"])
 
         if var.LOG_CHANNEL:
-            cli.msg(var.LOG_CHANNEL, messages["fwarn_log_del"].format(warn_id, hm, acc, nick))
+            cli.msg(var.LOG_CHANNEL, messages["fwarn_log_del"].format(warn_id, warning["target"], hm,
+                    warning["reason"], (" | " + warning["notes"]) if warning["notes"] else ""))
 
         return
 
