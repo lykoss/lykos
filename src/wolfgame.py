@@ -4049,7 +4049,7 @@ def transition_day(cli, gameid=0):
     for k, d in var.DEATH_TOTEM:
         victims.append(d)
         onlybywolves.discard(d)
-        killers[d].append(k)
+        killers[d].insert(0, k)
 
     for player in var.DYING:
         victims.append(player)
