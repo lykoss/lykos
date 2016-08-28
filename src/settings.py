@@ -197,6 +197,8 @@ NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
 CHANSERV = "ChanServ"
 CHANSERV_OP_COMMAND = "OP {channel}"
 
+GUEST_NICK_PATTERN = r"^Guest\d+$"
+
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
