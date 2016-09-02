@@ -848,6 +848,7 @@
     "access_deleted_account": "Deleted access for account {0}.",
     "access_deleted_host": "Deleted access for host {0}.",
     "invalid_flag": "Invalid flag {0}. Valid flags are +{1}.",
+    "no_access": "There are no users with access.",
     "no_access_account": "Account {0} does not have any access.",
     "access_account": "Account {0} has access +{1}.",
     "no_access_host": "Host {0} does not have any access.",
