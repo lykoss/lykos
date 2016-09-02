@@ -479,7 +479,7 @@
     "silence_totem": "The player who is given this totem will be unable to use any special powers during the day tomorrow and the night after.",
     "desperation_totem": "If the player who is given this totem is lynched, the last player to vote them will also die.",
     "impatience_totem": "The player who is given this totem is counted as voting for everyone except themselves, even if they do not !vote.",
-    "pacificsm_totem": "Votes by the player who is given this totem do not count.",
+    "pacifism_totem": "Votes by the player who is given this totem do not count. Furthermore, they are always counted as abstaining, even if they do not !abstain.",
     "influence_totem": "Votes by the player who is given this totem count twice.",
     "exchange_totem": "The first person to use a power on the player given this totem tomorrow night will have their role swapped with the recipient.",
     "lycanthropy_totem": "If the player who is given this totem is targeted by wolves tomorrow night, they will become a wolf.",

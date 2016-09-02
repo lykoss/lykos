@@ -1983,7 +1983,7 @@ def hurry_up(cli, gameid, change):
 
     var.DAY_ID = 0
 
-    pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+    pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
     evt = Event("get_voters", {"voters": pl})
     evt.dispatch(cli, var)
     pl = evt.data["voters"]
@@ -1992,36 +1992,41 @@ def hurry_up(cli, gameid, change):
     votesneeded = avail // 2 + 1
     not_lynching = len(var.NO_LYNCH)
 
+    avail = len(pl)
+    votesneeded = avail // 2 + 1
+    not_lynching = set(var.NO_LYNCH)
+    votelist = copy.deepcopy(var.VOTES)
+
+    # Note: this event can be differentiated between regular chk_decision
+    # by checking evt.param.timeout. A priority 1.1 event stops event
+    # propagation, so your priority should be between 1 and 1.1 if you wish
+    # to handle this event
+    event = Event("chk_decision", {
+        "not_lynching": not_lynching,
+        "votelist": votelist,
+        "numvotes": {}, # filled as part of a priority 1 event
+        "weights": {}, # filled as part of a priority 1 event
+        "transition_night": transition_night
+        }, voters=pl, timeout=True)
+    event.dispatch(cli, var, "")
+    not_lynching = event.data["not_lynching"]
+    votelist = event.data["votelist"]
+    numvotes = event.data["numvotes"]
+
     found_dup = False
     maxfound = (0, "")
-    votelist = copy.deepcopy(var.VOTES)
     for votee, voters in votelist.items():
-        numvotes = 0
-        for v in var.IMPATIENT:
-            if v in pl and v not in voters and v != votee:
-                voters.append(v)
-        for v in voters:
-            weight = 1
-            imp_count = var.IMPATIENT.count(v)
-            pac_count = var.PACIFISTS.count(v)
-            if pac_count > imp_count:
-                weight = 0 # more pacifists than impatience totems
-            elif imp_count == pac_count and v not in var.VOTES[votee]:
-                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-            if v in var.INFLUENTIAL:
-                weight *= 2
-            numvotes += weight
-        if numvotes > maxfound[0]:
+        if numvotes[votee] > maxfound[0]:
             maxfound = (numvotes, votee)
             found_dup = False
-        elif numvotes == maxfound[0]:
+        elif numvotes[votee] == maxfound[0]:
             found_dup = True
     if maxfound[0] > 0 and not found_dup:
         cli.msg(chan, "The sun sets.")
-        chk_decision(cli, force = maxfound[1])  # Induce a lynch
+        chk_decision(cli, force=maxfound[1])  # Induce a lynch
     else:
         cli.msg(chan, messages["sunset"])
-        transition_night(cli)
+        event.data["transition_night"](cli)
 
 @cmd("fnight", flag="d")
 def fnight(cli, nick, chan, rest):
@@ -2042,42 +2047,33 @@ def fday(cli, nick, chan, rest):
 
 # Specify force = "nick" to force nick to be lynched
 @proxy.impl
-def chk_decision(cli, force = ""):
+def chk_decision(cli, force=""):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
         chan = botconfig.CHANNEL
-        pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(cli, var)
         pl = evt.data["voters"]
 
         avail = len(pl)
         votesneeded = avail // 2 + 1
-        not_lynching = list(var.NO_LYNCH)
+        not_lynching = set(var.NO_LYNCH)
         deadlist = []
         votelist = copy.deepcopy(var.VOTES)
-        for p in var.PACIFISTS:
-            if p in pl:
-                not_lynching.append(p)
 
-        # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
-        for p in var.IMPATIENT:
-            if p in not_lynching:
-                not_lynching.remove(p)
-
-        # remove duplicates
-        not_lynching = set(not_lynching)
-
-        # fire off an event (right now if people want to mess with votes, they need to reimplement all the impatience/pacifism stuff)
         event = Event("chk_decision", {
             "not_lynching": not_lynching,
             "votelist": votelist,
+            "numvotes": {}, # filled as part of a priority 1 event
+            "weights": {}, # filled as part of a priority 1 event
             "transition_night": transition_night
-            })
+            }, voters=pl, timeout=False)
         event.dispatch(cli, var, force)
         not_lynching = event.data["not_lynching"]
         votelist = event.data["votelist"]
+        numvotes = event.data["numvotes"]
 
         gm = var.CURRENT_GAMEMODE.name
         if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
@@ -2097,9 +2093,8 @@ def chk_decision(cli, force = ""):
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
         if len(not_lynching) >= math.ceil(avail / 2):
-            for p in not_lynching:
-                if p not in var.NO_LYNCH:
-                    cli.msg(botconfig.CHANNEL, messages["player_meek_abstain"].format(p))
+            abs_evt = Event("chk_decision_abstain", {})
+            abs_evt.dispatch(cli, var, not_lynching)
             cli.msg(botconfig.CHANNEL, messages["village_abstain"])
             if var.ROLES["succubus"] & var.NO_LYNCH:
                 var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH - var.DEAD)
@@ -2108,70 +2103,31 @@ def chk_decision(cli, force = ""):
             var.ABSTAINED = True
             event.data["transition_night"](cli)
             return
-        aftermessage = None
         for votee, voters in votelist.items():
+            # split this into a priority 0 event when it comes time to split off succubus
             if votee in var.ROLES["succubus"]:
                 for vtr in var.ENTRANCED:
                     if vtr in voters:
                         voters.remove(vtr)
 
-            impatient_voters = []
-            numvotes = 0
-            random.shuffle(var.IMPATIENT)
-            for v in var.IMPATIENT:
-                if v in pl and v not in voters and v != votee:
-                    # don't add them in if they have the same number or more of pacifism totems
-                    # this matters for desperation totem on the votee
-                    imp_count = var.IMPATIENT.count(v)
-                    pac_count = var.PACIFISTS.count(v)
-                    if pac_count >= imp_count:
-                        continue
-
-                    # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
-                    # already !vote earlier. sucks to suck. >:)
-                    voters.append(v)
-                    impatient_voters.append(v)
-            for v in voters:
-                weight = 1
-                imp_count = var.IMPATIENT.count(v)
-                pac_count = var.PACIFISTS.count(v)
-                if pac_count > imp_count:
-                    weight = 0 # more pacifists than impatience totems
-                elif imp_count == pac_count and v not in var.VOTES[votee]:
-                    weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-                if v in var.INFLUENTIAL:
-                    weight *= 2
-                numvotes += weight
-
-            if numvotes >= votesneeded or votee == force:
-                for p in impatient_voters:
-                    cli.msg(botconfig.CHANNEL, messages["impatient_vote"].format(p, votee))
-
+            if numvotes[votee] >= votesneeded or votee == force:
                 # roles that prevent any lynch from happening
                 if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
                     lmsg = messages["mayor_reveal"].format(votee)
                     var.REVEALED_MAYORS.add(votee)
                     votee = None
-                elif votee in var.REVEALED:
-                    role = get_role(votee)
-                    if role == "amnesiac":
-                        var.ROLES["amnesiac"].remove(votee)
-                        role = var.AMNESIAC_ROLES[votee]
-                        var.ROLES[role].add(votee)
-                        var.AMNESIACS.add(votee)
-                        var.FINAL_ROLES[votee] = role
-                        pm(cli, votee, messages["totem_amnesia_clear"])
-                        # If wolfteam, don't bother giving list of wolves since night is about to start anyway
-                        # Existing wolves also know that someone just joined their team because revealing totem says what they are
-                        # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
-                        if role == "turncoat":
-                            var.TURNCOATS[votee] = ("none", -1)
 
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    lmsg = (messages["totem_reveal"]).format(votee, an, role)
-                    votee = None
-
-                else:
+                # priorities:
+                # 1 = displaying impatience totem messages
+                # 3 = mayor/revealing totem
+                # 4 = fool
+                # 5 = desperation totem, other things that happen on generic lynch
+                vote_evt = Event("chk_decision_lynch", {
+                    "votee": votee,
+                    "deadlist": deadlist
+                    }, del_player=del_player)
+                if vote_evt.dispatch(cli, var, voters):
+                    votee = vote_evt.data["votee"]
                     # roles that end the game upon being lynched
                     if votee in var.ROLES["fool"]:
                         # ends game immediately, with fool as only winner
@@ -2183,22 +2139,6 @@ def chk_decision(cli, force = ""):
                         if chk_win(cli, winner="@" + votee):
                             return
                     deadlist.append(votee)
-                    # roles that eliminate other players upon being lynched
-                    # note that lovers, assassin, clone, and vengeful ghost are handled in del_player() since they trigger on more than just lynch
-                    if votee in var.DESPERATE:
-                        # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
-                        target = voters[-1]
-                        if target != votee and target not in var.ROLES["blessed villager"]:
-                            if var.ROLE_REVEAL in ("on", "team"):
-                                r1 = get_reveal_role(target)
-                                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                                tmsg = messages["totem_desperation"].format(votee, target, an1, r1)
-                            else:
-                                tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
-                            deadlist.append(target)
-                            del_player(cli, target, True, end_game=False, killer_role="shaman", deadlist=deadlist, original=target, ismain=False) # do not end game just yet, we have more killin's to do!
                     # Other
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
@@ -2226,11 +2166,10 @@ def chk_decision(cli, force = ""):
                         lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
                     else:
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
-                cli.msg(botconfig.CHANNEL, lmsg)
-                if aftermessage != None:
-                    cli.msg(botconfig.CHANNEL, aftermessage)
-                if del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
-                    event.data["transition_night"](cli)
+                    cli.msg(botconfig.CHANNEL, lmsg)
+                    if not del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
+                        break
+                event.data["transition_night"](cli)
                 break
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
@@ -2294,7 +2233,7 @@ def show_votes(cli, nick, chan, rest):
 
         reply(cli, nick, chan, msg)
 
-        pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+        pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(cli, var)
         pl = evt.data["voters"]
@@ -2553,8 +2492,8 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 iwon = True
             elif rol == "piper" and splr in survived and winner == "pipers":
                 iwon = True
-            elif rol == "crazed shaman" or rol == "clone":
-                # For clone, this means they ended game while being clone and not some other role
+            elif rol == "clone":
+                # this means they ended game while being clone and not some other role
                 if splr in survived and not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
                     iwon = True
             elif rol == "jester" and splr in var.JESTERS:
@@ -2676,7 +2615,7 @@ def chk_win(cli, end_game=True, winner=None):
         lentranced = len(var.ENTRANCED - var.DEAD)
 
         if var.PHASE == "day":
-            pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
             evt = Event("get_voters", {"voters": pl})
             evt.dispatch(cli, var)
             pl = evt.data["voters"]
@@ -2748,7 +2687,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}))
             ltraitors = len(var.ROLES.get("traitor", ()))
             if var.PHASE == "day":
-                pl = set(list_players()) - (var.WOUNDED | var.ASLEEP | var.CONSECRATING)
+                pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
                 evt = Event("get_voters", {"voters": pl})
                 evt.dispatch(cli, var)
                 pl = evt.data["voters"]
@@ -3136,13 +3075,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
                 if ret:
-                    for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED):
+                    for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTHEXED):
                         for k in list(x):
                             if nick in (k, x[k]):
-                                del x[k]
-                    for x in (var.SHAMANS,):
-                        for k in list(x):
-                            if nick in (k, x[k][0]):
                                 del x[k]
                     if nick in var.DISCONNECTED:
                         del var.DISCONNECTED[nick]
@@ -3168,7 +3103,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
 
                 var.NO_LYNCH.discard(nick)
                 var.WOUNDED.discard(nick)
-                var.ASLEEP.discard(nick)
                 var.CONSECRATING.discard(nick)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
                 # we only want to induce a lynch if it's actually day
@@ -3481,7 +3415,7 @@ def rename_player(cli, prefix, nick):
                 del var.PRAYED[prefix]
 
             for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.TARGETED,
-                            var.CLONED, var.LASTGUARDED, var.LASTGIVEN, var.LASTHEXED,
+                            var.CLONED, var.LASTGUARDED, var.LASTHEXED,
                             var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
@@ -3493,20 +3427,7 @@ def rename_player(cli, prefix, nick):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.SHAMANS,):
-                kvp = []
-                for a,(b,c) in dictvar.items():
-                    if a == prefix:
-                        a = nick
-                    if b == prefix:
-                        b = nick
-                    if c == prefix:
-                        c = nick
-                    kvp.append((a,(b,c)))
-                dictvar.update(kvp)
-                if prefix in dictvar.keys():
-                    del dictvar[prefix]
-            for dictvar in (var.TOTEMS, var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
+            for dictvar in (var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
@@ -3532,26 +3453,14 @@ def rename_player(cli, prefix, nick):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.ASLEEP, var.DESPERATE, var.REVEALED, var.SILENCED, var.TOBESILENCED,
-                           var.REVEALED_MAYORS, var.MATCHMAKERS, var.PASSED, var.JESTERS, var.AMNESIACS,
-                           var.INFLUENTIAL, var.LYCANTHROPES, var.TOBELYCANTHROPES, var.LUCKY, var.TOBELUCKY,
-                           var.DISEASED, var.TOBEDISEASED, var.RETRIBUTION, var.MISDIRECTED, var.TOBEMISDIRECTED,
-                           var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS, var.ALPHA_WOLVES, var.CURSED, var.CHARMERS,
-                           var.CHARMED, var.TOBECHARMED, var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING,
-                           var.DECEIVED):
+            for setvar in (var.HEXED, var.SILENCED, var.REVEALED_MAYORS, var.MATCHMAKERS, var.PASSED,
+                           var.JESTERS, var.AMNESIACS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
+                           var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
+                           var.ALPHA_WOLVES, var.CURSED, var.CHARMERS, var.CHARMED, var.TOBECHARMED,
+                           var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
-            for listvar in (var.PROTECTED, var.IMPATIENT, var.PACIFISTS):
-                while prefix in listvar:
-                    listvar.remove(prefix)
-                    listvar.append(nick)
-            for k, d in list(var.DEATH_TOTEM):
-                if k == prefix or d == prefix:
-                    var.DEATH_TOTEM.remove((k, d))
-                    nk = nick if k == prefix else k
-                    nd = nick if d == prefix else d
-                    var.DEATH_TOTEM.append((nk, nd))
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -3766,17 +3675,17 @@ def begin_day(cli):
     var.GAMEPHASE = "day"
     var.KILLER = ""  # nickname of who chose the victim
     var.HEXED = set() # set of hags that have silenced others
-    var.SHAMANS = {} # dict of shamans/crazed shamans that have acted and who got totems
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
     var.HVISITED = {} # those whom harlots have visited
     var.GUARDED = {}  # this whom bodyguards/guardian angels have guarded
     var.PASSED = set() # set of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
-    var.LYCANTHROPES = copy.copy(var.TOBELYCANTHROPES)
-    var.LUCKY = copy.copy(var.TOBELUCKY)
-    var.DISEASED = copy.copy(var.TOBEDISEASED)
-    var.MISDIRECTED = copy.copy(var.TOBEMISDIRECTED)
+    var.EXCHANGED = set()
+    var.LYCANTHROPES = set()
+    var.LUCKY = set()
+    var.DISEASED = set()
+    var.MISDIRECTED = set()
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.ENTRANCED_DYING = set()
     var.DYING = set()
@@ -3867,21 +3776,6 @@ def transition_day(cli, gameid=0):
         # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
         # that isn't going to be dying today, meaning we need to know who is dying first :)
 
-        # Select random totem recipients if shamans didn't act
-        shamans = list_players(var.TOTEM_ORDER)
-        for shaman in shamans:
-            if shaman not in var.SHAMANS and shaman not in var.SILENCED:
-                ps = pl[:]
-                if var.LASTGIVEN.get(shaman) in ps:
-                    ps.remove(var.LASTGIVEN.get(shaman))
-                if shaman in var.ENTRANCED:
-                    for succubus in var.ROLES["succubus"]:
-                        if succubus in ps:
-                            ps.remove(succubus)
-                totem.func(cli, shaman, shaman, random.choice(ps), messages["random_totem_prefix"])
-            else:
-                var.LASTGIVEN[shaman] = None
-
         if var.FIRST_NIGHT:
             # Select a random target for clone if they didn't choose someone
             for clone in var.ROLES["clone"]:
@@ -3903,63 +3797,6 @@ def transition_day(cli, gameid=0):
     var.INVESTIGATED = set()
     var.WOUNDED = set()
     var.NO_LYNCH = set()
-    var.DEATH_TOTEM = []
-    var.PROTECTED = []
-    var.REVEALED = set()
-    var.ASLEEP = set()
-    var.DESPERATE = set()
-    var.IMPATIENT = []
-    var.PACIFISTS = []
-    var.INFLUENTIAL = set()
-    var.EXCHANGED = set()
-    var.TOBELYCANTHROPES = set()
-    var.TOBELUCKY = set()
-    var.TOBEDISEASED = set()
-    var.RETRIBUTION = set()
-    var.MISDIRECTION = set()
-    var.DECEIVED = set()
-
-    # Give out totems here
-    for shaman, (victim, target) in var.SHAMANS.items():
-        totemname = var.TOTEMS[shaman]
-        if totemname == "death": # this totem stacks
-            var.DEATH_TOTEM.append((shaman, victim))
-        elif totemname == "protection": # this totem stacks
-            var.PROTECTED.append(victim)
-        elif totemname == "revealing":
-            var.REVEALED.add(victim)
-        elif totemname == "narcolepsy":
-            var.ASLEEP.add(victim)
-        elif totemname == "silence":
-            var.TOBESILENCED.add(victim)
-        elif totemname == "desperation":
-            var.DESPERATE.add(victim)
-        elif totemname == "impatience": # this totem stacks
-            var.IMPATIENT.append(victim)
-        elif totemname == "pacifism": # this totem stacks
-            var.PACIFISTS.append(victim)
-        elif totemname == "influence":
-            var.INFLUENTIAL.add(victim)
-        elif totemname == "exchange":
-            var.EXCHANGED.add(victim)
-        elif totemname == "lycanthropy":
-            var.TOBELYCANTHROPES.add(victim)
-        elif totemname == "luck":
-            var.TOBELUCKY.add(victim)
-        elif totemname == "pestilence":
-            var.TOBEDISEASED.add(victim)
-        elif totemname == "retribution":
-            var.RETRIBUTION.add(victim)
-        elif totemname == "misdirection":
-            var.TOBEMISDIRECTED.add(victim)
-        elif totemname == "deceit":
-            var.DECEIVED.add(victim)
-        else:
-            debuglog("{0} {1}: INVALID TOTEM {2} TO {3}".format(shaman, get_role(shaman), totemname, victim))
-        if target != victim:
-            pm(cli, shaman, messages["totem_retarget"].format(victim))
-        var.LASTGIVEN[shaman] = victim
-    havetotem = sorted(x for x in var.LASTGIVEN.values() if x)
 
     # Send out PMs to players who have been charmed
     for victim in var.TOBECHARMED:
@@ -4000,7 +3837,7 @@ def transition_day(cli, gameid=0):
             continue
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(cli, var, target, crow)
-        if ((target in var.HVISITED and var.HVISITED[target]) or target in var.SHAMANS or
+        if ((target in var.HVISITED and var.HVISITED[target]) or
                 (target in var.GUARDED and var.GUARDED[target]) or
                 (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
@@ -4019,13 +3856,17 @@ def transition_day(cli, gameid=0):
     var.NIGHT_TIMEDELTA += td
     min, sec = td.seconds // 60, td.seconds % 60
 
+    # this keeps track of the protections active on each nick, stored in var since del_player needs to access it for sake of assassin
+    var.ACTIVE_PROTECTIONS = defaultdict(list)
+
     # built-in logic runs at the following priorities:
     # 1 = wolf kills
     # 2 = non-wolf kills
-    # 3 = alpha wolf bite
+    # 3 = fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
     # 4 = protections/fallen angel
-    # 5 = rearranging victim list (ensure bodyguard/harlot messages plays),
-    #     fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
+    # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
+    # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
+    #     fixing killers dict priority again (in case step 4 or 5 added to it)
     # Actually killing off the victims happens in transition_day_resolve
     evt = Event("transition_day", {
         "victims": [],
@@ -4033,7 +3874,8 @@ def transition_day(cli, gameid=0):
         "bywolves": set(),
         "onlybywolves": set(),
         "protected": {},
-        "bitten": []
+        "bitten": [],
+        "numkills": {} # populated at priority 3
         })
     evt.dispatch(cli, var)
     victims = evt.data["victims"]
@@ -4042,14 +3884,10 @@ def transition_day(cli, gameid=0):
     onlybywolves = evt.data["onlybywolves"]
     protected = evt.data["protected"]
     bitten = evt.data["bitten"]
+    numkills = evt.data["numkills"]
 
     for v in var.ENTRANCED_DYING:
         var.DYING.add(v)
-
-    for k, d in var.DEATH_TOTEM:
-        victims.append(d)
-        onlybywolves.discard(d)
-        killers[d].insert(0, k)
 
     for player in var.DYING:
         victims.append(player)
@@ -4057,68 +3895,7 @@ def transition_day(cli, gameid=0):
 
     # remove duplicates
     victims_set = set(victims)
-    # in the event that ever happens
-    victims_set.discard(None)
-    # this keeps track of the protections active on each nick, stored in var since del_player needs to access it for sake of assassin
-    protected = {}
     vappend = []
-    var.ACTIVE_PROTECTIONS = defaultdict(list)
-
-    # set to True if we play chilling howl message due to a bitten person turning
-    new_wolf = False
-    if var.ALPHA_ENABLED: # check for bites
-        for (alpha, target) in var.BITE_PREFERENCES.items():
-            # bite is now separate but some people may try to double up still, if bitten person is
-            # also being killed by wolves, make the kill not apply
-            # note that we cannot bite visiting harlots unless they are visiting a wolf,
-            # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
-            got_bit = False
-            hvisit = var.HVISITED.get(target)
-            if ((target not in var.ROLES["harlot"]
-                        or not hvisit
-                        or get_role(hvisit) in var.WOLFCHAT_ROLES
-                        or (hvisit in bywolves and hvisit not in protected))
-                    and target not in var.ROLES["lycan"]
-                    and target not in var.LYCANTHROPES
-                    and target not in var.IMMUNIZED):
-                # mark them as bitten
-                got_bit = True
-                # if they were also being killed by wolves, undo that
-                if target in bywolves:
-                    victims.remove(target)
-                    bywolves.discard(target)
-                    onlybywolves.discard(target)
-                    killers[target].remove("@wolves")
-                    if target not in victims:
-                        victims_set.discard(target)
-
-            if target in victims_set:
-                # bite was unsuccessful due to someone else killing them
-                var.ALPHA_WOLVES.remove(alpha)
-            elif target in var.IMMUNIZED or target in var.ROLES["lycan"] or target in var.LYCANTHROPES:
-                # target immunized or a lycan, kill them instead and refund the bite
-                # (for lycans, this effectively gives alpha a free kill on top of regular wolf kill, deal with it)
-                var.ALPHA_WOLVES.remove(alpha)
-                if target not in victims:
-                    onlybywolves.add(target)
-                if target not in bywolves:
-                    # don't count this as 2 separate kills for the purposes of protection if wolves already targeted this person
-                    victims.append(target)
-                    # and if the target is immunized and has retribution totem, (maybe) kill off the alpha that tried to bite them
-                    killers[target].append(alpha)
-                victims_set.add(target)
-                bywolves.add(target)
-            elif got_bit:
-                new_wolf = True
-                bitten.append(target)
-            else:
-                # bite failed due to some other reason (namely harlot)
-                var.ALPHA_WOLVES.remove(alpha)
-
-            if alpha in var.ALPHA_WOLVES:
-                pm(cli, alpha, messages["alpha_bite_success"].format(target))
-            else:
-                pm(cli, alpha, messages["alpha_bite_failure"].format(target))
 
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
@@ -4128,41 +3905,36 @@ def transition_day(cli, gameid=0):
         if v in victims_set:
             if v in var.DYING:
                 continue # bypass protections
-            numkills = victims.count(v)
-            numtotems = var.PROTECTED.count(v)
-            if numtotems >= numkills:
-                protected[v] = "totem"
-                if numtotems > numkills:
-                    for i in range(0, numtotems - numkills):
-                        var.ACTIVE_PROTECTIONS[v].append("totem")
-            numkills -= numtotems
             for g in var.ROLES["guardian angel"]:
                 if var.GUARDED.get(g) == v:
-                    numkills -= 1
-                    if numkills <= 0 and v not in protected:
+                    numkills[v] -= 1
+                    if numkills[v] >= 0:
+                        killers[v].pop(0)
+                    if numkills[v] <= 0 and v not in protected:
                         protected[v] = "angel"
-                    elif numkills <= 0:
+                    elif numkills[v] <= 0:
                         var.ACTIVE_PROTECTIONS[v].append("angel")
             for g in var.ROLES["bodyguard"]:
                 if var.GUARDED.get(g) == v:
-                    numkills -= 1
-                    if numkills <= 0 and v not in protected:
+                    numkills[v] -= 1
+                    if numkills[v] >= 0:
+                        killers[v].pop(0)
+                    if numkills[v] <= 0 and v not in protected:
                         protected[v] = "bodyguard"
-                    elif numkills <= 0:
+                    elif numkills[v] <= 0:
                         var.ACTIVE_PROTECTIONS[v].append("bodyguard")
             if v in var.ROLES["blessed villager"]:
-                numkills -= 1
-                if numkills <= 0 and v not in protected:
+                numkills[v] -= 1
+                if numkills[v] >= 0:
+                    killers[v].pop(0)
+                if numkills[v] <= 0 and v not in protected:
                     protected[v] = "blessing"
-                elif numkills <= 0:
+                elif numkills[v] <= 0:
                     var.ACTIVE_PROTECTIONS[v].append("blessing")
-            if numkills == 1 and v in bywolves:
+            if numkills[v] == 1 and v in bywolves:
                 onlybywolves.add(v)
         else:
             # player wasn't targeted, but apply protections on them
-            numtotems = var.PROTECTED.count(v)
-            for i in range(0, numtotems):
-                var.ACTIVE_PROTECTIONS[v].append("totem")
             for g in var.ROLES["guardian angel"]:
                 if var.GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("angel")
@@ -4174,6 +3946,7 @@ def transition_day(cli, gameid=0):
 
     fallenkills = set()
     brokentotem = set()
+    from src.roles.shaman import havetotem
     if len(var.ROLES["fallen angel"]) > 0:
         for p, t in list(protected.items()):
             if p in bywolves:
@@ -4202,10 +3975,76 @@ def transition_day(cli, gameid=0):
                 while p in havetotem:
                     havetotem.remove(p)
                     brokentotem.add(p)
-            if p in protected:
-                del protected[p]
-            if p in var.ACTIVE_PROTECTIONS:
-                del var.ACTIVE_PROTECTIONS[p]
+                if p in protected:
+                    del protected[p]
+                if p in var.ACTIVE_PROTECTIONS:
+                    del var.ACTIVE_PROTECTIONS[p]
+                # mark kill as performed by a random FA
+                # this is important as there may otherwise be no killers if every kill was blocked
+                killers[p].append(random.choice(list(var.ROLES["fallen angel"])))
+
+    # set to True if we play chilling howl message due to a bitten person turning
+    new_wolf = False
+    if var.ALPHA_ENABLED: # check for bites
+        for (alpha, target) in var.BITE_PREFERENCES.items():
+            # bite is now separate but some people may try to double up still, if bitten person is
+            # also being killed by wolves, make the kill not apply
+            # note that we cannot bite visiting harlots unless they are visiting a wolf,
+            # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
+            got_bit = False
+            hvisit = var.HVISITED.get(target)
+            bite_evt = Event("bite", {
+                "can_bite": True,
+                "kill": target in var.ROLES["lycan"] or target in var.LYCANTHROPES or target in var.IMMUNIZED
+                })
+            bite_evt.dispatch(cli, var, alpha, target)
+            if ((target not in var.ROLES["harlot"]
+                        or not hvisit
+                        or get_role(hvisit) in var.WOLFCHAT_ROLES
+                        or (hvisit in bywolves and hvisit not in protected))
+                    and bite_evt.data["can_bite"]
+                    and not bite_evt.data["kill"]):
+                # mark them as bitten
+                got_bit = True
+                # if they were also being killed by wolves, undo that
+                if target in bywolves:
+                    victims.remove(target)
+                    bywolves.discard(target)
+                    onlybywolves.discard(target)
+                    killers[target].remove("@wolves")
+                    if target not in victims:
+                        victims_set.discard(target)
+
+            if target in victims_set:
+                # bite was unsuccessful due to someone else killing them
+                var.ALPHA_WOLVES.remove(alpha)
+            elif bite_evt.data["kill"]:
+                # target immunized or a lycan, kill them instead and refund the bite
+                var.ALPHA_WOLVES.remove(alpha)
+                if var.ACTIVE_PROTECTIONS[target]:
+                    # target was protected
+                    protected[target] = var.ACTIVE_PROTECTIONS[target].pop(0)
+                elif target in protected:
+                    del protected[target]
+                # add them as a kill even if protected so that protection message plays
+                if target not in victims:
+                    onlybywolves.add(target)
+                killers[target].append(alpha)
+                victims.append(target)
+                victims_set.add(target)
+                bywolves.add(target)
+            elif got_bit:
+                new_wolf = True
+                bitten.append(target)
+            else:
+                # bite failed due to some other reason (namely harlot)
+                var.ALPHA_WOLVES.remove(alpha)
+
+            if alpha in var.ALPHA_WOLVES:
+                pm(cli, alpha, messages["alpha_bite_success"].format(target))
+            else:
+                pm(cli, alpha, messages["alpha_bite_failure"].format(target))
+
 
     var.BITE_PREFERENCES = {}
     victims = []
@@ -4270,7 +4109,7 @@ def transition_day(cli, gameid=0):
                     pm(cli, v, messages["fallen_angel_deprotect"])
         # Finally, message blessed people that aren't otherwise being guarded by a GA or bodyguard
         for v in bywolves:
-            if v not in fallenmsg:
+            if v not in fallenmsg and v in var.ROLES["blessed villager"]:
                 fallenmsg.add(v)
                 pm(cli, v, messages["fallen_angel_deprotect"])
 
@@ -4303,35 +4142,51 @@ def transition_day(cli, gameid=0):
         var.EXTRA_WOLVES += 1
         novictmsg = False
 
+    revt = Event("transition_day_resolve", {
+        "message": message,
+        "novictmsg": novictmsg,
+        "dead": dead,
+        "bywolves": bywolves,
+        "onlybywolves": onlybywolves,
+        "killers": killers,
+        "protected": protected,
+        "bitten": bitten
+        })
+    # transition_day_resolve priorities:
+    # 1: target not home
+    # 2: protection
+    # 3: lycans
+    # 6: riders on default logic
+    # In general, an event listener < 6 should both stop propagation and prevent default
+    # Priority 6 listeners add additional stuff to the default action and should not prevent default
     for victim in vlist:
-        if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in dead and victim in onlybywolves:
+        if not revt.dispatch(cli, var, victim):
+            continue
+        if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in revt.data["dead"] and victim in revt.data["onlybywolves"]:
             # alpha wolf can bite a harlot visiting another wolf, don't play a message in that case
             # kept as a nested if so that the other victim logic does not run
-            if victim not in bitten:
-                message.append(messages["target_not_home"])
-                novictmsg = False
-        elif protected.get(victim) == "totem":
-            message.append(messages["totem_protection"].format(victim))
-            novictmsg = False
-        elif protected.get(victim) == "angel":
-            message.append(messages["angel_protection"].format(victim))
-            novictmsg = False
-        elif protected.get(victim) == "bodyguard":
+            if victim not in revt.data["bitten"]:
+                revt.data["message"].append(messages["target_not_home"])
+                revt.data["novictmsg"] = False
+        elif revt.data["protected"].get(victim) == "angel":
+            revt.data["message"].append(messages["angel_protection"].format(victim))
+            revt.data["novictmsg"] = False
+        elif revt.data["protected"].get(victim) == "bodyguard":
             for bodyguard in var.ROLES["bodyguard"]:
                 if var.GUARDED.get(bodyguard) == victim:
-                    dead.append(bodyguard)
-                    message.append(messages["bodyguard_protection"].format(bodyguard))
-                    novictmsg = False
+                    revt.data["dead"].append(bodyguard)
+                    revt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
+                    revt.data["novictmsg"] = False
                     break
-        elif protected.get(victim) == "blessing":
+        elif revt.data["protected"].get(victim) == "blessing":
             # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
             # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
             # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
             continue
-        elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in onlybywolves and victim not in var.IMMUNIZED:
+        elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim not in var.IMMUNIZED:
             vrole = get_role(victim)
             if vrole not in var.WOLFCHAT_ROLES:
-                message.append(messages["new_wolf"])
+                revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
                 pm(cli, victim, messages["lycan_turn"])
                 var.LYCAN_ROLES[victim] = vrole
@@ -4350,41 +4205,17 @@ def transition_day(cli, gameid=0):
                     wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role)
 
                 pm(cli, victim, "Wolves: " + ", ".join(wolves))
-                novictmsg = False
-        elif victim not in dead: # not already dead via some other means
-            if victim in var.RETRIBUTION:
-                loser = None
-                while killers[victim]:
-                    loser = random.choice(killers[victim])
-                    if loser in dead or victim == loser:
-                        killers[victim].remove(loser)
-                        continue
-                    break
-                if loser in dead or victim == loser:
-                    loser = None
-                evt = Event("retribution_kill", {"target": loser, "message": []})
-                evt.dispatch(cli, var, victim, loser)
-                loser = evt.data["target"]
-                message.extend(evt.data["message"])
-                if loser in dead or victim == loser:
-                    loser = None
-                if loser is not None and loser not in var.ROLES["blessed villager"]:
-                    dead.append(loser)
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        role = get_reveal_role(loser)
-                        an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                        message.append(messages["totem_death"].format(victim, loser, an, role))
-                    else:
-                        message.append((messages["totem_death_no_reveal"]).format(victim, loser))
+                revt.data["novictmsg"] = False
+        elif victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                message.append((messages["death"]).format(victim, an, role))
+                revt.data["message"].append(messages["death"].format(victim, an, role))
             else:
-                message.append((messages["death_no_reveal"]).format(victim))
-            dead.append(victim)
+                revt.data["message"].append(messages["death_no_reveal"].format(victim))
+            revt.data["dead"].append(victim)
             if random.random() < var.GIF_CHANCE:
-                message.append(random.choice(
+                revt.data["message"].append(random.choice(
                     ["https://i.imgur.com/nO8rZ.gifv",
                     "https://i.imgur.com/uGVfZ.gifv",
                     "https://i.imgur.com/mUcM09n.gifv",
@@ -4405,9 +4236,27 @@ def transition_day(cli, gameid=0):
                     out = out.replace("\n", " ")
                     out = re.sub(r"\s+", " ", out)  # collapse whitespace
                     out = out.strip()  # remove surrounding whitespace
+                    revt.data["message"].append(out)
 
-                    message.append(out)
-
+    revt2 = Event("transition_day_resolve_end", {
+        "message": revt.data["message"],
+        "novictmsg": revt.data["novictmsg"],
+        "dead": revt.data["dead"],
+        "bywolves": revt.data["bywolves"],
+        "onlybywolves": revt.data["onlybywolves"],
+        "killers": revt.data["killers"],
+        "protected": revt.data["protected"],
+        "bitten": revt.data["bitten"]
+        })
+    revt2.dispatch(cli, var, victims)
+    message = revt2.data["message"]
+    novictmsg = revt2.data["novictmsg"]
+    dead = revt2.data["dead"]
+    bywolves = revt2.data["bywolves"]
+    onlybywolves = revt2.data["onlybywolves"]
+    killers = revt2.data["killers"]
+    protected = revt2.data["protected"]
+    bitten = revt2.data["bitten"]
     # handle separately so it always happens no matter how victim dies, and so that we can account for bitten victims as well
     for victim in victims + bitten:
         if victim in dead and victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
@@ -4470,7 +4319,6 @@ def transition_day(cli, gameid=0):
     for victim in dead:
         if victim in bywolves and victim in var.DISEASED:
             var.DISEASED_WOLVES = True
-
         if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0:
             # victim has bullets
             try:
@@ -4550,12 +4398,6 @@ def transition_day(cli, gameid=0):
             del_player(cli, deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
 
     message = []
-
-    for player, tlist in itertools.groupby(havetotem):
-        ntotems = len(list(tlist))
-        message.append(messages["totem_posession"].format(
-            player, "ed" if player not in list_players() else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
-
     for brokentotem in brokentotem:
         message.append(messages["totem_broken"].format(brokentotem))
     cli.msg(chan, "\n".join(message))
@@ -4573,15 +4415,13 @@ def chk_nightdone(cli):
     if var.PHASE != "night":
         return
 
-    # TODO: alphabetize and/or arrange sensibly
     pl = list_players()
     spl = set(pl)
     actedcount = sum(map(len, (var.HVISITED, var.GUARDED, var.PASSED, var.OBSERVED,
-                               var.HEXED, var.SHAMANS, var.CURSED, var.CHARMERS)))
+                               var.HEXED, var.CURSED, var.CHARMERS)))
 
     nightroles = get_roles("harlot", "succubus", "bodyguard", "guardian angel",
-                           "sorcerer", "hag", "shaman", "crazed shaman",
-                           "warlock", "piper", "prophet", "wolf shaman")
+                           "sorcerer", "hag", "warlock", "piper", "prophet")
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4650,9 +4490,6 @@ def no_lynch(cli, nick, chan, rest):
         elif nick in var.WOUNDED:
             cli.msg(chan, messages["wounded_no_vote"].format(nick))
             return
-        elif nick in var.ASLEEP:
-            pm(cli, nick, messages["totem_narcolepsy"])
-            return
         elif nick in var.CONSECRATING:
             pm(cli, nick, messages["consecrating_no_vote"])
             return
@@ -4702,9 +4539,6 @@ def lynch(cli, nick, chan, rest):
             return
     if nick in var.WOUNDED:
         cli.msg(chan, (messages["wounded_no_vote"]).format(nick))
-        return
-    if nick in var.ASLEEP:
-        pm(cli, nick, messages["totem_narcolepsy"])
         return
     if nick in var.CONSECRATING:
         pm(cli, nick, messages["consecrating_no_vote"])
@@ -4806,12 +4640,6 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "clone":
             if actor in var.CLONED:
                 actor_target = var.CLONED.pop(actor)
-        elif actor_role in var.TOTEM_ORDER:
-            actor_totem = var.TOTEMS.pop(actor)
-            if actor in var.SHAMANS:
-                del var.SHAMANS[actor]
-            if actor in var.LASTGIVEN:
-                del var.LASTGIVEN[actor]
         elif actor_role in ("bodyguard", "guardian angel"):
             if actor in var.GUARDED:
                 pm(cli, var.GUARDED.pop(actor), messages["protector_disappeared"])
@@ -4857,12 +4685,6 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "clone":
             if nick in var.CLONED:
                 nick_target = var.CLONED.pop(nick)
-        elif nick_role in var.TOTEM_ORDER:
-            nick_totem = var.TOTEMS.pop(nick)
-            if nick in var.SHAMANS:
-                del var.SHAMANS[nick]
-            if nick in var.LASTGIVEN:
-                del var.LASTGIVEN[nick]
         elif nick_role in ("bodyguard", "guardian angel"):
             if nick in var.GUARDED:
                 pm(cli, var.GUARDED.pop(nick), messages["protector_disappeared"])
@@ -4953,10 +4775,6 @@ def check_exchange(cli, actor, nick):
 
         if nick_role == "clone":
             pm(cli, actor, messages["clone_target"].format(nick_target))
-        elif nick_role in var.TOTEM_ORDER:
-            if nick_role == "shaman":
-                pm(cli, actor, messages["shaman_totem"].format(nick_totem))
-            var.TOTEMS[actor] = nick_totem
         elif nick_role not in wcroles and nick_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
@@ -4975,10 +4793,6 @@ def check_exchange(cli, actor, nick):
 
         if actor_role == "clone":
             pm(cli, nick, messages["clone_target"].format(actor_target))
-        elif actor_role in var.TOTEM_ORDER:
-            if actor_role == "shaman":
-                pm(cli, nick, messages["shaman_totem"].format(actor_totem))
-            var.TOTEMS[nick] = actor_totem
         elif actor_role not in wcroles and actor_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
@@ -5423,17 +5237,17 @@ def hvisit(cli, nick, chan, rest):
                     msg += messages["drunk_target"].format(target)
                     var.TARGETED[victim] = target
                 pm(cli, victim, nick)
-            if (var.SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and
-               (get_role(victim) == "crazed shaman" or var.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
-                pm(cli, victim, messages["retract_totem_succubus"].format(var.SHAMANS[victim]))
-                del var.SHAMANS[victim]
+            # temp hack, will do something better once succubus is split off
+            from src.roles import wolf, hunter, dullahan, vigilante, shaman
+            if (shaman.SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and
+               (get_role(victim) == "crazed shaman" or shaman.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
+                pm(cli, victim, messages["retract_totem_succubus"].format(shaman.SHAMANS[victim]))
+                del shaman.SHAMANS[victim]
             if victim in var.HEXED and var.LASTHEXED[victim] in var.ROLES["succubus"]:
                 pm(cli, victim, messages["retract_hex_succubus"].format(var.LASTHEXED[victim]))
                 var.TOBESILENCED.remove(nick)
                 var.HEXED.remove(victim)
                 del var.LASTHEXED[victim]
-            # temp hack, will do something better once succubus is split off
-            from src.roles import wolf, hunter, dullahan, vigilante
             if set(wolf.KILLS.get(victim, ())) & var.ROLES["succubus"]:
                 for s in var.ROLES["succubus"]:
                     if s in wolf.KILLS[victim]:
@@ -5457,35 +5271,6 @@ def hvisit(cli, nick, chan, rest):
                     del dullahan.KILLS[victim]
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, get_role(victim)))
-    chk_nightdone(cli)
-
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-@cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-def totem(cli, nick, chan, rest, prefix="You"):
-    """Give a totem to a player."""
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
-    if not victim:
-        return
-    if var.LASTGIVEN.get(nick) == victim:
-        pm(cli, nick, messages["shaman_no_target_twice"].format(victim))
-        return
-
-    original_victim = victim
-    victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        return
-    totem = ""
-    role = get_role(nick)
-    if role != "crazed shaman":
-        totem = " of " + var.TOTEMS[nick]
-    if is_safe(nick, victim) and (role == "crazed shaman" or var.TOTEMS[nick] not in var.BENEFICIAL_TOTEMS):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("give a totem{0} to".format(totem)))
-        return
-    pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))
-    if role == "wolf shaman":
-        relay_wolfchat_command(cli, nick, messages["shaman_wolfchat"].format(nick, original_victim), ("wolf shaman",), is_wolf_command=True)
-    var.SHAMANS[nick] = (victim, original_victim)
-    debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, var.TOTEMS[nick]))
     chk_nightdone(cli)
 
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
@@ -5523,15 +5308,12 @@ def immunize(cli, nick, chan, rest):
 
 @cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
 def bite_cmd(cli, nick, chan, rest):
-    """Bite a player, turning them into a wolf after a certain number of nights."""
+    """Bite a player, turning them into a wolf."""
     if nick in var.ALPHA_WOLVES and nick not in var.BITE_PREFERENCES:
         pm(cli, nick, messages["alpha_already_bit"])
         return
     if not var.ALPHA_ENABLED:
         pm(cli, nick, messages["alpha_no_bite"])
-        return
-    if var.DISEASED_WOLVES:
-        pm(cli, nick, messages["ill_wolves"])
         return
 
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, False)
@@ -5921,7 +5703,11 @@ def charm(cli, nick, chan, rest):
 def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
     # TODO: move beneficial command check into roles/succubus.py
     if "beneficial" not in tags and is_safe(actor, evt.data["target"]):
-        pm(cli, actor, messages["no_acting_on_succubus"].format(cmd))
+        try:
+            what = evt.params.action
+        except AttributeError:
+            what = cmd
+        pm(cli, actor, messages["no_acting_on_succubus"].format(what))
         evt.stop_processing = True
         evt.prevent_default = True
         return
@@ -6096,26 +5882,11 @@ def transition_night(cli):
     var.KILLER = ""  # nickname of who chose the victim
     var.HEXED = set() # set of hags that have hexed
     var.CURSED = set() # set of warlocks that have cursed
-    var.SHAMANS = {}
     var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
     var.HVISITED = {}
-    var.ASLEEP = set()
-    var.PROTECTED = []
-    var.DESPERATE = set()
-    var.REVEALED = set()
     var.TOBESILENCED = set()
-    var.IMPATIENT = []
-    var.DEATH_TOTEM = []
-    var.PACIFISTS = []
-    var.INFLUENTIAL = set()
-    var.TOBELYCANTHROPES = set()
-    var.TOBELUCKY = set()
-    var.TOBEDISEASED = set()
-    var.RETRIBUTION = set()
-    var.TOBEMISDIRECTED = set()
-    var.TOTEMS = {}
     var.CONSECRATING = set()
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
@@ -6258,74 +6029,6 @@ def transition_night(cli):
             pm(cli, drunk, messages["drunk_notification"])
         else:
             pm(cli, drunk, messages["drunk_simple"])
-
-    max_totems = defaultdict(int)
-    for ix in range(len(var.TOTEM_ORDER)):
-        for c in var.TOTEM_CHANCES.values():
-            max_totems[var.TOTEM_ORDER[ix]] += c[ix]
-    for shaman in list_players(var.TOTEM_ORDER):
-        pl = ps[:]
-        random.shuffle(pl)
-        if shaman in var.LASTGIVEN:
-            if var.LASTGIVEN[shaman] in pl:
-                pl.remove(var.LASTGIVEN[shaman])
-        role = get_role(shaman)
-        indx = var.TOTEM_ORDER.index(role)
-        target = 0
-        rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
-        for t in var.TOTEM_CHANCES.keys():
-            target += var.TOTEM_CHANCES[t][indx]
-            if rand <= target:
-                var.TOTEMS[shaman] = t
-                break
-        if shaman in var.PLAYERS and not is_user_simple(shaman):
-            if role not in var.WOLFCHAT_ROLES:
-                pm(cli, shaman, messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
-            if role != "crazed shaman":
-                totem = var.TOTEMS[shaman]
-                tmsg = messages["shaman_totem"].format(totem)
-                if totem == "death":
-                    tmsg += messages["death_totem"]
-                elif totem == "protection":
-                    tmsg += messages["protection_totem"]
-                elif totem == "revealing":
-                    tmsg += messages["revealing_totem"]
-                elif totem == "narcolepsy":
-                    tmsg += messages["narcolepsy_totem"]
-                elif totem == "silence":
-                    tmsg += messages["silence_totem"]
-                elif totem == "desperation":
-                    tmsg += messages["desperation_totem"]
-                elif totem == "impatience":
-                    tmsg += messages["impatience_totem"]
-                elif totem == "pacifism":
-                    tmsg += messages["pacificsm_totem"]
-                elif totem == "influence":
-                    tmsg += messages["influence_totem"]
-                elif totem == "exchange":
-                    tmsg += messages["exchange_totem"]
-                elif totem == "lycanthropy":
-                    tmsg += messages["lycanthropy_totem"]
-                elif totem == "luck":
-                    tmsg += messages["luck_totem"]
-                elif totem == "pestilence":
-                    tmsg += messages["pestilence_totem"]
-                elif totem == "retribution":
-                    tmsg += messages["retribution_totem"]
-                elif totem == "misdirection":
-                    tmsg += messages["misdirection_totem"]
-                elif totem == "deceit":
-                    tmsg += messages["deceit_totem"]
-                else:
-                    tmsg += messages["generic_bug_totem"]
-                pm(cli, shaman, tmsg)
-        else:
-            if role not in var.WOLFCHAT_ROLES:
-                pm(cli, shaman, messages["shaman_simple"].format(role))
-            if role != "crazed shaman":
-                pm(cli, shaman, messages["totem_simple"].format(var.TOTEMS[shaman]))
-        if role not in var.WOLFCHAT_ROLES:
-            pm(cli, shaman, "Players: " + ", ".join(pl))
 
     for succubus in var.ROLES["succubus"]:
         pl = ps[:]
@@ -6718,15 +6421,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TARGETED = {}
     var.LASTGUARDED = {}
     var.LASTHEXED = {}
-    var.LASTGIVEN = {}
     var.MATCHMAKERS = set()
     var.REVEALED_MAYORS = set()
     var.SILENCED = set()
     var.TOBESILENCED = set()
-    var.DESPERATE = set()
-    var.REVEALED = set()
-    var.ASLEEP = set()
-    var.PROTECTED = []
     var.JESTERS = set()
     var.AMNESIACS = set()
     var.NIGHT_COUNT = 0
@@ -6736,21 +6434,11 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
     var.ORIGINAL_LOVERS = {}
-    var.IMPATIENT = []
-    var.DEATH_TOTEM = []
-    var.PACIFISTS = []
-    var.INFLUENTIAL = set()
     var.LYCANTHROPES = set()
-    var.TOBELYCANTHROPES = set()
     var.LUCKY = set()
-    var.TOBELUCKY = set()
     var.DISEASED = set()
-    var.TOBEDISEASED = set()
-    var.RETRIBUTION = set()
     var.MISDIRECTED = set()
-    var.TOBEMISDIRECTED = set()
     var.EXCHANGED = set()
-    var.SHAMANS = {}
     var.HEXED = set()
     var.ABSTAINED = False
     var.DOCTORS = {}
@@ -6775,7 +6463,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ENTRANCED_DYING = set()
     var.DYING = set()
     var.PRAYED = {}
-    var.DECEIVED = set()
 
     var.DEADCHAT_PLAYERS = set()
     var.SPECTATING_WOLFCHAT = set()
@@ -7545,10 +7232,6 @@ def myrole(cli, nick, chan, rest):
     for msg in evt.data["messages"]:
         pm(cli, nick, msg)
 
-    # Remind shamans what totem they have
-    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in var.SHAMANS:
-        pm(cli, nick, messages["totem_simple"].format(var.TOTEMS[nick]))
-
     # Remind clone who they have cloned
     if role == "clone" and nick in var.CLONED:
         pm(cli, nick, messages["clone_target"].format(var.CLONED[nick]))
@@ -8000,13 +7683,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     nickname = nicks[i]
                     if role == "assassin" and nickname in var.TARGETED:
                         special_case.append("targeting {0}".format(var.TARGETED[nickname]))
-                    elif role in var.TOTEM_ORDER and nickname in var.TOTEMS:
-                        if nickname in var.SHAMANS:
-                            special_case.append("giving {0} totem to {1}".format(var.TOTEMS[nickname], var.SHAMANS[nickname][0]))
-                        elif var.PHASE == "night":
-                            special_case.append("has {0} totem".format(var.TOTEMS[nickname]))
-                        elif nickname in var.LASTGIVEN:
-                            special_case.append("gave {0} totem to {1}".format(var.TOTEMS[nickname], var.LASTGIVEN[nickname]))
                     elif role == "clone" and nickname in var.CLONED:
                         special_case.append("cloning {0}".format(var.CLONED[nickname]))
                     elif role == "amnesiac" and nickname in var.AMNESIAC_ROLES:
@@ -8250,8 +7926,12 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     cli.msg(chan, messages["template_default_role"].format(var.DEFAULT_ROLE))
 
                 var.ROLES[rol].add(who)
+                evt = Event("frole_template", {})
+                evt.dispatch(cli, var, addrem, who, rol, rolargs)
             elif addrem == "-" and who in var.ROLES[rol]:
                 var.ROLES[rol].remove(who)
+                evt = Event("frole_template", {})
+                evt.dispatch(cli, var, addrem, who, rol, rolargs)
                 if is_gunner and who in var.GUNNERS:
                     del var.GUNNERS[who]
             else:
@@ -8261,33 +7941,19 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["template_mod_syntax"].format(rol))
             return
         elif rol in var.ROLES.keys():
+            oldrole = None
             if who in pl:
                 oldrole = get_role(who)
                 var.ROLES[oldrole].remove(who)
             else:
                 var.ALL_PLAYERS.append(who)
-            if rol in var.TOTEM_ORDER:
-                if len(rolargs) == 2:
-                    var.TOTEMS[who] = rolargs[1]
-                else:
-                    max_totems = defaultdict(int)
-                    for ix in range(len(var.TOTEM_ORDER)):
-                        for c in var.TOTEM_CHANCES.values():
-                            max_totems[var.TOTEM_ORDER[ix]] += c[ix]
-                    for shaman in list_players(var.TOTEM_ORDER):
-                        indx = var.TOTEM_ORDER.index(rol)
-                        target = 0
-                        rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
-                        for t in var.TOTEM_CHANCES.keys():
-                            target += var.TOTEM_CHANCES[t][indx]
-                            if rand <= target:
-                                var.TOTEMS[shaman] = t
-                                break
             var.ROLES[rol].add(who)
             if who not in pl:
                 var.ORIGINAL_ROLES[rol].add(who)
             else:
                 var.FINAL_ROLES[who] = rol
+            evt = Event("frole_role", {})
+            evt.dispatch(cli, var, who, rol, oldrole, rolargs)
             if not is_fake_nick(who):
                 cli.mode(chan, "+v", who)
         else:

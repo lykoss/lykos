@@ -33,40 +33,32 @@ def see(cli, nick, chan, rest):
     victimrole = get_role(victim)
 
     if role != "augur":
-        evt = Event("see", {"role": victimrole})
-        evt.dispatch(cli, var, nick, victim)
-        victimrole = evt.data["role"]
-    else:
-        evt = Event("investigate", {"role": victimrole})
-        evt.dispatch(cli, var, nick, victim)
-        victimrole = evt.data["role"]
-        if victimrole == "amnesiac":
-            victimrole = var.AMNESIAC_ROLES[victim]
-    vrole = victimrole # keep a copy for logging
-
-    if role == "seer":
         if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE
             if var.DEFAULT_SEEN_AS_VILL:
                 victimrole = "villager"
-        # TODO: split off into shaman.py
-        if (victim in var.DECEIVED) ^ (nick in var.DECEIVED):
-            if victimrole == "wolf":
-                victimrole = "villager"
-            else:
-                victimrole = "wolf"
 
+        evt = Event("see", {"role": victimrole})
+        evt.dispatch(cli, var, nick, victim)
+        victimrole = evt.data["role"]
+    else:
+        if victimrole == "amnesiac":
+            victimrole = var.AMNESIAC_ROLES[victim]
+
+        evt = Event("investigate", {"role": victimrole})
+        evt.dispatch(cli, var, nick, victim)
+        victimrole = evt.data["role"]
+    vrole = victimrole # keep a copy for logging
+
+    if role == "seer":
         pm(cli, nick, (messages["seer_success"]).format(victim, victimrole))
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4}".format(nick, role, victim, vrole, victimrole))
     elif role == "oracle":
         iswolf = False
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
+        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT):
             iswolf = True
-        # deceit totem acts on both target and actor, so if both have them, they cancel each other out
-        if (victim in var.DECEIVED) ^ (nick in var.DECEIVED):
-            iswolf = not iswolf
         pm(cli, nick, (messages["oracle_success"]).format(victim, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
         debuglog("{0} ({1}) SEE: {2} ({3}) (Wolf: {4})".format(nick, role, victim, vrole, str(iswolf)))
     elif role == "augur":

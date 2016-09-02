@@ -23,6 +23,8 @@ class Event:
         self.params = SimpleNamespace(**kwargs)
 
     def dispatch(self, *args, **kwargs):
+        self.stop_processing = False
+        self.prevent_default = False
         for item in list(EVENT_CALLBACKS[self.name]):
             item[1](self, *args, **kwargs)
             if self.stop_processing:

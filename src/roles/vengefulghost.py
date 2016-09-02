@@ -151,8 +151,15 @@ def on_transition_day(evt, cli, var):
         evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
 
-@event_listener("transition_day", priority=5.01)
-def on_transition_day2(evt, cli, var):
+@event_listener("transition_day", priority=3.01)
+def on_transition_day3(evt, cli, var):
+    for k, d in list(KILLS.items()):
+        if GHOSTS[k] == "villagers":
+            evt.data["killers"][d].remove(k)
+            evt.data["killers"][d].insert(0, k)
+
+@event_listener("transition_day", priority=6.01)
+def on_transition_day6(evt, cli, var):
     for k, d in list(KILLS.items()):
         if GHOSTS[k] == "villagers":
             evt.data["killers"][d].remove(k)

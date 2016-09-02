@@ -178,8 +178,13 @@ def on_transition_day(evt, cli, var):
                 evt.data["bywolves"].discard(monster)
                 evt.data["onlybywolves"].discard(monster)
 
-@event_listener("transition_day", priority=5)
-def on_transition_day2(evt, cli, var):
+@event_listener("transition_day", priority=3)
+def on_transition_day3(evt, cli, var):
+    evt.data["numkills"] = {v: evt.data["victims"].count(v) for v in set(evt.data["victims"])}
+    on_transition_day6(evt, cli, var)
+
+@event_listener("transition_day", priority=6)
+def on_transition_day6(evt, cli, var):
     wolfteam = list_players(var.WOLFTEAM_ROLES)
     for victim, killers in list(evt.data["killers"].items()):
         k2 = []
