@@ -197,7 +197,7 @@ NICKSERV_REGAIN_COMMAND = "REGAIN {nick}"
 CHANSERV = "ChanServ"
 CHANSERV_OP_COMMAND = "OP {channel}"
 
-GUEST_NICK_PATTERN = r"^Guest\d+$"
+GUEST_NICK_PATTERN = r"^Guest\d+$|^\d|away.+|.+away"
 
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set
 

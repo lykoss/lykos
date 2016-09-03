@@ -3504,7 +3504,7 @@ def on_nick(cli, oldnick, nick):
     prefix, _, ident, host = parse_nick(oldnick)
     chan = botconfig.CHANNEL
 
-    if (re.search(var.GUEST_NICK_PATTERN, nick) or nick[0].isdigit() or (nick != "away" and "away" in nick.lower())) and nick not in var.DISCONNECTED.keys() and prefix in list_players():
+    if re.search(var.GUEST_NICK_PATTERN, nick) and nick not in var.DISCONNECTED.keys() and prefix in list_players():
         if var.PHASE != "join":
             cli.mode(chan, "-v", nick)
         leave(cli, "badnick", oldnick)
