@@ -2017,7 +2017,7 @@ def hurry_up(cli, gameid, change):
     maxfound = (0, "")
     for votee, voters in votelist.items():
         if numvotes[votee] > maxfound[0]:
-            maxfound = (numvotes, votee)
+            maxfound = (numvotes[votee], votee)
             found_dup = False
         elif numvotes[votee] == maxfound[0]:
             found_dup = True
