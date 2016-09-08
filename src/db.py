@@ -215,7 +215,7 @@ def delete_template(name):
         if tid is not None:
             c = conn.cursor()
             c.execute("DELETE FROM access WHERE template = ?", (tid,))
-            c.execute("DELETE FROM template WHERE id = ?", (tid,))
+            c.execute("DELETE FROM access_template WHERE id = ?", (tid,))
 
 def set_access(acc, hostmask, flags=None, tid=None):
     peid, plid = _get_ids(acc, hostmask)

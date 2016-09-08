@@ -6665,6 +6665,7 @@ def ftemplate(cli, nick, chan, rest):
         name = params[0].upper()
         flags = params[1]
         tid, cur_flags = db.get_template(name)
+        cur_flags = set(cur_flags)
 
         if flags[0] != "+" and flags[0] != "-":
             # flags is a template name
