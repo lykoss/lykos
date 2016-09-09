@@ -142,7 +142,7 @@
     "game_already_running": "Sorry, but the game is already running. Try again next time.",
     "account_already_joined": "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}",
     "player_joined": "\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.",
-    "game_idle_cancel": "The current game took too long to start and has been canceled. If you are still active, please join again to start a new game.",
+    "game_idle_cancel": "The current game took too long to start and has been canceled. If you are still active, you can join again to start a new game.",
     "too_many_players_to_join": "{0}: Too many players to join.",
     "fjoin_in_chan": ": You may only fjoin people who are in this channel.",
     "account_not_logged_in": "{0} is not logged in to NickServ.",
