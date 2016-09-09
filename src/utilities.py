@@ -100,7 +100,8 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
     if chan == nick:
         pm(cli, nick, msg)
-    elif private or (nick not in list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL):
+    elif private or (nick not in list_players() and var.PHASE in var.GAME_PHASES and chan == botconfig.CHANNEL) \
+            or (var.DEVOICE_DURING_NIGHT and var.PHASE == "night" and chan == botconfig.CHANNEL):
         cli.notice(nick, msg)
     else:
         if prefix_nick:
