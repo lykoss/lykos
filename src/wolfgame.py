@@ -224,6 +224,7 @@ def connect_callback(cli):
         if players:
             msg = "PING! " + break_long_message(players).replace("\n", "\nPING! ")
             cli.msg(botconfig.CHANNEL, msg)
+            cli.msg(botconfig.CHANNEL, messages["game_restart_cancel"])
 
         # Unhook the WHO hooks
         hook.unhook(295)
