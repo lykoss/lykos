@@ -2111,12 +2111,6 @@ def chk_decision(cli, force=""):
                         voters.remove(vtr)
 
             if numvotes[votee] >= votesneeded or votee == force:
-                # roles that prevent any lynch from happening
-                if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
-                    lmsg = messages["mayor_reveal"].format(votee)
-                    var.REVEALED_MAYORS.add(votee)
-                    votee = None
-
                 # priorities:
                 # 1 = displaying impatience totem messages
                 # 3 = mayor/revealing totem
@@ -2128,6 +2122,13 @@ def chk_decision(cli, force=""):
                     }, del_player=del_player)
                 if vote_evt.dispatch(cli, var, voters):
                     votee = vote_evt.data["votee"]
+                    # roles that prevent any lynch from happening
+                    if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
+                        cli.msg(botconfig.CHANNEL, messages["mayor_reveal"].format(votee))
+                        var.REVEALED_MAYORS.add(votee)
+                        event.data["transition_night"](cli)
+                        return
+
                     # roles that end the game upon being lynched
                     if votee in var.ROLES["fool"]:
                         # ends game immediately, with fool as only winner
