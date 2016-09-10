@@ -2860,6 +2860,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         target = var.TARGETED[nick]
                         del var.TARGETED[nick]
                         if target != None and target in pl:
+                            # TODO: split this off into an event so that individual roles can handle it as needed
                             if "totem" in var.ACTIVE_PROTECTIONS[target] and nickrole != "fallen angel":
                                 var.ACTIVE_PROTECTIONS[target].remove("totem")
                                 message = messages["assassin_fail_totem"].format(nick, target)
@@ -2870,11 +2871,12 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 cli.msg(botconfig.CHANNEL, message)
                             elif "bodyguard" in var.ACTIVE_PROTECTIONS[target] and nickrole != "fallen angel":
                                 var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
+                                from src.roles import angel
                                 for ga in var.ROLES["bodyguard"]:
-                                    if var.GUARDED.get(ga) == target:
+                                    if angel.GUARDED.get(ga) == target:
                                         message = messages["assassin_fail_bodyguard"].format(nick, target, ga)
                                         cli.msg(botconfig.CHANNEL, message)
-                                        del_player(cli, ga, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
+                                        del_player(cli, ga, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
                                         pl = refresh_pl(pl)
                                         break
                             elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
@@ -3077,7 +3079,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
                 if ret:
-                    for x in (var.OBSERVED, var.HVISITED, var.GUARDED, var.TARGETED, var.LASTGUARDED, var.LASTHEXED):
+                    for x in (var.OBSERVED, var.HVISITED, var.TARGETED, var.LASTHEXED):
                         for k in list(x):
                             if nick in (k, x[k]):
                                 del x[k]
@@ -3416,9 +3418,8 @@ def rename_player(cli, prefix, nick):
             if prefix in var.PRAYED.keys():
                 del var.PRAYED[prefix]
 
-            for dictvar in (var.HVISITED, var.OBSERVED, var.GUARDED, var.TARGETED,
-                            var.CLONED, var.LASTGUARDED, var.LASTHEXED,
-                            var.BITE_PREFERENCES):
+            for dictvar in (var.HVISITED, var.OBSERVED, var.TARGETED,
+                            var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -3679,7 +3680,6 @@ def begin_day(cli):
     var.HEXED = set() # set of hags that have silenced others
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
     var.HVISITED = {} # those whom harlots have visited
-    var.GUARDED = {}  # this whom bodyguards/guardian angels have guarded
     var.PASSED = set() # set of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
@@ -3764,12 +3764,6 @@ def transition_day(cli, gameid=0):
     pl = list_players()
 
     if not var.START_WITH_DAY or not var.FIRST_DAY:
-        # bodyguard doesn't have restrictions, but being checked anyway since both GA and bodyguard use var.GUARDED
-        if len(var.GUARDED.keys()) < len(var.ROLES["bodyguard"] | var.ROLES["guardian angel"]):
-            for gangel in var.ROLES["guardian angel"]:
-                if gangel not in var.GUARDED or var.GUARDED[gangel] is None:
-                    var.LASTGUARDED[gangel] = None
-
         if len(var.HEXED) < len(var.ROLES["hag"]):
             for hag in var.ROLES["hag"]:
                 if hag not in var.HEXED:
@@ -3840,7 +3834,6 @@ def transition_day(cli, gameid=0):
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(cli, var, target, crow)
         if ((target in var.HVISITED and var.HVISITED[target]) or
-                (target in var.GUARDED and var.GUARDED[target]) or
                 (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
             pm(cli, crow, messages["werecrow_success"].format(target))
@@ -3907,24 +3900,6 @@ def transition_day(cli, gameid=0):
         if v in victims_set:
             if v in var.DYING:
                 continue # bypass protections
-            for g in var.ROLES["guardian angel"]:
-                if var.GUARDED.get(g) == v:
-                    numkills[v] -= 1
-                    if numkills[v] >= 0:
-                        killers[v].pop(0)
-                    if numkills[v] <= 0 and v not in protected:
-                        protected[v] = "angel"
-                    elif numkills[v] <= 0:
-                        var.ACTIVE_PROTECTIONS[v].append("angel")
-            for g in var.ROLES["bodyguard"]:
-                if var.GUARDED.get(g) == v:
-                    numkills[v] -= 1
-                    if numkills[v] >= 0:
-                        killers[v].pop(0)
-                    if numkills[v] <= 0 and v not in protected:
-                        protected[v] = "bodyguard"
-                    elif numkills[v] <= 0:
-                        var.ACTIVE_PROTECTIONS[v].append("bodyguard")
             if v in var.ROLES["blessed villager"]:
                 numkills[v] -= 1
                 if numkills[v] >= 0:
@@ -3937,23 +3912,18 @@ def transition_day(cli, gameid=0):
                 onlybywolves.add(v)
         else:
             # player wasn't targeted, but apply protections on them
-            for g in var.ROLES["guardian angel"]:
-                if var.GUARDED.get(g) == v:
-                    var.ACTIVE_PROTECTIONS[v].append("angel")
-            for g in var.ROLES["bodyguard"]:
-                if var.GUARDED.get(g) == v:
-                    var.ACTIVE_PROTECTIONS[v].append("bodyguard")
             if v in var.ROLES["blessed villager"]:
                 var.ACTIVE_PROTECTIONS[v].append("blessing")
 
     fallenkills = set()
     brokentotem = set()
     from src.roles.shaman import havetotem
+    from src.roles import angel
     if len(var.ROLES["fallen angel"]) > 0:
         for p, t in list(protected.items()):
             if p in bywolves:
                 for g in var.ROLES["guardian angel"]:
-                    if var.GUARDED.get(g) == p and random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
+                    if angel.GUARDED.get(g) == p and random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
                         if g in protected:
                             del protected[g]
                         bywolves.add(g)
@@ -3963,7 +3933,7 @@ def transition_day(cli, gameid=0):
                             victims_set.add(g)
                             onlybywolves.add(g)
                 for g in var.ROLES["bodyguard"]:
-                    if var.GUARDED.get(g) == p:
+                    if angel.GUARDED.get(g) == p:
                         if g in protected:
                             del protected[g]
                         bywolves.add(g)
@@ -4054,10 +4024,12 @@ def transition_day(cli, gameid=0):
     # be correctly attributed to wolves (for vengeful ghost lover), and that any gunner events
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
+    # TODO: this needs to be split off into angel.py, but all the stuff above it needs to be split off first
+    # so even though angel.py exists we can't exactly do this now
     for v in victims_set:
         if v in var.DYING:
             victims.append(v)
-        elif v in var.ROLES["bodyguard"] and var.GUARDED.get(v) in victims_set:
+        elif v in var.ROLES["bodyguard"] and angel.GUARDED.get(v) in victims_set:
             vappend.append(v)
         elif v in var.ROLES["harlot"] and var.HVISITED.get(v) in victims_set:
             vappend.append(v)
@@ -4074,7 +4046,7 @@ def transition_day(cli, gameid=0):
 
         prevlen = len(vappend)
         for v in copy.copy(vappend):
-            if v in var.ROLES["bodyguard"] and var.GUARDED.get(v) not in vappend:
+            if v in var.ROLES["bodyguard"] and angel.GUARDED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
             elif v in var.ROLES["harlot"] and var.HVISITED.get(v) not in vappend:
@@ -4086,7 +4058,7 @@ def transition_day(cli, gameid=0):
     fallenmsg = set()
     if len(var.ROLES["fallen angel"]) > 0:
         for v in fallenkills:
-            t = var.GUARDED.get(v)
+            t = angel.GUARDED.get(v)
             if v not in fallenmsg:
                 fallenmsg.add(v)
                 if v != t:
@@ -4098,7 +4070,7 @@ def transition_day(cli, gameid=0):
                 pm(cli, t, messages["fallen_angel_deprotect"])
         # Also message GAs that don't die and their victims
         for g in var.ROLES["guardian angel"]:
-            v = var.GUARDED.get(g)
+            v = angel.GUARDED.get(g)
             if v in bywolves and g not in fallenkills:
                 if g not in fallenmsg:
                     fallenmsg.add(g)
@@ -4170,16 +4142,6 @@ def transition_day(cli, gameid=0):
             if victim not in revt.data["bitten"]:
                 revt.data["message"].append(messages["target_not_home"])
                 revt.data["novictmsg"] = False
-        elif revt.data["protected"].get(victim) == "angel":
-            revt.data["message"].append(messages["angel_protection"].format(victim))
-            revt.data["novictmsg"] = False
-        elif revt.data["protected"].get(victim) == "bodyguard":
-            for bodyguard in var.ROLES["bodyguard"]:
-                if var.GUARDED.get(bodyguard) == victim:
-                    revt.data["dead"].append(bodyguard)
-                    revt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
-                    revt.data["novictmsg"] = False
-                    break
         elif revt.data["protected"].get(victim) == "blessing":
             # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
             # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
@@ -4281,28 +4243,6 @@ def transition_day(cli, gameid=0):
             bywolves.add(harlot)
             onlybywolves.add(harlot)
             dead.append(harlot)
-    for bodyguard in var.ROLES["bodyguard"]:
-        if var.GUARDED.get(bodyguard) in list_players(var.WOLF_ROLES) and bodyguard not in dead and bodyguard not in bitten:
-            r = random.random()
-            if r < var.BODYGUARD_DIES_CHANCE:
-                bywolves.add(bodyguard)
-                onlybywolves.add(bodyguard)
-                if var.ROLE_REVEAL == "on":
-                    message.append(messages["bodyguard_protected_wolf"].format(bodyguard))
-                else: # off and team
-                    message.append(messages["bodyguard_protection"].format(bodyguard))
-                dead.append(bodyguard)
-    for gangel in var.ROLES["guardian angel"]:
-        if var.GUARDED.get(gangel) in list_players(var.WOLF_ROLES) and gangel not in dead and gangel not in bitten:
-            r = random.random()
-            if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
-                bywolves.add(gangel)
-                onlybywolves.add(gangel)
-                if var.ROLE_REVEAL == "on":
-                    message.append(messages["guardian_angel_protected_wolf"].format(gangel))
-                else: # off and team
-                    message.append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
-                dead.append(gangel)
 
     for victim in list(dead):
         if victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0 and victim in bywolves:
@@ -4419,11 +4359,10 @@ def chk_nightdone(cli):
 
     pl = list_players()
     spl = set(pl)
-    actedcount = sum(map(len, (var.HVISITED, var.GUARDED, var.PASSED, var.OBSERVED,
+    actedcount = sum(map(len, (var.HVISITED, var.PASSED, var.OBSERVED,
                                var.HEXED, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("harlot", "succubus", "bodyguard", "guardian angel",
-                           "sorcerer", "hag", "warlock", "piper", "prophet")
+    nightroles = get_roles("harlot", "succubus", "sorcerer", "hag", "warlock", "piper", "prophet")
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4642,11 +4581,6 @@ def check_exchange(cli, actor, nick):
         elif actor_role == "clone":
             if actor in var.CLONED:
                 actor_target = var.CLONED.pop(actor)
-        elif actor_role in ("bodyguard", "guardian angel"):
-            if actor in var.GUARDED:
-                pm(cli, var.GUARDED.pop(actor), messages["protector_disappeared"])
-            if actor in var.LASTGUARDED:
-                del var.LASTGUARDED[actor]
         elif actor_role in ("werecrow", "sorcerer"):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
@@ -4687,11 +4621,6 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "clone":
             if nick in var.CLONED:
                 nick_target = var.CLONED.pop(nick)
-        elif nick_role in ("bodyguard", "guardian angel"):
-            if nick in var.GUARDED:
-                pm(cli, var.GUARDED.pop(nick), messages["protector_disappeared"])
-            if nick in var.LASTGUARDED:
-                del var.LASTGUARDED[nick]
         elif nick_role in ("werecrow", "sorcerer"):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
@@ -4945,39 +4874,6 @@ def shoot(cli, nick, chan, rest):
 
 def is_safe(nick, victim): # helper function
     return nick in var.ENTRANCED and victim in var.ROLES["succubus"]
-
-@cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
-def guard(cli, nick, chan, rest):
-    """Guard a player, preventing them from being killed that night."""
-    if var.GUARDED.get(nick):
-        pm(cli, nick, messages["already_protecting"])
-        return
-    role = get_role(nick)
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, role == "bodyguard" or var.GUARDIAN_ANGEL_CAN_GUARD_SELF)
-    if not victim:
-        return
-
-    if role == "guardian angel" and var.LASTGUARDED.get(nick) == victim:
-        pm(cli, nick, messages["guardian_target_another"].format(victim))
-        return
-    if victim == nick:
-        if role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            pm(cli, nick, messages["cannot_guard_self"])
-            return
-        elif role == "guardian angel": # choosing to guard self bypasses lucky/misdirection
-            var.GUARDED[nick] = nick
-            var.LASTGUARDED[nick] = nick
-            pm(cli, nick, messages["guardian_guard_self"])
-    else:
-        victim = choose_target(nick, victim)
-        if check_exchange(cli, nick, victim):
-            return
-        var.GUARDED[nick] = victim
-        var.LASTGUARDED[nick] = victim
-        pm(cli, nick, messages["protecting_target"].format(var.GUARDED[nick]))
-        pm(cli, var.GUARDED[nick], messages["target_protected"])
-    debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(cli, nick, chan, rest):
@@ -5345,7 +5241,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "bodyguard", "guardian angel", "turncoat", "warlock", "piper", "succubus"))
+    roles=("harlot", "turncoat", "warlock", "piper", "succubus"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5370,12 +5266,6 @@ def pass_cmd(cli, nick, chan, rest):
             return
         var.HVISITED[nick] = None
         pm(cli, nick, messages["succubus_pass"])
-    elif nickrole == "bodyguard" or nickrole == "guardian angel":
-        if var.GUARDED.get(nick):
-            pm(cli, nick, messages["already_protecting"])
-            return
-        var.GUARDED[nick] = None
-        pm(cli, nick, messages["guardian_no_protect"])
     elif nickrole == "turncoat":
         if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
             # theoretically passing would revert them to how they were before, but
@@ -5880,7 +5770,6 @@ def transition_night(cli):
     var.TIMERS = {}
 
     # Reset nighttime variables
-    var.GUARDED = {}  # key = by whom, value = the person that is visited
     var.KILLER = ""  # nickname of who chose the victim
     var.HEXED = set() # set of hags that have hexed
     var.CURSED = set() # set of warlocks that have cursed
@@ -5974,42 +5863,6 @@ def transition_night(cli):
         else:
             pm(cli, harlot, messages["harlot_simple"])  # !simple
         pm(cli, harlot, "Players: " + ", ".join(pl))
-
-    # the messages for angel and guardian angel are different enough to merit individual loops
-    for g_angel in var.ROLES["bodyguard"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(g_angel)
-        chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
-
-        if g_angel in var.PLAYERS and not is_user_simple(g_angel):
-            pm(cli, g_angel, messages["bodyguard_notify"].format(warning))
-        else:
-            pm(cli, g_angel, messages["bodyguard_simple"])  # !simple
-        pm(cli, g_angel, "Players: " + ", ".join(pl))
-
-    for gangel in var.ROLES["guardian angel"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        gself = messages["guardian_self_notification"]
-        if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            pl.remove(gangel)
-            gself = ""
-        if var.LASTGUARDED.get(gangel) in pl:
-            pl.remove(var.LASTGUARDED[gangel])
-        chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
-
-        if gangel in var.PLAYERS and not is_user_simple(gangel):
-            pm(cli, gangel, messages["guardian_notify"].format(warning, gself))
-        else:
-            pm(cli, gangel, messages["guardian_simple"])  # !simple
-        pm(cli, gangel, "Players: " + ", ".join(pl))
 
     for pht in var.ROLES["prophet"]:
         chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)
@@ -6417,11 +6270,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES = {}
     var.GUNNERS = {}
     var.OBSERVED = {}
-    var.GUARDED = {}
     var.HVISITED = {}
     var.CLONED = {}
     var.TARGETED = {}
-    var.LASTGUARDED = {}
     var.LASTHEXED = {}
     var.MATCHMAKERS = set()
     var.REVEALED_MAYORS = set()
