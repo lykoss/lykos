@@ -83,10 +83,9 @@ RESTRICT_FSTASIS = True
 # warning points fall below that threshold.
 AUTO_SANCTION = (
         #min max sanctions
-        (5, 9, {"stasis": 1}),
-        (10, 14, {"stasis": 3}),
-        (15, 24, {"scalestasis": (0, 1, -10)}),
-        (25, 25, {"tempban": 15})
+        (4, 6, {"stasis": 1}),
+        (7, 19, {"scalestasis": (0, 1, -5)}),
+        (20, 20, {"tempban": 10})
         )
 
 # The following is a bitfield, and they can be mixed together
