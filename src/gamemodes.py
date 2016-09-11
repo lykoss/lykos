@@ -1148,20 +1148,37 @@ class MaelstromMode(GameMode):
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
         self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child", "succubus"})
 
+        self.DEAD_ACCOUNTS = set()
+        self.DEAD_HOSTS = set()
+
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
         events.add_listener("transition_night_begin", self.transition_night_begin)
+        events.add_listener("del_player", self.on_del_player)
         events.add_listener("join", self.on_join)
 
     def teardown(self):
         events.remove_listener("role_attribution", self.role_attribution)
         events.remove_listener("transition_night_begin", self.transition_night_begin)
+        events.remove_listener("del_player", self.on_del_player)
         events.remove_listener("join", self.on_join)
+
+    def on_del_player(self, evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+        if is_fake_nick(nick):
+            return
+
+        if not var.DISABLE_ACCOUNTS:
+            self.DEAD_ACCOUNTS.add(irc_lower(var.USERS[nick]["account"]))
+
+        if not var.ACCOUNTS_ONLY:
+            self.DEAD_HOSTS.add(irc_lower(var.USERS[nick]["host"]))
 
     def on_join(self, evt, cli, var, nick, chan, rest, forced=False):
         if var.PHASE != "day" or (nick != chan and chan != botconfig.CHANNEL):
             return
-        if nick in var.ALL_PLAYERS:
+        if (irc_lower(nick) in (irc_lower(x) for x in var.ALL_PLAYERS) or
+                irc_lower(var.USERS[nick]["account"]) in self.DEAD_ACCOUNTS or
+                irc_lower(var.USERS[nick]["host"]) in self.DEAD_HOSTS):
             cli.notice(nick, messages["maelstrom_dead"])
             return
         if not forced and evt.data["join_player"](cli, nick, botconfig.CHANNEL, sanity=False):
