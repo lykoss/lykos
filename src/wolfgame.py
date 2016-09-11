@@ -384,7 +384,10 @@ def sync_modes(cli):
     voices = []
     pl = list_players()
     for nick, u in var.USERS.items():
-        if nick in pl and "v" not in u.get("modes", set()):
+        if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
+            if "v" in u.get("modes", set()):
+              voices.append(("-v", nick))
+        elif nick in pl and "v" not in u.get("modes", set()):
             voices.append(("+v", nick))
         elif nick not in pl and "v" in u.get("modes", set()):
             voices.append(("-v", nick))
@@ -707,7 +710,8 @@ def replace(cli, nick, chan, rest):
         if var.PHASE in var.GAME_PHASES:
             return_to_village(cli, chan, target, False)
 
-        mass_mode(cli, [("-v", target), ("+v", nick)], [])
+        if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
+            mass_mode(cli, [("-v", target), ("+v", nick)], [])
 
         cli.msg(botconfig.CHANNEL, messages["player_swap"].format(nick, target))
         myrole.caller(cli, nick, chan, "")
