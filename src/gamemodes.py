@@ -1171,14 +1171,14 @@ class MaelstromMode(GameMode):
             self.DEAD_ACCOUNTS.add(irc_lower(var.USERS[nick]["account"]))
 
         if not var.ACCOUNTS_ONLY:
-            self.DEAD_HOSTS.add(irc_lower(var.USERS[nick]["host"]))
+            self.DEAD_HOSTS.add(var.USERS[nick]["host"].lower())
 
     def on_join(self, evt, cli, var, nick, chan, rest, forced=False):
         if var.PHASE != "day" or (nick != chan and chan != botconfig.CHANNEL):
             return
         if (irc_lower(nick) in (irc_lower(x) for x in var.ALL_PLAYERS) or
                 irc_lower(var.USERS[nick]["account"]) in self.DEAD_ACCOUNTS or
-                irc_lower(var.USERS[nick]["host"]) in self.DEAD_HOSTS):
+                var.USERS[nick]["host"].lower() in self.DEAD_HOSTS):
             cli.notice(nick, messages["maelstrom_dead"])
             return
         if not forced and evt.data["join_player"](cli, nick, botconfig.CHANNEL, sanity=False):
