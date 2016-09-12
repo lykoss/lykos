@@ -12,6 +12,10 @@ from src.events import Event
 KILLS = {} # type: Dict[str, str]
 GHOSTS = {} # type: Dict[str, str]
 
+# temporary holding variable, only non-empty during transition_day
+# as such, no need to track nick changes, etc. with it
+drivenoff = {} # type: Dict[str, str]
+
 @cmd("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), nicks=GHOSTS)
 def vg_kill(cli, nick, chan, rest):
     """Take revenge on someone each night after you die."""
@@ -61,6 +65,7 @@ def vg_retract(cli, nick, chan, rest):
 @event_listener("list_participants")
 def on_list_participants(evt, var):
     evt.data["pl"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
+    evt.data["pl"].extend([p for p in drivenoff])
 
 @event_listener("player_win", priority=1)
 def on_player_win(evt, cli, var, nick, role, winner, survived):
@@ -171,6 +176,7 @@ def on_transition_day6(evt, cli, var):
 def on_retribution_kill(evt, cli, var, victim, orig_target):
     t = evt.data["target"]
     if t in GHOSTS:
+        drivenoff[t] = GHOSTS[t]
         GHOSTS[t] = "!" + GHOSTS[t]
         evt.data["message"].append(messages["totem_banish"].format(victim, t))
         evt.data["target"] = None
@@ -178,7 +184,10 @@ def on_retribution_kill(evt, cli, var, victim, orig_target):
 @event_listener("get_participant_role")
 def on_get_participant_role(evt, var, nick):
     if nick in GHOSTS:
-        against = GHOSTS[nick]
+        if nick in drivenoff:
+            against = drivenoff[nick]
+        else:
+            against = GHOSTS[nick]
         if against == "villagers":
             evt.data["role"] = "wolf"
         elif against == "wolves":
@@ -231,6 +240,7 @@ def on_revealroles(evt, cli, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
+    drivenoff.clear()
     KILLS.clear()
 
 @event_listener("reset")
