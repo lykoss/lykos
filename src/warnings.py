@@ -445,6 +445,8 @@ def warn(cli, nick, chan, rest):
             reply(cli, nick, chan, messages["fwarn_invalid_warning"])
             return
 
+        if warning["sanctions"].get("stasis", 0) > 0:
+            db.set_stasis(warning["sanctions"]["stasis"], acc, hm, relative=True)
         db.acknowledge_warning(warn_id)
         reply(cli, nick, chan, messages["fwarn_done"])
         return

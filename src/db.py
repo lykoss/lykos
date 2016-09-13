@@ -667,11 +667,7 @@ def add_warning_sanction(warning, sanction, data):
                      VALUES
                      (?, ?, ?)""", (warning, sanction, data))
 
-        if sanction == "stasis":
-            c.execute("SELECT target FROM warning WHERE id = ?", (warning,))
-            peid = c.fetchone()[0]
-            _set_stasis(int(data), peid, relative=True)
-        elif sanction == "tempban":
+        if sanction == "tempban":
             # we want to return a list of all banned accounts/hostmasks
             idlist = set()
             acclist = set()
