@@ -1318,7 +1318,6 @@ def fleave(cli, nick, chan, rest):
                     if a in rset:
                         var.ORIGINAL_ROLES[r].remove(a)
                         var.ORIGINAL_ROLES[r].add("(dced)"+a)
-                add_warning(cli, a, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
                 if a in var.PLAYERS:
                     var.DCED_PLAYERS[a] = var.PLAYERS.pop(a)
 
