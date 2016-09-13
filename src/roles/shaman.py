@@ -1,7 +1,7 @@
 import re
 import random
 import itertools
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import botconfig
 import src.settings as var
@@ -275,11 +275,16 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
-        # TODO: instead of desperation_totem event to accomodate blessed villager, base on var.ACTIVE_PROTECTIONS
-        # this means that prot totem, GA, and bodyguard would have a shot to block this too
-        # and so that blessed villager doesn't double-dip (like if they were targeted that past night)
-        desp_evt = Event("desperation_totem", {})
-        if target != votee and desp_evt.dispatch(cli, var, votee, target) and target not in var.ROLES["blessed villager"]:
+        if target != votee:
+            prots = deque(var.ACTIVE_PROTECTIONS[target])
+            while len(prots) > 0:
+                # an event can read the current active protection and cancel the totem
+                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                # so that it cannot be used again (if the protection is meant to be usable once-only)
+                desp_evt = Event("desperation_totem", {})
+                if not desp_evt.dispatch(cli, var, votee, target, prots[0]):
+                    return
+                prots.popleft()
             if var.ROLE_REVEAL in ("on", "team"):
                 r1 = get_reveal_role(target)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
@@ -464,8 +469,17 @@ def on_transition_day_resolve6(evt, cli, var, victim):
         evt.data["message"].extend(ret_evt.data["message"])
         if loser in evt.data["dead"] or victim == loser:
             loser = None
-        # TODO: when blessed is split off, roll that check into retribution_kill
-        if loser is not None and loser not in var.ROLES["blessed villager"]:
+        if loser is not None:
+            prots = deque(var.ACTIVE_PROTECTIONS[loser])
+            while len(prots) > 0:
+                # an event can read the current active protection and cancel the totem
+                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                # so that it cannot be used again (if the protection is meant to be usable once-only)
+                ret_evt = Event("retribution_totem", {"message": []})
+                if not ret_evt.dispatch(cli, var, victim, loser, prots[0]):
+                    evt.data["message"].extend(ret_evt.data["message"])
+                    return
+                prots.popleft()
             evt.data["dead"].append(loser)
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(loser)
@@ -550,6 +564,14 @@ def on_lynch(evt, cli, var, nick):
     if nick in NARCOLEPSY:
         pm(cli, nick, messages["totem_narcolepsy"])
         evt.prevent_default = True
+
+@event_listener("assassinate")
+def on_assassinate(evt, cli, var, nick, target, prot):
+    if prot == "totem":
+        var.ACTIVE_PROTECTIONS[target].remove("totem")
+        evt.prevent_default = True
+        evt.stop_propagation = True
+        cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "totem"].format(nick, target))
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):

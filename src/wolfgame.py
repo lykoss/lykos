@@ -36,7 +36,7 @@ import threading
 import time
 import traceback
 import urllib.request
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 
 from oyoyo.parse import parse_nick
@@ -1420,14 +1420,17 @@ def stats(cli, nick, chan, rest):
         if role in badguys:
             for i, player in enumerate(ps):
                 prole = get_role(player)
+                wevt = Event("wolflist", {"tags": set()})
+                wevt.dispatch(cli, var, player, nick)
+                tags = " ".join(wevt.data["tags"])
                 if prole in badguys:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    ps[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-                elif player in var.ROLES["cursed villager"]:
-                    ps[i] = player + " (cursed)"
+                    if tags:
+                        tags += " "
+                    ps[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
+                elif tags:
+                    ps[i] = "{0} ({1})".format(player, tags)
         elif role == "warlock":
+            # warlock not in wolfchat explicitly only sees cursed
             for i, player in enumerate(pl):
                 if player in var.ROLES["cursed villager"]:
                     ps[i] = player + " (cursed)"
@@ -2823,10 +2826,12 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                     random.shuffle(wolves)
                                     for i, wolf in enumerate(wolves):
                                         wolfrole = get_role(wolf)
-                                        cursed = ""
-                                        if wolf in var.ROLES["cursed villager"]:
-                                            cursed = "cursed "
-                                        wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfrole)
+                                        wevt = Event("wolflist", {"tags": set()})
+                                        wevt.dispatch(cli, var, wolf, clone)
+                                        tags = " ".join(wevt.data["tags"])
+                                        if tags:
+                                            tags += " "
+                                        wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, tags, wolfrole)
 
                                     if len(wolves):
                                         pm(cli, clone, "Wolves: " + ", ".join(wolves))
@@ -2862,32 +2867,28 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     if nick in var.TARGETED:
                         target = var.TARGETED[nick]
                         del var.TARGETED[nick]
-                        if target != None and target in pl:
-                            # TODO: split this off into an event so that individual roles can handle it as needed
-                            if "totem" in var.ACTIVE_PROTECTIONS[target] and nickrole != "fallen angel":
-                                var.ACTIVE_PROTECTIONS[target].remove("totem")
-                                message = messages["assassin_fail_totem"].format(nick, target)
-                                cli.msg(botconfig.CHANNEL, message)
-                            elif "angel" in var.ACTIVE_PROTECTIONS[target] and nickrole != "fallen angel":
-                                var.ACTIVE_PROTECTIONS[target].remove("angel")
-                                message = messages["assassin_fail_angel"].format(nick, target)
-                                cli.msg(botconfig.CHANNEL, message)
-                            elif "bodyguard" in var.ACTIVE_PROTECTIONS[target] and nickrole != "fallen angel":
-                                var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
-                                from src.roles import angel
-                                for ga in var.ROLES["bodyguard"]:
-                                    if angel.GUARDED.get(ga) == target:
-                                        message = messages["assassin_fail_bodyguard"].format(nick, target, ga)
-                                        cli.msg(botconfig.CHANNEL, message)
-                                        del_player(cli, ga, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
-                                        pl = refresh_pl(pl)
-                                        break
-                            elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
-                                if "blessing" in var.ACTIVE_PROTECTIONS[target]:
-                                    var.ACTIVE_PROTECTIONS[target].remove("blessing")
-                                # don't message the channel whenever a blessing blocks a kill, but *do* let the assassin know so they don't try to report it as a bug
-                                pm(cli, nick, messages["assassin_fail_blessed"].format(target))
-                            else:
+                        if target is not None and target in pl:
+                            prots = deque(var.ACTIVE_PROTECTIONS[target])
+                            aevt = Event("assassinate", {"pl": pl},
+                                del_player=del_player,
+                                deadlist=deadlist,
+                                original=original,
+                                refresh_pl=refresh_pl,
+                                message_prefix="assassin_fail_")
+                            while len(prots) > 0:
+                                # FA bypasses all protection (TODO: split off)
+                                # when split instead of setting prots to [] will need to stop_propagation but NOT prevent_default
+                                if nickrole == "fallen angel":
+                                    prots = []
+                                    break
+                                # an event can read the current active protection and cancel the totem
+                                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                                # so that it cannot be used again (if the protection is meant to be usable once-only)
+                                if not aevt.dispatch(cli, var, nick, target, prots[0]):
+                                    pl = aevt.data["pl"]
+                                    break
+                                prots.popleft()
+                            if len(prots) == 0:
                                 if var.ROLE_REVEAL in ("on", "team"):
                                     role = get_reveal_role(target)
                                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -3691,7 +3692,6 @@ def begin_day(cli):
     var.LUCKY = set()
     var.DISEASED = set()
     var.MISDIRECTED = set()
-    var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.ENTRANCED_DYING = set()
     var.DYING = set()
 
@@ -3862,6 +3862,7 @@ def transition_day(cli, gameid=0):
     # 2 = non-wolf kills
     # 3 = fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
     # 4 = protections/fallen angel
+    #     4.1 = shaman, 4.2 = bodyguard/GA, 4.3 = blessed villager, 4.8 = fallen angel
     # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
     # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
     #     fixing killers dict priority again (in case step 4 or 5 added to it)
@@ -3898,25 +3899,14 @@ def transition_day(cli, gameid=0):
     # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
     # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
     # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard > blessing)
+    # TODO: split out adding people back to onlybywolves as part of splitting off FA
     pl = list_players()
     for v in pl:
         if v in victims_set:
             if v in var.DYING:
-                continue # bypass protections
-            if v in var.ROLES["blessed villager"]:
-                numkills[v] -= 1
-                if numkills[v] >= 0:
-                    killers[v].pop(0)
-                if numkills[v] <= 0 and v not in protected:
-                    protected[v] = "blessing"
-                elif numkills[v] <= 0:
-                    var.ACTIVE_PROTECTIONS[v].append("blessing")
+                continue # dying by themselves, not killed by wolves
             if numkills[v] == 1 and v in bywolves:
                 onlybywolves.add(v)
-        else:
-            # player wasn't targeted, but apply protections on them
-            if v in var.ROLES["blessed villager"]:
-                var.ACTIVE_PROTECTIONS[v].append("blessing")
 
     fallenkills = set()
     brokentotem = set()
@@ -4145,11 +4135,6 @@ def transition_day(cli, gameid=0):
             if victim not in revt.data["bitten"]:
                 revt.data["message"].append(messages["target_not_home"])
                 revt.data["novictmsg"] = False
-        elif revt.data["protected"].get(victim) == "blessing":
-            # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
-            # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
-            # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
-            continue
         elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim not in var.IMMUNIZED:
             vrole = get_role(victim)
             if vrole not in var.WOLFCHAT_ROLES:
@@ -4166,10 +4151,12 @@ def transition_day(cli, gameid=0):
                 for i, wolf in enumerate(wolves):
                     pm(cli, wolf, messages["lycan_wc_notification"].format(victim))
                     role = get_role(wolf)
-                    cursed = ""
-                    if wolf in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role)
+                    wevt = Event("wolflist", {"tags": set()})
+                    wevt.dispatch(cli, var, wolf, victim)
+                    tags = " ".join(wevt.data["tags"])
+                    if tags:
+                        tags += " "
+                    wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, tags, role)
 
                 pm(cli, victim, "Wolves: " + ", ".join(wolves))
                 revt.data["novictmsg"] = False
@@ -6052,12 +6039,6 @@ def transition_night(cli):
                 pm(cli, minion, messages["minion_simple"])
             pm(cli, minion, "Wolves: " + ", ".join(wolves))
 
-        for blessed in var.ROLES["blessed villager"]:
-            if blessed in var.PLAYERS and not is_user_simple(blessed):
-                pm(cli, blessed, messages["blessed_notify"])
-            else:
-                pm(cli, blessed, messages["blessed_simple"])
-
     for g in var.GUNNERS.keys():
         if g not in ps:
             continue
@@ -7115,10 +7096,6 @@ def myrole(cli, nick, chan, rest):
     # Check assassin
     if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"]:
         pm(cli, nick, messages["assassin_role_info"].format(messages["assassin_targeting"].format(var.TARGETED[nick]) if nick in var.TARGETED else ""))
-
-    # Remind blessed villager of their role
-    if nick in var.ROLES["blessed villager"]:
-        pm(cli, nick, messages["blessed_simple"])
 
     # Remind prophet of their role, in sleepy mode only where it is hacked into a template instead of a role
     if "prophet" in var.TEMPLATE_RESTRICTIONS and nick in var.ROLES["prophet"]:

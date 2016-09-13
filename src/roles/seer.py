@@ -33,7 +33,7 @@ def see(cli, nick, chan, rest):
     victimrole = get_role(victim)
 
     if role != "augur":
-        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT) or victim in var.ROLES["cursed villager"]:
+        if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT):
             victimrole = "wolf"
         elif victimrole in var.SEEN_DEFAULT:
             victimrole = var.DEFAULT_ROLE

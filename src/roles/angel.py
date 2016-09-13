@@ -241,6 +241,24 @@ def on_transition_night_end(evt, cli, var):
             pm(cli, gangel, messages["guardian_simple"])  # !simple
         pm(cli, gangel, "Players: " + ", ".join(pl))
 
+@event_listener("assassinate")
+def on_assassinate(evt, cli, var, nick, target, prot):
+    if prot == "angel" and var.GAMEPHASE == "night":
+        var.ACTIVE_PROTECTIONS[target].remove("angel")
+        evt.prevent_default = True
+        evt.stop_propagation = True
+        cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "angel"].format(nick, target))
+    elif prot == "bodyguard":
+        var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
+        evt.prevent_default = True
+        evt.stop_propagation = True
+        for bg in var.ROLES["bodyguard"]:
+            if GUARDED.get(bg) == target:
+                cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "bodyguard"].format(nick, target, bg))
+                evt.params.del_player(cli, bg, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+                evt.data["pl"] = evt.params.refresh_pl(pl)
+                break
+
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
     PASSED.clear()

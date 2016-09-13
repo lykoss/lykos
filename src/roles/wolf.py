@@ -230,14 +230,16 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             prole = get_role(player)
             if player == nick:
                 prole = actor_role
+            wevt = Event("wolflist", {"tags": set()})
+            wevt.dispatch(cli, var, player, actor)
+            tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
-                cursed = ""
-                if player in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                if tags:
+                    tags += " "
+                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
                 notify.append(player)
-            elif player in var.ROLES["cursed villager"]:
-                pl[i] = player + " (cursed)"
+            elif tags:
+                pl[i] = "{0} ({1})".format(player, tags)
 
         mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(nick, actor))
         evt.data["actor_messages"].append("Players: " + ", ".join(pl))
@@ -256,14 +258,16 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             prole = get_role(player)
             if player == actor:
                 prole = nick_role
+            wevt = Event("wolflist", {"tags": set()})
+            wevt.dispatch(cli, var, player, nick)
+            tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
-                cursed = ""
-                if player in var.ROLES["cursed villager"]:
-                    cursed = "cursed "
-                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
+                if tags:
+                    tags += " "
+                pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
                 notify.append(player)
-            elif player in var.ROLES["cursed villager"]:
-                pl[i] = player + " (cursed)"
+            elif tags:
+                pl[i] = "{0} ({1})".format(player, tags)
 
         mass_privmsg(cli, notify, messages["players_exchanged_roles"].format(actor, nick))
         evt.data["nick_messages"].append("Players: " + ", ".join(pl))
@@ -333,34 +337,36 @@ def on_transition_night_end(evt, cli, var):
             talkroles = var.WOLF_ROLES | {"traitor"}
 
     for wolf in wolves:
-        # should make the cursed information an event that cursedvillager can then add to
-        # (e.g. an event to change what prefixes are sent with the role message, and a
-        # 2nd event to change information in parens in player list)
         normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
         role = get_role(wolf)
-        cursed = "cursed " if wolf in var.ROLES["cursed villager"] and role in wcroles else ""
+        wevt = Event("wolflist", {"tags": set()})
+        tags = ""
+        if role in wcroles:
+            wevt.dispatch(cli, var, wolf, wolf)
+            tags = " ".join(wevt.data["tags"])
 
         if normal_notify:
             msg = "{0}_notify".format(role.replace(" ", "_"))
             cmsg = "cursed_" + msg
-            try:
-                if cursed:
-                    try:
-                        pm(cli, wolf, messages[cmsg])
-                    except KeyError:
-                        pm(cli, wolf, messages[msg].format(cursed))
-                else:
-                    pm(cli, wolf, messages[msg].format(cursed))
-            except KeyError:
-                # catchall in case we forgot something above
-                an = 'n' if role.startswith(("a", "e", "i", "o", "u")) else ""
-                pm(cli, wolf, messages["undefined_role_notify"].format(an, role))
+            if "cursed" in wevt.data["tags"]:
+                try:
+                    tags2 = " ".join(wevt.data["tags"] - {"cursed"})
+                    pm(cli, wolf, messages[cmsg].format(tags2))
+                except KeyError:
+                    pm(cli, wolf, messages[msg].format(tags))
+            else:
+                pm(cli, wolf, messages[msg].format(tags))
 
             if len(wolves) > 1 and wccond is not None and role in talkroles:
                 pm(cli, wolf, messages["wolfchat_notify"].format(wccond))
         else:
-            an = "n" if cursed == "" and role.startswith(("a", "e", "i", "o", "u")) else ""
-            pm(cli, wolf, messages["wolf_simple"].format(an, cursed, role))  # !simple
+            an = ""
+            if tags:
+                if tags.startswith(("a", "e", "i", "o", "u")):
+                    an = "n"
+            elif role.startswith(("a", "e", "i", "o", "u")):
+                an = "n"
+            pm(cli, wolf, messages["wolf_simple"].format(an, tags, role))  # !simple
 
         pl = ps[:]
         random.shuffle(pl)
@@ -368,14 +374,17 @@ def on_transition_night_end(evt, cli, var):
         if role in wcroles:
             for i, player in enumerate(pl):
                 prole = get_role(player)
+                wevt.data["tags"] = set()
+                wevt.dispatch(cli, var, player, wolf)
+                tags = " ".join(wevt.data["tags"])
                 if prole in wcroles:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-                elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
+                    if tags:
+                        tags += " "
+                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
+                elif tags:
+                    pl[i] = "{0} ({1})".format(player, tags)
         elif role == "warlock":
+            # warlock specifically only sees cursed if they're not in wolfchat
             for i, player in enumerate(pl):
                 if player in var.ROLES["cursed villager"]:
                     pl[i] = player + " (cursed)"

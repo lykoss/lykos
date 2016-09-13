@@ -1,7 +1,7 @@
 import math
 import re
 import random
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import src.settings as var
 from src.utilities import *
@@ -77,35 +77,30 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
         targets = TARGETS[nick] & set(pl)
         if targets:
             target = random.choice(list(targets))
-            if "totem" in var.ACTIVE_PROTECTIONS[target]:
-                var.ACTIVE_PROTECTIONS[target].remove("totem")
-                cli.msg(botconfig.CHANNEL, messages["dullahan_die_totem"].format(nick, target))
-            elif "angel" in var.ACTIVE_PROTECTIONS[target]:
-                var.ACTIVE_PROTECTIONS[target].remove("angel")
-                cli.msg(botconfig.CHANNEL, messages["dullahan_die_angel"].format(nick, target))
-            elif "bodyguard" in var.ACTIVE_PROTECTIONS[target]:
-                var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
-                for bg in var.ROLES["bodyguard"]:
-                    if var.GUARDED.get(bg) == target:
-                        cli.msg(botconfig.CHANNEL, messages["dullahan_die_bodyguard"].format(nick, target, bg))
-                        evt.params.del_player(cli, bg, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-                        evt.data["pl"] = evt.params.refresh_pl(pl)
-                        break
-            elif "blessing" in var.ACTIVE_PROTECTIONS[target] or (var.GAMEPHASE == "day" and target in var.ROLES["blessed villager"]):
-                if "blessing" in var.ACTIVE_PROTECTIONS[target]:
-                    var.ACTIVE_PROTECTIONS[target].remove("blessing")
-                # don't message the channel whenever a blessing blocks a kill, but *do* let the dullahan know so they don't try to report it as a bug
-                pm(cli, nick, messages["assassin_fail_blessed"].format(target))
+            prots = deque(var.ACTIVE_PROTECTIONS[target])
+            aevt = Event("assassinate", {"pl": evt.data["pl"]},
+                    del_player=evt.params.del_player,
+                    deadlist=evt.params.deadlist,
+                    original=evt.params.original,
+                    refresh_pl=evt.params.refresh_pl,
+                    message_prefix="dullahan_die_")
+            while len(prots) > 0:
+                # an event can read the current active protection and cancel the totem
+                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                # so that it cannot be used again (if the protection is meant to be usable once-only)
+                if not aevt.dispatch(cli, var, nick, target, prots[0]):
+                    evt.data["pl"] = aevt.data["pl"]
+                    return
+                prots.popleft()
+            if var.ROLE_REVEAL in ("on", "team"):
+                role = get_reveal_role(target)
+                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success"].format(nick, target, an, role))
             else:
-                if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(target)
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    cli.msg(botconfig.CHANNEL, messages["dullahan_die_success"].format(nick, target, an, role))
-                else:
-                    cli.msg(botconfig.CHANNEL, messages["dullahan_die_success_noreveal"].format(nick, target))
-                debuglog("{0} ({1}) DULLAHAN ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
-                evt.params.del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-                evt.data["pl"] = evt.params.refresh_pl(pl)
+                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success_noreveal"].format(nick, target))
+            debuglog("{0} ({1}) DULLAHAN ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
+            evt.params.del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):
