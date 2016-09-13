@@ -14,7 +14,7 @@ from src.events import Event
 
 @event_listener("see")
 def on_see(evt, cli, var, nick, victim):
-    if nick in var.ROLES["cursed villager"]:
+    if victim in var.ROLES["cursed villager"]:
         evt.data["role"] = "wolf"
 
 @event_listener("wolflist")

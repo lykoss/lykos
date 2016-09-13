@@ -31,6 +31,7 @@ def see(cli, nick, chan, rest):
         return
     victim = evt.data["target"]
     victimrole = get_role(victim)
+    vrole = victimrole # keep a copy for logging
 
     if role != "augur":
         if (victimrole in var.SEEN_WOLF and victimrole not in var.SEEN_DEFAULT):
@@ -50,7 +51,6 @@ def see(cli, nick, chan, rest):
         evt = Event("investigate", {"role": victimrole})
         evt.dispatch(cli, var, nick, victim)
         victimrole = evt.data["role"]
-    vrole = victimrole # keep a copy for logging
 
     if role == "seer":
         pm(cli, nick, (messages["seer_success"]).format(victim, victimrole))
