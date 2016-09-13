@@ -6596,7 +6596,7 @@ def fflags(cli, nick, chan, rest):
             reply(cli, nick, chan, break_long_message(parts, ", "))
     elif len(params) == 1:
         # display access for the given user
-        acc, hm = parse_warning_target(params[0])
+        acc, hm = parse_warning_target(params[0], lower=True)
         if acc is not None and acc != "*":
             if not var.FLAGS_ACCS[acc]:
                 msg = messages["no_access_account"].format(acc)
