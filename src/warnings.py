@@ -890,7 +890,7 @@ def fwarn(cli, nick, chan, rest):
         if var.LOG_CHANNEL:
             log_reason = reason
             if notes is not None:
-                log_reason += " ({0})".format(notes)
+                log_reason += " | " + notes
             if expires is None:
                 log_length = messages["fwarn_log_add_noexpiry"]
             else:
