@@ -316,9 +316,6 @@ class EvilVillageMode(GameMode):
               "minion"          : (   0   ,   0   ,   1   ,   1   ,   1   ),
               # neutral roles
               "fool"            : (   0   ,   0   ,   1   ,   1   ,   1   ),
-              # templates
-              "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ),
-              "mayor"           : (   0   ,   0   ,   0   ,   1   ,   1   ),
               })
 
     def startup(self):
