@@ -408,7 +408,7 @@ def get_game_totals(mode):
     totals = []
     for row in c:
         totals.append("\u0002{0}p\u0002: {1}".format(*row))
-    return "Total games ({0}) | {1}".format(total_games, ", ".join(totals))
+    return "Total games (\u0002{0}\u0002): {1} | {2}".format(mode, total_games, ", ".join(totals))
 
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
