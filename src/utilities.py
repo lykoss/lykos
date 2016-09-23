@@ -304,8 +304,12 @@ def singular(plural):
     # so we don't need to worry about stuff like possessives
     # Note that this is currently only ever called on team names,
     # and will require adjustment if one wishes to use it on roles.
+    # fool is present since we store fool wins as 'fool' rather than
+    # 'fools' as only a single fool wins, however we don't want to
+    # chop off the l and have it report 'foo wins'
     conv = {"wolves": "wolf",
-            "succubi": "succubus"}
+            "succubi": "succubus",
+            "fool": "fool"}
     if plural in conv:
         return conv[plural]
     # otherwise we just added an s on the end
