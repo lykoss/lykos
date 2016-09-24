@@ -14,7 +14,7 @@ from src.utilities import irc_lower, break_long_message, role_order, singular
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 _ts = threading.local()
 
@@ -366,30 +366,57 @@ def get_player_totals(acc, hostmask):
 def get_game_stats(mode, size):
     conn = _conn()
     c = conn.cursor()
-    c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ? AND gamesize = ?", (mode, size))
+
+    if mode == "all":
+        c.execute("SELECT COUNT(1) FROM game WHERE gamesize = ?", (size,))
+    else:
+        c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ? AND gamesize = ?", (mode, size))
+
     total_games = c.fetchone()[0]
     if not total_games:
         return "No stats for \u0002{0}\u0002 player games.".format(size)
-    c.execute("""SELECT
-                   winner AS team,
-                   COUNT(1) AS games,
-                   CASE winner
-                     WHEN 'villagers' THEN 0
-                     WHEN 'wolves' THEN 1
-                     ELSE 2 END AS ord
-                 FROM game
-                 WHERE
-                   gamemode = ?
-                   AND gamesize = ?
-                   AND winner IS NOT NULL
-                 GROUP BY team
-                 ORDER BY ord ASC, team ASC""", (mode, size))
-    msg = "\u0002{0}\u0002 player games | {1}"
+
+    if mode == "all":
+        c.execute("""SELECT
+                       winner AS team,
+                       COUNT(1) AS games,
+                       CASE winner
+                         WHEN 'villagers' THEN 0
+                         WHEN 'wolves' THEN 1
+                         ELSE 2 END AS ord
+                     FROM game
+                     WHERE
+                       gamesize = ?
+                       AND winner IS NOT NULL
+                     GROUP BY team
+                     ORDER BY ord ASC, team ASC""", (size,))
+    else:
+        c.execute("""SELECT
+                       winner AS team,
+                       COUNT(1) AS games,
+                       CASE winner
+                         WHEN 'villagers' THEN 0
+                         WHEN 'wolves' THEN 1
+                         ELSE 2 END AS ord
+                     FROM game
+                     WHERE
+                       gamemode = ?
+                       AND gamesize = ?
+                       AND winner IS NOT NULL
+                     GROUP BY team
+                     ORDER BY ord ASC, team ASC""", (mode, size))
+
+    if mode == "all":
+        msg = "\u0002{0}\u0002 player games | ".format(size)
+    else:
+        msg = "\u0002{0}\u0002 player games (\u0002{1}\u0002) | ".format(size, mode)
+
     bits = []
     for row in c:
-        bits.append("%s wins: %d (%d%%)" % (singular(row[0]), row[1], round(row[1]/total_games * 100)))
-    bits.append("total games: {0}".format(total_games))
-    return msg.format(size, ", ".join(bits))
+        bits.append("{0} wins: {1} ({2}%)".format(singular(row[0]).title(), row[1], round(row[1]/total_games * 100)))
+    bits.append("Total games: {0}".format(total_games))
+
+    return msg + ", ".join(bits)
 
 def get_game_totals(mode):
     conn = _conn()
@@ -831,8 +858,11 @@ def _upgrade(oldversion):
                 with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 4:
-                print ("Upgrade from verison 3 to 4...", file=sys.stderr)
+                print ("Upgrade from version 3 to 4...", file=sys.stderr)
                 # no actual upgrades, just wanted to force an index rebuild
+            if oldversion < 5:
+                print ("Upgrade from version 4 to 5...", file=sys.stderr)
+                c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
 
             print ("Rebuilding indexes...", file=sys.stderr)
             c.execute("REINDEX")

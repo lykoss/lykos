@@ -7100,9 +7100,9 @@ def game_stats(cli, nick, chan, rest):
             return
         rest.pop(0)
     # Check for invalid input
-    if gamemode != "all" and len(rest) and rest[0].isdigit():
+    if len(rest) and rest[0].isdigit():
         gamesize = int(rest[0])
-        if gamesize > var.GAME_MODES[gamemode][2] or gamesize < var.GAME_MODES[gamemode][1]:
+        if gamemode != "all" and (gamesize > var.GAME_MODES[gamemode][2] or gamesize < var.GAME_MODES[gamemode][1]):
             cli.notice(nick, messages["integer_range"].format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
             return
 

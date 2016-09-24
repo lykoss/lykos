@@ -111,6 +111,7 @@ CREATE TABLE game (
 );
 
 CREATE INDEX game_idx ON game (gamemode, gamesize);
+CREATE INDEX game_gamesize_idx ON game (gamesize);
 
 -- List of people who played in each game
 CREATE TABLE game_player (
