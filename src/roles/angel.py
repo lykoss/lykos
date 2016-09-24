@@ -147,6 +147,32 @@ def on_transition_day(evt, cli, var):
                 if GUARDED.get(g) == v:
                     var.ACTIVE_PROTECTIONS[v].append("bodyguard")
 
+@event_listener("fallen_angel_guard_break")
+def on_fagb(evt, cli, var, victim, killer):
+    for g in var.ROLES["guardian angel"]:
+        if GUARDED.get(g) == victim:
+            if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
+                if g in evt.data["protected"]:
+                    del evt.data["protected"][g]
+                evt.data["bywolves"].add(g)
+                if g not in evt.data["victims"]:
+                    evt.data["onlybywolves"].add(g)
+                evt.data["victims"].append(g)
+                evt.data["killers"][g].append(killer)
+            if g != victim:
+                pm(cli, g, messages["fallen_angel_success"].format(victim))
+    for g in var.ROLES["bodyguard"]:
+        if GUARDED.get(g) == victim:
+            if g in evt.data["protected"]:
+                del evt.data["protected"][g]
+            evt.data["bywolves"].add(g)
+            if g not in evt.data["victims"]:
+                evt.data["onlybywolves"].add(g)
+            evt.data["victims"].append(g)
+            evt.data["killers"][g].append(killer)
+            if g != victim:
+                pm(cli, g, messages["fallen_angel_success"].format(victim))
+
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
@@ -159,7 +185,7 @@ def on_transition_day_resolve(evt, cli, var, victim):
     if evt.data["protected"].get(victim) == "angel":
         evt.data["message"].append(messages["angel_protection"].format(victim))
         evt.data["novictmsg"] = False
-        evt.stop_propagation = True
+        evt.stop_processing = True
         evt.prevent_default = True
     elif evt.data["protected"].get(victim) == "bodyguard":
         for bodyguard in var.ROLES["bodyguard"]:
@@ -167,7 +193,7 @@ def on_transition_day_resolve(evt, cli, var, victim):
                 evt.data["dead"].append(bodyguard)
                 evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["novictmsg"] = False
-                evt.stop_propagation = True
+                evt.stop_processing = True
                 evt.prevent_default = True
                 break
 
@@ -246,12 +272,12 @@ def on_assassinate(evt, cli, var, nick, target, prot):
     if prot == "angel" and var.GAMEPHASE == "night":
         var.ACTIVE_PROTECTIONS[target].remove("angel")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
         cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "angel"].format(nick, target))
     elif prot == "bodyguard":
         var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
         for bg in var.ROLES["bodyguard"]:
             if GUARDED.get(bg) == target:
                 cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "bodyguard"].format(nick, target, bg))

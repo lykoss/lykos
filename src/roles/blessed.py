@@ -48,7 +48,7 @@ def on_transition_day_resolve(evt, cli, var, victim):
         # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
         # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
         # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
-        evt.stop_propagation = True
+        evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_night_end", priority=5)
@@ -65,21 +65,21 @@ def on_desperation(evt, cli, var, votee, target, prot):
     if prot == "blessing":
         var.ACTIVE_PROTECTIONS[target].remove("blessing")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
 
 @event_listener("retribution_totem")
 def on_retribution(evt, cli, var, victim, loser, prot):
     if prot == "blessing":
         var.ACTIVE_PROTECTIONS[target].remove("blessing")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
 
 @event_listener("assassinate")
 def on_assassinate(evt, cli, var, nick, target, prot):
     if prot == "blessing":
         var.ACTIVE_PROTECTIONS[target].remove("blessing")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
         # don't message the channel whenever a blessing blocks a kill, but *do* let the killer know so they don't try to report it as a bug
         pm(cli, nick, messages["assassin_fail_blessed"].format(target))
 

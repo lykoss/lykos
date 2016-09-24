@@ -2874,14 +2874,12 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 deadlist=deadlist,
                                 original=original,
                                 refresh_pl=refresh_pl,
-                                message_prefix="assassin_fail_")
+                                message_prefix="assassin_fail_",
+                                nickrole=nickrole,
+                                nicktpls=nicktpls,
+                                prots=prots)
                             while len(prots) > 0:
-                                # FA bypasses all protection (TODO: split off)
-                                # when split instead of setting prots to [] will need to stop_propagation but NOT prevent_default
-                                if nickrole == "fallen angel":
-                                    prots = []
-                                    break
-                                # an event can read the current active protection and cancel the totem
+                                # an event can read the current active protection and cancel the assassination
                                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
                                 # so that it cannot be used again (if the protection is meant to be usable once-only)
                                 if not aevt.dispatch(cli, var, nick, target, prots[0]):
@@ -3896,58 +3894,6 @@ def transition_day(cli, gameid=0):
     victims_set = set(victims)
     vappend = []
 
-    # Logic out stacked kills and protections. If we get down to 1 kill remaining that is valid and the victim is in bywolves,
-    # we re-add them to onlybywolves to indicate that the other kill attempts were guarded against (and the wolf kill is what went through)
-    # If protections >= kills, we keep track of which protection message to show (prot totem > GA > bodyguard > blessing)
-    # TODO: split out adding people back to onlybywolves as part of splitting off FA
-    pl = list_players()
-    for v in pl:
-        if v in victims_set:
-            if v in var.DYING:
-                continue # dying by themselves, not killed by wolves
-            if numkills[v] == 1 and v in bywolves:
-                onlybywolves.add(v)
-
-    fallenkills = set()
-    brokentotem = set()
-    from src.roles.shaman import havetotem
-    from src.roles import angel
-    if len(var.ROLES["fallen angel"]) > 0:
-        for p, t in list(protected.items()):
-            if p in bywolves:
-                for g in var.ROLES["guardian angel"]:
-                    if angel.GUARDED.get(g) == p and random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
-                        if g in protected:
-                            del protected[g]
-                        bywolves.add(g)
-                        victims.append(g)
-                        fallenkills.add(g)
-                        if g not in victims_set:
-                            victims_set.add(g)
-                            onlybywolves.add(g)
-                for g in var.ROLES["bodyguard"]:
-                    if angel.GUARDED.get(g) == p:
-                        if g in protected:
-                            del protected[g]
-                        bywolves.add(g)
-                        victims.append(g)
-                        fallenkills.add(g)
-                        if g not in victims_set:
-                            victims_set.add(g)
-                            onlybywolves.add(g)
-                # we'll never end up killing a shaman who gave out protection, but delete the totem since
-                # story-wise it gets demolished at night by the FA
-                while p in havetotem:
-                    havetotem.remove(p)
-                    brokentotem.add(p)
-                if p in protected:
-                    del protected[p]
-                if p in var.ACTIVE_PROTECTIONS:
-                    del var.ACTIVE_PROTECTIONS[p]
-                # mark kill as performed by a random FA
-                # this is important as there may otherwise be no killers if every kill was blocked
-                killers[p].append(random.choice(list(var.ROLES["fallen angel"])))
-
     # set to True if we play chilling howl message due to a bitten person turning
     new_wolf = False
     if var.ALPHA_ENABLED: # check for bites
@@ -4019,6 +3965,7 @@ def transition_day(cli, gameid=0):
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
     # TODO: this needs to be split off into angel.py, but all the stuff above it needs to be split off first
     # so even though angel.py exists we can't exactly do this now
+    from src.roles import angel
     for v in victims_set:
         if v in var.DYING:
             victims.append(v)
@@ -4045,40 +3992,6 @@ def transition_day(cli, gameid=0):
             elif v in var.ROLES["harlot"] and var.HVISITED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
-
-    # If FA is killing through a guard, let them as well as the victim know so they don't
-    # try to report the extra kills as a bug
-    fallenmsg = set()
-    if len(var.ROLES["fallen angel"]) > 0:
-        for v in fallenkills:
-            t = angel.GUARDED.get(v)
-            if v not in fallenmsg:
-                fallenmsg.add(v)
-                if v != t:
-                    pm(cli, v, (messages["fallen_angel_success"]).format(t))
-                else:
-                    pm(cli, v, messages["fallen_angel_deprotect"])
-            if v != t and t not in fallenmsg:
-                fallenmsg.add(t)
-                pm(cli, t, messages["fallen_angel_deprotect"])
-        # Also message GAs that don't die and their victims
-        for g in var.ROLES["guardian angel"]:
-            v = angel.GUARDED.get(g)
-            if v in bywolves and g not in fallenkills:
-                if g not in fallenmsg:
-                    fallenmsg.add(g)
-                    if g != v:
-                        pm(cli, g, messages["fallen_angel_success"].format(v))
-                    else:
-                        pm(cli, g, messages["fallen_angel_deprotect"])
-                if g != v and v not in fallenmsg:
-                    fallenmsg.add(v)
-                    pm(cli, v, messages["fallen_angel_deprotect"])
-        # Finally, message blessed people that aren't otherwise being guarded by a GA or bodyguard
-        for v in bywolves:
-            if v not in fallenmsg and v in var.ROLES["blessed villager"]:
-                fallenmsg.add(v)
-                pm(cli, v, messages["fallen_angel_deprotect"])
 
     # Select a random target for assassin that isn't already going to die if they didn't target
     pl = list_players()
@@ -4328,11 +4241,6 @@ def transition_day(cli, gameid=0):
         # to avoid sending duplicate messages.
         if deadperson in list_players():
             del_player(cli, deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
-
-    message = []
-    for brokentotem in brokentotem:
-        message.append(messages["totem_broken"].format(brokentotem))
-    cli.msg(chan, "\n".join(message))
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(cli, var)

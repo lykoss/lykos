@@ -171,6 +171,7 @@ def on_transition_day(evt, cli, var):
 
     # this should be moved to an event in kill, where monster prefixes their nick with !
     # and fallen angel subsequently removes the ! prefix
+    # TODO: when monster is split off
     if len(var.ROLES["fallen angel"]) == 0:
         for monster in var.ROLES["monster"]:
             if monster in evt.data["victims"]:

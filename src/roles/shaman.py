@@ -49,6 +49,7 @@ DECEIT = set()       # type: Set[str]
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
 havetotem = [] # type: List[str]
+brokentotem = set() # type: Set[str]
 
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
@@ -227,7 +228,7 @@ def on_chk_decision(evt, cli, var, force):
 @event_listener("chk_decision", priority=1.1)
 def on_hurry_up(evt, cli, var, force):
     if evt.params.timeout:
-       evt.stop_propagation = True
+       evt.stop_processing = True
 
 @event_listener("chk_decision_abstain")
 def on_chk_decision_abstain(evt, cli, var, nl):
@@ -267,7 +268,7 @@ def on_chk_decision_lynch3(evt, cli, var, voters):
         cli.msg(botconfig.CHANNEL, messages["totem_reveal"].format(votee, an, role))
         evt.data["votee"] = None
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
 
 @event_listener("chk_decision_lynch", priority=5)
 def on_chk_decision_lynch5(evt, cli, var, voters):
@@ -388,6 +389,7 @@ def on_transition_day_begin2(evt, cli, var):
     # In transition_day_end we report who was given totems based on havetotem.
     # Fallen angel messes with this list, hence why it is separated from LASTGIVEN
     # and calculated here.
+    brokentotem.clear()
     havetotem.clear()
     havetotem.extend(sorted(filter(None, LASTGIVEN.values())))
 
@@ -424,6 +426,14 @@ def on_transition_day3(evt, cli, var):
             for i in range(0, numtotems):
                 var.ACTIVE_PROTECTIONS[v].append("totem")
 
+@event_listener("fallen_angel_guard_break")
+def on_fagb(evt, cli, var, victim, killer):
+    # we'll never end up killing a shaman who gave out protection, but delete the totem since
+    # story-wise it gets demolished at night by the FA
+    while victim in havetotem:
+        havetotem.remove(victim)
+        brokentotem.add(victim)
+
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve2(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
@@ -436,7 +446,7 @@ def on_transition_day_resolve2(evt, cli, var, victim):
     if evt.data["protected"].get(victim) == "totem":
         evt.data["message"].append(messages["totem_protection"].format(victim))
         evt.data["novictmsg"] = False
-        evt.stop_propagation = True
+        evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve", priority=6)
@@ -495,6 +505,8 @@ def on_transition_day_end(evt, cli, var):
         ntotems = len(list(tlist))
         message.append(messages["totem_posession"].format(
             player, "ed" if player not in list_players() else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
+    for player in brokentotem:
+        message.append(messages["totem_broken"].format(player))
     cli.msg(botconfig.CHANNEL, "\n".join(message))
 
 @event_listener("transition_night_end", priority=2.01)
@@ -570,7 +582,7 @@ def on_assassinate(evt, cli, var, nick, target, prot):
     if prot == "totem":
         var.ACTIVE_PROTECTIONS[target].remove("totem")
         evt.prevent_default = True
-        evt.stop_propagation = True
+        evt.stop_processing = True
         cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "totem"].format(nick, target))
 
 @event_listener("myrole")
