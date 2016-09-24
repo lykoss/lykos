@@ -7087,13 +7087,13 @@ def game_stats(cli, nick, chan, rest):
             cli.notice(nick, messages["stats_wait_for_game_end"])
             return
 
-    gamemode = var.CURRENT_GAMEMODE.name
+    gamemode = "all"
     gamesize = None
     rest = rest.split()
     # Check for gamemode
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
-        if gamemode not in var.GAME_MODES.keys():
+        if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
             gamemode, _ = complete_match(gamemode, var.GAME_MODES.keys())
         if not gamemode:
             cli.notice(nick, messages["invalid_mode_no_list"].format(rest[0]))

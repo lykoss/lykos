@@ -394,21 +394,39 @@ def get_game_stats(mode, size):
 def get_game_totals(mode):
     conn = _conn()
     c = conn.cursor()
-    c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
+
+    if mode == "all":
+        c.execute("SELECT COUNT(1) FROM game")
+    else:
+        c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
+
     total_games = c.fetchone()[0]
     if not total_games:
         return "No games have been played in the {0} game mode.".format(mode)
-    c.execute("""SELECT
-                   gamesize,
-                   COUNT(1) AS games
-                 FROM game
-                 WHERE gamemode = ?
-                 GROUP BY gamesize
-                 ORDER BY gamesize ASC""", (mode,))
+
+    if mode == "all":
+        c.execute("""SELECT
+                       gamesize,
+                       COUNT(1) AS games
+                     FROM game
+                     GROUP BY gamesize
+                     ORDER BY gamesize ASC""")
+    else:
+        c.execute("""SELECT
+                       gamesize,
+                       COUNT(1) AS games
+                     FROM game
+                     WHERE gamemode = ?
+                     GROUP BY gamesize
+                     ORDER BY gamesize ASC""", (mode,))
     totals = []
     for row in c:
         totals.append("\u0002{0}p\u0002: {1}".format(*row))
-    return "Total games (\u0002{0}\u0002): {1} | {2}".format(mode, total_games, ", ".join(totals))
+
+    if mode == "all":
+        return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
+    else:
+        return "Total games (\u0002{0}\u0002): {1} | {2}".format(mode, total_games, ", ".join(totals))
 
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
