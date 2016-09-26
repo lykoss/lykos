@@ -6684,7 +6684,6 @@ def get_help(cli, rnick, chan, rest):
         reply(cli, nick, chan, messages["admin_commands_list"].format(break_long_message(afns, ", ")), private=True)
 
 def get_wiki_page(URI):
-    print(URI)
     try:
         response = urllib.request.urlopen(URI, timeout=2).read().decode("utf-8", errors="replace")
     except (urllib.error.URLError, socket.timeout):
