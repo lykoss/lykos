@@ -6703,10 +6703,6 @@ def wiki(cli, nick, chan, rest):
     if not rest:
         reply(cli, nick, chan, "https://werewolf.chat")
         return
-    # Check for valid page name
-    if not re.fullmatch("[\w ]+", rest):
-        reply(cli, nick, chan, messages["wiki_invalid_page"])
-        return
     rest = rest.replace(" ", "_").lower()
 
     # Get suggestions, for autocompletion
