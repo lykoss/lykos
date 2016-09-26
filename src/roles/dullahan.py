@@ -83,7 +83,10 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                     deadlist=evt.params.deadlist,
                     original=evt.params.original,
                     refresh_pl=evt.params.refresh_pl,
-                    message_prefix="dullahan_die_")
+                    message_prefix="dullahan_die_",
+                    nickrole=nickrole,
+                    nicktpls=nicktpls,
+                    prots=prots)
             while len(prots) > 0:
                 # an event can read the current active protection and cancel the totem
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
