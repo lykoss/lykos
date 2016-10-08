@@ -4095,10 +4095,8 @@ def transition_day(cli, gameid=0):
             elif random.random() < var.FORTUNE_CHANCE:
                 try:
                     out = subprocess.check_output(("fortune", "-s"))
-                except OSError as e:
-                    if e.errno != 2:
-                        # No such file or directory (fortune is not installed)
-                        raise
+                except FileNotFoundError:
+                    pass
                 else:
                     out = out.decode("utf-8", "replace")
                     out = out.replace("\n", " ")
