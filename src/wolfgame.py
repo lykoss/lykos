@@ -402,7 +402,9 @@ def sync_modes(cli):
 @cmd("refreshdb", flag="m", pm=True)
 def refreshdb(cli, nick, chan, rest):
     """Updates our tracking vars to the current db state."""
+    db.expire_stasis()
     db.init_vars()
+    expire_tempbans(cli)
     reply(cli, nick, chan, "Done.")
 
 @cmd("fdie", "fbye", flag="D", pm=True)
