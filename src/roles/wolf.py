@@ -345,6 +345,8 @@ def on_transition_night_end(evt, cli, var):
         if role in wcroles:
             wevt.dispatch(cli, var, wolf, wolf)
             tags = " ".join(wevt.data["tags"])
+            if tags:
+                tags += " "
 
         if normal_notify:
             msg = "{0}_notify".format(role.replace(" ", "_"))
@@ -352,6 +354,8 @@ def on_transition_night_end(evt, cli, var):
             if "cursed" in wevt.data["tags"]:
                 try:
                     tags2 = " ".join(wevt.data["tags"] - {"cursed"})
+                    if tags2:
+                        tags2 += " "
                     pm(cli, wolf, messages[cmsg].format(tags2))
                 except KeyError:
                     pm(cli, wolf, messages[msg].format(tags))
