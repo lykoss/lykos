@@ -177,7 +177,7 @@ def on_transition_night_end(evt, cli, var):
             if target in targets:
                 targets.remove(target)
         if not targets: # already all dead
-            pm(cli, dullahan, messages["dullahan_targets_dead"])
+            pm(cli, dullahan, "{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
         random.shuffle(targets)
         if dullahan in var.PLAYERS and not is_user_simple(dullahan):
