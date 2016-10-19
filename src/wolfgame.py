@@ -3062,6 +3062,11 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 with var.WARNING_LOCK:
                     var.START_VOTES.discard(nick)
 
+                    # Cancel the start vote timer if there are no votes left
+                    if len(var.START_VOTES) < 1 and 'start_votes' in var.TIMERS:
+                        var.TIMERS['start_votes'][0].cancel()
+                        del var.TIMERS['start_votes']
+
                 # Died during the joining process as a person
                 if var.AUTO_TOGGLE_MODES and nick in var.USERS and var.USERS[nick]["moded"]:
                     for newmode in var.USERS[nick]["moded"]:
