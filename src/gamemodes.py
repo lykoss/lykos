@@ -570,7 +570,7 @@ class RandomMode(GameMode):
         events.remove_listener("role_attribution", self.role_attribution)
         events.remove_listener("chk_win", self.lovers_chk_win)
 
-    def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
+    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
         for role in var.ROLE_GUIDE:
@@ -1256,7 +1256,7 @@ class MaelstromMode(GameMode):
                     pl[i] = player + " (cursed)"
             pm(cli, nick, "Players: " + ", ".join(pl))
 
-    def role_attribution(self, evt, cli, chk_win_conditions, var, villagers):
+    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
         evt.data["addroles"] = self._role_attribution(cli, var, villagers, True)
 

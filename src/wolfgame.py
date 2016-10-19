@@ -6125,7 +6125,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     addroles = {}
 
     event = Event("role_attribution", {"addroles": addroles})
-    if event.dispatch(cli, chk_win_conditions, var, villagers):
+    if event.dispatch(cli, var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
