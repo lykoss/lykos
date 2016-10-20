@@ -482,15 +482,8 @@ def pastebin_tb(cli, msg, exc):
         resp = urllib.request.urlopen(req)
         data = json.loads(resp.read().decode("utf-8"))
         url = data["url"] + "/py3tb"
-    except urllib.error.HTTPError as e:
-        if e.code == 409:  # paste ID conflict
-            pastebin_tb(exc)  # retry
-        else:
-            # Make sure we print the exception anyway
-            traceback.print_exc()
-            cli.msg(botconfig.DEV_CHANNEL, msg + " (Unable to pastebin traceback; please check the console.)")
     except Exception:
-        traceback.print_exc()
+        # Exception is already printed before calling this function, don't print twice
         cli.msg(botconfig.DEV_CHANNEL, msg + " (Unable to pastebin traceback; please check the console.)")
     else:
         cli.msg(botconfig.DEV_CHANNEL, " ".join((msg, url)))

@@ -862,6 +862,7 @@
     "quit_warning": "Quitting IRC during game. You only have a short time to re-join the channel after quitting to stay alive.",
     "acc_warning": "Changing accounts during game. Please do not change accounts while playing.",
     "tempban_kick": "{nick}",
+    "error_log": "An error has occurred and has been logged.",
 
     "_": " vim: set sw=4 expandtab:"
 }

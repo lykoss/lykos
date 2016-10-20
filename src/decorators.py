@@ -50,11 +50,11 @@ class handle_error:
                     cli = None
 
             if cli is not None:
-                msg = "An error has occurred and has been logged."
                 if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
-                    cli.msg(botconfig.CHANNEL, msg)
+                    cli.msg(botconfig.CHANNEL, messages["error_log"])
+                errlog(traceback.format_exc())
                 if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
-                    pastebin_tb(cli, msg, traceback.format_exc())
+                    pastebin_tb(cli, messages["error_log"], traceback.format_exc())
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
