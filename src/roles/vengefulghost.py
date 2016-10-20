@@ -166,7 +166,7 @@ def on_transition_day3(evt, cli, var):
 @event_listener("transition_day", priority=6.01)
 def on_transition_day6(evt, cli, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[k] == "villagers":
+        if GHOSTS[k] == "villagers" and k in evt.data["killers"][d]:
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
         # important, otherwise our del_player listener messages the vg
