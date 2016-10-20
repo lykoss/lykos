@@ -5145,7 +5145,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "turncoat", "warlock", "piper", "succubus"))
+    roles=("harlot", "turncoat", "warlock", "succubus"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5188,12 +5188,6 @@ def pass_cmd(cli, nick, chan, rest):
             return
         pm(cli, nick, messages["warlock_pass"])
         relay_wolfchat_command(cli, nick, messages["warlock_pass_wolfchat"].format(nick), ("warlock",))
-        var.PASSED.add(nick)
-    elif nickrole == "piper":
-        if nick in var.CHARMERS:
-            pm(cli, nick, messages["already_charmed"])
-            return
-        pm(cli, nick, )
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
