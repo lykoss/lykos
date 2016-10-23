@@ -597,7 +597,7 @@ class RandomMode(GameMode):
         lsuccubi = addroles["succubus"]
 
         if chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
-            return self.role_attribution(cli, evt, chk_win_conditions, var, villagers)
+            return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
 
