@@ -92,6 +92,10 @@ class GameMode:
                     self.LIMIT_ABSTAIN = True
                 elif val == "disabled":
                     self.ABSTAIN_ENABLED = False
+            elif key == "lover wins with fool":
+                if val not in ("true", "false"):
+                    raise InvalidModeException(messages["invalid_lover_wins_with_fool"].format(val))
+                self.LOVER_WINS_WITH_FOOL = True if val == "true" else False
 
     def startup(self):
         pass
@@ -148,7 +152,7 @@ class ChangedRolesMode(GameMode):
                     self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(var.ROLE_INDEX))
                 elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
                     self.DEFAULT_ROLE = num.lower()
-                elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain"):
+                elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain", "lover wins with fool"):
                     # handled in parent constructor
                     pass
                 else:
