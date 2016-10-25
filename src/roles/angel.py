@@ -27,6 +27,9 @@ def guard(cli, nick, chan, rest):
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, self_in_list)
     if not victim:
         return
+    if (role == "bodyguard" or not var.GUARDIAN_ANGEL_CAN_GUARD_SELF) and victim == nick:
+        pm(cli, nick, messages["cannot_guard_self"])
+        return
     if role == "guardian angel" and LASTGUARDED.get(nick) == victim:
         pm(cli, nick, messages["guardian_target_another"].format(victim))
         return
