@@ -7293,6 +7293,17 @@ def fpull(cli, nick, chan, rest):
 
             reply(cli, nick, chan, messages["process_exited"].format(command, cause, ret), private=True)
 
+@cmd("update", flag="D", pm=True)
+def update(cli, nick, chan, rest):
+    """Pulls from the repository and restarts the bot to update it."""
+
+    if update.aftergame:
+        # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
+        restart_program.aftergame = True
+
+    fpull.caller(cli, nick, chan, "")
+    restart_program.caller(cli, nick, chan, "Updating bot")
+
 @cmd("fsend", flag="F", pm=True)
 def fsend(cli, nick, chan, rest):
     """Forcibly send raw IRC commands to the server."""
