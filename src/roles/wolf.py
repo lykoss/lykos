@@ -44,7 +44,7 @@ def wolf_kill(cli, nick, chan, rest):
             victim = pieces[i]
         except IndexError:
             break
-        if victim.lower() == "and":
+        if i > 0 and victim.lower() == "and" and i+1 < len(pieces):
             extra += 1
             i += 1
             victim = pieces[i]
