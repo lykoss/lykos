@@ -465,12 +465,14 @@ def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
     args = rest.split()
+    force = False
 
-    if botconfig.DEBUG_MODE or (args and args[0] == "-force"):
+    if botconfig.DEBUG_MODE:
+        force = True
+
+    if args and args[0] == "-force":
         force = True
         rest = " ".join(args[1:])
-    else:
-        force = False
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
@@ -509,7 +511,7 @@ def restart_program(cli, nick, chan, rest):
             rest = " ".join(args[1:])
 
     if rest:
-        msg += " ({0})".format(rest)
+        msg += " ({0})".format(rest.strip())
 
     cli.quit(msg.format(nick, rest.strip()))
 
@@ -7280,10 +7282,7 @@ def fpull(cli, nick, chan, rest):
         ret = child.returncode
 
         for line in (out + err).splitlines():
-            if chan == nick:
-                cli.msg(nick, line.decode("utf-8"))
-            else:
-                pm(cli, nick, line.decode("utf-8"))
+            reply(cli, nick, chan, line.decode("utf-8"), private=True)
 
         if ret != 0:
             if ret < 0:
@@ -7292,10 +7291,7 @@ def fpull(cli, nick, chan, rest):
             else:
                 cause = "status"
 
-            if chan == nick:
-                cli.msg(nick, messages["process_exited"] % (command, cause, ret))
-            else:
-                pm(cli, nick, messages["process_exited"] % (command, cause, ret))
+            reply(cli, nick, chan, messages["process_exited"].format(command, cause, ret), private=True)
 
 @cmd("fsend", flag="F", pm=True)
 def fsend(cli, nick, chan, rest):
