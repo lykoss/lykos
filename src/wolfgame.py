@@ -6614,7 +6614,7 @@ def fwait(cli, nick, chan, rest):
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
-@cmd("stop", "fstop", flag="A", phases=("join", "day", "night"))
+@cmd("fstop", flag="A", phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     if nick == "<stderr>":
