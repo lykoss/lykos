@@ -376,7 +376,7 @@ def reset():
 
 reset()
 
-@cmd("fsync", flag="m", pm=True)
+@cmd("sync", "fsync", flag="m", pm=True)
 def fsync(cli, nick, chan, rest):
     """Makes the bot apply the currently appropriate channel modes."""
     sync_modes(cli)
@@ -407,7 +407,7 @@ def refreshdb(cli, nick, chan, rest):
     expire_tempbans(cli)
     reply(cli, nick, chan, "Done.")
 
-@cmd("fdie", "fbye", flag="D", pm=True)
+@cmd("die", "bye", "fdie", "fbye", flag="D", pm=True)
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
@@ -460,7 +460,7 @@ def _restart_program(cli, mode=None):
         os.execl(python, python, *sys.argv)
 
 
-@cmd("frestart", flag="D", pm=True)
+@cmd("restart", "frestart", flag="D", pm=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
@@ -6394,7 +6394,7 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-@cmd("ftemplate", flag="F", pm=True)
+@cmd("template", "ftemplate", flag="F", pm=True)
 def ftemplate(cli, nick, chan, rest):
     params = re.split(" +", rest)
 
@@ -6614,7 +6614,7 @@ def fwait(cli, nick, chan, rest):
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
-@cmd("fstop", flag="A", phases=("join", "day", "night"))
+@cmd("stop", "fstop", flag="A", phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     if nick == "<stderr>":
@@ -6755,7 +6755,7 @@ def on_invite(cli, raw_nick, something, chan):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
 
-@cmd("fpart", raw_nick=True, flag="A", pm=True)
+@cmd("part", "fpart", raw_nick=True, flag="A", pm=True)
 def fpart(cli, rnick, chan, rest):
     """Makes the bot forcibly leave a channel."""
     nick = parse_nick(rnick)[0]
@@ -7048,7 +7048,7 @@ def myrole(cli, nick, chan, rest):
         message += "."
         pm(cli, nick, message)
 
-@cmd("faftergame", flag="D", raw_nick=True, pm=True)
+@cmd("aftergame", "faftergame", flag="D", raw_nick=True, pm=True)
 def aftergame(cli, rawnick, chan, rest):
     """Schedule a command to be run after the current game."""
     nick = parse_nick(rawnick)[0]
@@ -7082,7 +7082,7 @@ def aftergame(cli, rawnick, chan, rest):
     var.AFTER_FLASTGAME = do_action
 
 
-@cmd("flastgame", flag="D", raw_nick=True, pm=True)
+@cmd("lastgame", "flastgame", flag="D", raw_nick=True, pm=True)
 def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     nick, _, ident, host = parse_nick(rawnick)
@@ -7267,7 +7267,7 @@ def vote(cli, nick, chan, rest):
     else:
         return show_votes.caller(cli, nick, chan, rest)
 
-@cmd("fpull", flag="D", pm=True)
+@cmd("pull", "fpull", flag="D", pm=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
@@ -7314,7 +7314,7 @@ def update(cli, nick, chan, rest):
     fpull.caller(cli, nick, chan, "")
     restart_program.caller(cli, nick, chan, "Updating bot")
 
-@cmd("fsend", flag="F", pm=True)
+@cmd("send", "fsend", flag="F", pm=True)
 def fsend(cli, nick, chan, rest):
     """Forcibly send raw IRC commands to the server."""
     cli.send(rest)
@@ -7349,12 +7349,12 @@ def _say(cli, raw_nick, rest, command, action=False):
     cli.send("PRIVMSG {0} :{1}".format(target, message))
 
 
-@cmd("fsay", flag="s", raw_nick=True, pm=True)
+@cmd("say", "fsay", flag="s", raw_nick=True, pm=True)
 def fsay(cli, raw_nick, chan, rest):
     """Talk through the bot as a normal message."""
     _say(cli, raw_nick, rest, "fsay")
 
-@cmd("fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
+@cmd("act", "do", "me", "fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
 def fact(cli, raw_nick, chan, rest):
     """Act through the bot as an action."""
     _say(cli, raw_nick, rest, "fact", action=True)
@@ -7381,7 +7381,7 @@ def can_run_restricted_cmd(nick):
 
     return True
 
-@cmd("fspectate", flag="A", pm=True, phases=("day", "night"))
+@cmd("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"))
 def fspectate(cli, nick, chan, rest):
     """Spectate wolfchat or deadchat."""
     if not can_run_restricted_cmd(nick):
