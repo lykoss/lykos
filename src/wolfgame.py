@@ -7297,6 +7297,16 @@ def fpull(cli, nick, chan, rest):
 def update(cli, nick, chan, rest):
     """Pulls from the repository and restarts the bot to update it."""
 
+    force = (rest.strip() == "-force")
+
+    if var.PHASE in var.GAME_PHASES:
+        if var.PHASE == "join" or force:
+            stop_game(cli, log=False)
+        else:
+            reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
+                what="restart", cmd="update", prefix=botconfig.CMD_CHAR), private=True)
+            return
+
     if update.aftergame:
         # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
         restart_program.aftergame = True
