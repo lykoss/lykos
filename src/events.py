@@ -15,22 +15,18 @@ def remove_listener(event, callback, priority = 5):
         EVENT_CALLBACKS[event].remove((priority, callback))
 
 class Event:
-    def __init__(*args, **kwargs):
-        # We do this so that e.g. 'data' can be given as a param
-        self, name, data = args # If this raises, there are too few/many args
-
+    def __init__(self, _name, _data, **kwargs):
         self.stop_processing = False
         self.prevent_default = False
-        self.name = name
-        self.data = data
+        self.name = _name
+        self.data = _data
         self.params = SimpleNamespace(**kwargs)
 
-    def dispatch(*args, **kwargs):
-        self = args[0] # If this fails, you forgot to do Event(stuff) first
+    def dispatch(self, *args, **kwargs):
         self.stop_processing = False
         self.prevent_default = False
         for item in list(EVENT_CALLBACKS[self.name]):
-            item[1](*args, **kwargs)
+            item[1](self, *args, **kwargs)
             if self.stop_processing:
                 break
 
