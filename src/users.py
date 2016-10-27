@@ -12,17 +12,20 @@ import botconfig
 
 Bot = None # bot instance
 
-all_users = WeakSet()
+_users = WeakSet()
 
 _arg_msg = "(nick={0}, ident={1}, host={2}, realname={3}, account={4}, allow_bot={5})"
 
+# This is used to tell if this is a fake nick or not. If this function
+# returns a true value, then it's a fake nick. This is useful for
+# testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False, raw_nick=False):
+def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
     """Return the matching user(s) from the user list.
 
     This takes up to 5 positional arguments (nick, ident, host, realname,
-    account) and may take up to four keyword-only arguments:
+    account) and may take up to three keyword-only arguments:
 
     - allow_multiple (defaulting to False) allows multiple matches,
       and returns a list, even if there's only one match;
@@ -34,23 +37,17 @@ def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_
     - allow_bot (defaulting to False) allows the bot to be matched and
       returned;
 
-    - raw_nick (defaulting to False) means that the nick has not been
-      yet parsed, and so ident and host will be None, and nick will be
-      a raw nick of the form nick!ident@host.
-
     If allow_multiple is not set and multiple users match, a ValueError
     will be raised. If allow_none is not set and no users match, a KeyError
     will be raised.
 
     """
 
-    if raw_nick:
-        if ident is not None or host is not None:
-            raise ValueError("ident and host need to be None if raw_nick is True")
+    if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
     potential = []
-    users = set(all_users)
+    users = set(_users)
     if allow_bot:
         users.add(Bot)
 
@@ -83,7 +80,7 @@ def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_
 
     return potential[0]
 
-def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channels=None, raw_nick=False):
+def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channels=None):
     """Create a new user, add it to the user list and return it.
 
     This function takes up to 6 keyword-only arguments (and no positional
@@ -91,15 +88,9 @@ def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channe
     With the exception of the first one, any parameter can be omitted.
     If a matching user already exists, a ValueError will be raised.
 
-    The raw_nick keyword argument may be set if the nick has not yet
-    been parsed. In that case, ident and host must both be None, and
-    nick must be in the form nick!ident@host.
-
     """
 
-    if raw_nick:
-        if ident is not None or host is not None:
-            raise ValueError("ident and host need to be None if raw_nick is True")
+    if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
     if exists(nick, ident, host, realname, account, allow_multiple=True, allow_bot=True):
@@ -115,10 +106,10 @@ def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channe
         cls = FakeUser
 
     new = cls(cli, nick, ident, host, realname, account, channels)
-    all_users.add(new)
+    _users.add(new)
     return new
 
-def exists(*args, allow_none=False, **kwargs):
+def exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
     """Return True if a matching user exists.
 
     Positional and keyword arguments are the same as get(), with the
@@ -127,29 +118,18 @@ def exists(*args, allow_none=False, **kwargs):
 
     """
 
-    if allow_none: # why would you even want to do that?
-        raise RuntimeError("Cannot use allow_none=True with exists()")
-
     try:
-        get(*args, **kwargs)
+        get(nick, ident, host, realname, account, allow_multiple=allow_multiple, allow_bot=allow_bot)
     except (KeyError, ValueError):
         return False
 
     return True
 
-_raw_nick_pattern = re.compile(
+def users():
+    """Iterate over the users in the registry."""
+    yield from _users
 
-    r"""
-    \A
-    (?P<nick>  [^!@\s]+ (?=!|$) )? !?
-    (?P<ident> [^!@\s]+         )? @?
-    (?P<host>  \S+ )?
-    \Z
-    """,
-
-    re.VERBOSE
-
-)
+_raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 
 def parse_rawnick(rawnick, *, default=None):
     """Return a tuple of (nick, ident, host) from rawnick."""
@@ -190,7 +170,7 @@ class User(IRCContext):
 
     def is_owner(self):
         if self.is_fake:
-            return False # fake nicks can't ever be owner
+            return False
 
         hosts = set(botconfig.OWNERS)
         accounts = set(botconfig.OWNERS_ACCOUNTS)
@@ -208,7 +188,7 @@ class User(IRCContext):
 
     def is_admin(self):
         if self.is_fake:
-            return False # they can't be admin, either
+            return False
 
         flags = var.FLAGS[self.rawnick] + var.FLAGS_ACCS[self.account]
 
@@ -377,7 +357,7 @@ class User(IRCContext):
                 max_targets = Features["TARGMAX"][send_type]
                 while targets:
                     using, targets = targets[:max_targets], targets[max_targets:]
-                    cls.raw_send(message, targets[0].client, send_type, ",".join([t.nick for t in using]))
+                    cls._send(message, targets[0].client, send_type, ",".join([t.nick for t in using]))
 
         cls._messages.clear()
 

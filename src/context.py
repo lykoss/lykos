@@ -1,4 +1,4 @@
-Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}} # IRC server features (these are defaults)
+Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}}
 
 def lower(nick):
     if nick is None:
@@ -41,17 +41,18 @@ class IRCContext:
         return "PRIVMSG"
 
     @staticmethod
-    def raw_send(data, client, send_type, name):
+    def _send(data, client, send_type, name):
         full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 
-        # Maximum length of sent data is 0x200 (512) bytes. However,
-        # we have to reduce the maximum length allowed to account for:
+        # Maximum length of sent data is 512 bytes. However, we have to
+        # reduce the maximum length allowed to account for:
         # 1 (1) - The initial colon at the front of the data
-        # 2 (1) - The space between the command and the target
-        # 2 (1) - The space between the target and the data
-        # 3 (1) - The colon at the front of the data to send
-        # 4 (3) - I don't know why, but we need 3 more/less characters
-        length = 0x200 - 7
+        # 2 (1) - The space between the sender (us) and the command
+        # 3 (1) - The space between the command and the target
+        # 4 (1) - The space between the target and the data
+        # 5 (1) - The colon at the front of the data to send
+        # 6 (2) - The trailing \r\n
+        length = 512 - 7
         # Next, we need to reduce the length to account for our address
         length -= len(full_address)
         # Then we also need to account for the target's length
@@ -66,4 +67,4 @@ class IRCContext:
 
     def send(self, data, target=None, *, notice=False, privmsg=False):
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
-        self.raw_send(data, self.client, send_type, self.name)
+        self._send(data, self.client, send_type, self.name)
