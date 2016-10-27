@@ -46,7 +46,10 @@ def on_rename(evt, cli, var, prefix, nick):
         WILD_CHILDREN.add(nick)
 
     for (wildchild, idol) in IDOLS.items():
-        if idol == prefix:
+        if wildchild == prefix:
+            IDOLS[nick] = IDOLS[wildchild]
+            del IDOLS[wildchild]
+        elif idol == prefix:
             IDOLS[wildchild] = nick
 
 @event_listener("exchange_roles")
