@@ -45,6 +45,10 @@ def on_rename(evt, cli, var, prefix, nick):
         WILD_CHILDREN.remove(prefix)
         WILD_CHILDREN.add(nick)
 
+    for (wildchild, idol) in IDOLS.items():
+        if idol == prefix:
+            IDOLS[wildchild] = nick
+
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
     if actor_role == "wolf" and actor in WILD_CHILDREN and nick not in WILD_CHILDREN:
