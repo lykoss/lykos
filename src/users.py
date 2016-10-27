@@ -338,9 +338,7 @@ class User(IRCContext):
         if not var.DISABLE_ACCOUNTS:
             amount = var.STASISED_ACCS.get(temp.account, 0)
 
-        for hostmask in var.STASISED:
-            if temp.match_hostmask(hostmask):
-                amount = max(amount, var.STASISED[hostmask])
+        amount = max(amount, var.STASISED.get(temp.userhost, 0))
 
         return amount
 
