@@ -110,6 +110,12 @@ class Channel(IRCContext):
 
         This performs both single and complex mode changes.
 
+        Note: Not giving a prefix with the mode is the same as giving a
+        '+ prefix. For instance, the following are identical:
+
+            chan.mode(("+o", "woffle"))
+            chan.mode(("o", "woffle"))
+
         """
 
         if not changes: # bare call; get channel modes
@@ -121,7 +127,10 @@ class Channel(IRCContext):
         for change in changes:
             if isinstance(change, str):
                 change = (change, None)
-            params.append(change)
+            mode, target = change
+            if len(mode) < 2:
+                mode = "+" + mode
+            params.append((mode, target))
         params.sort(key=lambda x: x[0][0]) # sort by prefix
 
         while params:
