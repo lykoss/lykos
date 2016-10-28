@@ -6141,7 +6141,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         need_reset = True
         wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
         if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys())):
-            cli.msg(chan, messages["custom_too_few_players_custom"])
+            cli.msg(chan, messages["too_few_players_custom"])
         elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
             cli.msg(chan, messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
