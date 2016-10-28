@@ -881,6 +881,7 @@ def fwarn(cli, nick, chan, rest):
         warn_id = add_warning(cli, target, points, nick, reason, notes, expires, sanctions)
     except ValueError:
         reply(cli, nick, chan, messages["fwarn_expiry_invalid"])
+        return
 
     if warn_id is False:
         reply(cli, nick, chan, messages["fwarn_cannot_add"])
