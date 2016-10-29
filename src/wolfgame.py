@@ -7352,12 +7352,12 @@ def _say(cli, raw_nick, rest, command, action=False):
 @cmd("say", "fsay", flag="s", raw_nick=True, pm=True)
 def fsay(cli, raw_nick, chan, rest):
     """Talk through the bot as a normal message."""
-    _say(cli, raw_nick, rest, "fsay")
+    _say(cli, raw_nick, rest, "say")
 
 @cmd("act", "do", "me", "fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
 def fact(cli, raw_nick, chan, rest):
     """Act through the bot as an action."""
-    _say(cli, raw_nick, rest, "fact", action=True)
+    _say(cli, raw_nick, rest, "act", action=True)
 
 def can_run_restricted_cmd(nick):
     # if allowed in normal games, restrict it so that it can only be used by dead players and
