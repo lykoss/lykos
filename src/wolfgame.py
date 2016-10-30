@@ -46,18 +46,13 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, decorators, events, logger, proxy, debuglog, errlog, plog
+from src import db, decorators, events, users, logger, proxy, debuglog, errlog, plog
+from src.decorators import cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
-
-cmd = decorators.cmd
-hook = decorators.hook
-handle_error = decorators.handle_error
-event_listener = decorators.event_listener
-COMMANDS = decorators.COMMANDS
 
 # Game Logic Begins:
 
@@ -176,7 +171,7 @@ def connect_callback(cli):
         var.DISABLE_ACCOUNTS = True
         var.ACCOUNTS_ONLY = False
 
-        if nick in var.USERS:
+        if users.exists(nick, user, host):
             return
 
         if nick == botconfig.NICK:
@@ -185,17 +180,18 @@ def connect_callback(cli):
             cli.hostmask = host
 
         if "+" in status:
-            to_be_devoiced.append(user)
+            to_be_devoiced.append(nick)
         newstat = ""
         for stat in status:
             if not stat in var.MODES_PREFIXES:
                 continue
             newstat += var.MODES_PREFIXES[stat]
-        var.USERS[nick] = dict(ident=user,host=host,account="*",inchan=True,modes=set(newstat),moded=set())
+        users.add(nick, ident=user,host=host,account="*",inchan=True,modes=set(newstat),moded=set())
 
     @hook("whospcrpl", hookid=295)
     def on_whoreply(cli, server, nick, ident, host, _, user, status, acc):
-        if user in var.USERS: return  # Don't add someone who is already there
+        if users.exists(user, ident, host):
+            return  # Don't add someone who is already there
         if user == botconfig.NICK:
             cli.nickname = user
             cli.ident = ident
@@ -209,7 +205,7 @@ def connect_callback(cli):
             if not stat in var.MODES_PREFIXES:
                 continue
             newstat += var.MODES_PREFIXES[stat]
-        var.USERS[user] = dict(ident=ident,host=host,account=acc,inchan=True,modes=set(newstat),moded=set())
+        users.add(user, ident=ident,host=host,account=acc,inchan=True,modes=set(newstat),moded=set())
 
     @hook("endofwho", hookid=295)
     def afterwho(*args):
@@ -238,8 +234,8 @@ def connect_callback(cli):
             return
         if modeaction == "+o" and target == botconfig.NICK:
             var.OPPED = True
-            if botconfig.NICK in var.USERS:
-                var.USERS[botconfig.NICK]["modes"].add("o")
+            if users.exists(botconfig.NICK):
+                users.get(botconfig.NICK).modes.add("o")
 
             if var.PHASE == "none":
                 @hook("quietlistend", hookid=297)
@@ -263,7 +259,7 @@ def connect_callback(cli):
     else:
         cli.who(botconfig.CHANNEL, "%uhsnfa")
 
-@hook("mode")
+@hook("mode") # XXX Get rid of this when the user/channel refactor is done
 def check_for_modes(cli, rnick, chan, modeaction, *target):
     nick = parse_nick(rnick)[0]
     if chan != botconfig.CHANNEL:
@@ -336,8 +332,8 @@ def reset_modes_timers(cli):
                 continue
             for mode in var.USERS[plr]["moded"]:
                 cmodes.append(("+"+mode, plr))
-            var.USERS[plr]["modes"].update(var.USERS[plr]["moded"])
-            var.USERS[plr]["moded"] = set()
+            users.get(plr).modes.update(users.get(plr).moded)
+            users.get(plr).moded = set()
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
             if not is_fake_nick(deadguy):
@@ -384,7 +380,7 @@ def fsync(cli, nick, chan, rest):
 def sync_modes(cli):
     voices = []
     pl = list_players()
-    for nick, u in var.USERS.items():
+    for nick, u in users.users.items(): # that's really *just* for backwards-compat
         if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
             if "v" in u.get("modes", set()):
               voices.append(("-v", nick))
@@ -543,10 +539,10 @@ def mark_simple_notify(cli, nick, chan, rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
     nick, _, ident, host = parse_nick(nick)
-    if nick in var.USERS:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        ident = irc_lower(users.get(nick).ident)
+        host = users.get(nick).host.lower()
+        acc = irc_lower(users.get(nick).account)
     else:
         acc = None
     if not acc or acc == "*":
@@ -605,10 +601,10 @@ def mark_prefer_notice(cli, nick, chan, rest):
         # and not an intentional invocation of this command
         return
 
-    if nick in var.USERS:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        ident = irc_lower(users.get(nick).ident)
+        host = users.get(nick).host.lower()
+        acc = irc_lower(users.get(nick).account)
     else:
         acc = None
     if not acc or acc == "*":
@@ -658,7 +654,7 @@ def mark_prefer_notice(cli, nick, chan, rest):
 @cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
 def replace(cli, nick, chan, rest):
     """Swap out a player logged in to your account."""
-    if nick not in var.USERS or not var.USERS[nick]["inchan"]:
+    if not users.exists(nick) or not users.get(nick).inchan:
         pm(cli, nick, messages["invalid_channel"].format(botconfig.CHANNEL))
         return
 
@@ -666,7 +662,7 @@ def replace(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["already_playing"].format("You"), private=True)
         return
 
-    account = irc_lower(var.USERS[nick]["account"])
+    account = irc_lower(users.get(nick).account)
 
     if not account or account == "*":
         reply(cli, nick, chan, messages["not_logged_in"], private=True)
@@ -677,8 +673,8 @@ def replace(cli, nick, chan, rest):
     if not rest: # bare call
         target = None
 
-        for user in var.USERS:
-            if irc_lower(var.USERS[user]["account"]) == account:
+        for user in users.users():
+            if irc_lower(users.get(user).account) == account:
                 if user == nick or user not in list_participants():
                     pass
                 elif target is None:
@@ -705,11 +701,11 @@ def replace(cli, nick, chan, rest):
             reply(cli, nick, chan, msg, private=True)
             return
 
-        if var.USERS[target]["account"] == "*":
+        if users.get(target).account in ("*", None):
             reply(cli, nick, chan, messages["target_not_logged_in"], private=True)
             return
 
-    if irc_lower(var.USERS[target]["account"]) == account and nick != target:
+    if irc_lower(users.get(target).account) == account and nick != target:
         rename_player(cli, target, nick)
         # Make sure to remove player from var.DISCONNECTED if they were in there
         if var.PHASE in var.GAME_PHASES:
@@ -726,8 +722,8 @@ def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
     players = is_user_altpinged(nick)
     rest = rest.split()
-    if nick in var.USERS:
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        acc = irc_lower(users.get(nick).account)
     else:
         reply(cli, nick, chan, messages["invalid_channel"].format(botconfig.CHANNEL), private=True)
         return
@@ -775,10 +771,10 @@ def altpinger(cli, nick, chan, rest):
     reply(cli, nick, chan, "\n".join(msg), private=True)
 
 def is_user_altpinged(nick):
-    if nick in var.USERS.keys():
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        ident = irc_lower(users.get(nick).ident)
+        host = users.get(nick).host.lower()
+        acc = irc_lower(users.get(nick).account)
     else:
         return 0
     if not var.DISABLE_ACCOUNTS and acc and acc != "*":
@@ -792,9 +788,9 @@ def is_user_altpinged(nick):
 
 def toggle_altpinged_status(nick, value, old=None):
     # nick should be in var.USERS if not fake; if not, let the error propagate
-    ident = irc_lower(var.USERS[nick]["ident"])
-    host = var.USERS[nick]["host"].lower()
-    acc = irc_lower(var.USERS[nick]["account"])
+    ident = irc_lower(users.get(nick).ident)
+    host = users.get(nick).host.lower()
+    acc = irc_lower(users.get(nick).account)
     if value == 0:
         if not var.DISABLE_ACCOUNTS and acc and acc != "*":
             if acc in var.PING_IF_PREFS_ACCS:
@@ -861,7 +857,7 @@ def join_timer_handler(cli):
 
         # Don't ping alt connections of users that have already joined
         if not var.DISABLE_ACCOUNTS:
-            for acc in (var.USERS[player]["account"] for player in pl if player in var.USERS):
+            for acc in (users.get(player).account for player in pl if users.exists(player)):
                 var.PINGED_ALREADY_ACCS.add(irc_lower(acc))
 
         # Remove players who have already been pinged from the list of possible players to ping
@@ -936,9 +932,9 @@ def join_timer_handler(cli):
             cli.who(botconfig.CHANNEL)
 
 def get_deadchat_pref(nick):
-    if nick in var.USERS:
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        host = users.get(nick).host.lower()
+        acc = irc_lower(users.get(nick).account)
     else:
         return False
 
@@ -1008,9 +1004,9 @@ def deadchat_pref(cli, nick, chan, rest):
     if not var.ENABLE_DEADCHAT:
         return
 
-    if nick in var.USERS:
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+    if users.exists(nick):
+        host = users.get(nick).host.lower()
+        acc = irc_lower(users.get(nick).account)
     else:
         reply(cli, nick, chan, messages["invalid_channel"].format(botconfig.CHANNEL), private=True)
         return
@@ -1053,7 +1049,7 @@ def join(cli, nick, chan, rest):
         if chan == nick:
             return
         if var.ACCOUNTS_ONLY:
-            if nick in var.USERS and (not var.USERS[nick]["account"] or var.USERS[nick]["account"] == "*"):
+            if users.exists(nick) and (not users.get(nick).account or users.get(nick).account == "*"):
                 cli.notice(nick, messages["not_logged_in"])
                 return
         if evt.data["join_player"](cli, nick, chan) and rest:
@@ -1077,10 +1073,10 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
             cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
         return False
 
-    if player in var.USERS:
-        ident = irc_lower(var.USERS[player]["ident"])
-        host = var.USERS[player]["host"].lower()
-        acc = irc_lower(var.USERS[player]["account"])
+    if users.exists(player):
+        ident = irc_lower(users.get(player).ident)
+        host = users.get(player).host.lower()
+        acc = irc_lower(users.get(player).account)
         hostmask = player + "!" + ident + "@" + host
     elif is_fake_nick(player) and botconfig.DEBUG_MODE:
         # fakenick
@@ -1111,11 +1107,11 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
 
     cmodes = [("+v", player)]
     if var.PHASE == "none":
-        if var.AUTO_TOGGLE_MODES and player in var.USERS and var.USERS[player]["modes"]:
-            for mode in var.USERS[player]["modes"]:
+        if var.AUTO_TOGGLE_MODES and users.exists(player) and users.get(player).modes:
+            for mode in users.get(player).modes:
                 cmodes.append(("-"+mode, player))
-            var.USERS[player]["moded"].update(var.USERS[player]["modes"])
-            var.USERS[player]["modes"] = set()
+            users.get(player).moded.update(users.get(player).modes)
+            users.get(player).modes = set()
         mass_mode(cli, cmodes, [])
         var.ROLES["person"].add(player)
         var.ALL_PLAYERS.append(player)
@@ -1155,7 +1151,7 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
     else:
         if acc is not None and not botconfig.DEBUG_MODE:
             for user in pl:
-                if irc_lower(var.USERS[user]["account"]) == acc:
+                if irc_lower(users.get(user).account) == acc:
                     msg = messages["account_already_joined"]
                     if who == player:
                         cli.notice(who, msg.format(user, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)))
@@ -1165,11 +1161,11 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
 
         var.ALL_PLAYERS.append(player)
         if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
-            if var.AUTO_TOGGLE_MODES and var.USERS[player]["modes"]:
+            if var.AUTO_TOGGLE_MODES and users.get(player).modes:
                 for mode in var.USERS[player]["modes"]:
                     cmodes.append(("-"+mode, player))
-                var.USERS[player]["moded"].update(var.USERS[player]["modes"])
-                var.USERS[player]["modes"] = set()
+                users.get(player).moded.update(users.get(player).modes)
+                users.get(player).modes = set()
             mass_mode(cli, cmodes, [])
             cli.msg(chan, messages["player_joined"].format(player, len(pl) + 1))
         if not sanity:
@@ -1278,7 +1274,7 @@ def fjoin(cli, nick, chan, rest):
         if not is_fake_nick(tojoin):
             tojoin = ul[ull.index(tojoin.lower())].strip()
             if not botconfig.DEBUG_MODE and var.ACCOUNTS_ONLY:
-                if not var.USERS[tojoin]["account"] or var.USERS[tojoin]["account"] == "*":
+                if not users.get(tojoin).account or users.get(tojoin).account == "*":
                     cli.notice(nick, messages["account_not_logged_in"].format(tojoin))
                     return
         elif botconfig.DEBUG_MODE:
@@ -1351,9 +1347,9 @@ def on_kicked(cli, nick, chan, victim, reason):
         cli.join(chan)
         if chan == botconfig.CHANNEL and var.CHANSERV_OP_COMMAND:
             cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
-    if var.AUTO_TOGGLE_MODES and victim in var.USERS:
-        var.USERS[victim]["modes"] = set()
-        var.USERS[victim]["moded"] = set()
+    if var.AUTO_TOGGLE_MODES and users.exists(victim):
+        users.get(victim).modes = set()
+        users.get(victim).moded = set()
 
 @hook("account")
 def on_account(cli, rnick, acc):
@@ -1365,16 +1361,16 @@ def on_account(cli, rnick, acc):
         leave(cli, "account", nick)
         if var.PHASE not in "join":
             cli.mode(chan, "-v", nick)
-            cli.notice(nick, messages["account_reidentify"].format(var.USERS[nick]["account"]))
+            cli.notice(nick, messages["account_reidentify"].format(users.get(nick).account))
         else:
             cli.notice(nick, messages["account_midgame_change"])
-    if nick in var.USERS.keys():
-        var.USERS[nick]["ident"] = ident
-        var.USERS[nick]["host"] = host
-        var.USERS[nick]["account"] = acc
+    if users.exists(nick).keys():
+        users.get(nick).ident = ident
+        users.get(nick).host = host
+        users.get(nick).account = acc
     if nick in var.DISCONNECTED.keys():
         if lacc == var.DISCONNECTED[nick][0]:
-            if nick in var.USERS and var.USERS[nick]["inchan"]:
+            if users.exists(nick) and users.get(nick).inchan:
                 with var.GRAVEYARD_LOCK:
                     hm = var.DISCONNECTED[nick][1]
                     act = var.DISCONNECTED[nick][0]
@@ -2419,18 +2415,18 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             if plr.startswith("(dced)"):
                 pentry["dced"] = True
                 splr = plr[6:]
-                if splr in var.USERS:
+                if users.exists(splr):
                     if not var.DISABLE_ACCOUNTS:
-                        pentry["account"] = var.USERS[splr]["account"]
+                        pentry["account"] = users.get(splr).account
                     pentry["nick"] = splr
-                    pentry["ident"] = var.USERS[splr]["ident"]
-                    pentry["host"] = var.USERS[splr]["host"]
+                    pentry["ident"] = users.get(splr).ident
+                    pentry["host"] = users.get(splr).host
             elif plr in var.USERS:
                 if not var.DISABLE_ACCOUNTS:
-                    pentry["account"] = var.USERS[plr]["account"]
+                    pentry["account"] = users.get(plr).account
                 pentry["nick"] = plr
-                pentry["ident"] = var.USERS[plr]["ident"]
-                pentry["host"] = var.USERS[plr]["host"]
+                pentry["ident"] = users.get(plr).ident
+                pentry["host"] = users.get(plr).host
 
             pentry["role"] = rol
             pentry["templates"] = pltp[plr]
@@ -3048,9 +3044,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
-            if nick in var.USERS:
-                host = var.USERS[nick]["host"].lower()
-                acc = irc_lower(var.USERS[nick]["account"])
+            if users.exists(nick):
+                host = users.get(nick).host.lower()
+                acc = irc_lower(users.get(nick).account)
                 if acc not in var.DEADCHAT_PREFS_ACCS and host not in var.DEADCHAT_PREFS:
                     deadchat.append(nick)
             # devoice all players that died as a result, if we are in the original del_player
@@ -3070,11 +3066,11 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         del var.TIMERS["start_votes"]
 
                 # Died during the joining process as a person
-                if var.AUTO_TOGGLE_MODES and nick in var.USERS and var.USERS[nick]["moded"]:
+                if var.AUTO_TOGGLE_MODES and users.exists(nick) and users.get(nick).moded:
                     for newmode in var.USERS[nick]["moded"]:
                         cmode.append(("+"+newmode, nick))
-                    var.USERS[nick]["modes"].update(var.USERS[nick]["moded"])
-                    var.USERS[nick]["moded"] = set()
+                    users.get(nick).modes.update(users.get(nick).moded)
+                    users.get(nick).moded = set()
                 var.ALL_PLAYERS.remove(nick)
                 ret = not chk_win(cli)
             else:
@@ -3256,15 +3252,15 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick, _, ident, host = parse_nick(raw_nick)
     if nick == botconfig.NICK:
         plog("Joined {0}".format(chan))
-    elif nick not in var.USERS.keys():
-        var.USERS[nick] = dict(ident=ident,host=host,account=acc,inchan=chan == botconfig.CHANNEL,modes=set(),moded=set())
+    elif not users.exists(nick):
+        users.add(nick, ident=ident,host=host,account=acc,inchan=(chan == botconfig.CHANNEL),modes=set(),moded=set())
     else:
-        var.USERS[nick]["ident"] = ident
-        var.USERS[nick]["host"] = host
-        var.USERS[nick]["account"] = acc
-        if not var.USERS[nick]["inchan"]:
+        users.get(nick).ident = ident
+        users.get(nick).host = host
+        users.get(nick).account = acc
+        if not users.get(nick).inchan:
             # Will be True if the user joined the main channel, else False
-            var.USERS[nick]["inchan"] = (chan == botconfig.CHANNEL)
+            users.get(nick).inchan = (chan == botconfig.CHANNEL)
     if chan != botconfig.CHANNEL:
         return
     with var.GRAVEYARD_LOCK:
@@ -3329,8 +3325,7 @@ def goat(cli, nick, chan, rest):
 def fgoat(cli, nick, chan, rest):
     """Forces a goat to interact with anyone or anything, without limitations."""
     nick_ = rest.split(' ')[0].strip()
-    ul = list(var.USERS.keys())
-    if nick_.lower() in (x.lower() for x in ul):
+    if nick_.lower() in (x.lower() for x in users.users()):
         togoat = nick_
     else:
         togoat = rest
@@ -3344,10 +3339,10 @@ def return_to_village(cli, chan, nick, show_message):
         if nick in var.DISCONNECTED.keys():
             hm = var.DISCONNECTED[nick][1]
             act = var.DISCONNECTED[nick][0]
-            if nick in var.USERS:
-                ident = irc_lower(var.USERS[nick]["ident"])
-                host = var.USERS[nick]["host"].lower()
-                acc = irc_lower(var.USERS[nick]["account"])
+            if users.exists(nick):
+                ident = irc_lower(users.get(nick).ident)
+                host = users.get(nick).host.lower()
+                acc = irc_lower(users.get(nick).account)
             else:
                 acc = None
             if not acc or acc == "*":
@@ -3514,7 +3509,7 @@ def rename_player(cli, prefix, nick):
         var.NO_LYNCH.remove(prefix)
         var.NO_LYNCH.add(nick)
 
-@hook("nick")
+@hook("nick") # XXX Update once the user/channel refactor is done
 def on_nick(cli, oldnick, nick):
     prefix, _, ident, host = parse_nick(oldnick)
     chan = botconfig.CHANNEL
@@ -3542,12 +3537,12 @@ def on_nick(cli, oldnick, nick):
 
 def leave(cli, what, nick, why=""):
     nick, _, ident, host = parse_nick(nick)
-    if nick in var.USERS:
-        acc = irc_lower(var.USERS[nick]["account"])
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
+    if users.exists(nick):
+        acc = irc_lower(users.get(nick).account)
+        ident = irc_lower(users.get(nick).ident)
+        host = users.get(nick).host.lower()
         if what == "quit" or (not what in ("account",) and why == botconfig.CHANNEL):
-            var.USERS[nick]["inchan"] = False
+            users.get(nick).inchan = False
     else:
         acc = None
     if not acc or acc == "*":
@@ -3617,9 +3612,9 @@ def leave(cli, what, nick, why=""):
     var.SPECTATING_WOLFCHAT.discard(nick)
     var.SPECTATING_DEADCHAT.discard(nick)
     leave_deadchat(cli, nick)
-    if what not in ("badnick", "account") and nick in var.USERS:
-        var.USERS[nick]["modes"] = set()
-        var.USERS[nick]["moded"] = set()
+    if what not in ("badnick", "account") and users.exists(nick):
+        users.get(nick).modes = set()
+        users.get(nick).moded = set()
     if killplayer:
         del_player(cli, nick, death_triggers = False)
     else:
@@ -7332,7 +7327,7 @@ def _say(cli, raw_nick, rest, command, action=False):
     (target, message) = rest
 
     if not is_admin(nick, ident, host):
-        if nick not in var.USERS:
+        if not users.exists(nick):
             pm(cli, nick, messages["wrong_channel"].format(
                 botconfig.CHANNEL))
 
@@ -7372,11 +7367,11 @@ def can_run_restricted_cmd(nick):
     if nick in pl:
         return False
 
-    if nick in var.USERS and var.USERS[nick]["account"] in [var.USERS[player]["account"] for player in pl if player in var.USERS]:
+    if users.exists(nick) and users.get(nick).account in [users.get(player).account for player in pl if users.exists(player)]:
         return False
 
-    hostmask = var.USERS[nick]["ident"] + "@" + var.USERS[nick]["host"]
-    if nick in var.USERS and hostmask in [var.USERS[player]["ident"] + "@" + var.USERS[player]["host"] for player in pl if player in var.USERS]:
+    hostmask = users.get(nick).ident + "@" + users.get(nick).host
+    if users.exists(nick) and hostmask in [users.get(player).ident + "@" + users.get(player).host for player in pl if users.exists(player)]:
         return False
 
     return True
@@ -7594,7 +7589,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             who = list_players()
         else:
             if not is_fake_nick(who):
-                ul = list(var.USERS.keys())
+                ul = list(var.USERS.keys()) # ark
                 ull = [u.lower() for u in ul]
                 if who.lower() not in ull:
                     cli.msg(chan, messages["invalid_target"])
@@ -7608,7 +7603,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             for fn in COMMANDS[comm]:
                 if fn.owner_only:
                     continue
-                if fn.flag and nick in var.USERS and not is_admin(nick):
+                if fn.flag and users.exists(nick) and not is_admin(nick):
                     # Not a full admin
                     cli.notice(nick, messages["admin_only_force"])
                     continue
@@ -7648,7 +7643,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             for fn in COMMANDS[comm]:
                 if fn.owner_only:
                     continue
-                if fn.flag and nick in var.USERS and not is_admin(nick):
+                if fn.flag and users.exists(nick) and not is_admin(nick):
                     # Not a full admin
                     cli.notice(nick, messages["admin_only_force"])
                     continue
