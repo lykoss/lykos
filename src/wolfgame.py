@@ -7437,7 +7437,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             else:
                 cli.msg(chan, a[:500])
         except Exception as e:
-            cli.msg(chan, repr(e))
+            cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
 
     @cmd("exec", owner_only=True, pm=True)
     def py(cli, nick, chan, rest):
@@ -7445,7 +7445,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         try:
             exec(rest)
         except Exception as e:
-            cli.msg(chan, repr(e))
+            cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
 
     @cmd("revealroles", flag="a", pm=True, phases=("day", "night"))
     def revealroles(cli, nick, chan, rest):
