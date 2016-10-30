@@ -16,12 +16,19 @@ _users = WeakSet()
 
 _arg_msg = "(nick={0}, ident={1}, host={2}, realname={3}, account={4}, allow_bot={5})"
 
+class _user:
+    def __init__(self, nick):
+        self.nick = nick
+
+    for name in ("ident", "host", "account", "inchan", "modes", "moded"):
+        locals()[name] = property(lambda self, name=name: var.USERS[self.nick][name], lambda self, value, name=name: var.USERS[self.nick].__setitem__(name, value))
+
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
     """Return the matching user(s) from the user list.
 
     This takes up to 5 positional arguments (nick, ident, host, realname,
@@ -80,7 +87,11 @@ def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_
 
     return potential[0]
 
-def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channels=None):
+def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as soon as possible!
+    var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
+    return _user(nick)
+
+def _add(cli, *, nick, ident=None, host=None, realname=None, account=None, channels=None):
     """Create a new user, add it to the user list and return it.
 
     This function takes up to 6 keyword-only arguments (and no positional
@@ -109,7 +120,10 @@ def add(cli, *, nick, ident=None, host=None, realname=None, account=None, channe
     _users.add(new)
     return new
 
-def exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
+def add(nick, **blah): # backwards-compatible API
+    var.USERS[nick] = blah
+
+def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
     """Return True if a matching user exists.
 
     Positional and keyword arguments are the same as get(), with the
@@ -125,9 +139,21 @@ def exists(nick=None, ident=None, host=None, realname=None, account=None, *, all
 
     return True
 
-def users():
+def exists(nick, *stuff, **morestuff): # backwards-compatible API
+    return nick in var.USERS
+
+def users_():
     """Iterate over the users in the registry."""
     yield from _users
+
+def users(): # backwards-compatible API
+    yield from var.USERS
+
+def _items(): # backwards-compat crap (really, it stinks)
+    yield from var.USERS.items()
+
+users.items = _items
+del _items
 
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 
