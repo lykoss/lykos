@@ -60,10 +60,10 @@ class handle_error:
             if _local.level > 1:
                 raise # the outermost caller should handle this
 
-            fn = lambda: errlog("\n" + data)
+            fn = lambda: errlog("\n{0}\n\n".format(data))
             data = traceback.format_exc()
             cli = None
-            variables = ["\nLocal variables from innermost frame:\n"]
+            variables = ["\nLocal variables from innermost frame:"]
             for name, value in _local.frame_locals.items():
                 if isinstance(value, IRCClient):
                     cli = value
