@@ -1,7 +1,9 @@
 import fnmatch
 import socket
 import traceback
+import threading
 import types
+import sys
 from collections import defaultdict
 
 from oyoyo.client import IRCClient
@@ -20,6 +22,14 @@ HOOKS = defaultdict(list)
 
 # Error handler decorators
 
+_do_nothing = lambda: None
+
+class _local(threading.local):
+    level = 0
+    frame_locals = None
+
+_local = _local()
+
 class handle_error:
 
     def __new__(cls, func):
@@ -36,25 +46,43 @@ class handle_error:
         return self
 
     def __call__(self, *args, **kwargs):
+        fn = _do_nothing
+        _local.level += 1
         try:
             return self.func(*args, **kwargs)
         except Exception:
-            traceback.print_exc() # no matter what, we want it to print
-            if kwargs.get("cli"): # client
-                cli = kwargs["cli"]
-            else:
-                for cli in args:
-                    if isinstance(cli, IRCClient):
-                        break
-                else:
-                    cli = None
+            if _local.frame_locals is None:
+                exc_type, exc_value, tb = sys.exc_info()
+                while tb.tb_next is not None:
+                    tb = tb.tb_next
+                _local.frame_locals = tb.tb_frame.f_locals
+
+            if _local.level > 1:
+                raise # the outermost caller should handle this
+
+            fn = lambda: errlog("\n" + data)
+            data = traceback.format_exc()
+            cli = None
+            variables = ["\nLocal variables from innermost frame:\n"]
+            for name, value in _local.frame_locals.items():
+                if isinstance(value, IRCClient):
+                    cli = value
+
+                variables.append("{0} = {1!r}".format(name, value))
+
+            data += "\n".join(variables)
 
             if cli is not None:
                 if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
                     cli.msg(botconfig.CHANNEL, messages["error_log"])
-                errlog(traceback.format_exc())
                 if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
-                    pastebin_tb(cli, messages["error_log"], traceback.format_exc())
+                    pastebin_tb(cli, messages["error_log"], data)
+
+        finally:
+            fn()
+            _local.level -= 1
+            if not _local.level: # outermost caller; we're done here
+                _local.frame_locals = None
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
