@@ -89,10 +89,10 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
         cli.hostmask = users.Bot.host = host
         cli.real_name = users.Bot.realname = realname
 
-    try:
-        user = users.get(nick, ident, host, realname, allow_bot=True)
+    try: # FIXME: These function names are temporary until everything is moved over
+        user = users._get(nick, ident, host, realname, allow_bot=True)
     except KeyError:
-        user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
+        user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname)
 
     ch = channels.add(chan, cli)
     user.channels[ch] = modes
@@ -158,10 +158,10 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         cli.real_name = users.Bot.realname = realname
         users.Bot.account = account
 
-    try:
-        user = users.get(nick, ident, host, realname, account, allow_bot=True)
+    try: # FIXME
+        user = users._get(nick, ident, host, realname, account, allow_bot=True)
     except KeyError:
-        user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account)
+        user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account)
 
     ch = channels.add(chan, cli)
     user.channels[ch] = modes
@@ -196,7 +196,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
 ### Server PING handling
 
-@hook("ping")
+#@hook("ping")
 def on_ping(cli, prefix, server):
     """Send out PONG replies to the server's PING requests.
 
@@ -208,7 +208,7 @@ def on_ping(cli, prefix, server):
 
     """
 
-    with cli:
+    with cli: # TODO: Make the client a context manager for this to work
         cli.send("PONG", server)
 
 ### Fetch and store server information
@@ -281,7 +281,7 @@ def current_modes(cli, server, bot_nick, chan, mode, *targets):
 
     """
 
-    ch = channel.add(chan, cli)
+    ch = channels.add(chan, cli)
     ch.update_modes(server, mode, targets)
 
 @hook("channelcreate")
@@ -301,7 +301,7 @@ def chan_created(cli, server, bot_nick, chan, timestamp):
 
     """
 
-    channel.add(chan, cli).timestamp = int(timestamp)
+    channels.add(chan, cli).timestamp = int(timestamp)
 
 @hook("mode")
 def mode_change(cli, rawnick, chan, mode, *targets):
@@ -320,12 +320,12 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 
     """
 
-    actor = user.get(rawnick, allow_none=True, raw_nick=True)
-    if chan == user.Bot.nick: # we only see user modes set to ourselves
-        user.Bot.modes.update(mode)
+    actor = users._get(rawnick, allow_none=True, raw_nick=True) # FIXME
+    if chan == users.Bot.nick: # we only see user modes set to ourselves
+        users.Bot.modes.update(mode)
         return
 
-    target = channel.add(chan, cli)
+    target = channels.add(chan, cli)
     target.update_modes(rawnick, mode, targets)
 
     Event("mode_change", {}).dispatch(var, actor, target)
@@ -335,7 +335,7 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 def handle_listmode(cli, chan, mode, target, setter, timestamp):
     """Handle and store list modes."""
 
-    ch = channel.add(chan, cli)
+    ch = channels.add(chan, cli)
     if mode not in ch.modes:
         ch.modes[mode] = {}
     ch.modes[mode][target] = (setter, int(timestamp))
@@ -416,7 +416,7 @@ def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestam
 def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
-    ch = channel.add(chan, cli)
+    ch = channels.add(chan, cli)
     Event("end_listmode", {}).dispatch(var, ch, mode)
 
 @hook("endofbanlist")
@@ -498,10 +498,10 @@ def on_nick_change(cli, old_nick, nick):
 
     """
 
-    val = user.get(old_nick, allow_bot=True)
-    val.nick = nick
+    user = users._get(old_nick, allow_bot=True) # FIXME
+    user.nick = nick
 
-    Event("nick_change", {}).dispatch(var, val, old_nick)
+    Event("nick_change", {}).dispatch(var, user, old_nick)
 
 ### JOIN handling
 
@@ -533,22 +533,22 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch = channels.add(chan, cli)
     ch.state = 2
 
-    if user.parse_rawnick_as_dict(rawnick)["nick"] == user.Bot.nick: # we may not be fully set up yet
+    if users.parse_rawnick_as_dict(rawnick)["nick"] == users.Bot.nick: # we may not be fully set up yet
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
         who(ch)
-        val = user.Bot
+        user = users.Bot
 
     else:
-        try:
-            val = user.get(rawnick, account=account, realname=realname, raw_nick=True)
+        try: # FIXME
+            user = users._get(rawnick, account=account, realname=realname, raw_nick=True)
         except KeyError:
-            val = user.add(cli, nick=rawnick, account=account, realname=realname, raw_nick=True)
+            user = users._add(cli, nick=rawnick, account=account, realname=realname, raw_nick=True)
 
-        ch.users.add(val)
-        val.channels[ch] = set()
+        ch.users.add(user)
+        user.channels[ch] = set()
 
-    Event("chan_join", {}).dispatch(var, ch, val)
+    Event("chan_join", {}).dispatch(var, ch, user)
 
 ### PART handling
 
@@ -568,15 +568,15 @@ def part_chan(cli, rawnick, chan, reason=""):
 
     """
 
-    ch = channel.add(chan, cli)
-    val = user.get(rawnick, allow_bot=True, raw_nick=True)
+    ch = channels.add(chan, cli)
+    user = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
 
-    if val is user.Bot: # oh snap! we're no longer in the channel!
+    if user is users.Bot: # oh snap! we're no longer in the channel!
         ch._clear()
     else:
-        ch.remove_user(val)
+        ch.remove_user(user)
 
-    Event("chan_part", {}).dispatch(var, ch, val, reason)
+    Event("chan_part", {}).dispatch(var, ch, user, reason)
 
 ### KICK handling
 
@@ -594,16 +594,16 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
 
     """
 
-    ch = channel.add(chan, cli)
-    actor = user.get(rawnick, allow_bot=True, raw_nick=True)
-    val = user.get(target, allow_bot=True)
+    ch = channels.add(chan, cli)
+    actor = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
+    user = users._get(target, allow_bot=True) # FIXME
 
-    if val is user.Bot:
+    if user is users.Bot:
         ch._clear()
     else:
         ch.remove_user(val)
 
-    Event("chan_kick", {}).dispatch(var, ch, actor, val, reason)
+    Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
 ### QUIT handling
 
@@ -616,7 +616,7 @@ def quit(context, message=""):
         plog("Tried to QUIT but everything was being torn down.")
         return
 
-    with cli:
+    with cli: # TODO: Make the client into a context manager
         cli.send("QUIT :{0}".format(message))
 
 @hook("quit")
@@ -637,12 +637,12 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    val = user.get(rawnick, allow_bot=True, raw_nick=True)
+    user = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
 
-    for chan in set(val.channels):
-        if val is user.Bot:
+    for chan in set(user.channels):
+        if user is users.Bot:
             chan._clear()
         else:
-            chan.remove_user(val)
+            chan.remove_user(user)
 
-    Event("server_quit", {}).dispatch(var, val, reason)
+    Event("server_quit", {}).dispatch(var, user, reason)
