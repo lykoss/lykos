@@ -10,8 +10,6 @@ Main = None # main channel
 
 _channels = {}
 
-_states = ("not yet joined", "pending join", "joined", "pending leave", "left channel", "", "deleted", "cleared")
-
 class _States(Enum):
     NotJoined = "not yet joined"
     PendingJoin = "pending join"
@@ -78,7 +76,7 @@ class Channel(IRCContext):
         self.timestamp = None
 
     def __str__(self):
-        return "{self.__class__.__name__}: {self.name} ({0})".format(self.state.value, self=self)
+        return "{self.__class__.__name__}: {self.name} ({self.state.value})".format(self=self)
 
     def __repr__(self):
         return "{self.__class__.__name__}({self.name!r})".format(self=self)
@@ -111,7 +109,7 @@ class Channel(IRCContext):
         This performs both single and complex mode changes.
 
         Note: Not giving a prefix with the mode is the same as giving a
-        '+ prefix. For instance, the following are identical:
+        '+' prefix. For instance, the following are identical:
 
             chan.mode(("+o", "woffle"))
             chan.mode(("o", "woffle"))
