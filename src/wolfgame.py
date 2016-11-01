@@ -3639,16 +3639,14 @@ def leave_game(cli, nick, chan, rest):
             else:
                 population = messages["new_player_count"].format(lpl)
         else:
-            dur = int(var.START_QUIT_DELAY - (datetime.now() - var.GAME_START_TIME).total_seconds())
-            if var.START_QUIT_DELAY and dur > 0:
-                cli.notice(nick, messages["quit_new_game"].format(dur, "" if dur == 1 else "s"))
+            if not rest.startswith("-force"):
+                reply(cli, nick, chan, messages["leave_game_ingame_safeguard"].format(botconfig.CMD_CHAR), private=True)
                 return
             population = ""
     elif chan == nick:
         if var.PHASE in var.GAME_PHASES and nick not in list_players() and nick in var.DEADCHAT_PLAYERS:
             leave_deadchat(cli, nick)
         return
-
     else:
         return
 

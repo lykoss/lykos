@@ -238,7 +238,7 @@
     "player_missing": "\u0002{0}\u0002 has gone missing.",
     "leave_death": "\u0002{0}\u0002 died due to falling off a cliff. The \u0002{1}\u0002 is lost to the ravine forever.",
     "leave_death_no_reveal": "\u0002{0}\u0002 died due to falling off a cliff.",
-    "quit_new_game": "The game already started! If you still want to quit, try again in {0} second{1}.",
+    "leave_game_ingame_safeguard": "The game already started! If you still want to quit, use \"{0}leave -force\".",
     "static_quit": "\u0002{0}\u0002, a \u0002{1}\u0002, has died of an unknown disease.",
     "static_quit_no_reveal": "\u0002{0}\u0002 has died of an unknown disease.",
     "villagers_lynch": "The villagers must now vote for whom to lynch. Use \"{0}lynch <nick>\" to cast your vote. {1} votes are required to lynch.",
