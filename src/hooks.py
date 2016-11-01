@@ -52,7 +52,7 @@ def who(target, data=b""):
 
     return bare_who(target.client, target.name, data)
 
-@hook("whoreply")
+#@hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
     """Handle WHO replies for servers without WHOX support.
 
@@ -105,7 +105,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
     event.dispatch(var, ch, user)
 
-@hook("whospcrpl")
+#@hook("whospcrpl")
 def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
     """Handle WHOX responses for servers that support it.
 
@@ -174,7 +174,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
     event.dispatch(var, ch, user)
 
-@hook("endofwho")
+#@hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
     """Handle the end of WHO/WHOX responses from the server.
 
@@ -266,7 +266,7 @@ def get_features(cli, rawnick, *features):
 
 ### Channel and user MODE handling
 
-@hook("channelmodeis")
+#@hook("channelmodeis")
 def current_modes(cli, server, bot_nick, chan, mode, *targets):
     """Update the channel modes with the existing ones.
 
@@ -284,7 +284,7 @@ def current_modes(cli, server, bot_nick, chan, mode, *targets):
     ch = channels.add(chan, cli)
     ch.update_modes(server, mode, targets)
 
-@hook("channelcreate")
+#@hook("channelcreate")
 def chan_created(cli, server, bot_nick, chan, timestamp):
     """Update the channel timestamp with the server's information.
 
@@ -303,7 +303,7 @@ def chan_created(cli, server, bot_nick, chan, timestamp):
 
     channels.add(chan, cli).timestamp = int(timestamp)
 
-@hook("mode")
+#@hook("mode")
 def mode_change(cli, rawnick, chan, mode, *targets):
     """Update the channel and user modes whenever a mode change occurs.
 
@@ -335,6 +335,7 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 def handle_listmode(cli, chan, mode, target, setter, timestamp):
     """Handle and store list modes."""
 
+    return # FIXME
     ch = channels.add(chan, cli)
     if mode not in ch.modes:
         ch.modes[mode] = {}
@@ -416,6 +417,7 @@ def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestam
 def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
+    return # FIXME
     ch = channels.add(chan, cli)
     Event("end_listmode", {}).dispatch(var, ch, mode)
 
@@ -486,7 +488,7 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
 
 ### NICK handling
 
-@hook("nick")
+#@hook("nick")
 def on_nick_change(cli, old_nick, nick):
     """Handle a user changing nicks, which may be the bot itself.
 
@@ -505,7 +507,7 @@ def on_nick_change(cli, old_nick, nick):
 
 ### JOIN handling
 
-@hook("join")
+#@hook("join")
 def join_chan(cli, rawnick, chan, account=None, realname=None):
     """Handle a user joining a channel, which may be the bot itself.
 
@@ -552,7 +554,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
 
 ### PART handling
 
-@hook("part")
+#@hook("part")
 def part_chan(cli, rawnick, chan, reason=""):
     """Handle a user leaving a channel, which may be the bot itself.
 
@@ -580,7 +582,7 @@ def part_chan(cli, rawnick, chan, reason=""):
 
 ### KICK handling
 
-@hook("kick")
+#@hook("kick")
 def kicked_from_chan(cli, rawnick, chan, target, reason):
     """Handle a user being kicked from a channel.
 
@@ -619,7 +621,7 @@ def quit(context, message=""):
     with cli: # TODO: Make the client into a context manager
         cli.send("QUIT :{0}".format(message))
 
-@hook("quit")
+#@hook("quit")
 def on_quit(cli, rawnick, reason):
     """Handle a user quitting the IRC server.
 
