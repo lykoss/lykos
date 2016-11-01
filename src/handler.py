@@ -14,7 +14,7 @@ from src.utilities import irc_equals
 
 hook = decorators.hook
 
-def on_privmsg(cli, rawnick, chan, msg, notice = False):
+def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     try:
         prefixes = getattr(var, "STATUSMSG_PREFIXES")
     except AttributeError:
