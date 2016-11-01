@@ -481,7 +481,7 @@ def pastebin_tb(cli, msg, exc):
         req.add_header("Accept", "application/json")
         resp = urllib.request.urlopen(req)
         data = json.loads(resp.read().decode("utf-8"))
-        url = data["url"] + "/py3tb"
+        url = data["url"] + "/pytb"
     except Exception:
         # Exception is already printed before calling this function, don't print twice
         cli.msg(botconfig.DEV_CHANNEL, msg + " (Unable to pastebin traceback; please check the console.)")
