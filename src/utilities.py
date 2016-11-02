@@ -359,9 +359,7 @@ def get_roles(*roles):
     return list(itertools.chain(*all_roles))
 
 def get_reveal_role(nick):
-    if var.HIDDEN_TRAITOR and get_role(nick) == "traitor":
-        role = var.DEFAULT_ROLE
-    elif var.HIDDEN_AMNESIAC and nick in var.ORIGINAL_ROLES["amnesiac"]:
+    if var.HIDDEN_AMNESIAC and nick in var.ORIGINAL_ROLES["amnesiac"]:
         role = "amnesiac"
     elif var.HIDDEN_CLONE and nick in var.ORIGINAL_ROLES["clone"]:
         role = "clone"
