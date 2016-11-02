@@ -1364,7 +1364,7 @@ def on_account(cli, rnick, acc):
             cli.notice(nick, messages["account_reidentify"].format(users.get(nick).account))
         else:
             cli.notice(nick, messages["account_midgame_change"])
-    if users.exists(nick).keys():
+    if users.exists(nick):
         users.get(nick).ident = ident
         users.get(nick).host = host
         users.get(nick).account = acc
