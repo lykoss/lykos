@@ -108,6 +108,12 @@ class IRCClient:
         self.command_handler = cmd_handler
         self._end = 0
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        return False # TODO: make this into a proper context manager
+
     def send(self, *args, **kwargs):
         """ send a message to the connected server. all arguments are joined
         with a space for convenience, for example the following are identical
