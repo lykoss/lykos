@@ -36,7 +36,7 @@ import threading
 import time
 import traceback
 import urllib.request
-from collections import defaultdict, deque
+from collections import defaultdict, deque, Counter
 import json
 from datetime import datetime, timedelta
 
@@ -302,6 +302,8 @@ def reset():
     var.START_VOTES = set() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
     var.ENTRANCED = set()
+    var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
+    var.ROLE_SETS = [] # type: List[Tuple[Counter[str], int]]
 
     reset_settings()
 
@@ -1799,12 +1801,50 @@ def stats(cli, nick, chan, rest):
             else:
                 message.append("\u0002{0}-{1}\u0002 {2}".format(count[0], count[1], plural(role)))
 
+    # Experimental replacement for default, not yet ready for prime-time
+    # Uses events in order to enable roles to modify logic
+    # The events are fired off as part of transition_day and del_player, and are not calculated here
+    elif var.STATS_TYPE == "experimental":
+        # Collapse var.ROLE_STATS into a Dict[str, Tuple[int, int]]
+        role_stats = {}
+        for stat_set in var.ROLE_STATS:
+            for r, a in stat_set:
+                if r not in role_stats:
+                    role_stats[r] = (a, a)
+                else:
+                    mn, mx = role_stats[r]
+                    role_stats[r] = (min(mn, a), max(mx, a))
+        start_roles = set()
+        for r, v in var.ORIGINAL_ROLES.items():
+            if r in var.TEMPLATE_RESTRICTIONS or len(v) == 0:
+                continue
+            start_roles.add(r)
+        for r in start_roles:
+            if r not in role_stats:
+                role_stats[r] = (0, 0)
+        order = [r for r in role_order() if r in role_stats]
+        if var.DEFAULT_ROLE in order:
+            order.remove(var.DEFAULT_ROLE)
+        order.append(var.DEFAULT_ROLE)
+        first = role_stats[order[0]]
+        if first[0] == first[1] == 1:
+            vb = "is"
+        else:
+            vb = "are"
 
-    # Show everything mostly as-is; the only hidden information is which
-    # role was turned into wolf due to alpha bite or lycanthropy totem.
-    # Amnesiac and clone show which roles they turned into. Time lords
-    # and VGs show individually instead of being lumped in the default role,
-    # and traitor is still based on var.HIDDEN_TRAITOR.
+        for role in order:
+            count = role_stats[role]
+            if count[0] == count[1]:
+                if count[0] != 1:
+                    if count[0] == 0 and role not in start_roles:
+                        continue
+                    message.append("\u0002{0}\u0002 {1}".format(count[0] if count[0] else "\u0002no\u0002", plural(role)))
+                else:
+                    message.append("\u0002{0}\u0002 {1}".format(count[0], role))
+            else:
+                message.append("\u0002{0}-{1}\u0002 {2}".format(count[0], count[1], plural(role)))
+
+    # Show everything as-is, with no hidden information
     elif var.STATS_TYPE == "accurate":
         l1 = [k for k in var.ROLES.keys() if var.ROLES[k]]
         l2 = [k for k in var.ORIGINAL_ROLES.keys() if var.ORIGINAL_ROLES[k]]
@@ -1816,42 +1856,11 @@ def stats(cli, nick, chan, rest):
             rs.remove(var.DEFAULT_ROLE)
         rs.append(var.DEFAULT_ROLE)
 
-        bitten_roles = defaultdict(int)
-        lycan_roles = defaultdict(int)
-        for role in var.BITTEN_ROLES.values():
-            bitten_roles[role] += 1
-
-        for role in var.LYCAN_ROLES.values():
-            lycan_roles[role] += 1
-
         vb = "are"
         for role in rs:
             # only show actual roles
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
-            count = len(var.ROLES[role])
-            if role == "traitor" and var.HIDDEN_TRAITOR:
-                continue
-            elif role == var.DEFAULT_ROLE:
-                if var.HIDDEN_TRAITOR:
-                    count += len(var.ROLES["traitor"])
-                    count += bitten_roles["traitor"]
-                    count += lycan_roles["traitor"]
-                count += bitten_roles[var.DEFAULT_ROLE]
-                count += lycan_roles[var.DEFAULT_ROLE]
-            elif role == "wolf":
-                count -= sum(bitten_roles.values())
-                count -= sum(lycan_roles.values())
-                # GAs turn into FAs, not wolves for bitten_roles
-                # (but turn into wolves for lycan_roles)
-                count += bitten_roles["guardian angel"]
-            elif role == "fallen angel":
-                count -= bitten_roles["guardian angel"]
-                count += bitten_roles["fallen angel"]
-                count += lycan_roles["fallen angel"]
-            else:
-                count += bitten_roles[role]
-                count += lycan_roles[role]
 
             if role == rs[0]:
                 if count == 1:
@@ -1869,6 +1878,7 @@ def stats(cli, nick, chan, rest):
     # Only show team affiliation, this may be different than what mystics
     # and wolf mystics are told since neutrals are split off. Determination
     # of what numbers are shown is the same as summing up counts in "accurate"
+    # as accurate, this contains no hidden information
     elif var.STATS_TYPE == "team":
         wolfteam = 0
         villagers = 0
@@ -1877,27 +1887,12 @@ def stats(cli, nick, chan, rest):
         for role, players in var.ROLES.items():
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
-            elif role in var.WOLFTEAM_ROLES:
-                if role == "traitor" and var.HIDDEN_TRAITOR:
-                    villagers += len(players)
-                else:
-                    wolfteam += len(players)
+            if role in var.WOLFTEAM_ROLES:
+                wolfteam += len(players)
             elif role in var.TRUE_NEUTRAL_ROLES:
                 neutral += len(players)
             else:
                 villagers += len(players)
-
-        for role in list(var.BITTEN_ROLES.values()) + list(var.LYCAN_ROLES.values()):
-            wolfteam -= 1
-            if role in var.WOLFTEAM_ROLES:
-                if role == "traitor" and var.HIDDEN_TRAITOR:
-                    villagers += 1
-                else:
-                    wolfteam += 1
-            elif role in var.TRUE_NEUTRAL_ROLES:
-                neutral += 1
-            else:
-                villagers += 1
 
         message.append("\u0002{0}\u0002 {1}".format(wolfteam if wolfteam else "\u0002no\u0002", "wolf" if wolfteam == 1 else "wolves"))
         message.append("\u0002{0}\u0002 {1}".format(villagers if villagers else "\u0002no\u0002", "villager" if villagers == 1 else "villagers"))
@@ -2192,6 +2187,8 @@ def show_votes(cli, nick, chan, rest):
 
     reply(cli, nick, chan, the_message)
 
+# TODO: need to generalize this logic (as well as the logic in chk_win_conditions)
+# once refactored, it should be split off into individual role files
 def chk_traitor(cli):
     realwolves = var.WOLF_ROLES - {"wolf cub"}
     if len(list_players(realwolves)) > 0:
@@ -2250,6 +2247,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
 
     origroles = {} #nick based list of original roles
     rolelist = copy.deepcopy(var.ORIGINAL_ROLES)
+    event = Event("get_final_role", {"role": None})
     for role, playerlist in var.ORIGINAL_ROLES.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
@@ -2257,11 +2255,13 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             player = p #with (dced) still in
             if p.startswith("(dced)"):
                 p = p[6:]
-            # Show cubs and traitors as themselves even if they turned into wolf
-            if p in var.FINAL_ROLES and var.FINAL_ROLES[p] != role and (var.FINAL_ROLES[p] != "wolf" or role not in ("wolf cub", "traitor")):
+            event.data["role"] = var.FINAL_ROLES.get(p, role)
+            event.dispatch(cli, var, p, role)
+            # TODO: make cub use the event instead of hardcoding it here
+            if role != event.data["role"] and (event.data["role"] != "wolf" or role != "wolf cub"):
                 origroles[p] = role
                 rolelist[role].remove(player)
-                rolelist[var.FINAL_ROLES[p]].add(p)
+                rolelist[event.data["role"]].add(p)
     prev = False
     for role in role_order():
         if len(rolelist[role]) == 0:
@@ -2704,6 +2704,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 pl.remove(dead)
         if nick != None and (nick == original or nick in pl):
             nickrole = get_role(nick)
+            nickreveal = get_reveal_role(nick)
             nicktpls = get_templates(nick)
             var.ROLES[nickrole].remove(nick)
             for t in nicktpls:
@@ -2973,6 +2974,29 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     deadlist=deadlist, original=original, killer_role=killer_role,
                     ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
             event.dispatch(cli, var, nick, nickrole, nicktpls, evt_death_triggers)
+
+            # update var.ROLE_STATS
+            event = Event("update_stats", {"possible": {nickrole, nickreveal}, "known_role": False})
+            event.dispatch(cli, var, nick, nickrole, nickreveal, nicktpls)
+            # Given the set of possible roles this nick could be (or its actual role if known_role is True),
+            # figure out the set of roles that need deducting from their counts in var.ROLE_STATS
+            if event.data["known_role"]:
+                # we somehow know the exact role that died (for example, we know traitor died even though they revealed as villager)
+                # as a result, deduct only them
+                possible = {nickrole}
+            else:
+                possible = set(event.data["possible"])
+            newstats = set()
+            # For every possible role this person is, try to deduct 1 from that role's count in our stat sets
+            # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
+            # that set is not added to newstats to indicate that set is no longer possible
+            for p in possible:
+                for rs in var.ROLE_STATS:
+                    d = dict(rs)
+                    if p in d and d[p] >= 1:
+                        d[p] -= 1
+                        newstats.add(frozenset(d.items()))
+            var.ROLE_STATS = frozenset(newstats)
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
                 cmode.append(("-v", nick))
@@ -6062,6 +6086,28 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.msg(chan, messages["no_settings_defined"].format(nick, len(villagers)))
             return
 
+    possible_rolesets = []
+    roleset_roles = defaultdict(int)
+    for rs, amt in var.ROLE_SETS:
+        toadd = random.sample(list(rs.elements()), amt)
+        for r in toadd:
+            addroles[r] += 1
+            roleset_roles[r] += 1
+        add_rolesets = []
+        temp_rolesets = []
+        for c in itertools.combinations(rs.elements(), amt):
+            add_rolesets.append(Counter(c))
+        for pr in possible_rolesets:
+            for ar in add_rolesets:
+                temp = Counter(pr)
+                temp.update(ar)
+                temp_rolesets.append(temp)
+        possible_rolesets = temp_rolesets
+    if not possible_rolesets:
+        # if there are no randomized roles, ensure that we have 1 element
+        # to account for the only possibility (all role counts known)
+        possible_rolesets.append(Counter())
+
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
         wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
@@ -6144,12 +6190,25 @@ def start(cli, nick, chan, forced = False, restart = ""):
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
         selected = random.sample(villagers, count)
-        var.ROLES[role] = set(selected)
         for x in selected:
             villagers.remove(x)
-
+        var.ROLES[role] = set(selected)
+        fixed_count = count - roleset_roles[role]
+        if fixed_count > 0:
+            for pr in possible_rolesets:
+                pr[role] += fixed_count
     for v in villagers:
         var.ROLES[var.DEFAULT_ROLE].add(v)
+    if villagers:
+        for pr in possible_rolesets:
+            pr[var.DEFAULT_ROLE] += len(villagers)
+
+    # Collapse possible_rolesets into var.ROLE_STATS
+    # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
+    possible_rolesets_set = set()
+    for pr in possible_rolesets:
+        possible_rolesets_set.add(frozenset(pr.items()))
+    var.ROLE_STATS = frozenset(possible_rolesets_set)
 
     # Now for the templates
     for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
