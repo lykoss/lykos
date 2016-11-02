@@ -65,7 +65,7 @@ class IRCContext:
                 extra, line = line[:length], line[length:]
                 client.send("{0} {1} :{2}".format(send_type, name, extra))
 
-    def send(self, data, target=None, *, notice=False, privmsg=False, prefix=None):
+    def send(self, data, *, notice=False, privmsg=False, prefix=None):
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
         name = self.name
         if prefix is not None:
