@@ -12,7 +12,7 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import logger, errlog, events
+from src import channels, logger, errlog, events
 from src.messages import messages
 
 adminlog = logger.logger("audit.log")
@@ -62,21 +62,16 @@ class handle_error:
 
             fn = lambda: errlog("\n{0}\n\n".format(data))
             data = traceback.format_exc()
-            cli = None
             variables = ["\nLocal variables from innermost frame:"]
             for name, value in _local.frame_locals.items():
-                if isinstance(value, IRCClient):
-                    cli = value
-
                 variables.append("{0} = {1!r}".format(name, value))
 
             data += "\n".join(variables)
 
-            if cli is not None:
-                if not botconfig.PASTEBIN_ERRORS or botconfig.CHANNEL != botconfig.DEV_CHANNEL:
-                    cli.msg(botconfig.CHANNEL, messages["error_log"])
-                if botconfig.PASTEBIN_ERRORS and botconfig.DEV_CHANNEL:
-                    pastebin_tb(cli, messages["error_log"], data)
+            if not botconfig.PASTEBIN_ERRORS or channels.Main is not channels.Dev:
+                channels.Main.send(messages["error_log"])
+            if botconfig.PASTEBIN_ERRORS and channels.Dev is not None:
+                pastebin_tb(channels.Dev, messages["error_log"], data, prefix=botconfig.DEV_PREFIX)
 
         finally:
             fn()
