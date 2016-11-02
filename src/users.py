@@ -122,6 +122,7 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None, chann
 
 def add(nick, **blah): # backwards-compatible API
     var.USERS[nick] = blah
+    return _user(nick)
 
 def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
     """Return True if a matching user exists.
