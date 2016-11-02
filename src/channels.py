@@ -17,7 +17,6 @@ class _States(Enum):
     PendingLeave = "pending leave"
     Left = "left channel"
 
-    Deleted = "deleted"
     Cleared = "cleared"
 
 # This is used to tell if this is a fake channel or not. If this
@@ -71,7 +70,7 @@ class Channel(IRCContext):
     def __del__(self):
         self.users.clear()
         self.modes.clear()
-        self.state = _States.Deleted
+        self.state = None
         self.client = None
         self.timestamp = None
 
