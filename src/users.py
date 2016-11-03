@@ -14,7 +14,7 @@ Bot = None # bot instance
 
 _users = WeakSet()
 
-_arg_msg = "(nick={0}, ident={1}, host={2}, realname={3}, account={4}, allow_bot={5})"
+_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
 
 class _user:
     def __init__(self, nick):
@@ -104,7 +104,7 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None, chann
     if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
-    if exists(nick, ident, host, realname, account, allow_multiple=True, allow_bot=True):
+    if _exists(nick, ident, host, realname, account, allow_multiple=True, allow_bot=True): # FIXME
         raise ValueError("User already exists: " + _arg_msg.format(nick, ident, host, realname, account, True))
 
     if channels is None:
@@ -133,8 +133,8 @@ def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, al
 
     """
 
-    try:
-        get(nick, ident, host, realname, account, allow_multiple=allow_multiple, allow_bot=allow_bot)
+    try: # FIXME
+        _get(nick, ident, host, realname, account, allow_multiple=allow_multiple, allow_bot=allow_bot)
     except (KeyError, ValueError):
         return False
 

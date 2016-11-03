@@ -512,7 +512,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
 
     else:
         try: # FIXME
-            user = users._get(rawnick, account=account, realname=realname)
+            user = users._get(rawnick, account=account, realname=realname, allow_bot=True)
         except KeyError:
             user = users._add(cli, nick=rawnick, account=account, realname=realname)
 
