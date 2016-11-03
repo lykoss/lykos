@@ -41,6 +41,42 @@ class IRCContext:
         return "PRIVMSG"
 
     @staticmethod
+    def _who(cli, target, data=b""):
+        """Handle WHO requests."""
+
+        if isinstance(data, str):
+            data = data.encode(Features["CHARSET"])
+        elif isinstance(data, int):
+            if data > 0xFFFFFF:
+                data = b""
+            else:
+                data = data.to_bytes(3, "little")
+
+        if len(data) > 3:
+            data = b""
+
+        if "WHOX" in Features:
+            cli.send("WHO", target, b"%tcuihsnfdlar," + data)
+        else:
+            cli.send("WHO", target)
+
+        return int.from_bytes(data, "little")
+
+    def who(self, data=b""):
+        """Send a WHO request with respect to the server's capabilities.
+
+        To get the WHO replies, add an event listener for "who_result",
+        and an event listener for "who_end" for the end of WHO replies.
+
+        The return value of this function is an integer equal to the data
+        given. If the server supports WHOX, the same integer will be in the
+        event.params.data attribute. Otherwise, this attribute will be 0.
+
+        """
+
+        return self._who(self.client, self.name, data)
+
+    @staticmethod
     def _send(data, client, send_type, name):
         full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 

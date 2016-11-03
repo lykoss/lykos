@@ -5,50 +5,32 @@ import socket
 import sys
 import traceback
 
-from oyoyo.parse import parse_nick
-
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, errlog as log, stream_handler as alog
-from src.utilities import irc_equals
+from src import decorators, wolfgame, channels, hooks, users, errlog as log, stream_handler as alog
 
 hook = decorators.hook
 
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
-    try:
-        prefixes = getattr(var, "STATUSMSG_PREFIXES")
-    except AttributeError:
-        pass
-    else:
-        if botconfig.IGNORE_HIDDEN_COMMANDS and chan[0] in prefixes:
-            return
+    if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
+        return
 
-    try:
-        getattr(var, "CASEMAPPING")
-    except AttributeError:
-        # some kind of hack for strange networks which don't put server name in some of the NOTICEs on startup
-        if not rawnick:
-            return
-        if notice and "!" not in rawnick and chan in ("*", "AUTH"):
-            # On-connect message before RPL_ISUPPORT is sent.
-            return
+    if chan != botconfig.NICK and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+        return
 
-        log("Server did not send a case mapping; falling back to rfc1459.")
-        var.CASEMAPPING = "rfc1459"
-
-    if (notice and ((not irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (irc_equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    if (notice and ((not users.equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (users.equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
 
-    if irc_equals(chan, botconfig.NICK):
-        chan = parse_nick(rawnick)[0]
+    if users.equals(chan, botconfig.NICK):
+        chan = users.parse_rawnick_as_dict(rawnick)["nick"]
 
     for fn in decorators.COMMANDS[""]:
         fn.caller(cli, rawnick, chan, msg)
 
     phase = var.PHASE
     for x in list(decorators.COMMANDS.keys()):
-        if chan != parse_nick(rawnick)[0] and not msg.lower().startswith(botconfig.CMD_CHAR):
+        if chan != users.parse_rawnick_as_dict(rawnick)["nick"] and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):
             h = msg[len(x)+len(botconfig.CMD_CHAR):]
@@ -61,20 +43,21 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
                 if phase == var.PHASE:
                     fn.caller(cli, rawnick, chan, h.lstrip())
 
-
 def unhandled(cli, prefix, cmd, *args):
-    if cmd in decorators.HOOKS:
-        largs = list(args)
-        for i,arg in enumerate(largs):
-            if isinstance(arg, bytes): largs[i] = arg.decode('ascii')
-        for fn in decorators.HOOKS.get(cmd, []):
-            fn.caller(cli, prefix, *largs)
+    for fn in decorators.HOOKS.get(cmd, []):
+        fn.caller(cli, prefix, *args)
 
 def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
         alog("Received end of MOTD from {0}".format(prefix))
+
+        # This callback only sets up event listeners
+        wolfgame.connect_callback()
+
+        users.Bot = users.User(cli, botconfig.NICK, None, None, None, None, {})
+        users.Bot.modes = set() # only for the bot (user modes)
 
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
@@ -83,25 +66,23 @@ def connect_callback(cli):
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
-        channels = {botconfig.CHANNEL}
+        channels.Main = channels.add(botconfig.CHANNEL, cli)
+        channels.Dummy = channels.add("*", cli)
 
         if botconfig.ALT_CHANNELS:
-            channels.update(botconfig.ALT_CHANNELS.split(","))
+            for chan in botconfig.ALT_CHANNELS.split(","):
+                channels.add(chan, cli)
 
         if botconfig.DEV_CHANNEL:
-            channels.update(chan.lstrip("".join(var.STATUSMSG_PREFIXES)) for chan in botconfig.DEV_CHANNEL.split(","))
+            channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
 
         if var.LOG_CHANNEL:
-            channels.add(var.LOG_CHANNEL.lstrip("".join(var.STATUSMSG_PREFIXES)))
+            channels.add(var.LOG_CHANNEL, cli)
 
-        cli.join(",".join(channels))
-
-        if var.CHANSERV_OP_COMMAND:
-            cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
+        #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
+        #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
         cli.nick(botconfig.NICK)  # very important (for regain/release)
-
-        wolfgame.connect_callback(cli)
 
     def mustregain(cli, *blah):
         if not botconfig.PASS:
@@ -180,11 +161,5 @@ def connect_callback(cli):
             alog("Authentication failed.  Did you fill the account name "
                  "in botconfig.USERNAME if it's different from the bot nick?")
             cli.quit()
-
-
-
-@hook("ping")
-def on_ping(cli, prefix, server):
-    cli.send('PONG', server)
 
 # vim: set sw=4 expandtab:

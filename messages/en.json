@@ -136,7 +136,6 @@
     "ping_player": "PING! {0} player{1}! ",
     "already_voted_game": "You have already voted for the {0} game mode.",
     "vote_game_mode": "\u0002{0}\u0002 votes for the \u0002{1}\u0002 game mode.",
-    "bot_not_opped": "Sorry, I'm not opped in {0}.",
     "already_playing": "{0}'re already playing!",
     "too_many_players": "Too many players! Try again next time.",
     "game_already_running": "Sorry, but the game is already running. Try again next time.",

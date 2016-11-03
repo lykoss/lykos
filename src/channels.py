@@ -7,6 +7,8 @@ from src.logger import debuglog
 from src import users
 
 Main = None # main channel
+Dummy = None # fake channel
+Dev = None # dev channel
 
 _channels = {}
 
@@ -175,7 +177,7 @@ class Channel(IRCContext):
                 if c in status_modes: # op/voice status; keep it here and update the user's registry too
                     if c not in self.modes:
                         self.modes[c] = set()
-                    user = users.get(targets[i], allow_bot=True)
+                    user = users._get(targets[i], allow_bot=True) # FIXME
                     self.modes[c].add(user)
                     user.channels[self].add(c)
                     i += 1
@@ -199,7 +201,7 @@ class Channel(IRCContext):
             else:
                 if c in status_modes:
                     if c in self.modes:
-                        user = users.get(targets[i], allow_bot=True)
+                        user = users._get(targets[i], allow_bot=True) # FIXME
                         self.modes[c].discard(user)
                         user.channels[self].discard(c)
                         if not self.modes[c]:
@@ -241,10 +243,10 @@ class FakeChannel(Channel):
     is_fake = True
 
     def join(self, key=""):
-        pass # don't actually do anything
+        self.state = _States.Joined
 
     def part(self, message=""):
-        pass
+        self.state = _States.Left
 
     def send(self, data, *, notice=False, privmsg=False):
         debuglog("Would message fake channel {0}: {1!r}".format(self.name, data))

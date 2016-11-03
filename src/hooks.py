@@ -13,46 +13,9 @@ from src.logger import plog
 
 from src import channels, users, settings as var
 
-### WHO/WHOX requests and responses handling
+### WHO/WHOX responses handling
 
-def bare_who(cli, target, data=b""):
-    """Handle WHO requests."""
-
-    if isinstance(data, str):
-        data = data.encode(Features["CHARSET"])
-    elif isinstance(data, int):
-        if data > 0xFFFFFF:
-            data = b""
-        else:
-            data = data.to_bytes(3, "little")
-
-    if len(data) > 3:
-        data = b""
-
-    if "WHOX" in Features:
-        cli.send("WHO", target, b"%tcuihsnfdlar," + data)
-    else:
-        cli.send("WHO", target)
-
-    return int.from_bytes(data, "little")
-
-# Always use this function whenever sending out a WHO request!
-
-def who(target, data=b""):
-    """Send a WHO request with respect to the server's capabilities.
-
-    To get the WHO replies, add an event listener for "who_result", and
-    an event listener for "who_end" for the end of WHO replies.
-
-    The return value of this function is an integer equal to the data
-    given. If the server supports WHOX, the same integer will be in the
-    event.params.data attribute. Otherwise, this attribute will be 0.
-
-    """
-
-    return bare_who(target.client, target.name, data)
-
-#@hook("whoreply")
+@hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
     """Handle WHO replies for servers without WHOX support.
 
@@ -95,17 +58,21 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
         user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname)
 
     ch = channels.add(chan, cli)
-    user.channels[ch] = modes
-    ch.users.add(user)
-    for mode in modes:
-        if mode not in ch.modes:
-            ch.modes[mode] = set()
-        ch.modes[mode].add(user)
+    if ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
     event.dispatch(var, ch, user)
 
-#@hook("whospcrpl")
+    if ch is channels.Main and not users.exists(nick): # FIXME
+        users.add(nick, ident=ident,host=host,account="*",inchan=True,modes=modes,moded=set())
+
+@hook("whospcrpl")
 def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
     """Handle WHOX responses for servers that support it.
 
@@ -164,17 +131,21 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account)
 
     ch = channels.add(chan, cli)
-    user.channels[ch] = modes
-    ch.users.add(user)
-    for mode in modes:
-        if mode not in ch.modes:
-            ch.modes[mode] = set()
-        ch.modes[mode].add(user)
+    if ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
     event.dispatch(var, ch, user)
 
-#@hook("endofwho")
+    if ch is channels.Main and not users.exists(nick): # FIXME
+        users.add(nick, ident=ident,host=host,account=account,inchan=True,modes=modes,moded=set())
+
+@hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
     """Handle the end of WHO/WHOX responses from the server.
 
@@ -196,7 +167,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
 ### Server PING handling
 
-#@hook("ping")
+@hook("ping")
 def on_ping(cli, prefix, server):
     """Send out PONG replies to the server's PING requests.
 
@@ -208,7 +179,7 @@ def on_ping(cli, prefix, server):
 
     """
 
-    with cli: # TODO: Make the client a context manager for this to work
+    with cli:
         cli.send("PONG", server)
 
 ### Fetch and store server information
@@ -266,7 +237,7 @@ def get_features(cli, rawnick, *features):
 
 ### Channel and user MODE handling
 
-#@hook("channelmodeis")
+@hook("channelmodeis")
 def current_modes(cli, server, bot_nick, chan, mode, *targets):
     """Update the channel modes with the existing ones.
 
@@ -284,7 +255,7 @@ def current_modes(cli, server, bot_nick, chan, mode, *targets):
     ch = channels.add(chan, cli)
     ch.update_modes(server, mode, targets)
 
-#@hook("channelcreate")
+@hook("channelcreate")
 def chan_created(cli, server, bot_nick, chan, timestamp):
     """Update the channel timestamp with the server's information.
 
@@ -303,7 +274,7 @@ def chan_created(cli, server, bot_nick, chan, timestamp):
 
     channels.add(chan, cli).timestamp = int(timestamp)
 
-#@hook("mode")
+@hook("mode")
 def mode_change(cli, rawnick, chan, mode, *targets):
     """Update the channel and user modes whenever a mode change occurs.
 
@@ -320,7 +291,7 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 
     """
 
-    actor = users._get(rawnick, allow_none=True, raw_nick=True) # FIXME
+    actor = users._get(rawnick, allow_none=True) # FIXME
     if chan == users.Bot.nick: # we only see user modes set to ourselves
         users.Bot.modes.update(mode)
         return
@@ -335,7 +306,6 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 def handle_listmode(cli, chan, mode, target, setter, timestamp):
     """Handle and store list modes."""
 
-    return # FIXME
     ch = channels.add(chan, cli)
     if mode not in ch.modes:
         ch.modes[mode] = {}
@@ -417,7 +387,6 @@ def check_inviteexemptlist(cli, server, bot_nick, chan, target, setter, timestam
 def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
-    return # FIXME
     ch = channels.add(chan, cli)
     Event("end_listmode", {}).dispatch(var, ch, mode)
 
@@ -488,7 +457,7 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
 
 ### NICK handling
 
-#@hook("nick")
+@hook("nick")
 def on_nick_change(cli, old_nick, nick):
     """Handle a user changing nicks, which may be the bot itself.
 
@@ -507,7 +476,7 @@ def on_nick_change(cli, old_nick, nick):
 
 ### JOIN handling
 
-#@hook("join")
+@hook("join")
 def join_chan(cli, rawnick, chan, account=None, realname=None):
     """Handle a user joining a channel, which may be the bot itself.
 
@@ -533,28 +502,28 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         realname = None
 
     ch = channels.add(chan, cli)
-    ch.state = 2
+    ch.state = channels._States.Joined
 
     if users.parse_rawnick_as_dict(rawnick)["nick"] == users.Bot.nick: # we may not be fully set up yet
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
-        who(ch)
+        ch.who()
         user = users.Bot
 
     else:
         try: # FIXME
-            user = users._get(rawnick, account=account, realname=realname, raw_nick=True)
+            user = users._get(rawnick, account=account, realname=realname)
         except KeyError:
-            user = users._add(cli, nick=rawnick, account=account, realname=realname, raw_nick=True)
+            user = users._add(cli, nick=rawnick, account=account, realname=realname)
 
-        ch.users.add(user)
-        user.channels[ch] = set()
+    ch.users.add(user)
+    user.channels[ch] = set()
 
     Event("chan_join", {}).dispatch(var, ch, user)
 
 ### PART handling
 
-#@hook("part")
+@hook("part")
 def part_chan(cli, rawnick, chan, reason=""):
     """Handle a user leaving a channel, which may be the bot itself.
 
@@ -571,7 +540,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
+    user = users._get(rawnick, allow_bot=True) # FIXME
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
         ch._clear()
@@ -582,7 +551,7 @@ def part_chan(cli, rawnick, chan, reason=""):
 
 ### KICK handling
 
-#@hook("kick")
+@hook("kick")
 def kicked_from_chan(cli, rawnick, chan, target, reason):
     """Handle a user being kicked from a channel.
 
@@ -597,13 +566,13 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
+    actor = users._get(rawnick, allow_bot=True) # FIXME
     user = users._get(target, allow_bot=True) # FIXME
 
     if user is users.Bot:
         ch._clear()
     else:
-        ch.remove_user(val)
+        ch.remove_user(user)
 
     Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
@@ -618,10 +587,10 @@ def quit(context, message=""):
         plog("Tried to QUIT but everything was being torn down.")
         return
 
-    with cli: # TODO: Make the client into a context manager
+    with cli:
         cli.send("QUIT :{0}".format(message))
 
-#@hook("quit")
+@hook("quit")
 def on_quit(cli, rawnick, reason):
     """Handle a user quitting the IRC server.
 
@@ -639,7 +608,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users._get(rawnick, allow_bot=True, raw_nick=True) # FIXME
+    user = users._get(rawnick, allow_bot=True) # FIXME
 
     for chan in set(user.channels):
         if user is users.Bot:
@@ -648,3 +617,5 @@ def on_quit(cli, rawnick, reason):
             chan.remove_user(user)
 
     Event("server_quit", {}).dispatch(var, user, reason)
+
+# vim: set sw=4 expandtab:

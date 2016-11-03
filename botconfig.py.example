@@ -35,7 +35,8 @@ DISABLE_DEBUG_MODE_TIME_LORD = False
 ALT_CHANNELS = ""
 ALLOWED_ALT_CHANNELS_COMMANDS = []
 
-DEV_CHANNEL = ""
+DEV_CHANNEL = "" # Important: Do *not* include the message prefix!
+DEV_PREFIX = "" # The prefix to send to the dev channel (e.g. "+" will send to "+#dev-chan")
 PASTEBIN_ERRORS = False  # If DEV_CHANNEL is set, errors will be posted there.
 
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set

@@ -3,7 +3,7 @@ import re
 
 import botconfig
 import src.settings as var
-from src import db
+from src import channels, db
 from src.utilities import *
 from src.decorators import cmd
 from src.events import Event
@@ -46,14 +46,14 @@ def decrement_stasis(nick=None):
     db.expire_stasis()
     db.init_vars()
 
-def expire_tempbans(cli):
+def expire_tempbans():
     acclist, hmlist = db.expire_tempbans()
     cmodes = []
     for acc in acclist:
         cmodes.append(("-b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
     for hm in hmlist:
         cmodes.append(("-b", "*!*@{0}".format(hm)))
-    mass_mode(cli, cmodes, [])
+    channels.Main.mode(*cmodes)
 
 def parse_warning_target(target, lower=False):
     if target[0] == "=":
@@ -677,7 +677,7 @@ def fwarn(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["fwarn_done"])
 
         if var.LOG_CHANNEL:
-            cli.msg(var.LOG_CHANNEL, messages["fwarn_log_del"].format(warn_id, warning["target"], hm,
+            cli.msg(var.LOG_PREFIX + var.LOG_CHANNEL, messages["fwarn_log_del"].format(warn_id, warning["target"], hm,
                     warning["reason"], (" | " + warning["notes"]) if warning["notes"] else ""))
 
         return
