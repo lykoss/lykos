@@ -433,7 +433,7 @@ class FakeUser(User):
     def queue_message(self, message):
         self.send(message) # don't actually queue it
 
-    def send(self, data, *, notice=False, privmsg=False):
+    def send(self, data, **kw):
         debuglog("Would message fake user {0}: {1!r}".format(self.nick, data))
 
     @property

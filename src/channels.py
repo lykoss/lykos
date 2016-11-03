@@ -248,7 +248,7 @@ class FakeChannel(Channel):
     def part(self, message=""):
         self.state = _States.Left
 
-    def send(self, data, *, notice=False, privmsg=False):
+    def send(self, data, **kw):
         debuglog("Would message fake channel {0}: {1!r}".format(self.name, data))
 
     def mode(self, *changes):
@@ -260,7 +260,8 @@ class FakeChannel(Channel):
 
         for change in changes:
             if isinstance(change, str):
-                modes.append(change)
+                if change.startswith(("+", "-")): # we're probably asking for the list modes otherwise
+                    modes.append(change)
             else:
                 mode, target = change
                 modes.append(mode)
