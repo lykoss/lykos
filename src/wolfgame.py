@@ -253,10 +253,6 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
     if "!" not in rnick:
         sync_modes(cli)
 
-@cmd("break")
-def break_stuff(*s):
-    1/0
-
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
