@@ -173,8 +173,8 @@ def connect_callback():
             players = db.get_pre_restart_state()
             if players:
                 msg = "PING! " + break_long_message(players).replace("\n", "\nPING! ")
-                channel.Main.send(msg)
-                channel.Main.send(messages["game_restart_cancel"])
+                channels.Main.send(msg)
+                channels.Main.send(messages["game_restart_cancel"])
 
             events.remove_listener("who_end", who_end)
 
