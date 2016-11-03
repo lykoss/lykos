@@ -62,7 +62,7 @@ class handle_error:
 
             fn = lambda: errlog("\n{0}\n\n".format(data))
             data = traceback.format_exc()
-            variables = ["\nLocal variables from innermost frame:"]
+            variables = ["\nLocal variables from innermost frame:\n"]
             for name, value in _local.frame_locals.items():
                 variables.append("{0} = {1!r}".format(name, value))
 
