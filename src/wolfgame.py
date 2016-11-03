@@ -2065,13 +2065,6 @@ def chk_decision(cli, force=""):
                     }, del_player=del_player)
                 if vote_evt.dispatch(cli, var, voters):
                     votee = vote_evt.data["votee"]
-                    # roles that prevent any lynch from happening
-                    if votee in var.ROLES["mayor"] and votee not in var.REVEALED_MAYORS:
-                        cli.msg(botconfig.CHANNEL, messages["mayor_reveal"].format(votee))
-                        var.REVEALED_MAYORS.add(votee)
-                        event.data["transition_night"](cli)
-                        return
-
                     # roles that end the game upon being lynched
                     if votee in var.ROLES["fool"]:
                         # ends game immediately, with fool as only winner
@@ -3398,7 +3391,7 @@ def rename_player(cli, prefix, nick):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.SILENCED, var.REVEALED_MAYORS, var.MATCHMAKERS, var.PASSED,
+            for setvar in (var.HEXED, var.SILENCED, var.MATCHMAKERS, var.PASSED,
                            var.JESTERS, var.AMNESIACS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
                            var.ALPHA_WOLVES, var.CURSED, var.CHARMERS, var.CHARMED, var.TOBECHARMED,
@@ -6097,7 +6090,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.TARGETED = {}
     var.LASTHEXED = {}
     var.MATCHMAKERS = set()
-    var.REVEALED_MAYORS = set()
     var.SILENCED = set()
     var.TOBESILENCED = set()
     var.JESTERS = set()
