@@ -199,7 +199,7 @@ def connect_callback():
             modes.extend(item)
             yield i
 
-        channel.Main.mode(*modes)
+        channels.Main.mode(*modes)
 
     accumulator = accumulate_cmodes(2)
     accumulator.send(None)
