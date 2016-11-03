@@ -243,7 +243,8 @@ def on_chk_decision_lynch1(evt, cli, var, voters):
         if p in IMPATIENCE and p not in var.VOTES[votee]:
             cli.msg(botconfig.CHANNEL, messages["impatient_vote"].format(p, votee))
 
-@event_listener("chk_decision_lynch", priority=3)
+# mayor is at exactly 3, so we want that to always happen before revealing totem
+@event_listener("chk_decision_lynch", priority=3.1)
 def on_chk_decision_lynch3(evt, cli, var, voters):
     votee = evt.data["votee"]
     if votee in REVEALING:
