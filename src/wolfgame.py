@@ -5915,7 +5915,7 @@ def cgamemode(cli, arg):
     if modeargs[0] in var.GAME_MODES.keys():
         md = modeargs.pop(0)
         try:
-            if md == "default" and len(var.PLAYERS) < 10 and random.random() < var.VILLAGERGAME_CHANCE:
+            if md == "default" and len(var.ALL_PLAYERS) <= 9 and random.random() < var.VILLAGERGAME_CHANCE:
                 md = "villagergame"
             gm = var.GAME_MODES[md][0](*modeargs)
             gm.startup()
