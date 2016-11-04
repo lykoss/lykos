@@ -189,10 +189,12 @@ class VillagergameMode(GameMode):
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
         events.add_listener("transition_day_begin", self.transition_day)
+        events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
         events.remove_listener("transition_day_begin", self.transition_day)
+        events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
     def chk_win(self, evt, var, lpl, lwolves, lrealwolves):
         # village can only win via unanimous vote on the bot nick
@@ -236,6 +238,12 @@ class VillagergameMode(GameMode):
             tgt = random.choice(pl)
         from src.roles import wolf
         wolf.KILLS[botconfig.NICK] = [tgt]
+    
+    def on_retribution_kill(self, evt, cli, var, victim, orig_target):
+        # There are no wolves for this totem to kill
+        if orig_target == "@wolves":
+            evt.data["target"] = None
+            evt.stop_processing = True
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):
