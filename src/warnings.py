@@ -52,7 +52,7 @@ def expire_tempbans():
     for acc in acclist:
         cmodes.append(("-b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
     for hm in hmlist:
-        cmodes.append(("-b", "*!*@{0}".format(hm)))
+        cmodes.append(("-b", "*!*@{0}".format(hm.split("@")[1])))
     channels.Main.mode(*cmodes)
 
 def parse_warning_target(target, lower=False):
@@ -197,7 +197,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
         for acc in acclist:
             cmodes.append(("+b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
         for hm in hmlist:
-            cmodes.append(("+b", "*!*@{0}".format(hm)))
+            cmodes.append(("+b", "*!*@{0}".format(hm.split("@")[1])))
         mass_mode(cli, cmodes, [])
         for (nick, user) in var.USERS.items():
             if user["account"] in acclist:
