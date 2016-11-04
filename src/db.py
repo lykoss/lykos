@@ -218,7 +218,7 @@ def delete_template(name):
             c.execute("DELETE FROM access_template WHERE id = ?", (tid,))
 
 def set_access(acc, hostmask, flags=None, tid=None):
-    peid, plid = _get_ids(acc, hostmask)
+    peid, plid = _get_ids(acc, hostmask, add=True)
     if peid is None:
         return
     conn = _conn()
