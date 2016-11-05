@@ -6545,7 +6545,7 @@ def reset_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         stop_game(cli, log=False)
     else:
-        pl = list_players()
+        pl = [p for p in list_players() if not is_fake_nick(p)]
         reset_modes_timers(cli)
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
