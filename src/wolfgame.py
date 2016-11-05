@@ -6421,7 +6421,8 @@ def fflags(cli, nick, chan, rest):
     else:
         acc, hm = parse_warning_target(params[0])
         flags = params[1]
-        cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)] + var.FLAGS[hm.lower()])
+        lhm = hm.lower() if hm else hm
+        cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)] + var.FLAGS[lhm])
 
         if flags[0] != "+" and flags[0] != "-":
             # flags is a template name
