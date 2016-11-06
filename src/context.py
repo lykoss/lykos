@@ -1,3 +1,7 @@
+from operator import attrgetter
+
+from src.logger import debuglog
+
 Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}}
 
 def lower(nick):
@@ -20,12 +24,20 @@ def lower(nick):
 
     return nick.lower().translate(str.maketrans(mapping))
 
+def context_types(*types):
+    def wrapper(cls):
+        cls._getters = l = []
+        cls.is_fake = False
+        for context_type in types:
+            name = "is_" + context_type
+            setattr(cls, name, False)
+            l.append((context_type, attrgetter(name)))
+        return cls
+    return wrapper
+
+@context_types("channel", "user")
 class IRCContext:
     """Base class for channels and users."""
-
-    is_channel = False
-    is_user = False
-    is_fake = False
 
     def __init__(self, name, client, *, ref=None):
         self.name = name
@@ -39,6 +51,22 @@ class IRCContext:
         if is_notice and not is_privmsg:
             return "NOTICE"
         return "PRIVMSG"
+
+    @classmethod
+    def get_context_type(cls, *, max_types=1):
+        context_type = []
+        if cls.is_fake:
+            context_type.append("fake")
+        for name, getter in cls._getters:
+            if getter(cls):
+                context_type.append(name)
+
+        final = " ".join(context_type)
+
+        if len(context_type) > (cls.is_fake + max_types):
+            raise RuntimeError("Invalid context type for {0}: {1!r}".format(cls.__name__, final))
+
+        return final
 
     @staticmethod
     def _who(cli, target, data=b""):
@@ -102,6 +130,11 @@ class IRCContext:
                 client.send("{0} {1} :{2}".format(send_type, name, extra))
 
     def send(self, data, *, notice=False, privmsg=False, prefix=None):
+        if self.is_fake:
+            # Leave out 'fake' from the message; get_context_type() takes care of that
+            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, data))
+            return
+
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
         name = self.name
         if prefix is not None:

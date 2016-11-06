@@ -3,7 +3,6 @@ import time
 from enum import Enum
 
 from src.context import IRCContext, Features
-from src.logger import debuglog
 from src import users
 
 Main = None # main channel
@@ -247,9 +246,6 @@ class FakeChannel(Channel):
 
     def part(self, message=""):
         self.state = _States.Left
-
-    def send(self, data, **kw):
-        debuglog("Would message fake channel {0}: {1!r}".format(self.name, data))
 
     def mode(self, *changes):
         if not changes:

@@ -4,7 +4,6 @@ import fnmatch
 import re
 
 from src.context import IRCContext, Features, lower
-from src.logger import debuglog
 from src import settings as var
 from src import db
 
@@ -432,9 +431,6 @@ class FakeUser(User):
 
     def queue_message(self, message):
         self.send(message) # don't actually queue it
-
-    def send(self, data, **kw):
-        debuglog("Would message fake user {0}: {1!r}".format(self.nick, data))
 
     @property
     def rawnick(self):
