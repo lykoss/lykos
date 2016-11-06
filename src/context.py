@@ -33,7 +33,7 @@ class IRCContext:
         self.ref = ref
 
     def lower(self):
-        return type(self)(lower(name), client, ref=(self.ref or ref))
+        return type(self)(lower(name), client, ref=(self.ref or self))
 
     def get_send_type(self, *, is_notice=False, is_privmsg=False):
         if is_notice and not is_privmsg:
