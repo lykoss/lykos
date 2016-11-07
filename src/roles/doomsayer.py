@@ -13,6 +13,8 @@ KILLS = {}
 SICK = {}
 LYCANS = {}
 
+_mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
+
 @cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",))
 def see(cli, nick, chan, rest):
     """Use your paranormal senses to determine a player's doom."""
@@ -37,22 +39,12 @@ def see(cli, nick, chan, rest):
         return
     victim = evt.data["target"]
     victimrole = get_role(victim)
-    
-    mode = random.randint(1, 3)
-    if mode == 1:
-        mode = "DEATH"
-        pm(cli, nick, messages["doomsayer_death"].format(victim))
-        KILLS[nick] = victim
-    elif mode == 2:
-        mode = "LYCAN"
-        pm(cli, nick, messages["doomsayer_lycan"].format(victim))
-        LYCANS[nick] = victim
-    elif mode == 3:
-        mode = "SICK"
-        pm(cli, nick, messages["doomsayer_sick"].format(victim))
-        SICK[nick] = victim
 
-    debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, victimrole, mode))
+    mode, mapping = random.choice(_mappings)
+    pm(cli, nick, messages["doomsayer_{0}".format(mode)].format(victim))
+    mapping[nick] = victim
+
+    debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, victimrole, mode.upper()))
     relay_wolfchat_command(cli, nick, messages["doomsayer_wolfchat"].format(nick, victim), ("doomsayer",), is_wolf_command=True)
 
     SEEN.add(nick)
@@ -63,7 +55,7 @@ def on_rename(evt, cli, var, prefix, nick):
     if prefix in SEEN:
         SEEN.remove(prefix)
         SEEN.add(nick)
-    for dictvar in (KILLS, SICK, LYCANS):
+    for name, dictvar in _mappings:
         kvp = []
         for a, b in dictvar.items():
             if a == prefix:
@@ -84,25 +76,18 @@ def on_acted(evt, cli, var, nick, sender):
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
     if actor_role == "doomsayer" and nick_role != "doomsayer":
         SEEN.discard(actor)
-        if actor in KILLS:
-            del KILLS[actor]
-        elif actor in SICK:
-            del SICK[actor]
-        elif actor in LYCANS:
-            del LYCANS[actor]
+        for name, mapping in _mappings:
+            mapping.pop(actor, None)
+
     elif nick_role == "doomsayer" and actor_role != "doomsayer":
         SEEN.discard(nick)
-        if nick in KILLS:
-            del KILLS[nick]
-        elif nick in SICK:
-            del SICK[nick]
-        elif nick in LYCANS:
-            del LYCANS[nick]
+        for name, mapping in _mappings:
+            mapping.pop(nick, None)
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     SEEN.discard(nick)
-    for dictvar in (KILLS, SICK, LYCANS):
+    for name, dictvar in _mappings:
         for k, v in list(dictvar.items()):
             if nick == k or nick == v:
                 del dictvar[k]
