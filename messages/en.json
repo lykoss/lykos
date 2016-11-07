@@ -863,6 +863,7 @@
     "acc_warning": "Changing accounts during game. Please do not change accounts while playing.",
     "tempban_kick": "Temporary ban for warning: {reason}",
     "error_log": "An error has occurred and has been logged.",
+    "error_pastebin": "(Unable to pastebin traceback; please check the console)",
 
     "_": " vim: set sw=4 expandtab:"
 }

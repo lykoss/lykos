@@ -1,11 +1,6 @@
-import fnmatch
 import itertools
-import json
-import random
+import fnmatch
 import re
-import string
-import traceback
-import urllib
 
 import botconfig
 import src.settings as var
@@ -20,8 +15,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "list_players_and_roles", "list_participants", "get_role", "get_roles",
            "get_reveal_role", "get_templates", "role_order", "break_long_message",
-           "complete_match", "get_victim", "get_nick", "pastebin_tb",
-           "InvalidModeException"]
+           "complete_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -462,31 +456,6 @@ def get_nick(cli, nick):
     if not lnick:
         return None
     return ul[ull.index(lnick)]
-
-def pastebin_tb(context, msg, exc, prefix):
-    try:
-        bot_id = re.sub(r"[^A-Za-z0-9-]", "-", botconfig.NICK)
-        bot_id = re.sub(r"--+", "-", bot_id)
-        bot_id = re.sub(r"^-+|-+$", "", bot_id)
-
-        rand_id = "".join(random.sample(string.ascii_letters + string.digits, 8))
-
-        api_url = "https://ptpb.pw/~{0}-error-{1}".format(bot_id, rand_id)
-
-        req = urllib.request.Request(api_url, urllib.parse.urlencode({
-            "c": exc,  # contents
-            "s": 86400 # expiry (seconds)
-        }).encode("utf-8", "replace"))
-
-        req.add_header("Accept", "application/json")
-        resp = urllib.request.urlopen(req)
-        data = json.loads(resp.read().decode("utf-8"))
-        url = data["url"] + "/pytb"
-    except Exception:
-        # Exception is already printed before calling this function, don't print twice
-        context.send(msg + " (Unable to pastebin traceback; please check the console.)", prefix=prefix)
-    else:
-        context.send(" ".join((msg, url)), prefix=prefix)
 
 class InvalidModeException(Exception): pass
 
