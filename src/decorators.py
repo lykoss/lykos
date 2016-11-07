@@ -175,7 +175,7 @@ class handle_error:
     def __call__(*args, **kwargs):
         self, *args = args
         if self.instance is not None:
-            args = self.instance, *args
+            args = [self.instance] + args
         with print_traceback():
             return self.func(*args, **kwargs)
 
