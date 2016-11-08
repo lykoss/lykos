@@ -15,7 +15,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
-    if chan != botconfig.NICK and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+    if not users.equals(chan, botconfig.NICK) and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
         return
 
     if (notice and ((not users.equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
