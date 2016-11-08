@@ -24,11 +24,6 @@ def wolf_kill(cli, nick, chan, rest):
     if var.DISEASED_WOLVES:
         pm(cli, nick, messages["ill_wolves"])
         return
-    # eventually crow will listen on targeted_command and block kills that way
-    # (or more likely, that restriction will be lifted and crow can do both)
-    if role == "werecrow" and var.OBSERVED.get(nick):
-        pm(cli, nick, messages["werecrow_transformed_nokill"])
-        return
 
     pieces = re.split(" +", rest)
     victims = []
@@ -208,9 +203,6 @@ def on_retribution_kill(evt, cli, var, victim, orig_target):
     t = evt.data["target"]
     if t == "@wolves":
         wolves = list_players(var.WOLF_ROLES)
-        for crow in var.ROLES["werecrow"]:
-            if crow in var.OBSERVED:
-                wolves.remove(crow)
         evt.data["target"] = random.choice(wolves)
 
 @event_listener("exchange_roles", priority=2)
@@ -299,7 +291,6 @@ def on_chk_nightdone2(evt, cli, var):
         for ls in KILLS.values():
             kills.update(ls)
         # check if wolves are actually agreeing
-        # allow len(kills) == 0 through as that means that crow was dumb and observed instead
         if not var.ANGRY_WOLVES and len(kills) > 1:
             evt.data["actedcount"] -= 1
         elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
