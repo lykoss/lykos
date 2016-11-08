@@ -4079,8 +4079,8 @@ def transition_day(cli, gameid=0):
     for victim in list(dead):
         if victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-                # pick a random wolf to be shot, but don't kill off werecrows that observed
-                killlist = [wolf for wolf in list_players(var.WOLF_ROLES) if wolf not in var.OBSERVED.keys() and wolf not in dead]
+                # pick a random wolf to be shot
+                killlist = [wolf for wolf in list_players(var.WOLF_ROLES) if wolf not in dead]
                 if killlist:
                     deadwolf = random.choice(killlist)
                     if var.ROLE_REVEAL in ("on", "team"):
@@ -4189,7 +4189,7 @@ def chk_nightdone(cli):
     actedcount = sum(map(len, (var.HVISITED, var.PASSED, var.OBSERVED,
                                var.HEXED, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("harlot", "succubus", "sorcerer", "hag", "warlock", "piper", "prophet")
+    nightroles = get_roles("harlot", "succubus", "sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4791,10 +4791,6 @@ def observe(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     var.OBSERVED[nick] = victim
-    # temp hack, will do something better once crow is split off
-    from src.roles import wolf
-    if nick in wolf.KILLS:
-        del wolf.KILLS[nick]
     if role == "werecrow":
         pm(cli, nick, messages["werecrow_observe_success"].format(victim))
         relay_wolfchat_command(cli, nick, messages["wolfchat_observe"].format(nick, victim), ("werecrow",), is_wolf_command=True)

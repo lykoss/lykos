@@ -329,7 +329,6 @@
     "gunner_suicide_no_reveal": "Oh no! \u0002{0}\u0002's gun was poorly maintained and has exploded!",
     "hunter_already_killed": "You have already killed someone this game.",
     "silenced": "You have been silenced, and are unable to use any special powers.",
-    "werecrow_transformed_nokill": "You have already transformed into a crow; therefore, you are physically unable to kill a villager.",
     "player_dead": "You are already dead.",
     "no_suicide": "Suicide is bad. Don't do it.",
     "vengeful_ghost_wolf": "You must target a wolf.",
