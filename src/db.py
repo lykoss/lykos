@@ -721,9 +721,9 @@ def add_warning_sanction(warning, sanction, data):
             peid = c.fetchone()[0]
             c.execute("SELECT id, account, hostmask FROM player WHERE person = ? AND active = 1", (peid,))
             if isinstance(data, datetime):
-                sql = "INSERT INTO bantrack (player, expires) values (?, ?)"
+                sql = "INSERT OR REPLACE INTO bantrack (player, expires) values (?, ?)"
             else:
-                sql = "INSERT INTO bantrack (player, warning_amount) values (?, ?)"
+                sql = "INSERT OR REPLACE INTO bantrack (player, warning_amount) values (?, ?)"
             for row in c:
                 idlist.add(row[0])
                 if row[1] is None:
