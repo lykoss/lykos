@@ -434,7 +434,7 @@
     "wolf_notify": "You are a \u0002{0}wolf\u0002. It is your job to kill all the villagers. Use \"kill <nick>\" to kill a villager.",
     "cursed_traitor_notify": "You are a \u0002{0}cursed traitor\u0002. Normally, you would be seen as a villager by the seer and oracle, but since you're cursed, you are seen as a wolf.",
     "traitor_notify": "You are a \u0002{0}traitor\u0002. You are exactly like a villager and not even a seer or oracle can see your true identity, only detectives and augurs can.",
-    "werecrow_notify": "You are a \u0002{0}werecrow\u0002. You are able to fly at night. Use \"kill <nick>\" to kill a villager. Alternatively, you can use \"observe <nick>\" to check if someone is in bed or not. Observing will prevent you from participating in a killing.",
+    "werecrow_notify": "You are a \u0002{0}werecrow\u0002. You are able to fly at night. Use \"observe <nick>\" to check if someone is in bed or not. You may also use \"kill <nick>\" to kill a villager.",
     "hag_notify": "You are a \u0002{0}hag\u0002. You can hex someone to prevent them from using any special powers they may have during the next day and night. Use \"hex <nick>\" to hex them. Only detectives can reveal your true identity, seers will see you as a regular villager.",
     "sorcerer_notify": "You are a \u0002{0}sorcerer\u0002. You can use \"observe <nick>\" to observe someone and determine if they are the seer, oracle, or augur. Only detectives can reveal your true identity, seers will see you as a regular villager.",
     "wolf_cub_notify": "You are a \u0002{0}wolf cub\u0002. While you cannot kill anyone, the other wolves will become enraged if you die and will get two kills the following night.",
