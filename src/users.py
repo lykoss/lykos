@@ -90,11 +90,11 @@ def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as so
     var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
     return _user(nick)
 
-def _add(cli, *, nick, ident=None, host=None, realname=None, account=None, channels=None):
+def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     """Create a new user, add it to the user list and return it.
 
-    This function takes up to 6 keyword-only arguments (and no positional
-    arguments): nick, ident, host, realname, account and channels.
+    This function takes up to 5 keyword-only arguments (and no positional
+    arguments): nick, ident, host, realname and account.
     With the exception of the first one, any parameter can be omitted.
     If a matching user already exists, a ValueError will be raised.
 
@@ -106,16 +106,11 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None, chann
     if _exists(nick, ident, host, realname, account, allow_multiple=True, allow_bot=True): # FIXME
         raise ValueError("User already exists: " + _arg_msg.format(nick, ident, host, realname, account, True))
 
-    if channels is None:
-        channels = {}
-    else:
-        channels = dict(channels)
-
     cls = User
     if predicate(nick):
         cls = FakeUser
 
-    new = cls(cli, nick, ident, host, realname, account, channels)
+    new = cls(cli, nick, ident, host, realname, account)
     _users.add(new)
     return new
 
@@ -176,14 +171,14 @@ class User(IRCContext):
 
     _messages = defaultdict(list)
 
-    def __init__(self, cli, nick, ident, host, realname, account, channels, **kwargs):
+    def __init__(self, cli, nick, ident, host, realname, account, **kwargs):
         super().__init__(nick, cli, **kwargs)
         self.nick = nick
         self.ident = ident
         self.host = host
         self.realname = realname
         self.account = account
-        self.channels = channels
+        self.channels = {}
 
     def __str__(self):
         return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(self=self)

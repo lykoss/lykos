@@ -56,7 +56,7 @@ def connect_callback(cli):
         # This callback only sets up event listeners
         wolfgame.connect_callback()
 
-        users.Bot = users.User(cli, botconfig.NICK, None, None, None, None, {})
+        users.Bot = users.User(cli, botconfig.NICK, None, None, None, None)
         users.Bot.modes = set() # only for the bot (user modes)
 
         # just in case we haven't managed to successfully auth yet
