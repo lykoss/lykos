@@ -24,6 +24,8 @@ SERVER_PASS = "{account}:{password}"
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # The comma is required at the end if there is only one owner.
 OWNERS_ACCOUNTS = ("1owner_acc",)
 
+RULES = "" # Channel !rules
+
 ALLOWED_NORMAL_MODE_COMMANDS = []  # Debug mode commands to be allowed in normal mode
 OWNERS_ONLY_COMMANDS = [] # Commands that should only be allowed for owners, regardless of their original permissions
 
@@ -35,7 +37,8 @@ DISABLE_DEBUG_MODE_TIME_LORD = False
 ALT_CHANNELS = ""
 ALLOWED_ALT_CHANNELS_COMMANDS = []
 
-DEV_CHANNEL = ""
+DEV_CHANNEL = "" # Important: Do *not* include the message prefix!
+DEV_PREFIX = "" # The prefix to send to the dev channel (e.g. "+" will send to "+#dev-chan")
 PASTEBIN_ERRORS = False  # If DEV_CHANNEL is set, errors will be posted there.
 
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set

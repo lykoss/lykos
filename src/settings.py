@@ -199,6 +199,7 @@ CHANSERV_OP_COMMAND = "OP {channel}"
 GUEST_NICK_PATTERN = r"^Guest\d+$|^\d|away.+|.+away"
 
 LOG_CHANNEL = "" # Log !fwarns to this channel, if set
+LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
@@ -319,7 +320,8 @@ FORTUNE_CHANCE = 1/25
 
 ALL_FLAGS = frozenset("AaDdFjms")
 
-RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
+# Checks whether CHANNEL_RULES exists in botconfig.py. If not, displays message that tells bot admin to go modify CHANNEL_RULES.
+RULES = ("To configure this command, the bot administrator should uncomment and modify CHANNEL_RULES in botconfig.py." if not hasattr(botconfig, "CHANNEL_RULES") else botconfig.CHANNEL_RULES)
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
