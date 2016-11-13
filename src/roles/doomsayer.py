@@ -42,7 +42,8 @@ def see(cli, nick, chan, rest):
 
     mode, mapping = random.choice(_mappings)
     pm(cli, nick, messages["doomsayer_{0}".format(mode)].format(victim))
-    mapping[nick] = victim
+    if mode != "sick" or nick not in var.IMMUNIZED:
+        mapping[nick] = victim
 
     debuglog("{0} ({1}) SEE: {2} ({3}) - {4}".format(nick, role, victim, victimrole, mode.upper()))
     relay_wolfchat_command(cli, nick, messages["doomsayer_wolfchat"].format(nick, victim), ("doomsayer",), is_wolf_command=True)
@@ -91,6 +92,14 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
         for k, v in list(dictvar.items()):
             if nick == k or nick == v:
                 del dictvar[k]
+
+@event_listener("doctor_immunize")
+def on_doctor_immunize(evt, cli, var, doctor, target):
+    if target in SICK.values():
+        for n, v in list(SICK.items()):
+            if v == target:
+                del SICK[n]
+        evt.data["message"] = "not_sick"
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):

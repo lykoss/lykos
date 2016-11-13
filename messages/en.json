@@ -377,6 +377,7 @@
     "immunized_already_bitten": "You have a brief flashback to {0} last night. The event quickly subsides, but a lingering thought remains in your mind...",
     "villager_immunized": "You don't feel any different...",
     "immunization_success": "You feel a sharp prick in the back of your arm and temporarily black out. When you come to, you notice an empty syringe lying on the ground. {0}",
+    "not_sick": "You feel much better and are now able to leave your home.",
     "alpha_already_bit": "You have already bitten someone this game.",
     "alpha_no_bite": "You may only bite someone after another wolf has died yesterday.",
     "bite_error": "Please choose who to bite by specifying their nick.",

@@ -5010,21 +5010,25 @@ def immunize(cli, nick, chan, rest):
     vrole = get_role(victim)
     if check_exchange(cli, nick, victim):
         return
-    pm(cli, nick, messages["doctor_success"].format(victim))
-    lycan = False
-    if vrole == "lycan":
-        lycan = True
-        lycan_message = (messages["lycan_cured"])
-        var.ROLES["lycan"].remove(victim)
-        var.ROLES["villager"].add(victim)
-        var.FINAL_ROLES[victim] = "villager"
-        var.CURED_LYCANS.add(victim)
+    evt = Event("doctor_immunize", {"success": True, "message": "villager_immunized"})
+    if evt.dispatch(cli, var, nick, victim):
+        pm(cli, nick, messages["doctor_success"].format(victim))
+        lycan = False
+        if victim in var.DISEASED:
+            var.DISEASED.remove(victim)
+        if vrole == "lycan":
+            lycan = True
+            lycan_message = (messages["lycan_cured"])
+            var.ROLES["lycan"].remove(victim)
+            var.ROLES["villager"].add(victim)
+            var.FINAL_ROLES[victim] = "villager"
+            var.CURED_LYCANS.add(victim)
+        else:
+            lycan_message = messages[evt.data["message"]]
+        pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
+    if evt.data["success"]:
         var.IMMUNIZED.add(victim)
-    else:
-        lycan_message = messages["villager_immunized"]
-        var.IMMUNIZED.add(victim)
-    pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
-    var.DOCTORS[nick] -= 1
+        var.DOCTORS[nick] -= 1
     debuglog("{0} ({1}) IMMUNIZE: {2} ({3})".format(nick, get_role(nick), victim, "lycan" if lycan else get_role(victim)))
 
 @cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))

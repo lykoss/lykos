@@ -560,7 +560,8 @@ def on_begin_day(evt, cli, var):
     var.EXCHANGED.update(EXCHANGE)
     var.SILENCED.update(SILENCE)
     var.LYCANTHROPES.update(LYCANTHROPY)
-    var.DISEASED.update(PESTILENCE)
+    # pestilence doesn't take effect on immunized players
+    var.DISEASED.update(PESTILENCE - var.IMMUNIZED)
     var.LUCKY.update(LUCK)
     var.MISDIRECTED.update(MISDIRECTION)
 
