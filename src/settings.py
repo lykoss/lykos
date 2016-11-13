@@ -320,8 +320,8 @@ FORTUNE_CHANCE = 1/25
 
 ALL_FLAGS = frozenset("AaDdFjms")
 
-# Checks whether CHANNEL_RULES exists in botconfig.py. If not, displays message that tells bot admin to go modify CHANNEL_RULES.
-RULES = ("To configure this command, the bot administrator should uncomment and modify CHANNEL_RULES in botconfig.py." if not hasattr(botconfig, "CHANNEL_RULES") else botconfig.CHANNEL_RULES)
+# Checks whether RULES exists in botconfig.py. If not, displays message that tells bot admin to go modify RULES.
+RULES = ("To configure this command, the bot administrator should uncomment and modify RULES in botconfig.py.")
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
