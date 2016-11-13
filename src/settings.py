@@ -320,7 +320,7 @@ FORTUNE_CHANCE = 1/25
 
 ALL_FLAGS = frozenset("AaDdFjms")
 
-RULES = (botconfig.CHANNEL + " channel rules: http://wolf.xnrand.com/rules")
+RULES = "To configure this command, the bot administrator should uncomment and modify RULES in botconfig.py."
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
