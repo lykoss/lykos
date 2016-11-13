@@ -6550,11 +6550,22 @@ def reset_game(cli, nick, chan, rest):
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
 
-
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
-    reply(cli, nick, chan, var.RULES)
+
+    if hasattr(botconfig, "RULES"):
+        rules = botconfig.RULES
+
+        # Backwards-compatibility
+        pattern = re.compile(r"^\S+ channel rules: ")
+
+        if pattern.search(rules):
+            rules = pattern.sub("", rules)
+
+        reply(cli, nick, chan, messages["channel_rules"].format(botconfig.CHANNEL, rules))
+    else:
+        reply(cli, nick, chan, messages["no_channel_rules"].format(botconfig.CHANNEL))
 
 @cmd("help", raw_nick=True, pm=True)
 def get_help(cli, rnick, chan, rest):
