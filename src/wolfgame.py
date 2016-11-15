@@ -1994,6 +1994,8 @@ def chk_decision(cli, force=""):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
+        # Even if the lynch fails, we want to go to night phase if we are forcing a lynch (day timeout)
+        do_night_transision = True if force else False
         chan = botconfig.CHANNEL
         pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
@@ -2106,8 +2108,10 @@ def chk_decision(cli, force=""):
                     cli.msg(botconfig.CHANNEL, lmsg)
                     if not del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
                         break
-                event.data["transition_night"](cli)
+                do_night_transision = True
                 break
+        if do_night_transision:
+            event.data["transition_night"](cli)
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
 def show_votes(cli, nick, chan, rest):
