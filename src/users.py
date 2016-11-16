@@ -192,8 +192,8 @@ class User(IRCContext):
         elif ident is not None and host is not None:
             users = set(_users)
             users.add(Bot)
-            if self in _users: # quirk: this actually checks for the hash first (also, this is O(1))
-                for user in _users:
+            if self in users: # quirk: this actually checks for the hash first (also, this is O(1))
+                for user in users:
                     if self == user:
                         self = user
                         break # this may only happen once
