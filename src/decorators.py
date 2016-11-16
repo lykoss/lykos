@@ -119,7 +119,6 @@ class print_traceback:
                 with _local.handler:
                     req = urllib.request.Request(api_url, urllib.parse.urlencode({
                             "c": "\n".join(variables),  # contents
-                            "s": 86400 # expiry (seconds)
                         }).encode("utf-8", "replace"))
 
                     req.add_header("Accept", "application/json")
