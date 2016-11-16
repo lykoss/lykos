@@ -7207,31 +7207,54 @@ def vote(cli, nick, chan, rest):
     else:
         return show_votes.caller(cli, nick, chan, rest)
 
+def _call_command(cli, nick, chan, command, no_out=False):
+    """
+    Executes a system command.
+
+    If `no_out` is True, the command's output will not be sent to IRC,
+    unless the exit code is non-zero.
+    """
+
+    child = subprocess.Popen(command.split(),
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    (out, err) = child.communicate()
+    ret = child.returncode
+
+    if not (no_out and ret == 0):
+        for line in (out + err).splitlines():
+            reply(cli, nick, chan, line.decode("utf-8"), private=True)
+
+    if ret != 0:
+        if ret < 0:
+            cause = "signal"
+            ret *= -1
+        else:
+            cause = "status"
+
+        reply(cli, nick, chan, messages["process_exited"].format(command, cause, ret), private=True)
+
+    return (ret, out)
+
 @cmd("pull", "fpull", flag="D", pm=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
-    commands = ["git fetch",
-                "git rebase --stat --preserve-merges"]
+    (ret, _) = _call_command(cli, nick, chan, "git fetch")
 
-    for command in commands:
-        child = subprocess.Popen(command.split(),
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
-        (out, err) = child.communicate()
-        ret = child.returncode
+    if ret != 0:
+        return False
 
-        for line in (out + err).splitlines():
-            reply(cli, nick, chan, line.decode("utf-8"), private=True)
+    (_, out) = _call_command(cli, nick, chan, "git status -b --porcelain", no_out=True)
 
-        if ret != 0:
-            if ret < 0:
-                cause = "signal"
-                ret *= -1
-            else:
-                cause = "status"
+    if not re.search(rb"behind \d+", out.splitlines()[0]):
+        # Already up-to-date
+        reply(cli, nick, chan, messages["already_up_to_date"], private=True)
+        return False
 
-            reply(cli, nick, chan, messages["process_exited"].format(command, cause, ret), private=True)
+    (ret, _) = _call_command(cli, nick, chan, "git rebase --stat --preserve-merges")
+
+    return (ret == 0)
 
 @cmd("update", flag="D", pm=True)
 def update(cli, nick, chan, rest):
@@ -7251,8 +7274,10 @@ def update(cli, nick, chan, rest):
         # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
         restart_program.aftergame = True
 
-    fpull.caller(cli, nick, chan, "")
-    restart_program.caller(cli, nick, chan, "Updating bot")
+    ret = fpull.caller(cli, nick, chan, "")
+
+    if ret:
+        restart_program.caller(cli, nick, chan, "Updating bot")
 
 @cmd("send", "fsend", flag="F", pm=True)
 def fsend(cli, nick, chan, rest):

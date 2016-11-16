@@ -768,6 +768,7 @@
     "no_such_role": "No such role: {0}",
     "available_modes": "Available game modes: \u0002",
     "process_exited": "Process {0} exited with {1} {2}",
+    "already_up_to_date": "Already up-to-date.",
     "admin_fleave_deadchat": "You have forced {0} to leave the deadchat.",
     "available_mode_setters_help": "Votes to make a specific game mode more likely. Available game mode setters: ",
     "fspectate_help": "Usage: fspectate <wolfchat|deadchat> [on|off]",
