@@ -7241,11 +7241,12 @@ def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
     (ret, _) = _call_command(cli, nick, chan, "git fetch")
-
     if ret != 0:
         return False
 
-    (_, out) = _call_command(cli, nick, chan, "git status -b --porcelain", no_out=True)
+    (ret, out) = _call_command(cli, nick, chan, "git status -b --porcelain", no_out=True)
+    if ret != 0:
+        return False
 
     if not re.search(rb"behind \d+", out.splitlines()[0]):
         # Already up-to-date
@@ -7253,7 +7254,6 @@ def fpull(cli, nick, chan, rest):
         return False
 
     (ret, _) = _call_command(cli, nick, chan, "git rebase --stat --preserve-merges")
-
     return (ret == 0)
 
 @cmd("update", flag="D", pm=True)
