@@ -161,6 +161,9 @@ class handle_error:
         if isinstance(func, cls) and instance is func.instance: # already decorated
             return func
 
+        if isinstance(func, cls):
+            func = func.func
+
         self = super().__new__(cls)
         self.instance = instance
         self.func = func
