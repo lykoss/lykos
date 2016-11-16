@@ -57,23 +57,19 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
     if allow_bot:
         users.add(Bot)
 
-    for user in users:
-        if nick is not None and user.nick != nick:
-            continue
-        if ident is not None and user.ident != ident:
-            continue
-        if host is not None and user.host != host:
-            continue
-        if realname is not None and user.realname != realname:
-            continue
-        if account is not None and user.account != account:
-            continue
+    sentinel = object()
 
-        if not potential or allow_multiple:
-            potential.append(user)
-        else:
-            raise ValueError("More than one user matches: " +
-                             _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+    temp = User(sentinel, nick, ident, host, realname, account)
+    if temp.client is not sentinel:
+        return temp # actual client
+
+    for user in users:
+        if user == temp:
+            if not potential or allow_multiple:
+                potential.append(user)
+            else:
+                raise ValueError("More than one user matches: " +
+                                 _arg_msg.format(nick, ident, host, realname, account, allow_bot))
 
     if not potential and not allow_none:
         raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
@@ -103,15 +99,13 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
-    if _exists(nick, ident, host, realname, account, allow_multiple=True, allow_bot=True): # FIXME
-        raise ValueError("User already exists: " + _arg_msg.format(nick, ident, host, realname, account, True))
-
     cls = User
     if predicate(nick):
         cls = FakeUser
 
     new = cls(cli, nick, ident, host, realname, account)
-    _users.add(new)
+    if new is not Bot:
+        _users.add(new)
     return new
 
 def add(nick, **blah): # backwards-compatible API
@@ -127,12 +121,21 @@ def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, al
 
     """
 
-    try: # FIXME
-        _get(nick, ident, host, realname, account, allow_multiple=allow_multiple, allow_bot=allow_bot)
-    except (KeyError, ValueError):
+    sentinel = object()
+
+    if ident is None and host is None and nick is not None:
+        nick, ident, host = parse_rawnick(nick)
+
+    cls = User
+    if predicate(nick):
+        cls = FakeUser
+
+    temp = cls(sentinel, nick, ident, host, realname, account)
+
+    if temp.client is sentinel: # doesn't exist; if it did, the client would be an actual client
         return False
 
-    return True
+    return temp is not Bot or allow_bot
 
 def exists(nick, *stuff, **morestuff): # backwards-compatible API
     return nick in var.USERS
@@ -141,14 +144,11 @@ def users_():
     """Iterate over the users in the registry."""
     yield from _users
 
-def users(): # backwards-compatible API
-    yield from var.USERS
-
-def _items(): # backwards-compat crap (really, it stinks)
-    yield from var.USERS.items()
-
-users.items = _items
-del _items
+class users: # backwards-compatible API
+    def __iter__(self):
+        yield from var.USERS
+    def items(self):
+        yield from var.USERS.items()
 
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 
@@ -171,20 +171,62 @@ class User(IRCContext):
 
     _messages = defaultdict(list)
 
-    def __init__(self, cli, nick, ident, host, realname, account, **kwargs):
-        super().__init__(nick, cli, **kwargs)
-        self.nick = nick
-        self.ident = ident
-        self.host = host
+    def __new__(cls, cli, nick, ident, host, realname, account, **kwargs):
+        self = super().__new__(cls)
+        super(cls, self).__init__(nick, cli, **kwargs)
+
+        self._ident = ident
+        self._host = host
         self.realname = realname
         self.account = account
         self.channels = {}
+
+        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
+            self = Bot
+            self.ident = ident
+            self.host = host
+            self.realname = realname
+            self.account = account
+
+        # check the set to see if this already exists
+        elif ident is not None and host is not None:
+            users = set(_users)
+            users.add(Bot)
+            if self in _users: # quirk: this actually checks for the hash first (also, this is O(1))
+                for user in _users:
+                    if self == user:
+                        self = user
+                        break # this may only happen once
+
+        return self
+
+    def __init__(*args, **kwargs):
+        pass # everything that needed to be done was done in __new__
 
     def __str__(self):
         return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(self=self)
 
     def __repr__(self):
         return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(self=self)
+
+    def __hash__(self):
+        if self.ident is None or self.host is None:
+            raise ValueError("cannot hash a User with no ident or host")
+        return hash((self.ident, self.host))
+
+    def __eq__(self, other):
+        if not isinstance(other, User):
+            return NotImplemented
+
+        done = False
+        for a, b in ((self.nick, other.nick), (self.ident, other.ident), (self.host, other.host), (self.realname, other.realname), (self.account, other.account)):
+            if a is None or b is None:
+                continue
+            done = True
+            if a != b:
+                return False
+
+        return done
 
     def lower(self):
         return type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account), channels, ref=(self.ref or self))
@@ -391,6 +433,42 @@ class User(IRCContext):
             self.client.nickname = nick
 
     @property
+    def ident(self): # prevent changing ident and host after they were set (so hash remains the same)
+        return self._ident
+
+    @ident.setter
+    def ident(self, ident):
+        if self._ident is None:
+            self._ident = ident
+            if self is Bot:
+                self.client.ident = ident
+        elif self._ident != ident:
+            raise ValueError("may not change the ident of a live user")
+
+    @property
+    def host(self):
+        return self._host
+
+    @host.setter
+    def host(self, host):
+        if self._host is None:
+            self._host = host
+            if self is Bot:
+                self.client.hostmask = host
+        elif self._host != host:
+            raise ValueError("may not change the host of a live user")
+
+    @property
+    def realname(self):
+        return self._realname
+
+    @realname.setter
+    def realname(self, realname):
+        self._realname = realname
+        if self is Bot:
+            self.client.real_name = realname
+
+    @property
     def account(self): # automatically converts "0" and "*" to None
         return self._account
 
@@ -424,8 +502,19 @@ class FakeUser(User):
 
     is_fake = True
 
+    def __hash__(self):
+        return hash(self.nick)
+
     def queue_message(self, message):
         self.send(message) # don't actually queue it
+
+    @property
+    def nick(self):
+        return self.name
+
+    @nick.setter
+    def nick(self, nick):
+        raise ValueError("may not change the nick of a fake user")
 
     @property
     def rawnick(self):
