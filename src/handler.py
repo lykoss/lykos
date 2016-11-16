@@ -56,9 +56,6 @@ def connect_callback(cli):
         # This callback only sets up event listeners
         wolfgame.connect_callback()
 
-        users.Bot = users.User(cli, botconfig.NICK, None, None, None, None)
-        users.Bot.modes = set() # only for the bot (user modes)
-
         # just in case we haven't managed to successfully auth yet
         if not botconfig.SASL_AUTHENTICATION:
             cli.ns_identify(botconfig.USERNAME or botconfig.NICK,
@@ -82,24 +79,29 @@ def connect_callback(cli):
         #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
         #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
-        cli.nick(botconfig.NICK)  # very important (for regain/release)
+        users.Bot.change_nick(botconfig.NICK)
 
-    def mustregain(cli, *blah):
-        if not botconfig.PASS:
+    def mustregain(cli, server, bot_nick, nick, msg):
+        if not botconfig.PASS or bot_nick == nick:
             return
-        cli.ns_regain(nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+        cli.ns_regain(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+        users.Bot.change_nick(botconfig.NICK)
 
-    def mustrelease(cli, *rest):
-        if not botconfig.PASS:
+    def mustrelease(cli, server, bot_nick, nick, msg):
+        if not botconfig.PASS or bot_nick == nick:
             return # prevents the bot from trying to release without a password
-        cli.ns_release(nickserv=var.NICKSERV, command=var.NICKSERV_RELEASE_COMMAND)
-        cli.nick(botconfig.NICK)
+        func = cli.ns_release
+        if getattr(botconfig, "USE_NICKSERV_GHOST", False): # FIXME
+            func = cli.ns_ghost
+        func(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_RELEASE_COMMAND)
+        users.Bot.change_nick(botconfig.NICK)
 
     @hook("unavailresource", hookid=239)
     @hook("nicknameinuse", hookid=239)
     def must_use_temp_nick(cli, *etc):
-        cli.nick(botconfig.NICK+"_")
-        cli.user(botconfig.NICK, "")
+        users.Bot.nick += "_"
+        users.Bot.change_nick()
+        cli.user(botconfig.NICK, "") # TODO: can we remove this?
 
         hook.unhook(239)
         hook("unavailresource")(mustrelease)
@@ -111,7 +113,6 @@ def connect_callback(cli):
         request_caps.add("sasl")
 
     supported_caps = set()
-
 
     @hook("cap")
     def on_cap(cli, svr, mynick, cmd, caps, star=None):
@@ -129,12 +130,12 @@ def connect_callback(cli):
                 common_caps = request_caps & supported_caps
 
                 if common_caps:
-                    cli.cap("REQ " ":{0}".format(" ".join(common_caps)))
+                    cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
         elif cmd == "ACK":
             if "sasl" in caps:
                 cli.send("AUTHENTICATE PLAIN")
             else:
-                cli.cap("END")
+                cli.send("CAP END")
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
@@ -151,7 +152,7 @@ def connect_callback(cli):
 
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
-            cli.cap("END")
+            cli.send("CAP END")
 
         @hook("904")
         @hook("905")
@@ -161,5 +162,7 @@ def connect_callback(cli):
             alog("Authentication failed.  Did you fill the account name "
                  "in botconfig.USERNAME if it's different from the bot nick?")
             cli.quit()
+
+    users.Bot = users.BotUser(cli, botconfig.NICK)
 
 # vim: set sw=4 expandtab:

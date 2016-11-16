@@ -179,7 +179,7 @@ class IRCClient:
             if not self.blocking:
                 self.socket.setblocking(0)
 
-            self.cap("LS 302")
+            self.send("CAP LS 302")
 
             if self.server_pass and (not self.sasl_auth or "{password}" not in self.server_pass):
                 message = "PASS :{0}".format(self.server_pass).format(
@@ -187,7 +187,7 @@ class IRCClient:
                     password=self.password)
                 self.send(message)
 
-            self.nick(self.nickname)
+            self.send("NICK", self.nickname)
             self.user(self.ident, self.real_name)
 
             if self.connect_cb:
@@ -272,24 +272,20 @@ class IRCClient:
         self.send("MODE {0}".format(" ".join(args)))
     def kick(self, chan, nick, msg=""):
         self.send("KICK", chan, nick, ":"+msg)
-    def nick(self, nick):
-        self.send("NICK {0}".format(nick))
     def who(self, *args):
         self.send("WHO {0}".format(" ".join(args)))
-    def cap(self, req):
-        self.send("CAP {0}".format(req))
     def ns_identify(self, account, passwd, nickserv, command):
         if command:
             self.msg(nickserv, command.format(account=account, password=passwd))
-    def ns_ghost(self, nickserv, command):
+    def ns_ghost(self, nick, password, nickserv, command):
         if command:
-            self.msg(nickserv, command.format(nick=self.nickname))
-    def ns_release(self, nickserv="NickServ", command="RELEASE {nick}"):
+            self.msg(nickserv, command.format(nick=nick, password=password))
+    def ns_release(self, nick, password, nickserv="NickServ", command="RELEASE {nick}"):
         if command:
-            self.msg(nickserv, command.format(nick=self.nickname))
-    def ns_regain(self, nickserv="NickServ", command="REGAIN {nick}"):
+            self.msg(nickserv, command.format(nick=nick, password=password))
+    def ns_regain(self, nick, password, nickserv="NickServ", command="REGAIN {nick}"):
         if command:
-            self.msg(nickserv, command.format(nick=self.nickname))
+            self.msg(nickserv, command.format(nick=nick, password=password))
     def user(self, ident, rname):
         self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
     def mainLoop(self):

@@ -173,7 +173,7 @@ class User(IRCContext):
 
     def __new__(cls, cli, nick, ident, host, realname, account, **kwargs):
         self = super().__new__(cls)
-        super(cls, self).__init__(nick, cli, **kwargs)
+        super(User, self).__init__(nick, cli, **kwargs)
 
         self._ident = ident
         self._host = host
@@ -523,3 +523,25 @@ class FakeUser(User):
     @rawnick.setter
     def rawnick(self, rawnick):
         self.nick = parse_rawnick_as_dict(rawnick)["nick"]
+
+class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
+
+    def __new__(cls, cli, nick):
+        self = super().__new__(cls, cli, nick, None, None, None, None)
+        self.modes = set()
+        return self
+
+    def change_nick(self, nick=None):
+        if nick is None:
+            nick = self.nick
+        self.client.send("NICK", nick)
+
+
+
+
+
+
+
+
+
+
