@@ -486,14 +486,13 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch.state = channels._States.Joined
 
     user = users._add(cli, nick=rawnick, realname=realname, account=account) # FIXME
+    ch.users.add(user)
+    user.channels[ch] = set()
 
     if user is users.Bot:
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
         ch.who()
-
-    ch.users.add(user)
-    user.channels[ch] = set()
 
     Event("chan_join", {}).dispatch(var, ch, user)
 
