@@ -401,7 +401,7 @@ def end_banlist(cli, server, bot_nick, chan, message):
 
     handle_endlistmode(cli, chan, "b")
 
-@hook("endofquietlist")
+@hook("quietlistend")
 def end_quietlist(cli, server, bot_nick, chan, mode, message):
     """Handle the end of the quiet listing.
 
