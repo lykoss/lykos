@@ -67,6 +67,7 @@ class Channel(IRCContext):
         self.modes = {}
         self.timestamp = None
         self.state = _States.NotJoined
+        self._pending = []
 
     def __del__(self):
         self.users.clear()
@@ -80,6 +81,12 @@ class Channel(IRCContext):
 
     def __repr__(self):
         return "{self.__class__.__name__}({self.name!r})".format(self=self)
+
+    def queue(self, name, params, args):
+        if self._pending is None:
+            Event(name, params).dispatch(*args)
+        else:
+            self._pending.append((name, params, args))
 
     def join(self, key=""):
         if self.state in (_States.NotJoined, _States.Left):
@@ -151,7 +158,7 @@ class Channel(IRCContext):
 
             self.client.send("MODE", self.name, "".join(final))
 
-    def update_modes(self, rawnick, mode, targets):
+    def update_modes(self, actor, mode, targets):
         """Update the channel's mode registry with the new modes.
 
         This is called whenever a MODE event is received. All of the
@@ -184,7 +191,7 @@ class Channel(IRCContext):
                 elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
                     if c not in self.modes:
                         self.modes[c] = {}
-                    self.modes[c][targets[i]] = (rawnick, set_time)
+                    self.modes[c][targets[i]] = (actor.rawnick, set_time)
                     i += 1
 
                 else:

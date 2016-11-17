@@ -6,7 +6,7 @@ further in the relevant hook functions.
 
 """
 
-from src.decorators import hook
+from src.decorators import event_listener, hook
 from src.context import Features
 from src.events import Event
 from src.logger import plog
@@ -144,6 +144,16 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
     """
 
+    try:
+        chan = channels.get(target)
+    except KeyError:
+        pass
+    else:
+        if chan._pending is not None:
+            for name, params, args in chan._pending:
+                Event(name, params).dispatch(*args)
+            chan._pending = None
+
     Event("who_end", {}).dispatch(var, target)
 
 ### Server PING handling
@@ -278,9 +288,13 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         return
 
     target = channels.add(chan, cli)
-    target.update_modes(rawnick, mode, targets)
+    target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
-    Event("mode_change", {}).dispatch(var, actor, target)
+@event_listener("mode_change", 0) # This should fire before anything else!
+def apply_mode_changes(evt, var, actor, target):
+    """Apply all mode changes before any other event."""
+
+    target.update_modes(actor, evt.data.pop("mode"), evt.data.pop("targets"))
 
 ### List modes handling (bans, quiets, ban and invite exempts)
 
@@ -369,7 +383,7 @@ def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
     ch = channels.add(chan, cli)
-    Event("end_listmode", {}).dispatch(var, ch, mode)
+    ch.queue("end_listmode", {}, (var, ch, mode))
 
 @hook("endofbanlist")
 def end_banlist(cli, server, bot_nick, chan, message):
