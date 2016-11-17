@@ -129,7 +129,8 @@ class IRCContext:
                 extra, line = line[:length], line[length:]
                 client.send("{0} {1} :{2}".format(send_type, name, extra))
 
-    def send(self, data, *, notice=False, privmsg=False, prefix=None):
+    def send(self, *data, notice=False, privmsg=False, prefix=None):
+        data = " ".join(data)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
             debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, data))
