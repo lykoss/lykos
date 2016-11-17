@@ -160,10 +160,10 @@ def connect_callback():
                 var.ACCOUNTS_ONLY = False
 
             # Devoice all on connect
-            prefix = "-" + hooks.Features["PREFIX"]["+"]
+            mode = hooks.Features["PREFIX"]["+"]
             pending = []
-            for user in channels.Main.modes.get(prefix, ()):
-                pending.append((prefix, user.nick))
+            for user in channels.Main.modes.get(mode, ()):
+                pending.append(("-" + mode, user.nick))
             accumulator.send(pending)
             next(accumulator, None)
 
@@ -189,8 +189,16 @@ def connect_callback():
 
             events.remove_listener("end_listmode", end_listmode)
 
+    def mode_change(event, var, actor, target):
+        if target is channels.Main: # we may or may not be opped; assume we are
+            accumulator.send([])
+            next(accumulator, None)
+
+            events.remove_listener("mode_change", mode_change)
+
     events.add_listener("who_end", who_end)
     events.add_listener("end_listmode", end_listmode)
+    events.add_listener("mode_change", mode_change)
 
     def accumulate_cmodes(count):
         modes = []
@@ -199,9 +207,10 @@ def connect_callback():
             modes.extend(item)
             yield i
 
-        channels.Main.mode(*modes)
+        if modes:
+            channels.Main.mode(*modes)
 
-    accumulator = accumulate_cmodes(2)
+    accumulator = accumulate_cmodes(3)
     accumulator.send(None)
 
 @hook("mode") # XXX Get rid of this when the user/channel refactor is done
