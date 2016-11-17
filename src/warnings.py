@@ -71,6 +71,7 @@ def parse_warning_target(target, lower=False):
             tacc = irc_lower(tacc)
             ident = irc_lower(ident)
             host = host.lower()
+            target = irc_lower(target)
         thm = target + "!" + ident + "@" + host
     elif "@" in target:
         tacc = None

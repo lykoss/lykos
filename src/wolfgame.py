@@ -6479,7 +6479,7 @@ def fflags(cli, nick, chan, rest):
             if not var.FLAGS[hm]:
                 msg = messages["no_access_host"].format(hm)
             else:
-                msg = messages["access_host"].format(acc, "".join(sorted(var.FLAGS[hm])))
+                msg = messages["access_host"].format(hm, "".join(sorted(var.FLAGS[hm])))
         reply(cli, nick, chan, msg)
     else:
         acc, hm = parse_warning_target(params[0])
