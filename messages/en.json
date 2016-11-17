@@ -795,7 +795,7 @@
     "warn_help_syntax": "Usage: warn help <subcommand>",
     "fwarn_add_syntax": "Usage: fwarn add <nick[!user@host]|=account> <points> [~expiry] [sanctions] [:]<reason> [| notes]",
     "fwarn_page_invalid": "Invalid page, must be a number 1 or greater.",
-    "fwarn_points_invalid": "Invalid points, must be a number above 0.",
+    "fwarn_points_invalid": "Invalid points, must be a non-negative integer.",
     "fwarn_expiry_invalid": "Invalid expiration, must be a number above 0 followed by either d, h, or m, or 'never' for a warning that never expires.",
     "fwarn_cannot_add": "Cannot add warning, double-check your parameters (the nick might be wrong or you are not joined to the channel).",
     "fwarn_added": "Added warning #{0}.",

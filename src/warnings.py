@@ -88,52 +88,7 @@ def parse_warning_target(target, lower=False):
         return (None, None)
     return (tacc, thm)
 
-def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sanctions=None):
-    # make 0-point warnings no-op successfully, otherwise we add warnings when things like PART_PENALTY is 0
-    if amount == 0:
-        return False
-
-    tacc, thm = parse_warning_target(target)
-    if tacc is None and thm is None:
-        return False
-
-    if actor not in var.USERS and actor != botconfig.NICK:
-        return False
-    sacc = None
-    shm = None
-    if actor in var.USERS:
-        sacc = var.USERS[actor]["account"]
-        shm = actor + "!" + var.USERS[actor]["ident"] + "@" + var.USERS[actor]["host"]
-
-    # Turn expires into a datetime if we were passed a string; note that no error checking is performed here
-    if isinstance(expires, str):
-        exp_suffix = expires[-1]
-        exp_amount = int(expires[:-1])
-
-        if exp_suffix == "d":
-            expires = datetime.utcnow() + timedelta(days=exp_amount)
-        elif exp_suffix == "h":
-            expires = datetime.utcnow() + timedelta(hours=exp_amount)
-        elif exp_suffix == "m":
-            expires = datetime.utcnow() + timedelta(minutes=exp_amount)
-        else:
-            raise ValueError("Invalid expiration string")
-    elif isinstance(expires, int):
-        expires = datetime.utcnow() + timedelta(days=expires)
-
-    # Round expires to the nearest minute (30s rounds up)
-    if isinstance(expires, datetime):
-        round_add = 0
-        if expires.second >= 30:
-            round_add = 1
-        expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
-        expires += timedelta(minutes=round_add)
-
-    # determine if we need to automatically add any sanctions
-    if sanctions is None:
-        sanctions = {}
-    prev = db.get_warning_points(tacc, thm)
-    cur = prev + amount
+def _get_auto_sanctions(sanctions, prev, cur):
     for (mn, mx, sanc) in var.AUTO_SANCTION:
         if (prev < mn and cur >= mn) or (prev >= mn and prev <= mx and cur <= mx):
             if "stasis" in sanc:
@@ -184,6 +139,52 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
                     sanctions["tempban"] = ths
                 else:
                     sanctions["tempban"] = exp
+    
+
+def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sanctions=None):
+    tacc, thm = parse_warning_target(target)
+    if tacc is None and thm is None:
+        return False
+
+    if actor not in var.USERS and actor != botconfig.NICK:
+        return False
+    sacc = None
+    shm = None
+    if actor in var.USERS:
+        sacc = var.USERS[actor]["account"]
+        shm = actor + "!" + var.USERS[actor]["ident"] + "@" + var.USERS[actor]["host"]
+
+    # Turn expires into a datetime if we were passed a string; note that no error checking is performed here
+    if isinstance(expires, str):
+        exp_suffix = expires[-1]
+        exp_amount = int(expires[:-1])
+
+        if exp_suffix == "d":
+            expires = datetime.utcnow() + timedelta(days=exp_amount)
+        elif exp_suffix == "h":
+            expires = datetime.utcnow() + timedelta(hours=exp_amount)
+        elif exp_suffix == "m":
+            expires = datetime.utcnow() + timedelta(minutes=exp_amount)
+        else:
+            raise ValueError("Invalid expiration string")
+    elif isinstance(expires, int):
+        expires = datetime.utcnow() + timedelta(days=expires)
+
+    # Round expires to the nearest minute (30s rounds up)
+    if isinstance(expires, datetime):
+        round_add = 0
+        if expires.second >= 30:
+            round_add = 1
+        expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
+        expires += timedelta(minutes=round_add)
+
+    # determine if we need to automatically add any sanctions
+    if sanctions is None:
+        sanctions = {}
+    prev = db.get_warning_points(tacc, thm)
+    cur = prev + amount
+    if amount > 0:
+        _get_auto_sanctions(sanctions, prev, cur)
 
     sid = db.add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires)
     if "stasis" in sanctions:
@@ -791,7 +792,7 @@ def fwarn(cli, nick, chan, rest):
             except ValueError:
                 reply(cli, nick, chan, messages["fwarn_points_invalid"])
                 return
-            if points < 1:
+            if points < 0:
                 reply(cli, nick, chan, messages["fwarn_points_invalid"])
                 return
         elif notes is not None:

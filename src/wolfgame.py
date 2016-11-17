@@ -3151,7 +3151,8 @@ def reaper(cli, gameid):
                         if nck in rlist:
                             var.ORIGINAL_ROLES[r].remove(nck)
                             var.ORIGINAL_ROLES[r].add("(dced)"+nck)
-                    add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
+                    if var.IDLE_PENALTY:
+                        add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(cli, nck, end_game = False, death_triggers = False)
                 chk_win(cli)
                 pl = list_players()
@@ -3167,7 +3168,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["quit_death"].format(dcedplayer, get_reveal_role(dcedplayer)))
                     else:
                         cli.msg(chan, messages["quit_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
@@ -3176,7 +3177,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["part_death"].format(dcedplayer, get_reveal_role(dcedplayer)))
                     else:
                         cli.msg(chan, messages["part_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
@@ -3185,7 +3186,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["account_death"].format(dcedplayer, get_reveal_role(dcedplayer)))
                     else:
                         cli.msg(chan, messages["account_death_no_reveal"].format(dcedplayer))
-                    if var.PHASE != "join":
+                    if var.PHASE != "join" and var.ACC_PENALTY:
                         add_warning(cli, dcedplayer, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
                         return
@@ -3626,7 +3627,8 @@ def leave_game(cli, nick, chan, rest):
             if nick in rset:
                 var.ORIGINAL_ROLES[r].remove(nick)
                 var.ORIGINAL_ROLES[r].add("(dced)"+nick)
-        add_warning(cli, nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
+        if var.LEAVE_PENALTY:
+            add_warning(cli, nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
