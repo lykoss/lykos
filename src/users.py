@@ -418,7 +418,7 @@ class User(IRCContext):
                 max_targets = Features["TARGMAX"][send_type]
                 while targets:
                     using, targets = targets[:max_targets], targets[max_targets:]
-                    cls._send(message, targets[0].client, send_type, ",".join([t.nick for t in using]))
+                    cls._send([message], "", " ", targets[0].client, send_type, ",".join([t.nick for t in using]))
 
         cls._messages.clear()
 
@@ -535,13 +535,3 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
-
-
-
-
-
-
-
-
-
-

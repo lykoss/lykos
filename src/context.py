@@ -105,7 +105,7 @@ class IRCContext:
         return self._who(self.client, self.name, data)
 
     @staticmethod
-    def _send(data, client, send_type, name):
+    def _send(data, first, sep, client, send_type, name):
         full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
 
         # Maximum length of sent data is 512 bytes. However, we have to
@@ -123,21 +123,45 @@ class IRCContext:
         length -= len(name)
         # Finally, we need to account for the send type's length
         length -= len(send_type)
+        # The 'first' argument is sent along with every message, so deduce that too
+        if length - len(first) > 0: # make sure it's not negative (or worse, 0)
+            length -= len(first)
+        else:
+            first = ""
 
-        for line in data.splitlines():
+        messages = []
+        count = 0
+        for line in data:
+            if count and count + len(sep) + len(line) > length:
+                count = len(line)
+                cur_sep = "\n"
+            elif not messages:
+                count = len(line)
+                cur_sep = ""
+            else:
+                count += len(sep) + len(line)
+                cur_sep = sep
+
+            messages.append(cur_sep)
+            messages.append(line)
+
+        for line in "".join(messages).splitlines():
             while line:
                 extra, line = line[:length], line[length:]
-                client.send("{0} {1} :{2}".format(send_type, name, extra))
+                client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
 
-    def send(self, *data, notice=False, privmsg=False, prefix=None):
-        data = " ".join(data)
+    def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
-            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, data))
+            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(data)))
             return
 
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
         name = self.name
         if prefix is not None:
             name = prefix + name
-        self._send(data, self.client, send_type, name)
+        if first is None:
+            first = ""
+        if sep is None:
+            sep = " "
+        self._send(data, first, sep, self.client, send_type, name)
