@@ -3,6 +3,7 @@ import time
 from enum import Enum
 
 from src.context import IRCContext, Features
+from src.events import Event
 from src import users
 
 Main = None # main channel
