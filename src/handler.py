@@ -91,7 +91,7 @@ def connect_callback(cli):
         if not botconfig.PASS or bot_nick == nick:
             return # prevents the bot from trying to release without a password
         func = cli.ns_release
-        if getattr(botconfig, "USE_NICKSERV_GHOST", False): # FIXME
+        if botconfig.USE_NICKSERV_GHOST:
             func = cli.ns_ghost
         func(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_RELEASE_COMMAND)
         users.Bot.change_nick(botconfig.NICK)

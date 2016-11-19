@@ -53,6 +53,15 @@ except AttributeError:
           sep="\n")
     sys.exit(1)
 
+try:
+    botconfig.USE_NICKSERV_GHOST
+except AttributeError:
+    print("Please set up your config to include a USE_NICKSERV_GHOST variable",
+          "It should be a boolean value, determining whether to use GHOST or RELEASE",
+          "(See botconfig.py.example for an informative comment)",
+          sep="\n")
+    sys.exit(1)
+
 from oyoyo.client import IRCClient
 
 import src
