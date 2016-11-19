@@ -184,7 +184,7 @@ class handle_error:
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
                  chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None):
+                 phases=(), roles=(), nicks=None, old_api=False):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
@@ -197,6 +197,7 @@ class cmd:
         self.phases = phases
         self.roles = roles
         self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
+        self.old_api = old_api # functions using the old API will get (cli, nick, chan, rest) passed in
         self.func = None
         self.aftergame = False
         self.name = cmds[0]

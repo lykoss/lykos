@@ -14,7 +14,7 @@ import botconfig
 KILLS = {} # type: Dict[str, str]
 TARGETS = {} # type: Dict[str, Set[str]]
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",), old_api=True)
 def dullahan_kill(cli, nick, chan, rest):
     """Kill someone at night as a dullahan until everyone on your list is dead."""
     if not TARGETS[nick] & set(list_players()):
@@ -45,7 +45,7 @@ def dullahan_kill(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
+@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",), old_api=True)
 def dullahan_retract(cli, nick, chan, rest):
     """Removes a dullahan's kill selection."""
     if nick not in KILLS:

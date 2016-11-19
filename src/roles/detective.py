@@ -11,7 +11,7 @@ from src.events import Event
 
 INVESTIGATED = set()
 
-@cmd("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
+@cmd("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",), old_api=True)
 def investigate(cli, nick, chan, rest):
     """Investigate a player to determine their exact role."""
     if nick in INVESTIGATED:

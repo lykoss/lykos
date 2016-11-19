@@ -10,7 +10,7 @@ from src.events import Event
 
 SEEN = set()
 
-@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur"))
+@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur"), old_api=True)
 def see(cli, nick, chan, rest):
     """Use your paranormal powers to determine the role or alignment of a player."""
     role = get_role(nick)

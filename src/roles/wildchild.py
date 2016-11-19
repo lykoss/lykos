@@ -11,7 +11,7 @@ from src.events import Event
 WILD_CHILDREN = set()
 IDOLS = {}
 
-@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
+@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",), old_api=True)
 def choose_idol(cli, nick, chan, rest):
     """Pick your idol, if they die, you'll become a wolf!"""
     if not var.FIRST_NIGHT:

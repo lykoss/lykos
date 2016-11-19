@@ -328,7 +328,7 @@ def reset():
 
 reset()
 
-@cmd("sync", "fsync", flag="m", pm=True)
+@cmd("sync", "fsync", flag="m", pm=True, old_api=True)
 def fsync(cli, nick, chan, rest):
     """Makes the bot apply the currently appropriate channel modes."""
     sync_modes(cli)
@@ -351,7 +351,7 @@ def sync_modes(cli):
 
     mass_mode(cli, voices, other)
 
-@cmd("refreshdb", flag="m", pm=True)
+@cmd("refreshdb", flag="m", pm=True, old_api=True)
 def refreshdb(cli, nick, chan, rest):
     """Updates our tracking vars to the current db state."""
     db.expire_stasis()
@@ -359,7 +359,7 @@ def refreshdb(cli, nick, chan, rest):
     expire_tempbans()
     reply(cli, nick, chan, "Done.")
 
-@cmd("die", "bye", "fdie", "fbye", flag="D", pm=True)
+@cmd("die", "bye", "fdie", "fbye", flag="D", pm=True, old_api=True)
 def forced_exit(cli, nick, chan, rest):
     """Forces the bot to close."""
 
@@ -412,7 +412,7 @@ def _restart_program(cli, mode=None):
         os.execl(python, python, *sys.argv)
 
 
-@cmd("restart", "frestart", flag="D", pm=True)
+@cmd("restart", "frestart", flag="D", pm=True, old_api=True)
 def restart_program(cli, nick, chan, rest):
     """Restarts the bot."""
 
@@ -481,7 +481,7 @@ def restart_program(cli, nick, chan, rest):
     var.RESTARTING = True
 
 
-@cmd("ping", pm=True)
+@cmd("ping", pm=True, old_api=True)
 def pinger(cli, nick, chan, rest):
     """Check if you or the bot is still connected."""
     reply(cli, nick, chan, random.choice(messages["ping"]).format(
@@ -490,7 +490,7 @@ def pinger(cli, nick, chan, rest):
         cmd_char=botconfig.CMD_CHAR,
         goat_action=random.choice(messages["goat_actions"])))
 
-@cmd("simple", raw_nick=True, pm=True)
+@cmd("simple", raw_nick=True, pm=True, old_api=True)
 def mark_simple_notify(cli, nick, chan, rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
@@ -546,7 +546,7 @@ def mark_simple_notify(cli, nick, chan, rest):
 
     reply(cli, nick, chan, messages["simple_on"], private=True)
 
-@cmd("notice", raw_nick=True, pm=True)
+@cmd("notice", raw_nick=True, pm=True, old_api=True)
 def mark_prefer_notice(cli, nick, chan, rest):
     """Makes the bot NOTICE you for every interaction."""
 
@@ -607,7 +607,7 @@ def mark_prefer_notice(cli, nick, chan, rest):
 
     reply(cli, nick, chan, messages["notice_on"], private=True)
 
-@cmd("swap", "replace", pm=True, phases=("join", "day", "night"))
+@cmd("swap", "replace", pm=True, phases=("join", "day", "night"), old_api=True)
 def replace(cli, nick, chan, rest):
     """Swap out a player logged in to your account."""
     if not users.exists(nick) or not users.get(nick).inchan:
@@ -673,7 +673,7 @@ def replace(cli, nick, chan, rest):
         cli.msg(botconfig.CHANNEL, messages["player_swap"].format(nick, target))
         myrole.caller(cli, nick, chan, "")
 
-@cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
+@cmd("pingif", "pingme", "pingat", "pingpref", pm=True, old_api=True)
 def altpinger(cli, nick, chan, rest):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
     players = is_user_altpinged(nick)
@@ -955,7 +955,7 @@ def leave_deadchat(cli, nick, force=""):
     mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
     mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] " + msg)
 
-@cmd("deadchat", pm=True)
+@cmd("deadchat", pm=True, old_api=True)
 def deadchat_pref(cli, nick, chan, rest):
     """Toggles auto joining deadchat on death."""
     if not var.ENABLE_DEADCHAT:
@@ -991,7 +991,7 @@ def deadchat_pref(cli, nick, chan, rest):
 
     reply(cli, nick, chan, msg, private=True)
 
-@cmd("join", "j", pm=True)
+@cmd("join", "j", pm=True, old_api=True)
 def join(cli, nick, chan, rest):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     # keep this and the event in fjoin() in sync
@@ -1179,7 +1179,7 @@ def kill_join(cli, chan):
         var.AFTER_FLASTGAME = None
 
 
-@cmd("fjoin", flag="A")
+@cmd("fjoin", flag="A", old_api=True)
 def fjoin(cli, nick, chan, rest):
     """Forces someone to join a game."""
     # keep this and the event in def join() in sync
@@ -1232,7 +1232,7 @@ def fjoin(cli, nick, chan, rest):
     if fake:
         cli.msg(chan, messages["fjoin_success"].format(nick, len(list_players())))
 
-@cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
+@cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"), old_api=True)
 def fleave(cli, nick, chan, rest):
     """Forces someone to leave the game."""
 
@@ -1281,7 +1281,7 @@ def fleave(cli, nick, chan, rest):
             cli.msg(chan, messages["not_playing"].format(a))
             return
 
-@cmd("fstart", flag="A", phases=("join",))
+@cmd("fstart", flag="A", phases=("join",), old_api=True)
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
     cli.msg(botconfig.CHANNEL, messages["fstart_success"].format(nick))
@@ -1333,7 +1333,7 @@ def on_account(cli, rnick, acc):
                         if nick in var.DCED_PLAYERS.keys():
                             var.PLAYERS[nick] = var.DCED_PLAYERS.pop(nick)
 
-@cmd("stats", "players", pm=True, phases=("join", "day", "night"))
+@cmd("stats", "players", pm=True, phases=("join", "day", "night"), old_api=True)
 def stats(cli, nick, chan, rest):
     """Displays the player statistics."""
 
@@ -1975,7 +1975,7 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["sunset"])
         event.data["transition_night"](cli)
 
-@cmd("fnight", flag="d")
+@cmd("fnight", flag="d", old_api=True)
 def fnight(cli, nick, chan, rest):
     """Forces the day to end and night to begin."""
     if var.PHASE != "day":
@@ -1984,7 +1984,7 @@ def fnight(cli, nick, chan, rest):
         hurry_up(cli, 0, True)
 
 
-@cmd("fday", flag="d")
+@cmd("fday", flag="d", old_api=True)
 def fday(cli, nick, chan, rest):
     """Forces the night to end and the next day to begin."""
     if var.PHASE != "night":
@@ -2117,7 +2117,7 @@ def chk_decision(cli, force=""):
         if do_night_transision:
             event.data["transition_night"](cli)
 
-@cmd("votes", pm=True, phases=("join", "day", "night"))
+@cmd("votes", pm=True, phases=("join", "day", "night"), old_api=True)
 def show_votes(cli, nick, chan, rest):
     """Displays the voting statistics."""
 
@@ -3203,7 +3203,7 @@ def reaper(cli, gameid):
 
 
 
-@cmd("")  # update last said
+@cmd("", old_api=True)  # update last said
 def update_last_said(cli, nick, chan, rest):
     if chan != botconfig.CHANNEL:
         return
@@ -3259,7 +3259,7 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 #    if "@" + botconfig.NICK in names:
 #        var.OPPED = True
 
-@cmd("goat", playing=True, phases=("day",))
+@cmd("goat", playing=True, phases=("day",), old_api=True)
 def goat(cli, nick, chan, rest):
     """Use a goat to interact with anyone in the channel during the day."""
 
@@ -3287,7 +3287,7 @@ def goat(cli, nick, chan, rest):
 
     var.GOATED = True
 
-@cmd("fgoat", flag="j")
+@cmd("fgoat", flag="j", old_api=True)
 def fgoat(cli, nick, chan, rest):
     """Forces a goat to interact with anyone or anything, without limitations."""
     nick_ = rest.split(' ')[0].strip()
@@ -3592,7 +3592,7 @@ hook("quit")(lambda cli, nick, *rest: leave(cli, "quit", nick, rest[0]))
 hook("kick")(lambda cli, nick, *rest: leave(cli, "kick", rest[1], rest[0]))
 
 
-@cmd("quit", "leave", pm=True, phases=("join", "day", "night"))
+@cmd("quit", "leave", pm=True, phases=("join", "day", "night"), old_api=True)
 def leave_game(cli, nick, chan, rest):
     """Quits the game."""
     if chan == botconfig.CHANNEL:
@@ -4278,7 +4278,7 @@ def chk_nightdone(cli):
         if var.PHASE == "night":  # Double check
             event.data["transition_day"](cli)
 
-@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
+@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",), old_api=True)
 def no_lynch(cli, nick, chan, rest):
     """Allows you to abstain from voting for the day."""
     if chan == botconfig.CHANNEL:
@@ -4312,7 +4312,7 @@ def no_lynch(cli, nick, chan, rest):
         chk_decision(cli)
         return
 
-@cmd("lynch", playing=True, pm=True, phases=("day",))
+@cmd("lynch", playing=True, pm=True, phases=("day",), old_api=True)
 def lynch(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
     if not rest:
@@ -4610,7 +4610,7 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", "r", pm=True, phases=("day", "join"))
+@cmd("retract", "r", pm=True, phases=("day", "join"), old_api=True)
 def retract(cli, nick, chan, rest):
     """Takes back your vote during the day (for whom to lynch)."""
 
@@ -4653,7 +4653,7 @@ def retract(cli, nick, chan, rest):
     else:
         cli.notice(nick, messages["pending_vote"])
 
-@cmd("shoot", playing=True, silenced=True, phases=("day",))
+@cmd("shoot", playing=True, silenced=True, phases=("day",), old_api=True)
 def shoot(cli, nick, chan, rest):
     """Use this to fire off a bullet at someone in the day if you have bullets."""
 
@@ -4741,7 +4741,7 @@ def shoot(cli, nick, chan, rest):
 def is_safe(nick, victim): # helper function
     return nick in var.ENTRANCED and victim in var.ROLES["succubus"]
 
-@cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
+@cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",), old_api=True)
 def bless(cli, nick, chan, rest):
     """Bless a player, preventing them from being killed for the remainder of the game."""
     if nick in var.PRIESTS:
@@ -4766,7 +4766,7 @@ def bless(cli, nick, chan, rest):
     pm(cli, victim, messages["blessed_notify_target"])
     debuglog("{0} ({1}) BLESS: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
 
-@cmd("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
+@cmd("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",), old_api=True)
 def consecrate(cli, nick, chan, rest):
     """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
     alive = list_players()
@@ -4797,7 +4797,7 @@ def consecrate(cli, nick, chan, rest):
     # consecrating can possibly cause game to end, so check for that
     chk_win(cli)
 
-@cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
+@cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"), old_api=True)
 def observe(cli, nick, chan, rest):
     """Observe a player to obtain various information."""
     role = get_role(nick)
@@ -4848,7 +4848,7 @@ def observe(cli, nick, chan, rest):
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
+@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",), old_api=True)
 def pray(cli, nick, chan, rest):
     """Receive divine visions of who has a role."""
     # this command may be used multiple times in the course of the night, however it only needs
@@ -4951,7 +4951,7 @@ def pray(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot", "succubus"))
+@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot", "succubus"), old_api=True)
 def hvisit(cli, nick, chan, rest):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
     role = get_role(nick)
@@ -5033,8 +5033,8 @@ def hvisit(cli, nick, chan, rest):
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
-@cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
+@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",), old_api=True)
+@cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",), old_api=True)
 def immunize(cli, nick, chan, rest):
     """Immunize a player, preventing them from turning into a wolf."""
     if nick not in var.DOCTORS: # something with amnesiac or clone or exchange totem
@@ -5070,7 +5070,7 @@ def immunize(cli, nick, chan, rest):
         var.DOCTORS[nick] -= 1
     debuglog("{0} ({1}) IMMUNIZE: {2} ({3})".format(nick, get_role(nick), victim, "lycan" if lycan else get_role(victim)))
 
-@cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
+@cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",), old_api=True)
 def bite_cmd(cli, nick, chan, rest):
     """Bite a player, turning them into a wolf."""
     if nick in var.ALPHA_WOLVES and nick not in var.BITE_PREFERENCES:
@@ -5107,7 +5107,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "turncoat", "warlock", "succubus"))
+    roles=("harlot", "turncoat", "warlock", "succubus"), old_api=True)
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5155,7 +5155,7 @@ def pass_cmd(cli, nick, chan, rest):
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
     chk_nightdone(cli)
 
-@cmd("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
+@cmd("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",), old_api=True)
 def change_sides(cli, nick, chan, rest, sendmsg=True):
     if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
         pm(cli, nick, messages["turncoat_already_turned"])
@@ -5172,8 +5172,8 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
     debuglog("{0} ({1}) SIDE {2}".format(nick, get_role(nick), team))
     chk_nightdone(cli)
 
-@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-@cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
+@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",), old_api=True)
+@cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",), old_api=True)
 def choose(cli, nick, chan, rest, sendmsg=True):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
@@ -5236,7 +5236,7 @@ def choose(cli, nick, chan, rest, sendmsg=True):
     debuglog("{0} ({1}) MATCH: {2} ({3}) + {4} ({5})".format(nick, get_role(nick), victim, get_role(victim), victim2, get_role(victim2)))
     chk_nightdone(cli)
 
-@cmd("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
+@cmd("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",), old_api=True)
 def target(cli, nick, chan, rest):
     """Pick a player as your target, killing them if you die."""
     if var.TARGETED.get(nick) is not None:
@@ -5262,7 +5262,7 @@ def target(cli, nick, chan, rest):
     debuglog("{0} ({1}-{2}) TARGET: {3} ({4})".format(nick, "-".join(get_templates(nick)), get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
+@cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",), old_api=True)
 def hex_target(cli, nick, chan, rest):
     """Hex someone, preventing them from acting the next day and night."""
     if nick in var.HEXED:
@@ -5305,7 +5305,7 @@ def hex_target(cli, nick, chan, rest):
     debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
+@cmd("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",), old_api=True)
 def curse(cli, nick, chan, rest):
     if nick in var.CURSED:
         # CONSIDER: this happens even if they choose to not curse, should maybe let them
@@ -5350,7 +5350,7 @@ def curse(cli, nick, chan, rest):
     debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, get_role(nick), victim, vrole))
     chk_nightdone(cli)
 
-@cmd("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
+@cmd("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",), old_api=True)
 def clone(cli, nick, chan, rest):
     """Clone another player. You will turn into their role if they die."""
     if not var.FIRST_NIGHT:
@@ -5376,7 +5376,7 @@ def clone(cli, nick, chan, rest):
     debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+@cmd("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",), old_api=True)
 def charm(cli, nick, chan, rest):
     """Charm a player, slowly leading to your win!"""
     if nick in var.CHARMERS:
@@ -5540,7 +5540,7 @@ def getfeatures(cli, nick, *rest):
                 errlog("Unsupported case mapping: {0!r}; falling back to rfc1459.".format(var.CASEMAPPING))
                 var.CASEMAPPING = "rfc1459"
 
-@cmd("", chan=False, pm=True)
+@cmd("", chan=False, pm=True, old_api=True)
 def relay(cli, nick, chan, rest):
     """Wolfchat and Deadchat"""
     if rest.startswith("\u0001PING"):
@@ -5982,7 +5982,7 @@ def expire_start_votes(cli, chan):
         var.START_VOTES = set()
         cli.msg(chan, messages["start_expired"])
 
-@cmd("start", phases=("none", "join"))
+@cmd("start", phases=("none", "join"), old_api=True)
 def start_cmd(cli, nick, chan, rest):
     """Starts a game of Werewolf."""
     start(cli, nick, chan)
@@ -6388,7 +6388,7 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-@cmd("template", "ftemplate", flag="F", pm=True)
+@cmd("template", "ftemplate", flag="F", pm=True, old_api=True)
 def ftemplate(cli, nick, chan, rest):
     params = re.split(" +", rest)
 
@@ -6453,7 +6453,7 @@ def ftemplate(cli, nick, chan, rest):
         # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
         db.init_vars()
 
-@cmd("fflags", flag="F", pm=True)
+@cmd("fflags", flag="F", pm=True, old_api=True)
 def fflags(cli, nick, chan, rest):
     params = re.split(" +", rest)
 
@@ -6551,7 +6551,7 @@ def fflags(cli, nick, chan, rest):
         db.init_vars()
 
 
-@cmd("wait", "w", playing=True, phases=("join",))
+@cmd("wait", "w", playing=True, phases=("join",), old_api=True)
 def wait(cli, nick, chan, rest):
     """Increases the wait time until !start can be used."""
     pl = list_players()
@@ -6582,7 +6582,7 @@ def wait(cli, nick, chan, rest):
         cli.msg(chan, messages["wait_time_increase"].format(nick, var.EXTRA_WAIT))
 
 
-@cmd("fwait", flag="A", phases=("join",))
+@cmd("fwait", flag="A", phases=("join",), old_api=True)
 def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
@@ -6609,7 +6609,7 @@ def fwait(cli, nick, chan, rest):
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
-@cmd("fstop", flag="A", phases=("join", "day", "night"))
+@cmd("fstop", flag="A", phases=("join", "day", "night"), old_api=True)
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     if nick == "<stderr>":
@@ -6624,7 +6624,7 @@ def reset_game(cli, nick, chan, rest):
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
 
-@cmd("rules", pm=True)
+@cmd("rules", pm=True, old_api=True)
 def show_rules(cli, nick, chan, rest):
     """Displays the rules."""
 
@@ -6641,7 +6641,7 @@ def show_rules(cli, nick, chan, rest):
     else:
         reply(cli, nick, chan, messages["no_channel_rules"].format(botconfig.CHANNEL))
 
-@cmd("help", raw_nick=True, pm=True)
+@cmd("help", raw_nick=True, pm=True, old_api=True)
 def get_help(cli, rnick, chan, rest):
     """Gets help."""
     nick, _, ident, host = parse_nick(rnick)
@@ -6702,7 +6702,7 @@ def get_wiki_page(URI):
         return False, messages["wiki_open_failure"]
     return True, parsed
 
-@cmd("wiki", pm=True)
+@cmd("wiki", pm=True, old_api=True)
 def wiki(cli, nick, chan, rest):
     """Prints information on roles from the wiki."""
 
@@ -6761,7 +6761,7 @@ def on_invite(cli, raw_nick, something, chan):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
 
-@cmd("part", "fpart", raw_nick=True, flag="A", pm=True)
+@cmd("part", "fpart", raw_nick=True, flag="A", pm=True, old_api=True)
 def fpart(cli, rnick, chan, rest):
     """Makes the bot forcibly leave a channel."""
     nick = parse_nick(rnick)[0]
@@ -6780,7 +6780,7 @@ def fpart(cli, rnick, chan, rest):
         return
     cli.part(chan)
 
-@cmd("admins", "ops", pm=True)
+@cmd("admins", "ops", pm=True, old_api=True)
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
 
@@ -6828,7 +6828,7 @@ def show_admins(cli, nick, chan, rest):
 
     channels.Main.who()
 
-@cmd("coin", pm=True)
+@cmd("coin", pm=True, old_api=True)
 def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
 
@@ -6840,7 +6840,7 @@ def coin(cli, nick, chan, rest):
     cmsg = messages["coin_land"].format(coin)
     reply(cli, nick, chan, cmsg)
 
-@cmd("pony", pm=True)
+@cmd("pony", pm=True, old_api=True)
 def pony(cli, nick, chan, rest):
     """Toss a magical pony into the air and see what happens!"""
 
@@ -6853,13 +6853,13 @@ def pony(cli, nick, chan, rest):
         cmsg = messages["pony_land"].format(pony)
         reply(cli, nick, chan, cmsg)
 
-@cmd("cat", pm=True)
+@cmd("cat", pm=True, old_api=True)
 def cat(cli, nick, chan, rest):
     """Toss a cat into the air and see what happens!"""
     reply(cli, nick, chan, messages["cat_toss"].format(nick))
     reply(cli, nick, chan, messages["cat_land"])
 
-@cmd("time", pm=True, phases=("join", "day", "night"))
+@cmd("time", pm=True, phases=("join", "day", "night"), old_api=True)
 def timeleft(cli, nick, chan, rest):
     """Returns the time left until the next day/night transition."""
 
@@ -6899,7 +6899,7 @@ def timeleft(cli, nick, chan, rest):
 def timeleft_internal(phase):
     return int((var.TIMERS[phase][1] + var.TIMERS[phase][2]) - time.time()) if phase in var.TIMERS else -1
 
-@cmd("roles", pm=True)
+@cmd("roles", pm=True, old_api=True)
 def listroles(cli, nick, chan, rest):
     """Displays which roles are enabled at a certain number of players."""
 
@@ -6989,7 +6989,7 @@ def listroles(cli, nick, chan, rest):
 
     reply(cli, nick, chan, " ".join(msg))
 
-@cmd("myrole", pm=True, phases=("day", "night"))
+@cmd("myrole", pm=True, phases=("day", "night"), old_api=True)
 def myrole(cli, nick, chan, rest):
     """Reminds you of your current role."""
 
@@ -7058,7 +7058,7 @@ def myrole(cli, nick, chan, rest):
         message += "."
         pm(cli, nick, message)
 
-@cmd("aftergame", "faftergame", flag="D", raw_nick=True, pm=True)
+@cmd("aftergame", "faftergame", flag="D", raw_nick=True, pm=True, old_api=True)
 def aftergame(cli, rawnick, chan, rest):
     """Schedule a command to be run after the current game."""
     nick = parse_nick(rawnick)[0]
@@ -7092,7 +7092,7 @@ def aftergame(cli, rawnick, chan, rest):
     var.AFTER_FLASTGAME = do_action
 
 
-@cmd("lastgame", "flastgame", flag="D", raw_nick=True, pm=True)
+@cmd("lastgame", "flastgame", flag="D", raw_nick=True, pm=True, old_api=True)
 def flastgame(cli, rawnick, chan, rest):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     nick, _, ident, host = parse_nick(rawnick)
@@ -7108,7 +7108,7 @@ def flastgame(cli, rawnick, chan, rest):
     if rest.strip():
         aftergame.func(cli, rawnick, botconfig.CHANNEL, rest)
 
-@cmd("gamestats", "gstats", pm=True)
+@cmd("gamestats", "gstats", pm=True, old_api=True)
 def game_stats(cli, nick, chan, rest):
     """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
     if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
@@ -7149,7 +7149,7 @@ def game_stats(cli, nick, chan, rest):
         # Attempt to find game stats for the given game size
         reply(cli, nick, chan, db.get_game_stats(gamemode, gamesize))
 
-@cmd("playerstats", "pstats", "player", "p", pm=True)
+@cmd("playerstats", "pstats", "player", "p", pm=True, old_api=True)
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
@@ -7208,7 +7208,7 @@ def player_stats(cli, nick, chan, rest):
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
-@cmd("mystats", "m", pm=True)
+@cmd("mystats", "m", pm=True, old_api=True)
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
@@ -7239,7 +7239,7 @@ def vote_gamemode(cli, nick, chan, gamemode, doreply):
         if doreply:
             cli.notice(nick, messages["vote_game_fail"])
 
-@cmd("game", playing=True, phases=("join",))
+@cmd("game", playing=True, phases=("join",), old_api=True)
 def game(cli, nick, chan, rest):
     """Vote for a game mode to be picked."""
     if rest:
@@ -7251,7 +7251,7 @@ def game(cli, nick, chan, rest):
         cli.notice(nick, messages["no_mode_specified"] + gamemodes)
         return
 
-@cmd("games", "modes", pm=True)
+@cmd("games", "modes", pm=True, old_api=True)
 def show_modes(cli, nick, chan, rest):
     """Show the available game modes."""
     msg = messages["available_modes"]
@@ -7266,7 +7266,7 @@ def game_help(args=""):
 game.__doc__ = game_help
 
 
-@cmd("vote", "v", pm=True, phases=("join", "day"))
+@cmd("vote", "v", pm=True, phases=("join", "day"), old_api=True)
 def vote(cli, nick, chan, rest):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if rest:
@@ -7306,7 +7306,7 @@ def _call_command(cli, nick, chan, command, no_out=False):
 
     return (ret, out)
 
-@cmd("pull", "fpull", flag="D", pm=True)
+@cmd("pull", "fpull", flag="D", pm=True, old_api=True)
 def fpull(cli, nick, chan, rest):
     """Pulls from the repository to update the bot."""
 
@@ -7326,7 +7326,7 @@ def fpull(cli, nick, chan, rest):
     (ret, _) = _call_command(cli, nick, chan, "git rebase --stat --preserve-merges")
     return (ret == 0)
 
-@cmd("update", flag="D", pm=True)
+@cmd("update", flag="D", pm=True, old_api=True)
 def update(cli, nick, chan, rest):
     """Pulls from the repository and restarts the bot to update it."""
 
@@ -7349,7 +7349,7 @@ def update(cli, nick, chan, rest):
     if ret:
         restart_program.caller(cli, nick, chan, "Updating bot")
 
-@cmd("send", "fsend", flag="F", pm=True)
+@cmd("send", "fsend", flag="F", pm=True, old_api=True)
 def fsend(cli, nick, chan, rest):
     """Forcibly send raw IRC commands to the server."""
     cli.send(rest)
@@ -7384,12 +7384,12 @@ def _say(cli, raw_nick, rest, command, action=False):
     cli.send("PRIVMSG {0} :{1}".format(target, message))
 
 
-@cmd("say", "fsay", flag="s", raw_nick=True, pm=True)
+@cmd("say", "fsay", flag="s", raw_nick=True, pm=True, old_api=True)
 def fsay(cli, raw_nick, chan, rest):
     """Talk through the bot as a normal message."""
     _say(cli, raw_nick, rest, "say")
 
-@cmd("act", "do", "me", "fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
+@cmd("act", "do", "me", "fact", "fdo", "fme", flag="s", raw_nick=True, pm=True, old_api=True)
 def fact(cli, raw_nick, chan, rest):
     """Act through the bot as an action."""
     _say(cli, raw_nick, rest, "act", action=True)
@@ -7416,7 +7416,7 @@ def can_run_restricted_cmd(nick):
 
     return True
 
-@cmd("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"))
+@cmd("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"), old_api=True)
 def fspectate(cli, nick, chan, rest):
     """Spectate wolfchat or deadchat."""
     if not can_run_restricted_cmd(nick):
@@ -7462,7 +7462,7 @@ before_debug_mode_commands = list(COMMANDS.keys())
 
 if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
-    @cmd("eval", owner_only=True, pm=True)
+    @cmd("eval", owner_only=True, pm=True, old_api=True)
     def pyeval(cli, nick, chan, rest):
         """Evaluate a Python expression."""
         try:
@@ -7474,7 +7474,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
 
-    @cmd("exec", owner_only=True, pm=True)
+    @cmd("exec", owner_only=True, pm=True, old_api=True)
     def py(cli, nick, chan, rest):
         """Execute arbitrary Python code."""
         try:
@@ -7482,7 +7482,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
 
-    @cmd("revealroles", flag="a", pm=True, phases=("day", "night"))
+    @cmd("revealroles", flag="a", pm=True, phases=("day", "night"), old_api=True)
     def revealroles(cli, nick, chan, rest):
         """Reveal role information."""
 
@@ -7566,7 +7566,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             reply(cli, nick, chan, break_long_message(output, " | "), private=True)
 
 
-    @cmd("fgame", flag="d", raw_nick=True, phases=("join",))
+    @cmd("fgame", flag="d", raw_nick=True, phases=("join",), old_api=True)
     def fgame(cli, nick, chan, rest):
         """Force a certain game mode to be picked. Disable voting for game modes upon use."""
         nick = parse_nick(nick)[0]
@@ -7614,7 +7614,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
-    @cmd("force", flag="d")
+    @cmd("force", flag="d", old_api=True)
     def force(cli, nick, chan, rest):
         """Force a certain player to use a specific command."""
         rst = re.split(" +",rest)
@@ -7657,7 +7657,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["command_not_found"])
 
 
-    @cmd("rforce", flag="d")
+    @cmd("rforce", flag="d", old_api=True)
     def rforce(cli, nick, chan, rest):
         """Force all players of a given role to perform a certain action."""
         rst = re.split(" +",rest)
@@ -7698,7 +7698,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
 
 
-    @cmd("frole", flag="d", phases=("day", "night"))
+    @cmd("frole", flag="d", phases=("day", "night"), old_api=True)
     def frole(cli, nick, chan, rest):
         """Change the role or template of a player."""
         rst = re.split(" +",rest)

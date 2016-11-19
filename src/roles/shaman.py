@@ -51,8 +51,8 @@ DECEIT = set()       # type: Set[str]
 havetotem = [] # type: List[str]
 brokentotem = set() # type: Set[str]
 
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-@cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
+@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER, old_api=True)
+@cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER, old_api=True)
 def totem(cli, nick, chan, rest, prefix="You"):
     """Give a totem to a player."""
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
