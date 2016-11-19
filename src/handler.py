@@ -26,7 +26,10 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         chan = users.parse_rawnick_as_dict(rawnick)["nick"]
 
     for fn in decorators.COMMANDS[""]:
-        fn.caller(cli, rawnick, chan, msg)
+        if fn.old_api:
+            fn.old_api_caller(cli, rawnick, chan, msg)
+        else:
+            fn.caller(var, wrapper, msg) # FIXME: The wrapper doesn't exist yet (the new interface is not supported)
 
     phase = var.PHASE
     for x in list(decorators.COMMANDS.keys()):
@@ -41,7 +44,10 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
                 if phase == var.PHASE:
-                    fn.caller(cli, rawnick, chan, h.lstrip())
+                    if fn.old_api:
+                        fn.old_api_caller(cli, rawnick, chan, h.lstrip())
+                    else:
+                        fn.caller(var, wrapper, h.lstrip()) # FIXME
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):

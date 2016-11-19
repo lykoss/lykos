@@ -12,7 +12,7 @@ from src.events import Event
 KILLS = {} # type: Dict[str, str]
 PASSED = set()
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",), old_api=True)
 def vigilante_kill(cli, nick, chan, rest):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
@@ -40,7 +40,7 @@ def vigilante_kill(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
+@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",), old_api=True)
 def vigilante_retract(cli, nick, chan, rest):
     """Removes a vigilante's kill selection."""
     if nick not in KILLS and nick not in PASSED:
@@ -50,7 +50,7 @@ def vigilante_retract(cli, nick, chan, rest):
     PASSED.discard(nick)
     pm(cli, nick, messages["retracted_kill"])
 
-@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",), old_api=True)
 def vigilante_pass(cli, nick, chan, rest):
     """Do not kill anyone tonight as a vigilante."""
     if nick in KILLS:

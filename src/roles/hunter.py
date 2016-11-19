@@ -13,7 +13,7 @@ KILLS = {} # type: Dict[str, str]
 HUNTERS = set()
 PASSED = set()
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",), old_api=True)
 def hunter_kill(cli, nick, chan, rest):
     """Kill someone once per game."""
     if nick in HUNTERS and nick not in KILLS:
@@ -44,7 +44,7 @@ def hunter_kill(cli, nick, chan, rest):
     debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
+@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",), old_api=True)
 def hunter_retract(cli, nick, chan, rest):
     """Removes a hunter's kill selection."""
     if nick not in KILLS and nick not in PASSED:
@@ -55,7 +55,7 @@ def hunter_retract(cli, nick, chan, rest):
     PASSED.discard(nick)
     pm(cli, nick, messages["retracted_kill"])
 
-@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",), old_api=True)
 def hunter_pass(cli, nick, chan, rest):
     """Do not use hunter's once-per-game kill tonight."""
     if nick in HUNTERS and nick not in KILLS:
