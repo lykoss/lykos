@@ -1248,7 +1248,7 @@ class MaelstromMode(GameMode):
         # let them know their role
         # FIXME: this is fugly
         from src.decorators import COMMANDS
-        COMMANDS["myrole"][0].caller(cli, nick, chan, "")
+        COMMANDS["myrole"][0].old_api_caller(cli, nick, chan, "") # FIXME: old api and stuff
         # if they're a wolfchat role, alert the other wolves
         if role in var.WOLFCHAT_ROLES:
             relay_wolfchat_command(cli, nick, messages["wolfchat_new_member"].format(nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)

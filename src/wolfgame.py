@@ -135,12 +135,12 @@ def connect_callback():
             signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         if signum in (signal.SIGINT, signal.SIGTERM):
-            forced_exit.func(cli, "<console>", botconfig.CHANNEL, "")
+            forced_exit.func(cli, "<console>", botconfig.CHANNEL, "") # XXX: Old API
         elif signum == SIGUSR1:
-            restart_program.func(cli, "<console>", botconfig.CHANNEL, "")
+            restart_program.func(cli, "<console>", botconfig.CHANNEL, "") # XXX: Old API
         elif signum == SIGUSR2:
             plog("Scheduling aftergame restart")
-            aftergame.func(cli, "<console>", botconfig.CHANNEL, "frestart")
+            aftergame.func(cli, "<console>", botconfig.CHANNEL, "frestart") # XXX: Old API
 
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
@@ -360,7 +360,7 @@ def refreshdb(cli, nick, chan, rest):
     reply(cli, nick, chan, "Done.")
 
 @cmd("die", "bye", "fdie", "fbye", flag="D", pm=True, old_api=True)
-def forced_exit(cli, nick, chan, rest):
+def forced_exit(cli, nick, chan, rest): # XXX: sighandler (top of file) also needs updating alongside this one
     """Forces the bot to close."""
 
     args = rest.split()
@@ -413,7 +413,7 @@ def _restart_program(cli, mode=None):
 
 
 @cmd("restart", "frestart", flag="D", pm=True, old_api=True)
-def restart_program(cli, nick, chan, rest):
+def restart_program(cli, nick, chan, rest): # XXX: sighandler (top of file) also needs updating alongside this one
     """Restarts the bot."""
 
     args = rest.split()
@@ -671,7 +671,7 @@ def replace(cli, nick, chan, rest):
             mass_mode(cli, [("-v", target), ("+v", nick)], [])
 
         cli.msg(botconfig.CHANNEL, messages["player_swap"].format(nick, target))
-        myrole.caller(cli, nick, chan, "")
+        myrole.old_api_caller(cli, nick, chan, "")
 
 @cmd("pingif", "pingme", "pingat", "pingpref", pm=True, old_api=True)
 def altpinger(cli, nick, chan, rest):
@@ -3757,7 +3757,7 @@ def transition_day(cli, gameid=0):
             for mm in var.ROLES["matchmaker"]:
                 if mm not in var.MATCHMAKERS:
                     lovers = random.sample(pl, 2)
-                    choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False)
+                    choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False) # XXX: Old API
                     pm(cli, mm, messages["random_matchmaker"])
 
     # Reset daytime variables
@@ -4316,7 +4316,7 @@ def no_lynch(cli, nick, chan, rest):
 def lynch(cli, nick, chan, rest):
     """Use this to vote for a candidate to be lynched."""
     if not rest:
-        show_votes.caller(cli, nick, chan, rest)
+        show_votes.old_api_caller(cli, nick, chan, rest)
         return
     if chan != botconfig.CHANNEL:
         return
@@ -4967,7 +4967,7 @@ def hvisit(cli, nick, chan, rest):
         return
 
     if nick == victim:  # Staying home (same as calling pass, so call pass)
-        pass_cmd.func(cli, nick, chan, "")
+        pass_cmd.func(cli, nick, chan, "") # XXX: Old API
         return
     else:
         victim = choose_target(nick, victim)
@@ -5108,7 +5108,7 @@ def bite_cmd(cli, nick, chan, rest):
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
     roles=("harlot", "turncoat", "warlock", "succubus"), old_api=True)
-def pass_cmd(cli, nick, chan, rest):
+def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) also needs updating alongside this
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
 
@@ -5174,7 +5174,7 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
 
 @cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",), old_api=True)
 @cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",), old_api=True)
-def choose(cli, nick, chan, rest, sendmsg=True):
+def choose(cli, nick, chan, rest, sendmsg=True): # XXX: transition_day also needs updating alongside this one
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
         return
@@ -7059,7 +7059,7 @@ def myrole(cli, nick, chan, rest):
         pm(cli, nick, message)
 
 @cmd("aftergame", "faftergame", flag="D", raw_nick=True, pm=True, old_api=True)
-def aftergame(cli, rawnick, chan, rest):
+def aftergame(cli, rawnick, chan, rest): # XXX: lastgame (just below this one) and sighandler (top of file) also need updating alongside this one
     """Schedule a command to be run after the current game."""
     nick = parse_nick(rawnick)[0]
     if not rest.strip():
@@ -7073,7 +7073,7 @@ def aftergame(cli, rawnick, chan, rest):
         def do_action():
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
-                fn.caller(cli, rawnick, botconfig.CHANNEL if fn.chan else nick, " ".join(rst))
+                fn.old_api_caller(cli, rawnick, botconfig.CHANNEL if fn.chan else nick, " ".join(rst))
                 fn.aftergame = False
     else:
         cli.notice(nick, messages["command_not_found"])
@@ -7106,7 +7106,7 @@ def flastgame(cli, rawnick, chan, rest):
     var.ADMIN_TO_PING = nick
 
     if rest.strip():
-        aftergame.func(cli, rawnick, botconfig.CHANNEL, rest)
+        aftergame.func(cli, rawnick, botconfig.CHANNEL, rest) # XXX: Old API
 
 @cmd("gamestats", "gstats", pm=True, old_api=True)
 def game_stats(cli, nick, chan, rest):
@@ -7149,7 +7149,7 @@ def game_stats(cli, nick, chan, rest):
         # Attempt to find game stats for the given game size
         reply(cli, nick, chan, db.get_game_stats(gamemode, gamesize))
 
-@cmd("playerstats", "pstats", "player", "p", pm=True, old_api=True)
+@cmd("playerstats", "pstats", "player", "p", pm=True, old_api=True) # XXX: mystats (just after this) needs updating along this one
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
@@ -7212,7 +7212,7 @@ def player_stats(cli, nick, chan, rest):
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
-    player_stats.func(cli, nick, chan, " ".join([nick] + rest))
+    player_stats.func(cli, nick, chan, " ".join([nick] + rest)) # FIXME: New/old API
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(cli, nick, chan, gamemode, doreply):
@@ -7271,11 +7271,11 @@ def vote(cli, nick, chan, rest):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if rest:
         if var.PHASE == "join" and chan != nick:
-            return game.caller(cli, nick, chan, rest)
+            return game.old_api_caller(cli, nick, chan, rest)
         else:
-            return lynch.caller(cli, nick, chan, rest)
+            return lynch.old_api_caller(cli, nick, chan, rest)
     else:
-        return show_votes.caller(cli, nick, chan, rest)
+        return show_votes.old_api_caller(cli, nick, chan, rest)
 
 def _call_command(cli, nick, chan, command, no_out=False):
     """
@@ -7344,10 +7344,10 @@ def update(cli, nick, chan, rest):
         # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
         restart_program.aftergame = True
 
-    ret = fpull.caller(cli, nick, chan, "")
+    ret = fpull.old_api_caller(cli, nick, chan, "")
 
     if ret:
-        restart_program.caller(cli, nick, chan, "Updating bot")
+        restart_program.old_api_caller(cli, nick, chan, "Updating bot")
 
 @cmd("send", "fsend", flag="F", pm=True, old_api=True)
 def fsend(cli, nick, chan, rest):
@@ -7649,9 +7649,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     continue
                 for user in who:
                     if fn.chan:
-                        fn.caller(cli, user, chan, " ".join(rst))
+                        fn.old_api_caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn.caller(cli, user, user, " ".join(rst))
+                        fn.old_api_caller(cli, user, user, " ".join(rst))
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])
@@ -7689,9 +7689,9 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     continue
                 for user in tgt:
                     if fn.chan:
-                        fn.caller(cli, user, chan, " ".join(rst))
+                        fn.old_api_caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn.caller(cli, user, user, " ".join(rst))
+                        fn.old_api_caller(cli, user, user, " ".join(rst))
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])

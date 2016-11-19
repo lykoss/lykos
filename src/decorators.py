@@ -223,7 +223,13 @@ class cmd:
         return self
 
     @handle_error
-    def caller(self, *args):
+    def caller(self, var, wrapper, message):
+        # The wrapper is an object which will know the sender and target
+        # It will have methods such as .reply(), taking off the load from the end code
+        raise NotImplementedError("The new interface has not been implemented yet")
+
+    @handle_error
+    def old_api_caller(self, *args):
         largs = list(args)
 
         cli, rawnick, chan, rest = largs
