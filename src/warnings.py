@@ -480,7 +480,7 @@ def fwarn(cli, nick, chan, rest):
     #    If specified, must be prefixed with |. This means | is not a valid character for use
     #    in reasons (no escaping is performed).
 
-    params = re.split(" +", rest)
+    params = rest.split()
     target = None
     points = None
     expires = None
@@ -520,7 +520,7 @@ def fwarn(cli, nick, chan, rest):
         try:
             subcommand = params.pop(0)
         except IndexError:
-            reply(cli, nick, chan, messages["fwarn_help_syntax"])
+            reply(cli, nick, chan, messages["fwarn_usage"])
             return
         if subcommand not in ("list", "view", "add", "del", "set", "help"):
             reply(cli, nick, chan, messages["fwarn_usage"])
