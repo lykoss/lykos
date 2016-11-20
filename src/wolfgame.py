@@ -6833,10 +6833,15 @@ def coin(cli, nick, chan, rest):
     """It's a bad idea to base any decisions on this command."""
 
     reply(cli, nick, chan, messages["coin_toss"].format(nick))
-    coin = random.choice(messages["coin_choices"])
-    specialty = random.randrange(0,10)
-    if specialty < 2:
-        coin = messages["coin_special"][specialty].format(bot_nick=botconfig.NICK)
+    rnd = random.random()
+    print(rnd)
+    # 59/29/12 split, 59+29=88
+    if rnd < 0.59:
+        coin = messages["coin_choices"][0]
+    elif rnd < 0.88:
+        coin = messages["coin_choices"][1]
+    else:
+        coin = messages["coin_choices"][2]
     cmsg = messages["coin_land"].format(coin)
     reply(cli, nick, chan, cmsg)
 
@@ -6845,13 +6850,20 @@ def pony(cli, nick, chan, rest):
     """Toss a magical pony into the air and see what happens!"""
 
     reply(cli, nick, chan, messages["pony_toss"].format(nick))
-
-    if random.random() < 1 / (len(messages["pony_choices"]) + 1):
-        reply(cli, nick, chan, messages["pony_fly"])
+    # 59/29/7/5 split
+    rnd = random.random()
+    print(rnd)
+    if rnd < 0.59:
+        pony = messages["pony_choices"][0]
+    elif rnd < 0.88:
+        pony = messages["pony_choices"][1]
+    elif rnd < 0.95:
+        pony = messages["pony_choices"][2].format(nick=nick)
     else:
-        pony = random.choice(messages["pony_choices"]).format(nick=nick)
-        cmsg = messages["pony_land"].format(pony)
-        reply(cli, nick, chan, cmsg)
+        reply(cli, nick, chan, messages["pony_fly"])
+        return
+    cmsg = messages["pony_land"].format(pony)
+    reply(cli, nick, chan, cmsg)
 
 @cmd("cat", pm=True, old_api=True)
 def cat(cli, nick, chan, rest):

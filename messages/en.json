@@ -737,22 +737,19 @@
     "consecrate_success": "You have consecrated the body of \u0002{0}\u0002.",
     "no_acting_on_succubus": "You may not {0} a succubus.",
     "coin_toss": "\u0002{0}\u0002 tosses a coin into the air...",
-    "coin_choices": [
-        "heads",
-        "tails"
-    ],
-    "coin_special": [
-        "its side",
-        "{bot_nick}"
-    ],
     "coin_land": "The coin lands on \u0002{0}\u0002.",
+    "coin_choices": [
+        "tails",
+        "heads",
+        "its side"
+    ],
     "pony_toss": "\u0002{0}\u0002 tosses a pony into the air...",
+    "pony_land": "The pony lands on \u0002{0}\u0002.",
     "pony_choices": [
         "hoof",
         "plot",
         "{nick}"
     ],
-    "pony_land": "The pony lands on \u0002{0}\u0002.",
     "pony_fly": "The pony flies away.",
     "cat_toss": "\u0002{0}\u0002 tosses a cat into the air...",
     "cat_land": "The cat lands on its \u0002feet\u0002.",
