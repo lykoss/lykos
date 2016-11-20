@@ -39,13 +39,15 @@ def context_types(*types):
 class IRCContext:
     """Base class for channels and users."""
 
-    def __init__(self, name, client, *, ref=None):
+    def __init__(self, name, client):
         self.name = name
         self.client = client
-        self.ref = ref
+        self.ref = None
 
     def lower(self):
-        return type(self)(lower(name), client, ref=(self.ref or self))
+        temp = type(self)(lower(name), client)
+        temp.ref = self.ref or self
+        return temp
 
     def get_send_type(self, *, is_notice=False, is_privmsg=False):
         if is_notice and not is_privmsg:

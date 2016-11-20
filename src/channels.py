@@ -62,8 +62,8 @@ class Channel(IRCContext):
 
     is_channel = True
 
-    def __init__(self, name, client, **kwargs):
-        super().__init__(name, client, **kwargs)
+    def __init__(self, name, client):
+        super().__init__(name, client)
         self.users = set()
         self.modes = {}
         self.timestamp = None

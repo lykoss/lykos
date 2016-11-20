@@ -171,9 +171,9 @@ class User(IRCContext):
 
     _messages = defaultdict(list)
 
-    def __new__(cls, cli, nick, ident, host, realname, account, **kwargs):
+    def __new__(cls, cli, nick, ident, host, realname, account):
         self = super().__new__(cls)
-        super(User, self).__init__(nick, cli, **kwargs)
+        super(User, self).__init__(nick, cli)
 
         self._ident = ident
         self._host = host
@@ -229,7 +229,10 @@ class User(IRCContext):
         return done
 
     def lower(self):
-        return type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account), channels, ref=(self.ref or self))
+        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account))
+        temp.channels = self.channels
+        temp.ref = self.ref or self
+        return temp
 
     def is_owner(self):
         if self.is_fake:
