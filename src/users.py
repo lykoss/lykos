@@ -1,4 +1,3 @@
-from collections import defaultdict
 from weakref import WeakSet
 import fnmatch
 import re
@@ -168,8 +167,6 @@ def equals(nick1, nick2):
 class User(IRCContext):
 
     is_user = True
-
-    _messages = defaultdict(list)
 
     def __new__(cls, cli, nick, ident, host, realname, account):
         self = super().__new__(cls)
@@ -408,23 +405,6 @@ class User(IRCContext):
 
         return amount
 
-    def queue_message(self, message):
-        self._messages[message].append(self)
-
-    @classmethod
-    def send_messages(cls, *, notice=False, privmsg=False):
-        for message, targets in cls._messages.items():
-            send_types = defaultdict(list)
-            for target in targets:
-                send_types[target.get_send_type(is_notice=notice, is_privmsg=privmsg)].append(target)
-            for send_type, targets in send_types.items():
-                max_targets = Features["TARGMAX"][send_type]
-                while targets:
-                    using, targets = targets[:max_targets], targets[max_targets:]
-                    cls._send([message], "", " ", targets[0].client, send_type, ",".join([t.nick for t in using]))
-
-        cls._messages.clear()
-
     @property
     def nick(self): # name should be the same as nick (for length calculation)
         return self.name
@@ -507,9 +487,6 @@ class FakeUser(User):
 
     def __hash__(self):
         return hash(self.nick)
-
-    def queue_message(self, message):
-        self.send(message) # don't actually queue it
 
     @property
     def nick(self):

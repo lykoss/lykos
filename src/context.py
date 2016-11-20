@@ -1,3 +1,4 @@
+from collections import defaultdict
 from operator import attrgetter
 
 from src.logger import debuglog
@@ -39,6 +40,8 @@ def context_types(*types):
 class IRCContext:
     """Base class for channels and users."""
 
+    _messages = defaultdict(list)
+
     def __init__(self, name, client):
         self.name = name
         self.client = client
@@ -53,6 +56,27 @@ class IRCContext:
         if is_notice and not is_privmsg:
             return "NOTICE"
         return "PRIVMSG"
+
+    def queue_message(self, message):
+        if self.is_fake:
+            self.send(message) # Don't actually queue it
+            return
+
+        self._messages[message].append(self)
+
+    @classmethod
+    def send_messages(cls, *, notice=False, privmsg=False):
+        for message, targets in cls._messages.items():
+            send_types = defaultdict(list)
+            for target in targets:
+                send_types[target.get_send_type(is_notice=notice, is_privmsg=privmsg)].append(target)
+            for send_type, targets in send_types.items():
+                max_targets = Features["TARGMAX"][send_type]
+                while targets:
+                    using, targets = targets[:max_targets], targets[max_targets:]
+                    cls._send([message], "", " ", targets[0].client, send_type, ",".join([t.nick for t in using]))
+
+        cls._messages.clear()
 
     @classmethod
     def get_context_type(cls, *, max_types=1):
