@@ -6834,7 +6834,6 @@ def coin(cli, nick, chan, rest):
 
     reply(cli, nick, chan, messages["coin_toss"].format(nick))
     rnd = random.random()
-    print(rnd)
     # 59/29/12 split, 59+29=88
     if rnd < 0.59:
         coin = messages["coin_choices"][0]
@@ -6852,7 +6851,6 @@ def pony(cli, nick, chan, rest):
     reply(cli, nick, chan, messages["pony_toss"].format(nick))
     # 59/29/7/5 split
     rnd = random.random()
-    print(rnd)
     if rnd < 0.59:
         pony = messages["pony_choices"][0]
     elif rnd < 0.88:
