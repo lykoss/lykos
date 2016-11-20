@@ -45,23 +45,6 @@ except ImportError:
           "- The lykos developers", sep="\n")
     sys.exit(1)
 
-try: # FIXME
-    botconfig.DEV_PREFIX
-except AttributeError:
-    print("Please set up your config to include a DEV_PREFIX variable",
-          "If you have a prefix in your DEV_CHANNEL config, move it out into DEV_PREFIX",
-          sep="\n")
-    sys.exit(1)
-
-try:
-    botconfig.USE_NICKSERV_GHOST
-except AttributeError:
-    print("Please set up your config to include a USE_NICKSERV_GHOST variable",
-          "It should be a boolean value, determining whether to use GHOST or RELEASE",
-          "(See botconfig.py.example for an informative comment)",
-          sep="\n")
-    sys.exit(1)
-
 from oyoyo.client import IRCClient
 
 import src

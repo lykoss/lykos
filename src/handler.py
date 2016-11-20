@@ -90,17 +90,26 @@ def connect_callback(cli):
     def mustregain(cli, server, bot_nick, nick, msg):
         if not botconfig.PASS or bot_nick == nick:
             return
-        cli.ns_regain(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+        if var.NICKSERV_REGAIN_COMMAND:
+            cli.ns_regain(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+        else:
+            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+        # infinite loops are bad
+        hook.unhook(241)
         users.Bot.change_nick(botconfig.NICK)
+        hook("nicknameinuse", hookid=241)(mustregain)
 
     def mustrelease(cli, server, bot_nick, nick, msg):
         if not botconfig.PASS or bot_nick == nick:
             return # prevents the bot from trying to release without a password
-        func = cli.ns_release
-        if botconfig.USE_NICKSERV_GHOST:
-            func = cli.ns_ghost
-        func(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_RELEASE_COMMAND)
+        if var.NICKSERV_RELEASE_COMMAND:
+            cli.ns_release(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+        else:
+            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+        # if releasing doesn't work, don't go into infinite loop, just run with our _ showing
+        hook.unhook(240)
         users.Bot.change_nick(botconfig.NICK)
+        hook("unavailresource", hookid=240)(mustrelease)
 
     @hook("unavailresource", hookid=239)
     @hook("nicknameinuse", hookid=239)
@@ -110,8 +119,8 @@ def connect_callback(cli):
         cli.user(botconfig.NICK, "") # TODO: can we remove this?
 
         hook.unhook(239)
-        hook("unavailresource")(mustrelease)
-        hook("nicknameinuse")(mustregain)
+        hook("unavailresource", hookid=240)(mustrelease)
+        hook("nicknameinuse", hookid=241)(mustregain)
 
     request_caps = {"account-notify", "extended-join", "multi-prefix"}
 

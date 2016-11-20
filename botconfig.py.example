@@ -75,6 +75,4 @@ TIMESTAMP_FORMAT = "[%Y-%m-%d %H:%M:%S{tzoffset}]"
 #CHANSERV = "x@channels.undernet.org"
 #CHANSERV_OP_COMMAND = "OP {channel}"
 
-USE_NICKSERV_GHOST = False # If set to True, the bot will GHOST users using the bot's nick. Otherwise, it will use RELEASE
-
 # vim: set ft=python:
