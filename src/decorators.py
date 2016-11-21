@@ -184,7 +184,7 @@ class handle_error:
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
                  chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None, old_api=False):
+                 phases=(), roles=(), nicks=None, old_api=True):
 
         self.cmds = cmds
         self.raw_nick = raw_nick

@@ -863,10 +863,10 @@ class SleepyMode(GameMode):
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
         events.add_listener("rename_player", self.rename_player)
-        self.north_cmd = decorators.cmd("north", "n", chan=False, pm=True, playing=True, phases=("night",))(self.north)
-        self.east_cmd = decorators.cmd("east", "e", chan=False, pm=True, playing=True, phases=("night",))(self.east)
-        self.south_cmd = decorators.cmd("south", "s", chan=False, pm=True, playing=True, phases=("night",))(self.south)
-        self.west_cmd = decorators.cmd("west", "w", chan=False, pm=True, playing=True, phases=("night",))(self.west)
+        self.north_cmd = decorators.cmd("north", "n", chan=False, pm=True, playing=True, old_api=True, phases=("night",))(self.north)
+        self.east_cmd = decorators.cmd("east", "e", chan=False, pm=True, playing=True, old_api=True, phases=("night",))(self.east)
+        self.south_cmd = decorators.cmd("south", "s", chan=False, pm=True, playing=True, old_api=True, phases=("night",))(self.south)
+        self.west_cmd = decorators.cmd("west", "w", chan=False, pm=True, playing=True, old_api=True, phases=("night",))(self.west)
 
     def teardown(self):
         from src import decorators
