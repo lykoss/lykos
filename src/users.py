@@ -103,7 +103,8 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
         cls = FakeUser
 
     new = cls(cli, nick, ident, host, realname, account)
-    if new is not Bot:
+
+    if new is not Bot and new.ident is not None and new.host is not None:
         _users.add(new)
     return new
 
@@ -146,7 +147,8 @@ def users_():
 class users: # backwards-compatible API
     def __iter__(self):
         yield from var.USERS
-    def items(self):
+    @staticmethod
+    def items():
         yield from var.USERS.items()
 
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
