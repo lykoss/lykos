@@ -184,7 +184,7 @@ class handle_error:
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
                  chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None, old_api=True):
+                 phases=(), roles=(), nicks=None):
 
         self.cmds = cmds
         self.raw_nick = raw_nick
@@ -197,7 +197,6 @@ class cmd:
         self.phases = phases
         self.roles = roles
         self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
-        self.old_api = old_api # functions using the old API will get (cli, nick, chan, rest) passed in
         self.func = None
         self.aftergame = False
         self.name = cmds[0]
@@ -223,13 +222,7 @@ class cmd:
         return self
 
     @handle_error
-    def caller(self, var, wrapper, message):
-        # The wrapper is an object which will know the sender and target
-        # It will have methods such as .reply(), taking off the load from the end code
-        raise NotImplementedError("The new interface has not been implemented yet")
-
-    @handle_error
-    def old_api_caller(self, *args):
+    def caller(self, *args):
         largs = list(args)
 
         cli, rawnick, chan, rest = largs

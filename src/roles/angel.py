@@ -16,7 +16,7 @@ GUARDED = {} # type: Dict[str, str]
 LASTGUARDED = {} # type: Dict[str, str]
 PASSED = set() # type: Set[str]
 
-@cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"), old_api=True)
+@cmd("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def guard(cli, nick, chan, rest):
     """Guard a player, preventing them from being killed that night."""
     if nick in GUARDED:
@@ -48,7 +48,7 @@ def guard(cli, nick, chan, rest):
     debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard", "guardian angel"), old_api=True)
+@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     if nick in GUARDED:

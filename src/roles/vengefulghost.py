@@ -16,7 +16,7 @@ GHOSTS = {} # type: Dict[str, str]
 # as such, no need to track nick changes, etc. with it
 drivenoff = {} # type: Dict[str, str]
 
-@cmd("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), nicks=GHOSTS, old_api=True)
+@cmd("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), nicks=GHOSTS)
 def vg_kill(cli, nick, chan, rest):
     """Take revenge on someone each night after you die."""
     if GHOSTS[nick][0] == "!":
@@ -53,7 +53,7 @@ def vg_kill(cli, nick, chan, rest):
     debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=False, phases=("night",), old_api=True)
+@cmd("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(cli, nick, chan, rest):
     """Removes a vengeful ghost's kill selection."""
     if nick not in GHOSTS:

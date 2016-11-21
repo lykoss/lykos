@@ -16,7 +16,7 @@ KILLS = {} # type: Dict[str, List[str]]
 # simply modifying var.WOLF_ROLES will *not* update this!
 CAN_KILL = set(var.WOLF_ROLES - {"wolf cub"}) # type: Set[str]
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL, old_api=True)
+@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(cli, nick, chan, rest):
     """Kills one or more players as a wolf."""
     role = get_role(nick)
@@ -83,7 +83,7 @@ def wolf_kill(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), old_api=True)
+@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",))
 def wolf_retract(cli, nick, chan, rest):
     """Removes a wolf's kill selection."""
     if nick in KILLS:

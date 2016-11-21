@@ -212,7 +212,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
 
     return sid
 
-@cmd("stasis", chan=True, pm=True, old_api=True)
+@cmd("stasis", chan=True, pm=True)
 def stasis(cli, nick, chan, rest):
     st = is_user_stasised(nick)
     if st:
@@ -222,7 +222,7 @@ def stasis(cli, nick, chan, rest):
 
     reply(cli, nick, chan, msg, prefix_nick=True)
 
-@cmd("fstasis", flag="A", chan=True, pm=True, old_api=True)
+@cmd("fstasis", flag="A", chan=True, pm=True)
 def fstasis(cli, nick, chan, rest):
     """Removes or views stasis penalties."""
 
@@ -295,7 +295,7 @@ def fstasis(cli, nick, chan, rest):
     else:
         reply(cli, nick, chan, messages["noone_stasised"])
 
-@cmd("warn", pm=True, old_api=True)
+@cmd("warn", pm=True)
 def warn(cli, nick, chan, rest):
     """View and acknowledge your warnings."""
     # !warn list [-all] [page] - lists all active warnings, or all warnings if all passed
@@ -455,7 +455,7 @@ def warn(cli, nick, chan, rest):
         reply(cli, nick, chan, messages["fwarn_done"])
         return
 
-@cmd("fwarn", flag="F", pm=True, old_api=True)
+@cmd("fwarn", flag="F", pm=True)
 def fwarn(cli, nick, chan, rest):
     """Issues a warning to someone or views warnings."""
     # !fwarn list [-all] [nick] [page]

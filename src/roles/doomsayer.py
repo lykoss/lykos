@@ -15,7 +15,7 @@ LYCANS = {}
 
 _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 
-@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",), old_api=True)
+@cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("doomsayer",))
 def see(cli, nick, chan, rest):
     """Use your paranormal senses to determine a player's doom."""
     role = get_role(nick)
