@@ -187,15 +187,60 @@ class User(IRCContext):
             self.realname = realname
             self.account = account
 
-        # check the set to see if this already exists
         elif ident is not None and host is not None:
             users = set(_users)
             users.add(Bot)
-            if self in users: # quirk: this actually checks for the hash first (also, this is O(1))
+            if self in users:
                 for user in users:
                     if self == user:
                         self = user
-                        break # this may only happen once
+                        break
+
+        else:
+            # This takes a different code path because of slightly different
+            # conditions; in the above case, the ident and host are both known,
+            # and so the instance is hashable. Being hashable, it can be checked
+            # for set containment, and exactly one instance in that set will be
+            # equal (since the hash is based off of the ident and host, and the
+            # comparisons check for all non-None attributes, two instances cannot
+            # possibly be equal while having a different hash).
+            #
+            # In this case, however, at least the ident or the host is missing,
+            # and so the hash cannot be calculated. This means that two instances
+            # may compare equal and hash to different values (since only non-None
+            # attributes are compared), so we need to run through the entire set
+            # no matter what to make sure that one - and only one - instance in
+            # the set compares equal with the new one. We can't know in advance
+            # whether or not there is an instance that compares equal to this one
+            # in the set, or if multiple instances are going to compare equal to
+            # this one.
+            #
+            # The code paths, while similar in functionality, fulfill two distinct
+            # purposes; the first path is usually for when new users are created
+            # from a WHO reply, with all the information. This is the most common
+            # case. This path, on the other hand, is for the less common cases,
+            # where only the nick is known (for example, a KICK target), and where
+            # the user may or may not already exist. In that case, it's easier and
+            # better to just try to create a new user, which this code can then
+            # implicitly replace with the equivalent user (instead of trying to get
+            # an existing user or creating a new one if that fails). This is also
+            # used as a short-circuit for get().
+            #
+            # Please don't merge these two code paths for the sake of simplicity,
+            # and instead opt for the sake of clarity that this separation provides.
+
+            potential = None
+            users = set(_users)
+            users.add(Bot)
+            for user in users:
+                if self == user:
+                    if potential is None:
+                        potential = user
+                    else:
+                        break # too many possibilities
+            else:
+                if potential is not None:
+                    self = potential
 
         return self
 
