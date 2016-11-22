@@ -70,7 +70,7 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
                 raise ValueError("More than one user matches: " +
                                  _arg_msg.format(nick, ident, host, realname, account, allow_bot))
 
-    if not potential and not allow_none:
+    if not potential and not allow_multiple and not allow_none:
         raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
 
     if allow_multiple:
