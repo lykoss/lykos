@@ -5,6 +5,72 @@ from src.logger import debuglog
 
 Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}}
 
+def _who(cli, target, data=b""):
+    """Handle WHO requests."""
+
+    if isinstance(data, str):
+        data = data.encode(Features["CHARSET"])
+    elif isinstance(data, int):
+        if data > 0xFFFFFF:
+            data = b""
+        else:
+            data = data.to_bytes(3, "little")
+
+    if len(data) > 3:
+        data = b""
+
+    if "WHOX" in Features:
+        cli.send("WHO", target, b"%tcuihsnfdlar," + data)
+    else:
+        cli.send("WHO", target)
+
+    return int.from_bytes(data, "little")
+
+def _send(data, first, sep, client, send_type, name):
+    full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
+
+    # Maximum length of sent data is 512 bytes. However, we have to
+    # reduce the maximum length allowed to account for:
+    # 1 (1) - The initial colon at the front of the data
+    # 2 (1) - The space between the sender (us) and the command
+    # 3 (1) - The space between the command and the target
+    # 4 (1) - The space between the target and the data
+    # 5 (1) - The colon at the front of the data to send
+    # 6 (2) - The trailing \r\n
+    length = 512 - 7
+    # Next, we need to reduce the length to account for our address
+    length -= len(full_address)
+    # Then we also need to account for the target's length
+    length -= len(name)
+    # Finally, we need to account for the send type's length
+    length -= len(send_type)
+    # The 'first' argument is sent along with every message, so deduce that too
+    if length - len(first) > 0: # make sure it's not negative (or worse, 0)
+        length -= len(first)
+    else:
+        first = ""
+
+    messages = []
+    count = 0
+    for line in data:
+        if count and count + len(sep) + len(line) > length:
+            count = len(line)
+            cur_sep = "\n"
+        elif not messages:
+            count = len(line)
+            cur_sep = ""
+        else:
+            count += len(sep) + len(line)
+            cur_sep = sep
+
+        messages.append(cur_sep)
+        messages.append(line)
+
+    for line in "".join(messages).splitlines():
+        while line:
+            extra, line = line[:length], line[length:]
+            client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
+
 def lower(nick):
     if nick is None:
         return None
@@ -74,7 +140,7 @@ class IRCContext:
                 max_targets = Features["TARGMAX"][send_type]
                 while targets:
                     using, targets = targets[:max_targets], targets[max_targets:]
-                    cls._send([message], "", " ", using[0].client, send_type, ",".join([t.nick for t in using]))
+                    _send([message], "", " ", using[0].client, send_type, ",".join([t.nick for t in using]))
 
         cls._messages.clear()
 
@@ -94,28 +160,6 @@ class IRCContext:
 
         return final
 
-    @staticmethod
-    def _who(cli, target, data=b""):
-        """Handle WHO requests."""
-
-        if isinstance(data, str):
-            data = data.encode(Features["CHARSET"])
-        elif isinstance(data, int):
-            if data > 0xFFFFFF:
-                data = b""
-            else:
-                data = data.to_bytes(3, "little")
-
-        if len(data) > 3:
-            data = b""
-
-        if "WHOX" in Features:
-            cli.send("WHO", target, b"%tcuihsnfdlar," + data)
-        else:
-            cli.send("WHO", target)
-
-        return int.from_bytes(data, "little")
-
     def who(self, data=b""):
         """Send a WHO request with respect to the server's capabilities.
 
@@ -128,53 +172,7 @@ class IRCContext:
 
         """
 
-        return self._who(self.client, self.name, data)
-
-    @staticmethod
-    def _send(data, first, sep, client, send_type, name):
-        full_address = "{cli.nickname}!{cli.ident}@{cli.hostmask}".format(cli=client)
-
-        # Maximum length of sent data is 512 bytes. However, we have to
-        # reduce the maximum length allowed to account for:
-        # 1 (1) - The initial colon at the front of the data
-        # 2 (1) - The space between the sender (us) and the command
-        # 3 (1) - The space between the command and the target
-        # 4 (1) - The space between the target and the data
-        # 5 (1) - The colon at the front of the data to send
-        # 6 (2) - The trailing \r\n
-        length = 512 - 7
-        # Next, we need to reduce the length to account for our address
-        length -= len(full_address)
-        # Then we also need to account for the target's length
-        length -= len(name)
-        # Finally, we need to account for the send type's length
-        length -= len(send_type)
-        # The 'first' argument is sent along with every message, so deduce that too
-        if length - len(first) > 0: # make sure it's not negative (or worse, 0)
-            length -= len(first)
-        else:
-            first = ""
-
-        messages = []
-        count = 0
-        for line in data:
-            if count and count + len(sep) + len(line) > length:
-                count = len(line)
-                cur_sep = "\n"
-            elif not messages:
-                count = len(line)
-                cur_sep = ""
-            else:
-                count += len(sep) + len(line)
-                cur_sep = sep
-
-            messages.append(cur_sep)
-            messages.append(line)
-
-        for line in "".join(messages).splitlines():
-            while line:
-                extra, line = line[:length], line[length:]
-                client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
+        return _who(self.client, self.name, data)
 
     def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
         if self.is_fake:
@@ -190,4 +188,4 @@ class IRCContext:
             first = ""
         if sep is None:
             sep = " "
-        self._send(data, first, sep, self.client, send_type, name)
+        _send(data, first, sep, self.client, send_type, name)
