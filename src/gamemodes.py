@@ -185,17 +185,16 @@ class VillagergameMode(GameMode):
             "crazed shaman"   : (  0  ,  0  ,  0  ,  0  ,  1  ),
             "cursed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ),
             })
-        self.delaying_night = False
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
-        events.add_listener("chk_nightdone", self.prolong_night)
+        events.add_listener("chk_nightdone", self.chk_nightdone)
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
-        events.remove_listener("chk_nightdone", self.prolong_night)
+        events.remove_listener("chk_nightdone", self.chk_nightdone)
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
@@ -210,15 +209,17 @@ class VillagergameMode(GameMode):
         else:
             evt.data["winner"] = None
 
-    def prolong_night(self, evt, cli, var):
-        evt.data["nightroles"].append(botconfig.NICK)
+    def chk_nightdone(self, evt, cli, var):
+        transition_day = evt.data["transition_day"]
+        evt.data["transition_day"] = lambda cli2, gameid=0: self.prolong_night(cli2, var, gameid, transition_day)
 
-        if not self.delaying_night:
-            nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
-            rand = random.randint(5 if nspecials else 0, 30)
-            self.delaying_night = True
-
-            t = threading.Timer(rand, evt.data["transition_day"], args=(cli,), kwargs={"gameid": var.NIGHT_ID})
+    def prolong_night(self, cli, var, gameid, transition_day):
+        nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
+        rand = random.gauss(5, 3)
+        if rand <= 0 and nspecials > 0:
+            transition_day(cli, gameid=curnight)
+        else:
+            t = threading.Timer(abs(rand), transition_day, args=(cli,), kwargs={"gameid": gameid})
             t.start()
 
     def transition_day(self, evt, cli, var):

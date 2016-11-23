@@ -5658,8 +5658,8 @@ def transition_night(cli):
 
     chan = botconfig.CHANNEL
 
+    var.NIGHT_ID = time.time()
     if var.NIGHT_TIME_LIMIT > 0:
-        var.NIGHT_ID = time.time()
         t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
         var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
         t.daemon = True
