@@ -217,7 +217,7 @@ class VillagergameMode(GameMode):
         nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
         rand = random.gauss(5, 3)
         if rand <= 0 and nspecials > 0:
-            transition_day(cli, gameid=curnight)
+            transition_day(cli, gameid=gameid)
         else:
             t = threading.Timer(abs(rand), transition_day, args=(cli,), kwargs={"gameid": gameid})
             t.start()
