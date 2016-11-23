@@ -3407,6 +3407,9 @@ def rename_player(cli, prefix, nick):
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
+            # defaultdict(list), where keys are nicks and items in list do not matter
+            if prefix in var.ACTIVE_PROTECTIONS.keys():
+                var.ACTIVE_PROTECTIONS[nick] = var.ACTIVE_PROTECTIONS.pop(prefix)
             # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
             for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS):
                 kvp = []
