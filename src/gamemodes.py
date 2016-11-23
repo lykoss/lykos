@@ -185,14 +185,17 @@ class VillagergameMode(GameMode):
             "crazed shaman"   : (  0  ,  0  ,  0  ,  0  ,  1  ),
             "cursed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ),
             })
+        self.delaying_night = False
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
+        events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
+        events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
@@ -207,9 +210,21 @@ class VillagergameMode(GameMode):
         else:
             evt.data["winner"] = None
 
+    def prolong_night(self, evt, cli, var):
+        evt.data["nightroles"].append(botconfig.NICK)
+
+        if not self.delaying_night:
+            nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
+            rand = random.randint(5 if nspecials else 0, 30)
+            self.delaying_night = True
+
+            t = threading.Timer(rand, evt.data["transition_day"], args=(cli,), kwargs={"gameid": var.NIGHT_ID})
+            t.start()
+
     def transition_day(self, evt, cli, var):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
+        self.delaying_night = False
         pl = list_players()
         tgt = None
         seer = None
@@ -238,7 +253,7 @@ class VillagergameMode(GameMode):
             tgt = random.choice(pl)
         from src.roles import wolf
         wolf.KILLS[botconfig.NICK] = [tgt]
-    
+
     def on_retribution_kill(self, evt, cli, var, victim, orig_target):
         # There are no wolves for this totem to kill
         if orig_target == "@wolves":
