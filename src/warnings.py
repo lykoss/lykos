@@ -5,7 +5,7 @@ import botconfig
 import src.settings as var
 from src import channels, db
 from src.utilities import *
-from src.decorators import cmd
+from src.decorators import cmd, COMMANDS
 from src.events import Event
 from src.messages import messages
 
