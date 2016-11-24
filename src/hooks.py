@@ -469,6 +469,27 @@ def on_nick_change(cli, old_nick, nick):
 
     Event("nick_change", {}).dispatch(var, user, old_nick)
 
+### ACCOUNT handling
+
+@hook("account")
+def on_account_change(cli, rawnick, account):
+    """Handle a user changing accounts, if enabled.
+
+    Ordering and meaning of arguments for an ACCOUNT change:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The raw nick (nick!ident@host) of the user changing accounts
+    2 - The account the user changed to
+
+    We don't see our own account changes, so be careful!
+
+    """
+
+    user = users._add(cli, nick=rawnick) # FIXME
+    user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
+
+    Event("account_change", {}).dispatch(var, user)
+
 ### JOIN handling
 
 @hook("join")
