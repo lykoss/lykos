@@ -64,11 +64,12 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
 
     for user in users:
         if user == temp:
-            if not potential or allow_multiple:
-                potential.append(user)
-            else:
-                raise ValueError("More than one user matches: " +
-                                 _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+            potential.append(user)
+
+    if not allow_multiple and len(potential) > 1:
+        raise ValueError("More than one user matches: " +
+              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+
 
     if not potential and not allow_multiple and not allow_none:
         raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
