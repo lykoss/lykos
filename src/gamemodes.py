@@ -10,7 +10,7 @@ import src.settings as var
 from src.utilities import *
 from src.messages import messages
 from src.decorators import handle_error
-from src import events
+from src import events, channels, users
 
 def game_mode(name, minp, maxp, likelihood = 0):
     def decor(c):
@@ -1186,23 +1186,24 @@ class MaelstromMode(GameMode):
         if not var.ACCOUNTS_ONLY:
             self.DEAD_HOSTS.add(var.USERS[nick]["host"].lower())
 
-    def on_join(self, evt, cli, var, nick, chan, rest, forced=False):
-        if var.PHASE != "day" or (nick != chan and chan != botconfig.CHANNEL):
+    def on_join(self, evt, var, wrapper, message, forced=False):
+        if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):
             return
-        if (irc_lower(nick) in (irc_lower(x) for x in var.ALL_PLAYERS) or
-                irc_lower(var.USERS[nick]["account"]) in self.DEAD_ACCOUNTS or
-                var.USERS[nick]["host"].lower() in self.DEAD_HOSTS):
-            cli.notice(nick, messages["maelstrom_dead"])
+        temp = wrapper.source.lower()
+        if (temp.nick in (irc_lower(x) for x in var.ALL_PLAYERS) or # FIXME
+                temp.account in self.DEAD_ACCOUNTS or
+                temp.host in self.DEAD_HOSTS):
+            wrapper.pm(messages["maelstrom_dead"])
             return
-        if not forced and evt.data["join_player"](cli, nick, botconfig.CHANNEL, sanity=False):
-            self._on_join(cli, var, nick, chan)
+        if not forced and evt.data["join_player"](var, type(wrapper)(wrapper.source, channels.Main), sanity=False):
+            self._on_join(var, wrapper)
             evt.prevent_default = True
         elif forced:
             # in fjoin, handle this differently
             jp = evt.data["join_player"]
-            evt.data["join_player"] = lambda cli, nick, chan, who=None, forced=False: jp(cli, nick, chan, who=who, forced=forced, sanity=False) and self._on_join(cli, var, nick, chan)
+            evt.data["join_player"] = lambda var, wrapper, who=None, forced=False: jp(var, wrapper, who=who, forced=forced, sanity=False) and self._on_join(var, wrapper)
 
-    def _on_join(self, cli, var, nick, chan):
+    def _on_join(self, var, wrapper):
         role = random.choice(self.roles)
 
         lpl = len(list_players()) + 1
@@ -1232,31 +1233,30 @@ class MaelstromMode(GameMode):
         elif role == "succubus":
             lsuccubi += 1
 
-        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
-            return self._on_join(cli, var, nick, chan)
+        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, wrapper.client, end_game=False):
+            return self._on_join(var, wrapper)
 
-        var.ROLES[role].add(nick)
-        var.ORIGINAL_ROLES[role].add(nick)
-        var.FINAL_ROLES[nick] = role
-        var.LAST_SAID_TIME[nick] = datetime.now()
-        if nick in var.USERS:
-            var.PLAYERS[nick] = var.USERS[nick]
+        var.ROLES[role].add(wrapper.source.nick)
+        var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
+        var.FINAL_ROLES[wrapper.source.nick] = role
+        var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
+        if wrapper.source.nick in var.USERS:
+            var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
         if role == "doctor":
             lpl = len(list_players())
-            var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
+            var.DOCTORS[wrapper.source.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
         # let them know their role
-        # FIXME: this is fugly
         from src.decorators import COMMANDS
-        COMMANDS["myrole"][0].caller(cli, nick, chan, "")
+        COMMANDS["myrole"][0].caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: New/old API
         # if they're a wolfchat role, alert the other wolves
         if role in var.WOLFCHAT_ROLES:
-            relay_wolfchat_command(cli, nick, messages["wolfchat_new_member"].format(nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
+            relay_wolfchat_command(wrapper.source.client, wrapper.source.nick, messages["wolfchat_new_member"].format(wrapper.source.nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
             # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
             wolves = list_players(var.WOLFCHAT_ROLES)
             pl = list_players()
             random.shuffle(pl)
-            pl.remove(nick)
+            pl.remove(wrapper.source.nick)
             for i, player in enumerate(pl):
                 prole = get_role(player)
                 if prole in var.WOLFCHAT_ROLES:
@@ -1266,7 +1266,7 @@ class MaelstromMode(GameMode):
                     pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
                 elif player in var.ROLES["cursed villager"]:
                     pl[i] = player + " (cursed)"
-            pm(cli, nick, "Players: " + ", ".join(pl))
+            wrapper.pm("Players: " + ", ".join(pl))
 
     def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions

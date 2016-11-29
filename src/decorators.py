@@ -14,9 +14,10 @@ from oyoyo.parse import parse_nick
 
 import botconfig
 import src.settings as var
+from src.dispatcher import MessageDispatcher
 from src.utilities import *
-from src import channels, users, logger, errlog, events
 from src.messages import messages
+from src import channels, users, logger, errlog, events
 
 adminlog = logger.logger("audit.log")
 
@@ -181,6 +182,121 @@ class handle_error:
         with print_traceback():
             return self.func(*args, **kwargs)
 
+class command:
+    def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
+                 playing=False, silenced=False, phases=(), roles=(), users=None):
+
+        self.commands = frozenset(commands)
+        self.flag = flag
+        self.owner_only = owner_only
+        self.chan = chan
+        self.pm = pm
+        self.playing = playing
+        self.silenced = silenced
+        self.phases = phases
+        self.roles = roles
+        self.users = users # iterable of users that can use the command at any time (should be a mutable object)
+        self.func = None
+        self.aftergame = False
+        self.name = commands[0]
+        self.alt_allowed = bool(flag or owner_only)
+
+        alias = False
+        self.aliases = []
+        for name in commands:
+            for func in COMMANDS[name]:
+                if func.owner_only != owner_only or func.flag != flag:
+                    raise ValueError("unmatching access levels for {0}".format(func.name))
+
+            COMMANDS[name].append(self)
+            if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
+                self.alt_allowed = True
+            if name in getattr(botconfig, "OWNERS_ONLY_COMMANDS", ()):
+                self.owner_only = True
+            if alias:
+                self.aliases.append(name)
+            alias = True
+
+    def __call__(self, func):
+        if isinstance(func, command):
+            func = func.func
+        self.func = func
+        self.__doc__ = func.__doc__
+        return self
+
+    @handle_error
+    def caller(self, cli, rawnick, chan, rest):
+        user = users._add(cli, nick=rawnick) # FIXME
+
+        if users.equals(chan, users.Bot.nick): # PM
+            target = users.Bot
+        else:
+            target = channels.add(chan, cli)
+
+        dispatcher = MessageDispatcher(user, target)
+
+        if (not self.pm and dispatcher.private) or (not self.chan and dispatcher.public):
+            return # channel or PM command that we don't allow
+
+        if dispatcher.public and target is not channels.Main and not (self.flag or self.owner_only):
+            if "" in self.commands or not self.alt_allowed:
+                return # commands not allowed in alt channels
+
+        if "" in self.commands:
+            return self.func(var, dispatcher, rest)
+
+        if self.phases and var.PHASE not in self.phases:
+            return
+
+        if self.playing and (user.nick not in list_players() or user.nick in var.DISCONNECTED): # FIXME: Need to change this once list_players() / var.DISCONNECTED use User instances
+            return
+
+        for role in self.roles:
+            if user.nick in var.ROLES[role]: # FIXME: Need to change this once var.ROLES[role] holds User instances
+                break
+        else:
+            if (self.users is not None and user not in self.users) or self.roles:
+                return
+
+        if self.silenced and user.nick in var.SILENCED: # FIXME: Need to change this once var.SILENCED holds User instances
+            dispatcher.pm(messages["silenced"])
+            return
+
+        if self.roles or (self.users is not None and user in self.users):
+            return self.func(var, dispatcher, rest) # don't check restrictions for role commands
+
+        if self.owner_only:
+            if user.is_owner():
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(var, dispatcher, rest)
+
+            dispatcher.pm(messages["not_owner"])
+            return
+
+        temp = user.lower()
+
+        flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
+
+        if self.flag and (user.is_admin() or user.is_owner()):
+            adminlog(chan, rawnick, self.name, rest)
+            return self.func(var, dispatcher, rest)
+
+        denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
+
+        if self.commands & denied_commands:
+            dispatcher.pm(messages["invalid_permissions"])
+            return
+
+        if self.flag:
+            if self.flag in flags:
+                adminlog(chan, rawnick, self.name, rest)
+                return self.func(var, dispatcher, rest)
+
+            dispatcher.pm(messages["not_an_admin"])
+            return
+
+        return self.func(var, dispatcher, rest)
+
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
                  chan=True, pm=False, playing=False, silenced=False,
@@ -222,8 +338,11 @@ class cmd:
         return self
 
     @handle_error
-    def caller(self, *args):
-        largs = list(args)
+    def caller(self, cli, rawnick, chan, rest):
+        if users.equals(chan, users.Bot.nick):
+            chan = users.parse_rawnick_as_dict(rawnick)["nick"]
+
+        largs = [cli, rawnick, chan, rest]
 
         cli, rawnick, chan, rest = largs
         nick, mode, ident, host = parse_nick(rawnick)

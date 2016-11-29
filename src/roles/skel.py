@@ -7,8 +7,8 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
-from src.decorators import cmd, event_listener
+from src import channels, users, debuglog, errlog, plog
+from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 

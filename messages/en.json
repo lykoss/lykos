@@ -596,7 +596,6 @@
     "admin_forced_game": "A game mode has already been forced by an admin.",
     "vote_game_fail": "You can't vote for that game mode.",
     "fsend_usage": "Usage: {0}{1} <target> <message>",
-    "wrong_channel": "You have to be in {0} to use this command.",
     "invalid_fsend_permissions": "You do not have permission to message this user or channel.",
     "temp_invalid_perms": "You are not allowed to use that command right now.",
     "fgame_success": "\u0002{0}\u0002 has changed the game settings successfully.",

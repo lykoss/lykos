@@ -27,7 +27,13 @@ class _States(Enum):
 def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
 
-get = _channels.__getitem__
+def get(name, *, allow_none=False):
+    try:
+        return _channels[name]
+    except KeyError:
+        if allow_none:
+            return None
+        raise
 
 def add(name, cli, key=""):
     """Add and return a new channel, or an existing one if it exists."""

@@ -15,22 +15,19 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
-    if not users.equals(chan, botconfig.NICK) and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+    if not users.equals(chan, users.Bot.nick) and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
         return
 
-    if (notice and ((not users.equals(chan, botconfig.NICK) and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (users.equals(chan, botconfig.NICK) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    if (notice and ((not users.equals(chan, users.Bot.nick) and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (users.equals(chan, users.Bot.nick) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
-
-    if users.equals(chan, botconfig.NICK):
-        chan = users.parse_rawnick_as_dict(rawnick)["nick"]
 
     for fn in decorators.COMMANDS[""]:
         fn.caller(cli, rawnick, chan, msg)
 
     phase = var.PHASE
     for x in list(decorators.COMMANDS.keys()):
-        if chan != users.parse_rawnick_as_dict(rawnick)["nick"] and not msg.lower().startswith(botconfig.CMD_CHAR):
+        if not users.equals(chan, users.Bot.nick) and not msg.lower().startswith(botconfig.CMD_CHAR):
             break # channel message but no prefix; ignore
         if msg.lower().startswith(botconfig.CMD_CHAR+x):
             h = msg[len(x)+len(botconfig.CMD_CHAR):]
