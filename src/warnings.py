@@ -776,7 +776,7 @@ def fwarn(cli, nick, chan, rest):
                     changes.append(messages["fwarn_log_set_notes_new"].format(notes))
             if changes:
                 log_msg = messages["fwarn_log_set"].format(warn_id, warning["target"], nick, " | ".join(changes))
-                cli.msg(var.LOG_CHANNEL, log_msg)
+                cli.msg(var.LOG_PREFIX + var.LOG_CHANNEL, log_msg)
 
         return
 
@@ -900,7 +900,7 @@ def fwarn(cli, nick, chan, rest):
                 log_length = messages["fwarn_log_add_expiry"].format(expires)
             log_msg = messages["fwarn_log_add"].format(warn_id, target, nick, log_reason, points,
                                                        "" if points == 1 else "s", log_length)
-            cli.msg(var.LOG_CHANNEL, log_msg)
+            cli.msg(var.LOG_PREFIX + var.LOG_CHANNEL, log_msg)
 
 
 # vim: set sw=4 expandtab:
