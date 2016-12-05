@@ -7766,7 +7766,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 if is_gunner and who in var.GUNNERS:
                     del var.GUNNERS[who]
             else:
-                cli.msg(chan, messages["invalid_template_mod"])
+                cli.msg(chan, messages["improper_template_mod"])
                 return
         elif rol in var.TEMPLATE_RESTRICTIONS.keys():
             cli.msg(chan, messages["template_mod_syntax"].format(rol))
