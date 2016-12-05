@@ -710,8 +710,8 @@ def altpinger(cli, nick, chan, rest):
             num = int(rest[0])
         else:
             num = int(rest[1])
-        if num > 999:
-            msg.append(messages["pingif_too_large"])
+        if num >= var.MAX_PLAYERS:
+            msg.append(messages["pingif_too_large"].format(var.MAX_PLAYERS))
         elif players == num:
             msg.append(messages["pingif_already_set"].format(num))
         elif players:

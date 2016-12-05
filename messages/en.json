@@ -128,7 +128,7 @@
     "get_pingif": "You will be pinged when there are at least {0} players joined.",
     "no_pingif": "You do not have any ping preferences currently set.",
     "unset_pingif": "Your ping preferences have been removed (was {0}).",
-    "pingif_too_large": "That number is too large.",
+    "pingif_too_large": "Your ping preferences must be less than {0}. Use 0 to disable.",
     "pingif_already_set": "Your ping preferences are already set to {0}.",
     "pingif_change": "Your ping preferences have been changed from {0} to {1}.",
     "set_pingif": "Your ping preferences have been set to {0}.",
