@@ -38,7 +38,7 @@ class MessageDispatcher:
         if self.private:
             self.source.send(*messages, **kwargs)
         elif (self.target is channels.Main and
-                ((self.source not in list_players() and var.PHASE in var.GAME_PHASES) or
+                ((self.source.nick not in list_players() and var.PHASE in var.GAME_PHASES) or
                 (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))): # FIXME
             kwargs.setdefault("notice", True)
             self.source.send(*messages, **kwargs)
