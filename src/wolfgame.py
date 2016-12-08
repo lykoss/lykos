@@ -6764,25 +6764,6 @@ def on_invite(cli, raw_nick, something, chan):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
 
-@cmd("part", "fpart", raw_nick=True, flag="A", pm=True)
-def fpart(cli, rnick, chan, rest):
-    """Makes the bot forcibly leave a channel."""
-    nick = parse_nick(rnick)[0]
-    if nick == chan:
-        rest = rest.split()
-        if not rest:
-            pm(cli, nick, messages["fpart_usage"])
-            return
-        if rest[0] == botconfig.CHANNEL:
-            pm(cli, nick, messages["fpart_bot_error"])
-            return
-        chan = rest[0]
-        pm(cli, nick, "Leaving "+ chan)
-    if chan == botconfig.CHANNEL:
-        cli.notice(nick, messages["fpart_bot_error"])
-        return
-    cli.part(chan)
-
 @cmd("admins", "ops", pm=True)
 def show_admins(cli, nick, chan, rest):
     """Pings the admins that are available."""
