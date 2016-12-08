@@ -33,7 +33,7 @@ def on_transition_night_end(evt, cli, var):
 # No listeners should register before this one
 # This sets up the initial state, based on village/wolfteam/neutral affiliation
 @event_listener("player_win", priority=0)
-def on_player_win(evt, cli, var, nick, role, winner, survived):
+def on_player_win(evt, var, user, role, winner, survived):
     # init won/iwon to False
     evt.data["won"] = False
     evt.data["iwon"] = False

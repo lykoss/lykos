@@ -53,7 +53,7 @@ brokentotem = set() # type: Set[str]
 
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-def totem(cli, nick, chan, rest, prefix="You"):
+def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin event needs updating alongside this
     """Give a totem to a player."""
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
@@ -299,7 +299,7 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
             evt.params.del_player(cli, target, True, end_game=False, killer_role="shaman", deadlist=evt.data["deadlist"], original=target, ismain=False)
 
 @event_listener("player_win")
-def on_player_win(evt, cli, var, splr, rol, winner, survived):
+def on_player_win(evt, var, user, rol, winner, survived):
     if rol == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
         evt.data["iwon"] = True
 
@@ -320,7 +320,7 @@ def on_transition_day_begin(evt, cli, var):
                         ps.remove(succubus)
             if ps:
                 target = random.choice(ps)
-                totem.func(cli, shaman, shaman, target, messages["random_totem_prefix"])
+                totem.func(cli, shaman, shaman, target, messages["random_totem_prefix"]) # XXX: Old API
             else:
                 LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:
@@ -594,7 +594,7 @@ def on_myrole(evt, cli, var, nick):
         evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[nick]))
 
 @event_listener("revealroles_role")
-def on_revealroles(evt, cli, var, nickname, role):
+def on_revealroles(evt, var, wrapper, nickname, role):
     if role in var.TOTEM_ORDER and nickname in TOTEMS:
         if nickname in SHAMANS:
             evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[nickname], SHAMANS[nickname][0]))

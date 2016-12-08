@@ -105,8 +105,14 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
 
     new = cls(cli, nick, ident, host, realname, account)
 
-    if new is not Bot and new.ident is not None and new.host is not None:
-        _users.add(new)
+    if new is not Bot:
+        try:
+            hash(new)
+        except ValueError:
+            pass
+        else:
+            _users.add(new)
+
     return new
 
 def add(nick, **blah): # backwards-compatible API
@@ -292,7 +298,7 @@ class User(IRCContext):
                     return True
 
         for hostmask in hosts:
-            if match_hostmask(hostmask, self.nick, self.ident, self.host):
+            if self.match_hostmask(hostmask):
                 return True
 
         return False
@@ -314,7 +320,7 @@ class User(IRCContext):
                             return True
 
                 for hostmask in hosts:
-                    if match_hostmask(hostmask, self.nick, self.ident, self.host):
+                    if self.match_hostmask(hostmask):
                         return True
             except AttributeError:
                 pass

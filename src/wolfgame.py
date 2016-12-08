@@ -46,10 +46,11 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, decorators, events, channels, users, hooks, logger, proxy, debuglog, errlog, plog
-from src.decorators import cmd, hook, handle_error, event_listener, COMMANDS
+from src import db, events, channels, users, hooks, logger, proxy, debuglog, errlog, plog
+from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
+from src.context import IRCContext
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
@@ -135,12 +136,12 @@ def connect_callback():
             signal.signal(signal.SIGINT, signal.SIG_DFL)
 
         if signum in (signal.SIGINT, signal.SIGTERM):
-            forced_exit.func(cli, "<console>", botconfig.CHANNEL, "")
+            forced_exit.func(cli, "<console>", botconfig.CHANNEL, "") # XXX: Old API
         elif signum == SIGUSR1:
-            restart_program.func(cli, "<console>", botconfig.CHANNEL, "")
+            restart_program.func(cli, "<console>", botconfig.CHANNEL, "") # XXX: Old API
         elif signum == SIGUSR2:
             plog("Scheduling aftergame restart")
-            aftergame.func(cli, "<console>", botconfig.CHANNEL, "frestart")
+            aftergame.func(cli, "<console>", botconfig.CHANNEL, "frestart") # XXX: Old API
 
     signal.signal(signal.SIGINT, sighandler)
     signal.signal(signal.SIGTERM, sighandler)
@@ -360,7 +361,7 @@ def refreshdb(cli, nick, chan, rest):
     reply(cli, nick, chan, "Done.")
 
 @cmd("die", "bye", "fdie", "fbye", flag="D", pm=True)
-def forced_exit(cli, nick, chan, rest):
+def forced_exit(cli, nick, chan, rest): # XXX: sighandler (top of file) also needs updating alongside this one
     """Forces the bot to close."""
 
     args = rest.split()
@@ -413,7 +414,7 @@ def _restart_program(cli, mode=None):
 
 
 @cmd("restart", "frestart", flag="D", pm=True)
-def restart_program(cli, nick, chan, rest):
+def restart_program(cli, nick, chan, rest): # XXX: sighandler (top of file) also needs updating alongside this one
     """Restarts the bot."""
 
     args = rest.split()
@@ -791,7 +792,7 @@ def toggle_altpinged_status(nick, value, old=None):
                         var.PING_IF_NUMS[old].discard(hostmask)
 
 @handle_error
-def join_timer_handler(cli):
+def join_timer_handler():
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
         to_ping = []
@@ -830,7 +831,7 @@ def join_timer_handler(cli):
             var.PINGING_IFS = False
             return
 
-        @hook("whoreply", hookid=387)
+        @hook("whoreply", hookid=387) # FIXME: Use events
         def ping_altpingers_noacc(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
             if ("G" in status or is_user_stasised(nick) or not var.PINGING_IFS or
                     nick == bot_nick or nick in pl):
@@ -865,7 +866,7 @@ def join_timer_handler(cli):
                 var.PINGED_ALREADY.add(hostmask)
 
         @hook("endofwho", hookid=387)
-        def fetch_altpingers(*stuff):
+        def fetch_altpingers(cli, *stuff):
             # fun fact: if someone joined 10 seconds after someone else, the bot would break.
             # effectively, the join would delete join_pinger from var.TIMERS and this function
             # here would be reached before it was created again, thus erroring and crashing.
@@ -882,11 +883,7 @@ def join_timer_handler(cli):
 
                 cli.msg(botconfig.CHANNEL, msg)
 
-        # FIXME
-        if not var.DISABLE_ACCOUNTS:
-            cli.who(botconfig.CHANNEL, "%tcuihsnfdlar,")
-        else:
-            cli.who(botconfig.CHANNEL)
+        channels.Main.who()
 
 def get_deadchat_pref(nick):
     if users.exists(nick):
@@ -991,8 +988,8 @@ def deadchat_pref(cli, nick, chan, rest):
 
     reply(cli, nick, chan, msg, private=True)
 
-@cmd("join", "j", pm=True)
-def join(cli, nick, chan, rest):
+@command("join", "j", pm=True)
+def join(var, wrapper, message):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     # keep this and the event in fjoin() in sync
     evt = Event("join", {
@@ -1000,72 +997,57 @@ def join(cli, nick, chan, rest):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-    if not evt.dispatch(cli, var, nick, chan, rest, forced=False):
+    if not evt.dispatch(var, wrapper, message, forced=False):
         return
     if var.PHASE in ("none", "join"):
-        if chan == nick:
+        if wrapper.private:
             return
         if var.ACCOUNTS_ONLY:
-            if users.exists(nick) and (not users.get(nick).account or users.get(nick).account == "*"):
-                cli.notice(nick, messages["not_logged_in"])
+            if users._get(nick).account is None: # FIXME
+                wrapper.pm(messages["not_logged_in"])
                 return
-        if evt.data["join_player"](cli, nick, chan) and rest:
-            evt.data["vote_gamemode"](cli, nick, chan, rest.lower().split()[0], False)
+        if evt.data["join_player"](var, wrapper) and message:
+            evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
 
     else: # join deadchat
-        if chan == nick and nick != botconfig.NICK:
-            evt.data["join_deadchat"](cli, nick)
+        if wrapper.private and wrapper.source is not wrapper.target:
+            evt.data["join_deadchat"](var, wrapper)
 
-def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
+def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     if who is None:
-        who = player
+        who = wrapper.source
 
     pl = list_players()
-    if chan != botconfig.CHANNEL:
+    if wrapper.target is not channels.Main:
         return False
 
-    if users.exists(player):
-        ident = irc_lower(users.get(player).ident)
-        host = users.get(player).host.lower()
-        acc = irc_lower(users.get(player).account)
-        hostmask = player + "!" + ident + "@" + host
-    elif is_fake_nick(player) and botconfig.DEBUG_MODE:
-        # fakenick
-        ident = None
-        host = None
-        acc = None
-        hostmask = None
-    else:
-        return False # Not normal
-    if not acc or acc == "*" or var.DISABLE_ACCOUNTS:
-        acc = None
-
-    stasis = is_user_stasised(player)
+    stasis = wrapper.source.stasis_count()
 
     if stasis > 0:
         if forced and stasis == 1:
-            decrement_stasis(player)
+            decrement_stasis(wrapper.source.nick)
         else:
-            cli.notice(who, messages["stasis"].format(
-                "you are" if player == who else player + " is", stasis,
-                "s" if stasis != 1 else ""))
+            who.send(messages["stasis"].format(
+                "you are" if wrapper.source is who else wrapper.source.nick + " is", stasis,
+                "s" if stasis != 1 else ""), notice=True)
             return False
 
+    temp = wrapper.source.lower()
+
     # don't check unacked warnings on fjoin
-    if who == player and db.has_unacknowledged_warnings(acc, hostmask):
-        cli.notice(player, messages["warn_unacked"])
+    if wrapper.source is who and db.has_unacknowledged_warnings(temp.account, temp.rawnick):
+        wrapper.pm(messages["warn_unacked"])
         return False
 
-    cmodes = [("+v", player)]
+    cmodes = [("+v", wrapper.source.nick)]
     if var.PHASE == "none":
-        if var.AUTO_TOGGLE_MODES and users.exists(player) and users.get(player).modes:
-            for mode in users.get(player).modes:
-                cmodes.append(("-"+mode, player))
-            users.get(player).moded.update(users.get(player).modes)
-            users.get(player).modes = set()
-        mass_mode(cli, cmodes, [])
-        var.ROLES["person"].add(player)
-        var.ALL_PLAYERS.append(player)
+        if var.AUTO_TOGGLE_MODES and users.get(player).modes: # FIXME: Need to properly handle mode changes (whole block)
+            for mode in users.get(wrapper.source.nick).modes:
+                cmodes.append(("-"+mode, wrapper.source.nick))
+            users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
+            users.get(wrapper.source.nick).modes.clear()
+        var.ROLES["person"].add(wrapper.source.nick) # FIXME: Need to store Users, not nicks
+        var.ALL_PLAYERS.append(wrapper.source.nick)
         var.PHASE = "join"
         with var.WAIT_TB_LOCK:
             var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
@@ -1073,12 +1055,12 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
-        if host:
-            var.JOINED_THIS_GAME.add(ident + "@" + host)
-        if acc:
-            var.JOINED_THIS_GAME_ACCS.add(acc)
+        if wrapper.source.userhost:
+            var.JOINED_THIS_GAME.add(wrapper.source.userhost)
+        if wrapper.source.account:
+            var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
-        cli.msg(chan, messages["new_game"].format(player, botconfig.CMD_CHAR))
+        wrapper.send(messages["new_game"].format(wrapper.source.nick, botconfig.CMD_CHAR))
 
         # Set join timer
         if var.JOIN_TIME_LIMIT > 0:
@@ -1087,52 +1069,50 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
             t.daemon = True
             t.start()
 
-    elif player in pl:
-        cli.notice(who, messages["already_playing"].format("You" if who == player else "They"))
+    elif wrapper.source.nick in pl: # FIXME: To fix when everything returns Users
+        who.send(messages["already_playing"].format("You" if who is wrapper.source else "They"), notice=True)
         # if we're not doing insane stuff, return True so that one can use !join to vote for a game mode
         # even if they are already joined. If we ARE doing insane stuff, return False to indicate that
         # the player was not successfully joined by this call.
         return sanity
     elif len(pl) >= var.MAX_PLAYERS:
-        cli.notice(who, messages["too_many_players"])
+        who.send(messages["too_many_players"], notice=True)
         return False
     elif sanity and var.PHASE != "join":
-        cli.notice(who, messages["game_already_running"])
+        who.send(messages["game_already_running"], notice=True)
         return False
     else:
-        if acc is not None and not botconfig.DEBUG_MODE:
-            for user in pl:
-                if irc_lower(users.get(user).account) == acc:
+        if not botconfig.DEBUG_MODE:
+            for nick in pl:
+                if users._get(nick).lower().account == temp.account: # FIXME
                     msg = messages["account_already_joined"]
-                    if who == player:
-                        cli.notice(who, msg.format(user, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)))
+                    if who is wrapper.source:
+                        who.send(msg.format(user, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)), notice=True)
                     else:
-                        cli.notice(who, msg.format(user, "their", ""))
+                        who.send(msg.format(user, "their", ""), notice=True)
                     return
 
-        var.ALL_PLAYERS.append(player)
-        if not is_fake_nick(player) or not botconfig.DEBUG_MODE:
-            if var.AUTO_TOGGLE_MODES and users.get(player).modes:
-                for mode in var.USERS[player]["modes"]:
-                    cmodes.append(("-"+mode, player))
-                users.get(player).moded.update(users.get(player).modes)
-                users.get(player).modes = set()
-            mass_mode(cli, cmodes, [])
-            cli.msg(chan, messages["player_joined"].format(player, len(pl) + 1))
+        var.ALL_PLAYERS.append(wrapper.source.nick)
+        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+            if var.AUTO_TOGGLE_MODES and users.get(wrapper.source.nick).modes:
+                for mode in users.get(wrapper.source.nick).modes:
+                    cmodes.append(("-"+mode, wrapper.source.nick))
+                users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
+                users.get(wrapper.source.nick).modes.clear()
+            wrapper.send(messages["player_joined"].format(wrapper.source.nick, len(pl) + 1))
         if not sanity:
             # Abandon Hope All Ye Who Enter Here
-            leave_deadchat(cli, player)
-            var.SPECTATING_DEADCHAT.discard(player)
-            var.SPECTATING_WOLFCHAT.discard(player)
+            leave_deadchat(wrapper.source.client, wrapper.source.nick)
+            var.SPECTATING_DEADCHAT.discard(wrapper.source.nick)
+            var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
             return True
-        var.ROLES["person"].add(player)
-        if not is_fake_nick(player):
-            hostmask = ident + "@" + host
-            if hostmask not in var.JOINED_THIS_GAME and (not acc or acc not in var.JOINED_THIS_GAME_ACCS):
+        var.ROLES["person"].add(wrapper.source.nick)
+        if not wrapper.source.is_fake:
+            if wrapper.source.userhost not in var.JOINED_THIS_GAME and wrapper.source.account not in var.JOINED_THIS_GAME_ACCS:
                 # make sure this only happens once
-                var.JOINED_THIS_GAME.add(hostmask)
-                if acc:
-                    var.JOINED_THIS_GAME_ACCS.add(acc)
+                var.JOINED_THIS_GAME.add(wrapper.source.userhost)
+                if wrapper.source.account:
+                    var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
                 now = datetime.now()
 
                 # add var.EXTRA_WAIT_JOIN to wait time
@@ -1154,10 +1134,12 @@ def join_player(cli, player, chan, who=None, forced=False, *, sanity=True):
         if "join_pinger" in var.TIMERS:
             var.TIMERS["join_pinger"][0].cancel()
 
-        t = threading.Timer(10, join_timer_handler, (cli,))
+        t = threading.Timer(10, join_timer_handler)
         var.TIMERS["join_pinger"] = (t, time.time(), 10)
         t.daemon = True
         t.start()
+
+    channels.Main.mode(*cmodes)
 
     return True
 
@@ -1179,8 +1161,8 @@ def kill_join(cli, chan):
         var.AFTER_FLASTGAME = None
 
 
-@cmd("fjoin", flag="A")
-def fjoin(cli, nick, chan, rest):
+@command("fjoin", flag="A")
+def fjoin(var, wrapper, message):
     """Forces someone to join a game."""
     # keep this and the event in def join() in sync
     evt = Event("join", {
@@ -1188,24 +1170,26 @@ def fjoin(cli, nick, chan, rest):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-    if not evt.dispatch(cli, var, nick, chan, rest, forced=True):
+    if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
     fake = False
-    if not rest.strip():
-        evt.data["join_player"](cli, nick, chan, forced=True)
+    if not message.strip():
+        evt.data["join_player"](var, wrapper, forced=True)
 
-    for tojoin in re.split(" +",rest):
+    for tojoin in re.split(" +", message):
         tojoin = tojoin.strip()
         if "-" in tojoin:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > var.MAX_PLAYERS - len(list_players()):
-                    cli.msg(chan, messages["too_many_players_to_join"].format(nick))
+                    wrapper.send(messages["too_many_players_to_join"].format(wrapper.source.nick))
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    evt.data["join_player"](cli, str(i), chan, forced=True, who=nick)
+                    user = users._add(wrapper.source.client, nick=str(i)) # FIXME
+                    channels.Dummy.users.add(user) # keep a strong reference to fake users (this will be removed eventually)
+                    evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
             continue
@@ -1214,23 +1198,23 @@ def fjoin(cli, nick, chan, rest):
         if tojoin.lower() not in ull or not var.USERS[ul[ull.index(tojoin.lower())]]["inchan"]:
             if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
-                    cli.msg(chan, nick+messages["fjoin_in_chan"])
+                    wrapper.send(wrapper.source.nick+messages["fjoin_in_chan"])
                     noticed = True
                 continue
         if not is_fake_nick(tojoin):
             tojoin = ul[ull.index(tojoin.lower())].strip()
             if not botconfig.DEBUG_MODE and var.ACCOUNTS_ONLY:
                 if not users.get(tojoin).account or users.get(tojoin).account == "*":
-                    cli.notice(nick, messages["account_not_logged_in"].format(tojoin))
+                    wrapper.pm(messages["account_not_logged_in"].format(tojoin))
                     return
         elif botconfig.DEBUG_MODE:
             fake = True
-        if tojoin != botconfig.NICK:
-            evt.data["join_player"](cli, tojoin, chan, forced=True, who=nick)
+        if tojoin != users.Bot.nick:
+            evt.data["join_player"](var, type(wrapper)(users._add(wrapper.source.client, nick=tojoin), wrapper.target), forced=True, who=wrapper.source)
         else:
-            cli.notice(nick, messages["not_allowed"])
+            wrapper.pm(messages["not_allowed"])
     if fake:
-        cli.msg(chan, messages["fjoin_success"].format(nick, len(list_players())))
+        wrapper.send(messages["fjoin_success"].format(wrapper.source.nick, len(list_players())))
 
 @cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(cli, nick, chan, rest):
@@ -2381,7 +2365,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             survived = list_players()
             if not pentry["dced"]:
                 evt = Event("player_win", {"won": won, "iwon": iwon, "special": pentry["special"]})
-                evt.dispatch(cli, var, splr, rol, winner, splr in survived)
+                evt.dispatch(var, users._get(splr), rol, winner, splr in survived) # FIXME
                 won = evt.data["won"]
                 iwon = evt.data["iwon"]
                 # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
@@ -3760,7 +3744,7 @@ def transition_day(cli, gameid=0):
             for mm in var.ROLES["matchmaker"]:
                 if mm not in var.MATCHMAKERS:
                     lovers = random.sample(pl, 2)
-                    choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False)
+                    choose.func(cli, mm, mm, lovers[0] + " " + lovers[1], sendmsg=False) # XXX: Old API
                     pm(cli, mm, messages["random_matchmaker"])
 
     # Reset daytime variables
@@ -4656,35 +4640,34 @@ def retract(cli, nick, chan, rest):
     else:
         cli.notice(nick, messages["pending_vote"])
 
-@cmd("shoot", playing=True, silenced=True, phases=("day",))
-def shoot(cli, nick, chan, rest):
+@command("shoot", playing=True, silenced=True, phases=("day",))
+def shoot(var, wrapper, message):
     """Use this to fire off a bullet at someone in the day if you have bullets."""
-
-    if chan != botconfig.CHANNEL:
+    if wrapper.target is not channels.Main:
         return
 
-    if nick not in var.GUNNERS.keys():
-        cli.notice(nick, messages["no_gun"])
+    if wrapper.source.nick not in var.GUNNERS.keys():
+        wrapper.pm(messages["no_gun"])
         return
-    elif not var.GUNNERS.get(nick):
-        cli.notice(nick, messages["no_bullets"])
+    elif not var.GUNNERS.get(wrapper.source.nick):
+        wrapper.pm(messages["no_bullets"])
         return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], True)
+    victim = get_victim(wrapper.source.client, wrapper.source.nick, re.split(" +", message)[0], True)
     if not victim:
         return
-    if victim == nick:
-        cli.notice(nick, messages["gunner_target_self"])
+    if victim == wrapper.source.nick:
+        wrapper.pm(messages["gunner_target_self"])
         return
     # get actual victim
-    victim = choose_target(nick, victim)
+    victim = choose_target(wrapper.source.nick, victim)
 
-    wolfshooter = nick in list_players(var.WOLFCHAT_ROLES)
-    var.GUNNERS[nick] -= 1
+    wolfshooter = wrapper.source.nick in list_players(var.WOLFCHAT_ROLES)
+    var.GUNNERS[wrapper.source.nick] -= 1
 
     rand = random.random()
-    if nick in var.ROLES["village drunk"]:
+    if wrapper.source.nick in var.ROLES["village drunk"]:
         chances = var.DRUNK_GUN_CHANCES
-    elif nick in var.ROLES["sharpshooter"]:
+    elif wrapper.source.nick in var.ROLES["sharpshooter"]:
         chances = var.SHARPSHOOTER_GUN_CHANCES
     else:
         chances = var.GUN_CHANCES
@@ -4701,26 +4684,26 @@ def shoot(cli, nick, chan, rest):
     if rand <= chances[0] and not (wolfshooter and wolfvictim) and not alwaysmiss:
         # didn't miss or suicide and it's not a wolf shooting another wolf
 
-        cli.msg(chan, messages["shoot_success"].format(nick, victim))
+        wrapper.send(messages["shoot_success"].format(wrapper.source.nick, victim))
         an = "n" if victimrole.startswith(("a", "e", "i", "o", "u")) else ""
         if realrole in var.WOLF_ROLES:
             if var.ROLE_REVEAL == "on":
-                cli.msg(chan, messages["gunner_victim_wolf_death"].format(victim,an, victimrole))
+                wrapper.send(messages["gunner_victim_wolf_death"].format(victim,an, victimrole))
             else: # off and team
-                cli.msg(chan, messages["gunner_victim_wolf_death_no_reveal"].format(victim))
-            if not del_player(cli, victim, killer_role = get_role(nick)):
+                wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(victim))
+            if not del_player(wrapper.source.client, victim, killer_role=get_role(wrapper.source.nick)):
                 return
         elif random.random() <= chances[3]:
             accident = "accidentally "
-            if nick in var.ROLES["sharpshooter"]:
+            if wrapper.source.nick in var.ROLES["sharpshooter"]:
                 accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
-            cli.msg(chan, messages["gunner_victim_villager_death"].format(victim, accident))
+            wrapper.send(messages["gunner_victim_villager_death"].format(victim, accident))
             if var.ROLE_REVEAL in ("on", "team"):
-                cli.msg(chan, messages["gunner_victim_role"].format(an, victimrole))
-            if not del_player(cli, victim, killer_role = get_role(nick)):
+                wrapper.send(messages["gunner_victim_role"].format(an, victimrole))
+            if not del_player(wrapper.source.client, victim, killer_role=get_role(wrapper.source.nick)):
                 return
         else:
-            cli.msg(chan, messages["gunner_victim_injured"].format(victim))
+            wrapper.send(messages["gunner_victim_injured"].format(victim))
             var.WOUNDED.add(victim)
             lcandidates = list(var.VOTES.keys())
             for cand in lcandidates:  # remove previous vote
@@ -4729,16 +4712,16 @@ def shoot(cli, nick, chan, rest):
                     if not var.VOTES.get(cand):
                         del var.VOTES[cand]
                     break
-            chk_decision(cli)
-            chk_win(cli)
+            chk_decision(wrapper.source.client)
+            chk_win(wrapper.source.client)
     elif rand <= chances[0] + chances[1]:
-        cli.msg(chan, messages["gunner_miss"].format(nick))
+        wrapper.send(messages["gunner_miss"].format(wrapper.source.nick))
     else:
         if var.ROLE_REVEAL in ("on", "team"):
-            cli.msg(chan, messages["gunner_suicide"].format(nick, get_reveal_role(nick)))
+            wrapper.send(messages["gunner_suicide"].format(wrapper.source.nick, get_reveal_role(wrapper.source.nick)))
         else:
-            cli.msg(chan, messages["gunner_suicide_no_reveal"].format(nick))
-        if not del_player(cli, nick, killer_role = "villager"): # blame explosion on villager's shoddy gun construction or something
+            wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source.nick))
+        if not del_player(wrapper.source.client, wrapper.source.nick, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something
             return  # Someone won.
 
 def is_safe(nick, victim): # helper function
@@ -4791,7 +4774,7 @@ def consecrate(cli, nick, chan, rest):
     # (for example, if there was a role that could raise corpses as undead somethings, this would prevent that from working)
     # regardless if this has any actual effect or not, it still removes the priest from being able to vote
     from src.roles import vengefulghost
-    if victim in vengefulghost.GHOSTS:
+    if users._get(victim) in vengefulghost.GHOSTS:
         var.SILENCED.add(victim)
 
     var.CONSECRATING.add(nick)
@@ -4970,7 +4953,7 @@ def hvisit(cli, nick, chan, rest):
         return
 
     if nick == victim:  # Staying home (same as calling pass, so call pass)
-        pass_cmd.func(cli, nick, chan, "")
+        pass_cmd.func(cli, nick, chan, "") # XXX: Old API
         return
     else:
         victim = choose_target(nick, victim)
@@ -5111,7 +5094,7 @@ def bite_cmd(cli, nick, chan, rest):
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
     roles=("harlot", "turncoat", "warlock", "succubus"))
-def pass_cmd(cli, nick, chan, rest):
+def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) also needs updating alongside this
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
 
@@ -5177,7 +5160,7 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
 
 @cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 @cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(cli, nick, chan, rest, sendmsg=True):
+def choose(cli, nick, chan, rest, sendmsg=True): # XXX: transition_day also needs updating alongside this one
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if not var.FIRST_NIGHT:
         return
@@ -7053,7 +7036,7 @@ def myrole(cli, nick, chan, rest):
         pm(cli, nick, message)
 
 @cmd("aftergame", "faftergame", flag="D", raw_nick=True, pm=True)
-def aftergame(cli, rawnick, chan, rest):
+def aftergame(cli, rawnick, chan, rest): # XXX: lastgame (just below this one) and sighandler (top of file) also need updating alongside this one
     """Schedule a command to be run after the current game."""
     nick = parse_nick(rawnick)[0]
     if not rest.strip():
@@ -7100,7 +7083,7 @@ def flastgame(cli, rawnick, chan, rest):
     var.ADMIN_TO_PING = nick
 
     if rest.strip():
-        aftergame.func(cli, rawnick, botconfig.CHANNEL, rest)
+        aftergame.func(cli, rawnick, botconfig.CHANNEL, rest) # XXX: Old API
 
 @cmd("gamestats", "gstats", pm=True)
 def game_stats(cli, nick, chan, rest):
@@ -7143,7 +7126,7 @@ def game_stats(cli, nick, chan, rest):
         # Attempt to find game stats for the given game size
         reply(cli, nick, chan, db.get_game_stats(gamemode, gamesize))
 
-@cmd("playerstats", "pstats", "player", "p", pm=True)
+@cmd("playerstats", "pstats", "player", "p", pm=True) # XXX: mystats (just after this) needs updating along this one
 def player_stats(cli, nick, chan, rest):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
@@ -7209,49 +7192,48 @@ def my_stats(cli, nick, chan, rest):
     player_stats.func(cli, nick, chan, " ".join([nick] + rest))
 
 # Called from !game and !join, used to vote for a game mode
-def vote_gamemode(cli, nick, chan, gamemode, doreply):
+def vote_gamemode(var, wrapper, gamemode, doreply):
     if var.FGAMED:
         if doreply:
-            cli.notice(nick, messages["admin_forced_game"])
+            wrapper.pm(messages["admin_forced_game"])
         return
 
     if gamemode not in var.GAME_MODES.keys():
         match, _ = complete_match(gamemode, var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
         if not match:
             if doreply:
-                cli.notice(nick, messages["invalid_mode_no_list"].format(gamemode))
+                wrapper.pm(messages["invalid_mode_no_list"].format(gamemode))
             return
         gamemode = match
 
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
-        if var.GAMEMODE_VOTES.get(nick) == gamemode:
-            cli.notice(nick, messages["already_voted_game"].format(gamemode))
+        if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
+            wrapper.pm(messages["already_voted_game"].format(gamemode))
         else:
-            var.GAMEMODE_VOTES[nick] = gamemode
-            cli.msg(chan, messages["vote_game_mode"].format(nick, gamemode))
+            var.GAMEMODE_VOTES[wrapper.source.nick] = gamemode
+            wrapper.send(messages["vote_game_mode"].format(wrapper.source.nick, gamemode))
     else:
         if doreply:
-            cli.notice(nick, messages["vote_game_fail"])
+            wrapper.pm(messages["vote_game_fail"])
 
-@cmd("game", playing=True, phases=("join",))
-def game(cli, nick, chan, rest):
+@command("game", playing=True, phases=("join",))
+def game(var, wrapper, message):
     """Vote for a game mode to be picked."""
-    if rest:
-        vote_gamemode(cli, nick, chan, rest.lower().split()[0], True)
+    if message:
+        vote_gamemode(var, wrapper, message.lower().split()[0], doreply=True)
     else:
         gamemodes = ", ".join("\u0002{0}\u0002".format(gamemode) if len(list_players()) in range(var.GAME_MODES[gamemode][1],
             var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and
             gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES)
-        cli.notice(nick, messages["no_mode_specified"] + gamemodes)
+        wrapper.pm(messages["no_mode_specified"] + gamemodes)
         return
 
-@cmd("games", "modes", pm=True)
-def show_modes(cli, nick, chan, rest):
+@command("games", "modes", pm=True)
+def show_modes(var, wrapper, message):
     """Show the available game modes."""
-    msg = messages["available_modes"]
     modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES))
 
-    reply(cli, nick, chan, msg + modes + "\u0002", private=True)
+    wrapper.pm("{0}{1}\u0002".format(messages["available_modes"], modes))
 
 def game_help(args=""):
     return (messages["available_mode_setters_help"] +
@@ -7343,52 +7325,53 @@ def update(cli, nick, chan, rest):
     if ret:
         restart_program.caller(cli, nick, chan, "Updating bot")
 
-@cmd("send", "fsend", flag="F", pm=True)
-def fsend(cli, nick, chan, rest):
+@command("send", "fsend", flag="F", pm=True)
+def fsend(var, wrapper, message):
     """Forcibly send raw IRC commands to the server."""
-    cli.send(rest)
+    wrapper.source.client.send(message)
 
-def _say(cli, raw_nick, rest, command, action=False):
-    (nick, _, ident, host) = parse_nick(raw_nick)
+def _say(wrapper, rest, cmd, action=False):
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
-        pm(cli, nick, messages["fsend_usage"].format(
-            botconfig.CMD_CHAR, command))
-
+        wrapper.pm(messages["fsend_usage"].format(botconfig.CMD_CHAR, cmd))
         return
 
-    (target, message) = rest
+    target, message = rest
 
-    if not is_admin(nick, ident, host):
-        if not users.exists(nick):
-            pm(cli, nick, messages["wrong_channel"].format(
-                botconfig.CHANNEL))
+    if target.startswith(tuple(hooks.Features["CHANTYPES"])):
+        targ = channels.get(target, allow_none=True)
+    else:
+        targ = users._get(target, allow_multiple=True) # FIXME
+        if len(targ) == 1:
+            targ = targ[0]
+        else:
+            targ = None
 
-            return
+    if targ is None:
+        targ = IRCClient(target, wrapper.source.client)
 
-        if rest[0] != botconfig.CHANNEL:
-            pm(cli, nick, messages["invalid_fsend_permissions"])
-
+    if not wrapper.source.is_admin():
+        if targ is not channels.Main:
+            wrapper.pm(messages["invalid_fsend_permissions"])
             return
 
     if action:
         message = "\u0001ACTION {0}\u0001".format(message)
 
-    cli.send("PRIVMSG {0} :{1}".format(target, message))
+    targ.send(message, privmsg=True)
 
-
-@cmd("say", "fsay", flag="s", raw_nick=True, pm=True)
-def fsay(cli, raw_nick, chan, rest):
+@command("say", "fsay", flag="s", pm=True)
+def fsay(var, wrapper, message):
     """Talk through the bot as a normal message."""
-    _say(cli, raw_nick, rest, "say")
+    _say(wrapper, message, "say")
 
-@cmd("act", "do", "me", "fact", "fdo", "fme", flag="s", raw_nick=True, pm=True)
-def fact(cli, raw_nick, chan, rest):
+@command("act", "do", "me", "fact", "fdo", "fme", flag="s", pm=True)
+def fact(var, wrapper, message):
     """Act through the bot as an action."""
-    _say(cli, raw_nick, rest, "act", action=True)
+    _say(wrapper, message, "act", action=True)
 
-def can_run_restricted_cmd(nick):
+def can_run_restricted_cmd(user):
     # if allowed in normal games, restrict it so that it can only be used by dead players and
     # non-players (don't allow active vengeful ghosts either).
     # also don't allow in-channel (e.g. make it pm only)
@@ -7398,35 +7381,34 @@ def can_run_restricted_cmd(nick):
 
     pl = list_participants()
 
-    if nick in pl:
+    if user.nick in pl: # FIXME: Need to update this once list_participants() holds User instances
         return False
 
-    if users.exists(nick) and users.get(nick).account in [users.get(player).account for player in pl if users.exists(player)]:
+    if user.account in [users._get(player).account for player in pl]: # FIXME
         return False
 
-    hostmask = users.get(nick).ident + "@" + users.get(nick).host
-    if users.exists(nick) and hostmask in [users.get(player).ident + "@" + users.get(player).host for player in pl if users.exists(player)]:
+    if user.userhost in [users._get(player).userhost for player in pl]: # FIXME
         return False
 
     return True
 
-@cmd("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"))
-def fspectate(cli, nick, chan, rest):
+@command("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"))
+def fspectate(var, wrapper, message):
     """Spectate wolfchat or deadchat."""
-    if not can_run_restricted_cmd(nick):
+    if not can_run_restricted_cmd(wrapper.source):
         pm(cli, nick, messages["fspectate_restricted"])
         return
 
-    params = rest.split(" ")
+    params = message.split(" ")
     on = "on"
     if not len(params):
-        pm(cli, nick, messages["fspectate_help"])
+        wrapper.pm(messages["fspectate_help"])
         return
     elif len(params) > 1:
         on = params[1].lower()
     what = params[0].lower()
     if what not in ("wolfchat", "deadchat") or on not in ("on", "off"):
-        pm(cli, nick, messages["fspectate_help"])
+        wrapper.pm(messages["fspectate_help"])
         return
 
     if on == "off":
@@ -7434,54 +7416,50 @@ def fspectate(cli, nick, chan, rest):
             var.SPECTATING_WOLFCHAT.discard(nick)
         else:
             var.SPECTATING_DEADCHAT.discard(nick)
-        pm(cli, nick, messages["fspectate_off"].format(what))
+        wrapper.pm(messages["fspectate_off"].format(what))
     else:
         players = []
         if what == "wolfchat":
             var.SPECTATING_WOLFCHAT.add(nick)
             players = (p for p in list_players() if in_wolflist(p, p))
         elif var.ENABLE_DEADCHAT:
-            if nick in var.DEADCHAT_PLAYERS:
-                pm(cli, nick, messages["fspectate_in_deadchat"])
+            if wrapper.source.nick in var.DEADCHAT_PLAYERS: # FIXME
+                wrapper.pm(messages["fspectate_in_deadchat"])
                 return
             var.SPECTATING_DEADCHAT.add(nick)
             players = var.DEADCHAT_PLAYERS
         else:
-            pm(cli, nick, messages["fspectate_deadchat_disabled"])
+            wrapper.pm(messages["fspectate_deadchat_disabled"])
             return
-        pm(cli, nick, messages["fspectate_on"].format(what))
-        pm(cli, nick, "People in {0}: {1}".format(what, ", ".join(players)))
+        wrapper.pm(messages["fspectate_on"].format(what))
+        wrapper.pm("People in {0}: {1}".format(what, ", ".join(players)))
 
 before_debug_mode_commands = list(COMMANDS.keys())
 
 if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
-    @cmd("eval", owner_only=True, pm=True)
-    def pyeval(cli, nick, chan, rest):
+    @command("eval", owner_only=True, pm=True)
+    def pyeval(var, wrapper, message):
         """Evaluate a Python expression."""
         try:
-            a = str(eval(rest))
-            if len(a) < 500:
-                cli.msg(chan, a)
-            else:
-                cli.msg(chan, a[:500])
+            wrapper.send(str(eval(message))[:500])
         except Exception as e:
-            cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
+            wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-    @cmd("exec", owner_only=True, pm=True)
-    def py(cli, nick, chan, rest):
+    @command("exec", owner_only=True, pm=True)
+    def py(var, wrapper, message):
         """Execute arbitrary Python code."""
         try:
-            exec(rest)
+            exec(message)
         except Exception as e:
-            cli.msg(chan, "{e.__class__.__name__}: {e}".format(e=e))
+            wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-    @cmd("revealroles", flag="a", pm=True, phases=("day", "night"))
-    def revealroles(cli, nick, chan, rest):
+    @command("revealroles", flag="a", pm=True, phases=("day", "night"))
+    def revealroles(var, wrapper, message):
         """Reveal role information."""
 
-        if not can_run_restricted_cmd(nick):
-            reply(cli, nick, chan, messages["temp_invalid_perms"], private=True)
+        if not can_run_restricted_cmd(wrapper.source):
+            wrapper.pm(messages["temp_invalid_perms"])
             return
 
         output = []
@@ -7507,7 +7485,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                                             if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
 
                     evt = Event("revealroles_role", {"special_case": special_case})
-                    evt.dispatch(cli, var, nickname, role)
+                    evt.dispatch(var, wrapper, nickname, role)
                     special_case = evt.data["special_case"]
 
                     if not evt.prevent_default and nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
@@ -7552,12 +7530,12 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
 
         evt = Event("revealroles", {"output": output})
-        evt.dispatch(cli, var)
+        evt.dispatch(var, wrapper)
 
         if botconfig.DEBUG_MODE:
-            cli.msg(chan, break_long_message(output, " | "))
+            wrapper.send(*output, sep=" | ")
         else:
-            reply(cli, nick, chan, break_long_message(output, " | "), private=True)
+            wrapper.pm(*output, sep=" | ")
 
 
     @cmd("fgame", flag="d", raw_nick=True, phases=("join",))
@@ -7645,7 +7623,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     if fn.chan:
                         fn.caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn.caller(cli, user, user, " ".join(rst))
+                        fn.caller(cli, user, users.Bot.nick, " ".join(rst))
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])
@@ -7685,7 +7663,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                     if fn.chan:
                         fn.caller(cli, user, chan, " ".join(rst))
                     else:
-                        fn.caller(cli, user, user, " ".join(rst))
+                        fn.caller(cli, user, users.Bot.nick, " ".join(rst))
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])

@@ -55,13 +55,13 @@ def dullahan_retract(cli, nick, chan, rest):
     pm(cli, nick, messages["retracted_kill"])
 
 @event_listener("player_win")
-def on_player_win(evt, cli, var, nick, role, winner, survived):
+def on_player_win(evt, var, user, role, winner, survived):
     if role != "dullahan":
         return
     alive = set(list_players())
-    if nick in var.ENTRANCED:
+    if user.nick in var.ENTRANCED:
         alive -= var.ROLES["succubus"]
-    if not TARGETS[nick] & alive:
+    if not TARGETS[user.nick] & alive:
         evt.data["iwon"] = True
 
 @event_listener("del_player")
@@ -222,7 +222,7 @@ def on_myrole(evt, cli, var, nick):
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, cli, var, nickname, role):
+def on_revealroles_role(evt, var, wrapper, nickname, role):
     if role == "dullahan" and nickname in TARGETS:
         targets = TARGETS[nickname] - var.DEAD
         if targets: 
