@@ -1003,7 +1003,7 @@ def join(var, wrapper, message):
         if wrapper.private:
             return
         if var.ACCOUNTS_ONLY:
-            if users._get(nick).account is None: # FIXME
+            if wrapper.source.account is None:
                 wrapper.pm(messages["not_logged_in"])
                 return
         if evt.data["join_player"](var, wrapper) and message:
