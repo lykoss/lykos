@@ -1064,7 +1064,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
         # Set join timer
         if var.JOIN_TIME_LIMIT > 0:
-            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [cli, chan])
+            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [wrapper.source.client, wrapper.target.name])
             var.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
             t.start()
