@@ -113,6 +113,11 @@ class IRCContext:
         self.client = client
         self.ref = None
 
+    def __format__(self, format_spec=""):
+        if not format_spec:
+            return self.name
+        raise ValueError("Format specificer {0} has undefined semantics".format(format_spec))
+
     def lower(self):
         temp = type(self)(lower(name), client)
         temp.ref = self.ref or self
