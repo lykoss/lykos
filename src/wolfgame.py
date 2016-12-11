@@ -419,10 +419,9 @@ def restart_program(cli, nick, chan, rest): # XXX: sighandler (top of file) also
     """Restarts the bot."""
 
     args = rest.split()
-    force = False
 
-    if botconfig.DEBUG_MODE:
-        force = True
+    # Force in debug mode by default
+    force = botconfig.DEBUG_MODE
 
     if args and args[0] == "-force":
         force = True
