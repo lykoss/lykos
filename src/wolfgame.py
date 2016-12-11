@@ -7349,7 +7349,7 @@ def _say(wrapper, rest, cmd, action=False):
             targ = None
 
     if targ is None:
-        targ = IRCClient(target, wrapper.source.client)
+        targ = IRCContext(target, wrapper.source.client)
 
     if not wrapper.source.is_admin():
         if targ is not channels.Main:
