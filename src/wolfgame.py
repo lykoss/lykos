@@ -366,14 +366,15 @@ def forced_exit(cli, nick, chan, rest): # XXX: sighandler (top of file) also nee
 
     args = rest.split()
 
+    # Force in debug mode by default
+    force = botconfig.DEBUG_MODE
+
     if args and args[0] == "-dirty":
         # use as a last resort
         os.abort()
-    elif botconfig.DEBUG_MODE or (args and args[0] == "-force"):
+    elif args and args[0] == "-force":
         force = True
         rest = " ".join(args[1:])
-    else:
-        force = False
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force or nick == "<console>":
