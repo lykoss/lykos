@@ -2095,7 +2095,7 @@ def chk_decision(cli, force=""):
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                     cli.msg(botconfig.CHANNEL, lmsg)
                     if not del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
-                        break
+                        return
                 do_night_transision = True
                 break
         if do_night_transision:
