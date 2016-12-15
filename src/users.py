@@ -59,28 +59,27 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
     sentinel = object()
 
     temp = User(sentinel, nick, ident, host, realname, account)
-    if temp.client is not sentinel:
-        return temp # actual client
+    if temp.client is not sentinel: # actual client
+        return [temp] if allow_multiple else temp
 
     for user in users:
         if user == temp:
             potential.append(user)
 
-    if not allow_multiple and len(potential) > 1:
-        raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
-
-
-    if not potential and not allow_multiple and not allow_none:
-        raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
-
     if allow_multiple:
         return potential
 
-    if not potential: # allow_none
-        return None
+    if len(potential) == 1:
+        return potential[0]
 
-    return potential[0]
+    if len(potential) > 1:
+        raise ValueError("More than one user matches: " +
+              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+
+    if not allow_none:
+        raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
+
+    return None
 
 def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as soon as possible!
     var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
