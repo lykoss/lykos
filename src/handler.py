@@ -82,6 +82,8 @@ def connect_callback(cli):
         users.Bot.change_nick(botconfig.NICK)
 
     def mustregain(cli, server, bot_nick, nick, msg):
+        nonlocal regaincount
+
         if not botconfig.PASS or bot_nick == nick or regaincount > 3:
             return
         if var.NICKSERV_REGAIN_COMMAND:
@@ -95,6 +97,8 @@ def connect_callback(cli):
         users.Bot.change_nick(botconfig.NICK)
 
     def mustrelease(cli, server, bot_nick, nick, msg):
+        nonlocal releasecount
+
         if not botconfig.PASS or bot_nick == nick or releasecount > 3:
             return # prevents the bot from trying to release without a password
         if var.NICKSERV_RELEASE_COMMAND:
