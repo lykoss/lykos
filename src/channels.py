@@ -2,7 +2,7 @@ import time
 
 from enum import Enum
 
-from src.context import IRCContext, Features
+from src.context import IRCContext, Features, lower
 from src.events import Event
 from src import users
 
@@ -29,7 +29,7 @@ def predicate(name):
 
 def get(name, *, allow_none=False):
     try:
-        return _channels[name]
+        return _channels[lower(name)]
     except KeyError:
         if allow_none:
             return None
@@ -45,20 +45,22 @@ def add(name, cli, key=""):
     # another one (or some other weird stuff like that). Instead of
     # jumping through hoops, we just disallow it here.
 
-    if name in _channels:
-        if cli is not _channels[name].client:
+    if lower(name) in _channels:
+        if cli is not _channels[lower(name)].client:
             raise RuntimeError("different IRC client for channel {0}".format(name))
-        return _channels[name]
+        return _channels[lower(name)]
 
     cls = Channel
     if predicate(name):
         cls = FakeChannel
 
-    chan = _channels[name] = cls(name, cli)
+    chan = _channels[lower(name)] = cls(name, cli)
     chan.join(key)
     return chan
 
-exists = _channels.__contains__
+def exists(name):
+    """Return True if a channel by the name exists, False otherwise."""
+    return lower(name) in _channels
 
 def channels():
     """Iterate over all the current channels."""
