@@ -55,7 +55,8 @@ def add(name, cli, key=""):
         cls = FakeChannel
 
     chan = _channels[lower(name)] = cls(name, cli)
-    chan.join(key)
+    chan._key = key
+    chan.join()
     return chan
 
 def exists(name):
@@ -107,8 +108,10 @@ class Channel(IRCContext):
         else:
             self._pending.append((name, params, args))
 
-    def join(self, key=""):
+    def join(self, key=None):
         if self.state in (_States.NotJoined, _States.Left):
+            if key is None:
+                key = self.key
             self.state = _States.PendingJoin
             self.client.send("JOIN {0} :{1}".format(self.name, key))
 
@@ -244,6 +247,9 @@ class Channel(IRCContext):
                     if c in all_set:
                         i += 1 # -k needs a target, but we don't care about it
                     del self.modes[c]
+
+        if "k" in mode:
+            self._key = self.modes.get("k", "")
 
     def remove_user(self, user):
         self.users.remove(user)
