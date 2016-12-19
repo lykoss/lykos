@@ -2,7 +2,7 @@ from weakref import WeakSet
 import fnmatch
 import re
 
-from src.context import IRCContext, Features, lower
+from src.context import IRCContext, Features, lower, equals
 from src import settings as var
 from src import db
 
@@ -168,9 +168,6 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
     """Return a dict of {"nick": nick, "ident": ident, "host": host}."""
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
-
-def equals(nick1, nick2):
-    return lower(nick1) == lower(nick2)
 
 class User(IRCContext):
 

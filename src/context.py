@@ -91,6 +91,9 @@ def lower(nick):
 
     return nick.lower().translate(str.maketrans(mapping))
 
+def equals(nick1, nick2):
+    return lower(nick1) == lower(nick2)
+
 def context_types(*types):
     def wrapper(cls):
         cls._getters = l = []
