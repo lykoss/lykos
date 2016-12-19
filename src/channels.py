@@ -154,7 +154,7 @@ class Channel(IRCContext):
             mode, target = change
             if len(mode) < 2:
                 mode = "+" + mode
-            params.append((mode, target))
+            params.append((mode, "{0}".format(target)))
         params.sort(key=lambda x: x[0][0]) # sort by prefix
 
         while params:
