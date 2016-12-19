@@ -175,7 +175,7 @@ class User(IRCContext):
 
     def __new__(cls, cli, nick, ident, host, realname, account):
         self = super().__new__(cls)
-        super(User, self).__init__(nick, cli)
+        super(__class__, self).__init__(nick, cli)
 
         self._ident = ident
         self._host = host
