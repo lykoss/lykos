@@ -262,18 +262,7 @@ class User(IRCContext):
         return hash((self.ident, self.host))
 
     def __eq__(self, other):
-        if not isinstance(other, User):
-            return NotImplemented
-
-        done = False
-        for a, b in ((self.nick, other.nick), (self.ident, other.ident), (self.host, other.host), (self.realname, other.realname), (self.account, other.account)):
-            if a is None or b is None:
-                continue
-            done = True
-            if a != b:
-                return False
-
-        return done
+        return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
 
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account))

@@ -91,6 +91,16 @@ class Channel(IRCContext):
     def __repr__(self):
         return "{self.__class__.__name__}({self.name!r})".format(self=self)
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self._compare(other, Channel, "name", "key", "client", "state", "modes", "timestamp")
+
+    @property
+    def key(self):
+        return self._key
+
     def queue(self, name, params, args):
         if self._pending is None:
             Event(name, params).dispatch(*args)

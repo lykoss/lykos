@@ -121,6 +121,24 @@ class IRCContext:
             return self.name
         raise ValueError("Format specificer {0} has undefined semantics".format(format_spec))
 
+    def __eq__(self, other):
+        return self._compare(other, __class__) # This will always return False
+
+    def _compare(self, other, cls, *attributes):
+        """Compare two instances and return a proper value."""
+        if not isinstance(other, cls):
+            return NotImplemented
+
+        done = False
+        for attr in attributes:
+            if getattr(self, attr) is None or getattr(other, attr) is None:
+                continue
+            done = True
+            if getattr(self, attr) != getattr(other, attr):
+                return False
+
+        return done
+
     def lower(self):
         temp = type(self)(lower(name), client)
         temp.ref = self.ref or self
