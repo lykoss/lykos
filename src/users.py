@@ -527,6 +527,10 @@ class FakeUser(User):
     def __hash__(self):
         return hash(self.nick)
 
+    @classmethod
+    def from_nick(cls, nick):
+        return cls(None, nick, None, None, None, None)
+
     @property
     def nick(self):
         return self.name
