@@ -453,21 +453,21 @@ def end_inviteexemptlist(cli, server, bot_nick, chan, message):
 ### NICK handling
 
 @hook("nick")
-def on_nick_change(cli, old_nick, nick):
+def on_nick_change(cli, old_rawnick, nick):
     """Handle a user changing nicks, which may be the bot itself.
 
     Ordering and meaning of arguments for a NICK change:
 
     0 - The IRCClient instance (like everywhere else)
-    1 - The old nickname the user changed from
+    1 - The old (raw) nickname the user changed from
     2 - The new nickname the user changed to
 
     """
 
-    user = users._get(old_nick) # FIXME
+    user = users._get(old_rawnick) # FIXME
     user.nick = nick
 
-    Event("nick_change", {}).dispatch(var, user, old_nick)
+    Event("nick_change", {}).dispatch(var, user, old_rawnick)
 
 ### ACCOUNT handling
 
