@@ -38,7 +38,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
 
     """
 
-    hop, realname = hopcount_gecos.split(None, 1)
+    hop, realname = hopcount_gecos.split(" ", 1)
     hop = int(hop)
     # We throw away the information about the operness of the user, but we probably don't need to care about that
     # We also don't directly pass which modes they have, since that's already on the channel/user
