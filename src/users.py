@@ -157,6 +157,21 @@ class users: # backwards-compatible API
     def items():
         yield from var.USERS.items()
 
+def complete_match(string, users):
+    matches = []
+    string = lower(string)
+    for user in users:
+        nick = lower(user.nick)
+        if nick == string:
+            return user, 1
+        elif nick.startswith(string) or nick.lstrip("[{\\^_`|}]").startswith(string):
+            matches.append(user)
+
+    if len(matches) != 1:
+        return None, len(matches)
+
+    return matches[0], 1
+
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 
 def parse_rawnick(rawnick, *, default=None):
