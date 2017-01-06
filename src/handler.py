@@ -48,9 +48,7 @@ def unhandled(cli, prefix, cmd, *args):
 
 def ping_server(cli):
     if var.SERVER_PING_INTERVAL > 0:
-        ts = time.time()
-        var.LAST_SERVER_PING = ts
-        cli.send("PING :{0}".format(ts))
+        cli.send("PING :{0}".format(time.time()))
         threading.Timer(var.SERVER_PING_INTERVAL, ping_server, args=(cli,)).start()
 
 def connect_callback(cli):

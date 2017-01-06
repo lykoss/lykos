@@ -498,7 +498,7 @@ def latency(cli, nick, chan, rest):
 
     @hook("pong", hookid=300)
     def latency_pong(cli, server, target, ts):
-        lat = round(time.time() - var.LAST_SERVER_PING, 3)
+        lat = round(time.time() - float(ts), 3)
         reply(cli, nick, chan, messages["latency"].format(lat, "" if lat == 1 else "s"))
         hook.unhook(300)
 
