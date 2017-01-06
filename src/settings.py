@@ -204,6 +204,9 @@ DEV_CHANNEL = ""
 DEV_PREFIX = ""
 PASTEBIN_ERRORS = False
 
+# How often to ping the server (in seconds) to detect unclean disconnection
+SERVER_PING_INTERVAL = 120
+LAST_SERVER_PING = None
 
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"

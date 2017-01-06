@@ -3,6 +3,8 @@
 import base64
 import socket
 import sys
+import threading
+import time
 import traceback
 
 import botconfig
@@ -44,6 +46,13 @@ def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
         fn.caller(cli, prefix, *args)
 
+def ping_server(cli):
+    if var.SERVER_PING_INTERVAL > 0:
+        ts = time.time()
+        var.LAST_SERVER_PING = ts
+        cli.send("PING :{0}".format(ts))
+        threading.Timer(var.SERVER_PING_INTERVAL, ping_server, args=(cli,)).start()
+
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
@@ -80,6 +89,8 @@ def connect_callback(cli):
         #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
 
         users.Bot.change_nick(botconfig.NICK)
+
+        ping_server(cli)
 
     def mustregain(cli, server, bot_nick, nick, msg):
         nonlocal regaincount

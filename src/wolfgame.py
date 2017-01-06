@@ -46,7 +46,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, channels, users, hooks, logger, proxy, debuglog, errlog, plog
+from src import db, events, channels, users, handler, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
@@ -481,7 +481,6 @@ def restart_program(cli, nick, chan, rest): # XXX: sighandler (top of file) also
     # handler now, but I'm keeping it for now just in case.
     var.RESTARTING = True
 
-
 @cmd("ping", pm=True)
 def pinger(cli, nick, chan, rest):
     """Check if you or the bot is still connected."""
@@ -490,6 +489,16 @@ def pinger(cli, nick, chan, rest):
         bot_nick=botconfig.NICK,
         cmd_char=botconfig.CMD_CHAR,
         goat_action=random.choice(messages["goat_actions"])))
+
+@cmd("latency", pm=True)
+def latency(cli, nick, chan, rest):
+    handler.ping_server(cli)
+
+    @hook("pong", hookid=300)
+    def latency_pong(cli, server, target, ts):
+        lat = round(time.time() - var.LAST_SERVER_PING, 3)
+        reply(cli, nick, chan, messages["latency"].format(lat, "" if lat == 1 else "s"))
+        hook.unhook(300)
 
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):

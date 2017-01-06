@@ -33,6 +33,7 @@
         "Give me a ping, Vasily. One ping only, please.",
         "Would you people please leave me alone? Seriously."
     ],
+    "latency": "{0:.3f} second{1}.",
     "lynch_reveal": [
         "The villagers, after much debate, finally decide on lynching \u0002{0}\u0002, who turned out to be... a{1} \u0002{2}\u0002.",
         "After a prolonged struggle, \u0002{0}\u0002 is forced to the gallows, and is discovered after death to be a{1} \u0002{2}\u0002.",
