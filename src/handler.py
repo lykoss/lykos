@@ -10,7 +10,10 @@ import traceback
 import botconfig
 import src.settings as var
 from src import decorators, wolfgame, channels, hooks, users, errlog as log, stream_handler as alog
+from src.messages import messages
+from src.utilities import reply
 
+cmd = decorators.cmd
 hook = decorators.hook
 
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
@@ -47,9 +50,17 @@ def unhandled(cli, prefix, cmd, *args):
         fn.caller(cli, prefix, *args)
 
 def ping_server(cli):
-    if var.SERVER_PING_INTERVAL > 0:
-        cli.send("PING :{0}".format(time.time()))
-        threading.Timer(var.SERVER_PING_INTERVAL, ping_server, args=(cli,)).start()
+    cli.send("PING :{0}".format(time.time()))
+
+@cmd("latency", pm=True)
+def latency(cli, nick, chan, rest):
+    ping_server(cli)
+
+    @hook("pong", hookid=300)
+    def latency_pong(cli, server, target, ts):
+        lat = round(time.time() - float(ts), 3)
+        reply(cli, nick, chan, messages["latency"].format(lat, "" if lat == 1 else "s"))
+        hook.unhook(300)
 
 def connect_callback(cli):
     regaincount = 0
@@ -88,7 +99,12 @@ def connect_callback(cli):
 
         users.Bot.change_nick(botconfig.NICK)
 
-        ping_server(cli)
+        if var.SERVER_PING_INTERVAL > 0:
+            def ping_server_timer(cli):
+                ping_server(cli)
+                threading.Timer(var.SERVER_PING_INTERVAL, ping_server_timer, args=(cli,)).start()
+
+            ping_server_timer(cli)
 
     def mustregain(cli, server, bot_nick, nick, msg):
         nonlocal regaincount

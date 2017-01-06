@@ -490,18 +490,6 @@ def pinger(cli, nick, chan, rest):
         cmd_char=botconfig.CMD_CHAR,
         goat_action=random.choice(messages["goat_actions"])))
 
-@cmd("latency", pm=True)
-def latency(cli, nick, chan, rest):
-    from src import handler
-
-    handler.ping_server(cli)
-
-    @hook("pong", hookid=300)
-    def latency_pong(cli, server, target, ts):
-        lat = round(time.time() - float(ts), 3)
-        reply(cli, nick, chan, messages["latency"].format(lat, "" if lat == 1 else "s"))
-        hook.unhook(300)
-
 @cmd("simple", raw_nick=True, pm=True)
 def mark_simple_notify(cli, nick, chan, rest):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
