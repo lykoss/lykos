@@ -46,7 +46,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, channels, users, handler, hooks, logger, proxy, debuglog, errlog, plog
+from src import db, events, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
@@ -492,6 +492,8 @@ def pinger(cli, nick, chan, rest):
 
 @cmd("latency", pm=True)
 def latency(cli, nick, chan, rest):
+    from src import handler
+
     handler.ping_server(cli)
 
     @hook("pong", hookid=300)
