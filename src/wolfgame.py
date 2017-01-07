@@ -46,7 +46,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, channels, users, hooks, logger, proxy, debuglog, errlog, plog
+from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
@@ -132,7 +132,7 @@ def connect_callback():
     SIGUSR2 = getattr(signal, "SIGUSR2", None)
 
     def sighandler(signum, frame):
-        wrapper = decorators.MessageDispatcher(users.FakeUser.from_nick("<console>"), channels.Main)
+        wrapper = dispatcher.MessageDispatcher(users.FakeUser.from_nick("<console>"), channels.Main)
         if signum == signal.SIGINT:
             # Exit immediately if Ctrl-C is pressed twice
             signal.signal(signal.SIGINT, signal.SIG_DFL)
