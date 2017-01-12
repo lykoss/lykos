@@ -262,7 +262,7 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
     # 2) other bots might start a fight over modes
     # 3) recursion; we see our own mode changes.
     if "!" not in rnick:
-        sync_modes(cli)
+        sync_modes(var)
 
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
@@ -330,28 +330,31 @@ def reset():
 
 reset()
 
-@cmd("sync", "fsync", flag="m", pm=True)
-def fsync(cli, nick, chan, rest):
+@command("sync", "fsync", flag="m", pm=True)
+def fsync(var, wrapper, message):
     """Makes the bot apply the currently appropriate channel modes."""
-    sync_modes(cli)
+    sync_modes(var)
 
-def sync_modes(cli):
-    voices = []
+def sync_modes(var):
+    voices = [None]
+    mode = hooks.Features["PREFIX"]["+"]
     pl = list_players()
-    for nick, u in users.users.items(): # that's really *just* for backwards-compat
-        if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
-            if "v" in u.get("modes", set()):
-              voices.append(("-v", nick))
-        elif nick in pl and "v" not in u.get("modes", set()):
-            voices.append(("+v", nick))
-        elif nick not in pl and "v" in u.get("modes", set()):
-            voices.append(("-v", nick))
-    if var.PHASE in var.GAME_PHASES:
-        other = ["+m"]
-    else:
-        other = ["-m"]
 
-    mass_mode(cli, voices, other)
+    for user in channels.Main.users:
+        if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
+            if mode in user.channels[channels.Main]:
+                voices.append(("-" + mode, user))
+            elif user.nick in pl and mode not in user.channels[channels.Main]: # FIXME: Need to fix for when list_players() returns User instances
+                voices.append(("+" + mode, user))
+            elif user.nick not in pl and mode in user.channels[channels.Main]: # FIXME: See above comment
+                voices.append(("-" + mode, user))
+
+    if var.PHASE in var.GAME_PHASES:
+        voices[0] = "+m"
+    else:
+        voices[0] = "-m"
+
+    channels.Main.mode(*voices)
 
 @cmd("refreshdb", flag="m", pm=True)
 def refreshdb(cli, nick, chan, rest):
