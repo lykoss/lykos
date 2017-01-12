@@ -281,8 +281,9 @@ class User(IRCContext):
 
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account))
-        temp.channels = self.channels
-        temp.ref = self.ref or self
+        if temp is not self: # If everything is already lowercase, we'll get back the same instance
+            temp.channels = self.channels
+            temp.ref = self.ref or self
         return temp
 
     def is_owner(self):
