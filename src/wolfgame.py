@@ -497,9 +497,6 @@ def mark_simple_notify(var, wrapper, message):
     simple_set, value = (var.SIMPLE_NOTIFY, userhost) if account is None else (var.SIMPLE_NOTIFY_ACCS, account)
     action, toggle = (simple_set.discard, "off") if simple else (simple_set.add, "on")
 
-    if account is not None:
-        userhost = None
-
     action(value)
     db.toggle_simple(account, userhost)
     wrapper.pm(messages["simple_" + toggle])
@@ -523,9 +520,6 @@ def mark_prefer_notice(var, wrapper, message):
     notice = wrapper.source.prefers_notice()
     notice_set, value = (var.PREFER_NOTICE, userhost) if account is None else (var.PREFER_NOTICE_ACCS, account)
     action, toggle = (notice_set.discard, "off") if notice else (notice_set.add, "on")
-
-    if account is not None:
-        userhost = None
 
     action(value)
     db.toggle_notice(account, userhost)
