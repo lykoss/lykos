@@ -157,7 +157,7 @@ class Channel(IRCContext):
             mode, target = change
             if len(mode) < 2:
                 mode = "+" + mode
-            params.append((mode, "{0}".format(target)))
+            params.append((mode, target))
         params.sort(key=lambda x: x[0][0]) # sort by prefix
 
         while params:
@@ -176,7 +176,7 @@ class Channel(IRCContext):
             for target in targets:
                 if target is not None: # target will be None if the mode is parameter-less
                     final.append(" ")
-                    final.append(target)
+                    final.append("{0}".format(target))
 
             self.client.send("MODE", self.name, "".join(final))
 
