@@ -356,13 +356,13 @@ def sync_modes(var):
 
     channels.Main.mode(*voices)
 
-@cmd("refreshdb", flag="m", pm=True)
-def refreshdb(cli, nick, chan, rest):
+@command("refreshdb", flag="m", pm=True)
+def refreshdb(var, wrapper, message):
     """Updates our tracking vars to the current db state."""
     db.expire_stasis()
     db.init_vars()
     expire_tempbans()
-    reply(cli, nick, chan, "Done.")
+    wrapper.reply("Done.")
 
 @command("fdie", "fbye", flag="D", pm=True)
 def forced_exit(var, wrapper, message):
@@ -476,12 +476,11 @@ def restart_program(var, wrapper, message):
     # handler now, but I'm keeping it for now just in case.
     var.RESTARTING = True
 
-@cmd("ping", pm=True)
-def pinger(cli, nick, chan, rest):
+@command("ping", pm=True)
+def pinger(var, wrapper, message):
     """Check if you or the bot is still connected."""
-    reply(cli, nick, chan, random.choice(messages["ping"]).format(
-        nick=nick,
-        bot_nick=botconfig.NICK,
+    wrapper.reply(random.choice(messages["ping"]).format(
+        nick=wrapper.source, bot_nick=users.Bot,
         cmd_char=botconfig.CMD_CHAR,
         goat_action=random.choice(messages["goat_actions"])))
 
