@@ -166,7 +166,7 @@ def connect_callback():
             mode = hooks.Features["PREFIX"]["+"]
             pending = []
             for user in channels.Main.modes.get(mode, ()):
-                pending.append(("-" + mode, user.nick))
+                pending.append(("-" + mode, user))
             accumulator.send(pending)
             next(accumulator, None)
 
