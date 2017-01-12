@@ -96,7 +96,7 @@ class Channel(IRCContext):
         return hash(self.name)
 
     def __eq__(self, other):
-        return self._compare(other, Channel, "name", "key", "client", "state", "modes", "timestamp")
+        return self._compare(other, __class__, "name", "key", "client", "state", "modes", "timestamp")
 
     @property
     def key(self):
