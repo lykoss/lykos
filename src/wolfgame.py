@@ -587,122 +587,55 @@ def replace(var, wrapper, message):
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "")
 
-@cmd("pingif", "pingme", "pingat", "pingpref", pm=True)
-def altpinger(cli, nick, chan, rest):
+@command("pingif", "pingme", "pingat", "pingpref", pm=True)
+def altpinger(var, wrapper, message):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
-    players = is_user_altpinged(nick)
-    rest = rest.split()
-    if users.exists(nick):
-        acc = irc_lower(users.get(nick).account)
-    else:
-        reply(cli, nick, chan, messages["invalid_channel"].format(botconfig.CHANNEL), private=True)
+
+    if wrapper.source.account is None and var.ACCOUNTS_ONLY:
+        wrapper.pm(messages["not_logged_in"])
         return
 
-    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, messages["not_logged_in"], private=True)
-        return
+    players = wrapper.source.get_pingif_count()
+    args = message.lower().split()
 
     msg = []
 
-    if not rest:
+    if not args:
         if players:
             msg.append(messages["get_pingif"].format(players))
         else:
             msg.append(messages["no_pingif"])
 
-    elif any((rest[0] in ("off", "never"),
-              rest[0].isdigit() and int(rest[0]) == 0,
-              len(rest) > 1 and rest[1].isdigit() and int(rest[1]) == 0)):
+    elif any((args[0] in ("off", "never"),
+              args[0].isdigit() and int(args[0]) == 0,
+              len(args) > 1 and args[1].isdigit() and int(args[1]) == 0)):
+
         if players:
             msg.append(messages["unset_pingif"].format(players))
-            toggle_altpinged_status(nick, 0, players)
+            wrapper.source.set_pingif_count(0, players)
         else:
             msg.append(messages["no_pingif"])
 
-    elif rest[0].isdigit() or (len(rest) > 1 and rest[1].isdigit()):
-        if rest[0].isdigit():
-            num = int(rest[0])
+    elif args[0].isdigit() or (len(args) > 1 and args[1].isdigit()):
+        if args[0].isdigit():
+            num = int(args[0])
         else:
-            num = int(rest[1])
+            num = int(args[1])
         if num > 999:
             msg.append(messages["pingif_too_large"])
         elif players == num:
             msg.append(messages["pingif_already_set"].format(num))
         elif players:
             msg.append(messages["pingif_change"].format(players, num))
-            toggle_altpinged_status(nick, num, players)
+            wrapper.source.set_pingif_count(num, players)
         else:
             msg.append(messages["set_pingif"].format(num))
-            toggle_altpinged_status(nick, num)
+            wrapper.source.set_pingif_count(num)
 
     else:
         msg.append(messages["pingif_invalid"])
 
-    reply(cli, nick, chan, "\n".join(msg), private=True)
-
-def is_user_altpinged(nick):
-    if users.exists(nick):
-        ident = irc_lower(users.get(nick).ident)
-        host = users.get(nick).host.lower()
-        acc = irc_lower(users.get(nick).account)
-    else:
-        return 0
-    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-        if acc in var.PING_IF_PREFS_ACCS.keys():
-            return var.PING_IF_PREFS_ACCS[acc]
-    elif not var.ACCOUNTS_ONLY:
-        for hostmask, pref in var.PING_IF_PREFS.items():
-            if match_hostmask(hostmask, nick, ident, host):
-                return pref
-    return 0
-
-def toggle_altpinged_status(nick, value, old=None):
-    # nick should be in var.USERS if not fake; if not, let the error propagate
-    ident = irc_lower(users.get(nick).ident)
-    host = users.get(nick).host.lower()
-    acc = irc_lower(users.get(nick).account)
-    if value == 0:
-        if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-            if acc in var.PING_IF_PREFS_ACCS:
-                del var.PING_IF_PREFS_ACCS[acc]
-                db.set_pingif(0, acc, None)
-                if old is not None:
-                    with var.WARNING_LOCK:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(acc)
-        if not var.ACCOUNTS_ONLY:
-            for hostmask in list(var.PING_IF_PREFS.keys()):
-                if match_hostmask(hostmask, nick, ident, host):
-                    del var.PING_IF_PREFS[hostmask]
-                    db.set_pingif(0, None, hostmask)
-                    if old is not None:
-                        with var.WARNING_LOCK:
-                            if old in var.PING_IF_NUMS.keys():
-                                var.PING_IF_NUMS[old].discard(host)
-                                var.PING_IF_NUMS[old].discard(hostmask)
-    else:
-        if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-            var.PING_IF_PREFS_ACCS[acc] = value
-            db.set_pingif(value, acc, None)
-            with var.WARNING_LOCK:
-                if value not in var.PING_IF_NUMS_ACCS:
-                    var.PING_IF_NUMS_ACCS[value] = set()
-                var.PING_IF_NUMS_ACCS[value].add(acc)
-                if old is not None:
-                    if old in var.PING_IF_NUMS_ACCS:
-                        var.PING_IF_NUMS_ACCS[old].discard(acc)
-        elif not var.ACCOUNTS_ONLY:
-            hostmask = ident + "@" + host
-            var.PING_IF_PREFS[hostmask] = value
-            db.set_pingif(value, None, hostmask)
-            with var.WARNING_LOCK:
-                if value not in var.PING_IF_NUMS.keys():
-                    var.PING_IF_NUMS[value] = set()
-                var.PING_IF_NUMS[value].add(hostmask)
-                if old is not None:
-                    if old in var.PING_IF_NUMS.keys():
-                        var.PING_IF_NUMS[old].discard(host)
-                        var.PING_IF_NUMS[old].discard(hostmask)
+    wrapper.pm(*msg, sep="\n")
 
 @handle_error
 def join_timer_handler():
