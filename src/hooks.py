@@ -593,9 +593,9 @@ def quit(context, message=""):
 
     cli = context.client
 
-    if cli is None:
-        plog("Tried to QUIT but everything was being torn down.")
-        return
+    if cli is None or cli.socket.fileno() < 0:
+        plog("Socket is already closed. Exiting.")
+        raise SystemExit
 
     with cli:
         cli.send("QUIT :{0}".format(message))
