@@ -88,8 +88,8 @@ def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as so
 def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     """Create a new user, add it to the user list and return it.
 
-    This function takes up to 5 keyword-only arguments (and no positional
-    arguments): nick, ident, host, realname and account.
+    This function takes up to 5 keyword-only arguments (and one positional
+    argument, cli): nick, ident, host, realname and account.
     With the exception of the first one, any parameter can be omitted.
     If a matching user already exists, a ValueError will be raised.
 
@@ -122,8 +122,7 @@ def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, al
     """Return True if a matching user exists.
 
     Positional and keyword arguments are the same as get(), with the
-    exception that allow_none may not be used (a RuntimeError will be
-    raised in that case).
+    exception of allow_none.
 
     """
 
