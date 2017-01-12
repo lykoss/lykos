@@ -486,9 +486,6 @@ def pinger(cli, nick, chan, rest):
 def mark_simple_notify(var, wrapper, message):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
-    nick, _, ident, host = parse_nick(nick)
-    if users.exists(nick):
-        ident = irc_lower(users.get(nick).ident)
     account = users.lower(wrapper.source.account)
     userhost = users.lower(wrapper.source.userhost)
 
@@ -503,71 +500,28 @@ def mark_simple_notify(var, wrapper, message):
     action(value)
     wrapper.pm(messages["simple_" + toggle])
 
-        var.SIMPLE_NOTIFY.add(fullmask)
-        db.toggle_simple(None, fullmask)
-
-    reply(cli, nick, chan, messages["simple_on"], private=True)
-
-@cmd("notice", raw_nick=True, pm=True)
-def mark_prefer_notice(cli, nick, chan, rest):
+@command("notice", pm=True)
+def mark_prefer_notice(var, wrapper, message):
     """Makes the bot NOTICE you for every interaction."""
 
-    nick, _, ident, host = parse_nick(nick)
-
-    if chan == nick and rest:
+    if wrapper.private and message:
         # Ignore if called in PM with parameters, likely a message to wolfchat
         # and not an intentional invocation of this command
         return
 
-    if users.exists(nick):
-        ident = irc_lower(users.get(nick).ident)
-        host = users.get(nick).host.lower()
-        acc = irc_lower(users.get(nick).account)
-    else:
-        acc = None
-    if not acc or acc == "*":
-        acc = None
+    account = users.lower(wrapper.source.account)
+    userhost = users.lower(wrapper.source.userhost)
 
-    if acc and not var.DISABLE_ACCOUNTS: # Do things by account if logged in
-        if acc in var.PREFER_NOTICE_ACCS:
-            var.PREFER_NOTICE_ACCS.remove(acc)
-            db.toggle_notice(acc, None)
-            if host in var.PREFER_NOTICE:
-                var.PREFER_NOTICE.remove(host)
-                db.toggle_notice(None, host)
-            fullmask = ident + "@" + host
-            if fullmask in var.PREFER_NOTICE:
-                var.PREFER_NOTICE.remove(fullmask)
-                db.toggle_notice(None, fullmask)
-
-            reply(cli, nick, chan, messages["notice_off"], private=True)
-            return
-
-        var.PREFER_NOTICE_ACCS.add(acc)
-        db.toggle_notice(acc, None)
-    elif var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, messages["not_logged_in"], private=True)
+    if account is None and var.ACCOUNTS_ONLY:
+        wrapper.pm(messages["not_logged_in"])
         return
 
-    else: # Not logged in
-        if host in var.PREFER_NOTICE:
-            var.PREFER_NOTICE.remove(host)
-            db.toggle_notice(None, host)
+    notice = wrapper.source.prefers_notice()
+    notice_set, value = (var.PREFER_NOTICE, userhost) if account is None else (var.PREFER_NOTICE_ACCS, account)
+    action, toggle = (notice_set.discard, "off") if notice else (notice_set.add, "on")
 
-            reply(cli, nick, chan, messages["notice_off"], private=True)
-            return
-        fullmask = ident + "@" + host
-        if fullmask in var.PREFER_NOTICE:
-            var.PREFER_NOTICE.remove(fullmask)
-            db.toggle_notice(None, fullmask)
-
-            reply(cli, nick, chan, messages["notice_off"], private=True)
-            return
-
-        var.PREFER_NOTICE.add(fullmask)
-        db.toggle_notice(None, fullmask)
-
-    reply(cli, nick, chan, messages["notice_on"], private=True)
+    action(value)
+    wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", "replace", pm=True, phases=("join", "day", "night"))
 def replace(var, wrapper, message):
