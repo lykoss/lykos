@@ -482,56 +482,26 @@ def pinger(cli, nick, chan, rest):
         cmd_char=botconfig.CMD_CHAR,
         goat_action=random.choice(messages["goat_actions"])))
 
-@cmd("simple", raw_nick=True, pm=True)
-def mark_simple_notify(cli, nick, chan, rest):
+@command("simple", pm=True)
+def mark_simple_notify(var, wrapper, message):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
     nick, _, ident, host = parse_nick(nick)
     if users.exists(nick):
         ident = irc_lower(users.get(nick).ident)
-        host = users.get(nick).host.lower()
-        acc = irc_lower(users.get(nick).account)
-    else:
-        acc = None
-    if not acc or acc == "*":
-        acc = None
+    account = users.lower(wrapper.source.account)
+    userhost = users.lower(wrapper.source.userhost)
 
-    if acc: # Prioritize account
-        if acc in var.SIMPLE_NOTIFY_ACCS:
-            var.SIMPLE_NOTIFY_ACCS.remove(acc)
-            db.toggle_simple(acc, None)
-            if host in var.SIMPLE_NOTIFY:
-                var.SIMPLE_NOTIFY.remove(host)
-                db.toggle_simple(None, host)
-            fullmask = ident + "@" + host
-            if fullmask in var.SIMPLE_NOTIFY:
-                var.SIMPLE_NOTIFY.remove(fullmask)
-                db.toggle_simple(None, fullmask)
-
-            reply(cli, nick, chan, messages["simple_off"], private=True)
-            return
-
-        var.SIMPLE_NOTIFY_ACCS.add(acc)
-        db.toggle_simple(acc, None)
-    elif var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, messages["not_logged_in"], private=True)
+    if account is None and var.ACCOUNTS_ONLY:
+        wrapper.pm(messages["not_logged_in"])
         return
 
-    else: # Not logged in, fall back to ident@hostmask
-        if host in var.SIMPLE_NOTIFY:
-            var.SIMPLE_NOTIFY.remove(host)
-            db.toggle_simple(None, host)
+    simple = wrapper.source.prefers_simple()
+    simple_set, value = (var.SIMPLE_NOTIFY, userhost) if account is None else (var.SIMPLE_NOTIFY_ACCS, account)
+    action, toggle = (simple_set.discard, "off") if simple else (simple_set.add, "on")
 
-            reply(cli, nick, chan, messages["simple_off"], private=True)
-            return
-
-        fullmask = ident + "@" + host
-        if fullmask in var.SIMPLE_NOTIFY:
-            var.SIMPLE_NOTIFY.remove(fullmask)
-            db.toggle_simple(None, fullmask)
-
-            reply(cli, nick, chan, messages["simple_off"], private=True)
-            return
+    action(value)
+    wrapper.pm(messages["simple_" + toggle])
 
         var.SIMPLE_NOTIFY.add(fullmask)
         db.toggle_simple(None, fullmask)
