@@ -279,7 +279,7 @@ class User(IRCContext):
         return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
 
     def lower(self):
-        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host), lower(self.realname), lower(self.account))
+        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, host=True), lower(self.realname), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
@@ -573,7 +573,7 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         temp = type(self)(self.client, lower(self.nick))
         if temp is not self:
             temp.ident = lower(self.ident)
-            temp.host = lower(self.host)
+            temp.host = lower(self.host, host=True)
             temp.realname = lower(self.realname)
             temp.account = lower(self.account)
             temp.modes = self.modes

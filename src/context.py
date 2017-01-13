@@ -71,10 +71,10 @@ def _send(data, first, sep, client, send_type, name):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
 
-def lower(nick):
+def lower(nick, *, host=False):
     if nick is None:
         return None
-    if isinstance(nick, IRCContext):
+    if isinstance(nick, IRCContext) or host:
         return nick.lower()
 
     mapping = {
