@@ -156,11 +156,16 @@ class IRCContext:
             self.send(message) # Don't actually queue it
             return
 
+        if isinstance(message, list):
+            message = tuple(message)
+
         self._messages[message].append(self)
 
     @classmethod
     def send_messages(cls, *, notice=False, privmsg=False):
         for message, targets in cls._messages.items():
+            if isinstance(message, str):
+                message = (message,)
             send_types = defaultdict(list)
             for target in targets:
                 send_types[target.get_send_type(is_notice=notice, is_privmsg=privmsg)].append(target)
@@ -168,7 +173,7 @@ class IRCContext:
                 max_targets = Features["TARGMAX"][send_type]
                 while targets:
                     using, targets = targets[:max_targets], targets[max_targets:]
-                    _send([message], "", " ", using[0].client, send_type, ",".join([t.nick for t in using]))
+                    _send(message, "", " ", using[0].client, send_type, ",".join([t.nick for t in using]))
 
         cls._messages.clear()
 
