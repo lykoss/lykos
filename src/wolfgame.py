@@ -638,7 +638,7 @@ def altpinger(var, wrapper, message):
     wrapper.pm(*msg, sep="\n")
 
 @handle_error
-def join_timer_handler():
+def join_timer_handler(var):
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
         to_ping = []
@@ -651,83 +651,60 @@ def join_timer_handler():
         if not var.DISABLE_ACCOUNTS:
             for num in var.PING_IF_NUMS_ACCS:
                 if num <= len(pl):
-                    chk_acc.update(var.PING_IF_NUMS_ACCS[num])
+                    for acc in var.PING_IF_NUMS_ACCS[num]:
+                        chk_acc.add(users.lower(acc))
 
         if not var.ACCOUNTS_ONLY:
             for num in var.PING_IF_NUMS:
                 if num <= len(pl):
-                    checker.update(var.PING_IF_NUMS[num])
+                    for hostmask in var.PING_IF_NUMS[num]:
+                        checker.add(users.lower(hostmask))
 
         # Don't ping alt connections of users that have already joined
         if not var.DISABLE_ACCOUNTS:
-            for acc in (users.get(player).account for player in pl if users.exists(player)):
-                var.PINGED_ALREADY_ACCS.add(irc_lower(acc))
+            for player in pl:
+                user = users._get(player) # FIXME
+                var.PINGED_ALREADY_ACCS.add(users.lower(user.account))
 
         # Remove players who have already been pinged from the list of possible players to ping
-        for acc in frozenset(chk_acc):
-            if acc in var.PINGED_ALREADY_ACCS:
-                chk_acc.remove(acc)
-
-        for hostmask in frozenset(checker):
-            if hostmask in var.PINGED_ALREADY:
-                checker.remove(hostmask)
+        chk_acc -= var.PINGED_ALREADY_ACCS
+        checker -= var.PINGED_ALREADY
 
         # If there is nobody to ping, do nothing
         if not chk_acc and not checker:
             var.PINGING_IFS = False
             return
 
-        @hook("whoreply", hookid=387) # FIXME: Use events
-        def ping_altpingers_noacc(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
-            if ("G" in status or is_user_stasised(nick) or not var.PINGING_IFS or
-                    nick == bot_nick or nick in pl):
+        def get_altpingers(event, var, chan, user):
+            if event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user.nick in pl: # FIXME: Fix this when list_players() returns User instances
                 return
 
-            ident = irc_lower(ident)
-            host = host.lower()
-            hostmask = ident + "@" + host
-            if hostmask in checker:
-                to_ping.append(nick)
-                var.PINGED_ALREADY.add(hostmask)
-
-        @hook("whospcrpl", hookid=387)
-        def ping_altpingers(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
-            if ("G" in status or is_user_stasised(nick) or not var.PINGING_IFS or
-                nick == botconfig.NICK or nick in pl):
-
-                return
-
-            # Create list of players to ping
-            account = irc_lower(account)
-            ident = irc_lower(ident)
-            host = host.lower()
-            if account and account != "*":
-                if account in chk_acc:
-                    to_ping.append(nick)
-                    var.PINGED_ALREADY_ACCS.add(account)
+            temp = user.lower()
+            if temp.account is not None:
+                if temp.account in chk_acc:
+                    to_ping.append(temp)
+                    var.PINGED_ALREADY_ACCS.add(temp.account)
 
             elif not var.ACCOUNTS_ONLY:
-                hostmask = ident + "@" + host
-                to_ping.append(nick)
-                var.PINGED_ALREADY.add(hostmask)
+                if temp.userhost in checker:
+                    to_ping.append(temp)
+                    var.PINGED_ALREADY.add(temp.userhost)
 
-        @hook("endofwho", hookid=387)
-        def fetch_altpingers(cli, *stuff):
-            # fun fact: if someone joined 10 seconds after someone else, the bot would break.
-            # effectively, the join would delete join_pinger from var.TIMERS and this function
-            # here would be reached before it was created again, thus erroring and crashing.
-            # this is one of the multiple reasons we need unit testing
-            # I was lucky to catch this in testing, as it requires precise timing
-            # it only failed if a join happened while this outer func had started
-            var.PINGING_IFS = False
-            hook.unhook(387)
-            if to_ping:
-                to_ping.sort(key=lambda x: x.lower())
+        def ping_altpingers(event, var, request):
+            if request is channels.Main:
+                var.PINGING_IFS = False
+                if to_ping:
+                    to_ping.sort(key=lambda x: x.nick)
+                    user_list = [(user.ref or user).nick for user in to_ping]
 
-                msg_prefix = messages["ping_player"].format(len(pl), "" if len(pl) == 1 else "s")
-                msg = msg_prefix + break_long_message(to_ping).replace("\n", "\n" + msg_prefix)
+                    msg_prefix = messages["ping_player"].format(len(pl), "" if len(pl) == 1 else "s")
+                    channels.Main.send(*user_list, first=msg_prefix)
 
-                cli.msg(botconfig.CHANNEL, msg)
+                events.remove_listener("who_result", get_altpingers)
+                events.remove_listener("who_end", ping_altpingers)
+
+        events.add_listener("who_result", get_altpingers)
+        events.add_listener("who_end", ping_altpingers)
 
         channels.Main.who()
 
@@ -980,7 +957,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         if "join_pinger" in var.TIMERS:
             var.TIMERS["join_pinger"][0].cancel()
 
-        t = threading.Timer(10, join_timer_handler)
+        t = threading.Timer(10, join_timer_handler, (var,))
         var.TIMERS["join_pinger"] = (t, time.time(), 10)
         t.daemon = True
         t.start()
