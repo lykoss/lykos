@@ -712,108 +712,91 @@ def join_timer_handler(var):
 
         channels.Main.who()
 
-def get_deadchat_pref(nick):
-    if users.exists(nick):
-        host = users.get(nick).host.lower()
-        acc = irc_lower(users.get(nick).account)
-    else:
-        return False
-
-    if acc in var.DEADCHAT_PREFS_ACCS:
-        return False
-    elif var.ACCOUNTS_ONLY:
-        return True
-    elif host in var.DEADCHAT_PREFS:
-        return False
-
-    return True
-
-def join_deadchat(cli, *all_nicks):
-    if not var.ENABLE_DEADCHAT:
+def join_deadchat(var, *all_users):
+    if not var.ENABLE_DEADCHAT or var.PHASE not in var.GAME_PHASES:
         return
 
-    if var.PHASE not in ("day", "night"):
-        return
-
-    nicks = []
+    to_join = []
     pl = list_participants()
-    for nick in all_nicks:
-        if is_user_stasised(nick) or nick in pl or nick in var.DEADCHAT_PLAYERS:
+
+    for user in all_users:
+        if user.stasis_count() or user.nick in pl or user in var.DEADCHAT_PLAYERS: # FIXME: Fix this when list_participants() returns User instances
             continue
-        nicks.append(nick)
+        to_join.append(user)
 
-    if not nicks:
+    if not to_join:
         return
 
-    if len(nicks) == 1:
-        msg = messages["player_joined_deadchat"].format(nicks[0])
-    elif len(nicks) == 2:
-        msg = messages["multiple_joined_deadchat"].format(*nicks)
+    if len(to_join) == 1:
+        msg = messages["player_joined_deadchat"].format(to_join[0])
+    elif len(to_join) == 2:
+        msg = messages["multiple_joined_deadchat"].format(*to_join)
     else:
-        msg = messages["multiple_joined_deadchat"].format("\u0002, \u0002".join(nicks[:-1]), nicks[-1])
-    mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
-    mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] " + msg)
-    mass_privmsg(cli, nicks, messages["joined_deadchat"])
+        msg = messages["multiple_joined_deadchat"].format("\u0002, \u0002".join([user.nick for user in to_join[:-1]]), to_join[-1])
 
-    people = var.DEADCHAT_PLAYERS | set(nicks)
+    people = var.DEADCHAT_PLAYERS.union(to_join)
 
-    mass_privmsg(cli, nicks, messages["list_deadchat"].format(", ".join(people)))
-    var.DEADCHAT_PLAYERS.update(nicks)
-    var.SPECTATING_DEADCHAT.difference_update(nicks)
+    for user in var.DEADCHAT_PLAYERS:
+        user.queue_message(msg)
+    for user in var.SPECTATING_DEADCHAT:
+        user.queue_message("[deadchat] " + msg)
+    for user in to_join:
+        user.queue_message(messages["joined_deadchat"])
+        user.queue_message(messages["list_deadchat"].format(", ".join([user.nick for user in people])))
 
-def leave_deadchat(cli, nick, force=""):
-    if not var.ENABLE_DEADCHAT:
+    var.DEADCHAT_PLAYERS.update(to_join)
+    var.SPECTATING_DEADCHAT.difference_update(to_join)
+
+    user.send_messages() # send all messages at once
+
+def leave_deadchat(var, user, *, force=None):
+    if not var.ENABLE_DEADCHAT or var.PHASE not in var.GAME_PHASES or user not in var.DEADCHAT_PLAYERS:
         return
 
-    if var.PHASE not in ("day", "night") or nick not in var.DEADCHAT_PLAYERS:
-        return
-
-    var.DEADCHAT_PLAYERS.remove(nick)
-    msg = ""
-    if force:
-        pm(cli, nick, messages["force_leave_deadchat"].format(force))
-        msg = messages["player_force_leave_deadchat"].format(nick, force)
+    var.DEADCHAT_PLAYERS.remove(user)
+    if force is None:
+        user.send(messages["leave_deadchat"])
+        msg = messages["player_left_deadchat"].format(user)
     else:
-        pm(cli, nick, messages["leave_deadchat"])
-        msg = messages["player_left_deadchat"].format(nick)
-    mass_privmsg(cli, var.DEADCHAT_PLAYERS, msg)
-    mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] " + msg)
+        user.send(messages["force_leave_deadchat"].format(force))
+        msg = messages["player_force_leave_deadchat"].format(user, force)
 
-@cmd("deadchat", pm=True)
-def deadchat_pref(cli, nick, chan, rest):
+    if var.DEADCHAT_PLAYERS or var.SPECTATING_DEADCHAT:
+        for user in var.DEADCHAT_PLAYERS:
+            user.queue_message(msg)
+        for user in var.SPECTATING_DEADCHAT:
+            user.queue_message("[deadchat] " + msg)
+
+        user.send_messages()
+
+@command("deadchat", pm=True)
+def deadchat_pref(var, wrapper, message):
     """Toggles auto joining deadchat on death."""
     if not var.ENABLE_DEADCHAT:
         return
 
-    if users.exists(nick):
-        host = users.get(nick).host.lower()
-        acc = irc_lower(users.get(nick).account)
-    else:
-        reply(cli, nick, chan, messages["invalid_channel"].format(botconfig.CHANNEL), private=True)
-        return
+    temp = wrapper.source.lower()
 
-    if (not acc or acc == "*") and var.ACCOUNTS_ONLY:
-        reply(cli, nick, chan, messages["not_logged_in"], private=True)
-        return
+    if wrapper.source.account is None:
+        if var.ACCOUNTS_ONLY:
+            wrapper.pm(messages["not_logged_in"])
+            return
 
-    if acc and acc != "*":
-        value = acc
-        variable = var.DEADCHAT_PREFS_ACCS
-    else:
-        value = host
+        value = temp.host
         variable = var.DEADCHAT_PREFS
 
-    if value in variable:
-        msg = messages["chat_on_death"]
-        variable.remove(value)
-        db.toggle_deadchat(acc, host)
-
     else:
-        msg = messages["no_chat_on_death"]
-        variable.add(value)
-        db.toggle_deadchat(acc, host)
+        value = temp.account
+        variable = var.DEADCHAT_PREFS_ACCS
 
-    reply(cli, nick, chan, msg, private=True)
+    if value in variable:
+        wrapper.pm(messages["chat_on_death"])
+        variable.remove(value)
+    else:
+        wrapper.pm(messages["no_chat_on_death"])
+        variable.add(value)
+
+    db.toggle_deadchat(temp.account, temp.host)
 
 @command("join", "j", pm=True)
 def join(var, wrapper, message):
@@ -838,7 +821,7 @@ def join(var, wrapper, message):
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
-            evt.data["join_deadchat"](var, wrapper)
+            evt.data["join_deadchat"](var, wrapper.source)
 
 def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     if who is None:
@@ -929,8 +912,8 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             wrapper.send(messages["player_joined"].format(wrapper.source.nick, len(pl) + 1))
         if not sanity:
             # Abandon Hope All Ye Who Enter Here
-            leave_deadchat(wrapper.source.client, wrapper.source.nick)
-            var.SPECTATING_DEADCHAT.discard(wrapper.source.nick)
+            leave_deadchat(var, wrapper.source)
+            var.SPECTATING_DEADCHAT.discard(wrapper.source)
             var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
             return True
         var.ROLES["person"].add(wrapper.source.nick)
@@ -1053,7 +1036,7 @@ def fleave(cli, nick, chan, rest):
             continue
         pl = list_players()
         pll = [x.lower() for x in pl]
-        dcl = list(var.DEADCHAT_PLAYERS) if var.PHASE != "join" else []
+        dcl = [user.nick for user in var.DEADCHAT_PLAYERS] if var.PHASE != "join" else []
         dcll = [x.lower() for x in dcl]
         if a.lower() in pll:
             if chan != botconfig.CHANNEL:
@@ -1084,7 +1067,7 @@ def fleave(cli, nick, chan, rest):
         elif a.lower() in dcll:
             a = dcl[dcll.index(a.lower())]
 
-            leave_deadchat(cli, a, force=nick)
+            leave_deadchat(var, users._get(a), force=nick) # FIXME
             if nick.lower() not in dcll:
                 reply(cli, nick, chan, messages["admin_fleave_deadchat"].format(a), private=True)
 
@@ -2277,7 +2260,11 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             cli.msg(chan, messages["many_winners"].format(", ".join(nicklist), winners[-1]))
 
     # Message players in deadchat letting them know that the game has ended
-    mass_privmsg(cli, var.DEADCHAT_PLAYERS, messages["endgame_deadchat"].format(chan))
+    if var.DEADCHAT_PLAYERS:
+        for user in var.DEADCHAT_PLAYERS:
+            user.queue_message(messages["endgame_deadchat"].format(chan))
+
+        user.send_messages()
 
     reset_modes_timers(cli)
     reset()
@@ -2788,7 +2775,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 host = users.get(nick).host.lower()
                 acc = irc_lower(users.get(nick).account)
                 if acc not in var.DEADCHAT_PREFS_ACCS and host not in var.DEADCHAT_PREFS:
-                    deadchat.append(nick)
+                    deadchat.append(users._get(nick)) # FIXME
             # devoice all players that died as a result, if we are in the original del_player
             if ismain:
                 mass_mode(cli, cmode, [])
@@ -2822,7 +2809,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             # only join to deadchat if the game isn't about to end
             if ismain:
                 if ret:
-                    join_deadchat(cli, *deadchat)
+                    join_deadchat(var, *deadchat)
                 del deadchat[:]
             if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
@@ -3103,12 +3090,6 @@ def rename_player(var, user, prefix):
         if prefix in var.ENTRANCED: # need to update this after death, too
             var.ENTRANCED.remove(prefix)
             var.ENTRANCED.add(nick)
-        if prefix in var.DEADCHAT_PLAYERS:
-            var.DEADCHAT_PLAYERS.remove(prefix)
-            var.DEADCHAT_PLAYERS.add(nick)
-        if prefix in var.SPECTATING_DEADCHAT:
-            var.SPECTATING_DEADCHAT.remove(prefix)
-            var.SPECTATING_DEADCHAT.add(nick)
         if prefix in var.SPECTATING_WOLFCHAT:
             var.SPECTATING_WOLFCHAT.remove(prefix)
             var.SPECTATING_WOLFCHAT.add(nick)
@@ -3374,9 +3355,9 @@ def leave(var, what, user, why=None):
         killplayer = False
 
     channels.Main.send(msg.format(user, get_reveal_role(user.nick)) + population) # FIXME: Need to fix this once get_reveal_role() accepts User instances
-    var.SPECTATING_WOLFCHAT.discard(user.nick) # FIXME: Need to fix this line and the one below once the variables hold User instances
-    var.SPECTATING_DEADCHAT.discard(user.nick)
-    leave_deadchat(user.client, user.nick)
+    var.SPECTATING_WOLFCHAT.discard(user.nick) # FIXME: Need to fix this once the variable holds User instances
+    var.SPECTATING_DEADCHAT.discard(user)
+    leave_deadchat(var, user)
 
     if what not in ("badnick", "account") and user.nick in var.USERS: # FIXME: Need to move mode toggling somewhere saner
         var.USERS[user.nick]["modes"] = set()
@@ -3406,8 +3387,8 @@ def leave_game(cli, nick, chan, rest):
                 return
             population = ""
     elif chan == nick:
-        if var.PHASE in var.GAME_PHASES and nick not in list_players() and nick in var.DEADCHAT_PLAYERS:
-            leave_deadchat(cli, nick)
+        if var.PHASE in var.GAME_PHASES and nick not in list_players() and users._get(nick) in var.DEADCHAT_PLAYERS:
+            leave_deadchat(var, users._get(nick))
         return
     else:
         return
@@ -5335,49 +5316,55 @@ def getfeatures(cli, nick, *rest):
                 errlog("Unsupported case mapping: {0!r}; falling back to rfc1459.".format(var.CASEMAPPING))
                 var.CASEMAPPING = "rfc1459"
 
-@cmd("", chan=False, pm=True)
-def relay(cli, nick, chan, rest):
+@command("", chan=False, pm=True)
+def relay(var, wrapper, message):
     """Wolfchat and Deadchat"""
-    if rest.startswith("\u0001PING"):
-        cli.notice(nick, rest)
+    if message.startswith("\u0001PING"):
+        wrapper.pm(message, notice=True)
         return
-    if rest == "\u0001VERSION\u0001":
+    if message == "\u0001VERSION\u0001":
         try:
             ans = subprocess.check_output(["git", "log", "-n", "1", "--pretty=format:%h"])
             reply = "\u0001VERSION lykos {0}, Python {1} -- https://github.com/lykoss/lykos\u0001".format(str(ans.decode()), platform.python_version())
         except (OSError, subprocess.CalledProcessError):
             reply = "\u0001VERSION lykos, Python {0} -- https://github.com/lykoss/lykos\u0001".format(platform.python_version())
-        cli.notice(nick, reply)
+        wrapper.pm(reply, notice=True)
         return
-    elif rest == "\u0001TIME\u0001":
-        cli.notice(nick, "\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())))
+    if message == "\u0001TIME\u0001":
+        wrapper.pm("\u0001TIME {0}\u0001".format(time.strftime('%a, %d %b %Y %T %z', time.localtime())), notice=True)
     if var.PHASE not in var.GAME_PHASES:
         return
 
     pl = list_players()
 
-    if nick in pl and nick in getattr(var, "IDLE_WARNED_PM", ()):
-        cli.msg(nick, messages["privmsg_idle_warning"].format(botconfig.CHANNEL))
-        var.IDLE_WARNED_PM.add(nick)
+    if wrapper.source.nick in pl and wrapper.source.nick in getattr(var, "IDLE_WARNED_PM", ()):
+        wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
+        var.IDLE_WARNED_PM.add(wrapper.source)
 
-    if rest.startswith(botconfig.CMD_CHAR):
+    if message.startswith(botconfig.CMD_CHAR):
         return
 
     badguys = list_players(var.WOLFCHAT_ROLES)
     wolves = list_players(var.WOLF_ROLES)
 
-    if nick not in pl and var.ENABLE_DEADCHAT and nick in var.DEADCHAT_PLAYERS:
-        to_msg = var.DEADCHAT_PLAYERS - {nick}
+    if wrapper.source.nick not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
+        to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
+        if to_msg or var.SPECTATING_DEADCHAT:
+            if rest.startswith("\u0001ACTION"):
+                message = message[7:-1]
+                for user in to_msg:
+                    user.queue_message("* \u0002{0}\u0002{1}".format(user, message))
+                for user in var.SPECTATING_DEADCHAT:
+                    user.queue_message("* [deadchat] \u0002{0}\u0002{1}".format(user, message))
+            else:
+                for user in to_msg:
+                    user.queue_message("\u0002{0}\u0002 says: {1}".format(user, message))
+                for user in var.SPECTATING_DEADCHAT:
+                    user.queue_message("[deadchat] \u0002{0}\u0002 says: {1}".format(user, message))
 
-        if rest.startswith("\u0001ACTION"):
-            rest = rest[7:-1]
-            mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
-            mass_privmsg(cli, var.SPECTATING_DEADCHAT, "* [deadchat] \u0002{0}\u0002{1}".format(nick, rest))
-        else:
-            mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
-            mass_privmsg(cli, var.SPECTATING_DEADCHAT, "[deadchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
+            user.send_messages()
 
-    elif nick in badguys and len(badguys) > 1:
+    elif wrapper.source.nick in badguys and len(badguys) > 1: # FIXME: Need to fix once list_players() returns User instances
         # handle wolfchat toggles
         if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             wolves.extend(var.ROLES["traitor"])
@@ -5390,7 +5377,7 @@ def relay(cli, nick, chan, rest):
         elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             return
 
-        badguys.remove(nick)
+        badguys.remove(wrapper.source.nick)
         to_msg = set(badguys) & var.PLAYERS.keys()
         if rest.startswith("\u0001ACTION"):
             rest = rest[7:-1]
@@ -7223,19 +7210,19 @@ def fspectate(var, wrapper, message):
         if what == "wolfchat":
             var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
         else:
-            var.SPECTATING_DEADCHAT.discard(wrapper.source.nick)
+            var.SPECTATING_DEADCHAT.discard(wrapper.source)
         wrapper.pm(messages["fspectate_off"].format(what))
     else:
         players = []
         if what == "wolfchat":
             var.SPECTATING_WOLFCHAT.add(wrapper.source.nick)
-            players = (p for p in list_players() if in_wolflist(p, p))
+            players = [p for p in list_players() if in_wolflist(p, p)]
         elif var.ENABLE_DEADCHAT:
-            if wrapper.source.nick in var.DEADCHAT_PLAYERS: # FIXME
+            if wrapper.source in var.DEADCHAT_PLAYERS:
                 wrapper.pm(messages["fspectate_in_deadchat"])
                 return
-            var.SPECTATING_DEADCHAT.add(wrapper.source.nick)
-            players = var.DEADCHAT_PLAYERS
+            var.SPECTATING_DEADCHAT.add(wrapper.source)
+            players = [user.nick for user in var.DEADCHAT_PLAYERS]
         else:
             wrapper.pm(messages["fspectate_deadchat_disabled"])
             return
