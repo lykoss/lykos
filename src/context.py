@@ -71,11 +71,13 @@ def _send(data, first, sep, client, send_type, name):
             extra, line = line[:length], line[length:]
             client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
 
-def lower(nick, *, host=False):
+def lower(nick, *, casemapping=None):
     if nick is None:
         return None
-    if isinstance(nick, IRCContext) or host:
+    if isinstance(nick, IRCContext):
         return nick.lower()
+    if casemapping is None:
+        casemapping = Features["CASEMAPPING"]
 
     mapping = {
         "[": "{",
@@ -84,9 +86,9 @@ def lower(nick, *, host=False):
         "^": "~",
     }
 
-    if Features["CASEMAPPING"] == "strict-rfc1459":
+    if casemapping == "strict-rfc1459":
         mapping.pop("^")
-    elif Features["CASEMAPPING"] == "ascii":
+    elif casemapping == "ascii":
         mapping.clear()
 
     return nick.lower().translate(str.maketrans(mapping))
