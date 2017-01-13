@@ -139,20 +139,23 @@ def end_who(cli, bot_server, bot_nick, target, rest):
     4 - A string containing some information; traditionally "End of /WHO list."
 
     This fires off the "who_end" event, and dispatches it with two
-    arguments: The game state namespace and a str of the request that
-    was originally sent.
+    arguments: The game state namespace and the channel or user the
+    request was made to, or None if it could not be resolved.
 
     """
 
     try:
-        chan = channels.get(target)
+        target = channels.get(target)
     except KeyError:
-        pass
+        try:
+            target = users._get(target) # FIXME
+        except KeyError:
+            target = None
     else:
-        if chan._pending is not None:
-            for name, params, args in chan._pending:
+        if target._pending is not None:
+            for name, params, args in target._pending:
                 Event(name, params).dispatch(*args)
-            chan._pending = None
+            target._pending = None
 
     Event("who_end", {}).dispatch(var, target)
 

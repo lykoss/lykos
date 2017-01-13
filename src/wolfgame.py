@@ -155,7 +155,7 @@ def connect_callback():
         signal.signal(SIGUSR2, sighandler)
 
     def who_end(event, var, request):
-        if request == channels.Main.name:
+        if request is channels.Main:
             if "WHOX" not in hooks.Features:
                 if not var.DISABLE_ACCOUNTS:
                     plog("IRCd does not support accounts, disabling account-related features.")
@@ -6604,7 +6604,7 @@ def show_admins(cli, nick, chan, rest):
                 admins.append(user.nick) # FIXME
 
     def admin_endwho(event, var, target):
-        if not var.ADMIN_PINGING or target != channels.Main.name:
+        if not var.ADMIN_PINGING or target is not channels.Main:
             return
 
         admins.sort(key=str.lower)
