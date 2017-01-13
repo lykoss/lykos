@@ -345,7 +345,7 @@ class User(IRCContext):
 
         return (fnmatch.fnmatch(temp.nick, lower(nick)) and
                 fnmatch.fnmatch(temp.ident, lower(ident)) and
-                fnmatch.fnmatch(temp.host, lower(host)))
+                fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
         temp = self.lower()

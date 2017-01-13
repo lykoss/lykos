@@ -488,8 +488,10 @@ def pinger(var, wrapper, message):
 def mark_simple_notify(var, wrapper, message):
     """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
 
-    account = users.lower(wrapper.source.account)
-    userhost = users.lower(wrapper.source.userhost)
+    temp = wrapper.source.lower()
+
+    account = temp.account
+    userhost = temp.userhost
 
     if account is None and var.ACCOUNTS_ONLY:
         wrapper.pm(messages["not_logged_in"])
@@ -512,8 +514,10 @@ def mark_prefer_notice(var, wrapper, message):
         # and not an intentional invocation of this command
         return
 
-    account = users.lower(wrapper.source.account)
-    userhost = users.lower(wrapper.source.userhost)
+    temp = wrapper.source.lower()
+
+    account = temp.account
+    userhost = temp.userhost
 
     if account is None and var.ACCOUNTS_ONLY:
         wrapper.pm(messages["not_logged_in"])
@@ -658,7 +662,7 @@ def join_timer_handler(var):
             for num in var.PING_IF_NUMS:
                 if num <= len(pl):
                     for hostmask in var.PING_IF_NUMS[num]:
-                        checker.add(users.lower(hostmask))
+                        checker.add(users.lower(hostmask, casemapping="ascii"))
 
         # Don't ping alt connections of users that have already joined
         if not var.DISABLE_ACCOUNTS:
