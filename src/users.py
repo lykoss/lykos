@@ -569,6 +569,18 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         self.modes = set()
         return self
 
+    def lower(self):
+        temp = type(self)(self.client, lower(self.nick))
+        if temp is not self:
+            temp.ident = lower(self.ident)
+            temp.host = lower(self.host)
+            temp.realname = lower(self.realname)
+            temp.account = lower(self.account)
+            temp.modes = self.modes
+            temp.channels = self.channels
+            temp.ref = self.ref or self
+        return temp
+
     def change_nick(self, nick=None):
         if nick is None:
             nick = self.nick
