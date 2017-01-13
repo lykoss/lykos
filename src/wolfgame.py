@@ -5350,7 +5350,7 @@ def relay(var, wrapper, message):
     if wrapper.source.nick not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
         if to_msg or var.SPECTATING_DEADCHAT:
-            if rest.startswith("\u0001ACTION"):
+            if message.startswith("\u0001ACTION"):
                 message = message[7:-1]
                 for user in to_msg:
                     user.queue_message("* \u0002{0}\u0002{1}".format(user, message))
@@ -5372,20 +5372,20 @@ def relay(var, wrapper, message):
             return
         elif var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
             return
-        elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
+        elif wrapper.source.nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
             return
         elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             return
 
         badguys.remove(wrapper.source.nick)
         to_msg = set(badguys) & var.PLAYERS.keys()
-        if rest.startswith("\u0001ACTION"):
-            rest = rest[7:-1]
-            mass_privmsg(cli, to_msg, "* \u0002{0}\u0002{1}".format(nick, rest))
-            mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(nick, rest))
+        if message.startswith("\u0001ACTION"):
+            message = message[7:-1]
+            mass_privmsg(wrapper.client, to_msg, "* \u0002{0}\u0002{1}".format(nick, message))
+            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(nick, message))
         else:
-            mass_privmsg(cli, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, rest))
-            mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(nick, rest))
+            mass_privmsg(wrapper.client, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, message))
+            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(nick, message))
 
 @handle_error
 def transition_night(cli):
