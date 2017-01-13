@@ -7223,7 +7223,7 @@ def can_run_restricted_cmd(user):
 def fspectate(var, wrapper, message):
     """Spectate wolfchat or deadchat."""
     if not can_run_restricted_cmd(wrapper.source):
-        pm(cli, nick, messages["fspectate_restricted"])
+        wrapper.pm(messages["fspectate_restricted"])
         return
 
     params = message.split(" ")
@@ -7240,20 +7240,20 @@ def fspectate(var, wrapper, message):
 
     if on == "off":
         if what == "wolfchat":
-            var.SPECTATING_WOLFCHAT.discard(nick)
+            var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
         else:
-            var.SPECTATING_DEADCHAT.discard(nick)
+            var.SPECTATING_DEADCHAT.discard(wrapper.source.nick)
         wrapper.pm(messages["fspectate_off"].format(what))
     else:
         players = []
         if what == "wolfchat":
-            var.SPECTATING_WOLFCHAT.add(nick)
+            var.SPECTATING_WOLFCHAT.add(wrapper.source.nick)
             players = (p for p in list_players() if in_wolflist(p, p))
         elif var.ENABLE_DEADCHAT:
             if wrapper.source.nick in var.DEADCHAT_PLAYERS: # FIXME
                 wrapper.pm(messages["fspectate_in_deadchat"])
                 return
-            var.SPECTATING_DEADCHAT.add(nick)
+            var.SPECTATING_DEADCHAT.add(wrapper.source.nick)
             players = var.DEADCHAT_PLAYERS
         else:
             wrapper.pm(messages["fspectate_deadchat_disabled"])
