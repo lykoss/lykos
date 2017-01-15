@@ -897,9 +897,9 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
                 if users._get(nick).lower().account == temp.account: # FIXME
                     msg = messages["account_already_joined"]
                     if who is wrapper.source:
-                        who.send(msg.format(user, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)), notice=True)
+                        who.send(msg.format(who, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)), notice=True)
                     else:
-                        who.send(msg.format(user, "their", ""), notice=True)
+                        who.send(msg.format(who, "their", ""), notice=True)
                     return
 
         var.ALL_PLAYERS.append(wrapper.source.nick)
