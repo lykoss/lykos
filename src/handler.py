@@ -75,7 +75,7 @@ def connect_callback(cli):
         wolfgame.connect_callback()
 
         # just in case we haven't managed to successfully auth yet
-        if not botconfig.SASL_AUTHENTICATION:
+        if botconfig.PASS and not botconfig.SASL_AUTHENTICATION:
             cli.ns_identify(botconfig.USERNAME or botconfig.NICK,
                             botconfig.PASS,
                             nickserv=var.NICKSERV,

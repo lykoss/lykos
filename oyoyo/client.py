@@ -181,7 +181,8 @@ class IRCClient:
 
             self.send("CAP LS 302")
 
-            if self.server_pass and (not self.sasl_auth or "{password}" not in self.server_pass):
+            if (self.server_pass and "{password}" in self.server_pass
+                    and self.password and not self.sasl_auth):
                 message = "PASS :{0}".format(self.server_pass).format(
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
