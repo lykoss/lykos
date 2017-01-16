@@ -248,4 +248,9 @@ def on_reset(evt, var):
     KILLS.clear()
     GHOSTS.clear()
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, cli, var, kind):
+    if kind == "night_kills":
+        evt.data["vengeful ghost"] = sum(1 for against in GHOSTS.values() if against[0] != "!")
+
 # vim: set sw=4 expandtab:

@@ -402,4 +402,22 @@ def on_begin_day(evt, cli, var):
 def on_reset(evt, var):
     KILLS.clear()
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, cli, var, kind):
+    if kind == "night_kills":
+        if var.DISEASED_WOLVES:
+            evt.data["wolf"] = 0
+        elif var.ANGRY_WOLVES:
+            evt.data["wolf"] = 2
+        else:
+            evt.data["wolf"] = 1
+        # TODO: split into alpha
+        if var.ALPHA_ENABLED:
+            # alpha wolf gives an extra kill; note that we consider someone being
+            # bitten a "kill" for this metadata kind as well
+            # rolled into wolf instead of as a separate alpha wolf key for ease of implementing
+            # special logic for wolf kills vs non-wolf kills (as when alpha kills it is treated
+            # as any other wolf kill).
+            evt.data["wolf"] += 1
+
 # vim: set sw=4 expandtab:

@@ -239,4 +239,13 @@ def on_reset(evt, var):
     KILLS.clear()
     TARGETS.clear()
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, cli, var, kind):
+    if kind == "night_kills":
+        num = 0
+        for dull in var.ROLES["dullahan"]:
+            if TARGETS[dull] - var.DEAD:
+                num += 1
+        evt.data["dullahan"] = num
+
 # vim: set sw=4 expandtab:

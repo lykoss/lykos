@@ -645,4 +645,12 @@ def on_frole_role(evt, cli, var, who, role, oldrole, args):
                         TOTEMS[shaman] = t
                         break
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, cli, var, kind):
+    if kind == "night_kills":
+        # only add shamans here if they were given a death totem
+        # even though retribution kills, it is given a special kill message
+        # note that all shaman types (shaman/CS/wolf shaman) are lumped under the "shaman" key
+        evt.data["shaman"] = list(TOTEMS.values()).count("death")
+
 # vim: set sw=4 expandtab:

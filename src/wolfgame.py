@@ -2747,7 +2747,13 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             event.dispatch(cli, var, nick, nickrole, nicktpls, evt_death_triggers)
 
             # update var.ROLE_STATS
-            event = Event("update_stats", {"possible": {nickrole, nickreveal}, "known_role": False})
+            # Event priorities:
+            # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
+            # 3 = Removing from the possible set (e.g. can't be traitor if was a night kill and only wolves could kill at night),
+            # 5 = Setting known_role to True if the role is actually known for sure publically (e.g. revealing totem)
+            # 2 and 4 are not used by included roles, but may be useful expansion points for custom roles to modify stats
+            event = Event("update_stats", {"possible": {nickrole, nickreveal}, "known_role": False},
+                    killer_role=killer_role, ismain=ismain)
             event.dispatch(cli, var, nick, nickrole, nickreveal, nicktpls)
             # Given the set of possible roles this nick could be (or its actual role if known_role is True),
             # figure out the set of roles that need deducting from their counts in var.ROLE_STATS
