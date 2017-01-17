@@ -361,6 +361,9 @@ class User(IRCContext):
         return False
 
     def prefers_simple(self):
+        if self.is_fake:
+            return True
+
         temp = self.lower()
 
         if temp.account in var.SIMPLE_NOTIFY_ACCS:
