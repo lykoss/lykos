@@ -857,7 +857,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
             users.get(wrapper.source.nick).modes.clear()
         var.ROLES["person"].add(wrapper.source.nick) # FIXME: Need to store Users, not nicks
-        var.ALL_PLAYERS.append(wrapper.source.nick)
+        var.ALL_PLAYERS.append(wrapper.source)
         var.PHASE = "join"
         with var.WAIT_TB_LOCK:
             var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
@@ -874,7 +874,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
         # Set join timer
         if var.JOIN_TIME_LIMIT > 0:
-            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [wrapper.source.client, wrapper.target.name])
+            t = threading.Timer(var.JOIN_TIME_LIMIT, kill_join, [var, wrapper])
             var.TIMERS["join"] = (t, time.time(), var.JOIN_TIME_LIMIT)
             t.daemon = True
             t.start()
@@ -902,7 +902,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
                         who.send(msg.format(who, "their", ""), notice=True)
                     return
 
-        var.ALL_PLAYERS.append(wrapper.source.nick)
+        var.ALL_PLAYERS.append(wrapper.source)
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
             if var.AUTO_TOGGLE_MODES and users.get(wrapper.source.nick).modes:
                 for mode in users.get(wrapper.source.nick).modes:
@@ -954,14 +954,14 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     return True
 
 @handle_error
-def kill_join(cli, chan):
+def kill_join(var, wrapper):
     pl = list_players()
     pl.sort(key=lambda x: x.lower())
     msg = "PING! " + break_long_message(pl).replace("\n", "\nPING! ")
-    reset_modes_timers(cli)
+    reset_modes_timers(wrapper.client)
     reset()
-    cli.msg(chan, msg)
-    cli.msg(chan, messages["game_idle_cancel"])
+    wrapper.send(*pl, first="PING! ")
+    wrapper.send(messages["game_idle_cancel"])
     # use this opportunity to expire pending stasis
     db.expire_stasis()
     db.init_vars()
@@ -969,7 +969,6 @@ def kill_join(cli, chan):
     if var.AFTER_FLASTGAME is not None:
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
-
 
 @command("fjoin", flag="A")
 def fjoin(var, wrapper, message):
@@ -998,7 +997,6 @@ def fjoin(var, wrapper, message):
                 fake = True
                 for i in range(int(first), int(last)+1):
                     user = users._add(wrapper.source.client, nick=str(i)) # FIXME
-                    channels.Dummy.users.add(user) # keep a strong reference to fake users (this will be removed eventually)
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
@@ -1298,6 +1296,7 @@ def stats(cli, nick, chan, rest):
         # Step 4. Remove all dead players
         # When rolesets are a thing (e.g. one of x, y, or z), those will be resolved here as well
         for p in var.ALL_PLAYERS:
+            p = p.nick # FIXME: Need to modify this block to handle User instances
             if p in pl:
                 continue
             # pr should be the role the person gets revealed as should they die
@@ -2660,7 +2659,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                 if nickrole == "mad scientist":
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
                     # if those players are already dead, nothing happens
-                    index = var.ALL_PLAYERS.index(nick)
+                    for index, user in enumerate(var.ALL_PLAYERS):
+                        if user.nick == nick: # FIXME
+                            break
                     targets = []
                     target1 = var.ALL_PLAYERS[index - 1]
                     target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
@@ -2669,9 +2670,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         i = index
                         while True:
                             i -= 1
-                            if i < 0:
-                                i = len(var.ALL_PLAYERS) - 1
-                            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == nick:
+                            if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == nick:
                                 target1 = var.ALL_PLAYERS[i]
                                 break
                         # determine right player
@@ -2680,14 +2679,14 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             i += 1
                             if i >= len(var.ALL_PLAYERS):
                                 i = 0
-                            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == nick:
+                            if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == nick:
                                 target2 = var.ALL_PLAYERS[i]
                                 break
 
                     # do not kill blessed players, they had a premonition to step out of the way before the chemicals hit
-                    if target1 in var.ROLES["blessed villager"]:
+                    if target1.nick in var.ROLES["blessed villager"]:
                         target1 = None
-                    if target2 in var.ROLES["blessed villager"]:
+                    if target2.nick in var.ROLES["blessed villager"]:
                         target2 = None
 
                     if target1 in pl:
@@ -2804,7 +2803,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         cmode.append(("+"+newmode, nick))
                     users.get(nick).modes.update(users.get(nick).moded)
                     users.get(nick).moded = set()
-                var.ALL_PLAYERS.remove(nick)
+                var.ALL_PLAYERS.remove(users._get(nick)) # FIXME
                 ret = not chk_win(cli)
             else:
                 # Died during the game, so quiet!
@@ -3103,19 +3102,19 @@ def rename_player(var, user, prefix):
     event = Event("rename_player", {})
     event.dispatch(user.client, var, prefix, nick) # FIXME: Need to update all the callbacks
 
-    if prefix in var.ALL_PLAYERS:
+    if user in var.ALL_PLAYERS:
         pl = list_players()
-        if prefix in pl:
-            r = var.ROLES[get_role(prefix)]
-            r.add(nick)
+        if user.nick in pl:
+            r = var.ROLES[get_role(user.nick)]
+            r.add(user.nick)
             r.remove(prefix)
             tpls = get_templates(prefix)
             for t in tpls:
-                var.ROLES[t].add(nick)
+                var.ROLES[t].add(user.nick)
                 var.ROLES[t].remove(prefix)
 
         # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
-        var.ALL_PLAYERS[var.ALL_PLAYERS.index(prefix)] = nick
+        var.ALL_PLAYERS[var.ALL_PLAYERS.index(users._get(prefix))] = user # FIXME
 
         if var.PHASE in var.GAME_PHASES:
             for k,v in var.ORIGINAL_ROLES.items():
@@ -4162,15 +4161,15 @@ def lynch(cli, nick, chan, rest):
 def choose_target(actor, nick):
     pl = list_players()
     if actor in var.MISDIRECTED:
-        i = var.ALL_PLAYERS.index(nick)
+        for i, user in enumerate(var.ALL_PLAYERS):
+            if user.nick == nick:
+                break
         if random.randint(0, 1) == 0:
             # going left
             while True:
                 i -= 1
-                if i < 0:
-                    i = len(var.ALL_PLAYERS) - 1
-                if var.ALL_PLAYERS[i] in pl:
-                    nick = var.ALL_PLAYERS[i]
+                if var.ALL_PLAYERS[i].nick in pl:
+                    nick = var.ALL_PLAYERS[i].nick
                     break
         else:
             # going right
@@ -4178,19 +4177,19 @@ def choose_target(actor, nick):
                 i += 1
                 if i >= len(var.ALL_PLAYERS):
                     i = 0
-                if var.ALL_PLAYERS[i] in pl:
-                    nick = var.ALL_PLAYERS[i]
+                if var.ALL_PLAYERS[i].nick in pl:
+                    nick = var.ALL_PLAYERS[i].nick
                     break
     if nick in var.LUCKY:
-        i = var.ALL_PLAYERS.index(nick)
+        for i, user in enumerate(var.ALL_PLAYERS):
+            if user.nick == nick:
+                break
         if random.randint(0, 1) == 0:
             # going left
             while True:
                 i -= 1
-                if i < 0:
-                    i = len(var.ALL_PLAYERS) - 1
-                if var.ALL_PLAYERS[i] in pl:
-                    nick = var.ALL_PLAYERS[i]
+                if var.ALL_PLAYERS[i].nick in pl:
+                    nick = var.ALL_PLAYERS[i].nick
                     break
         else:
             # going right
@@ -4198,8 +4197,8 @@ def choose_target(actor, nick):
                 i += 1
                 if i >= len(var.ALL_PLAYERS):
                     i = 0
-                if var.ALL_PLAYERS[i] in pl:
-                    nick = var.ALL_PLAYERS[i]
+                if var.ALL_PLAYERS[i].nick in pl:
+                    nick = var.ALL_PLAYERS[i].nick
                     break
     return nick
 
@@ -4556,7 +4555,7 @@ def consecrate(cli, nick, chan, rest):
     if not victim:
         pm(cli, nick, messages["not_enough_parameters"])
         return
-    dead = [x for x in var.ALL_PLAYERS if x not in alive]
+    dead = [x.nick for x in var.ALL_PLAYERS if x.nick not in alive]
     deadl = [x.lower() for x in dead]
 
     tempvictim, num_matches = complete_match(victim.lower(), deadl)
@@ -5545,7 +5544,9 @@ def transition_night(cli):
 
     for ms in var.ROLES["mad scientist"]:
         pl = ps[:]
-        index = var.ALL_PLAYERS.index(ms)
+        for index, user in enumerate(var.ALL_PLAYERS):
+            if user.nick == ms:
+                break
         targets = []
         target1 = var.ALL_PLAYERS[index - 1]
         target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
@@ -5554,9 +5555,7 @@ def transition_night(cli):
             i = index
             while True:
                 i -= 1
-                if i < 0:
-                    i = len(var.ALL_PLAYERS) - 1
-                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
                     target1 = var.ALL_PLAYERS[i]
                     break
             # determine right player
@@ -5565,7 +5564,7 @@ def transition_night(cli):
                 i += 1
                 if i >= len(var.ALL_PLAYERS):
                     i = 0
-                if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] == ms:
+                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
                     target2 = var.ALL_PLAYERS[i]
                     break
         if ms in var.PLAYERS and not is_user_simple(ms):
@@ -6020,7 +6019,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if len(possible) < len(var.ROLES[template]):
             cli.msg(chan, messages["not_enough_targets"].format(template))
             if var.ORIGINAL_SETTINGS:
-                var.ROLES = {"person": var.ALL_PLAYERS}
+                var.ROLES = {"person": {x.nick for x in var.ALL_PLAYERS}}
                 reset_settings()
                 cli.msg(chan, messages["default_reset"].format(botconfig.CMD_CHAR))
                 var.PHASE = "join"
@@ -7511,7 +7510,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                         var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
                 if who not in pl:
                     var.ROLES[var.DEFAULT_ROLE].add(who)
-                    var.ALL_PLAYERS.append(who)
+                    var.ALL_PLAYERS.append(users._get(who)) # FIXME
                     if not is_fake_nick(who):
                         cli.mode(chan, "+v", who)
                     cli.msg(chan, messages["template_default_role"].format(var.DEFAULT_ROLE))
@@ -7537,7 +7536,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 oldrole = get_role(who)
                 var.ROLES[oldrole].remove(who)
             else:
-                var.ALL_PLAYERS.append(who)
+                var.ALL_PLAYERS.append(users._get(who)) # FIXME
             var.ROLES[rol].add(who)
             if who not in pl:
                 var.ORIGINAL_ROLES[rol].add(who)

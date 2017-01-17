@@ -1206,7 +1206,7 @@ class MaelstromMode(GameMode):
         if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):
             return
         temp = wrapper.source.lower()
-        if (temp.nick in (irc_lower(x) for x in var.ALL_PLAYERS) or # FIXME
+        if (wrapper.source in var.ALL_PLAYERS or
                 temp.account in self.DEAD_ACCOUNTS or
                 temp.host in self.DEAD_HOSTS):
             wrapper.pm(messages["maelstrom_dead"])

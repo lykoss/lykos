@@ -318,7 +318,7 @@ def list_players(roles=None):
             continue
         for p in var.ROLES.get(x, ()):
             pl.add(p)
-    return [p for p in var.ALL_PLAYERS if p in pl]
+    return [p.nick for p in var.ALL_PLAYERS if p.nick in pl]
 
 def list_players_and_roles():
     plr = {}
