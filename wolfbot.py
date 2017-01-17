@@ -18,7 +18,6 @@
 # THE SOFTWARE.
 
 import traceback
-import functools
 import sys
 import os
 
@@ -53,8 +52,8 @@ from src import handler
 def main():
     src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
     cli = IRCClient(
-                      {"privmsg": handler.on_privmsg,
-                       "notice": functools.partial(handler.on_privmsg, notice=True),
+                      {"privmsg": lambda *s: None,
+                       "notice": lambda *s: None,
                        "": handler.unhandled},
                      host=botconfig.HOST,
                      port=botconfig.PORT,

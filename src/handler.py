@@ -6,10 +6,11 @@ import sys
 import threading
 import time
 import traceback
+import functools
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, channels, hooks, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.utilities import reply
 
@@ -105,6 +106,14 @@ def connect_callback(cli):
                 threading.Timer(var.SERVER_PING_INTERVAL, ping_server_timer, args=(cli,)).start()
 
             ping_server_timer(cli)
+
+    def setup_handler(evt, var, target):
+        target.client.command_handler["privmsg"] = on_privmsg
+        target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
+
+        events.remove_listener("who_end", setup_handler)
+
+    events.add_listener("who_end", setup_handler)
 
     def mustregain(cli, server, bot_nick, nick, msg):
         nonlocal regaincount
