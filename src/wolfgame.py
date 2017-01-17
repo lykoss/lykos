@@ -1624,6 +1624,7 @@ def stats(cli, nick, chan, rest):
 
         vb = "are"
         for role in rs:
+            count = len(var.ROLES[role])
             # only show actual roles
             if role in var.TEMPLATE_RESTRICTIONS.keys():
                 continue
@@ -2689,47 +2690,47 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     if target2.nick in var.ROLES["blessed villager"]:
                         target2 = None
 
-                    if target1 in pl:
-                        if target2 in pl and target1 != target2:
+                    if target1.nick in pl:
+                        if target2.nick in pl and target1 is not target2:
                             if var.ROLE_REVEAL in ("on", "team"):
-                                r1 = get_reveal_role(target1)
+                                r1 = get_reveal_role(target1.nick)
                                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                                r2 = get_reveal_role(target2)
+                                r2 = get_reveal_role(target2.nick)
                                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
                                 tmsg = messages["mad_scientist_kill"].format(nick, target1, an1, r1, target2, an2, r2)
                             else:
                                 tmsg = messages["mad_scientist_kill_no_reveal"].format(nick, target1, target2)
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1), target2, get_role(target2)))
+                            debuglog(nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1.nick), target2, get_role(target2.nick)))
                             deadlist1 = copy.copy(deadlist)
                             deadlist1.append(target2)
                             deadlist2 = copy.copy(deadlist)
                             deadlist2.append(target1)
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original, ismain = False)
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original, ismain = False)
+                            del_player(cli, target1.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original, ismain = False)
+                            del_player(cli, target2.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original, ismain = False)
                             pl = refresh_pl(pl)
                         else:
                             if var.ROLE_REVEAL in ("on", "team"):
-                                r1 = get_reveal_role(target1)
+                                r1 = get_reveal_role(target1.nick)
                                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                                 tmsg = messages["mad_scientist_kill_single"].format(nick, target1, an1, r1)
                             else:
                                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target1)
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1)))
-                            del_player(cli, target1, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
+                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1.nick)))
+                            del_player(cli, target1.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
                             pl = refresh_pl(pl)
                     else:
-                        if target2 in pl:
+                        if target2.nick in pl:
                             if var.ROLE_REVEAL in ("on", "team"):
-                                r2 = get_reveal_role(target2)
+                                r2 = get_reveal_role(target2.nick)
                                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
                                 tmsg = messages["mad_scientist_kill_single"].format(nick, target2, an2, r2)
                             else:
                                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target2)
                             cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2)))
-                            del_player(cli, target2, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
+                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2.nick)))
+                            del_player(cli, target2.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
                             pl = refresh_pl(pl)
                         else:
                             tmsg = messages["mad_scientist_fail"].format(nick)
@@ -5379,7 +5380,7 @@ def relay(var, wrapper, message):
             return
         elif wrapper.source.nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
             return
-        elif nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        elif wrapper.source.nick not in wolves and var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             return
 
         badguys.remove(wrapper.source.nick)
