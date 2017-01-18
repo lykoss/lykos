@@ -6729,8 +6729,8 @@ def listroles(cli, nick, chan, rest):
                     msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
                 else:
                     msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
-                    rest = []
-                    roleindex = {}
+                rest = []
+                roleindex = {}
 
     #number of players to print the game mode for
     if rest and rest[0].isdigit():
