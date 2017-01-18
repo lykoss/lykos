@@ -417,7 +417,7 @@ def complete_match(string, matches):
             return [string]
         if possible.startswith(string) or possible.lstrip("[{\\^_`|}]").startswith(string):
             possible_matches.add(possible)
-    return sorted(possible_matches))
+    return sorted(possible_matches)
 
 def complete_one_match(string, matches):
     match = complete_match(string,matches) 

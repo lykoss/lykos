@@ -6707,13 +6707,13 @@ def listroles(cli, nick, chan, rest):
     elif rest[0] and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            gamemode = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
+            matches = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
             if len(gamemode) > 1:
-                msg.append("{0}: {1} is not a valid game mode. Possbile modes are: {2} ".format(nick, rest[0], ", ".join(gamemode)))
+                msg.append(nick, messages["invalid_mode"].format(nick, rest[0], ", ".join(matches)))
                 rest = []
                 roleindex = {}
             else:
-                gamemode = gamemode.pop()
+                gamemode = matches.pop()
         else:
             validMode = gamemode in var.GAME_MODES.keys() and gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES
             if validMode and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
