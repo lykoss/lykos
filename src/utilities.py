@@ -15,7 +15,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "list_players_and_roles", "list_participants", "get_role", "get_roles",
            "get_reveal_role", "get_templates", "role_order", "break_long_message",
-           "complete_match", "get_victim", "get_nick", "InvalidModeException"]
+           "complete_match","complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -411,18 +411,20 @@ def break_long_message(phrases, joinstr = " "):
 
 #completes a partial nickname or string from a list
 def complete_match(string, matches):
-    num_matches = 0
-    bestmatch = string
+    possible_matches = set()
     for possible in matches:
         if string == possible:
-            return string, 1
+            return {string}
         if possible.startswith(string) or possible.lstrip("[{\\^_`|}]").startswith(string):
-            bestmatch = possible
-            num_matches += 1
-    if num_matches != 1:
-        return None, num_matches
-    else:
-        return bestmatch, 1
+            possible_matches.add(possible)
+    return sorted(list(possible_matches))
+
+#wrapper around complete_match() to return a single string
+def complete_one_match(string, matches):
+    match = complete_match(string,matches) 
+    if len(match) == 1:
+        return match.pop()
+    return None
 
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
@@ -437,20 +439,20 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         pl.append(botconfig.NICK)
         pll.append(botconfig.NICK.lower())
 
-    tempvictim, num_matches = complete_match(victim.lower(), pll)
-    if not tempvictim:
+    tempvictims = complete_match(victim.lower(), pll)
+    if len(tempvictims) != 1:
         #ensure messages about not being able to act on yourself work
-        if num_matches == 0 and nick.lower().startswith(victim.lower()):
+        if len(tempvictims) == 0 and nick.lower().startswith(victim.lower()):
             return nick
         reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
-    return pl[pll.index(tempvictim)] #convert back to normal casing
+    return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
 # wrapper around complete_match() used for any nick on the channel
 def get_nick(cli, nick):
     ul = [x for x in var.USERS]
     ull = [x.lower() for x in var.USERS]
-    lnick, num_matches = complete_match(nick.lower(), ull)
+    lnick = complete_match(nick.lower(), ull)
     if not lnick:
         return None
     return ul[ull.index(lnick)]
