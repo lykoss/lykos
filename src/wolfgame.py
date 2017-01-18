@@ -6709,7 +6709,7 @@ def listroles(cli, nick, chan, rest):
         if gamemode not in var.GAME_MODES.keys():
             matches = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
             if len(gamemode) > 1:
-                msg.append(nick, messages["invalid_mode"].format(nick, rest[0], ", ".join(matches)))
+                msg.append(messages["invalid_mode"].format(nick, rest[0], ", ".join(matches)))
                 rest = []
                 roleindex = {}
             else:
@@ -6908,11 +6908,11 @@ def game_stats(cli, nick, chan, rest):
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
-            gamemode = complete_match(gamemode, var.GAME_MODES.keys())
+            matches = complete_match(gamemode, var.GAME_MODES.keys())
             if len(gamemode) == 1:
-                gamemode = gamemode.pop()    
+                gamemode = matches.pop()    
             if not gamemode:
-                cli.notice(nick, messages["invalid_mode"].format(rest[0], ", ".join(gamemode)))
+                cli.notice(nick, messages["invalid_mode"].format(rest[0], ", ".join(matches)))
                 return
         rest.pop(0)
     # Check for invalid input
