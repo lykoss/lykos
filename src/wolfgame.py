@@ -6721,7 +6721,7 @@ def listroles(cli, nick, chan, rest):
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
                 roleguide = mode.ROLE_GUIDE
-            elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.  ORIGINAL_SETTINGS:
+            elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
             else:
