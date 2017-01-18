@@ -414,12 +414,11 @@ def complete_match(string, matches):
     possible_matches = set()
     for possible in matches:
         if string == possible:
-            return {string}
+            return [string]
         if possible.startswith(string) or possible.lstrip("[{\\^_`|}]").startswith(string):
             possible_matches.add(possible)
     return sorted(list(possible_matches))
 
-#wrapper around complete_match() to return a single string
 def complete_one_match(string, matches):
     match = complete_match(string,matches) 
     if len(match) == 1:
