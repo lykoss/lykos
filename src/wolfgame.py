@@ -7004,15 +7004,15 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        match = complete_match(gamemode, var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
-        if not match:
+        matches = complete_match(gamemode, var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
+        if not matches:
             wrapper.pm(messages["invalid_mode_no_list"].format(gamemode))
             return
-        if len(match) > 1:
-            wrapper.pm(messages["invalid_mode"].format(gamemode, ", ".join(match)))
+        if len(matches) > 1:
+            wrapper.pm(messages["invalid_mode"].format(gamemode, ", ".join(matches)))
             return
         else:
-            gamemode = match.pop()
+            gamemode = matches.pop()
         
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
         if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
