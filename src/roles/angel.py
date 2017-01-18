@@ -181,7 +181,7 @@ def on_transition_day_resolve(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
     # right now they're needed because otherwise protection may fire off even if the person isn't home
     # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         return
     # END checks to remove
 

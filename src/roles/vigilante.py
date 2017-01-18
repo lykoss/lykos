@@ -63,12 +63,12 @@ def vigilante_pass(cli, nick, chan, rest):
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+    PASSED.discard(nick)
+    if nick in KILLS:
+        del KILLS[nick]
     for h,v in list(KILLS.items()):
         if v == nick:
-            PASSED.discard(h)
             pm(cli, h, messages["hunter_discard"])
-            del KILLS[h]
-        elif h == nick:
             del KILLS[h]
 
 @event_listener("rename_player")
@@ -94,7 +94,7 @@ def on_acted(evt, cli, var, nick, sender):
 
 @event_listener("get_special")
 def on_get_special(evt, cli, var):
-    evt.data["special"].update(list_players(("vigilante",)))
+    evt.data["special"].update(var.ROLES["vigilante"])
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
@@ -134,6 +134,12 @@ def on_transition_night_end(evt, cli, var):
         else:
             pm(cli, vigilante, messages["vigilante_simple"])
         pm(cli, vigilante, "Players: " + ", ".join(pl))
+
+@event_listener("succubus_visit")
+def on_succubus_visit(evt, cli, var, nick, victim):
+    if KILLS.get(victim) in var.ROLES["succubus"]:
+        pm(cli, victim, messages["no_kill_succubus"].format(KILLS[victim]))
+        del KILLS[victim]
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):

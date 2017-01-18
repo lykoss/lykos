@@ -309,15 +309,20 @@ def singular(plural):
     # otherwise we just added an s on the end
     return plural[:-1]
 
-def list_players(roles=None):
+def list_players(roles=None, rolemap=None):
+    if rolemap is None:
+        rolemap = var.ROLES
     if roles is None:
-        roles = var.ROLES.keys()
+        roles = rolemap.keys()
     pl = set()
     for x in roles:
-        if x in var.TEMPLATE_RESTRICTIONS.keys():
+        if x in var.TEMPLATE_RESTRICTIONS:
             continue
-        for p in var.ROLES.get(x, ()):
-            pl.add(p)
+        pl.update(rolemap.get(x, ()))
+    if rolemap is not var.ROLES:
+        # we weren't given an actual player list (possibly),
+        # so the elements of pl are not necessarily in var.ALL_PLAYERS
+        return list(pl)
     return [p.nick for p in var.ALL_PLAYERS if p.nick in pl]
 
 def list_players_and_roles():
@@ -352,10 +357,12 @@ def get_role(p):
         raise ValueError("Nick {0} isn't playing and has no defined participant role".format(p))
     return role
 
-def get_roles(*roles):
+def get_roles(*roles, rolemap=None):
+    if rolemap is None:
+        rolemap = var.ROLES
     all_roles = []
     for role in roles:
-        all_roles.append(var.ROLES[role])
+        all_roles.append(rolemap[role])
     return list(itertools.chain(*all_roles))
 
 def get_reveal_role(nick):

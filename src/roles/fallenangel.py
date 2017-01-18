@@ -16,9 +16,7 @@ from src.events import Event
 def on_transition_day(evt, cli, var):
     # now that all protections are finished, add people back to onlybywolves
     # if they're down to 1 active kill and wolves were a valid killer
-    # TODO: split out var.ENTRANCED_DYING when succubus is split
-    # that should probably be a priority 4.7 listener
-    victims = set(list_players()) & set(evt.data["victims"]) - var.DYING - var.ENTRANCED_DYING
+    victims = set(list_players()) & set(evt.data["victims"]) - var.DYING
     for v in victims:
         if evt.data["numkills"][v] == 1 and v in evt.data["bywolves"]:
             evt.data["onlybywolves"].add(v)

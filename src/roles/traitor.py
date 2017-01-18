@@ -59,5 +59,24 @@ def on_update_stats3(evt, cli, var, nick, nickrole, nickreveal, nicktpls):
         # and a wolf kill, and a wolf + villager died, we know the villager was the wolf kill
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
+@event_listener("chk_win", priority=1.1)
+def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+    did_something = False
+    if lrealwolves == 0:
+        for traitor in list(rolemap["traitor"]):
+            rolemap["wolf"].add(traitor)
+            rolemap["traitor"].remove(traitor)
+            rolemap["cursed villager"].discard(traitor)
+            did_something = True
+            if var.PHASE in var.GAME_PHASES:
+                var.FINAL_ROLES[traitor] = "wolf"
+                pm(cli, traitor, messages["traitor_turn"])
+                debuglog(traitor, "(traitor) TURNING")
+    if did_something:
+        if var.PHASE in var.GAME_PHASES:
+            var.TRAITOR_TURNED = True
+            cli.msg(botconfig.CHANNEL, messages["traitor_turn_channel"])
+        evt.prevent_default = True
+        evt.stop_processing = True
 
 # vim: set sw=4 expandtab:

@@ -59,8 +59,6 @@ def on_player_win(evt, var, user, role, winner, survived):
     if role != "dullahan":
         return
     alive = set(list_players())
-    if user.nick in var.ENTRANCED:
-        alive -= var.ROLES["succubus"]
     if not TARGETS[user.nick] & alive:
         evt.data["iwon"] = True
 
@@ -138,7 +136,7 @@ def on_acted(evt, cli, var, nick, sender):
 
 @event_listener("get_special")
 def on_get_special(evt, cli, var):
-    evt.data["special"].update(list_players(("dullahan",)))
+    evt.data["special"].update(var.ROLES["dullahan"])
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
@@ -204,6 +202,15 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
                 target = random.choice(ps)
                 ps.remove(target)
                 ts.add(target)
+
+@event_listener("succubus_visit")
+def on_succubus_visit(evt, cli, var, nick, victim):
+    if victim in TARGETS and TARGETS[victim] & var.ROLES["succubus"]:
+        TARGETS.difference_update(var.ROLES["succubus"])
+        pm(cli, victim, messages["dullahan_no_kill_succubus"])
+    if KILLS.get(victim) in var.ROLES["succubus"]:
+        pm(cli, victim, messages["no_kill_succubus"].format(KILLS[victim]))
+        del KILLS[victim]
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):

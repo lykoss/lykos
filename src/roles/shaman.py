@@ -146,7 +146,7 @@ def on_acted(evt, cli, var, nick, sender):
 
 @event_listener("get_special")
 def on_get_special(evt, cli, var):
-    evt.data["special"].update(list_players(("shaman",)))
+    evt.data["special"].update(list_players(("shaman", "crazed shaman", "wolf shaman")))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
@@ -312,12 +312,9 @@ def on_transition_day_begin(evt, cli, var):
             ps = pl[:]
             if LASTGIVEN.get(shaman) in ps:
                 ps.remove(LASTGIVEN.get(shaman))
-            # TODO: somehow split this off into succubus.py,
-            # probably via a new event
-            if shaman in var.ENTRANCED:
-                for succubus in var.ROLES["succubus"]:
-                    if succubus in ps:
-                        ps.remove(succubus)
+            levt = Event("get_random_totem_targets", {"targets": ps})
+            levt.dispatch(cli, var, shaman)
+            ps = levt.data["targets"]
             if ps:
                 target = random.choice(ps)
                 totem.func(cli, shaman, shaman, target, messages["random_totem_prefix"]) # XXX: Old API
@@ -440,7 +437,7 @@ def on_transition_day_resolve2(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
     # right now they're needed because otherwise protection may fire off even if the person isn't home
     # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         return
     # END checks to remove
 
@@ -455,7 +452,7 @@ def on_transition_day_resolve6(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
     # right now they're needed because otherwise retribution may fire off when the target isn't actually dying
     # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         return
     if evt.data["protected"].get(victim):
         return
@@ -586,6 +583,13 @@ def on_assassinate(evt, cli, var, nick, target, prot):
         evt.prevent_default = True
         evt.stop_processing = True
         cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "totem"].format(nick, target))
+
+@event_listener("succubus_visit")
+def on_succubus_visit(evt, cli, var, nick, victim):
+    if (SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and
+       (get_role(victim) == "crazed shaman" or TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
+        pm(cli, victim, messages["retract_totem_succubus"].format(SHAMANS[victim]))
+        del SHAMANS[victim]
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):
