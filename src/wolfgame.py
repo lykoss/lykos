@@ -6990,7 +6990,6 @@ def player_stats(cli, nick, chan, rest):
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
-
 @cmd("mystats", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
