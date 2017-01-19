@@ -103,7 +103,10 @@ def connect_callback(cli):
         if var.SERVER_PING_INTERVAL > 0:
             def ping_server_timer(cli):
                 ping_server(cli)
-                threading.Timer(var.SERVER_PING_INTERVAL, ping_server_timer, args=(cli,)).start()
+
+                t = threading.Timer(var.SERVER_PING_INTERVAL, ping_server_timer, args=(cli,))
+                t.daemon = True
+                t.start()
 
             ping_server_timer(cli)
 
