@@ -979,6 +979,9 @@ def fjoin(var, wrapper, message):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
+    ul = list(var.USERS.keys())
+    ull = [u.lower() for u in ul]
+    
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
@@ -986,7 +989,18 @@ def fjoin(var, wrapper, message):
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
 
-    for tojoin in re.split(" +", message):
+    if not botconfig.DEBUG_MODE:
+        message = re.split(" +", message)
+        match = complete_one_match(irc_lower(message[0]), ull)
+        if match:
+            message = [match]
+    else:
+        message = re.split(" +", message)
+        for i, s in enumerate(message):
+            match = complete_one_match(irc_lower(s), ull)
+            if match:
+                message[i] = match
+    for tojoin in message:
         tojoin = tojoin.strip()
         if "-" in tojoin:
             first, hyphen, last = tojoin.partition("-")
@@ -1001,8 +1015,7 @@ def fjoin(var, wrapper, message):
                 continue
         if not tojoin:
             continue
-        ul = list(var.USERS.keys())
-        ull = [u.lower() for u in ul]
+       
         if tojoin.lower() not in ull or not var.USERS[ul[ull.index(tojoin.lower())]]["inchan"]:
             if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
@@ -6538,6 +6551,10 @@ def listroles(cli, nick, chan, rest):
 
         if hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
             mode = var.GAME_MODES[gamemode][0]()
+        else:
+            validMode = gamemode in var.GAME_MODES.keys() and gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES
+            if validMode and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+                mode = var.GAME_MODES[gamemode][0]()
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
                 roleguide = mode.ROLE_GUIDE
@@ -6545,10 +6562,13 @@ def listroles(cli, nick, chan, rest):
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
             rest.pop(0)
-        else:
-            msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
-            rest = []
-            roleindex = {}
+            else:
+                if validMode and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+                    msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
+                else:
+                    msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
+                rest = []
+                roleindex = {}
 
     #number of players to print the game mode for
     if rest and rest[0].isdigit():
@@ -6809,6 +6829,7 @@ def player_stats(cli, nick, chan, rest):
                 reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches))) 
                 return
             role = matches[0]
+            
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
