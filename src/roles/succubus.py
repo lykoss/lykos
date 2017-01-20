@@ -127,15 +127,15 @@ def on_chk_decision_abstain(evt, cli, var, not_lynching):
     _kill_entranced_voters(var, evt.params.votelist, not_lynching, None)
 
 # entranced logic should run after team wins have already been determined (aka run last)
-# for neutral roles, they should not receive individual wins if their win cond is simply staying alive,
-# but SHOULD receive individual wins if they actually have to work for it, even if they're entranced
-# it is up to the individual neutral roles to implement this properly
+# we do not want to override the win conditions for neutral roles should they win while entranced
+# For example, entranced monsters should win with other monsters should mosnters win, and be
+# properly credited with a team win in that event.
 @event_listener("player_win", priority=6)
 def on_player_win(evt, var, user, role, winner, survived):
     nick = user.nick
     if nick in ENTRANCED:
         evt.data["special"].append("entranced")
-        if winner != "succubi":
+        if winner != "succubi" and role not in var.TRUE_NEUTRAL_ROLES:
             evt.data["won"] = False
         else:
             evt.data["iwon"] = True
@@ -174,18 +174,31 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
             while ENTRANCED:
                 e = ENTRANCED.pop()
                 pm(cli, e, messages["entranced_revert_win"])
-        else:
+        elif ENTRANCED:
+            msg = []
+            # Run in two loops so we can play the message for everyone dying at once before we actually
+            # kill any of them off (if we killed off first, the message order would be wrong wrt death chains)
+            comma = ""
+            if var.ROLE_REVEAL in ("on", "team"):
+                comma = ","
             for e in ENTRANCED:
-                # to ensure we do not double-kill someone, notify all child deaths that we'll be
-                # killing off everyone else that is entranced so they don't need to bother
-                dlc = list(deadlist)
-                dlc.extend(ENTRANCED - {e})
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(e)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(e, an, role))
+                    msg.append("\u0002{0}\u0002, a{1} \u0002{2}\u0002".format(e, an, role))
                 else:
-                    cli.msg(botconfig.CHANNEL, messages["succubus_die_kill_noreveal"].format(e))
+                    msg.append("\u0002{0}\u0002".format(e))
+            if len(msg) == 1:
+                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(msg[0] + comma))
+            elif len(msg) == 2:
+                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(msg[0] + comma + " and " + msg[1] + comma))
+            else:
+                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(", ".join(msg[:-1]) + ", and " + msg[-1] + comma))
+            for e in ENTRANCED:
+                # to ensure we do not double-kill someone, notify all child deaths that we'll be
+                # killing off everyone else that is entranced so they don't need to bother
+                dlc = list(evt.params.deadlist)
+                dlc.extend(ENTRANCED - {e})
                 debuglog("{0} ({1}) SUCCUBUS DEATH KILL: {2} ({3})".format(nick, nickrole, e, get_role(e)))
                 evt.params.del_player(cli, e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
