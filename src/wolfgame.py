@@ -7379,7 +7379,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 gamemode = gamemode.split()[0]
                 gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
                 if not gamemode:
-                    cli.notice(nick, messages["invalid_mode_no_list"].format(rest))
+                    cli.notice(nick, messages["invalid_mode_no_list"].format(rest[0]))
                     return
                 parts[0] = gamemode
 
