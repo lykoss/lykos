@@ -542,7 +542,7 @@ def replace(var, wrapper, message):
         wrapper.pm(messages["already_playing"].format("You"))
         return
 
-    if temp.account is None:
+    if wrapper.source.account is None:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -3103,24 +3103,22 @@ def rename_player(var, user, prefix):
     event = Event("rename_player", {})
     event.dispatch(user.client, var, prefix, nick) # FIXME: Need to update all the callbacks
 
-    if user in var.ALL_PLAYERS:
-        pl = list_players()
-        if user.nick in pl:
-            r = var.ROLES[get_role(user.nick)]
-            r.add(user.nick)
-            r.remove(prefix)
-            tpls = get_templates(prefix)
-            for t in tpls:
-                var.ROLES[t].add(user.nick)
-                var.ROLES[t].remove(prefix)
+    try:
+        temp = users._get(prefix) # FIXME
+    except KeyError: # dirty hack; this isn't a swap
+        pass
+    else:
+        # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
+        var.ALL_PLAYERS[var.ALL_PLAYERS.index(temp)] = user
 
-        try:
-            temp = users._get(prefix) # FIXME
-        except KeyError: # dirty hack; this isn't a swap
-            pass
-        else:
-            # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
-            var.ALL_PLAYERS[var.ALL_PLAYERS.index(temp)] = user
+    if user in var.ALL_PLAYERS:
+        r = var.ROLES[get_role(prefix)]
+        r.add(user.nick)
+        r.remove(prefix)
+        tpls = get_templates(prefix)
+        for t in tpls:
+            var.ROLES[t].add(user.nick)
+            var.ROLES[t].remove(prefix)
 
         if var.PHASE in var.GAME_PHASES:
             for k,v in var.ORIGINAL_ROLES.items():
