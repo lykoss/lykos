@@ -3114,8 +3114,13 @@ def rename_player(var, user, prefix):
                 var.ROLES[t].add(user.nick)
                 var.ROLES[t].remove(prefix)
 
-        # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
-        var.ALL_PLAYERS[var.ALL_PLAYERS.index(users._get(prefix))] = user # FIXME
+        try:
+            temp = users._get(prefix) # FIXME
+        except KeyError: # dirty hack; this isn't a swap
+            pass
+        else:
+            # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
+            var.ALL_PLAYERS[var.ALL_PLAYERS.index(temp)] = user
 
         if var.PHASE in var.GAME_PHASES:
             for k,v in var.ORIGINAL_ROLES.items():
@@ -5387,11 +5392,11 @@ def relay(var, wrapper, message):
         to_msg = set(badguys) & var.PLAYERS.keys()
         if message.startswith("\u0001ACTION"):
             message = message[7:-1]
-            mass_privmsg(wrapper.client, to_msg, "* \u0002{0}\u0002{1}".format(nick, message))
-            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(nick, message))
+            mass_privmsg(wrapper.client, to_msg, "* \u0002{0}\u0002{1}".format(wrapper.source, message))
+            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
         else:
-            mass_privmsg(wrapper.client, to_msg, "\u0002{0}\u0002 says: {1}".format(nick, message))
-            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(nick, message))
+            mass_privmsg(wrapper.client, to_msg, "\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
 
 @handle_error
 def transition_night(cli):
