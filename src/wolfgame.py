@@ -6707,7 +6707,7 @@ def listroles(cli, nick, chan, rest):
     elif rest[0] and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
-            matches = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
+            matches = complete_match(rest[0], var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES)
             if len(matches) > 1:
                 reply(cli, nick, chan, nick + " " + messages["invalid_mode"].format(rest[0], ", ".join(matches)))
                 rest = []
@@ -7014,7 +7014,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
+        matches = complete_match(gamemode, var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES)
         if not matches:
             wrapper.pm(messages["invalid_mode_no_list"].format(gamemode))
             return
