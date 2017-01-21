@@ -420,9 +420,9 @@ def complete_match(string, matches):
     return sorted(possible_matches)
 
 def complete_one_match(string, matches):
-    match = complete_match(string,matches) 
-    if len(match) == 1:
-        return match.pop()
+    matches = complete_match(string,matches) 
+    if len(matches) == 1:
+        return matches.pop()
     return None
 
 #wrapper around complete_match() used for roles

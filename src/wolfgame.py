@@ -6708,29 +6708,35 @@ def listroles(cli, nick, chan, rest):
         gamemode = rest[0]
         if gamemode not in var.GAME_MODES.keys():
             matches = complete_match(rest[0], var.GAME_MODES.keys() - ["roles", "villagergame"] - var.DISABLED_GAMEMODES)
-            if len(gamemode) > 1:
-                msg.append(messages["invalid_mode"].format(nick, rest[0], ", ".join(matches)))
+            if len(matches) > 1:
+                reply(cli, nick, chan, nick + " " + messages["invalid_mode"].format(rest[0], ", ".join(matches)))
                 rest = []
                 roleindex = {}
+                return
+            if len(matches) == 0:
+                reply(cli, nick, chan, nick + " " + messages["invalid_mode_no_list"].format(rest[0], ", ".join(matches)))
+                rest = []
+                roleindex = {}
+                return
             else:
-                gamemode = matches.pop()
+                gamemode = matches[0]
+        
+        validMode = gamemode in var.GAME_MODES.keys() and gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES
+        if validMode and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+            mode = var.GAME_MODES[gamemode][0]()
+        if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
+            roleindex = mode.ROLE_INDEX
+            roleguide = mode.ROLE_GUIDE
+        elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
+            roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
+            roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
         else:
-            validMode = gamemode in var.GAME_MODES.keys() and gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES
-            if validMode and hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
-                mode = var.GAME_MODES[gamemode][0]()
-            if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
-                roleindex = mode.ROLE_INDEX
-                roleguide = mode.ROLE_GUIDE
-            elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
-                roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
-                roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
+            if validMode and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
+                msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
             else:
-                if validMode and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
-                    msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
-                else:
-                    msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
-                rest = []
-                roleindex = {}
+                msg.append("{0}: {1} is not a valid game mode.".format(nick, rest[0]))
+            rest = []
+            roleindex = {}
 
     #number of players to print the game mode for
     if rest and rest[0].isdigit():
@@ -6909,9 +6915,12 @@ def game_stats(cli, nick, chan, rest):
         gamemode = rest[0]
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
             matches = complete_match(gamemode, var.GAME_MODES.keys())
-            if len(gamemode) == 1:
-                gamemode = matches.pop()    
-            if not gamemode:
+            if len(matches) == 1:
+                gamemode = matches[0]  
+            if not matches:
+                cli.notice(nick, messages["invalid_mode_no_list"].format(rest[0]))
+                return
+            if len(matches) > 1:
                 cli.notice(nick, messages["invalid_mode"].format(rest[0], ", ".join(matches)))
                 return
         rest.pop(0)
@@ -6980,13 +6989,14 @@ def player_stats(cli, nick, chan, rest):
     else:
         role = " ".join(params[1:])
         if role not in var.ROLE_GUIDE.keys():
-            match = complete_match(role, var.ROLE_GUIDE.keys() | ["lover"])
-            if not match:
+            matches = complete_match(role, var.ROLE_GUIDE.keys() | {"lover"})
+            if not matches:
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return
-            if len(match) > 2:
-                reply(cli, nick, chan, messages["invalid_mode"].format(role, ", ".join(match)))
-                return    
+            if len(matches) > 1:
+                reply(cli, nick, chan,nick, messages["invalid_mode"].format(role, ", ".join(matches))) 
+                return
+            role = matches
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
@@ -7012,7 +7022,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             wrapper.pm(messages["invalid_mode"].format(gamemode, ", ".join(matches)))
             return
         else:
-            gamemode = matches.pop()
+            gamemode = matches[0]
         
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
         if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
@@ -7367,7 +7377,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
             if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
                 gamemode = gamemode.split()[0]
-                gamemode = complete_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
+                gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
                 if not gamemode:
                     cli.notice(nick, messages["invalid_mode_no_list"].format(rest))
                     return
