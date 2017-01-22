@@ -3112,13 +3112,17 @@ def rename_player(var, user, prefix):
         var.ALL_PLAYERS[var.ALL_PLAYERS.index(temp)] = user
 
     if user in var.ALL_PLAYERS:
-        r = var.ROLES[get_role(prefix)]
-        r.add(user.nick)
-        r.remove(prefix)
-        tpls = get_templates(prefix)
-        for t in tpls:
-            var.ROLES[t].add(user.nick)
-            var.ROLES[t].remove(prefix)
+        try:
+            r = var.ROLES[get_role(prefix)]
+            r.add(user.nick)
+            r.remove(prefix)
+            tpls = get_templates(prefix)
+            for t in tpls:
+                var.ROLES[t].add(user.nick)
+                var.ROLES[t].remove(prefix)
+        except ValueError:
+            # User is in ALL_PLAYERS but dead
+            pass
 
         if var.PHASE in var.GAME_PHASES:
             for k,v in var.ORIGINAL_ROLES.items():
