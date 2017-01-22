@@ -5366,14 +5366,14 @@ def relay(var, wrapper, message):
             if message.startswith("\u0001ACTION"):
                 message = message[7:-1]
                 for user in to_msg:
-                    user.queue_message("* \u0002{0}\u0002{1}".format(user, message))
+                    user.queue_message("* \u0002{0}\u0002{1}".format(wrapper.source, message))
                 for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message("* [deadchat] \u0002{0}\u0002{1}".format(user, message))
+                    user.queue_message("* [deadchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
             else:
                 for user in to_msg:
-                    user.queue_message("\u0002{0}\u0002 says: {1}".format(user, message))
+                    user.queue_message("\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
                 for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message("[deadchat] \u0002{0}\u0002 says: {1}".format(user, message))
+                    user.queue_message("[deadchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
 
             user.send_messages()
 
