@@ -27,7 +27,6 @@ HOOKS = defaultdict(list)
 # Error handler decorators and context managers
 
 class _local(threading.local):
-    frame_locals = None
     handler = None
     level = 0
 
@@ -77,28 +76,37 @@ class print_traceback:
             _local.level -= 1
             return False
 
-        if _local.frame_locals is None:
-            while tb.tb_next is not None:
-                tb = tb.tb_next
-            _local.frame_locals = tb.tb_frame.f_locals
-
         if _local.level > 1:
             _local.level -= 1
             return False # the outermost caller should handle this
 
+        frames = []
+
+        while tb is not None:
+            if tb.tb_frame.f_locals.get("_ignore_locals_") or not tb.tb_frame.f_locals:
+                frames.append(None)
+            else:
+                frames.append(tb.tb_frame)
+            tb = tb.tb_next
+
         if _local.handler is None:
             _local.handler = chain_exceptions(exc_value)
 
-        variables = ["", None, "Local variables from innermost frame:", ""]
+        variables = ["", None, None]
 
         with _local.handler:
-            for name, value in _local.frame_locals.items():
-                variables.append("{0} = {1!r}".format(name, value))
+            for i, frame in enumerate(frames, start=1):
+                if frame is None:
+                    continue
+                variables.append("\nLocal variables from frame #{0} (in {1}):\n".format(i, frame.f_code.co_name))
+                for name, value in frame.f_locals.items():
+                    variables.append("{0} = {1!r}".format(name, value))
 
-        if len(variables) > 4:
+        if len(variables) > 3:
             variables.append("\n")
+            variables[2] = "Local variables in all frames (most recent call last):"
         else:
-            variables[2] = "No local variables found in innermost frame."
+            variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
 
@@ -176,6 +184,7 @@ class handle_error:
         return self
 
     def __call__(*args, **kwargs):
+        _ignore_locals_ = True
         self, *args = args
         if self.instance is not None:
             args = [self.instance] + args
@@ -226,6 +235,7 @@ class command:
 
     @handle_error
     def caller(self, cli, rawnick, chan, rest):
+        _ignore_locals_ = True
         user = users._add(cli, nick=rawnick) # FIXME
 
         if users.equals(chan, users.Bot.nick): # PM
@@ -339,6 +349,7 @@ class cmd:
 
     @handle_error
     def caller(self, cli, rawnick, chan, rest):
+        _ignore_locals_ = True
         if users.equals(chan, users.Bot.nick):
             chan = users.parse_rawnick_as_dict(rawnick)["nick"]
 
