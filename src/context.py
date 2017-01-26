@@ -94,7 +94,7 @@ def lower(nick, *, casemapping=None):
     return nick.lower().translate(str.maketrans(mapping))
 
 def equals(nick1, nick2):
-    return lower(nick1) == lower(nick2)
+    return nick1 is not None and nick2 is not None and lower(nick1) == lower(nick2)
 
 def context_types(*types):
     def wrapper(cls):
