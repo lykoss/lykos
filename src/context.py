@@ -3,7 +3,7 @@ from operator import attrgetter
 
 from src.logger import debuglog
 
-Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}}
+Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}, "TARGMAX": {"PRIVMSG": 1, "NOTICE": 1}}
 
 def _who(cli, target, data=b""):
     """Handle WHO requests."""
