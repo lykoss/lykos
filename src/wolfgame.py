@@ -894,7 +894,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     else:
         if not botconfig.DEBUG_MODE:
             for nick in pl:
-                if users._get(nick).lower().account == temp.account: # FIXME
+                if users.equals(users._get(nick).account, temp.account): # FIXME
                     msg = messages["account_already_joined"]
                     if who is wrapper.source:
                         who.send(msg.format(who, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)), notice=True)
