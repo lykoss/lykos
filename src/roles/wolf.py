@@ -394,6 +394,33 @@ def on_transition_night_end(evt, cli, var):
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
             pm(cli, wolf, messages["wolf_bite"])
 
+@event_listener("chk_win", priority=1)
+def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+    # TODO: split into cub
+    did_something = False
+    if lrealwolves == 0:
+        for wc in list(rolemap["wolf cub"]):
+            rolemap["wolf"].add(wc)
+            rolemap["wolf cub"].remove(wc)
+            did_something = True
+            if var.PHASE in var.GAME_PHASES:
+                var.FINAL_ROLES[wc] = "wolf"
+                pm(cli, wc, messages["cub_grow_up"])
+                debuglog(wc, "(wolf cub) GROW UP")
+    if did_something:
+        evt.prevent_default = True
+        evt.stop_processing = True
+
+@event_listener("succubus_visit")
+def on_succubus_visit(evt, cli, var, nick, victim):
+    if var.ROLES["succubus"].intersection(KILLS.get(victim, ())):
+        for s in var.ROLES["succubus"]:
+            if s in KILLS[victim]:
+                pm(cli, victim, messages["no_kill_succubus"].format(nick))
+                KILLS[victim].remove(s)
+        if not KILLS[victim]:
+            del KILLS[victim]
+
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
     KILLS.clear()

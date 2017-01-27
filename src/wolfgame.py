@@ -312,7 +312,6 @@ def reset():
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES.clear() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
-    var.ENTRANCED = set()
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
     var.ROLE_SETS = [] # type: List[Tuple[Counter[str], int]]
 
@@ -1800,33 +1799,25 @@ def chk_decision(cli, force=""):
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
         if len(not_lynching) >= math.ceil(avail / 2):
-            abs_evt = Event("chk_decision_abstain", {})
+            abs_evt = Event("chk_decision_abstain", {}, votelist=votelist, numvotes=numvotes)
             abs_evt.dispatch(cli, var, not_lynching)
             cli.msg(botconfig.CHANNEL, messages["village_abstain"])
-            if var.ROLES["succubus"] & var.NO_LYNCH:
-                var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH - var.DEAD)
-            else:
-                var.ENTRANCED_DYING.update(var.ENTRANCED & var.NO_LYNCH)
             var.ABSTAINED = True
             event.data["transition_night"](cli)
             return
         for votee, voters in votelist.items():
-            # split this into a priority 0 event when it comes time to split off succubus
-            if votee in var.ROLES["succubus"]:
-                for vtr in var.ENTRANCED:
-                    if vtr in voters:
-                        voters.remove(vtr)
-
             if numvotes[votee] >= votesneeded or votee == force:
                 # priorities:
                 # 1 = displaying impatience totem messages
                 # 3 = mayor/revealing totem
                 # 4 = fool
                 # 5 = desperation totem, other things that happen on generic lynch
-                vote_evt = Event("chk_decision_lynch", {
-                    "votee": votee,
-                    "deadlist": deadlist
-                    }, del_player=del_player)
+                vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
+                    del_player=del_player,
+                    original_votee=votee,
+                    force=(votee == force),
+                    votelist=votelist,
+                    not_lynching=not_lynching)
                 if vote_evt.dispatch(cli, var, voters):
                     votee = vote_evt.data["votee"]
                     # roles that end the game upon being lynched
@@ -1843,23 +1834,6 @@ def chk_decision(cli, force=""):
                     # Other
                     if votee in var.ROLES["jester"]:
                         var.JESTERS.add(votee)
-
-                    # this checks if any succubus have voted the current votee
-                    # if it is NOT the case, then it checks if any succubus voted at all
-                    # it does so by joining together all the values from var.VOTES and casting them all into a single set
-                    # if any succubus voted for anyone else and nobody for the current votee, then proceed to block
-                    if not var.ROLES["succubus"] & set(var.VOTES[votee]) and var.ROLES["succubus"] & set(itertools.chain(*var.VOTES.values())):
-                        voted_along = set()
-                        for person, all_voters in var.VOTES.items():
-                            if var.ROLES["succubus"] & set(all_voters):
-                                for v in all_voters:
-                                    if v in var.ENTRANCED:
-                                        voted_along.add(v)
-
-                        var.ENTRANCED_DYING.update(var.ENTRANCED - voted_along - var.DEAD) # can be the empty set
-
-                    elif var.ROLES["succubus"] & var.NO_LYNCH: # any succubus abstained
-                        var.ENTRANCED_DYING.update(var.ENTRANCED - var.NO_LYNCH - var.DEAD)
 
                     if var.ROLE_REVEAL in ("on", "team"):
                         rrole = get_reveal_role(votee)
@@ -1953,38 +1927,6 @@ def show_votes(cli, nick, chan, rest):
             the_message += messages["vote_stats_abstain"].format(not_voting, plural)
 
     reply(cli, nick, chan, the_message)
-
-# TODO: need to generalize this logic (as well as the logic in chk_win_conditions)
-# once refactored, it should be split off into individual role files
-def chk_traitor(cli):
-    realwolves = var.WOLF_ROLES - {"wolf cub"}
-    if len(list_players(realwolves)) > 0:
-        return # actual wolves still alive
-
-    wcl = copy.copy(var.ROLES["wolf cub"])
-    ttl = copy.copy(var.ROLES["traitor"])
-
-    event = Event("chk_traitor", {})
-    if event.dispatch(cli, var, wcl, ttl):
-        for wc in wcl:
-            var.ROLES["wolf"].add(wc)
-            var.ROLES["wolf cub"].remove(wc)
-            var.FINAL_ROLES[wc] = "wolf"
-            pm(cli, wc, messages["cub_grow_up"])
-            debuglog(wc, "(wolf cub) GROW UP")
-
-        if len(var.ROLES["wolf"]) == 0:
-            for tt in ttl:
-                var.ROLES["wolf"].add(tt)
-                var.ROLES["traitor"].remove(tt)
-                var.FINAL_ROLES[tt] = "wolf"
-                var.ROLES["cursed villager"].discard(tt)
-                pm(cli, tt, messages["traitor_turn"])
-                debuglog(tt, "(traitor) TURNING")
-
-            if len(var.ROLES["wolf"]) > 0:
-                var.TRAITOR_TURNED = True
-                cli.msg(botconfig.CHANNEL, messages["traitor_turn_channel"])
 
 def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
     chan = botconfig.CHANNEL
@@ -2131,8 +2073,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             pentry["templates"] = pltp[plr]
             if splr in var.LOVERS:
                 pentry["special"].append("lover")
-            if splr in var.ENTRANCED:
-                pentry["special"].append("entranced")
 
             won = False
             iwon = False
@@ -2152,16 +2092,13 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             # determine if this player's team won
             if rol in var.TRUE_NEUTRAL_ROLES:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
-                teams = {"monster":"monsters", "piper":"pipers", "succubus":"succubi", "demoniac":"demoniacs"}
+                teams = {"monster":"monsters", "piper":"pipers", "demoniac":"demoniacs"}
                 if rol in teams and winner == teams[rol]:
                     won = True
                 elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
                     won = (winner == var.TURNCOATS[splr][0])
                 elif rol == "fool" and "@" + splr == winner:
                     won = True
-            elif winner != "succubi" and splr in var.ENTRANCED:
-                # entranced players can't win with villager or wolf teams
-                won = False
 
             if pentry["dced"]:
                 # You get NOTHING! You LOSE! Good DAY, sir!
@@ -2179,7 +2116,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                     if lvr in plrl:
                         lvrrol = plrl[lvr]
 
-                    if not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
+                    if not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
                         iwon = True
                         break
                     elif winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
@@ -2202,11 +2139,9 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                 iwon = True
             elif rol == "clone":
                 # this means they ended game while being clone and not some other role
-                if splr in survived and not winner.startswith("@") and winner not in ("monsters", "demoniacs", "pipers"):
+                if splr in survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
                     iwon = True
             elif rol == "jester" and splr in var.JESTERS:
-                iwon = True
-            elif winner == "succubi" and splr in var.ENTRANCED | var.ROLES["succubus"]:
                 iwon = True
             elif not iwon:
                 iwon = won and splr in survived  # survived, team won = individual win
@@ -2301,12 +2236,25 @@ def chk_win(cli, end_game=True, winner=None):
                 var.ADMIN_TO_PING = None
 
             return True
-
         return False
+    if var.PHASE not in var.GAME_PHASES:
+        return False #some other thread already ended game probably
 
+    return chk_win_conditions(cli, var.ROLES, end_game, winner)
+
+def chk_win_conditions(cli, rolemap, end_game=True, winner=None):
+    """Internal handler for the chk_win function."""
+    chan = botconfig.CHANNEL
     with var.GRAVEYARD_LOCK:
-        if var.PHASE not in ("day", "night"):
-            return False #some other thread already ended game probably
+        if var.PHASE == "day":
+            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
+            evt = Event("get_voters", {"voters": pl})
+            evt.dispatch(cli, var)
+            pl = evt.data["voters"]
+            lpl = len(pl)
+        else:
+            pl = set(list_players(rolemap=rolemap))
+            lpl = len(pl)
 
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
@@ -2315,32 +2263,16 @@ def chk_win(cli, end_game=True, winner=None):
                 wcroles = var.WOLF_ROLES | {"traitor"}
         else:
             wcroles = var.WOLFCHAT_ROLES
-        wolves = set(list_players(wcroles))
-        lwolves = len(wolves)
-        lcubs = len(var.ROLES.get("wolf cub", ()))
-        lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}))
-        lmonsters = len(var.ROLES.get("monster", ()))
-        ldemoniacs = len(var.ROLES.get("demoniac", ()))
-        ltraitors = len(var.ROLES.get("traitor", ()))
-        lpipers = len(var.ROLES.get("piper", ()))
-        lsuccubi = len(var.ROLES.get("succubus", ()))
-        lentranced = len(var.ENTRANCED - var.DEAD)
 
-        if var.PHASE == "day":
-            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
-            evt = Event("get_voters", {"voters": pl})
-            evt.dispatch(cli, var)
-            pl = evt.data["voters"]
+        wolves = set(list_players(wcroles, rolemap=rolemap))
+        lwolves = len(wolves & pl)
+        lcubs = len(rolemap.get("wolf cub", ()))
+        lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}, rolemap=rolemap))
+        lmonsters = len(rolemap.get("monster", ()))
+        ldemoniacs = len(rolemap.get("demoniac", ()))
+        ltraitors = len(rolemap.get("traitor", ()))
+        lpipers = len(rolemap.get("piper", ()))
 
-            lpl = len(pl)
-            lwolves = len(wolves & pl)
-
-        return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game, winner)
-
-def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game=True, winner=None):
-    """Internal handler for the chk_win function."""
-    chan = botconfig.CHANNEL
-    with var.GRAVEYARD_LOCK:
         message = ""
         # fool won, chk_win was called from !lynch
         if winner and winner.startswith("@"):
@@ -2349,9 +2281,6 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             message = messages["no_win"]
             # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
             winner = "no_team_wins"
-        elif var.PHASE == "day" and lpl - lsuccubi == lentranced:
-            winner = "succubi"
-            message = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
         elif var.PHASE == "day" and lpipers and len(list_players()) - lpipers == len(var.CHARMED - var.ROLES["piper"]):
             winner = "pipers"
             message = messages["piper_win"].format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
@@ -2364,52 +2293,32 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
                 s = "s" if lmonsters > 1 else ""
                 message = messages["monster_win"].format(s, "" if s else "s")
                 winner = "monsters"
-            else:
-                message = messages["villager_win"]
-                winner = "villagers"
         elif lwolves == lpl / 2:
             if lmonsters > 0:
                 s = "s" if lmonsters > 1 else ""
                 message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
-            else:
-                message = messages["wolf_win"]
-                winner = "wolves"
         elif lwolves > lpl / 2:
             if lmonsters > 0:
                 s = "s" if lmonsters > 1 else ""
                 message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
-            else:
-                message = messages["wolf_win"]
-                winner = "wolves"
-        elif lrealwolves == 0:
-            chk_traitor(cli)
-            # update variables for recursive call (this shouldn't happen when checking 'random' role attribution, where it would probably fail)
-            if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-                if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                    wcroles = var.WOLF_ROLES
-                else:
-                    wcroles = var.WOLF_ROLES | {"traitor"}
-            else:
-                wcroles = var.WOLFCHAT_ROLES
-            wolves = set(list_players(wcroles))
-            lwolves = len(wolves)
-            lcubs = len(var.ROLES.get("wolf cub", ()))
-            lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}))
-            ltraitors = len(var.ROLES.get("traitor", ()))
-            if var.PHASE == "day":
-                pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
-                evt = Event("get_voters", {"voters": pl})
-                evt.dispatch(cli, var)
-                pl = evt.data["voters"]
 
-                lpl = len(pl)
-                lwolves = len(wolves & pl)
-            return chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, lentranced, cli, end_game)
-
+        # Priorities:
+        # 0 = fool, other roles that end game immediately
+        # 1 = things that could short-circuit game ending, such as cub growing up or traitor turning
+        #     Such events should also set stop_processing and prevent_default to True to force a re-calcuation
+        # 2 = win stealers not dependent on winners, such as succubus
+        # Events in priority 3 and 4 should check if a winner was already set and short-circuit if so
+        # it is NOT recommended that events in priorities 0 and 2 set stop_processing to True, as doing so
+        # will prevent gamemode-specific win conditions from happening
+        # 3 = normal roles
+        # 4 = win stealers dependent on who won, such as demoniac and monster
+        #     (monster's message changes based on who would have otherwise won)
+        # 5 = gamemode-specific win conditions
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
-        event.dispatch(var, lpl, lwolves, lrealwolves)
+        if not event.dispatch(cli, var, rolemap, lpl, lwolves, lrealwolves):
+            return chk_win_conditions(cli, rolemap, end_game, winner)
         winner = event.data["winner"]
         message = event.data["message"]
 
@@ -2417,34 +2326,7 @@ def chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, 
             return False
 
         if end_game:
-            if event.data["additional_winners"] is None:
-                players = []
-            else:
-                players = ["{0} ({1})".format(x, get_role(x)) for x in event.data["additional_winners"]]
-            if winner == "monsters":
-                for plr in var.ROLES["monster"]:
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
-            elif winner == "demoniacs":
-                for plr in var.ROLES["demoniac"]:
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
-            elif winner == "wolves":
-                for plr in list_players(var.WOLFTEAM_ROLES):
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
-            elif winner == "villagers":
-                # There is a regression issue in the 3.3 collections module where OrderedDict.keys is not set-like
-                # this was fixed in later releases, and since development and main instance are on 3.4 or 3.5, this was not noticed
-                # collections.OrderedDict being a dict subclass, dict methods all work. Thus, we can pass the instance to dict.keys and be done with it (since it's set-like)
-                vroles = (role for role in var.ROLES.keys() if var.ROLES[role] and role not in (var.WOLFTEAM_ROLES | var.TRUE_NEUTRAL_ROLES | dict.keys(var.TEMPLATE_RESTRICTIONS)))
-                for plr in list_players(vroles):
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
-            elif winner == "pipers":
-                for plr in var.ROLES["piper"]:
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
-            elif winner == "succubi":
-                for plr in var.ROLES["succubus"] | var.ENTRANCED:
-                    players.append("{0} ({1})".format(plr, get_role(plr)))
             debuglog("WIN:", winner)
-            debuglog("PLAYERS:", ", ".join(players))
             cli.msg(chan, message)
             stop_game(cli, winner, additional_winners=event.data["additional_winners"])
         return True
@@ -2826,11 +2708,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 del x[k]
                     if nick in var.DISCONNECTED:
                         del var.DISCONNECTED[nick]
-                if nickrole == "succubus" and not var.ROLES["succubus"]:
-                    while var.ENTRANCED:
-                        entranced = var.ENTRANCED.pop()
-                        pm(cli, entranced, messages["entranced_revert_win"])
-                    var.ENTRANCED_DYING.clear() # for good measure
             if var.PHASE == "night":
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
@@ -3093,9 +2970,6 @@ def rename_player(var, user, prefix):
     nick = user.nick
 
     if var.PHASE in var.GAME_PHASES:
-        if prefix in var.ENTRANCED: # need to update this after death, too
-            var.ENTRANCED.remove(prefix)
-            var.ENTRANCED.add(nick)
         if prefix in var.SPECTATING_WOLFCHAT:
             var.SPECTATING_WOLFCHAT.remove(prefix)
             var.SPECTATING_WOLFCHAT.add(nick)
@@ -3199,7 +3073,7 @@ def rename_player(var, user, prefix):
                            var.JESTERS, var.AMNESIACS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
                            var.ALPHA_WOLVES, var.CURSED, var.CHARMERS, var.CHARMED, var.TOBECHARMED,
-                           var.PRIESTS, var.CONSECRATING, var.ENTRANCED_DYING, var.DYING):
+                           var.PRIESTS, var.CONSECRATING, var.DYING):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3450,7 +3324,6 @@ def begin_day(cli):
     var.LUCKY = set()
     var.DISEASED = set()
     var.MISDIRECTED = set()
-    var.ENTRANCED_DYING = set()
     var.DYING = set()
 
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
@@ -3643,9 +3516,6 @@ def transition_day(cli, gameid=0):
     bitten = evt.data["bitten"]
     numkills = evt.data["numkills"]
 
-    for v in var.ENTRANCED_DYING:
-        var.DYING.add(v)
-
     for player in var.DYING:
         victims.append(player)
         onlybywolves.discard(player)
@@ -3802,7 +3672,7 @@ def transition_day(cli, gameid=0):
     for victim in vlist:
         if not revt.dispatch(cli, var, victim):
             continue
-        if victim in var.ROLES["harlot"] | var.ROLES["succubus"] and var.HVISITED.get(victim) and victim not in revt.data["dead"] and victim in revt.data["onlybywolves"]:
+        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in revt.data["dead"] and victim in revt.data["onlybywolves"]:
             # alpha wolf can bite a harlot visiting another wolf, don't play a message in that case
             # kept as a nested if so that the other victim logic does not run
             if victim not in revt.data["bitten"]:
@@ -3863,6 +3733,17 @@ def transition_day(cli, gameid=0):
                     out = out.strip()  # remove surrounding whitespace
                     revt.data["message"].append(out)
 
+    # Priorities:
+    # 1 = harlot/succubus visiting victim
+    # 2 = determining whether or not we should print the "no victims" message
+    # 3 = harlot visiting wolf
+    # 4 = gunner shooting wolf
+    # 5 = wolves killing diseased, wolves stealing gun
+    # 10 = alpha wolf bite
+    # Note that changing the "novictmsg" data item only makes sense for priority 1 events,
+    # as after that point the message was already added. Events that could kill more people
+    # should do so before priority 10. Events that require everyone that can be killed to
+    # be listed as dead should be priority 10 or later.
     revt2 = Event("transition_day_resolve_end", {
         "message": revt.data["message"],
         "novictmsg": revt.data["novictmsg"],
@@ -4018,7 +3899,7 @@ def chk_nightdone(cli):
     actedcount = sum(map(len, (var.HVISITED, var.PASSED, var.OBSERVED,
                                var.HEXED, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("harlot", "succubus", "sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
+    nightroles = get_roles("harlot", "sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4475,6 +4356,7 @@ def shoot(var, wrapper, message):
     else:
         chances = var.GUN_CHANCES
 
+    # TODO: make this into an event once we split off gunner
     if victim in var.ROLES["succubus"]:
         chances = chances[:3] + (0,)
 
@@ -4527,8 +4409,9 @@ def shoot(var, wrapper, message):
         if not del_player(wrapper.source.client, wrapper.source.nick, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something
             return  # Someone won.
 
-def is_safe(nick, victim): # helper function
-    return nick in var.ENTRANCED and victim in var.ROLES["succubus"]
+def is_safe(nick, victim): # replace calls to this with targeted_command event when splitting roles
+    from src.roles import succubus
+    return nick in succubus.ENTRANCED and victim in var.ROLES["succubus"]
 
 @cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(cli, nick, chan, rest):
@@ -4740,16 +4623,13 @@ def pray(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot", "succubus"))
+@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(cli, nick, chan, rest):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
     role = get_role(nick)
 
     if var.HVISITED.get(nick):
-        if role == "harlot":
-            pm(cli, nick, messages["harlot_already_visited"].format(var.HVISITED[nick]))
-        else:
-            pm(cli, nick, messages["succubus_already_visited"].format(var.HVISITED[nick]))
+        pm(cli, nick, messages["harlot_already_visited"].format(var.HVISITED[nick]))
         return
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
     if not victim:
@@ -4760,64 +4640,18 @@ def hvisit(cli, nick, chan, rest):
         return
     else:
         victim = choose_target(nick, victim)
-        if role != "succubus" and check_exchange(cli, nick, victim):
+        if check_exchange(cli, nick, victim):
             return
         var.HVISITED[nick] = victim
-        if role == "harlot":
-            pm(cli, nick, messages["harlot_success"].format(victim))
-            if nick != victim: #prevent luck/misdirection totem weirdness
-                pm(cli, victim, messages["harlot_success"].format(nick))
-            if get_role(victim) == "succubus":
-                pm(cli, nick, messages["notify_succubus_target"].format(victim))
-                pm(cli, victim, messages["succubus_harlot_success"].format(nick))
-                var.ENTRANCED.add(nick)
-        else:
-            if get_role(victim) != "succubus":
-                var.ENTRANCED.add(victim)
-            pm(cli, nick, messages["succubus_target_success"].format(victim))
-            if nick != victim:
-                pm(cli, victim, (messages["notify_succubus_target"]).format(nick))
-
-            if var.TARGETED.get(victim) in var.ROLES["succubus"]:
-                msg = messages["no_target_succubus"].format(var.TARGETED[victim])
-                del var.TARGETED[victim]
-                if victim in var.ROLES["village drunk"]:
-                    target = random.choice(list(set(list_players()) - var.ROLES["succubus"] - {victim}))
-                    msg += messages["drunk_target"].format(target)
-                    var.TARGETED[victim] = target
-                pm(cli, victim, nick)
-            # temp hack, will do something better once succubus is split off
-            from src.roles import wolf, hunter, dullahan, vigilante, shaman
-            if (shaman.SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and
-               (get_role(victim) == "crazed shaman" or shaman.TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
-                pm(cli, victim, messages["retract_totem_succubus"].format(shaman.SHAMANS[victim]))
-                del shaman.SHAMANS[victim]
-            if victim in var.HEXED and var.LASTHEXED[victim] in var.ROLES["succubus"]:
-                pm(cli, victim, messages["retract_hex_succubus"].format(var.LASTHEXED[victim]))
-                var.TOBESILENCED.remove(nick)
-                var.HEXED.remove(victim)
-                del var.LASTHEXED[victim]
-            if set(wolf.KILLS.get(victim, ())) & var.ROLES["succubus"]:
-                for s in var.ROLES["succubus"]:
-                    if s in wolf.KILLS[victim]:
-                        pm(cli, victim, messages["no_kill_succubus"].format(nick))
-                        wolf.KILLS[victim].remove(s)
-                if not wolf.KILLS[victim]:
-                    del wolf.KILLS[victim]
-            if hunter.KILLS.get(victim) in var.ROLES["succubus"]:
-                pm(cli, victim, messages["no_kill_succubus"].format(hunter.KILLS[victim]))
-                del hunter.KILLS[victim]
-                hunter.HUNTERS.discard(victim)
-            if vigilante.KILLS.get(victim) in var.ROLES["succubus"]:
-                pm(cli, victim, messages["no_kill_succubus"].format(vigilante.KILLS[victim]))
-                del vigilante.KILLS[victim]
-            if var.BITE_PREFERENCES.get(victim) in var.ROLES["succubus"]:
-                pm(cli, victim, messages["no_kill_succubus"].format(var.BITE_PREFERENCES[victim]))
-                del var.BITE_PREFERENCES[victim]
-            if dullahan.TARGETS.get(victim, set()) & var.ROLES["succubus"]:
-                pm(cli, victim, messages["dullahan_no_kill_succubus"])
-                if dullahan.KILLS.get(victim) in var.ROLES["succubus"]:
-                    del dullahan.KILLS[victim]
+        pm(cli, nick, messages["harlot_success"].format(victim))
+        if nick != victim: #prevent luck/misdirection totem weirdness
+            pm(cli, victim, messages["harlot_success"].format(nick))
+        # TODO: turn this into an event once harlot is split off
+        if get_role(victim) == "succubus":
+            pm(cli, nick, messages["notify_succubus_target"].format(victim))
+            pm(cli, victim, messages["succubus_harlot_success"].format(nick))
+            from src.roles import succubus
+            succubus.ENTRANCED.add(nick)
 
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, get_role(victim)))
     chk_nightdone(cli)
@@ -4896,7 +4730,7 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "turncoat", "warlock", "succubus"))
+    roles=("harlot", "turncoat", "warlock"))
 def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) also needs updating alongside this
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -4915,12 +4749,6 @@ def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) 
             return
         var.HVISITED[nick] = None
         pm(cli, nick, messages["no_visit"])
-    elif nickrole == "succubus":
-        if var.HVISITED.get(nick):
-            pm(cli, nick, messages["succubus_already_visited"].format(var.HVISITED[nick]))
-            return
-        var.HVISITED[nick] = None
-        pm(cli, nick, messages["succubus_pass"])
     elif nickrole == "turncoat":
         if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
             # theoretically passing would revert them to how they were before, but
@@ -5242,25 +5070,12 @@ def charm(cli, nick, chan, rest):
 
 @event_listener("targeted_command", priority=9)
 def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
-    # TODO: move beneficial command check into roles/succubus.py
-    if "beneficial" not in tags and is_safe(actor, evt.data["target"]):
-        try:
-            what = evt.params.action
-        except AttributeError:
-            what = cmd
-        pm(cli, actor, messages["no_acting_on_succubus"].format(what))
-        evt.stop_processing = True
-        evt.prevent_default = True
-        return
-
     if evt.data["misdirection"]:
         evt.data["target"] = choose_target(actor, evt.data["target"])
 
     if evt.data["exchange"] and check_exchange(cli, actor, evt.data["target"]):
         evt.stop_processing = True
         evt.prevent_default = True
-        return
-
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
@@ -5475,8 +5290,10 @@ def transition_night(cli):
                 var.ROLES[amnrole].add(amn)
                 var.AMNESIACS.add(amn)
                 var.FINAL_ROLES[amn] = amnrole
-                if amnrole == "succubus" and amn in var.ENTRANCED:
-                    var.ENTRANCED.remove(amn)
+                # TODO: turn into event when amnesiac is split
+                from src.roles import succubus
+                if amnrole == "succubus" and amn in succubus.ENTRANCED:
+                    succubus.ENTRANCED.remove(amn)
                     pm(cli, amn, messages["no_longer_entranced"])
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue
@@ -5539,16 +5356,6 @@ def transition_night(cli):
             pm(cli, drunk, messages["drunk_notification"])
         else:
             pm(cli, drunk, messages["drunk_simple"])
-
-    for succubus in var.ROLES["succubus"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(succubus)
-        if succubus in var.PLAYERS and not is_user_simple(succubus):
-            pm(cli, succubus, messages["succubus_notify"])
-        else:
-            pm(cli, succubus, messages["succubus_simple"])
-        pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
 
     for ms in var.ROLES["mad scientist"]:
         pl = ps[:]
@@ -5982,8 +5789,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXTRA_WOLVES = 0
     var.PRIESTS = set()
     var.CONSECRATING = set()
-    var.ENTRANCED = set()
-    var.ENTRANCED_DYING = set()
     var.DYING = set()
     var.PRAYED = {}
 
@@ -7326,12 +7131,6 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         #show who got immunized
         if var.IMMUNIZED:
             output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
-
-        if var.ENTRANCED:
-            output.append("\u0002entranced players\u0002: {0}".format(", ".join(var.ENTRANCED)))
-
-        if var.ENTRANCED_DYING:
-            output.append("\u0002dying entranced players\u0002: {0}".format(", ".join(var.ENTRANCED_DYING)))
 
         # get charmed players
         if var.CHARMED | var.TOBECHARMED:

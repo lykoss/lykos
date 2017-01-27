@@ -3,7 +3,7 @@ import math
 import threading
 import copy
 from datetime import datetime
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 import botconfig
 import src.settings as var
@@ -104,7 +104,7 @@ class GameMode:
         pass
 
     # Here so any game mode can use it
-    def lovers_chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+    def lovers_chk_win(self, evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
         winner = evt.data["winner"]
         if winner is not None and winner.startswith("@"):
             return # fool won, lovers can't win even if they would
@@ -119,7 +119,7 @@ class GameMode:
             evt.data["additional_winners"] = list(lovers)
             evt.data["message"] = messages["lovers_win"]
 
-    def all_dead_chk_win(self, evt, var, lpl, lwolves, lrealwolves):
+    def all_dead_chk_win(self, evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
@@ -614,17 +614,12 @@ class RandomMode(GameMode):
         addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 
-        lpl = len(villagers)
-        lwolves = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
-        lcubs = addroles["wolf cub"]
-        lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
-        lmonsters = addroles["monster"]
-        ldemoniacs = addroles["demoniac"]
-        ltraitors = addroles["traitor"]
-        lpipers = addroles["piper"]
-        lsuccubi = addroles["succubus"]
+        rolemap = defaultdict(set)
+        for r,c in addroles.items():
+            if c > 0:
+                rolemap[r] = set(range(c))
 
-        if chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
+        if chk_win_conditions(cli, rolemap, end_game=False):
             return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
@@ -1221,38 +1216,13 @@ class MaelstromMode(GameMode):
 
     def _on_join(self, var, wrapper):
         role = random.choice(self.roles)
+        newlist = copy.deepcopy(var.ROLES)
+        newlist[role].add(wrapper.source)
 
-        lpl = len(list_players()) + 1
-        lwolves = len(list_players(var.WOLFCHAT_ROLES))
-        lcubs = len(var.ROLES["wolf cub"])
-        lrealwolves = len(list_players(var.WOLF_ROLES)) - lcubs
-        lmonsters = len(var.ROLES["monster"])
-        ldemoniacs = len(var.ROLES["demoniac"])
-        ltraitors = len(var.ROLES["traitor"])
-        lpipers = len(var.ROLES["piper"])
-        lsuccubi = len(var.ROLES["succubus"])
-
-        if role in var.WOLFCHAT_ROLES:
-            lwolves += 1
-            if role == "wolf cub":
-                lcubs += 1
-            elif role == "traitor":
-                ltraitors += 1
-            elif role in var.WOLF_ROLES:
-                lrealwolves += 1
-        elif role == "monster":
-            lmonsters += 1
-        elif role == "demoniac":
-            ldemoniacs += 1
-        elif role == "piper":
-            lpipers += 1
-        elif role == "succubus":
-            lsuccubi += 1
-
-        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, wrapper.client, end_game=False):
+        if self.chk_win_conditions(wrapper.client, newlist, end_game=False):
             return self._on_join(var, wrapper)
 
-        var.ROLES[role].add(wrapper.source.nick)
+        var.ROLES[role].add(wrapper.source.nick) # FIXME: add user instead of nick
         var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
         var.FINAL_ROLES[wrapper.source.nick] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
@@ -1353,17 +1323,12 @@ class MaelstromMode(GameMode):
             if random.randrange(100) == 0 and addroles.get("villager", 0) > 0:
                 addroles["blessed villager"] = 1
 
-        lpl = len(villagers)
-        lwolves = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
-        lcubs = addroles["wolf cub"]
-        lrealwolves = sum(addroles[r] for r in var.WOLF_ROLES - {"wolf cub"})
-        lmonsters = addroles["monster"]
-        ldemoniacs = addroles["demoniac"]
-        ltraitors = addroles["traitor"]
-        lpipers = addroles["piper"]
-        lsuccubi = addroles["succubus"]
+        rolemap = defaultdict(list)
+        for r,c in addroles.items():
+            if c > 0:
+                rolemap[r] = list(range(c))
 
-        if self.chk_win_conditions(lpl, lwolves, lcubs, lrealwolves, lmonsters, ldemoniacs, ltraitors, lpipers, lsuccubi, 0, cli, end_game=False):
+        if self.chk_win_conditions(cli, rolemap, end_game=False):
             return self._role_attribution(cli, var, villagers, do_templates)
 
         return addroles

@@ -10,9 +10,8 @@ from src.events import Event
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    special = set(list_players(("harlot", "guardian angel", "bodyguard", "priest", "prophet", "matchmaker",
-                                "shaman", "doctor", "hag", "sorcerer", "turncoat", "clone", "crazed shaman",
-                                "piper", "succubus")))
+    special = set(list_players(("harlot", "priest", "prophet", "matchmaker",
+                                "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
     evt2 = Event("get_special", {"special": special})
     evt2.dispatch(cli, var)
     pl = set(list_players())
@@ -39,9 +38,8 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, cli, var):
     # init with all roles that haven't been split yet
-    special = set(list_players(("harlot", "guardian angel", "bodyguard", "priest", "prophet", "matchmaker",
-                                "shaman", "doctor", "hag", "sorcerer", "turncoat", "clone", "crazed shaman",
-                                "piper", "succubus")))
+    special = set(list_players(("harlot", "priest", "prophet", "matchmaker",
+                                "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
     evt2 = Event("get_special", {"special": special})
     evt2.dispatch(cli, var)
     pl = set(list_players())
