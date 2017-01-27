@@ -413,7 +413,7 @@ def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
-    if set(KILLS.get(victim, ())) & var.ROLES["succubus"]:
+    if var.ROLES["succubus"].intersection(KILLS.get(victim, ())):
         for s in var.ROLES["succubus"]:
             if s in KILLS[victim]:
                 pm(cli, victim, messages["no_kill_succubus"].format(nick))

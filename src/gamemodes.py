@@ -1217,12 +1217,12 @@ class MaelstromMode(GameMode):
     def _on_join(self, var, wrapper):
         role = random.choice(self.roles)
         newlist = copy.deepcopy(var.ROLES)
-        newlist[role].add(wrapper.source.nick)
+        newlist[role].add(wrapper.source)
 
         if self.chk_win_conditions(wrapper.client, newlist, end_game=False):
             return self._on_join(var, wrapper)
 
-        var.ROLES[role].add(wrapper.source.nick)
+        var.ROLES[role].add(wrapper.source.nick) # FIXME: add user instead of nick
         var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
         var.FINAL_ROLES[wrapper.source.nick] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()

@@ -152,6 +152,7 @@ def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+    global ALL_SUCC_IDLE
     if nickrole != "succubus":
         return
     if nick in VISITED:
@@ -220,7 +221,7 @@ def on_transition_day_resolve(evt, cli, var, victim):
 def on_transition_day_resolve_end(evt, cli, var, victims):
     for victim in victims + evt.data["bitten"]:
         if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
-            for succ in VISITED.keys():
+            for succ in VISITED:
                 if VISITED[succ] == victim and succ not in evt.data["bitten"] and succ not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
                         evt.data["message"].append(messages["visited_victim"].format(succ, get_role(succ)))
@@ -299,6 +300,7 @@ def on_rename(evt, cli, var, prefix, nick):
 
 @event_listener("reset")
 def on_reset(evt, var):
+    global ALL_SUCC_IDLE
     ALL_SUCC_IDLE = True
     ENTRANCED.clear()
     ENTRANCED_DYING.clear()

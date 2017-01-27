@@ -309,7 +309,7 @@ def singular(plural):
     # otherwise we just added an s on the end
     return plural[:-1]
 
-def list_players(roles=None, rolemap=None):
+def list_players(roles=None, *, rolemap=None):
     if rolemap is None:
         rolemap = var.ROLES
     if roles is None:

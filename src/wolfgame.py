@@ -1813,8 +1813,10 @@ def chk_decision(cli, force=""):
                 # 4 = fool
                 # 5 = desperation totem, other things that happen on generic lynch
                 vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
-                    del_player=del_player, original_votee=votee,
-                    force=(votee == force), votelist=votelist,
+                    del_player=del_player,
+                    original_votee=votee,
+                    force=(votee == force),
+                    votelist=votelist,
                     not_lynching=not_lynching)
                 if vote_evt.dispatch(cli, var, voters):
                     votee = vote_evt.data["votee"]
