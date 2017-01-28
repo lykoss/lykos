@@ -73,6 +73,16 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
         return potential[0]
 
     if len(potential) > 1:
+        # XXX Debugging aid for when this fails (and we can't figure out why)
+        import gc
+        all_refs = []
+        for user in potential:
+            for ref in gc.get_referrers(user):
+                for name, thing in var.__dict__.items():
+                    if ref is thing: # Found it!
+                        all_refs.append((user, name))
+                        break
+
         raise ValueError("More than one user matches: " +
               _arg_msg.format(nick, ident, host, realname, account, allow_bot))
 
