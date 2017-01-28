@@ -32,6 +32,7 @@ SIGS = {}
 
 def stub(f):
     def inner(*args, **kwargs):
+        _ignore_locals_ = True
         if f.__name__ not in IMPLS:
             raise NotImplementedError(("This proxy stub has not yet been "
                                        "implemented in another module"))
