@@ -702,6 +702,7 @@ def join_timer_handler(var):
 
                     msg_prefix = messages["ping_player"].format(len(pl), "" if len(pl) == 1 else "s")
                     channels.Main.send(*user_list, first=msg_prefix)
+                    del to_ping[:]
 
                 events.remove_listener("who_result", get_altpingers)
                 events.remove_listener("who_end", ping_altpingers)
