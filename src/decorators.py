@@ -483,6 +483,7 @@ class hook:
 
     @handle_error
     def caller(self, *args, **kwargs):
+        _ignore_locals_ = True
         return self.func(*args, **kwargs)
 
     @staticmethod
