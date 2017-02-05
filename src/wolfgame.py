@@ -6529,10 +6529,10 @@ def listroles(cli, nick, chan, rest):
         if gamemode not in validgamemodes:
             matches = complete_match(rest[0], validgamemodes)
             if len(matches) > 1:
-                reply(cli, nick, chan, nick + " " + messages["ambiguous_mode"].format(rest[0], ", ".join(matches)))
+                reply(cli, nick, chan, nick + ": " + messages["ambiguous_mode"].format(rest[0], ", ".join(matches)))
                 return
             if len(matches) == 0:
-                reply(cli, nick, chan, messages["invalid_mode"].format(rest[0]))
+                reply(cli, nick, chan, nick + ": " + messages["invalid_mode"].format(rest[0]))
                 return
             gamemode = matches[0]
 
