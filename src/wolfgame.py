@@ -6561,7 +6561,7 @@ def listroles(cli, nick, chan, rest):
             elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
-            rest.pop(0)
+                rest.pop(0)
             else:
                 if validMode and not hasattr(var.GAME_MODES[gamemode][0](), "ROLE_GUIDE"):
                     msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
@@ -6746,7 +6746,6 @@ def game_stats(cli, nick, chan, rest):
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
-            matches = complete_match(gamemode, var.GAME_MODES.keys())
             if len(matches) == 1:
                 gamemode = matches[0]  
             if not matches:
@@ -6756,6 +6755,7 @@ def game_stats(cli, nick, chan, rest):
                 cli.notice(nick, messages["ambiguous_mode"].format(rest[0], ", ".join(matches)))
                 return
         rest.pop(0)
+    
     # Check for invalid input
     if len(rest) and rest[0].isdigit():
         gamesize = int(rest[0])
