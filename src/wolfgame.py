@@ -986,20 +986,20 @@ def fjoin(var, wrapper, message):
     fake = False
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
-    
+   
+    parts = re.split(" +", message)
     possible_users = {u.lower().nick for u in wrapper.target.users}
     if not botconfig.DEBUG_MODE:
-        message = re.split(" +", message)
-        match = complete_one_match(irc_lower(message[0]), possible_users)
+        match = complete_one_match(users.lower(parts[0]), possible_users)
         if match:
-            message = [match]
+            tojoin = [match]
     else:
-        message = re.split(" +", message)
-        for i, s in enumerate(message):
-            match = complete_one_match(irc_lower(s), possible_users)
+        tojoin = []
+        for i, s in enumerate(parts):
+            match = complete_one_match(users.lower(s), possible_users)
             if match:
-                message[i] = match
-    for tojoin in message:
+                tojoin.append(match)
+    for tojoin in tojoin:
         tojoin = tojoin.strip()
         if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
