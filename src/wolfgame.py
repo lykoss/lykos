@@ -987,18 +987,16 @@ def fjoin(var, wrapper, message):
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
     
-    ul = list(var.USERS.keys())
-    ull = [u.lower() for u in ul]
-    
+    possible_users = {u.lower().nick for u in wrapper.target.users}
     if not botconfig.DEBUG_MODE:
         message = re.split(" +", message)
-        match = complete_one_match(irc_lower(message[0]), ull)
+        match = complete_one_match(irc_lower(message[0]), possible_users)
         if match:
             message = [match]
     else:
         message = re.split(" +", message)
         for i, s in enumerate(message):
-            match = complete_one_match(irc_lower(s), ull)
+            match = complete_one_match(irc_lower(s), possible_users)
             if match:
                 message[i] = match
     for tojoin in message:
@@ -2936,7 +2934,7 @@ def goat(cli, nick, chan, rest):
     if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
         cli.notice(nick, messages["goat_fail"])
         return
-
+        
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
 
