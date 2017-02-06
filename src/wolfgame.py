@@ -6746,6 +6746,7 @@ def game_stats(cli, nick, chan, rest):
     if len(rest) and not rest[0].isdigit():
         gamemode = rest[0]
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
+            matches = complete_match(gamemode, var.GAME_MODES.keys())
             if len(matches) == 1:
                 gamemode = matches[0]  
             if not matches:
