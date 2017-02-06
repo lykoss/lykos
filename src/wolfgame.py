@@ -979,16 +979,17 @@ def fjoin(var, wrapper, message):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-    ul = list(var.USERS.keys())
-    ull = [u.lower() for u in ul]
-    
+   
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
     fake = False
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
-
+    
+    ul = list(var.USERS.keys())
+    ull = [u.lower() for u in ul]
+    
     if not botconfig.DEBUG_MODE:
         message = re.split(" +", message)
         match = complete_one_match(irc_lower(message[0]), ull)
@@ -1002,7 +1003,7 @@ def fjoin(var, wrapper, message):
                 message[i] = match
     for tojoin in message:
         tojoin = tojoin.strip()
-        if "-" in tojoin:
+        if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > var.MAX_PLAYERS - len(list_players()):
