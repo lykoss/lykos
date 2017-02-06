@@ -1011,32 +1011,42 @@ def fjoin(var, wrapper, message):
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    user = users._add(wrapper.source.client, nick=str(i)) # FIXME
+                    user = users.FakeUser.from_nick(str(i))
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
             continue
-       
-        if tojoin.lower() not in ull or not var.USERS[ul[ull.index(tojoin.lower())]]["inchan"]:
-            if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
-                if not noticed:  # important
-                    wrapper.send(wrapper.source.nick+messages["fjoin_in_chan"])
+
+
+        maybe_user = None
+
+        for user in wrapper.target.users:
+            if users.equals(user.nick, tojoin):
+                maybe_user = user
+                break
+        else:
+            if not users.predicate(tojoin) or botconfig.DEBUG_MODE:
+                if not noticed: # important
+                    wrapper.send("{0}{1}".format(wrapper.source, messages["fjoin_in_chan"]))
                     noticed = True
                 continue
-        if not is_fake_nick(tojoin):
-            tojoin = ul[ull.index(tojoin.lower())].strip()
+
+        if maybe_user is not None:
             if not botconfig.DEBUG_MODE and var.ACCOUNTS_ONLY:
-                if not users.get(tojoin).account or users.get(tojoin).account == "*":
-                    wrapper.pm(messages["account_not_logged_in"].format(tojoin))
+                if maybe_user.account is None:
+                    wrapper.pm(messages["account_not_logged_in"].format(maybe_user))
                     return
         elif botconfig.DEBUG_MODE:
             fake = True
-        if tojoin != users.Bot.nick:
-            evt.data["join_player"](var, type(wrapper)(users._add(wrapper.source.client, nick=tojoin), wrapper.target), forced=True, who=wrapper.source)
+
+        if maybe_user is not users.Bot:
+            if maybe_user is None:
+                maybe_user = users.FakeUser.from_nick(tojoin)
+            evt.data["join_player"](var, type(wrapper)(maybe_user, wrapper.target), forced=True, who=wrapper.source)
         else:
             wrapper.pm(messages["not_allowed"])
     if fake:
-        wrapper.send(messages["fjoin_success"].format(wrapper.source.nick, len(list_players())))
+        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(list_players())))
 
 @cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(cli, nick, chan, rest):
