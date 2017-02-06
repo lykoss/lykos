@@ -979,6 +979,9 @@ def fjoin(var, wrapper, message):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
+    ul = list(var.USERS.keys())
+    ull = [u.lower() for u in ul]
+    
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
@@ -986,7 +989,18 @@ def fjoin(var, wrapper, message):
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
 
-    for tojoin in re.split(" +", message):
+    if not botconfig.DEBUG_MODE:
+        message = re.split(" +", message)
+        match = complete_one_match(irc_lower(message[0]), ull)
+        if match:
+            message = [match]
+    else:
+        message = re.split(" +", message)
+        for i, s in enumerate(message):
+            match = complete_one_match(irc_lower(s), ull)
+            if match:
+                message[i] = match
+    for tojoin in message:
         tojoin = tojoin.strip()
         if "-" in tojoin:
             first, hyphen, last = tojoin.partition("-")
@@ -1001,8 +1015,7 @@ def fjoin(var, wrapper, message):
                 continue
         if not tojoin:
             continue
-        ul = list(var.USERS.keys())
-        ull = [u.lower() for u in ul]
+       
         if tojoin.lower() not in ull or not var.USERS[ul[ull.index(tojoin.lower())]]["inchan"]:
             if not is_fake_nick(tojoin) or not botconfig.DEBUG_MODE:
                 if not noticed:  # important
