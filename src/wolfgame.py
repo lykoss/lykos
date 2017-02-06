@@ -1015,7 +1015,6 @@ def fjoin(var, wrapper, message):
         if not tojoin:
             continue
 
-
         maybe_user = None
 
         for user in wrapper.target.users:
