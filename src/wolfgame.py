@@ -992,14 +992,14 @@ def fjoin(var, wrapper, message):
     if not botconfig.DEBUG_MODE:
         match = complete_one_match(users.lower(parts[0]), possible_users)
         if match:
-            tojoin = [match]
+            to_join = [match]
     else:
-        tojoin = []
+        to_join = []
         for i, s in enumerate(parts):
             match = complete_one_match(users.lower(s), possible_users)
             if match:
-                tojoin.append(match)
-    for tojoin in tojoin:
+                to_join.append(match)
+    for tojoin in to_join:
         tojoin = tojoin.strip()
         if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
