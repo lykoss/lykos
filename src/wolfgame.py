@@ -979,6 +979,7 @@ def fjoin(var, wrapper, message):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
+
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
@@ -986,9 +987,21 @@ def fjoin(var, wrapper, message):
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
 
-    for tojoin in re.split(" +", message):
+    parts = re.split(" +", message)
+    possible_users = {u.lower().nick for u in wrapper.target.users}
+    if not botconfig.DEBUG_MODE:
+        match = complete_one_match(users.lower(parts[0]), possible_users)
+        if match:
+            to_join = [match]
+    else:
+        to_join = []
+        for i, s in enumerate(parts):
+            match = complete_one_match(users.lower(s), possible_users)
+            if match:
+                to_join.append(match)
+    for tojoin in to_join:
         tojoin = tojoin.strip()
-        if "-" in tojoin:
+        if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > var.MAX_PLAYERS - len(list_players()):
