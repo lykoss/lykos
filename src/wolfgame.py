@@ -2933,6 +2933,7 @@ def goat(cli, nick, chan, rest):
     if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
         cli.notice(nick, messages["goat_fail"])
         return
+
     ul = list(var.USERS.keys())
     ull = [x.lower() for x in ul]
 
