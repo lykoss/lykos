@@ -979,14 +979,14 @@ def fjoin(var, wrapper, message):
         "join_deadchat": join_deadchat,
         "vote_gamemode": vote_gamemode
         })
-   
+
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
     noticed = False
     fake = False
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
-   
+
     parts = re.split(" +", message)
     possible_users = {u.lower().nick for u in wrapper.target.users}
     if not botconfig.DEBUG_MODE:
