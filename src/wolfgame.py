@@ -1980,7 +1980,6 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
 
     origroles = {} #nick based list of original roles
     rolelist = copy.deepcopy(var.ORIGINAL_ROLES)
-    event = Event("get_final_role", {"role": None})
     for role, playerlist in var.ORIGINAL_ROLES.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             continue
@@ -1988,13 +1987,11 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
             player = p #with (dced) still in
             if p.startswith("(dced)"):
                 p = p[6:]
-            event.data["role"] = var.FINAL_ROLES.get(p, role)
-            event.dispatch(cli, var, p, role)
-            # TODO: make cub use the event instead of hardcoding it here
-            if role != event.data["role"] and (event.data["role"] != "wolf" or role != "wolf cub"):
+            final = var.FINAL_ROLES.get(p, role)
+            if role != final:
                 origroles[p] = role
                 rolelist[role].remove(player)
-                rolelist[event.data["role"]].add(p)
+                rolelist[final].add(p)
     prev = False
     for role in role_order():
         if len(rolelist[role]) == 0:
@@ -2673,12 +2670,16 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             # For every possible role this person is, try to deduct 1 from that role's count in our stat sets
             # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
             # that set is not added to newstats to indicate that set is no longer possible
+            # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
+            event = Event("reconfigure_stats", {})
             for p in possible:
                 for rs in var.ROLE_STATS:
                     d = dict(rs)
                     if p in d and d[p] >= 1:
                         d[p] -= 1
-                        newstats.add(frozenset(d.items()))
+                        event.dispatch(cli, var, d)
+                        if min(d.values()) >= 0:
+                            newstats.add(frozenset(d.items()))
             var.ROLE_STATS = frozenset(newstats)
 
             if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
