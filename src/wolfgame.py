@@ -3409,7 +3409,6 @@ def transition_day(cli, gameid=0):
         return
 
     var.PHASE = "day"
-    var.GOATED = False
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
     var.DAY_START_TIME = datetime.now()
