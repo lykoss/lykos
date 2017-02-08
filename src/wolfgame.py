@@ -999,6 +999,8 @@ def fjoin(var, wrapper, message):
             match = complete_one_match(users.lower(s), possible_users)
             if match:
                 to_join.append(match)
+            else:
+                to_join.append(s)
     for tojoin in to_join:
         tojoin = tojoin.strip()
         if "-" in tojoin and botconfig.DEBUG_MODE:
@@ -1009,7 +1011,7 @@ def fjoin(var, wrapper, message):
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    user = users.FakeUser.from_nick(str(i))
+                    user = users._add(wrapper.client, nick=str(i))
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
