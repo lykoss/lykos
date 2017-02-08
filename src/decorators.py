@@ -80,33 +80,43 @@ class print_traceback:
             _local.level -= 1
             return False # the outermost caller should handle this
 
-        frames = []
-
-        while tb is not None:
-            if tb.tb_frame.f_locals.get("_ignore_locals_") or not tb.tb_frame.f_locals:
-                frames.append(None)
-            else:
-                frames.append(tb.tb_frame)
-            tb = tb.tb_next
+        variables = ["", None]
 
         if _local.handler is None:
             _local.handler = chain_exceptions(exc_value)
 
-        variables = ["", None, None]
+        if var.TRACEBACK_VERBOSITY > 0:
+            word = "\nLocal variables from frame #{0} (in {1}):\n"
+            variables.append(None)
+            frames = []
 
-        with _local.handler:
-            for i, frame in enumerate(frames, start=1):
-                if frame is None:
-                    continue
-                variables.append("\nLocal variables from frame #{0} (in {1}):\n".format(i, frame.f_code.co_name))
-                for name, value in frame.f_locals.items():
-                    variables.append("{0} = {1!r}".format(name, value))
+            while tb is not None:
+                if tb.tb_next is not None and tb.tb_frame.f_locals.get("_ignore_locals_") or not tb.tb_frame.f_locals:
+                    frames.append(None)
+                else:
+                    frames.append(tb.tb_frame)
+                tb = tb.tb_next
 
-        if len(variables) > 3:
-            variables.append("\n")
-            variables[2] = "Local variables in all frames (most recent call last):"
-        else:
-            variables[2] = "No local variables found in all frames."
+            if var.TRACEBACK_VERBOSITY < 2:
+                word = "Local variables from innermost frame (in {1}):\n"
+                frames = [frames[-1]]
+
+            with _local.handler:
+                for i, frame in enumerate(frames, start=1):
+                    if frame is None:
+                        continue
+                    variables.append(word.format(i, frame.f_code.co_name))
+                    for name, value in frame.f_locals.items():
+                        variables.append("{0} = {1!r}".format(name, value))
+
+            if len(variables) > 3:
+                variables.append("\n")
+                if var.TRACEBACK_VERBOSITY > 1:
+                    variables[2] = "Local variables in all frames (most recent call last):"
+                else:
+                    variables[2] = ""
+            else:
+                variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
 

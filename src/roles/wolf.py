@@ -404,12 +404,25 @@ def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
             rolemap["wolf cub"].remove(wc)
             did_something = True
             if var.PHASE in var.GAME_PHASES:
-                var.FINAL_ROLES[wc] = "wolf"
+                # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
+                # stats as cub still.
                 pm(cli, wc, messages["cub_grow_up"])
                 debuglog(wc, "(wolf cub) GROW UP")
     if did_something:
         evt.prevent_default = True
         evt.stop_processing = True
+
+@event_listener("reconfigure_stats")
+def on_reconfigure_stats(evt, cli, var, stats):
+    # TODO: split into cub
+    if "wolf cub" not in stats or stats["wolf cub"] == 0:
+        return
+    for role in var.WOLF_ROLES - {"wolf cub"}:
+        if role in stats and stats[role] > 0:
+            break
+    else:
+        stats["wolf"] = stats["wolf cub"]
+        stats["wolf cub"] = 0
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
