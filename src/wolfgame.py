@@ -989,12 +989,12 @@ def fjoin(var, wrapper, message):
 
     parts = re.split(" +", message)
     possible_users = {u.lower().nick for u in wrapper.target.users}
+    to_join = []
     if not botconfig.DEBUG_MODE:
         match = complete_one_match(users.lower(parts[0]), possible_users)
         if match:
-            to_join = [match]
+            to_join.append(match)
     else:
-        to_join = []
         for i, s in enumerate(parts):
             match = complete_one_match(users.lower(s), possible_users)
             if match:
@@ -1011,7 +1011,7 @@ def fjoin(var, wrapper, message):
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    user = users._add(wrapper.client, nick=str(i))
+                    user = users._add(wrapper.client, nick=str(i)) # FIXME
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
