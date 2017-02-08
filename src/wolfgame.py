@@ -2945,15 +2945,14 @@ def goat(var, wrapper, message):
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
 
-    var.LAST_GOAT[wrapper.source.nick] = [datetime.now(), 1]
+    var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
     goatact = random.choice(messages["goat_actions"])
-    wrapper.send(messages["goat_success"].format(
-        wrapper.source, goatact, victim))
+    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, victim))
 
 @command("fgoat", flag="j")
 def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
-    
+
     nick = message.split(' ')[0].strip()
     possible_users = {u.lower().nick for u in wrapper.target.users}
     victim = complete_one_match(users.lower(nick), possible_users)
@@ -3346,7 +3345,7 @@ def begin_day(cli):
     var.DISEASED = set()
     var.MISDIRECTED = set()
     var.DYING = set()
-    var.LAST_GOAT = {}
+    var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     cli.msg(chan, msg)
 
