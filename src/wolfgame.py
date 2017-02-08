@@ -65,6 +65,7 @@ var.LAST_PSTATS = None
 var.LAST_TIME = None
 var.LAST_START = {}
 var.LAST_WAIT = {}
+var.LAST_GOAT = {}
 
 var.USERS = {}
 
@@ -2932,6 +2933,9 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
     
+    if wrapper.source.nick in var.LAST_GOAT and var.LAST_GOAT[wrapper.source.nick][0] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
+        wrapper.pm(messages["command_ratelimited"])
+        return
     target = re.split(" +",message)[0]
     if not target:
         cli.notice(messages["not_enough_parameters"])
@@ -2942,7 +2946,8 @@ def goat(var, wrapper, message):
     if not victim:
         wrapper.reply(messages["goat_target_not_in_channel"].format(target))
         return
-        
+    
+    var.LAST_GOAT[wrapper.source.nick] = [datetime.now(), 1]
     goatact = random.choice(messages["goat_actions"])
     wrapper.send(messages["goat_success"].format(
         wrapper.source, goatact, victim))
@@ -3340,7 +3345,7 @@ def begin_day(cli):
     var.DISEASED = set()
     var.MISDIRECTED = set()
     var.DYING = set()
-
+    var.LAST_GOAT = {}
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     cli.msg(chan, msg)
 
