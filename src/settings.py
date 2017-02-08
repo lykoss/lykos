@@ -22,7 +22,7 @@ PSTATS_RATE_LIMIT = 0
 TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
-GOAT_RATE_LIMIT = 10 # (per-user)
+GOAT_RATE_LIMIT = 300 # (per-user)
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 SHARPSHOOTER_MULTIPLIER = 0.06
 MIN_PLAYERS = 4

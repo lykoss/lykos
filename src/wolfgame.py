@@ -2938,13 +2938,13 @@ def goat(var, wrapper, message):
         return
     target = re.split(" +",message)[0]
     if not target:
-        cli.notice(messages["not_enough_parameters"])
+        wrapper.pm(messages["not_enough_parameters"])
     
     
     possible_users = {u.lower().nick for u in wrapper.target.users}
     victim = complete_one_match(users.lower(target), possible_users)
     if not victim:
-        wrapper.reply(messages["goat_target_not_in_channel"].format(target))
+        wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
     
     var.LAST_GOAT[wrapper.source.nick] = [datetime.now(), 1]
@@ -2952,17 +2952,20 @@ def goat(var, wrapper, message):
     wrapper.send(messages["goat_success"].format(
         wrapper.source, goatact, victim))
 
-@cmd("fgoat", flag="j")
-def fgoat(cli, nick, chan, rest):
+@command("fgoat", flag="j")
+def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
-    nick_ = rest.split(' ')[0].strip()
-    if nick_.lower() in (x.lower() for x in users.users()):
-        togoat = nick_
+    
+    nick = message.split(' ')[0].strip()
+    possible_users = {u.lower().nick for u in wrapper.target.users}
+    victim = complete_one_match(users.lower(nick), possible_users)
+    if victim:
+        togoat = victim
     else:
-        togoat = rest
+        togoat = message
     goatact = random.choice(messages["goat_actions"])
 
-    cli.msg(chan, messages["goat_success"].format(nick, goatact, togoat))
+    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, togoat))
 
 @handle_error
 def return_to_village(var, chan, target, *, show_message):
