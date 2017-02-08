@@ -2928,33 +2928,24 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 #    if "@" + botconfig.NICK in names:
 #        var.OPPED = True
 
-@cmd("goat", playing=True, phases=("day",))
-def goat(cli, nick, chan, rest):
+@command("goat")
+def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
-
-    if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
-        cli.notice(nick, messages["goat_fail"])
-        return
-
-    ul = list(var.USERS.keys())
-    ull = [x.lower() for x in ul]
-
-    rest = re.split(" +",rest)[0]
-    if not rest:
-        cli.notice(nick, messages["not_enough_parameters"])
-
-    victim = complete_one_match(rest.lower(), ull)
+    
+    victim = re.split(" +",message)[0]
     if not victim:
-        cli.notice(nick, messages["goat_target_not_in_channel"].format(rest))
+        cli.notice(nick, messages["not_enough_parameters"])
+    
+    
+    possible_users = {u.lower().nick for u in wrapper.target.users}
+    victim = complete_one_match(users.lower(victim), possible_users)
+    if not victim:
+        wrapper.reply(messages["goat_target_not_in_channel"].format(message[0]))
         return
-    victim = ul[ull.index(victim)]
-
+        
     goatact = random.choice(messages["goat_actions"])
-
-    cli.msg(chan, messages["goat_success"].format(
-        nick, goatact, victim))
-
-    var.GOATED = True
+    wrapper.send(messages["goat_success"].format(
+        wrapper.source, goatact, victim))
 
 @cmd("fgoat", flag="j")
 def fgoat(cli, nick, chan, rest):
