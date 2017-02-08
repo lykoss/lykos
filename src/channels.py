@@ -4,6 +4,7 @@ from enum import Enum
 
 from src.context import IRCContext, Features, lower
 from src.events import Event
+from src import settings as var
 from src import users
 
 Main = None # main channel
@@ -259,6 +260,9 @@ class Channel(IRCContext):
                 if not self.modes[mode]:
                     del self.modes[mode]
         del user.channels[self]
+        if len(user.channels) == 0:
+            event = Event("cleanup_user", {})
+            event.dispatch(var, user)
 
     def _clear(self):
         for user in self.users:
