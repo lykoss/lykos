@@ -3185,6 +3185,10 @@ def nick_change(evt, var, user, old_rawnick):
     if nick not in var.DISCONNECTED: # FIXME: Need to update this once var.DISCONNECTED holds User instances
         rename_player(var, user, nick) # FIXME: Fix when rename_player supports the new interface
 
+@event_listener("cleanup_user") 
+def cleanup_user(evt, var, user):
+    var.LAST_GOAT.pop(user, None)
+
 @event_listener("nick_change")
 def update_users(evt, var, user, old_rawnick): # FIXME: This is a temporary hack while var.USERS still exists
     nick = users.parse_rawnick_as_dict(old_rawnick)["nick"]
