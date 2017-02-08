@@ -1,16 +1,15 @@
-from weakref import WeakSet
 import fnmatch
 import re
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
-from src import db
+from src import db, events
 
 import botconfig
 
 Bot = None # bot instance
 
-_users = WeakSet()
+_users = set()
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
 
@@ -182,6 +181,14 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
     """Return a dict of {"nick": nick, "ident": ident, "host": host}."""
 
     return _raw_nick_pattern.search(rawnick).groupdict(default)
+
+def _cleanup_user(evt, var, user):
+    """Removes a user from our global tracking set once it has left all channels."""
+    _users.discard(user)
+
+# Can't use @event_listener decorator since src/decorators.py imports us
+# (meaning decorator isn't defined at the point in time we are run)
+events.add_listener("cleanup_user", _cleanup_user)
 
 class User(IRCContext):
 
