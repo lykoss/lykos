@@ -204,6 +204,8 @@ DEV_CHANNEL = ""
 DEV_PREFIX = ""
 PASTEBIN_ERRORS = False
 
+TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
+
 # How often to ping the server (in seconds) to detect unclean disconnection
 SERVER_PING_INTERVAL = 120
 
