@@ -70,7 +70,6 @@ var.LAST_GOAT = {}
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.SPECIAL_ROLES = {}
 var.ORIGINAL_ROLES = {}
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
@@ -2932,21 +2931,20 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 @command("goat")
 def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
-    
-    if wrapper.source.nick in var.LAST_GOAT and var.LAST_GOAT[wrapper.source.nick][0] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
+
+    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source][0] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
         return
     target = re.split(" +",message)[0]
     if not target:
         wrapper.pm(messages["not_enough_parameters"])
-    
-    
+        return
     possible_users = {u.lower().nick for u in wrapper.target.users}
     victim = complete_one_match(users.lower(target), possible_users)
     if not victim:
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
-    
+
     var.LAST_GOAT[wrapper.source.nick] = [datetime.now(), 1]
     goatact = random.choice(messages["goat_actions"])
     wrapper.send(messages["goat_success"].format(
