@@ -2932,15 +2932,15 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
     
-    victim = re.split(" +",message)[0]
-    if not victim:
-        cli.notice(nick, messages["not_enough_parameters"])
+    target = re.split(" +",message)[0]
+    if not target:
+        cli.notice(messages["not_enough_parameters"])
     
     
     possible_users = {u.lower().nick for u in wrapper.target.users}
-    victim = complete_one_match(users.lower(victim), possible_users)
+    victim = complete_one_match(users.lower(target), possible_users)
     if not victim:
-        wrapper.reply(messages["goat_target_not_in_channel"].format(message[0]))
+        wrapper.reply(messages["goat_target_not_in_channel"].format(target))
         return
         
     goatact = random.choice(messages["goat_actions"])
@@ -5877,11 +5877,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES["sharpshooter"] = set(var.ROLES["sharpshooter"])
 
     var.ROLES["sharpshooter"].discard(None)
-
-    if not restart:
-        var.SPECIAL_ROLES["goat herder"] = []
-        if var.GOAT_HERDER:
-            var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
