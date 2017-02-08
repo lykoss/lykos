@@ -20,8 +20,9 @@ ADMINS_RATE_LIMIT = 300
 GSTATS_RATE_LIMIT = 0
 PSTATS_RATE_LIMIT = 0
 TIME_RATE_LIMIT = 10
-START_RATE_LIMIT = 10  # (per-user)
+START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
+GOAT_RATE_LIMIT = 300 # (per-user)
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 SHARPSHOOTER_MULTIPLIER = 0.06
 MIN_PLAYERS = 4
@@ -107,8 +108,6 @@ RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of 
 ENABLE_DEADCHAT = True # dead players can communicate with each other
 
 DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
-
-GOAT_HERDER = True
 
 ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
 LIMIT_ABSTAIN = True # if true, village will be limited to successfully !abstaining a vote only once

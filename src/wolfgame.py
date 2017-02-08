@@ -65,11 +65,11 @@ var.LAST_PSTATS = None
 var.LAST_TIME = None
 var.LAST_START = {}
 var.LAST_WAIT = {}
+var.LAST_GOAT = {}
 
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.SPECIAL_ROLES = {}
 var.ORIGINAL_ROLES = {}
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
@@ -2929,45 +2929,41 @@ def on_join(cli, raw_nick, chan, acc="*", rname=""):
 #    if "@" + botconfig.NICK in names:
 #        var.OPPED = True
 
-@cmd("goat", playing=True, phases=("day",))
-def goat(cli, nick, chan, rest):
+@command("goat")
+def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
 
-    if var.GOATED and nick not in var.SPECIAL_ROLES["goat herder"]:
-        cli.notice(nick, messages["goat_fail"])
+    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source][0] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
+        wrapper.pm(messages["command_ratelimited"])
         return
-
-    ul = list(var.USERS.keys())
-    ull = [x.lower() for x in ul]
-
-    rest = re.split(" +",rest)[0]
-    if not rest:
-        cli.notice(nick, messages["not_enough_parameters"])
-
-    victim = complete_one_match(rest.lower(), ull)
+    target = re.split(" +",message)[0]
+    if not target:
+        wrapper.pm(messages["not_enough_parameters"])
+        return
+    possible_users = {u.lower().nick for u in wrapper.target.users}
+    victim = complete_one_match(users.lower(target), possible_users)
     if not victim:
-        cli.notice(nick, messages["goat_target_not_in_channel"].format(rest))
+        wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
-    victim = ul[ull.index(victim)]
 
+    var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
     goatact = random.choice(messages["goat_actions"])
+    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, victim))
 
-    cli.msg(chan, messages["goat_success"].format(
-        nick, goatact, victim))
-
-    var.GOATED = True
-
-@cmd("fgoat", flag="j")
-def fgoat(cli, nick, chan, rest):
+@command("fgoat", flag="j")
+def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
-    nick_ = rest.split(' ')[0].strip()
-    if nick_.lower() in (x.lower() for x in users.users()):
-        togoat = nick_
+
+    nick = message.split(' ')[0].strip()
+    possible_users = {u.lower().nick for u in wrapper.target.users}
+    victim = complete_one_match(users.lower(nick), possible_users)
+    if victim:
+        togoat = victim
     else:
-        togoat = rest
+        togoat = message
     goatact = random.choice(messages["goat_actions"])
 
-    cli.msg(chan, messages["goat_success"].format(nick, goatact, togoat))
+    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, togoat))
 
 @handle_error
 def return_to_village(var, chan, target, *, show_message):
@@ -3190,6 +3186,10 @@ def nick_change(evt, var, user, old_rawnick):
     if nick not in var.DISCONNECTED: # FIXME: Need to update this once var.DISCONNECTED holds User instances
         rename_player(var, user, nick) # FIXME: Fix when rename_player supports the new interface
 
+@event_listener("cleanup_user") 
+def cleanup_user(evt, var, user):
+    var.LAST_GOAT.pop(user, None)
+
 @event_listener("nick_change")
 def update_users(evt, var, user, old_rawnick): # FIXME: This is a temporary hack while var.USERS still exists
     nick = users.parse_rawnick_as_dict(old_rawnick)["nick"]
@@ -3350,7 +3350,7 @@ def begin_day(cli):
     var.DISEASED = set()
     var.MISDIRECTED = set()
     var.DYING = set()
-
+    var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     cli.msg(chan, msg)
 
@@ -3409,7 +3409,6 @@ def transition_day(cli, gameid=0):
         return
 
     var.PHASE = "day"
-    var.GOATED = False
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
     var.DAY_START_TIME = datetime.now()
@@ -5887,11 +5886,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES["sharpshooter"] = set(var.ROLES["sharpshooter"])
 
     var.ROLES["sharpshooter"].discard(None)
-
-    if not restart:
-        var.SPECIAL_ROLES["goat herder"] = []
-        if var.GOAT_HERDER:
-            var.SPECIAL_ROLES["goat herder"] = [ nick ]
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
