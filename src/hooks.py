@@ -554,13 +554,12 @@ def part_chan(cli, rawnick, chan, reason=""):
 
     ch = channels.add(chan, cli)
     user = users._add(cli, nick=rawnick) # FIXME
+    Event("chan_part", {}).dispatch(var, ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
         ch._clear()
     else:
         ch.remove_user(user)
-
-    Event("chan_part", {}).dispatch(var, ch, user, reason)
 
 ### KICK handling
 
@@ -581,13 +580,12 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     ch = channels.add(chan, cli)
     actor = users._add(cli, nick=rawnick) # FIXME
     user = users._add(cli, nick=target) # FIXME
+    Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
     if user is users.Bot:
         ch._clear()
     else:
         ch.remove_user(user)
-
-    Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
 ### QUIT handling
 
@@ -613,22 +611,15 @@ def on_quit(cli, rawnick, reason):
     1 - The raw nick (nick!ident@host) of the user quitting
     2 - The reason for the quit (always present)
 
-    This fires off an event, after removing the user from all of their
-    channels. If the user is not in a game, the event will hold the
-    last reference for the user, and then it will be destroyed. If the
-    user is playing, the game state will hold strong references to it,
-    ensuring it's not deleted.
-
     """
 
     user = users._add(cli, nick=rawnick) # FIXME
+    Event("server_quit", {}).dispatch(var, user, reason)
 
     for chan in set(user.channels):
         if user is users.Bot:
             chan._clear()
         else:
             chan.remove_user(user)
-
-    Event("server_quit", {}).dispatch(var, user, reason)
 
 # vim: set sw=4 expandtab:
