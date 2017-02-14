@@ -171,7 +171,7 @@ def on_transition_day6(evt, cli, var):
         # important, otherwise our del_player listener messages the vg
         del KILLS[k]
 
-@event_listener("retribution_kill") # FIXME: This function, and all of the event
+@event_listener("retribution_kill", priority=6) # FIXME: This function, and all of the event
 def on_retribution_kill(evt, cli, var, victim, orig_target):
     t = evt.data["target"]
     if users._get(t) in GHOSTS:
