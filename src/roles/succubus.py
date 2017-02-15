@@ -171,18 +171,19 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     if death_triggers:
         ALL_SUCC_IDLE = False
     if len(var.ROLES["succubus"]) == 0:
+        entranced_alive = ENTRANCED - set(evt.params.deadlist)
         if ALL_SUCC_IDLE:
             while ENTRANCED:
                 e = ENTRANCED.pop()
                 pm(cli, e, messages["entranced_revert_win"])
-        elif ENTRANCED:
+        elif entranced_alive:
             msg = []
             # Run in two loops so we can play the message for everyone dying at once before we actually
             # kill any of them off (if we killed off first, the message order would be wrong wrt death chains)
             comma = ""
             if var.ROLE_REVEAL in ("on", "team"):
                 comma = ","
-            for e in ENTRANCED:
+            for e in entranced_alive:
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(e)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -195,11 +196,11 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                 cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(msg[0] + comma + " and " + msg[1] + comma))
             else:
                 cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(", ".join(msg[:-1]) + ", and " + msg[-1] + comma))
-            for e in ENTRANCED:
+            for e in entranced_alive:
                 # to ensure we do not double-kill someone, notify all child deaths that we'll be
                 # killing off everyone else that is entranced so they don't need to bother
                 dlc = list(evt.params.deadlist)
-                dlc.extend(ENTRANCED - {e})
+                dlc.extend(entranced_alive - {e})
                 debuglog("{0} ({1}) SUCCUBUS DEATH KILL: {2} ({3})".format(nick, nickrole, e, get_role(e)))
                 evt.params.del_player(cli, e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
@@ -224,7 +225,7 @@ def on_transition_day_resolve_end(evt, cli, var, victims):
             for succ in VISITED:
                 if VISITED[succ] == victim and succ not in evt.data["bitten"] and succ not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(succ, get_role(succ)))
+                        evt.data["message"].append(messages["visited_victim"].format(succ, get_reveal_role(succ)))
                     else:
                         evt.data["message"].append(messages["visited_victim_noreveal"].format(succ))
                     evt.data["bywolves"].add(succ)
