@@ -246,12 +246,15 @@ class command:
     @handle_error
     def caller(self, cli, rawnick, chan, rest):
         _ignore_locals_ = True
-        user = users._add(cli, nick=rawnick) # FIXME
+        user = users._get(rawnick, allow_none=True) # FIXME
 
         if users.equals(chan, users.Bot.nick): # PM
             target = users.Bot
         else:
-            target = channels.add(chan, cli)
+            target = channels.get(chan, allow_none=True)
+
+        if user is None or target is None:
+            return
 
         dispatcher = MessageDispatcher(user, target)
 
