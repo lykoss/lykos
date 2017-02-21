@@ -6850,7 +6850,8 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
                 wrapper.pm(messages["invalid_mode"].format(gamemode))
             return
         if len(matches) > 1:
-            wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
+            if doreply:
+                wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
             return
         if len(matches) == 1:
             gamemode = matches[0]
