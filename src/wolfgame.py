@@ -851,11 +851,12 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
     cmodes = [("+v", wrapper.source.nick)]
     if var.PHASE == "none":
-        if var.AUTO_TOGGLE_MODES and users.get(player).modes: # FIXME: Need to properly handle mode changes (whole block)
-            for mode in users.get(wrapper.source.nick).modes:
-                cmodes.append(("-"+mode, wrapper.source.nick))
-            users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
-            users.get(wrapper.source.nick).modes.clear()
+        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+            if var.AUTO_TOGGLE_MODES and users.get(player).modes: # FIXME: Need to properly handle mode changes (whole block)
+                for mode in users.get(wrapper.source.nick).modes:
+                    cmodes.append(("-"+mode, wrapper.source.nick))
+                users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
+                users.get(wrapper.source.nick).modes.clear()
         var.ROLES["person"].add(wrapper.source.nick) # FIXME: Need to store Users, not nicks
         var.ALL_PLAYERS.append(wrapper.source)
         var.PHASE = "join"
@@ -949,7 +950,8 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         t.daemon = True
         t.start()
 
-    channels.Main.mode(*cmodes)
+    if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+        channels.Main.mode(*cmodes)
 
     return True
 
