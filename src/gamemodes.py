@@ -1324,9 +1324,11 @@ class MaelstromMode(GameMode):
                 addroles["blessed villager"] = 1
 
         rolemap = defaultdict(list)
+        pcount = 0
         for r,c in addroles.items():
             if c > 0:
-                rolemap[r] = list(range(c))
+                rolemap[r] = list(range(pcount, pcount+c))
+                pcount += c
 
         if self.chk_win_conditions(cli, rolemap, end_game=False):
             return self._role_attribution(cli, var, villagers, do_templates)
