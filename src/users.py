@@ -350,8 +350,8 @@ class User(IRCContext):
         nick, ident, host = re.match("(?:(?:(.*?)!)?(.*?)@)?(.*)", hostmask).groups("")
         temp = self.lower()
 
-        return (fnmatch.fnmatch(temp.nick, lower(nick)) and
-                fnmatch.fnmatch(temp.ident, lower(ident)) and
+        return ((not nick or fnmatch.fnmatch(temp.nick, lower(nick))) and
+                (not ident or fnmatch.fnmatch(temp.ident, lower(ident))) and
                 fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
