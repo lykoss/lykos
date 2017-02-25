@@ -683,12 +683,13 @@ def join_timer_handler(var):
                 return
 
             temp = user.lower()
-            if temp.account is not None:
+            if not var.DISABLE_ACCOUNTS and temp.account is not None:
                 if temp.account in chk_acc:
                     to_ping.append(temp)
                     var.PINGED_ALREADY_ACCS.add(temp.account)
+                    return
 
-            elif not var.ACCOUNTS_ONLY:
+            if not var.ACCOUNTS_ONLY:
                 if temp.userhost in checker:
                     to_ping.append(temp)
                     var.PINGED_ALREADY.add(temp.userhost)
