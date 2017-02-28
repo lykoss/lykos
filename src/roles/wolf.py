@@ -67,7 +67,7 @@ def wolf_kill(cli, nick, chan, rest):
         return
     KILLS[nick] = victims
     if len(orig) > 1:
-        # need to expand this eventually
+        # need to expand this eventually (only accomodates 2 kills, whereas we should ideally support arbitrarily many)
         msg = messages["wolf_target_multiple"].format(orig[0], orig[1])
         pm(cli, nick, messages["player"].format(msg))
         debuglog("{0} ({1}) KILL: {2} ({3}) and {4} ({5})".format(nick, role, victims[0], get_role(victims[0]), victims[1], get_role(victims[1])))
@@ -98,6 +98,14 @@ def wolf_retract(cli, nick, chan, rest):
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+    if death_triggers:
+        # TODO: split into cub
+        if nickrole == "wolf cub":
+            var.ANGRY_WOLVES = True
+        # TODO: split into alpha
+        if nickrole in var.WOLF_ROLES:
+            var.ALPHA_ENABLED = True
+
     for a,b in list(KILLS.items()):
         for n in b:
             if n == nick:

@@ -2558,10 +2558,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             t.start()
 
                     debuglog(nick, "(time lord) TRIGGER")
-                if nickrole == "wolf cub":
-                    var.ANGRY_WOLVES = True
-                if nickrole in var.WOLF_ROLES:
-                    var.ALPHA_ENABLED = True
 
                 if nickrole == "mad scientist":
                     # kills the 2 players adjacent to them in the original players listing (in order of !joining)
