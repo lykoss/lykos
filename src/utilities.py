@@ -381,11 +381,11 @@ def get_reveal_role(nick):
         return role
 
     if role in var.WOLFTEAM_ROLES:
-        return "wolf"
+        return "wolfteam player"
     elif role in var.TRUE_NEUTRAL_ROLES:
         return "neutral player"
     else:
-        return "villager"
+        return "village member"
 
 def get_templates(nick):
     tpl = []
