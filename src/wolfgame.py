@@ -2969,8 +2969,9 @@ def return_to_village(var, chan, target, *, show_message):
     with var.GRAVEYARD_LOCK:
         temp = target.lower()
         if temp.nick in var.DISCONNECTED:
-            if (temp.account is not None and users.equals(temp.account, account) or
-                temp.userhost is not None and users.equals(temp.userhost, hostmask) and not var.ACCOUNTS_ONLY):
+            account, hostmask, when, what = var.DISCONNECTED[temp.nick]
+            if ((not var.DISABLE_ACCOUNTS and temp.account is not None and users.equals(temp.account, account)) or
+                (not var.ACCOUNTS_ONLY and temp.userhost is not None and users.equals(temp.userhost, hostmask))):
 
                 del var.DISCONNECTED[temp.nick]
                 var.LAST_SAID_TIME[temp.nick] = datetime.now()

@@ -10,6 +10,7 @@ import botconfig
 Bot = None # bot instance
 
 _users = set()
+_ghosts = set()
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
 
@@ -184,11 +185,25 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
 def _cleanup_user(evt, var, user):
     """Removes a user from our global tracking set once it has left all channels."""
-    _users.discard(user)
+    if var.PHASE not in var.GAME_PHASES or user not in var.ALL_PLAYERS:
+        _users.discard(user)
+    elif var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
+        _ghosts.add(user)
+
+def _reset(evt, var):
+    """Cleans up users that left during game during game end."""
+    for user in _ghosts:
+        if not user.channels:
+            _users.discard(user)
+    _ghosts.clear()
 
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 events.add_listener("cleanup_user", _cleanup_user)
+events.add_listener("reset", _reset)
+# FIXME: when there is a swap_player event, we need a listener for that as well
+# to remove the swapped player from _ghosts if they're in there (helps prevent
+# duplicate user lookup bugs where the ghost and new player have the same nick)
 
 class User(IRCContext):
 
