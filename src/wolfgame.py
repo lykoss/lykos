@@ -6709,12 +6709,19 @@ def aftergame(var, wrapper, message):
 def _command_disabled(var, wrapper, message):
     wrapper.send(messages["command_disabled_admin"])
 
+def _command_disabled_oldapi(cli, nick, chan, rest):
+    # FIXME: kill this off when the old @cmd API is completely killed off
+    reply(cli, nick, chan, messages["command_disabled_admin"])
+
 @command("lastgame", "flastgame", flag="D", pm=True)
 def flastgame(var, wrapper, message):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
-    if var.PHASE != "join":
-        for decor in (COMMANDS["join"] + COMMANDS["start"]):
-            decor(_command_disabled)
+    for cmdcls in (COMMANDS["join"] + COMMANDS["start"]):
+        if isinstance(cmdcls, command):
+            cmdcls.func = _command_disabled
+        else:
+            # FIXME: kill this off when the old @cmd API is completely killed off
+            cmdcls.func = _command_disabled_oldapi
 
     channels.Main.send(messages["disable_new_games"].format(wrapper.source))
     var.ADMIN_TO_PING = wrapper.source
