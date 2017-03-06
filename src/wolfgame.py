@@ -2939,8 +2939,7 @@ def goat(var, wrapper, message):
     if not target:
         wrapper.pm(messages["not_enough_parameters"])
         return
-    possible_users = {u.lower().nick for u in wrapper.target.users}
-    victim = complete_one_match(users.lower(target), possible_users)
+    victim, _ = users.complete_match(users.lower(target), wrapper.target.users)
     if not victim:
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
@@ -2954,8 +2953,7 @@ def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
 
     nick = message.split(' ')[0].strip()
-    possible_users = {u.lower().nick for u in wrapper.target.users}
-    victim = complete_one_match(users.lower(nick), possible_users)
+    victim, _ = users.complete_match(users.lower(nick), wrapper.target.users)
     if victim:
         togoat = victim
     else:
