@@ -178,13 +178,6 @@ def on_fagb(evt, cli, var, victim, killer):
 
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, cli, var, victim):
-    # TODO: remove these checks once everything is split
-    # right now they're needed because otherwise protection may fire off even if the person isn't home
-    # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        return
-    # END checks to remove
-
     if evt.data["protected"].get(victim) == "angel":
         evt.data["message"].append(messages["angel_protection"].format(victim))
         evt.data["novictmsg"] = False

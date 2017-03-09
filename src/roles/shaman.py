@@ -434,13 +434,6 @@ def on_fagb(evt, cli, var, victim, killer):
 
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve2(evt, cli, var, victim):
-    # TODO: remove these checks once everything is split
-    # right now they're needed because otherwise protection may fire off even if the person isn't home
-    # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        return
-    # END checks to remove
-
     if evt.data["protected"].get(victim) == "totem":
         evt.data["message"].append(messages["totem_protection"].format(victim))
         evt.data["novictmsg"] = False
@@ -452,8 +445,6 @@ def on_transition_day_resolve6(evt, cli, var, victim):
     # TODO: remove these checks once everything is split
     # right now they're needed because otherwise retribution may fire off when the target isn't actually dying
     # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        return
     if evt.data["protected"].get(victim):
         return
     if victim in var.ROLES["lycan"] and victim in evt.data["onlybywolves"] and victim not in var.IMMUNIZED:

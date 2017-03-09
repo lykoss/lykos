@@ -363,6 +363,7 @@
     "investigator_reveal": "Someone accidentally drops a paper. The paper reveals that \u0002{0}\u0002 is the detective!",
     "harlot_already_visited": "You are already spending the night with \u0002{0}\u0002.",
     "harlot_success": "You are spending the night with \u0002{0}\u0002. Have a good time!",
+    "harlot_not_self": "You may not visit yourself. Use \"pass\" to choose to not visit anyone tonight.",
     "seer_fail": "You may only have one vision per round.",
     "no_see_self": "Seeing yourself would be a waste.",
     "seer_success": "You have a vision; in this vision, you see that \u0002{0}\u0002 is a \u0002{1}\u0002!",

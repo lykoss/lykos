@@ -3338,7 +3338,6 @@ def begin_day(cli):
     var.KILLER = ""  # nickname of who chose the victim
     var.HEXED = set() # set of hags that have silenced others
     var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
-    var.HVISITED = {} # those whom harlots have visited
     var.PASSED = set() # set of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
@@ -3555,18 +3554,19 @@ def transition_day(cli, gameid=0):
             # note that we cannot bite visiting harlots unless they are visiting a wolf,
             # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
             got_bit = False
-            hvisit = var.HVISITED.get(target)
             bite_evt = Event("bite", {
                 "can_bite": True,
                 "kill": target in var.ROLES["lycan"] or target in var.LYCANTHROPES or target in var.IMMUNIZED
-                })
+                },
+                victims=victims,
+                killers=killers,
+                bywolves=bywolves,
+                onlybywolves=onlybywolves,
+                protected=protected,
+                bitten=bitten,
+                numkills=numkills)
             bite_evt.dispatch(cli, var, alpha, target)
-            if ((target not in var.ROLES["harlot"]
-                        or not hvisit
-                        or get_role(hvisit) in var.WOLFCHAT_ROLES
-                        or (hvisit in bywolves and hvisit not in protected))
-                    and bite_evt.data["can_bite"]
-                    and not bite_evt.data["kill"]):
+            if bite_evt.data["can_bite"] and not bite_evt.data["kill"]:
                 # mark them as bitten
                 got_bit = True
                 # if they were also being killed by wolves, undo that
@@ -3617,13 +3617,14 @@ def transition_day(cli, gameid=0):
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
     # TODO: this needs to be split off into angel.py, but all the stuff above it needs to be split off first
     # so even though angel.py exists we can't exactly do this now
-    from src.roles import angel
+    # TODO: also needs to be split off into harlot.py
+    from src.roles import angel, harlot
     for v in victims_set:
         if v in var.DYING:
             victims.append(v)
         elif v in var.ROLES["bodyguard"] and angel.GUARDED.get(v) in victims_set:
             vappend.append(v)
-        elif v in var.ROLES["harlot"] and var.HVISITED.get(v) in victims_set:
+        elif v in var.ROLES["harlot"] and harlot.VISITED.get(v) in victims_set:
             vappend.append(v)
         else:
             victims.append(v)
@@ -3641,7 +3642,7 @@ def transition_day(cli, gameid=0):
             if v in var.ROLES["bodyguard"] and angel.GUARDED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
-            elif v in var.ROLES["harlot"] and var.HVISITED.get(v) not in vappend:
+            elif v in var.ROLES["harlot"] and harlot.VISITED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
 
@@ -3694,13 +3695,7 @@ def transition_day(cli, gameid=0):
     for victim in vlist:
         if not revt.dispatch(cli, var, victim):
             continue
-        if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in revt.data["dead"] and victim in revt.data["onlybywolves"]:
-            # alpha wolf can bite a harlot visiting another wolf, don't play a message in that case
-            # kept as a nested if so that the other victim logic does not run
-            if victim not in revt.data["bitten"]:
-                revt.data["message"].append(messages["target_not_home"])
-                revt.data["novictmsg"] = False
-        elif (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim not in var.IMMUNIZED:
+        if (victim in var.ROLES["lycan"] or victim in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim not in var.IMMUNIZED:
             vrole = get_role(victim)
             if vrole not in var.WOLFCHAT_ROLES:
                 revt.data["message"].append(messages["new_wolf"])
@@ -3785,28 +3780,6 @@ def transition_day(cli, gameid=0):
     killers = revt2.data["killers"]
     protected = revt2.data["protected"]
     bitten = revt2.data["bitten"]
-    # handle separately so it always happens no matter how victim dies, and so that we can account for bitten victims as well
-    for victim in victims + bitten:
-        if victim in dead and victim in var.HVISITED.values() and (victim in bywolves or victim in bitten):  #  victim was visited by some harlot and victim was attacked by wolves
-            for hlt in var.HVISITED.keys():
-                if var.HVISITED[hlt] == victim and hlt not in bitten and hlt not in dead:
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        message.append(messages["visited_victim"].format(hlt, get_role(hlt)))
-                    else:
-                        message.append(messages["visited_victim_noreveal"].format(hlt))
-                    bywolves.add(hlt)
-                    onlybywolves.add(hlt)
-                    dead.append(hlt)
-
-    if novictmsg and len(dead) == 0:
-        message.append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
-
-    for harlot in var.ROLES["harlot"]:
-        if var.HVISITED.get(harlot) in list_players(var.WOLF_ROLES) and harlot not in dead and harlot not in bitten:
-            message.append(messages["harlot_visited_wolf"].format(harlot))
-            bywolves.add(harlot)
-            onlybywolves.add(harlot)
-            dead.append(harlot)
 
     for victim in list(dead):
         if victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0 and victim in bywolves:
@@ -3911,6 +3884,11 @@ def transition_day(cli, gameid=0):
 
     event_end.data["begin_day"](cli)
 
+@event_listener("transition_day_resolve_end", priority=2)
+def on_transition_day_resolve_end(evt, cli, var, victims):
+    if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
+        evt.data["message"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
+
 @proxy.impl
 def chk_nightdone(cli):
     if var.PHASE != "night":
@@ -3918,10 +3896,10 @@ def chk_nightdone(cli):
 
     pl = list_players()
     spl = set(pl)
-    actedcount = sum(map(len, (var.HVISITED, var.PASSED, var.OBSERVED,
+    actedcount = sum(map(len, (var.PASSED, var.OBSERVED,
                                var.HEXED, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("harlot", "sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
+    nightroles = get_roles("sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4119,8 +4097,9 @@ def check_exchange(cli, actor, nick):
     #some roles can act on themselves, ignore this
     if actor == nick:
         return False
-    if nick in var.ROLES["succubus"]:
-        return False # succubus cannot be affected by exchange totem, at least for now
+    event = Event("can_exchange", {})
+    if not event.dispatch(var, actor, nick):
+        return False # some roles such as succubus cannot be affected by exchange totem
     if nick in var.EXCHANGED:
         var.EXCHANGED.remove(nick)
         actor_role = get_role(actor)
@@ -4143,11 +4122,6 @@ def check_exchange(cli, actor, nick):
         elif actor_role in ("werecrow", "sorcerer"):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
-        elif actor_role == "harlot":
-            if actor in var.HVISITED:
-                if var.HVISITED[actor] is not None:
-                    pm(cli, var.HVISITED[actor], messages["harlot_disappeared"].format(actor))
-                del var.HVISITED[actor]
         elif actor_role == "hag":
             if actor in var.LASTHEXED:
                 if var.LASTHEXED[actor] in var.TOBESILENCED and actor in var.HEXED:
@@ -4183,11 +4157,6 @@ def check_exchange(cli, actor, nick):
         elif nick_role in ("werecrow", "sorcerer"):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
-        elif nick_role == "harlot":
-            if nick in var.HVISITED:
-                if var.HVISITED[nick] is not None:
-                    pm(cli, var.HVISITED[nick], messages["harlot_disappeared"].format(nick))
-                del var.HVISITED[nick]
         elif nick_role == "hag":
             if nick in var.LASTHEXED:
                 if var.LASTHEXED[nick] in var.TOBESILENCED and nick in var.HEXED:
@@ -4645,39 +4614,6 @@ def pray(cli, nick, chan, rest):
 
     chk_nightdone(cli)
 
-@cmd("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
-def hvisit(cli, nick, chan, rest):
-    """Visit a player. You will die if you visit a wolf or a target of the wolves."""
-    role = get_role(nick)
-
-    if var.HVISITED.get(nick):
-        pm(cli, nick, messages["harlot_already_visited"].format(var.HVISITED[nick]))
-        return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
-    if not victim:
-        return
-
-    if nick == victim:  # Staying home (same as calling pass, so call pass)
-        pass_cmd.func(cli, nick, chan, "") # XXX: Old API
-        return
-    else:
-        victim = choose_target(nick, victim)
-        if check_exchange(cli, nick, victim):
-            return
-        var.HVISITED[nick] = victim
-        pm(cli, nick, messages["harlot_success"].format(victim))
-        if nick != victim: #prevent luck/misdirection totem weirdness
-            pm(cli, victim, messages["harlot_success"].format(nick))
-        # TODO: turn this into an event once harlot is split off
-        if get_role(victim) == "succubus":
-            pm(cli, nick, messages["notify_succubus_target"].format(victim))
-            pm(cli, victim, messages["succubus_harlot_success"].format(nick))
-            from src.roles import succubus
-            succubus.ENTRANCED.add(nick)
-
-    debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, role, victim, get_role(victim)))
-    chk_nightdone(cli)
-
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 @cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(cli, nick, chan, rest):
@@ -4752,8 +4688,8 @@ def bite_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("harlot", "turncoat", "warlock"))
-def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) also needs updating alongside this
+    roles=("turncoat", "warlock"))
+def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
 
@@ -4765,13 +4701,7 @@ def pass_cmd(cli, nick, chan, rest): # XXX: hvisit (3 functions above this one) 
             cli.notice(nick, messages["silenced"])
         return
 
-    if nickrole == "harlot":
-        if var.HVISITED.get(nick):
-            pm(cli, nick, (messages["harlot_already_visited"]).format(var.HVISITED[nick]))
-            return
-        var.HVISITED[nick] = None
-        pm(cli, nick, messages["no_visit"])
-    elif nickrole == "turncoat":
+    if nickrole == "turncoat":
         if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
             # theoretically passing would revert them to how they were before, but
             # we aren't tracking that, so just tell them to change it back themselves.
@@ -5347,16 +5277,6 @@ def transition_night(cli):
 
     # send PMs
     ps = list_players()
-
-    for harlot in var.ROLES["harlot"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(harlot)
-        if harlot in var.PLAYERS and not is_user_simple(harlot):
-            pm(cli, harlot, messages["harlot_info"])
-        else:
-            pm(cli, harlot, messages["harlot_simple"])  # !simple
-        pm(cli, harlot, "Players: " + ", ".join(pl))
 
     for pht in var.ROLES["prophet"]:
         chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)

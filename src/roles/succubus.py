@@ -71,16 +71,23 @@ def hvisit(cli, nick, chan, rest):
     debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, get_role(nick), victim, vrole))
     chk_nightdone(cli)
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("succubus",))
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 def pass_cmd(cli, nick, chan, rest):
     """Do not entrance someone tonight."""
     if VISITED.get(nick):
         pm(cli, nick, messages["succubus_already_visited"].format(VISITED[nick]))
         return
-        VISITED[nick] = None
+    VISITED[nick] = None
     pm(cli, nick, messages["succubus_pass"])
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
     chk_nightdone(cli)
+
+@event_listener("harlot_visit")
+def on_harlot_visit(evt, cli, var, nick, victim):
+    if get_role(victim) == "succubus":
+        pm(cli, nick, messages["notify_succubus_target"].format(victim))
+        pm(cli, victim, messages["succubus_harlot_success"].format(nick))
+        ENTRANCED.add(nick)
 
 @event_listener("get_random_totem_targets")
 def on_get_random_totem_targets(evt, cli, var, shaman):
@@ -149,6 +156,12 @@ def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
+
+@event_listener("can_exchange")
+def on_can_exchange(evt, var, actor, nick):
+    if actor in var.ROLES["succubus"] or nick in var.ROLES["succubus"]:
+        evt.prevent_default = True
+        evt.stop_processing = True
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):

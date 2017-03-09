@@ -37,13 +37,6 @@ def on_transition_day(evt, cli, var):
 
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, cli, var, victim):
-    # TODO: remove these checks once everything is split
-    # right now they're needed because otherwise protection may fire off even if the person isn't home
-    # that will not be an issue once everything is using the event
-    if victim in var.ROLES["harlot"] and var.HVISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        return
-    # END checks to remove
-
     if evt.data["protected"].get(victim) == "blessing":
         # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
         # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
