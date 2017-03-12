@@ -66,7 +66,7 @@ def _send(data, first, sep, client, send_type, name):
         messages.append(cur_sep)
         messages.append(line)
 
-    for line in "".join(messages).splitlines():
+    for line in "".join(messages).split("\n"):
         while line:
             extra, line = line[:length], line[length:]
             client.send("{0} {1} :{2}{3}".format(send_type, name, first, extra))
