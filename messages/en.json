@@ -417,6 +417,7 @@
     "curse_success_wolfchat": "\u0002{0}\u0002 has cast a curse on \u0002{1}\u0002.",
     "already_cloned": "You have already chosen to clone someone.",
     "clone_target_success": "You have chosen to clone \u0002{0}\u0002.",
+    "clone_clone_clone": "Ambiguous command; if you would like to clone someone whose name is or starts with \"clone\", please use \"clone clone clone\".",
     "must_charm_multiple": "You must choose two different people.",
     "no_charm_self": "You may not charm yourself.",
     "targets_already_charmed": "\u0002{0}\u0002 and \u0002{1}\u0002 are already charmed!",

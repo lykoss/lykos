@@ -203,7 +203,8 @@ class handle_error:
 
 class command:
     def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None):
+                 playing=False, silenced=False, phases=(), roles=(), users=None,
+                 exclusive=False):
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -219,13 +220,19 @@ class command:
         self.aftergame = False
         self.name = commands[0]
         self.alt_allowed = bool(flag or owner_only)
+        self.exclusive = exclusive
 
         alias = False
         self.aliases = []
         for name in commands:
+            if exclusive and name in COMMANDS:
+                raise ValueError("exclusive command already exists for {0}".format(name))
+
             for func in COMMANDS[name]:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
+                if func.exclusive:
+                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
@@ -244,7 +251,7 @@ class command:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest):
+    def caller(self, cli, rawnick, chan, rest, *, force_role=None):
         _ignore_locals_ = True
         user = users._get(rawnick, allow_none=True) # FIXME
 
@@ -265,6 +272,9 @@ class command:
             if "" in self.commands or not self.alt_allowed:
                 return # commands not allowed in alt channels
 
+        if force_role is not None and not self.roles:
+            return
+
         if "" in self.commands:
             return self.func(var, dispatcher, rest)
 
@@ -275,6 +285,10 @@ class command:
             return
 
         for role in self.roles:
+            # force_role is set when prefixing the command with a role name, e.g. !seer see blah
+            # If this is set, we don't want to execute role commands for other roles
+            if force_role is not None and role != force_role:
+                continue
             if user.nick in var.ROLES[role]: # FIXME: Need to change this once var.ROLES[role] holds User instances
                 break
         else:
@@ -339,6 +353,7 @@ class cmd:
         self.func = None
         self.aftergame = False
         self.name = cmds[0]
+        self.exclusive = False # for compatibility with new command API
 
         alias = False
         self.aliases = []
@@ -347,6 +362,8 @@ class cmd:
                 if (func.owner_only != owner_only or
                     func.flag != flag):
                     raise ValueError("unmatching protection levels for " + func.name)
+                if func.exclusive:
+                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if alias:
@@ -361,7 +378,7 @@ class cmd:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest):
+    def caller(self, cli, rawnick, chan, rest, *, force_role=None):
         _ignore_locals_ = True
         if users.equals(chan, users.Bot.nick):
             chan = users.parse_rawnick_as_dict(rawnick)["nick"]
@@ -416,6 +433,8 @@ class cmd:
             return
 
         for role in self.roles:
+            if force_role is not None and role != force_role:
+                continue
             if nick in var.ROLES[role]:
                 break
         else:

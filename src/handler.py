@@ -17,7 +17,7 @@ from src.utilities import reply
 cmd = decorators.cmd
 hook = decorators.hook
 
-def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
+def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
@@ -28,8 +28,9 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
                     (users.equals(chan, users.Bot.nick) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
 
-    for fn in decorators.COMMANDS[""]:
-        fn.caller(cli, rawnick, chan, msg)
+    if force_role is None: # if force_role isn't None, that indicates recursion; don't fire these off twice
+        for fn in decorators.COMMANDS[""]:
+            fn.caller(cli, rawnick, chan, msg)
 
     phase = var.PHASE
     for x in list(decorators.COMMANDS.keys()):
@@ -44,7 +45,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
         if not h or h[0] == " ":
             for fn in decorators.COMMANDS.get(x, []):
                 if phase == var.PHASE:
-                    fn.caller(cli, rawnick, chan, h.lstrip())
+                    fn.caller(cli, rawnick, chan, h.lstrip(), force_role=force_role)
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
