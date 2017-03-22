@@ -868,6 +868,7 @@
     "error_pastebin": "(Unable to pastebin traceback; please check the console)",
     "channel_rules": "{0} channel rules: {1}",
     "no_channel_rules": "No rules are defined for {0}. Set RULES in botconfig.py to configure this.",
+    "ambiguous_command": "Ambiguous command; more than one role you belong to has a \"{0}\" command. Please prefix this command with a role name, for example \"{1} {0} ...\" or \"{2} {0} ...\".",
 
     "_": " vim: set sw=4 expandtab:"
 }

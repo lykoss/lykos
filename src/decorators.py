@@ -251,7 +251,7 @@ class command:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest, *, force_role=None):
+    def caller(self, cli, rawnick, chan, rest):
         _ignore_locals_ = True
         user = users._get(rawnick, allow_none=True) # FIXME
 
@@ -272,9 +272,6 @@ class command:
             if "" in self.commands or not self.alt_allowed:
                 return # commands not allowed in alt channels
 
-        if force_role is not None and not self.roles:
-            return
-
         if "" in self.commands:
             return self.func(var, dispatcher, rest)
 
@@ -285,10 +282,6 @@ class command:
             return
 
         for role in self.roles:
-            # force_role is set when prefixing the command with a role name, e.g. !seer see blah
-            # If this is set, we don't want to execute role commands for other roles
-            if force_role is not None and role != force_role:
-                continue
             if user.nick in var.ROLES[role]: # FIXME: Need to change this once var.ROLES[role] holds User instances
                 break
         else:
@@ -378,7 +371,7 @@ class cmd:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest, *, force_role=None):
+    def caller(self, cli, rawnick, chan, rest):
         _ignore_locals_ = True
         if users.equals(chan, users.Bot.nick):
             chan = users.parse_rawnick_as_dict(rawnick)["nick"]
@@ -433,8 +426,6 @@ class cmd:
             return
 
         for role in self.roles:
-            if force_role is not None and role != force_role:
-                continue
             if nick in var.ROLES[role]:
                 break
         else:
