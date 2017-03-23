@@ -77,6 +77,7 @@ var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
 var.PINGING_IFS = False
 var.TIMERS = {}
+var.OLD_MODES = defaultdict(set)
 
 var.ORIGINAL_SETTINGS = {}
 var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
@@ -271,7 +272,7 @@ def reset_settings():
         setattr(var, attr, var.ORIGINAL_SETTINGS[attr])
     var.ORIGINAL_SETTINGS.clear()
 
-def reset_modes_timers(cli):
+def reset_modes_timers(var):
     # Reset game timers
     with var.WARNING_LOCK: # make sure it isn't being used by the ping join handler
         for x, timr in var.TIMERS.items():
@@ -281,20 +282,16 @@ def reset_modes_timers(cli):
     # Reset modes
     cmodes = []
     for plr in list_players():
-        cmodes.append(("-v", plr))
-    if var.AUTO_TOGGLE_MODES:
-        for plr in var.USERS:
-            if not "moded" in var.USERS[plr]:
-                continue
-            for mode in var.USERS[plr]["moded"]:
-                cmodes.append(("+"+mode, plr))
-            users.get(plr).modes.update(users.get(plr).moded)
-            users.get(plr).moded = set()
+        cmodes.append(("-" + hooks.Features["PREFIX"]["+"], plr))
+    for user, modes in var.OLD_MODES.items():
+        for mode in modes:
+            cmodes.append(("+" + mode, user))
+    var.OLD_MODES.clear()
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
             if not is_fake_nick(deadguy):
                 cmodes.append(("-{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+deadguy+"!*@*"))
-    mass_mode(cli, cmodes, ["-m"])
+    channels.Main.mode("-m", *cmodes)
 
 def reset():
     var.PHASE = "none" # "join", "day", or "night"
@@ -387,7 +384,7 @@ def forced_exit(var, wrapper, message):
                 what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR))
             return
 
-    reset_modes_timers(wrapper.client)
+    reset_modes_timers(var)
     reset()
 
     msg = "{0} quit from {1}"
@@ -432,7 +429,7 @@ def restart_program(var, wrapper, message):
                 what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR))
             return
 
-    reset_modes_timers(wrapper.client)
+    reset_modes_timers(var)
     db.set_pre_restart_state(list_players())
     reset()
 
@@ -850,14 +847,12 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         wrapper.pm(messages["warn_unacked"])
         return False
 
-    cmodes = [("+v", wrapper.source.nick)]
+    cmodes = [("+" + hooks.Features["PREFIX"]["+"], wrapper.source)]
     if var.PHASE == "none":
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
-            if var.AUTO_TOGGLE_MODES and users.get(player).modes: # FIXME: Need to properly handle mode changes (whole block)
-                for mode in users.get(wrapper.source.nick).modes:
-                    cmodes.append(("-"+mode, wrapper.source.nick))
-                users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
-                users.get(wrapper.source.nick).modes.clear()
+            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
+                cmodes.append(("-" + mode, wrapper.source))
+                var.OLD_MODES[wrapper.source].add(mode)
         var.ROLES["person"].add(wrapper.source.nick) # FIXME: Need to store Users, not nicks
         var.ALL_PLAYERS.append(wrapper.source)
         var.PHASE = "join"
@@ -906,12 +901,10 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
         var.ALL_PLAYERS.append(wrapper.source)
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
-            if var.AUTO_TOGGLE_MODES and users.get(wrapper.source.nick).modes:
-                for mode in users.get(wrapper.source.nick).modes:
-                    cmodes.append(("-"+mode, wrapper.source.nick))
-                users.get(wrapper.source.nick).moded.update(users.get(wrapper.source.nick).modes)
-                users.get(wrapper.source.nick).modes.clear()
-            wrapper.send(messages["player_joined"].format(wrapper.source.nick, len(pl) + 1))
+            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
+                cmodes.append(("-" + mode, wrapper.source))
+                var.OLD_MODES[wrapper.source].add(mode)
+            wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
         if not sanity:
             # Abandon Hope All Ye Who Enter Here
             leave_deadchat(var, wrapper.source)
@@ -961,7 +954,7 @@ def kill_join(var, wrapper):
     pl = list_players()
     pl.sort(key=lambda x: x.lower())
     msg = "PING! " + break_long_message(pl).replace("\n", "\nPING! ")
-    reset_modes_timers(wrapper.client)
+    reset_modes_timers(var)
     reset()
     wrapper.send(*pl, first="PING! ")
     wrapper.send(messages["game_idle_cancel"])
@@ -1105,15 +1098,17 @@ def fstart(cli, nick, chan, rest):
     cli.msg(botconfig.CHANNEL, messages["fstart_success"].format(nick))
     start(cli, nick, botconfig.CHANNEL, forced = True)
 
-@hook("kick")
-def on_kicked(cli, nick, chan, victim, reason):
-    if victim == botconfig.NICK:
-        cli.join(chan)
-        if chan == botconfig.CHANNEL and var.CHANSERV_OP_COMMAND:
-            cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
-    if var.AUTO_TOGGLE_MODES and users.exists(victim):
-        users.get(victim).modes = set()
-        users.get(victim).moded = set()
+@event_listener("chan_kick")
+def kicked_modes(evt, var, chan, actor, target, reason):
+    if target is users.Bot and chan is channels.Main:
+        chan.join()
+    var.OLD_MODES.pop(target, None)
+
+@event_listener("chan_part")
+def parted_modes(evt, var, chan, user, reason):
+    if user is users.Bot and chan is channels.Main:
+        chan.join()
+    var.OLD_MODES.pop(user, None)
 
 @cmd("stats", "players", pm=True, phases=("join", "day", "night"))
 def stats(cli, nick, chan, rest):
@@ -2225,7 +2220,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
 
         user.send_messages()
 
-    reset_modes_timers(cli)
+    reset_modes_timers(var)
     reset()
     expire_tempbans()
 
@@ -2247,7 +2242,7 @@ def chk_win(cli, end_game=True, winner=None):
 
     if var.PHASE == "join":
         if lpl == 0:
-            reset_modes_timers(cli)
+            reset_modes_timers(var)
 
             reset()
 
@@ -2705,11 +2700,9 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         del var.TIMERS["start_votes"]
 
                 # Died during the joining process as a person
-                if var.AUTO_TOGGLE_MODES and users.exists(nick) and users.get(nick).moded:
-                    for newmode in var.USERS[nick]["moded"]:
-                        cmode.append(("+"+newmode, nick))
-                    users.get(nick).modes.update(users.get(nick).moded)
-                    users.get(nick).moded = set()
+                for mode in var.OLD_MODES[users._get(nick)]: # FIXME
+                    cmode.append(("+" + mode, nick))
+                del var.OLD_MODES[users._get(nick)]
                 var.ALL_PLAYERS.remove(users._get(nick)) # FIXME
                 ret = not chk_win(cli)
             else:
@@ -5063,9 +5056,9 @@ def getfeatures(cli, nick, *rest):
             var.MODES_PREFIXES = {}
             for combo in allp:
                 var.MODES_PREFIXES[combo[1]] = combo[0] # For some reason this needs to be backwards
-            if var.AUTO_TOGGLE_MODES:
+            var.AUTO_TOGGLE_MODES = set(var.AUTO_TOGGLE_MODES)
+            if var.AUTO_TOGGLE_MODES: # this is ugly, but I'm too lazy to fix it. it works, so that's fine
                 tocheck = set(var.AUTO_TOGGLE_MODES)
-                var.AUTO_TOGGLE_MODES = set(var.AUTO_TOGGLE_MODES)
                 for mode in tocheck:
                     if not mode in var.MODES_PREFIXES.keys() and not mode in var.MODES_PREFIXES.values():
                         var.AUTO_TOGGLE_MODES.remove(mode)
@@ -6157,7 +6150,7 @@ def reset_game(cli, nick, chan, rest):
         stop_game(cli, log=False)
     else:
         pl = [p for p in list_players() if not is_fake_nick(p)]
-        reset_modes_timers(cli)
+        reset_modes_timers(var)
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
 

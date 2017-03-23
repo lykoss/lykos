@@ -209,6 +209,8 @@ class Channel(IRCContext):
                     user = users._get(targets[i], allow_bot=True) # FIXME
                     self.modes[c].add(user)
                     user.channels[self].add(c)
+                    if user in var.OLD_MODES:
+                        var.OLD_MODES[user].discard(c)
                     i += 1
 
                 elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
