@@ -10,7 +10,7 @@ import functools
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, events, channels, hooks, users, channels, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.utilities import reply, list_participants, get_role, get_templates
 from src.dispatcher import MessageDispatcher
@@ -55,7 +55,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
         message = ""
 
     if wrapper.public and not key.startswith(botconfig.CMD_CHAR):
-       return # channel message but no prefix; ignore
+        return # channel message but no prefix; ignore
 
     if key.startswith(botconfig.CMD_CHAR):
         key = key[len(botconfig.CMD_CHAR):]
