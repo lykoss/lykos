@@ -48,8 +48,11 @@ from oyoyo.client import IRCClient
 
 import src
 from src import handler
+from src.events import Event
 
 def main():
+    evt = Event("init", {})
+    evt.dispatch()
     src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
     cli = IRCClient(
                       {"privmsg": lambda *s: None,

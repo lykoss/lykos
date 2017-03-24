@@ -208,6 +208,15 @@ TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 
 # How often to ping the server (in seconds) to detect unclean disconnection
 SERVER_PING_INTERVAL = 120
 
+# Shorthand for naming roles, used to set up command aliases as well as be valid targets when
+# specifying role names for things (such as !pstats or prophet's !pray)
+ROLE_ALIASES = {
+        "ga": "guardian angel",
+        "drunk": "village drunk",
+        "cs": "crazed shaman",
+        "potato": "villager",
+        }
+
 # TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
 DEFAULT_ROLE = "villager"
 ROLE_INDEX =                       (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )
@@ -321,6 +330,12 @@ DISABLED_ROLES = frozenset()
 
 # Game modes that cannot be randomly picked or voted for
 DISABLED_GAMEMODES = frozenset()
+
+# Roles which have a command equivalent to the role name need to implement special handling for being
+# passed their command again as a prefix and strip it out. For example, both !clone foo and !clone clone foo
+# should be valid. Failure to add such a command to this set will result in the bot not starting
+# with the error "ValueError: exclusive command already exists for ..."
+ROLE_COMMAND_EXCEPTIONS = set()
 
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25

@@ -22,6 +22,7 @@
 import copy
 import fnmatch
 import itertools
+import functools
 import math
 import os
 import platform
@@ -2875,6 +2876,32 @@ def update_last_said(cli, nick, chan, rest):
 
     fullstring = "".join(rest)
 
+def dispatch_role_prefix(var, wrapper, message, *, role):
+    from src import handler
+    _ignore_locals_ = True
+    handler.on_privmsg(wrapper.client, wrapper.source.rawnick, wrapper.target.name, message, force_role=role)
+
+def setup_role_commands(evt):
+    aliases = defaultdict(set)
+    for alias, role in var.ROLE_ALIASES.items():
+        aliases[role].add(alias)
+    for role in var.ROLE_GUIDE.keys() - var.ROLE_COMMAND_EXCEPTIONS:
+        keys = ["".join(c for c in role if c.isalpha())]
+        keys.extend(aliases[role])
+        fn = functools.partial(dispatch_role_prefix, role=role)
+        fn.__doc__ = "Execute {0} command".format(role)
+        # don't allow these in-channel, as it could be used to prove that someone is a particular role
+        # (there are no examples of this right now, but it could be possible in the future). For example,
+        # if !shoot was rewritten so that there was a "gunner" and "sharpshooter" template, one could
+        # prove they are sharpshooter -- and therefore prove should they miss that the target is werekitten,
+        # as opposed to the possiblity of them being a wolf with 1 bullet who stole the gun from a dead gunner --
+        # by using !sharpshooter shoot target.
+        command(*keys, exclusive=True, pm=True, chan=False, playing=True)(fn)
+
+# event_listener decorator wraps callback in handle_error, which we don't want for the init event
+# (as no IRC connection exists at this point)
+events.add_listener("init", setup_role_commands, priority=10000)
+
 @hook("join")
 def on_join(cli, raw_nick, chan, acc="*", rname=""):
     nick, _, ident, host = parse_nick(raw_nick)
@@ -4524,9 +4551,12 @@ def pray(cli, nick, chan, rest):
         # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
         role = complete_one_match(what.lower(), var.ROLE_GUIDE.keys())
         if role is None:
-            # typo, let them fix it
-            pm(cli, nick, messages["specific_invalid_role"].format(what))
-            return
+            if what.lower() in var.ROLE_ALIASES:
+                role = var.ROLE_ALIASES[what.lower()]
+            else:
+                # typo, let them fix it
+                pm(cli, nick, messages["specific_invalid_role"].format(what))
+                return
 
         # get a list of all roles actually in the game, including roles that amnesiacs will be turning into
         # (amnesiacs are special since they're also listed as amnesiac; that way a prophet can see both who the
@@ -4920,11 +4950,24 @@ def clone(cli, nick, chan, rest):
     if nick in var.CLONED.keys():
         pm(cli, nick, messages["already_cloned"])
         return
+
+    params = re.split(" +", rest)
+    # allow for role-prefixed command such as !clone clone target
+    # if we get !clone clone (with no 3rd arg), we give preference to prefixed version;
+    # meaning if the person wants to clone someone named clone, they must type !clone clone clone
+    # (or just !clone clon, !clone clo, etc. assuming thos would be unambiguous matches)
+    if params[0] == "clone":
+        if len(params) > 1:
+           del params[0]
+        else:
+            pm(cli, nick, messages["clone_clone_clone"])
+            return
+
     # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
     # but just in case, it also sucks if the one night you're allowed to act is when you are
     # silenced, so we ignore it here anyway.
 
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
+    victim = get_victim(cli, nick, params[0], False)
     if not victim:
         return
 
@@ -4937,6 +4980,8 @@ def clone(cli, nick, chan, rest):
 
     debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
     chk_nightdone(cli)
+
+var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
 @cmd("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(cli, nick, chan, rest):
@@ -6738,6 +6783,8 @@ def player_stats(cli, nick, chan, rest):
         role = " ".join(params[1:])
         if role not in var.ROLE_GUIDE.keys():
             matches = complete_match(role, var.ROLE_GUIDE.keys() | {"lover"})
+            if not matches and role.lower() in var.ROLE_ALIASES:
+                matches = (var.ROLE_ALIASES[role.lower()],)
             if not matches:
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return

@@ -203,7 +203,8 @@ class handle_error:
 
 class command:
     def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None):
+                 playing=False, silenced=False, phases=(), roles=(), users=None,
+                 exclusive=False):
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -219,13 +220,19 @@ class command:
         self.aftergame = False
         self.name = commands[0]
         self.alt_allowed = bool(flag or owner_only)
+        self.exclusive = exclusive
 
         alias = False
         self.aliases = []
         for name in commands:
+            if exclusive and name in COMMANDS:
+                raise ValueError("exclusive command already exists for {0}".format(name))
+
             for func in COMMANDS[name]:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
+                if func.exclusive:
+                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
@@ -339,6 +346,7 @@ class cmd:
         self.func = None
         self.aftergame = False
         self.name = cmds[0]
+        self.exclusive = False # for compatibility with new command API
 
         alias = False
         self.aliases = []
@@ -347,6 +355,8 @@ class cmd:
                 if (func.owner_only != owner_only or
                     func.flag != flag):
                     raise ValueError("unmatching protection levels for " + func.name)
+                if func.exclusive:
+                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if alias:

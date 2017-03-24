@@ -12,39 +12,115 @@ import botconfig
 import src.settings as var
 from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
-from src.utilities import reply
+from src.utilities import reply, list_participants, get_role, get_templates
+from src.dispatcher import MessageDispatcher
+from src.decorators import handle_error
 
 cmd = decorators.cmd
 hook = decorators.hook
 
-def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
+@handle_error
+def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
-    if not users.equals(chan, users.Bot.nick) and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+    user = users._get(rawnick, allow_none=True) # FIXME
+
+    if users.equals(chan, users.Bot.nick): # PM
+        target = users.Bot
+    else:
+        target = channels.get(chan, allow_none=True)
+
+    if user is None or target is None:
         return
 
-    if (notice and ((not users.equals(chan, users.Bot.nick) and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (users.equals(chan, users.Bot.nick) and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    wrapper = MessageDispatcher(user, target)
+
+    if wrapper.public and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+        return
+
+    if (notice and ((wrapper.public and not botconfig.ALLOW_NOTICE_COMMANDS) or
+                    (wrapper.private and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
         return  # not allowed in settings
 
-    for fn in decorators.COMMANDS[""]:
-        fn.caller(cli, rawnick, chan, msg)
+    if force_role is None: # if force_role isn't None, that indicates recursion; don't fire these off twice
+        for fn in decorators.COMMANDS[""]:
+            fn.caller(cli, rawnick, chan, msg)
 
+    parts = msg.split(sep=" ", maxsplit=1)
+    key = parts[0].lower()
+    if len(parts) > 1:
+        message = parts[1].lstrip()
+    else:
+        message = ""
+
+    if wrapper.public and not key.startswith(botconfig.CMD_CHAR):
+        return # channel message but no prefix; ignore
+
+    if key.startswith(botconfig.CMD_CHAR):
+        key = key[len(botconfig.CMD_CHAR):]
+
+    if not key: # empty key ("") already handled above
+        return
+
+    # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
+    # as we don't want to insert bogus command keys into the dict.
+    cmds = []
     phase = var.PHASE
-    for x in list(decorators.COMMANDS.keys()):
-        if not users.equals(chan, users.Bot.nick) and not msg.lower().startswith(botconfig.CMD_CHAR):
-            break # channel message but no prefix; ignore
-        if msg.lower().startswith(botconfig.CMD_CHAR+x):
-            h = msg[len(x)+len(botconfig.CMD_CHAR):]
-        elif not x or msg.lower().startswith(x):
-            h = msg[len(x):]
-        else:
-            continue
-        if not h or h[0] == " ":
-            for fn in decorators.COMMANDS.get(x, []):
-                if phase == var.PHASE:
-                    fn.caller(cli, rawnick, chan, h.lstrip())
+    if user.nick in list_participants():
+        roles = {get_role(user.nick)} | set(get_templates(user.nick))
+        if force_role is not None:
+            roles &= {force_role} # only fire off role commands for the forced role
+
+        common_roles = set(roles) # roles shared by every eligible role command
+        have_role_cmd = False
+        for fn in decorators.COMMANDS.get(key, []):
+            if not fn.roles:
+                cmds.append(fn)
+                continue
+            if roles.intersection(fn.roles):
+                have_role_cmd = True
+                cmds.append(fn)
+                common_roles.intersection_update(fn.roles)
+
+        if force_role is not None and not have_role_cmd:
+            # Trying to force a non-role command with a role.
+            # We allow non-role commands to execute if a role is forced if a role
+            # command is also executed, as this would allow (for example) a bot admin
+            # to add extra effects to all "kill" commands without needing to continually
+            # update the list of roles which can use "kill". However, we don't want to
+            # allow things like "wolf pstats" because that just doesn't make sense.
+            return
+
+        if not common_roles:
+            # getting here means that at least one of the role_cmds is disjoint
+            # from the others. For example, augur see vs seer see when a bare see
+            # is executed. In this event, display a helpful error message instructing
+            # the user to resolve the ambiguity.
+            common_roles = set(roles)
+            info = [0,0]
+            for fn in cmds:
+                fn_roles = roles.intersection(fn.roles)
+                if not fn_roles:
+                    continue
+                for role1 in common_roles:
+                    info[0] = role1
+                    break
+                for role2 in fn_roles:
+                    info[1] = role2
+                    break
+                common_roles &= fn_roles
+                if not common_roles:
+                    break
+            wrapper.pm(messages["ambiguous_command"].format(key, info[0], info[1]))
+            return
+    elif force_role is None:
+        cmds = decorators.COMMANDS.get(key, [])
+
+    for fn in cmds:
+        if phase == var.PHASE:
+            # FIXME: pass in var, wrapper, message instead of cli, rawnick, chan, message
+            fn.caller(cli, rawnick, chan, message)
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
