@@ -548,7 +548,7 @@ def replace(var, wrapper, message):
     if not rest: # bare call
         target = None
 
-        for user in users.users_(): # FIXME: Backwards-compatible API
+        for user in var.ALL_PLAYERS:
             if users.equals(user.account, wrapper.source.account):
                 if user is wrapper.source or user.nick not in list_participants(): # FIXME: Need to fix once list_participants() holds User instances
                     continue
@@ -568,7 +568,11 @@ def replace(var, wrapper, message):
         target, _ = users.complete_match(rest[0], pl)
 
         if target is None:
-            wrapper.pm(messages["target_not_playing"].format(" longer" if target in var.DEAD else "t"))
+            wrapper.pm(messages["target_not_playing"].format("t"))
+            return
+
+        if target not in pl:
+            wrapper.pm(messages["target_not_playing"].format(" longer" if target.nick in var.DEAD else "t")) # FIXME: Need to fix once var.DEAD holds User instances
             return
 
         if target.account is None:
@@ -576,6 +580,8 @@ def replace(var, wrapper, message):
             return
 
     if users.equals(target.account, wrapper.source.account) and target is not wrapper.source:
+        evt = Event("swap_player", {})
+        evt.dispatch(var, target, wrapper.source)
         rename_player(var, wrapper.source, target.nick)
         # Make sure to remove player from var.DISCONNECTED if they were in there
         if var.PHASE in var.GAME_PHASES:
@@ -586,7 +592,11 @@ def replace(var, wrapper, message):
             channels.Main.mode(("-" + mode, target), ("+" + mode, wrapper.source))
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
-        myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "")
+        myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: Old API
+
+@event_listener("swap_player", priority=0)
+def swap_player(evt, var, old_user, user):
+    var.ALL_PLAYERS[var.ALL_PLAYERS.index(old_user)] = user
 
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(var, wrapper, message):
@@ -3015,14 +3025,6 @@ def rename_player(var, user, prefix):
 
     event = Event("rename_player", {})
     event.dispatch(user.client, var, prefix, nick) # FIXME: Need to update all the callbacks
-
-    try:
-        temp = users._get(prefix) # FIXME
-    except KeyError: # dirty hack; this isn't a swap
-        pass
-    else:
-        # ALL_PLAYERS needs to keep its ordering for purposes of mad scientist
-        var.ALL_PLAYERS[var.ALL_PLAYERS.index(temp)] = user
 
     if user in var.ALL_PLAYERS:
         try:
@@ -6561,7 +6563,7 @@ def listroles(cli, nick, chan, rest):
     reply(cli, nick, chan, " ".join(msg))
 
 @cmd("myrole", pm=True, phases=("day", "night"))
-def myrole(cli, nick, chan, rest):
+def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets converted
     """Reminds you of your current role."""
 
     ps = list_participants()
