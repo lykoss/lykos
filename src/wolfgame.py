@@ -568,11 +568,11 @@ def replace(var, wrapper, message):
         target, _ = users.complete_match(rest[0], pl)
 
         if target is None:
-            wrapper.pm(messages["target_not_playing"].format("t"))
+            wrapper.pm(messages["target_not_playing"])
             return
 
         if target not in pl:
-            wrapper.pm(messages["target_not_playing"].format(" longer" if target.nick in var.DEAD else "t")) # FIXME: Need to fix once var.DEAD holds User instances
+            wrapper.pm(messages["target_no_longer_playing" if target.nick in var.DEAD else "target_not_playing"]) # FIXME: Need to fix once var.DEAD holds User instances
             return
 
         if target.account is None:
