@@ -148,27 +148,27 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 def on_chk_nightdone(evt, cli, var):
     spl = set(get_players())
     evt.data["actedcount"] += len(KILLS)
-    for dullahan in var.ROLES["dullahan"]:
-        if TARGETS[users._get(dullahan)] & spl: # FIXME: Need to fix once var.ROLES stores User instances
+    for d, targets in TARGETS.items():
+        if targets & spl:
             evt.data["nightroles"].append(dullahan)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, cli, var):
-    for dullahan, targets in TARGETS.items():
-        targs = list(targets)
-        for target in targets:
+    for dullahan in var.ROLES["dullahan"]:
+        targets = list(TARGETS[users._get(dullahan)])
+        for target in targets[:]:
             if target.nick in var.DEAD:
-                targs.remove(target) # FIXME: Update when var.DEAD holds User instances
-        if not targs: # already all dead
+                targets.remove(target) # FIXME: Update when var.DEAD holds User instances
+        if not targets: # already all dead
             dullahan.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
-        random.shuffle(targs)
+        random.shuffle(targets)
         if dullahan.prefers_simple():
             dullahan.send(messages["dullahan_simple"])
         else:
             dullahan.send(messages["dullahan_notify"])
         t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-        dullahan.send(t + ", ".join(t.nick for t in targs))
+        dullahan.send(t + ", ".join(t.nick for t in targets))
 
 @event_listener("role_assignment")
 def on_role_assignment(evt, cli, var, gamemode, pl, restart):
