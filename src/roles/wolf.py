@@ -68,19 +68,18 @@ def wolf_kill(cli, nick, chan, rest):
     KILLS[nick] = victims
     if len(orig) > 1:
         # need to expand this eventually (only accomodates 2 kills, whereas we should ideally support arbitrarily many)
-        msg = messages["wolf_target_multiple"].format(orig[0], orig[1])
-        pm(cli, nick, messages["player"].format(msg))
+        pm(cli, nick, messages["player_kill_multiple"].format(orig[0], orig[1]))
+        msg = messages["wolfchat_kill_multiple"].format(nick, orig[0], orig[1])
         debuglog("{0} ({1}) KILL: {2} ({3}) and {4} ({5})".format(nick, role, victims[0], get_role(victims[0]), victims[1], get_role(victims[1])))
     else:
-        msg = messages["wolf_target"].format(orig[0])
-        pm(cli, nick, messages["player"].format(msg))
+        pm(cli, nick, messages["player_kill"].format(orig[0]))
+        msg = messages["wolfchat_kill"].format(nick, orig[0])
         if num_kills > 1:
             pm(cli, nick, messages["wolf_target_second"])
         debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, role, victims[0], get_role(victims[0])))
 
     if in_wolflist(nick, nick):
-        relay_wolfchat_command(cli, nick, messages["wolfchat"].format(nick, msg), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-
+        relay_wolfchat_command(cli, nick, msg, var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
     chk_nightdone(cli)
 
 @cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",))

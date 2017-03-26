@@ -47,8 +47,7 @@ def vg_kill(var, wrapper, message):
 
     KILLS[wrapper.source.nick] = victim
 
-    msg = messages["wolf_target"].format(orig)
-    wrapper.pm(messages["player"].format(msg))
+    wrapper.pm(messages["player_kill"].format(orig))
 
     debuglog("{0} ({1}) KILL: {2} ({3})".format(wrapper.source.nick, get_role(wrapper.source.nick), victim, get_role(victim)))
     chk_nightdone(wrapper.source.client)
