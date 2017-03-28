@@ -3,78 +3,74 @@ import re
 import random
 from collections import defaultdict, deque
 
-import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
-from src.decorators import cmd, event_listener
+from src.functions import get_players, get_target
+from src import users, debuglog, errlog, plog
+from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 import botconfig
 
-KILLS = {} # type: Dict[str, str]
-TARGETS = {} # type: Dict[str, Set[str]]
+KILLS = {} # type: Dict[users.User, users.User]
+TARGETS = {} # type: Dict[users.User, Set[users.User]]
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
-def dullahan_kill(cli, nick, chan, rest):
+@command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
+def dullahan_kill(var, wrapper, message):
     """Kill someone at night as a dullahan until everyone on your list is dead."""
-    if not TARGETS[nick] & set(list_players()):
-        pm(cli, nick, messages["dullahan_targets_dead"])
+    if not TARGETS[wrapper.source] & set(get_players()):
+        wrapper.pm(messages["dullahan_targets_dead"])
         return
 
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-    if not victim:
+    target = get_target(var, wrapper, re.split(" +", message)[0])
+    if not target:
         return
 
-    if victim == nick:
-        pm(cli, nick, messages["no_suicide"])
+    if target is wrapper.source:
+        wrapper.pm(messages["no_suicide"])
         return
 
-    orig = victim
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
-    evt.dispatch(cli, var, "kill", nick, victim, frozenset({"detrimental"}))
+    orig = target
+    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": True})
+    evt.dispatch(wrapper.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    target = users._get(evt.data["target"]) # FIXME: Need to fix once targeted_command uses the new API
 
-    KILLS[nick] = victim
+    KILLS[wrapper.source] = target
 
-    msg = messages["wolf_target"].format(orig)
-    pm(cli, nick, messages["player"].format(msg))
+    wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
+    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_role(target.nick)))
 
-    chk_nightdone(cli)
+    chk_nightdone(wrapper.client)
 
-@cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
-def dullahan_retract(cli, nick, chan, rest):
+@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
+def dullahan_retract(var, wrapper, message):
     """Removes a dullahan's kill selection."""
-    if nick not in KILLS:
-        return
-    if nick in KILLS:
-        del KILLS[nick]
-    pm(cli, nick, messages["retracted_kill"])
+    if KILLS.pop(wrapper.source, None):
+        wrapper.pm(messages["retracted_kill"])
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
     if role != "dullahan":
         return
-    alive = set(list_players())
-    if not TARGETS[user.nick] & alive:
+    alive = set(get_players())
+    if not TARGETS[user] & alive:
         evt.data["iwon"] = True
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
-    for h,v in list(KILLS.items()):
-        if v == nick:
-            pm(cli, h, messages["hunter_discard"])
+    for h, v in list(KILLS.items()):
+        if v.nick == nick:
+            h.send(messages["hunter_discard"])
             del KILLS[h]
-        elif h == nick:
+        elif h.nick == nick:
             del KILLS[h]
     if death_triggers and nickrole == "dullahan":
         pl = evt.data["pl"]
-        targets = TARGETS[nick] & set(pl)
+        targets = TARGETS[users._get(nick)].intersection(users._get(x) for x in pl) # FIXME
         if targets:
-            target = random.choice(list(targets))
+            target = random.choice(list(targets)).nick
             prots = deque(var.ACTIVE_PROTECTIONS[target])
             aevt = Event("assassinate", {"pl": evt.data["pl"]},
                     del_player=evt.params.del_player,
@@ -103,36 +99,26 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
             evt.params.del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
-@event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
-    kvp = []
-    for a,b in KILLS.items():
-        if a == prefix:
-            a = nick
-        if b == prefix:
-            b = nick
-        kvp.append((a,b))
-    KILLS.update(kvp)
-    if prefix in KILLS:
-        del KILLS[prefix]
-    kvp = []
-    for a,b in TARGETS.items():
-        nl = set()
-        for n in b:
-            if n == prefix:
-                n = nick
-            nl.add(n)
-        if a == prefix:
-            a = nick
-        kvp.append((a,nl))
-    TARGETS.update(kvp)
-    if prefix in TARGETS:
-        del TARGETS[prefix]
-
 @event_listener("night_acted")
 def on_acted(evt, cli, var, nick, sender):
-    if nick in KILLS:
+    if users._get(nick) in KILLS: # FIXME
         evt.data["acted"] = True
+
+@event_listener("swap_player")
+def on_swap(evt, var, old_user, user):
+    if old_user in KILLS:
+        KILLS[user] = KILLS.pop(old_user)
+    if old_user in TARGETS:
+        TARGETS[user] = TARGETS.pop(old_user)
+
+    for dullahan, target in KILLS.items():
+        if target is old_user:
+            KILLS[dullahan] = user
+
+    for dullahan, targets in TARGETS.items():
+        if old_user in targets:
+            targets.remove(old_user)
+            targets.add(user)
 
 @event_listener("get_special")
 def on_get_special(evt, cli, var):
@@ -140,50 +126,49 @@ def on_get_special(evt, cli, var):
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
-    for k, d in list(KILLS.items()):
-        evt.data["victims"].append(d)
-        evt.data["onlybywolves"].discard(d)
-        evt.data["killers"][d].append(k)
-        del KILLS[k]
+    while KILLS:
+        k, d = KILLS.popitem()
+        evt.data["victims"].append(d.nick)
+        evt.data["onlybywolves"].discard(d.nick)
+        evt.data["killers"][d.nick].append(k.nick)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    if actor in KILLS:
-        del KILLS[actor]
-    if nick in KILLS:
-        del KILLS[nick]
-    if actor_role == "dullahan" and nick_role != "dullahan" and actor in TARGETS:
-        TARGETS[nick] = TARGETS[actor] - {nick}
-        del TARGETS[actor]
-    elif nick_role == "dullahan" and actor_role != "dullahan" and nick in TARGETS:
-        TARGETS[actor] = TARGETS[nick] - {actor}
-        del TARGETS[nick]
+    for k in set(KILLS):
+        if k.nick == actor or k.nick == nick:
+            del KILLS[k]
+
+    for k in set(TARGETS):
+        if actor_role == "dullahan" and nick_role != "dullahan" and k.nick == actor:
+            TARGETS[users._get(nick)] = TARGETS.pop(k) - {users._get(nick)} # FIXME
+        elif nick_role == "dullahan" and actor_role != "dullahan" and k.nick == nick:
+            TARGET[users._get(actor)] = TARGETS.pop(k) - {users._get(actor)} # FIXME
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):
-    spl = set(list_players())
+    spl = set(get_players())
     evt.data["actedcount"] += len(KILLS)
-    for p in var.ROLES["dullahan"]:
-        if TARGETS[p] & spl:
-            evt.data["nightroles"].append(p)
+    for d, targets in TARGETS.items():
+        if targets & spl:
+            evt.data["nightroles"].append(dullahan)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, cli, var):
     for dullahan in var.ROLES["dullahan"]:
-        targets = list(TARGETS[dullahan])
-        for target in var.DEAD:
-            if target in targets:
-                targets.remove(target)
+        targets = list(TARGETS[users._get(dullahan)])
+        for target in targets[:]:
+            if target.nick in var.DEAD:
+                targets.remove(target) # FIXME: Update when var.DEAD holds User instances
         if not targets: # already all dead
-            pm(cli, dullahan, "{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
+            dullahan.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
         random.shuffle(targets)
-        if dullahan in var.PLAYERS and not is_user_simple(dullahan):
-            pm(cli, dullahan, messages["dullahan_notify"])
+        if dullahan.prefers_simple():
+            dullahan.send(messages["dullahan_simple"])
         else:
-            pm(cli, dullahan, messages["dullahan_simple"])
+            dullahan.send(messages["dullahan_notify"])
         t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-        pm(cli, dullahan, t + ", ".join(targets))
+        dullahan.send(t + ", ".join(t.nick for t in targets))
 
 @event_listener("role_assignment")
 def on_role_assignment(evt, cli, var, gamemode, pl, restart):
@@ -191,12 +176,14 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
     if var.ROLES["dullahan"]:
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
-            TARGETS[dull] = set()
+            TARGETS[users._get(dull)] = set() # FIXME
         dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
-        dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
+        dull_targets.dispatch(cli, var, {users._get(x) for x in var.ROLES["dullahan"]}, max_targets) # FIXME
+
+        players = [users._get(x) for x in pl] # FIXME
 
         for dull, ts in TARGETS.items():
-            ps = pl[:]
+            ps = players[:]
             ps.remove(dull)
             while len(ts) < max_targets:
                 target = random.choice(ps)
@@ -205,37 +192,46 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
-    if victim in TARGETS and TARGETS[victim] & var.ROLES["succubus"]:
-        TARGETS.difference_update(var.ROLES["succubus"])
-        pm(cli, victim, messages["dullahan_no_kill_succubus"])
-    if KILLS.get(victim) in var.ROLES["succubus"]:
-        pm(cli, victim, messages["no_kill_succubus"].format(KILLS[victim]))
-        del KILLS[victim]
+    user = users._get(victim) # FIXME
+    if user in TARGETS:
+        succ_target = False
+        for target in set(TARGETS[user]):
+            if target.nick in var.ROLES["succubus"]:
+                TARGETS[user].remove(target)
+                succ_target = True
+        if succ_target:
+            pm(cli, victim, messages["dullahan_no_kill_succubus"])
+    if user in KILLS and KILLS[user].nick in var.ROLES["succubus"]:
+        pm(cli, victim, messages["no_kill_succubus"].format(KILLS[user]))
+        del KILLS[user]
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):
-    role = get_role(nick)
     # Remind dullahans of their targets
-    if role == "dullahan":
-        targets = list(TARGETS[nick])
-        for target in var.DEAD:
-            if target in targets:
+    if nick in var.ROLES["dullahan"]:
+        targets = list(TARGETS[users._get(nick)]) # FIXME
+        for target in list(targets):
+            if target.nick in var.DEAD:
                 targets.remove(target)
         random.shuffle(targets)
         if targets:
             t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-            evt.data["messages"].append(t + ", ".join(targets))
+            evt.data["messages"].append(t + ", ".join(t.nick for t in targets))
         else:
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, wrapper, nickname, role):
-    if role == "dullahan" and nickname in TARGETS:
-        targets = TARGETS[nickname] - var.DEAD
+    user = users._get(nickname) # FIXME
+    if role == "dullahan" and user in TARGETS: # FIXME
+        targets = set(TARGETS[user])
+        for target in TARGETS[user]:
+            if target.nick in var.DEAD:
+                targets.remove(target)
         if targets: 
-            evt.data["special_case"].append("need to kill {0}".format(", ".join(TARGETS[nickname] - var.DEAD)))
+            evt.data["special_case"].append(messages["dullahan_to_kill"].format(", ".join(t.nick for t in targets)))
         else:
-            evt.data["special_case"].append("All targets dead")
+            evt.data["special_case"].append(messages["dullahan_all_dead"])
 
 @event_listener("begin_day")
 def on_begin_day(evt, cli, var):
@@ -251,8 +247,11 @@ def on_get_role_metadata(evt, cli, var, kind):
     if kind == "night_kills":
         num = 0
         for dull in var.ROLES["dullahan"]:
-            if TARGETS[dull] - var.DEAD:
-                num += 1
+            user = users._get(dull) # FIXME
+            for target in TARGETS[user]:
+                if target.nick not in var.DEAD:
+                    num += 1
+                    break
         evt.data["dullahan"] = num
 
 # vim: set sw=4 expandtab:

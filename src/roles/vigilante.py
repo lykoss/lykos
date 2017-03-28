@@ -33,8 +33,7 @@ def vigilante_kill(cli, nick, chan, rest):
     KILLS[nick] = victim
     PASSED.discard(nick)
 
-    msg = messages["wolf_target"].format(orig)
-    pm(cli, nick, messages["player"].format(msg))
+    pm(cli, nick, messages["player_kill"].format(orig))
 
     debuglog("{0} ({1}) KILL: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
 

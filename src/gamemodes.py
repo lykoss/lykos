@@ -903,7 +903,7 @@ class SleepyMode(GameMode):
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
-            evt.data["targets"][dull] = set(var.ROLES["priest"])
+            evt.data["targets"][dull] = {users._get(x) for x in var.ROLES["priest"]}
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
