@@ -641,7 +641,7 @@ def on_frole_role(evt, cli, var, who, role, oldrole, args):
                         break
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, cli, var, kind):
+def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # only add shamans here if they were given a death totem
         # even though retribution kills, it is given a special kill message

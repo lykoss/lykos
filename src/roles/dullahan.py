@@ -243,7 +243,7 @@ def on_reset(evt, var):
     TARGETS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, cli, var, kind):
+def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         num = 0
         for dull in var.ROLES["dullahan"]:

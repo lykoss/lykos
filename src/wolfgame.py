@@ -6784,9 +6784,14 @@ def player_stats(cli, nick, chan, rest):
     else:
         role = " ".join(params[1:])
         if role not in var.ROLE_GUIDE.keys():
-            matches = complete_match(role, var.ROLE_GUIDE.keys() | {"lover"})
-            if not matches and role.lower() in var.ROLE_ALIASES:
+            special_keys = {"lover"}
+            evt = Event("get_role_metadata", {})
+            evt.dispatch(var, "special_keys")
+            special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+            if role.lower() in var.ROLE_ALIASES:
                 matches = (var.ROLE_ALIASES[role.lower()],)
+            else:
+                matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
             if not matches:
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return

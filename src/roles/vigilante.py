@@ -151,7 +151,7 @@ def on_reset(evt, var):
     PASSED.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, cli, var, kind):
+def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
 

@@ -45,7 +45,7 @@ def on_update_stats3(evt, cli, var, nick, nickrole, nickreveal, nicktpls):
         return
     if var.PHASE == "day" and var.GAMEPHASE == "night":
         mevt = Event("get_role_metadata", {})
-        mevt.dispatch(cli, var, "night_kills")
+        mevt.dispatch(var, "night_kills")
         nonwolf = 0
         total = 0
         for role, num in mevt.data.items():

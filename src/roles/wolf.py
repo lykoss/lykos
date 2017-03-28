@@ -450,7 +450,7 @@ def on_reset(evt, var):
     KILLS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, cli, var, kind):
+def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         if var.DISEASED_WOLVES:
             evt.data["wolf"] = 0

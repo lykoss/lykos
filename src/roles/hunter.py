@@ -168,7 +168,7 @@ def on_reset(evt, var):
     HUNTERS.clear()
 
 @event_listener("get_role_metadata")
-def on_get_role_metadata(evt, cli, var, kind):
+def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # hunters is the set of all hunters that have not killed in a *previous* night
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
