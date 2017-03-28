@@ -215,7 +215,7 @@ class VillagergameMode(GameMode):
 
     def prolong_night(self, cli, var, gameid, transition_day):
         nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
-        rand = random.gauss(5, 3)
+        rand = random.gauss(5, 1.5)
         if rand <= 0 and nspecials > 0:
             transition_day(cli, gameid=gameid)
         else:
