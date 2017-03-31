@@ -50,7 +50,7 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["iwon"] = survived
 
 @event_listener("chk_win", priority=3)
-def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if evt.data["winner"] is not None:
         return
     if lrealwolves == 0:

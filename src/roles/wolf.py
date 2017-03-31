@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -89,7 +89,7 @@ def wolf_retract(cli, nick, chan, rest):
         del KILLS[nick]
         pm(cli, nick, messages["retracted_kill"])
         relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-    if get_role(nick) == "alpha wolf" and nick in var.BITE_PREFERENCES:
+    if nick in var.ROLES["alpha wolf"] and nick in var.BITE_PREFERENCES:
         del var.BITE_PREFERENCES[nick]
         var.ALPHA_WOLVES.remove(nick)
         pm(cli, nick, messages["no_bite"])
@@ -99,7 +99,7 @@ def wolf_retract(cli, nick, chan, rest):
 def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
     if death_triggers:
         # TODO: split into cub
-        if nickrole == "wolf cub":
+        if nick in var.ROLES["wolf cub"]:
             var.ANGRY_WOLVES = True
         # TODO: split into alpha
         if nickrole in var.WOLF_ROLES:
@@ -402,13 +402,16 @@ def on_transition_night_end(evt, cli, var):
             pm(cli, wolf, messages["wolf_bite"])
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     # TODO: split into cub
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
             rolemap["wolf"].add(wc)
             rolemap["wolf cub"].remove(wc)
+            wcu = users._get(wc) # FIXME
+            if mainroles[wcu] == "wolf cub":
+                mainroles[wcu] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:
                 # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame

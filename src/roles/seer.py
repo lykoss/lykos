@@ -10,6 +10,7 @@ from src.events import Event
 
 SEEN = set()
 
+# FIXME: this needs to be split into seer.py, oracle.py, and augur.py
 @cmd("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer", "oracle", "augur"))
 def see(cli, nick, chan, rest):
     """Use your paranormal powers to determine the role or alignment of a player."""

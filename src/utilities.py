@@ -14,7 +14,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "chk_win", "irc_lower", "irc_equals", "is_role", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "list_players_and_roles", "list_participants", "get_role", "get_roles",
-           "get_reveal_role", "get_templates", "role_order", "break_long_message",
+           "get_reveal_role", "get_templates", "change_role", "role_order", "break_long_message",
            "complete_match","complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
@@ -309,30 +309,14 @@ def singular(plural):
     # otherwise we just added an s on the end
     return plural[:-1]
 
-def list_players(roles=None, *, rolemap=None):
-    if rolemap is None:
-        rolemap = var.ROLES
-    if roles is None:
-        roles = rolemap.keys()
-    pl = set()
-    for x in roles:
-        if x in var.TEMPLATE_RESTRICTIONS:
-            continue
-        pl.update(rolemap.get(x, ()))
-    if rolemap is not var.ROLES:
-        # we weren't given an actual player list (possibly),
-        # so the elements of pl are not necessarily in var.ALL_PLAYERS
-        return list(pl)
-    return [p.nick for p in var.ALL_PLAYERS if p.nick in pl]
+def list_players(roles=None, *, mainroles=None):
+    from src.functions import get_players
+    return [p.nick for p in get_players(roles, mainroles=mainroles)]
 
 def list_players_and_roles():
-    plr = {}
-    for x in var.ROLES.keys():
-        if x in var.TEMPLATE_RESTRICTIONS.keys():
-            continue # only get actual roles
-        for p in var.ROLES[x]:
-            plr[p] = x
-    return plr
+    # TODO DEPRECATED: replace with iterating over var.MAIN_ROLES directly
+    # (and working with user objects instead of nicks)
+    return {u.nick: r for u, r in var.MAIN_ROLES.items()}
 
 def list_participants():
     """List all people who are still able to participate in the game in some fashion."""
@@ -342,19 +326,19 @@ def list_participants():
     return evt.data["pl"][:]
 
 def get_role(p):
-    for role, pl in var.ROLES.items():
-        if role in var.TEMPLATE_RESTRICTIONS.keys():
-            continue # only get actual roles
-        if p in pl:
-            return role
+    # FIXME: make the arg a user instead of a nick
+    from src import users
+    user = users._get(p)
+    role = var.MAIN_ROLES.get(user, None)
+    if role is not None:
+        return role
     # not found in player list, see if they're a special participant
-    role = None
     if p in list_participants():
         evt = Event("get_participant_role", {"role": None})
-        evt.dispatch(var, p)
+        evt.dispatch(var, user)
         role = evt.data["role"]
     if role is None:
-        raise ValueError("Nick {0} isn't playing and has no defined participant role".format(p))
+        raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
 
 def get_roles(*roles, rolemap=None):
@@ -366,6 +350,8 @@ def get_roles(*roles, rolemap=None):
     return list(itertools.chain(*all_roles))
 
 def get_reveal_role(nick):
+    # FIXME: make the arg a user instead of a nick
+    from src import users
     if var.HIDDEN_AMNESIAC and nick in var.ORIGINAL_ROLES["amnesiac"]:
         role = "amnesiac"
     elif var.HIDDEN_CLONE and nick in var.ORIGINAL_ROLES["clone"]:
@@ -374,7 +360,7 @@ def get_reveal_role(nick):
         role = get_role(nick)
 
     evt = Event("get_reveal_role", {"role": role})
-    evt.dispatch(var, nick)
+    evt.dispatch(var, users._get(nick))
     role = evt.data["role"]
 
     if var.ROLE_REVEAL != "team":
@@ -388,15 +374,23 @@ def get_reveal_role(nick):
         return "village member"
 
 def get_templates(nick):
+    # FIXME: make the arg a user instead of a nick
+    mainrole = get_role(nick)
     tpl = []
-    for x in var.TEMPLATE_RESTRICTIONS.keys():
-        try:
-            if nick in var.ROLES[x]:
-                tpl.append(x)
-        except KeyError:
-            pass
+    for role, nicks in var.ROLES.items():
+        if nick in nicks and role != mainrole:
+            tpl.append(role)
 
     return tpl
+
+def change_role(user, oldrole, newrole, set_final=True):
+    var.ROLES[oldrole].remove(user.nick)
+    var.ROLES[newrole].add(user.nick)
+    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the user's actual role
+    if var.MAIN_ROLES[user] == oldrole:
+        var.MAIN_ROLES[user] = newrole
+        if set_final:
+            var.FINAL_ROLES[user.nick] = newrole
 
 role_order = lambda: var.ROLE_GUIDE
 

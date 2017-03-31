@@ -31,12 +31,12 @@ def choose_idol(cli, nick, chan, rest):
     IDOLS[nick] = victim
     pm(cli, nick, messages["wild_child_success"].format(victim))
 
-    debuglog("{0} ({1}) IDOLIZE: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
+    debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(nick, victim, get_role(victim)))
     chk_nightdone(cli)
 
 @event_listener("see")
 def on_see(evt, cli, var, seer, victim):
-    if get_role(seer) != "augur" and victim in WILD_CHILDREN:
+    if victim in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
 @event_listener("rename_player")
@@ -77,7 +77,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):
-    if evt.data["role"] == "wild child" and nick in IDOLS:
+    if nick in IDOLS:
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
 
 @event_listener("del_player")
@@ -89,11 +89,11 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
         if child not in IDOLS or child in evt.params.deadlist or IDOLS[child] not in evt.params.deadlist:
             continue
 
+        # change their main role to wolf, even if wild child was a template
         pm(cli, child, messages["idol_died"])
         WILD_CHILDREN.add(child)
-        var.ROLES["wild child"].remove(child)
-        var.ROLES["wolf"].add(child)
-        var.FINAL_ROLES[child] = "wolf"
+        change_role(users._get(child), get_role(child), "wolf") # FIXME
+        var.ROLES["wild child"].discard(child)
 
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -153,8 +153,8 @@ def on_revealroles_role(evt, var, wrapper, nick, role):
             evt.data["special_case"].append("no idol picked yet")
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt, var, nick):
-    if nick in WILD_CHILDREN:
+def on_get_reveal_role(evt, var, user):
+    if user.nick in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
 @event_listener("reset")

@@ -4,18 +4,21 @@ from src import users
 
 __all__ = ["get_players", "get_target"]
 
-def get_players(roles=None):
+def get_players(roles=None, *, mainroles=None):
+    if mainroles is None:
+        mainroles = var.MAIN_ROLES
     if roles is None:
-        roles = var.ROLES
+        roles = set(mainroles.values())
+    pl = set()
+    for user, role in mainroles.items():
+        if role in roles:
+            pl.add(user)
 
-    players = set()
-    for x in roles:
-        if x in var.TEMPLATE_RESTRICTIONS:
-            continue
-        for p in var.ROLES.get(x, ()):
-            players.add(p)
-
-    return [p for p in var.ALL_PLAYERS if p.nick in players]
+    if mainroles is not var.MAIN_ROLES:
+        # we weren't given an actual player list (possibly),
+        # so the elements of pl are not necessarily in var.ALL_PLAYERS
+        return list(pl)
+    return [p for p in var.ALL_PLAYERS if p in pl]
 
 
 def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False):

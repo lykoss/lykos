@@ -34,16 +34,15 @@ def hvisit(cli, nick, chan, rest):
     if evt.prevent_default:
         return
     victim = evt.data["target"]
-    vrole = get_role(victim)
 
     VISITED[nick] = victim
-    if vrole != "succubus":
+    if victim not in var.ROLES["succubus"]:
         ENTRANCED.add(victim)
         pm(cli, nick, messages["succubus_target_success"].format(victim))
     else:
         pm(cli, nick, messages["harlot_success"].format(victim))
     if nick != victim:
-        if vrole != "succubus":
+        if victim not in var.ROLES["succubus"]:
             pm(cli, victim, messages["notify_succubus_target"].format(nick))
         else:
             pm(cli, victim, messages["harlot_success"].format(nick))
@@ -68,7 +67,7 @@ def hvisit(cli, nick, chan, rest):
             pm(cli, victim, messages["no_kill_succubus"].format(var.BITE_PREFERENCES[victim]))
             del var.BITE_PREFERENCES[victim]
 
-    debuglog("{0} ({1}) VISIT: {2} ({3})".format(nick, get_role(nick), victim, vrole))
+    debuglog("{0} (succubus) VISIT: {1} ({2})".format(nick, victim, get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
@@ -79,12 +78,12 @@ def pass_cmd(cli, nick, chan, rest):
         return
     VISITED[nick] = None
     pm(cli, nick, messages["succubus_pass"])
-    debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
+    debuglog("{0} (succubus) PASS".format(nick))
     chk_nightdone(cli)
 
 @event_listener("harlot_visit")
 def on_harlot_visit(evt, cli, var, nick, victim):
-    if get_role(victim) == "succubus":
+    if victim in var.ROLES["succubus"]:
         pm(cli, nick, messages["notify_succubus_target"].format(victim))
         pm(cli, victim, messages["succubus_harlot_success"].format(nick))
         ENTRANCED.add(nick)
@@ -150,7 +149,7 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["won"] = True
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len(ENTRANCED - var.DEAD)
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
@@ -214,7 +213,7 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                 # killing off everyone else that is entranced so they don't need to bother
                 dlc = list(evt.params.deadlist)
                 dlc.extend(entranced_alive - {e})
-                debuglog("{0} ({1}) SUCCUBUS DEATH KILL: {2} ({3})".format(nick, nickrole, e, get_role(e)))
+                debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(nick, e, get_role(e)))
                 evt.params.del_player(cli, e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
@@ -294,6 +293,11 @@ def on_transition_day(evt, cli, var):
 @event_listener("get_special")
 def on_get_special(evt, cli, var):
     evt.data["special"].update(var.ROLES["succubus"])
+
+@event_listener("vg_kill")
+def on_vg_kill(evt, var, ghost, target):
+    if ghost.nick in ENTRANCED:
+        evt.data["pl"] -= var.ROLES["succubus"]
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):

@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -51,6 +51,7 @@ DECEIT = set()       # type: Set[str]
 havetotem = [] # type: List[str]
 brokentotem = set() # type: Set[str]
 
+# FIXME: this needs to be split into shaman.py, wolfshaman.py, and crazedshaman.py
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 @cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
 def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin event needs updating alongside this
@@ -63,7 +64,7 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
         return
 
     original_victim = victim
-    role = get_role(nick)
+    role = get_role(nick) # FIXME: this is bad, check if nick is in var.ROLES[thingy] instead once split
     totem = ""
     if role != "crazed shaman":
         totem = " of " + TOTEMS[nick]
@@ -252,12 +253,11 @@ def on_chk_decision_lynch3(evt, cli, var, voters):
         rev_evt = Event("revealing_totem", {"role": role})
         rev_evt.dispatch(cli, var, votee)
         role = rev_evt.data["role"]
+        # TODO: once amnesiac is split, roll this into the revealing_totem event
         if role == "amnesiac":
-            var.ROLES["amnesiac"].remove(votee)
             role = var.AMNESIAC_ROLES[votee]
-            var.ROLES[role].add(votee)
+            change_role(users._get(votee), "amnesiac", role) # FIXME
             var.AMNESIACS.add(votee)
-            var.FINAL_ROLES[votee] = role
             pm(cli, votee, messages["totem_amnesia_clear"])
             # If wolfteam, don't bother giving list of wolves since night is about to start anyway
             # Existing wolves also know that someone just joined their team because revealing totem says what they are
@@ -514,7 +514,7 @@ def on_transition_night_end(evt, cli, var):
         random.shuffle(pl)
         if shaman in LASTGIVEN and LASTGIVEN[shaman] in pl:
             pl.remove(LASTGIVEN[shaman])
-        role = get_role(shaman)
+        role = get_role(shaman) # FIXME: don't use get_role here once split into one file per role
         indx = var.TOTEM_ORDER.index(role)
         target = 0
         rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
@@ -645,7 +645,8 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # only add shamans here if they were given a death totem
         # even though retribution kills, it is given a special kill message
-        # note that all shaman types (shaman/CS/wolf shaman) are lumped under the "shaman" key
+        # note that all shaman types (shaman/CS/wolf shaman) are lumped under the "shaman" key (for now),
+        # this will change so they all get their own key in the future (once this is split into 3 files)
         evt.data["shaman"] = list(TOTEMS.values()).count("death")
 
 # vim: set sw=4 expandtab:

@@ -13,8 +13,7 @@ KILLS = {} # type: Dict[str, str]
 GHOSTS = {} # type: Dict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
-# as such, no need to track nick changes, etc. with it
-drivenoff = {} # type: Dict[str, str]
+drivenoff = {} # type: Dict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(var, wrapper, message):
@@ -49,7 +48,7 @@ def vg_kill(var, wrapper, message):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} ({1}) KILL: {2} ({3})".format(wrapper.source.nick, get_role(wrapper.source.nick), victim, get_role(victim)))
+    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, victim, get_role(victim)))
     chk_nightdone(wrapper.source.client)
 
 @command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
@@ -64,7 +63,7 @@ def vg_retract(var, wrapper, message):
 @event_listener("list_participants")
 def on_list_participants(evt, var):
     evt.data["pl"].extend([p.nick for p in GHOSTS if GHOSTS[p][0] != "!"])
-    evt.data["pl"].extend([p for p in drivenoff])
+    evt.data["pl"].extend([p.nick for p in drivenoff])
 
 @event_listener("player_win", priority=1)
 def on_player_win(evt, var, user, role, winner, survived):
@@ -141,9 +140,6 @@ def on_transition_day_begin(evt, cli, var):
             evt = Event("vg_kill", {"pl": choice})
             evt.dispatch(var, ghost, target)
             choice = evt.data["pl"]
-            # roll this into the above event once succubus is split off
-            if ghost.nick in var.ENTRANCED:
-                choice -= var.ROLES["succubus"]
             if choice:
                 KILLS[ghost.nick] = random.choice(list(choice))
 
@@ -173,19 +169,20 @@ def on_transition_day6(evt, cli, var):
 @event_listener("retribution_kill", priority=6) # FIXME: This function, and all of the event
 def on_retribution_kill(evt, cli, var, victim, orig_target):
     t = evt.data["target"]
-    if users._get(t) in GHOSTS:
-        drivenoff[t] = GHOSTS[users._get(t)]
-        GHOSTS[users._get(t)] = "!" + GHOSTS[users._get(t)]
+    user = users._get(t)
+    if user in GHOSTS:
+        drivenoff[user] = GHOSTS[user]
+        GHOSTS[user] = "!" + GHOSTS[user]
         evt.data["message"].append(messages["totem_banish"].format(victim, t))
         evt.data["target"] = None
 
 @event_listener("get_participant_role")
-def on_get_participant_role(evt, var, nick):
-    if users._get(nick) in GHOSTS: # FIXME
-        if nick in drivenoff:
-            against = drivenoff[nick]
+def on_get_participant_role(evt, var, user):
+    if user in GHOSTS:
+        if user in drivenoff:
+            against = drivenoff[user]
         else:
-            against = GHOSTS[users._get(nick)]
+            against = GHOSTS[user]
         if against == "villagers":
             evt.data["role"] = "wolf"
         elif against == "wolves":

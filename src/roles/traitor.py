@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -60,13 +60,14 @@ def on_update_stats3(evt, cli, var, nick, nickrole, nickreveal, nicktpls):
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
             rolemap["cursed villager"].discard(traitor)
+            mainroles[users._get(traitor)] = "wolf" # FIXME
             did_something = True
             if var.PHASE in var.GAME_PHASES:
                 var.FINAL_ROLES[traitor] = "wolf"

@@ -352,7 +352,7 @@ class EvilVillageMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
 
-    def chk_win(self, evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lsafes = len(list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
         lcultists = len(list_players(["cultist"]))
         evt.stop_processing = True
@@ -615,11 +615,18 @@ class RandomMode(GameMode):
         addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 
         rolemap = defaultdict(set)
-        for r,c in addroles.items():
-            if c > 0:
-                rolemap[r] = set(range(c))
+        mainroles = {}
+        i = 0
+        for role, count in addroles.items():
+            if count > 0:
+                for j in range(count):
+                    u = users.FakeUser.from_nick(str(i + j))
+                    rolemap[role].add(u.nick)
+                    if role not in var.TEMPLATE_RESTRICTIONS:
+                        mainroles[u] = role
+                i += count
 
-        if chk_win_conditions(cli, rolemap, end_game=False):
+        if chk_win_conditions(cli, rolemap, mainroles, end_game=False):
             return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
@@ -769,7 +776,7 @@ class GuardianMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
 
-    def chk_win(self, evt, cli, var, rolemap, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lguardians = len(list_players(["guardian angel", "bodyguard"]))
 
         if lpl < 1:
@@ -1137,20 +1144,14 @@ class SleepyMode(GameMode):
                 cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
                 cli.msg(botconfig.CHANNEL, messages["sleepy_priest_death"])
                 for seer in seers:
-                    var.ROLES["seer"].remove(seer)
-                    var.ROLES["doomsayer"].add(seer)
-                    var.FINAL_ROLES[seer] = "doomsayer"
+                    change_role(users._get(seer), "seer", "doomsayer") # FIXME
                     pm(cli, seer, messages["sleepy_doomsayer_turn"])
                     relay_wolfchat_command(cli, seer, messages["sleepy_doomsayer_wolfchat"].format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                 for harlot in harlots:
-                    var.ROLES["harlot"].remove(harlot)
-                    var.ROLES["succubus"].add(harlot)
-                    var.FINAL_ROLES[harlot] = "succubus"
+                    change_role(users._get(harlot), "harlot", "succubus") # FIXME
                     pm(cli, harlot, messages["sleepy_succubus_turn"])
                 for cultist in cultists:
-                    var.ROLES["cultist"].remove(cultist)
-                    var.ROLES["demoniac"].add(cultist)
-                    var.FINAL_ROLES[cultist] = "demoniac"
+                    change_role(users._get(cultist), "cultist", "demoniac") # FIXME
                     pm(cli, cultist, messages["sleepy_demoniac_turn"])
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
@@ -1216,15 +1217,18 @@ class MaelstromMode(GameMode):
 
     def _on_join(self, var, wrapper):
         role = random.choice(self.roles)
-        newlist = copy.deepcopy(var.ROLES)
-        newlist[role].add(wrapper.source)
+        rolemap = copy.deepcopy(var.ROLES)
+        rolemap[role].add(wrapper.source.nick) # FIXME: add user instead of nick (can only be done once var.ROLES itself uses users)
+        mainroles = copy.deepcopy(var.MAIN_ROLES)
+        mainroles[wrapper.source] = role
 
-        if self.chk_win_conditions(wrapper.client, newlist, end_game=False):
+        if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
             return self._on_join(var, wrapper)
 
         var.ROLES[role].add(wrapper.source.nick) # FIXME: add user instead of nick
         var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
         var.FINAL_ROLES[wrapper.source.nick] = role
+        var.MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
         if wrapper.source.nick in var.USERS:
             var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
@@ -1295,6 +1299,7 @@ class MaelstromMode(GameMode):
                     var.ORIGINAL_ROLES[r].discard(p)
                 var.ORIGINAL_ROLES[role].add(p)
                 var.FINAL_ROLES[p] = role
+                var.MAIN_ROLES[users._get(p)] = role # FIXME
 
     def _role_attribution(self, cli, var, villagers, do_templates):
         lpl = len(villagers) - 1
@@ -1323,14 +1328,19 @@ class MaelstromMode(GameMode):
             if random.randrange(100) == 0 and addroles.get("villager", 0) > 0:
                 addroles["blessed villager"] = 1
 
-        rolemap = defaultdict(list)
-        pcount = 0
-        for r,c in addroles.items():
-            if c > 0:
-                rolemap[r] = list(range(pcount, pcount+c))
-                pcount += c
+        rolemap = defaultdict(set)
+        mainroles = {}
+        i = 0
+        for role, count in addroles.items():
+            if count > 0:
+                for j in range(count):
+                    u = users.FakeUser.from_nick(str(i + j))
+                    rolemap[role].add(u.nick)
+                    if role not in var.TEMPLATE_RESTRICTIONS:
+                        mainroles[u] = role
+                i += count
 
-        if self.chk_win_conditions(cli, rolemap, end_game=False):
+        if self.chk_win_conditions(cli, rolemap, mainroles, end_game=False):
             return self._role_attribution(cli, var, villagers, do_templates)
 
         return addroles
