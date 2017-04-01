@@ -598,6 +598,7 @@ def replace(var, wrapper, message):
 @event_listener("swap_player", priority=0)
 def swap_player(evt, var, old_user, user):
     var.ALL_PLAYERS[var.ALL_PLAYERS.index(old_user)] = user
+    var.MAIN_ROLES[user] = var.MAIN_ROLES.pop(old_user)
 
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(var, wrapper, message):
