@@ -594,6 +594,14 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         self.modes = set()
         return self
 
+    def with_host(self, host):
+        """Create a new bot instance with a new host."""
+        new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.realname, self.account)
+        if new is not self:
+            new.modes = set(self.modes)
+            new.channels = {chan: set(modes) for chan, modes in self.channels.items()}
+        return new
+
     def lower(self):
         temp = type(self)(self.client, lower(self.nick))
         if temp is not self:

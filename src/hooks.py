@@ -159,6 +159,25 @@ def end_who(cli, bot_server, bot_nick, target, rest):
 
     Event("who_end", {}).dispatch(var, target)
 
+### Host changing handling
+
+@hook("event_hosthidden")
+def host_hidden(cli, server, nick, host, message):
+    """Properly update the bot's knowledge of itself.
+
+    Ordering and meaning of arguments for a host hidden event:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the bot is on
+    2 - The user's nick (i.e. the bot's nick)
+    3 - The new host we are now using
+    4 - A human-friendly message (e.g. "is now your hidden host")
+
+    """
+
+    assert nick == users.Bot.nick
+    users.Bot = users.Bot.with_host(host)
+
 ### Server PING handling
 
 @hook("ping")
