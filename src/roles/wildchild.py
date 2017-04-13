@@ -3,7 +3,7 @@ import re
 
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import users, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
