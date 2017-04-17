@@ -49,6 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
+from src.functions import get_players
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -1050,61 +1051,61 @@ def fjoin(var, wrapper, message):
             fake = True
 
         if maybe_user is not users.Bot:
-            if maybe_user is None:
-                maybe_user = users.FakeUser.from_nick(tojoin)
+            if maybe_user is None and users.predicate(tojoin) and botconfig.DEBUG_MODE:
+                maybe_user = users._add(wrapper.client, nick=tojoin) # FIXME
             evt.data["join_player"](var, type(wrapper)(maybe_user, wrapper.target), forced=True, who=wrapper.source)
         else:
             wrapper.pm(messages["not_allowed"])
     if fake:
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(list_players())))
 
-@cmd("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
-def fleave(cli, nick, chan, rest):
-    """Forces someone to leave the game."""
+@command("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
+def fleave(var, wrapper, message):
+    """Force someone to leave the game."""
 
-    for a in re.split(" +",rest):
-        a = a.strip()
-        if not a:
+    for person in re.split(" +", message):
+        person = person.strip()
+        if not person:
             continue
-        pl = list_players()
-        pll = [x.lower() for x in pl]
-        dcl = [user.nick for user in var.DEADCHAT_PLAYERS] if var.PHASE != "join" else []
-        dcll = [x.lower() for x in dcl]
-        if a.lower() in pll:
-            if chan != botconfig.CHANNEL:
-                reply(cli, nick, chan, messages["fquit_fail"], private=True)
+
+        target, _ = users.complete_match(person, get_players())
+        dead_target = None
+        if var.PHASE in var.GAME_PHASES:
+            dead_target, _ = users.complete_match(person, var.DEADCHAT_PLAYERS)
+        if target is not None:
+            if wrapper.target is not channels.Main:
+                wrapper.pm(messages["fquit_fail"])
                 return
-            a = pl[pll.index(a.lower())]
 
-            message = messages["fquit_success"].format(nick, a)
-            if get_role(a) != "person" and var.ROLE_REVEAL in ("on", "team"):
-                message += messages["fquit_goodbye"].format(get_reveal_role(a))
+            msg = [messages["fquit_success"].format(wrapper.source, target)]
+            if get_role(target.nick) != "person" and var.ROLE_REVEAL in ("on", "team"):
+                msg.append(messages["fquit_goodbye"].format(get_reveal_role(target.nick)))
             if var.PHASE == "join":
-                lpl = len(list_players()) - 1
-                if lpl == 0:
-                    message += messages["no_players_remaining"]
-                else:
-                    message += messages["new_player_count"].format(lpl)
-            cli.msg(chan, message)
+                player_count = len(list_players()) - 1
+                to_say = "new_player_count"
+                if not player_count:
+                    to_say = "no_players_remaining"
+                msg.append(messages[to_say].format(player_count))
+
+            wrapper.send(*msg)
+
             if var.PHASE != "join":
-                for r, rset in var.ORIGINAL_ROLES.items():
-                    if a in rset:
-                        var.ORIGINAL_ROLES[r].remove(a)
-                        var.ORIGINAL_ROLES[r].add("(dced)"+a)
-                if a in var.PLAYERS:
-                    var.DCED_PLAYERS[a] = var.PLAYERS.pop(a)
+                for roleset in var.ORIGINAL_ROLES.values():
+                    if target.nick in roleset:
+                        roleset.remove(target.nick)
+                        roleset.add("(dced)" + target.nick)
+                if target.nick in var.PLAYERS:
+                    var.DCED_PLAYERS[target.nick] = var.PLAYERS.pop(target.nick)
 
-            del_player(cli, a, death_triggers=False)
+            del_player(wrapper.client, target.nick, death_triggers=False) # FIXME: Need to fix once del_player is updated
 
-        elif a.lower() in dcll:
-            a = dcl[dcll.index(a.lower())]
-
-            leave_deadchat(var, users._get(a), force=nick) # FIXME
-            if nick.lower() not in dcll:
-                reply(cli, nick, chan, messages["admin_fleave_deadchat"].format(a), private=True)
+        elif dead_target is not None:
+            leave_deadchat(var, dead_target, force=wrapper.source)
+            if wrapper.source not in var.DEADCHAT_PLAYERS:
+                wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
 
         else:
-            cli.msg(chan, messages["not_playing"].format(a))
+            wrapper.send(messages["not_playing"].format(person))
             return
 
 @cmd("fstart", flag="A", phases=("join",))
