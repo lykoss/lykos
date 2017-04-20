@@ -3304,9 +3304,9 @@ def leave_game(cli, nick, chan, rest):
         if var.PHASE == "join":
             lpl = len(list_players()) - 1
             if lpl == 0:
-                population = messages["no_players_remaining"]
+                population = " " + messages["no_players_remaining"]
             else:
-                population = messages["new_player_count"].format(lpl)
+                population = " " + messages["new_player_count"].format(lpl)
         else:
             if not rest.startswith("-force"):
                 reply(cli, nick, chan, messages["leave_game_ingame_safeguard"].format(botconfig.CMD_CHAR), private=True)

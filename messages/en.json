@@ -153,7 +153,7 @@
     "fjoin_success": "\u0002{0}\u0002 used fjoin and raised the number of players to \u0002{1}\u0002.",
     "fquit_success": "\u0002{0}\u0002 is forcing \u0002{1}\u0002 to leave.",
     "fquit_goodbye": "Say goodbye to the \u0002{0}\u0002.",
-    "no_players_remaining":" No more players remaining.",
+    "no_players_remaining": "No more players remaining.",
     "new_player_count": "New player count: \u0002{0}\u0002",
     "fstart_success": "\u0002{0}\u0002 has forced the game to start.",
     "account_reidentify": "Please reidentify to the account \u0002{0}\u0002",
