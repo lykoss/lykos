@@ -438,7 +438,7 @@ class User(IRCContext):
 
         else:
             if not var.DISABLE_ACCOUNTS and temp.account:
-                var.PING_IF_PREFS[temp.account] = value
+                var.PING_IF_PREFS_ACCS[temp.account] = value
                 db.set_pingif(value, temp.account, None)
                 with var.WARNING_LOCK:
                     if value not in var.PING_IF_NUMS_ACCS:
