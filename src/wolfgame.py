@@ -3256,9 +3256,9 @@ def leave(var, what, user, why=None):
                 var.START_VOTES.clear()
 
         if lpl <= 0:
-            population = messages["no_players_remaining"]
+            population = " " + messages["no_players_remaining"]
         else:
-            population = messages["new_player_count"].format(lpl)
+            population = " " + messages["new_player_count"].format(lpl)
 
     reveal = ""
     if get_role(user.nick) == "person" or var.ROLE_REVEAL not in ("on", "team"):
