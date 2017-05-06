@@ -5,6 +5,7 @@ import src.settings as var
 from src.utilities import *
 from src.messages import messages
 from src import events
+from src.decorators import (event_listener, cmd)
 
 ####################################################################
 # DO NOT EDIT ANYTHING ABOVE THIS LINE, ADD CUSTOM GAMEMODES BELOW #
