@@ -190,34 +190,41 @@ def get_features(cli, rawnick, *features):
 
     """
 
+    # features with params (key:value, possibly multiple separated by comma)
+    comma_param_features = ("CHANLIMIT", "MAXLIST", "TARGMAX", "IDCHAN")
+    # features with a prefix in parens
+    prefix_features = ("PREFIX",)
+    # features which take multiple arguments separated by comma (but are not params)
+    # Note: CMDS is specific to UnrealIRCD
+    comma_list_features = ("CHANMODES", "EXTBAN", "CMDS")
+    # features which take multiple argumenst separated by semicolon (but are not params)
+    # Note: SSL is specific to InspIRCD
+    semi_list_features = ("SSL",)
+
     for feature in features:
         if "=" in feature:
             name, data = feature.split("=")
-            if ":" in data:
+            if name in comma_param_features:
                 Features[name] = {}
                 for param in data.split(","):
                     param, value = param.split(":")
-                    if param.isupper():
-                        settings = [param]
-                    else:
-                        settings = param
+                    if value.isdigit():
+                        value = int(value)
+                    elif not value:
+                        value = None
+                    Features[name][param] = value
 
-                    for setting in settings:
-                        res = value
-                        if res.isdigit():
-                            res = int(res)
-                        elif not res:
-                            res = None
-                        Features[name][setting] = res
-
-            elif "(" in data and ")" in data:
+            elif name in prefix_features:
                 gen = (x for y in data.split("(") for x in y.split(")") if x)
                 # Reverse the order
                 value = next(gen)
                 Features[name] = dict(zip(next(gen), value))
 
-            elif "," in data:
+            elif name in comma_list_features:
                 Features[name] = data.split(",")
+
+            elif name in semi_list_features:
+                Features[name] = data.split(";")
 
             else:
                 if data.isdigit():
