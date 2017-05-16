@@ -607,13 +607,8 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         return new
 
     def lower(self):
-        temp = type(self)(self.client, lower(self.nick))
-        if temp is not self:
-            temp.ident = lower(self.ident)
-            temp.host = lower(self.host, casemapping="ascii")
-            temp.realname = lower(self.realname)
-            temp.account = lower(self.account)
-            temp.modes = self.modes
+        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
+        if temp is not self: # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
         return temp
