@@ -596,6 +596,10 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
 
     def with_host(self, host):
         """Create a new bot instance with a new host."""
+        if self.ident is None and self.host is None:
+            # we don't have full details on our ident yet; setting host now causes bugs down the road since
+            # ident will subsequently not update. We'll pick up the new host whenever we finish setting ourselves up
+            return self
         new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.realname, self.account)
         if new is not self:
             new.modes = set(self.modes)
