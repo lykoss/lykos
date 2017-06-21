@@ -3799,10 +3799,16 @@ def transition_day(cli, gameid=0):
     for victim in list(dead):
         if victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-                # pick a random wolf to be shot
-                killlist = [wolf for wolf in list_players(var.WOLF_ROLES) if wolf not in dead]
-                if killlist:
-                    deadwolf = random.choice(killlist)
+                # pick a random wofl to be shot
+                woflset = {wolf for wolf in get_players(var.WOLF_ROLES) if wolf.nick not in dead}
+                # TODO: split into werekitten.py
+                woflset.difference_update(get_players(("werekitten",)))
+                wolf_evt = Event("gunner_overnight_kill_wolflist", {"wolves": woflset})
+                wolf_evt.dispatch(var)
+                woflset = wolf_evt.data["wolves"]
+                if woflset:
+                    deadwolf = random.choice(tuple(woflset))
+                    deadwolf = deadwolf.nick # FIXME: remove when dead is converted to store users
                     if var.ROLE_REVEAL in ("on", "team"):
                         message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
                     else:
