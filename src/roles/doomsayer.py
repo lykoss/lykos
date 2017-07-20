@@ -86,7 +86,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             mapping.pop(nick, None)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     SEEN.discard(nick)
     for name, dictvar in _mappings:
         for k, v in list(dictvar.items()):

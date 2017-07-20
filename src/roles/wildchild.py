@@ -81,7 +81,7 @@ def on_myrole(evt, cli, var, nick):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     if var.PHASE not in var.GAME_PHASES:
         return
 

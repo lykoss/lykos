@@ -79,7 +79,7 @@ def on_rename(evt, cli, var, prefix, nick):
         PASSED.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     if var.PHASE == "night" and nick in GUARDED:
         pm(cli, GUARDED[nick], messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):

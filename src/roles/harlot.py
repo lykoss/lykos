@@ -141,8 +141,8 @@ def on_get_special(evt, cli, var):
     evt.data["special"].update(var.ROLES["harlot"])
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
-    if nickrole != "harlot":
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+    if "harlot" not in allroles:
         return
     if nick in VISITED:
         del VISITED[nick]

@@ -2393,6 +2393,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             nickrole = get_role(nick)
             nickreveal = get_reveal_role(nick)
             nicktpls = get_templates(nick)
+            allroles = {nickrole} | set(nicktpls)
             del var.MAIN_ROLES[users._get(nick)] # FIXME
             var.ROLES[nickrole].remove(nick)
             for t in nicktpls:
@@ -2493,8 +2494,8 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 original=original,
                                 refresh_pl=refresh_pl,
                                 message_prefix="assassin_fail_",
-                                nickrole=nickrole,
-                                nicktpls=nicktpls,
+                                killer_mainrole=nickrole,
+                                killer_allroles=allroles,
                                 prots=prots)
                             while len(prots) > 0:
                                 # an event can read the current active protection and cancel the assassination
@@ -2653,7 +2654,7 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                     forced_death=forced_death, end_game=end_game,
                     deadlist=deadlist, original=original, killer_role=killer_role,
                     ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
-            event.dispatch(cli, var, nick, nickrole, nicktpls, evt_death_triggers)
+            event.dispatch(cli, var, nick, nickrole, allroles, evt_death_triggers)
 
             # update var.ROLE_STATS
             # Event priorities:

@@ -163,9 +163,9 @@ def on_can_exchange(evt, var, actor, nick):
         evt.stop_processing = True
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     global ALL_SUCC_IDLE
-    if nickrole != "succubus":
+    if "succubus" not in allroles:
         return
     if nick in VISITED:
         # if it's night, also unentrance the person they visited

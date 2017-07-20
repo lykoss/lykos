@@ -135,7 +135,7 @@ def on_see(evt, cli, var, nick, victim):
             evt.data["role"] = "wolf"
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     for a,(b,c) in list(SHAMANS.items()):
         if nick in (a, b, c):
             del SHAMANS[a]

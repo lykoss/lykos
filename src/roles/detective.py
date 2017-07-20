@@ -61,7 +61,7 @@ def on_rename(evt, cli, var, prefix, nick):
         INVESTIGATED.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     INVESTIGATED.discard(nick)
 
 @event_listener("get_special")

@@ -59,14 +59,14 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["iwon"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     for h, v in list(KILLS.items()):
         if v.nick == nick:
             h.send(messages["hunter_discard"])
             del KILLS[h]
         elif h.nick == nick:
             del KILLS[h]
-    if death_triggers and nickrole == "dullahan":
+    if death_triggers and "dullahan" in allroles:
         pl = evt.data["pl"]
         targets = TARGETS[users._get(nick)].intersection(users._get(x) for x in pl) # FIXME
         if targets:
@@ -78,8 +78,8 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                     original=evt.params.original,
                     refresh_pl=evt.params.refresh_pl,
                     message_prefix="dullahan_die_",
-                    nickrole=nickrole,
-                    nicktpls=nicktpls,
+                    killer_mainrole=mainrole,
+                    killer_allroles=allroles,
                     prots=prots)
             while len(prots) > 0:
                 # an event can read the current active protection and cancel the totem
@@ -95,8 +95,8 @@ def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
                 cli.msg(botconfig.CHANNEL, messages["dullahan_die_success"].format(nick, target, an, role))
             else:
                 cli.msg(botconfig.CHANNEL, messages["dullahan_die_success_noreveal"].format(nick, target))
-            debuglog("{0} ({1}) DULLAHAN ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
-            evt.params.del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(nick, target, get_role(target)))
+            evt.params.del_player(cli, target, True, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("night_acted")

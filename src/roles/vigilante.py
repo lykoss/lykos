@@ -61,7 +61,7 @@ def vigilante_pass(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     PASSED.discard(nick)
     if nick in KILLS:
         del KILLS[nick]

@@ -96,13 +96,13 @@ def wolf_retract(cli, nick, chan, rest):
         relay_wolfchat_command(cli, nick, messages["wolfchat_no_bite"].format(nick), ("alpha wolf",), is_wolf_command=True)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     if death_triggers:
         # TODO: split into cub
-        if nick in var.ROLES["wolf cub"]:
+        if "wolf cub" in allroles:
             var.ANGRY_WOLVES = True
         # TODO: split into alpha
-        if nickrole in var.WOLF_ROLES:
+        if allroles & var.WOLF_ROLES:
             var.ALPHA_ENABLED = True
 
     for a,b in list(KILLS.items()):
