@@ -1134,9 +1134,9 @@ class SleepyMode(GameMode):
             var.DYING.add(self.having_nightmare)
             pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
 
-    def happy_fun_times(self, evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+    def happy_fun_times(self, evt, cli, var, nick, mainrole, allroles, death_triggers):
         if death_triggers:
-            if nickrole == "priest":
+            if mainrole == "priest":
                 pl = evt.data["pl"]
                 turn_chance = 3/4
                 seers = [p for p in var.ROLES["seer"] if p in pl and random.random() < turn_chance]
@@ -1188,7 +1188,7 @@ class MaelstromMode(GameMode):
         events.remove_listener("del_player", self.on_del_player)
         events.remove_listener("join", self.on_join)
 
-    def on_del_player(self, evt, cli, var, nick, nickrole, nicktpls, death_triggers):
+    def on_del_player(self, evt, cli, var, nick, mainrole, allroles, death_triggers):
         if is_fake_nick(nick):
             return
 
