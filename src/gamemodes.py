@@ -830,35 +830,35 @@ class CharmingMode(GameMode):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("sleepy", minp=8, maxp=24, likelihood=5)
+@game_mode("sleepy", minp=10, maxp=24, likelihood=5)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =        (  8  , 10  , 12  , 15  , 18  , 21  )
+        self.ROLE_INDEX =        ( 10  , 12  , 15  , 18  , 21  )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
             # village roles
-            "seer"             : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "priest"           : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "harlot"           : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
-            "detective"        : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-            "vigilante"        : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
-            "village drunk"    : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
+            "seer"             : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "priest"           : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "harlot"           : (  0  ,  0  ,  0  ,  1  ,  1  ),
+            "detective"        : (  0  ,  0  ,  1  ,  1  ,  1  ),
+            "vigilante"        : (  0  ,  1  ,  1  ,  1  ,  1  ),
+            "village drunk"    : (  0  ,  0  ,  0  ,  0  ,  1  ),
             # wolf roles
-            "wolf"             : (  1  ,  1  ,  2  ,  3  ,  4  ,  5  ),
-            "werecrow"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "traitor"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "cultist"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+            "wolf"             : (  1  ,  2  ,  3  ,  4  ,  5  ),
+            "werecrow"         : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "traitor"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "cultist"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
             # neutral roles
-            "dullahan"         : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "vengeful ghost"   : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-            "monster"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  2  ),
+            "dullahan"         : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "vengeful ghost"   : (  0  ,  0  ,  1  ,  1  ,  1  ),
+            "monster"          : (  0  ,  0  ,  0  ,  1  ,  2  ),
             # templates
-            "cursed villager"  : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "blessed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "prophet"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-            "gunner"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
+            "cursed villager"  : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "blessed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "prophet"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
+            "gunner"           : (  0  ,  0  ,  0  ,  0  ,  1  ),
             })
         # this ensures that priest will always receive the blessed villager and prophet templates
         # prophet is normally a role by itself, but we're turning it into a template for this mode
