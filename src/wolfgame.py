@@ -6978,13 +6978,13 @@ def _say(wrapper, rest, cmd, action=False):
 
     targ.send(message, privmsg=True)
 
-@command("say", "fsay", flag="s", pm=True)
+@command("fsay", flag="s", pm=True)
 def fsay(var, wrapper, message):
     """Talk through the bot as a normal message."""
     _say(wrapper, message, "say")
 
-@command("act", "do", "me", "fact", "fdo", "fme", flag="s", pm=True)
-def fact(var, wrapper, message):
+@command("fdo", "fme", flag="s", pm=True)
+def fdo(var, wrapper, message):
     """Act through the bot as an action."""
     _say(wrapper, message, "act", action=True)
 
