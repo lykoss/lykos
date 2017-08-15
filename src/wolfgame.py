@@ -2487,13 +2487,16 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                         target = var.TARGETED[nick]
                         del var.TARGETED[nick]
                         if target is not None and target in pl:
+                            targuser = users._get(target) # FIXME
                             prots = deque(var.ACTIVE_PROTECTIONS[target])
-                            aevt = Event("assassinate", {"pl": pl},
+                            aevt = Event("assassinate", {"pl": pl, "target": targuser},
                                 del_player=del_player,
                                 deadlist=deadlist,
                                 original=original,
                                 refresh_pl=refresh_pl,
                                 message_prefix="assassin_fail_",
+                                source="assassin",
+                                killer=nick,
                                 killer_mainrole=nickrole,
                                 killer_allroles=allroles,
                                 prots=prots)
@@ -2503,6 +2506,12 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 # so that it cannot be used again (if the protection is meant to be usable once-only)
                                 if not aevt.dispatch(cli, var, nick, target, prots[0]):
                                     pl = aevt.data["pl"]
+                                    if targuser is not aevt.data["target"]:
+                                        targuser = aevt.data["target"]
+                                        target = targuser.nick
+                                        prots = deque(var.ACTIVE_PROTECTIONS[target])
+                                        aevt.params.prots = prots
+                                        continue
                                     break
                                 prots.popleft()
                             if len(prots) == 0:
@@ -2513,8 +2522,8 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                                 else:
                                     message = messages["assassin_success_no_reveal"].format(nick, target)
                                 cli.msg(botconfig.CHANNEL, message)
-                                debuglog("{0} ({1}) ASSASSINATE: {2} ({3})".format(nick, nickrole, target, get_role(target)))
-                                del_player(cli, target, True, end_game = False, killer_role = nickrole, deadlist = deadlist, original = original, ismain = False)
+                                debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(nick, target, get_role(target)))
+                                del_player(cli, target, True, end_game=False, killer_role=nickrole, deadlist=deadlist, original=original, ismain=False)
                                 pl = refresh_pl(pl)
                 if nickrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -2566,86 +2575,6 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
                             t.start()
 
                     debuglog(nick, "(time lord) TRIGGER")
-
-                if nickrole == "mad scientist":
-                    # kills the 2 players adjacent to them in the original players listing (in order of !joining)
-                    # if those players are already dead, nothing happens
-                    for index, user in enumerate(var.ALL_PLAYERS):
-                        if user.nick == nick: # FIXME
-                            break
-                    targets = []
-                    target1 = var.ALL_PLAYERS[index - 1]
-                    target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
-                    if len(var.ALL_PLAYERS) >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
-                        # determine left player
-                        i = index
-                        while True:
-                            i -= 1
-                            if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == nick:
-                                target1 = var.ALL_PLAYERS[i]
-                                break
-                        # determine right player
-                        i = index
-                        while True:
-                            i += 1
-                            if i >= len(var.ALL_PLAYERS):
-                                i = 0
-                            if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == nick:
-                                target2 = var.ALL_PLAYERS[i]
-                                break
-
-                    # do not kill blessed players, they had a premonition to step out of the way before the chemicals hit
-                    if target1.nick in var.ROLES["blessed villager"]:
-                        target1 = None
-                    if target2.nick in var.ROLES["blessed villager"]:
-                        target2 = None
-
-                    if target1.nick in pl:
-                        if target2.nick in pl and target1 is not target2:
-                            if var.ROLE_REVEAL in ("on", "team"):
-                                r1 = get_reveal_role(target1.nick)
-                                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                                r2 = get_reveal_role(target2.nick)
-                                an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                                tmsg = messages["mad_scientist_kill"].format(nick, target1, an1, r1, target2, an2, r2)
-                            else:
-                                tmsg = messages["mad_scientist_kill_no_reveal"].format(nick, target1, target2)
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1.nick), target2, get_role(target2.nick)))
-                            deadlist1 = copy.copy(deadlist)
-                            deadlist1.append(target2)
-                            deadlist2 = copy.copy(deadlist)
-                            deadlist2.append(target1)
-                            del_player(cli, target1.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist1, original = original, ismain = False)
-                            del_player(cli, target2.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist2, original = original, ismain = False)
-                            pl = refresh_pl(pl)
-                        else:
-                            if var.ROLE_REVEAL in ("on", "team"):
-                                r1 = get_reveal_role(target1.nick)
-                                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                                tmsg = messages["mad_scientist_kill_single"].format(nick, target1, an1, r1)
-                            else:
-                                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target1)
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1.nick)))
-                            del_player(cli, target1.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
-                            pl = refresh_pl(pl)
-                    else:
-                        if target2.nick in pl:
-                            if var.ROLE_REVEAL in ("on", "team"):
-                                r2 = get_reveal_role(target2.nick)
-                                an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                                tmsg = messages["mad_scientist_kill_single"].format(nick, target2, an2, r2)
-                            else:
-                                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target2)
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2.nick)))
-                            del_player(cli, target2.nick, True, end_game = False, killer_role = "mad scientist", deadlist = deadlist, original = original, ismain = False)
-                            pl = refresh_pl(pl)
-                        else:
-                            tmsg = messages["mad_scientist_fail"].format(nick)
-                            cli.msg(botconfig.CHANNEL, tmsg)
-                            debuglog(nick, "(mad scientist) KILL FAIL")
 
             pl = refresh_pl(pl)
             # i herd u liek parameters
@@ -5330,36 +5259,6 @@ def transition_night(cli):
             pm(cli, drunk, messages["drunk_notification"])
         else:
             pm(cli, drunk, messages["drunk_simple"])
-
-    for ms in var.ROLES["mad scientist"]:
-        pl = ps[:]
-        for index, user in enumerate(var.ALL_PLAYERS):
-            if user.nick == ms:
-                break
-        targets = []
-        target1 = var.ALL_PLAYERS[index - 1]
-        target2 = var.ALL_PLAYERS[index + 1 if index < len(var.ALL_PLAYERS) - 1 else 0]
-        if len(var.ALL_PLAYERS) >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
-            # determine left player
-            i = index
-            while True:
-                i -= 1
-                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
-                    target1 = var.ALL_PLAYERS[i]
-                    break
-            # determine right player
-            i = index
-            while True:
-                i += 1
-                if i >= len(var.ALL_PLAYERS):
-                    i = 0
-                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
-                    target2 = var.ALL_PLAYERS[i]
-                    break
-        if ms in var.PLAYERS and not is_user_simple(ms):
-            pm(cli, ms, messages["mad_scientist_notify"].format(target1, target2))
-        else:
-            pm(cli, ms, messages["mad_scientist_simple"].format(target1, target2))
 
     for doctor in var.ROLES["doctor"]:
         if doctor in var.DOCTORS and var.DOCTORS[doctor] > 0: # has immunizations remaining

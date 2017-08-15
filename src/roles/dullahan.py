@@ -70,25 +70,34 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
         pl = evt.data["pl"]
         targets = TARGETS[users._get(nick)].intersection(users._get(x) for x in pl) # FIXME
         if targets:
-            target = random.choice(list(targets)).nick
-            prots = deque(var.ACTIVE_PROTECTIONS[target])
-            aevt = Event("assassinate", {"pl": evt.data["pl"]},
+            target = random.choice(list(targets))
+            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
+            aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
                     del_player=evt.params.del_player,
                     deadlist=evt.params.deadlist,
                     original=evt.params.original,
                     refresh_pl=evt.params.refresh_pl,
                     message_prefix="dullahan_die_",
+                    source="dullahan",
+                    killer=nick,
                     killer_mainrole=mainrole,
                     killer_allroles=allroles,
                     prots=prots)
             while len(prots) > 0:
-                # an event can read the current active protection and cancel the totem
+                # an event can read the current active protection and cancel or redirect the assassination
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
                 # so that it cannot be used again (if the protection is meant to be usable once-only)
-                if not aevt.dispatch(cli, var, nick, target, prots[0]):
+                if not aevt.dispatch(cli, var, nick, target.nick, prots[0]):
                     evt.data["pl"] = aevt.data["pl"]
+                    if target is not aevt.data["target"]:
+                        target = aevt.data["target"]
+                        prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
+                        aevt.params.prots = prots
+                        continue
                     return
                 prots.popleft()
+
+            target = target.nick # FIXME
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(target)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
