@@ -3609,7 +3609,6 @@ def transition_day(cli, gameid=0):
     message = [messages["sunrise"].format(min, sec)]
 
     # This needs to go down here since having them be their night value matters above
-    var.ANGRY_WOLVES = False
     var.DISEASED_WOLVES = False
     var.ALPHA_ENABLED = False
 
@@ -5632,7 +5631,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.AMNESIACS = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.ANGRY_WOLVES = False
     var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
     var.MAIN_ROLES = {}

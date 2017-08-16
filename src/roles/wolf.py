@@ -14,7 +14,20 @@ KILLS = {} # type: Dict[str, List[str]]
 # from src.roles import wolf
 # wolf.CAN_KILL.add("wolf sphere") # or whatever the new wolf role is
 # simply modifying var.WOLF_ROLES will *not* update this!
-CAN_KILL = set(var.WOLF_ROLES - {"wolf cub"}) # type: Set[str]
+CAN_KILL = set(var.WOLF_ROLES) # type: Set[str]
+
+def wolf_can_kill(var, wolf):
+    # a wolf can kill if wolves in general can kill, and the wolf belongs to a role in CAN_KILL
+    # this is a utility function meant to be used by other wolf role modules
+    nevt = Event("wolf_numkills", {"numkills": 1})
+    nevt.dispatch(var)
+    num_kills = nevt.data["numkills"]
+    if num_kills == 0:
+        return False
+    wolfroles = {get_role(wolf.nick)} # FIXME: pass user to get_role once updated
+    wolfroles.update(get_templates(wolf.nick)) # FIXME: pass user to get_templates once updated
+    # (actually should kill get_role/get_templates entirely and make get_mainrole and get_allroles)
+    return CAN_KILL & wolfroles
 
 @cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(cli, nick, chan, rest):
@@ -28,9 +41,10 @@ def wolf_kill(cli, nick, chan, rest):
     pieces = re.split(" +", rest)
     victims = []
     orig = []
-    num_kills = 1
-    if var.ANGRY_WOLVES:
-        num_kills = 2
+
+    nevt = Event("wolf_numkills", {"numkills": 1})
+    nevt.dispatch(var)
+    num_kills = nevt.data["numkills"]
 
     i = 0
     extra = 0
@@ -98,9 +112,6 @@ def wolf_retract(cli, nick, chan, rest):
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     if death_triggers:
-        # TODO: split into cub
-        if "wolf cub" in allroles:
-            var.ANGRY_WOLVES = True
         # TODO: split into alpha
         if allroles & var.WOLF_ROLES:
             var.ALPHA_ENABLED = True
@@ -141,10 +152,9 @@ def on_get_special(evt, cli, var):
 def on_transition_day(evt, cli, var):
     # figure out wolf target
     found = defaultdict(int)
-    # split off into event + wolfcub.py
-    num_kills = 1
-    if var.ANGRY_WOLVES:
-        num_kills = 2
+    nevt = Event("wolf_numkills", {"numkills": 1})
+    nevt.dispatch(var)
+    num_kills = nevt.data["numkills"]
     for v in KILLS.values():
         for p in v:
             if p:
@@ -245,8 +255,6 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["actor_messages"].append("Players: " + ", ".join(pl))
         if nick_role in CAN_KILL and var.DISEASED_WOLVES:
             evt.data["actor_messages"].append(messages["ill_wolves"])
-        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and nick_role in CAN_KILL:
-            evt.data["actor_messages"].append(messages["angry_wolves"])
         if var.ALPHA_ENABLED and nick_role == "alpha wolf" and actor not in var.ALPHA_WOLVES:
             evt.data["actor_messages"].append(messages["wolf_bite"])
     elif actor_role in wcroles and nick_role not in wcroles:
@@ -273,8 +281,6 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["nick_messages"].append("Players: " + ", ".join(pl))
         if actor_role in CAN_KILL and var.DISEASED_WOLVES:
             evt.data["nick_messages"].append(messages["ill_wolves"])
-        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and actor_role in CAN_KILL:
-            evt.data["nick_messages"].append(messages["angry_wolves"])
         if var.ALPHA_ENABLED and actor_role == "alpha wolf" and nick not in var.ALPHA_WOLVES:
             evt.data["nick_messages"].append(messages["wolf_bite"])
 
@@ -287,20 +293,22 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 def on_chk_nightdone(evt, cli, var):
     if not var.DISEASED_WOLVES:
         evt.data["actedcount"] += len(KILLS)
-        # eventually wolf cub will remove itself from nightroles in wolfcub.py
         evt.data["nightroles"].extend(list_players(CAN_KILL))
 
 @event_listener("chk_nightdone", priority=20)
 def on_chk_nightdone2(evt, cli, var):
-    if not evt.prevent_default and not var.DISEASED_WOLVES:
+    if not evt.prevent_default:
+        nevt = Event("wolf_numkills", {"numkills": 1})
+        nevt.dispatch(var)
+        num_kills = nevt.data["numkills"]
+        if num_kills == 0:
+            return
         # flatten KILLS
         kills = set()
         for ls in KILLS.values():
             kills.update(ls)
         # check if wolves are actually agreeing
-        if not var.ANGRY_WOLVES and len(kills) > 1:
-            evt.data["actedcount"] -= 1
-        elif var.ANGRY_WOLVES and (len(kills) == 1 or len(kills) > 2):
+        if len(kills) != num_kills:
             evt.data["actedcount"] -= 1
 
 @event_listener("transition_night_end", priority=2)
@@ -395,44 +403,9 @@ def on_transition_night_end(evt, cli, var):
         pm(cli, wolf, "Players: " + ", ".join(pl))
         if role in CAN_KILL and var.DISEASED_WOLVES:
             pm(cli, wolf, messages["ill_wolves"])
-        # TODO: split the following out into their own files (cub and alpha)
-        if not var.DISEASED_WOLVES and var.ANGRY_WOLVES and role in CAN_KILL:
-            pm(cli, wolf, messages["angry_wolves"])
+        # TODO: split the following out into their own files (alpha)
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
             pm(cli, wolf, messages["wolf_bite"])
-
-@event_listener("chk_win", priority=1)
-def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-    # TODO: split into cub
-    did_something = False
-    if lrealwolves == 0:
-        for wc in list(rolemap["wolf cub"]):
-            rolemap["wolf"].add(wc)
-            rolemap["wolf cub"].remove(wc)
-            wcu = users._get(wc) # FIXME
-            if mainroles[wcu] == "wolf cub":
-                mainroles[wcu] = "wolf"
-            did_something = True
-            if var.PHASE in var.GAME_PHASES:
-                # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
-                # stats as cub still.
-                pm(cli, wc, messages["cub_grow_up"])
-                debuglog(wc, "(wolf cub) GROW UP")
-    if did_something:
-        evt.prevent_default = True
-        evt.stop_processing = True
-
-@event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, cli, var, stats):
-    # TODO: split into cub
-    if "wolf cub" not in stats or stats["wolf cub"] == 0:
-        return
-    for role in var.WOLF_ROLES - {"wolf cub"}:
-        if role in stats and stats[role] > 0:
-            break
-    else:
-        stats["wolf"] = stats["wolf cub"]
-        stats["wolf cub"] = 0
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
@@ -455,12 +428,11 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
+        nevt = Event("wolf_numkills", {"numkills": 1})
+        nevt.dispatch(var)
+        evt.data["wolf"] = nevt.data["numkills"]
         if var.DISEASED_WOLVES:
             evt.data["wolf"] = 0
-        elif var.ANGRY_WOLVES:
-            evt.data["wolf"] = 2
-        else:
-            evt.data["wolf"] = 1
         # TODO: split into alpha
         if var.ALPHA_ENABLED:
             # alpha wolf gives an extra kill; note that we consider someone being
