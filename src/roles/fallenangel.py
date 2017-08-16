@@ -44,7 +44,7 @@ def on_transition_day(evt, cli, var):
 def on_assassinate(evt, cli, var, nick, target, prot):
     # bypass all protection if FA is doing the killing
     # we do this by stopping propagation, meaning future events won't fire
-    if evt.params.nickrole == "fallen angel":
+    if "fallen angel" in evt.params.killer_allroles:
         evt.params.prots.clear()
         evt.stop_processing = True
         evt.prevent_default = True

@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import users, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -277,8 +277,8 @@ def on_assassinate(evt, cli, var, nick, target, prot):
         for bg in var.ROLES["bodyguard"]:
             if GUARDED.get(bg) == target:
                 cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "bodyguard"].format(nick, target, bg))
-                evt.params.del_player(cli, bg, True, end_game=False, killer_role=evt.params.nickrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-                evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
+                # redirect the assassination to the bodyguard
+                evt.data["target"] = users._get(bg) # FIXME
                 break
 
 @event_listener("begin_day")
