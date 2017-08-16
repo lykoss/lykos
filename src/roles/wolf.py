@@ -27,7 +27,7 @@ def wolf_can_kill(var, wolf):
     wolfroles = {get_role(wolf.nick)} # FIXME: pass user to get_role once updated
     wolfroles.update(get_templates(wolf.nick)) # FIXME: pass user to get_templates once updated
     # (actually should kill get_role/get_templates entirely and make get_mainrole and get_allroles)
-    return CAN_KILL & wolfroles
+    return bool(CAN_KILL & wolfroles)
 
 @cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(cli, nick, chan, rest):
