@@ -12,20 +12,17 @@ from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 
-@event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    if not death_triggers or "mad scientist" not in allroles:
-        return
+def _get_targets(var, pl, nick):
+    """Gets the mad scientist's targets.
 
-    # kills the 2 players adjacent to them in the original players listing (in order of !joining)
-    # if those players are already dead, nothing happens
+    var - settings module
+    pl - list of alive players
+    nick - nick of the mad scientist"""
     for index, user in enumerate(var.ALL_PLAYERS):
         if user.nick == nick: # FIXME
             break
 
     num_players = len(var.ALL_PLAYERS)
-    pl = evt.data["pl"]
-    targets = []
     target1 = var.ALL_PLAYERS[index - 1]
     target2 = var.ALL_PLAYERS[(index + 1) % num_players]
     if num_players >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
@@ -43,6 +40,17 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
             if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == nick:
                 target2 = var.ALL_PLAYERS[i]
                 break
+
+    return (target1, target2)
+
+
+@event_listener("del_player")
+def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+    if not death_triggers or "mad scientist" not in allroles:
+        return
+
+    pl = evt.data["pl"]
+    target1, target2 = _get_targets(var, pl, nick)
 
     # apply protections (if applicable)
     prots1 = deque(var.ACTIVE_PROTECTIONS[target1.nick])
@@ -143,29 +151,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
 def on_transition_night_end(evt, cli, var):
     for ms in var.ROLES["mad scientist"]:
         pl = list_players()
-        for index, user in enumerate(var.ALL_PLAYERS):
-            if user.nick == ms:
-                break
-
-        num_players = len(var.ALL_PLAYERS)
-        targets = []
-        target1 = var.ALL_PLAYERS[index - 1]
-        target2 = var.ALL_PLAYERS[(index + 1) % num_players]
-        if len(var.ALL_PLAYERS) >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
-            # determine left player
-            i = index
-            while True:
-                i = (i - 1) % num_players
-                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
-                    target1 = var.ALL_PLAYERS[i]
-                    break
-            # determine right player
-            i = index
-            while True:
-                i = (i + 1) % num_players
-                if var.ALL_PLAYERS[i].nick in pl or var.ALL_PLAYERS[i].nick == ms:
-                    target2 = var.ALL_PLAYERS[i]
-                    break
+        target1, target2 = _get_targets(var, pl, ms)
 
         if ms in var.PLAYERS and not is_user_simple(ms):
             pm(cli, ms, messages["mad_scientist_notify"].format(target1, target2))
