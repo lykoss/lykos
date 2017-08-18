@@ -209,6 +209,15 @@ class User(IRCContext):
 
     is_user = True
 
+    # Things break a lot if user instances aren't unique for the same data set
+    # __new__ already returns an existing user instance if possible, but no need
+    # to run through that logic if we already know what instance is desired.
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
+
     def __new__(cls, cli, nick, ident, host, realname, account):
         self = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
