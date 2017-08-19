@@ -1216,6 +1216,7 @@ class MaelstromMode(GameMode):
             evt.data["join_player"] = lambda var, wrapper, who=None, forced=False: jp(var, wrapper, who=who, forced=forced, sanity=False) and self._on_join(var, wrapper)
 
     def _on_join(self, var, wrapper):
+        from src import hooks, channels
         role = random.choice(self.roles)
         rolemap = copy.deepcopy(var.ROLES)
         rolemap[role].add(wrapper.source.nick) # FIXME: add user instead of nick (can only be done once var.ROLES itself uses users)
@@ -1225,6 +1226,12 @@ class MaelstromMode(GameMode):
         if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
             return self._on_join(var, wrapper)
 
+        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+            cmodes = [("+" + hooks.Features["PREFIX"]["+"], wrapper.source)]
+            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
+                cmodes.append(("-" + mode, wrapper.source))
+                var.OLD_MODES[wrapper.source].add(mode)
+            channels.Main.mode(*cmodes)
         var.ROLES[role].add(wrapper.source.nick) # FIXME: add user instead of nick
         var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
         var.FINAL_ROLES[wrapper.source.nick] = role
@@ -1233,6 +1240,7 @@ class MaelstromMode(GameMode):
         if wrapper.source.nick in var.USERS:
             var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
+        # TODO: split this out with doctor
         if role == "doctor":
             lpl = len(list_players())
             var.DOCTORS[wrapper.source.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
