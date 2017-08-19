@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
+from src.functions import get_players
 from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -301,7 +302,7 @@ def on_chk_nightdone2(evt, cli, var):
         nevt = Event("wolf_numkills", {"numkills": 1})
         nevt.dispatch(var)
         num_kills = nevt.data["numkills"]
-        if num_kills == 0:
+        if num_kills == 0 or len(get_players(CAN_KILL)) == 0:
             return
         # flatten KILLS
         kills = set()
