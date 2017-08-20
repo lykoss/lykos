@@ -1829,7 +1829,7 @@ def chk_decision(cli, force=""):
                         return
                     else:
                         cli.msg(botconfig.CHANNEL, messages["villagergame_win"])
-                        stop_game(cli, "villagers")
+                        stop_game(cli, "everyone")
                         return
                 else:
                     del votelist[botconfig.NICK]
