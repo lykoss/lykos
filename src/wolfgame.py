@@ -1015,6 +1015,12 @@ def fjoin(var, wrapper, message):
                 to_join.append(s)
     for tojoin in to_join:
         tojoin = tojoin.strip()
+        # Allow joining single number fake users in debug mode
+        if users.predicate(tojoin) and botconfig.DEBUG_MODE:
+            user = users._add(wrapper.client, nick=tojoin) # FIXME
+            evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
+            continue
+        # Allow joining ranges of numbers as fake users in debug mode
         if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
