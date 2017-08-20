@@ -501,6 +501,8 @@
     "hunter_simple": "You are a \u0002hunter\u0002.",
     "mad_scientist_notify": "You are the \u0002mad scientist\u0002. You win with the villagers, and should you die, you will let loose a potent chemical concoction that will kill \u0002{0}\u0002 and \u0002{1}\u0002 if they are still alive.",
     "mad_scientist_simple": "You are the \u0002mad scientist\u0002. Targets: \u0002{0}\u0002 and \u0002{1}\u0002",
+    "mad_scientist_myrole_targets": "Targets: \u0002{0}\u0002 and \u0002{1}\u0002",
+    "mad_scientist_revealroles_targets": "targeting \u0002{0}\u0002 and \u0002{1}\u0002",
     "doctor_notify": "You are a \u0002doctor\u0002. You can give out immunizations to villagers by using \"give <nick>\" in PM during the daytime. An immunized villager will die instead of turning into a wolf due to the alpha wolf's or lycan's power.",
     "doctor_simple": "You are a \u0002doctor\u0002.",
     "doctor_immunizations": "You have \u0002{0}\u0002 immunization{1}.",
