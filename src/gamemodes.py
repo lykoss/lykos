@@ -732,6 +732,7 @@ class GuardianMode(GameMode):
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({
             # village roles
+            "village drunk"     : (   1   ,   1   ,   1   ,   1   ,   1   ),
             "bodyguard"         : (   0   ,   0   ,   0   ,   0   ,   1   ),
             "guardian angel"    : (   1   ,   1   ,   2   ,   2   ,   2   ),
             "shaman"            : (   0   ,   1   ,   1   ,   1   ,   1   ),
