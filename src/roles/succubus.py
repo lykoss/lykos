@@ -152,7 +152,7 @@ def on_player_win(evt, var, user, role, winner, survived):
 def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len(ENTRANCED - var.DEAD)
-    if var.PHASE == "day" and lpl - lsuccubi == lentranced:
+    if lsuccubi and var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
 
