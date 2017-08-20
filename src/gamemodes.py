@@ -722,7 +722,7 @@ class AlphaMode(GameMode):
             })
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
-@game_mode("guardian", minp = 8, maxp = 16, likelihood = 0)
+@game_mode("guardian", minp = 8, maxp = 16, likelihood = 5)
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):
