@@ -17,7 +17,9 @@ def _get_targets(var, pl, nick):
 
     var - settings module
     pl - list of alive players
-    nick - nick of the mad scientist"""
+    nick - nick of the mad scientist
+
+    """
     for index, user in enumerate(var.ALL_PLAYERS):
         if user.nick == nick: # FIXME
             break

@@ -262,7 +262,7 @@ class Channel(IRCContext):
                 if not self.modes[mode]:
                     del self.modes[mode]
         del user.channels[self]
-        if len(user.channels) == 0:
+        if not user.channels: # Only fire if the user left all channels
             event = Event("cleanup_user", {})
             event.dispatch(var, user)
 
@@ -273,7 +273,7 @@ class Channel(IRCContext):
         self.modes.clear()
         self.state = _States.Cleared
         self.timestamp = None
-        del _channels[self.name]
+        del _channels[lower(self.name)]
 
 class FakeChannel(Channel):
 

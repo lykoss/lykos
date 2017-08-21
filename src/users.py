@@ -209,15 +209,6 @@ class User(IRCContext):
 
     is_user = True
 
-    # Things break a lot if user instances aren't unique for the same data set
-    # __new__ already returns an existing user instance if possible, but no need
-    # to run through that logic if we already know what instance is desired.
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, memo):
-        return self
-
     def __new__(cls, cli, nick, ident, host, realname, account):
         self = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
@@ -308,6 +299,17 @@ class User(IRCContext):
 
     def __eq__(self, other):
         return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
+
+    # User objects are not copyable - this is a deliberate design decision
+    # Therefore, those two functions here only return the object itself
+    # Even if we tried to create new instances, the logic in __new__ would
+    # just fetch back the same instance, so we save ourselves the trouble
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
 
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
