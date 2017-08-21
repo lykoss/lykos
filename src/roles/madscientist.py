@@ -166,9 +166,10 @@ def on_myrole(evt, cli, var, nick):
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var, wrapper, nickname, role):
-    pl = list_players()
-    target1, target2 = _get_targets(var, pl, nickname)
-    evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
+    if role == "mad scientist":
+        pl = list_players()
+        target1, target2 = _get_targets(var, pl, nickname)
+        evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 
 
 # vim: set sw=4 expandtab:
