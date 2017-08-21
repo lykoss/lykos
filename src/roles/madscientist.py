@@ -160,9 +160,10 @@ def on_transition_night_end(evt, cli, var):
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):
-    pl = list_players()
-    target1, target2 = _get_targets(var, pl, nick)
-    evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
+    if nick in var.ROLES["mad scientist"]:
+        pl = list_players()
+        target1, target2 = _get_targets(var, pl, nick)
+        evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var, wrapper, nickname, role):
