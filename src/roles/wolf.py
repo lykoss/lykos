@@ -302,7 +302,8 @@ def on_chk_nightdone2(evt, cli, var):
         nevt = Event("wolf_numkills", {"numkills": 1})
         nevt.dispatch(var)
         num_kills = nevt.data["numkills"]
-        if num_kills == 0 or len(get_players(CAN_KILL)) == 0:
+        wofls = [x for x in get_players(CAN_KILL) if x.nick not in var.SILENCED]
+        if num_kills == 0 or len(wofls) == 0:
             return
         # flatten KILLS
         kills = set()
