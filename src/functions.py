@@ -3,7 +3,7 @@ from src.events import Event
 from src import settings as var
 from src import users
 
-__all__ = ["get_players", "get_participants", "get_target", "get_role"]
+__all__ = ["get_players", "get_participants", "get_target", "get_main_role", "get_all_roles"]
 
 def get_players(roles=None, *, mainroles=None):
     if mainroles is None:
@@ -48,7 +48,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False):
 
     return match
 
-def get_role(user):
+def get_main_role(user):
     role = var.MAIN_ROLES.get(user)
     if role is not None:
         return role
@@ -60,3 +60,6 @@ def get_role(user):
     if role is None:
         raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
     return role
+
+def get_all_roles(user):
+    return {role for role, nicks in var.ROLES.items() if user.nick in nicks}

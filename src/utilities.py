@@ -13,7 +13,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "relay_wolfchat_command", "chk_nightdone", "chk_decision",
            "chk_win", "irc_lower", "irc_equals", "is_role", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "list_players_and_roles", "list_participants", "get_role", "get_roles",
+           "list_players_and_roles", "get_role", "get_roles",
            "get_reveal_role", "get_templates", "change_role", "role_order", "break_long_message",
            "complete_match","complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
@@ -318,22 +318,16 @@ def list_players_and_roles():
     # (and working with user objects instead of nicks)
     return {u.nick: r for u, r in var.MAIN_ROLES.items()}
 
-def list_participants():
-    """List all people who are still able to participate in the game in some fashion."""
-    pl = list_players()
-    evt = Event("list_participants", {"pl": pl})
-    evt.dispatch(var)
-    return evt.data["pl"][:]
-
 def get_role(p):
     # FIXME: make the arg a user instead of a nick
     from src import users
+    from src.functions import get_participants
     user = users._get(p)
     role = var.MAIN_ROLES.get(user, None)
     if role is not None:
         return role
     # not found in player list, see if they're a special participant
-    if p in list_participants():
+    if user in get_participants():
         evt = Event("get_participant_role", {"role": None})
         evt.dispatch(var, user)
         role = evt.data["role"]

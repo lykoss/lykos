@@ -12,7 +12,8 @@ import botconfig
 import src.settings as var
 from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
-from src.utilities import reply, list_participants, get_role, get_templates
+from src.utilities import reply, get_role, get_templates
+from src.functions import get_participants
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error
 
@@ -67,7 +68,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     # as we don't want to insert bogus command keys into the dict.
     cmds = []
     phase = var.PHASE
-    if user.nick in list_participants():
+    if user in get_participants():
         roles = {get_role(user.nick)} | set(get_templates(user.nick))
         if force_role is not None:
             roles &= {force_role} # only fire off role commands for the forced role

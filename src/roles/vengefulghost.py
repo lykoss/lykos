@@ -60,10 +60,10 @@ def vg_retract(var, wrapper, message):
         del KILLS[wrapper.source.nick]
         wrapper.pm(messages["retracted_kill"])
 
-@event_listener("list_participants")
-def on_list_participants(evt, var):
-    evt.data["pl"].extend([p.nick for p in GHOSTS if GHOSTS[p][0] != "!"])
-    evt.data["pl"].extend([p.nick for p in drivenoff])
+@event_listener("get_participants")
+def on_get_participants(evt, var):
+    evt.data["pl"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
+    evt.data["pl"].extend(drivenoff)
 
 @event_listener("player_win", priority=1)
 def on_player_win(evt, var, user, role, winner, survived):

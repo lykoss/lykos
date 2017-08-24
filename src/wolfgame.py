@@ -49,7 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.functions import get_players
+from src.functions import get_players, get_participants
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -552,7 +552,7 @@ def replace(var, wrapper, message):
 
         for user in var.ALL_PLAYERS:
             if users.equals(user.account, wrapper.source.account):
-                if user is wrapper.source or user.nick not in list_participants(): # FIXME: Need to fix once list_participants() holds User instances
+                if user is wrapper.source or user not in get_participants():
                     continue
                 elif target is None:
                     target = user
@@ -565,7 +565,7 @@ def replace(var, wrapper, message):
             return
 
     else:
-        pl = [users._get(p) for p in list_participants()] # FIXME: Need to fix once list_participants() holds User instances
+        pl = get_participants()
 
         target, _ = users.complete_match(rest[0], pl)
 
@@ -729,10 +729,10 @@ def join_deadchat(var, *all_users):
         return
 
     to_join = []
-    pl = list_participants()
+    pl = get_participants()
 
     for user in all_users:
-        if user.stasis_count() or user.nick in pl or user in var.DEADCHAT_PLAYERS: # FIXME: Fix this when list_participants() returns User instances
+        if user.stasis_count() or user in pl or user in var.DEADCHAT_PLAYERS:
             continue
         to_join.append(user)
 
@@ -6464,8 +6464,8 @@ def listroles(cli, nick, chan, rest):
 def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets converted
     """Reminds you of your current role."""
 
-    ps = list_participants()
-    if nick not in ps:
+    ps = get_participants()
+    if users._get(nick) not in ps:
         return
 
     role = get_role(nick)
@@ -6517,7 +6517,7 @@ def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets con
         pm(cli, nick, messages["prophet_simple"])
 
     # Remind lovers of each other
-    if nick in ps and nick in var.LOVERS:
+    if users._get(nick) in ps and nick in var.LOVERS:
         message = messages["matched_info"]
         lovers = sorted(list(set(var.LOVERS[nick])))
         if len(lovers) == 1:
@@ -6899,9 +6899,9 @@ def can_run_restricted_cmd(user):
     if botconfig.DEBUG_MODE:
         return True
 
-    pl = list_participants()
+    pl = get_participants()
 
-    if user.nick in pl: # FIXME: Need to update this once list_participants() holds User instances
+    if user in pl:
         return False
 
     if not var.DISABLE_ACCOUNTS and user.account in [users._get(player).account for player in pl]: # FIXME
