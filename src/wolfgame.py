@@ -337,16 +337,16 @@ def fsync(var, wrapper, message):
 def sync_modes(var):
     voices = [None]
     mode = hooks.Features["PREFIX"]["+"]
-    pl = list_players()
+    pl = get_players()
 
     for user in channels.Main.users:
         if var.DEVOICE_DURING_NIGHT and var.PHASE == "night":
             if mode in user.channels[channels.Main]:
                 voices.append(("-" + mode, user))
-            elif user.nick in pl and mode not in user.channels[channels.Main]: # FIXME: Need to fix for when list_players() returns User instances
-                voices.append(("+" + mode, user))
-            elif user.nick not in pl and mode in user.channels[channels.Main]: # FIXME: See above comment
-                voices.append(("-" + mode, user))
+        elif user in pl and mode not in user.channels[channels.Main]:
+            voices.append(("+" + mode, user))
+        elif user not in pl and mode in user.channels[channels.Main]:
+            voices.append(("-" + mode, user))
 
     if var.PHASE in var.GAME_PHASES:
         voices[0] = "+m"
