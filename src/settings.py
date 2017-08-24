@@ -343,7 +343,7 @@ ROLE_COMMAND_EXCEPTIONS = set()
 GIF_CHANCE = 1/50
 FORTUNE_CHANCE = 1/25
 
-ALL_FLAGS = frozenset("AaDdFjms")
+ALL_FLAGS = frozenset("AaDdFgjmNSsw")
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()

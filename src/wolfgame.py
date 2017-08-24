@@ -363,7 +363,7 @@ def refreshdb(var, wrapper, message):
     expire_tempbans()
     wrapper.reply("Done.")
 
-@command("fdie", "fbye", flag="D", pm=True)
+@command("fdie", "fbye", flag="F", pm=True)
 def forced_exit(var, wrapper, message):
     """Forces the bot to close."""
 
@@ -1114,7 +1114,7 @@ def fleave(var, wrapper, message):
             wrapper.send(messages["not_playing"].format(person))
             return
 
-@cmd("fstart", flag="A", phases=("join",))
+@cmd("fstart", flag="S", phases=("join",))
 def fstart(cli, nick, chan, rest):
     """Forces the game to start immediately."""
     cli.msg(botconfig.CHANNEL, messages["fstart_success"].format(nick))
@@ -1776,7 +1776,7 @@ def hurry_up(cli, gameid, change):
         cli.msg(chan, messages["sunset"])
         event.data["transition_night"](cli)
 
-@cmd("fnight", flag="d")
+@cmd("fnight", flag="N")
 def fnight(cli, nick, chan, rest):
     """Forces the day to end and night to begin."""
     if var.PHASE != "day":
@@ -1785,7 +1785,7 @@ def fnight(cli, nick, chan, rest):
         hurry_up(cli, 0, True)
 
 
-@cmd("fday", flag="d")
+@cmd("fday", flag="N")
 def fday(cli, nick, chan, rest):
     """Forces the night to end and the next day to begin."""
     if var.PHASE != "night":
@@ -6057,7 +6057,7 @@ def wait(cli, nick, chan, rest):
         cli.msg(chan, messages["wait_time_increase"].format(nick, var.EXTRA_WAIT))
 
 
-@cmd("fwait", flag="A", phases=("join",))
+@cmd("fwait", flag="w", phases=("join",))
 def fwait(cli, nick, chan, rest):
     """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
 
@@ -6084,7 +6084,7 @@ def fwait(cli, nick, chan, rest):
         cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
 
 
-@cmd("fstop", flag="A", phases=("join", "day", "night"))
+@cmd("fstop", flag="S", phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
     """Forces the game to stop."""
     if nick == "<stderr>":
@@ -6845,7 +6845,7 @@ def update(cli, nick, chan, rest):
     if ret:
         restart_program.caller(cli, nick, chan, "Updating bot")
 
-@command("send", "fsend", flag="F", pm=True)
+@command("fsend", flag="F", pm=True)
 def fsend(var, wrapper, message):
     """Forcibly send raw IRC commands to the server."""
     wrapper.source.client.send(message)
@@ -6912,7 +6912,7 @@ def can_run_restricted_cmd(user):
 
     return True
 
-@command("spectate", "fspectate", flag="A", pm=True, phases=("day", "night"))
+@command("spectate", "fspectate", flag="a", pm=True, phases=("day", "night"))
 def fspectate(var, wrapper, message):
     """Spectate wolfchat or deadchat."""
     if not can_run_restricted_cmd(wrapper.source):
@@ -6954,9 +6954,134 @@ def fspectate(var, wrapper, message):
         wrapper.pm(messages["fspectate_on"].format(what))
         wrapper.pm("People in {0}: {1}".format(what, ", ".join(players)))
 
+@command("revealroles", flag="a", pm=True, phases=("day", "night"))
+def revealroles(var, wrapper, message):
+    """Reveal role information."""
+
+    if not can_run_restricted_cmd(wrapper.source):
+        wrapper.pm(messages["temp_invalid_perms"])
+        return
+
+    output = []
+    for role in role_order():
+        if var.ROLES.get(role):
+            # make a copy since this list is modified
+            nicks = list(var.ROLES[role])
+            # go through each nickname, adding extra info if necessary
+            for i in range(len(nicks)):
+                special_case = []
+                nickname = nicks[i]
+                if role == "assassin" and nickname in var.TARGETED:
+                    special_case.append("targeting {0}".format(var.TARGETED[nickname]))
+                elif role == "clone" and nickname in var.CLONED:
+                    special_case.append("cloning {0}".format(var.CLONED[nickname]))
+                elif role == "amnesiac" and nickname in var.AMNESIAC_ROLES:
+                    special_case.append("will become {0}".format(var.AMNESIAC_ROLES[nickname]))
+                # print how many bullets normal gunners have
+                elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
+                    special_case.append("{0} bullet{1}".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s"))
+                elif role == "turncoat" and nickname in var.TURNCOATS:
+                    special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
+                                        if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
+
+                evt = Event("revealroles_role", {"special_case": special_case})
+                evt.dispatch(var, wrapper, nickname, role)
+                special_case = evt.data["special_case"]
+
+                if not evt.prevent_default and nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
+                    for old_role in role_order(): # order doesn't matter here, but oh well
+                        if nickname in var.ORIGINAL_ROLES[old_role] and nickname not in var.ROLES[old_role]:
+                            special_case.append("was {0}".format(old_role))
+                            break
+                if special_case:
+                    nicks[i] = "".join((nicks[i], " (", ", ".join(special_case), ")"))
+            output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(nicks)))
+
+    # print out lovers too
+    done = {}
+    lovers = []
+    for lover1, llist in var.LOVERS.items():
+        for lover2 in llist:
+            # check if already said the pairing
+            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
+                continue
+            lovers.append("{0}/{1}".format(lover1, lover2))
+            if lover1 in done:
+                done[lover1].append(lover2)
+            else:
+                done[lover1] = [lover2]
+    if len(lovers) == 1 or len(lovers) == 2:
+        output.append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
+    elif len(lovers) > 2:
+        output.append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+
+    #show who got immunized
+    if var.IMMUNIZED:
+        output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
+
+    # get charmed players
+    if var.CHARMED | var.TOBECHARMED:
+        output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
+
+    evt = Event("revealroles", {"output": output})
+    evt.dispatch(var, wrapper)
+
+    if botconfig.DEBUG_MODE:
+        wrapper.send(*output, sep=" | ")
+    else:
+        wrapper.pm(*output, sep=" | ")
+
+
+@cmd("fgame", flag="g", raw_nick=True, phases=("join",))
+def fgame(cli, nick, chan, rest):
+    """Force a certain game mode to be picked. Disable voting for game modes upon use."""
+    nick = parse_nick(nick)[0]
+
+    pl = list_players()
+
+    if nick not in pl and not is_admin(nick):
+        return
+
+    if rest:
+        gamemode = rest.strip().lower()
+        parts = gamemode.replace("=", " ", 1).split(None, 1)
+        if len(parts) > 1:
+            gamemode, modeargs = parts
+        else:
+            gamemode = parts[0]
+            modeargs = None
+
+        if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
+            gamemode = gamemode.split()[0]
+            gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
+            if not gamemode:
+                cli.notice(nick, messages["invalid_mode"].format(rest.split()[0]))
+                return
+            parts[0] = gamemode
+
+        if cgamemode(cli, "=".join(parts)):
+            cli.msg(chan, messages["fgame_success"].format(nick))
+            var.FGAMED = True
+    else:
+        cli.notice(nick, fgame.__doc__())
+
+def fgame_help(args=""):
+    args = args.strip()
+
+    if not args:
+        return messages["available_mode_setters"] + ", ".join(var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
+    elif args in var.GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
+        return var.GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
+    else:
+        return messages["setter_not_found"].format(args)
+
+
+fgame.__doc__ = fgame_help
+
+
 before_debug_mode_commands = list(COMMANDS.keys())
 
-if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
+if botconfig.DEBUG_MODE:
 
     @command("eval", owner_only=True, pm=True)
     def pyeval(var, wrapper, message):
@@ -6974,130 +7099,8 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         except Exception as e:
             wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-    @command("revealroles", flag="a", pm=True, phases=("day", "night"))
-    def revealroles(var, wrapper, message):
-        """Reveal role information."""
 
-        if not can_run_restricted_cmd(wrapper.source):
-            wrapper.pm(messages["temp_invalid_perms"])
-            return
-
-        output = []
-        for role in role_order():
-            if var.ROLES.get(role):
-                # make a copy since this list is modified
-                nicks = list(var.ROLES[role])
-                # go through each nickname, adding extra info if necessary
-                for i in range(len(nicks)):
-                    special_case = []
-                    nickname = nicks[i]
-                    if role == "assassin" and nickname in var.TARGETED:
-                        special_case.append("targeting {0}".format(var.TARGETED[nickname]))
-                    elif role == "clone" and nickname in var.CLONED:
-                        special_case.append("cloning {0}".format(var.CLONED[nickname]))
-                    elif role == "amnesiac" and nickname in var.AMNESIAC_ROLES:
-                        special_case.append("will become {0}".format(var.AMNESIAC_ROLES[nickname]))
-                    # print how many bullets normal gunners have
-                    elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
-                        special_case.append("{0} bullet{1}".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s"))
-                    elif role == "turncoat" and nickname in var.TURNCOATS:
-                        special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
-                                            if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
-
-                    evt = Event("revealroles_role", {"special_case": special_case})
-                    evt.dispatch(var, wrapper, nickname, role)
-                    special_case = evt.data["special_case"]
-
-                    if not evt.prevent_default and nickname not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
-                        for old_role in role_order(): # order doesn't matter here, but oh well
-                            if nickname in var.ORIGINAL_ROLES[old_role] and nickname not in var.ROLES[old_role]:
-                                special_case.append("was {0}".format(old_role))
-                                break
-                    if special_case:
-                        nicks[i] = "".join((nicks[i], " (", ", ".join(special_case), ")"))
-                output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(nicks)))
-
-        # print out lovers too
-        done = {}
-        lovers = []
-        for lover1, llist in var.LOVERS.items():
-            for lover2 in llist:
-                # check if already said the pairing
-                if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                    continue
-                lovers.append("{0}/{1}".format(lover1, lover2))
-                if lover1 in done:
-                    done[lover1].append(lover2)
-                else:
-                    done[lover1] = [lover2]
-        if len(lovers) == 1 or len(lovers) == 2:
-            output.append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
-        elif len(lovers) > 2:
-            output.append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
-
-        #show who got immunized
-        if var.IMMUNIZED:
-            output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
-
-        # get charmed players
-        if var.CHARMED | var.TOBECHARMED:
-            output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
-
-        evt = Event("revealroles", {"output": output})
-        evt.dispatch(var, wrapper)
-
-        if botconfig.DEBUG_MODE:
-            wrapper.send(*output, sep=" | ")
-        else:
-            wrapper.pm(*output, sep=" | ")
-
-
-    @cmd("fgame", flag="d", raw_nick=True, phases=("join",))
-    def fgame(cli, nick, chan, rest):
-        """Force a certain game mode to be picked. Disable voting for game modes upon use."""
-        nick = parse_nick(nick)[0]
-
-        pl = list_players()
-
-        if nick not in pl and not is_admin(nick):
-            return
-
-        if rest:
-            gamemode = rest.strip().lower()
-            parts = gamemode.replace("=", " ", 1).split(None, 1)
-            if len(parts) > 1:
-                gamemode, modeargs = parts
-            else:
-                gamemode = parts[0]
-                modeargs = None
-
-            if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-                gamemode = gamemode.split()[0]
-                gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-                if not gamemode:
-                    cli.notice(nick, messages["invalid_mode"].format(rest.split()[0]))
-                    return
-                parts[0] = gamemode
-
-            if cgamemode(cli, "=".join(parts)):
-                cli.msg(chan, messages["fgame_success"].format(nick))
-                var.FGAMED = True
-        else:
-            cli.notice(nick, fgame.__doc__())
-
-    def fgame_help(args=""):
-        args = args.strip()
-
-        if not args:
-            return messages["available_mode_setters"] + ", ".join(var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-        elif args in var.GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
-            return var.GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
-        else:
-            return messages["setter_not_found"].format(args)
-
-
-    fgame.__doc__ = fgame_help
-
+if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
     @cmd("force", flag="d")
