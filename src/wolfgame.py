@@ -6904,10 +6904,10 @@ def can_run_restricted_cmd(user):
     if user in pl:
         return False
 
-    if not var.DISABLE_ACCOUNTS and user.account in [users._get(player).account for player in pl]: # FIXME
+    if not var.DISABLE_ACCOUNTS and user.account in {player.account for player in pl}:
         return False
 
-    if user.userhost in [users._get(player).userhost for player in pl]: # FIXME
+    if user.userhost in {player.userhost for player in pl}:
         return False
 
     return True
