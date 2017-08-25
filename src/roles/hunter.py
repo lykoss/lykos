@@ -127,7 +127,8 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):
     evt.data["actedcount"] += len(KILLS) + len(PASSED)
-    evt.data["nightroles"].extend([p for p in var.ROLES["hunter"] if users._get(p) not in (HUNTERS | KILLS.keys())]) # FIXME
+    hunter_users = (users._get(p) for p in var.ROLES["hunter"]) # FIXME
+    evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, cli, var):
