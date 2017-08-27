@@ -433,8 +433,6 @@ def on_get_role_metadata(evt, var, kind):
         nevt = Event("wolf_numkills", {"numkills": 1})
         nevt.dispatch(var)
         evt.data["wolf"] = nevt.data["numkills"]
-        if var.DISEASED_WOLVES:
-            evt.data["wolf"] = 0
         # TODO: split into alpha
         if var.ALPHA_ENABLED:
             # alpha wolf gives an extra kill; note that we consider someone being
@@ -443,5 +441,11 @@ def on_get_role_metadata(evt, var, kind):
             # special logic for wolf kills vs non-wolf kills (as when alpha kills it is treated
             # as any other wolf kill).
             evt.data["wolf"] += 1
+
+@event_listener("wolf_numkills", priority=10)
+def on_wolf_numkills(evt, var):
+    if var.DISEASED_WOLVES:
+        evt.data["numkills"] = 0
+        evt.stop_processing = True
 
 # vim: set sw=4 expandtab:
