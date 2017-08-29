@@ -381,7 +381,7 @@ def forced_exit(var, wrapper, message):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force or wrapper.source.nick == "<console>":
-            stop_game(wrapper.client, log=False)
+            stop_game(log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
                 what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR))
@@ -426,7 +426,7 @@ def restart_program(var, wrapper, message):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
-            stop_game(wrapper.client, log=False)
+            stop_game(log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
                 what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR))
@@ -1831,11 +1831,11 @@ def chk_decision(cli, force=""):
                 if len(votelist[botconfig.NICK]) == avail:
                     if gm == "default":
                         cli.msg(botconfig.CHANNEL, messages["villagergame_nope"])
-                        stop_game(cli, "wolves")
+                        stop_game("wolves")
                         return
                     else:
                         cli.msg(botconfig.CHANNEL, messages["villagergame_win"])
-                        stop_game(cli, "everyone")
+                        stop_game("everyone")
                         return
                 else:
                     del votelist[botconfig.NICK]
@@ -1971,10 +1971,9 @@ def show_votes(cli, nick, chan, rest):
 
     reply(cli, nick, chan, the_message)
 
-def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
-    chan = botconfig.CHANNEL
+def stop_game(winner="", abort=False, additional_winners=None, log=True):
     if abort:
-        cli.msg(chan, messages["role_attribution_failed"])
+        channels.Main.send(messages["role_attribution_failed"])
     if var.DAY_START_TIME:
         now = datetime.now()
         td = now - var.DAY_START_TIME
@@ -1993,7 +1992,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
                                                 nitemin, nitesec)
 
     if not abort:
-        cli.msg(chan, gameend_msg)
+        channels.Main.send(gameend_msg)
 
     roles_msg = []
 
@@ -2058,7 +2057,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
         elif len(lovers) > 2:
             roles_msg.append("The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
 
-        cli.msg(chan, break_long_message(roles_msg))
+        channels.Main.send(*roles_msg)
 
     # "" indicates everyone died or abnormal game stop
     if winner != "" or log:
@@ -2227,12 +2226,12 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
         # spit out the list of winners
         winners = sorted(winners)
         if len(winners) == 1:
-            cli.msg(chan, messages["single_winner"].format(winners[0]))
+            channels.Main.send(messages["single_winner"].format(winners[0]))
         elif len(winners) == 2:
-            cli.msg(chan, messages["two_winners"].format(winners[0], winners[1]))
+            channels.Main.send(messages["two_winners"].format(winners[0], winners[1]))
         elif len(winners) > 2:
             nicklist = ("\u0002" + x + "\u0002" for x in winners[0:-1])
-            cli.msg(chan, messages["many_winners"].format(", ".join(nicklist), winners[-1]))
+            channels.Main.send(messages["many_winners"].format(", ".join(nicklist), winners[-1]))
 
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:
@@ -2250,7 +2249,7 @@ def stop_game(cli, winner="", abort=False, additional_winners=None, log=True):
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
     if var.ADMIN_TO_PING is not None:  # It was an flastgame
-        cli.msg(chan, "PING! {0}".format(var.ADMIN_TO_PING))
+        channels.Main.send("PING! {0}".format(var.ADMIN_TO_PING))
         var.ADMIN_TO_PING = None
 
     return True
@@ -2368,7 +2367,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         if end_game:
             debuglog("WIN:", winner)
             cli.msg(chan, message)
-            stop_game(cli, winner, additional_winners=event.data["additional_winners"])
+            stop_game(winner, additional_winners=event.data["additional_winners"])
         return True
 
 @handle_error
@@ -5478,7 +5477,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     if restart:
         var.RESTART_TRIES += 1
     if var.RESTART_TRIES > 3:
-        stop_game(cli, abort=True)
+        stop_game(abort=True)
         return
 
     if not restart:
@@ -6092,7 +6091,7 @@ def reset_game(cli, nick, chan, rest):
     else:
         cli.msg(botconfig.CHANNEL, messages["fstop_success"].format(nick))
     if var.PHASE != "join":
-        stop_game(cli, log=False)
+        stop_game(log=False)
     else:
         pl = [p for p in list_players() if not is_fake_nick(p)]
         reset_modes_timers(var)
@@ -6830,7 +6829,7 @@ def update(cli, nick, chan, rest):
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
-            stop_game(cli, log=False)
+            stop_game(log=False)
         else:
             reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
                 what="restart", cmd="update", prefix=botconfig.CMD_CHAR), private=True)
