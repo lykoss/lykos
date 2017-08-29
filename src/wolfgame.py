@@ -3337,14 +3337,14 @@ def begin_day(cli):
     chk_decision(cli)
 
 @handle_error
-def night_warn(cli, gameid):
+def night_warn(gameid):
     if gameid != var.NIGHT_ID:
         return
 
     if var.PHASE != "night":
         return
 
-    cli.msg(botconfig.CHANNEL, (messages["twilight_warning"]))
+    channels.Main.send(messages["twilight_warning"])
 
 @handle_error
 def transition_day(cli, gameid=0):
@@ -5192,7 +5192,7 @@ def transition_night(cli):
         t.start()
 
     if var.NIGHT_TIME_WARN > 0:
-        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, [cli, var.NIGHT_ID])
+        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, [var.NIGHT_ID])
         var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
         t2.daemon = True
         t2.start()
