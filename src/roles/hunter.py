@@ -109,7 +109,7 @@ def on_transition_day(evt, cli, var):
     for k, d in list(KILLS.items()):
         evt.data["victims"].append(d.nick)
         evt.data["onlybywolves"].discard(d.nick)
-        evt.data["killers"][d].append(k.nick)
+        evt.data["killers"][d.nick].append(k.nick)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 

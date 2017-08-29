@@ -12,10 +12,6 @@ from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
 
-# TODO: some additional stuff with blessed villager has not been split yet,
-# notably the interactions with assassin and mad scientist, need to split those out too
-# as part of splitting assassin/MS (new events will be required)
-
 @event_listener("transition_day", priority=4.3)
 def on_transition_day(evt, cli, var):
     pl = list_players()
