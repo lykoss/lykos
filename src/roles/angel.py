@@ -282,7 +282,7 @@ def on_assassinate(evt, cli, var, nick, target, prot):
                 break
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     PASSED.clear()
     # clear out LASTGUARDED for people that didn't guard last night
     for g in list(LASTGUARDED.keys()):

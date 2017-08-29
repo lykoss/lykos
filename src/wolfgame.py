@@ -3333,7 +3333,7 @@ def begin_day(cli):
         mass_mode(cli, modes, [])
 
     event = Event("begin_day", {})
-    event.dispatch(cli, var)
+    event.dispatch(var)
     # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
     chk_decision(cli)
 

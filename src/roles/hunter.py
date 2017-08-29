@@ -154,7 +154,7 @@ def on_succubus_visit(evt, cli, var, nick, victim):
         HUNTERS.discard(user)
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     KILLS.clear()
     PASSED.clear()
 

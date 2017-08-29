@@ -278,7 +278,7 @@ def on_transition_night_end(evt, cli, var):
         pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     VISITED.clear()
     ENTRANCED_DYING.clear()
 

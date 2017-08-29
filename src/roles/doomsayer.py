@@ -143,7 +143,7 @@ def on_transition_day(evt, cli, var):
         evt.data["killers"][d].append(k)
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     var.DISEASED.update(SICK.values())
     var.SILENCED.update(SICK.values())
     var.LYCANTHROPES.update(LYCANS.values())

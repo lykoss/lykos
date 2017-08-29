@@ -235,7 +235,7 @@ def on_revealroles(evt, var, wrapper):
         evt.data["output"].append("\u0002dead vengeful ghost\u0002: {0}".format(", ".join(glist)))
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     drivenoff.clear()
     KILLS.clear()
 

@@ -244,7 +244,7 @@ def on_revealroles_role(evt, var, wrapper, nickname, role):
             evt.data["special_case"].append(messages["dullahan_all_dead"])
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     KILLS.clear()
 
 @event_listener("reset")

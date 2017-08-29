@@ -543,7 +543,7 @@ def on_transition_night_end(evt, cli, var):
             pm(cli, shaman, "Players: " + ", ".join(pl))
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
     var.EXCHANGED.update(EXCHANGE)
     var.SILENCED.update(SILENCE)

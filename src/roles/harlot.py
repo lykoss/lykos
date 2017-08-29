@@ -133,7 +133,7 @@ def on_transition_night_end(evt, cli, var):
         pm(cli, harlot, "Players: " + ", ".join(pl))
 
 @event_listener("begin_day")
-def on_begin_day(evt, cli, var):
+def on_begin_day(evt, var):
     VISITED.clear()
 
 @event_listener("get_special")
