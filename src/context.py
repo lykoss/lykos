@@ -128,6 +128,8 @@ class IRCContext:
 
     def _compare(self, other, cls, *attributes):
         """Compare two instances and return a proper value."""
+        if self is other:
+            return True
         if not isinstance(other, cls):
             return NotImplemented
 
