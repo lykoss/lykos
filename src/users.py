@@ -145,16 +145,9 @@ def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, al
 def exists(nick, *stuff, **morestuff): # backwards-compatible API
     return nick in var.USERS
 
-def users_():
+def users():
     """Iterate over the users in the registry."""
     yield from _users
-
-class users: # backwards-compatible API
-    def __iter__(self):
-        yield from var.USERS
-    @staticmethod
-    def items():
-        yield from var.USERS.items()
 
 def complete_match(string, users):
     matches = []
