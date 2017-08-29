@@ -123,7 +123,7 @@ def on_lynch(evt, cli, var, nick):
         evt.prevent_default = True
 
 @event_listener("get_voters")
-def on_get_voters(evt, cli, var):
+def on_get_voters(evt, var):
     evt.data["voters"].difference_update(SICK.values())
 
 @event_listener("transition_day_begin")

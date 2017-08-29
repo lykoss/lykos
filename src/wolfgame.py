@@ -1733,7 +1733,7 @@ def hurry_up(cli, gameid, change):
 
     pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
     evt = Event("get_voters", {"voters": pl})
-    evt.dispatch(cli, var)
+    evt.dispatch(var)
     pl = evt.data["voters"]
 
     avail = len(pl)
@@ -1804,7 +1804,7 @@ def chk_decision(cli, force=""):
         chan = botconfig.CHANNEL
         pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
-        evt.dispatch(cli, var)
+        evt.dispatch(var)
         pl = evt.data["voters"]
 
         avail = len(pl)
@@ -1955,7 +1955,7 @@ def show_votes(cli, nick, chan, rest):
 
         pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
-        evt.dispatch(cli, var)
+        evt.dispatch(var)
         pl = evt.data["voters"]
 
         avail = len(pl)
@@ -2288,7 +2288,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         if var.PHASE == "day":
             pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
             evt = Event("get_voters", {"voters": pl})
-            evt.dispatch(cli, var)
+            evt.dispatch(var)
             pl = evt.data["voters"]
             lpl = len(pl)
         else:

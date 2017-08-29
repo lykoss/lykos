@@ -180,7 +180,7 @@ def on_chk_nightdone(evt, cli, var):
     evt.data["nightroles"].extend(list_players(var.TOTEM_ORDER))
 
 @event_listener("get_voters")
-def on_get_voters(evt, cli, var):
+def on_get_voters(evt, var):
     evt.data["voters"] -= NARCOLEPSY
 
 @event_listener("chk_decision", priority=1)
