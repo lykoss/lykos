@@ -5,6 +5,7 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -194,10 +195,10 @@ def on_chk_nightdone(evt, cli, var):
     evt.data["nightroles"].extend([p.nick for p in GHOSTS if GHOSTS[p][0] != "!"])
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
-    ps = list_players()
-    wolves = list_players(var.WOLFTEAM_ROLES)
+    ps = get_players()
+    wolves = get_players(var.WOLFTEAM_ROLES)
     for v_ghost, who in GHOSTS.items():
         if who[0] == "!":
             continue
@@ -210,12 +211,11 @@ def on_transition_night_end(evt, cli, var):
 
         random.shuffle(pl)
 
-        if not v_ghost.prefers_simple():
-            v_ghost.send(messages["vengeful_ghost_notify"].format(who))
-        else:
-            v_ghost.send(messages["vengeful_ghost_simple"])
-        v_ghost.send(who.capitalize() + ": " + ", ".join(pl))
-        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost.nick, who, ", ".join(pl)))
+        to_send = "vengeful_ghost_notify"
+        if v_ghost.prefers_simple():
+            to_send = "vengeful_ghost_simple"
+        v_ghost.send(messages[to_send].format(who), who.capitalize() + ": " + ", ".join(pl), sep="\n")
+        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):

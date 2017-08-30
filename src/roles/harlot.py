@@ -122,16 +122,15 @@ def on_exchange_roles(evt, cli, var, actor, nick, actor_role, nick_role):
             del VISITED[nick]
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    for harlot in var.ROLES["harlot"]:
-        pl = list_players()
+def on_transition_night_end(evt, var):
+    for harlot in get_players(("harlot",)):
+        pl = get_players()
         random.shuffle(pl)
         pl.remove(harlot)
-        if harlot in var.PLAYERS and not is_user_simple(harlot):
-            pm(cli, harlot, messages["harlot_info"])
-        else:
-            pm(cli, harlot, messages["harlot_simple"])
-        pm(cli, harlot, "Players: " + ", ".join(pl))
+        to_send = "harlot_info"
+        if harlot.prefers_simple():
+            to_send = "harlot_simple"
+        harlot.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

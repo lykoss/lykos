@@ -226,10 +226,10 @@ def on_transition_night_begin(evt, cli, var):
     GUARDED.clear()
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     # the messages for angel and guardian angel are different enough to merit individual loops
-    ps = list_players()
-    for bg in var.ROLES["bodyguard"]:
+    ps = get_players()
+    for bg in get_players(("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)
@@ -238,31 +238,31 @@ def on_transition_night_end(evt, cli, var):
         if chance > 0:
             warning = messages["bodyguard_death_chance"].format(chance)
 
-        if bg in var.PLAYERS and not is_user_simple(bg):
-            pm(cli, bg, messages["bodyguard_notify"].format(warning))
-        else:
-            pm(cli, bg, messages["bodyguard_simple"])  # !simple
-        pm(cli, bg, "Players: " + ", ".join(pl))
+        to_send = "bodyguard_notify"
+        if bg.prefers_simple():
+            to_send = "bodyguard_simple"
+        bg.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
-    for gangel in var.ROLES["guardian angel"]:
+    for gangel in get_players(("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)
         gself = messages["guardian_self_notification"]
         if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
             pl.remove(gangel)
             gself = ""
-        if LASTGUARDED.get(gangel) in pl:
-            pl.remove(LASTGUARDED[gangel])
+        if gangel.nick in LASTGUARDED:
+            user = users._get(LASTGUARDED[gangel.nick]) # FIXME
+            if user in pl:
+                pl.remove(user)
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
         warning = ""
         if chance > 0:
             warning = messages["bodyguard_death_chance"].format(chance)
 
-        if gangel in var.PLAYERS and not is_user_simple(gangel):
-            pm(cli, gangel, messages["guardian_notify"].format(warning, gself))
-        else:
-            pm(cli, gangel, messages["guardian_simple"])  # !simple
-        pm(cli, gangel, "Players: " + ", ".join(pl))
+        to_send = "guardian_notify"
+        if gangel.prefers_simple():
+            to_send = "guardian_simple"
+        gangel.send(messages[to_send].format(warning, gself), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("assassinate")
 def on_assassinate(evt, cli, var, nick, target, prot):

@@ -162,23 +162,21 @@ def on_chk_nightdone(evt, cli, var):
             evt.data["nightroles"].append(dullahan)
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    for dullahan in var.ROLES["dullahan"]:
-        duser = users._get(dullahan) # FIXME
-        targets = list(TARGETS[duser])
+def on_transition_night_end(evt, var):
+    for dullahan in get_players(("dullahan",)):
+        targets = list(TARGETS[dullahan])
         for target in targets[:]:
             if target.nick in var.DEAD:
                 targets.remove(target) # FIXME: Update when var.DEAD holds User instances
         if not targets: # already all dead
-            duser.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
+            dullahan.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
         random.shuffle(targets)
-        if duser.prefers_simple():
-            duser.send(messages["dullahan_simple"])
-        else:
-            duser.send(messages["dullahan_notify"])
+        to_send = "dullahan_notify"
+        if dullahan.prefers_simple():
+            to_send = "dullahan_simple"
         t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
-        duser.send(t + ", ".join(t.nick for t in targets))
+        dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
 
 @event_listener("role_assignment")
 def on_role_assignment(evt, cli, var, gamemode, pl, restart):

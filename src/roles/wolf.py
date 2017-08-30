@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src.functions import get_players
+from src.functions import get_players, get_main_role, get_all_roles
 from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -25,9 +25,7 @@ def wolf_can_kill(var, wolf):
     num_kills = nevt.data["numkills"]
     if num_kills == 0:
         return False
-    wolfroles = {get_role(wolf.nick)} # FIXME: pass user to get_role once updated
-    wolfroles.update(get_templates(wolf.nick)) # FIXME: pass user to get_templates once updated
-    # (actually should kill get_role/get_templates entirely and make get_mainrole and get_allroles)
+    wolfroles = get_all_roles(wolf)
     return bool(CAN_KILL & wolfroles)
 
 @cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
@@ -314,9 +312,9 @@ def on_chk_nightdone2(evt, cli, var):
             evt.data["actedcount"] -= 1
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    ps = list_players()
-    wolves = list_players(var.WOLFCHAT_ROLES)
+def on_transition_night_end(evt, var):
+    ps = get_players()
+    wolves = get_players(var.WOLFCHAT_ROLES)
     # roles in wolfchat (including those that can only listen in but not speak)
     wcroles = var.WOLFCHAT_ROLES
     # roles allowed to talk in wolfchat
@@ -346,12 +344,12 @@ def on_transition_night_end(evt, cli, var):
             talkroles = var.WOLF_ROLES | {"traitor"}
 
     for wolf in wolves:
-        normal_notify = wolf in var.PLAYERS and not is_user_simple(wolf)
-        role = get_role(wolf)
+        normal_notify = not wolf.prefers_simple()
+        role = get_main_role(wolf)
         wevt = Event("wolflist", {"tags": set()})
         tags = ""
         if role in wcroles:
-            wevt.dispatch(cli, var, wolf, wolf)
+            wevt.dispatch(wolf.client, var, wolf.nick, wolf.nick) # FIXME: Need to update the wolflist event
             tags = " ".join(wevt.data["tags"])
             if tags:
                 tags += " "
@@ -364,14 +362,14 @@ def on_transition_night_end(evt, cli, var):
                     tags2 = " ".join(wevt.data["tags"] - {"cursed"})
                     if tags2:
                         tags2 += " "
-                    pm(cli, wolf, messages[cmsg].format(tags2))
+                    wolf.send(messages[cmsg].format(tags2))
                 except KeyError:
-                    pm(cli, wolf, messages[msg].format(tags))
+                    wolf.send(messages[msg].format(tags))
             else:
-                pm(cli, wolf, messages[msg].format(tags))
+                wolf.send(messages[msg].format(tags))
 
             if len(wolves) > 1 and wccond is not None and role in talkroles:
-                pm(cli, wolf, messages["wolfchat_notify"].format(wccond))
+                wolf.send(messages["wolfchat_notify"].format(wccond))
         else:
             an = ""
             if tags:
@@ -379,35 +377,38 @@ def on_transition_night_end(evt, cli, var):
                     an = "n"
             elif role.startswith(("a", "e", "i", "o", "u")):
                 an = "n"
-            pm(cli, wolf, messages["wolf_simple"].format(an, tags, role))  # !simple
+            wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
 
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
+        players = []
         if role in wcroles:
-            for i, player in enumerate(pl):
-                prole = get_role(player)
+            for player in pl:
+                prole = get_main_role(player)
                 wevt.data["tags"] = set()
-                wevt.dispatch(cli, var, player, wolf)
+                wevt.dispatch(wolf.client, var, player.nick, wolf.nick) # FIXME: Need to update the wolflist event
                 tags = " ".join(wevt.data["tags"])
                 if prole in wcroles:
                     if tags:
                         tags += " "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
+                    players.append("\u0002{0}\u0002 ({1}{2})".format(player, tags, prole))
                 elif tags:
-                    pl[i] = "{0} ({1})".format(player, tags)
+                    players.append("{0} ({1})".format(player, tags))
         elif role == "warlock":
             # warlock specifically only sees cursed if they're not in wolfchat
-            for i, player in enumerate(pl):
-                if player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
+            for player in pl:
+                if player.nick in var.ROLES["cursed villager"]: # FIXME: Once var.ROLES holds User instances
+                    players.append(player.nick + " (cursed)")
+                else:
+                    players.append(player.nick)
 
-        pm(cli, wolf, "Players: " + ", ".join(pl))
+        wolf.send("Players: " + ", ".join(players))
         if role in CAN_KILL and var.DISEASED_WOLVES:
-            pm(cli, wolf, messages["ill_wolves"])
+            wolf.send(messages["ill_wolves"])
         # TODO: split the following out into their own files (alpha)
-        if var.ALPHA_ENABLED and role == "alpha wolf" and wolf not in var.ALPHA_WOLVES:
-            pm(cli, wolf, messages["wolf_bite"])
+        if var.ALPHA_ENABLED and role == "alpha wolf" and wolf.nick not in var.ALPHA_WOLVES: # FIXME: Fix once var.ALPHA_WOLVES holds User instances
+            wolf.send(messages["wolf_bite"])
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):

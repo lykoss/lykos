@@ -5410,7 +5410,7 @@ def transition_night(cli):
         pm(cli, g, gun_msg)
 
     event_end = Event("transition_night_end", {})
-    event_end.dispatch(cli, var)
+    event_end.dispatch(var)
 
     dmsg = (daydur_msg + messages["night_begin"])
 

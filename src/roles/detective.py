@@ -77,9 +77,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         INVESTIGATED.discard(nick)
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    ps = list_players()
-    for dttv in var.ROLES["detective"]:
+def on_transition_night_end(evt, var):
+    ps = get_players()
+    for dttv in get_players(("detective",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(dttv)
@@ -87,12 +87,10 @@ def on_transition_night_end(evt, cli, var):
         warning = ""
         if chance > 0:
             warning = messages["detective_chance"].format(chance)
-        if dttv in var.PLAYERS and not is_user_simple(dttv):
-            pm(cli, dttv, messages["detective_notify"].format(warning))
-        else:
-            pm(cli, dttv, messages["detective_simple"])  # !simple
-        pm(cli, dttv, "Players: " + ", ".join(pl))
-
+        to_send = "detective_notify"
+        if dttv.prefers_simple():
+            to_send = "detective_simple"
+        dttv.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, cli, var):

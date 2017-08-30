@@ -45,7 +45,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["nick_messages"].append(messages["angry_wolves"])
 
 @event_listener("transition_night_end", priority=3)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     if not ANGRY_WOLVES:
         return
 
@@ -53,10 +53,10 @@ def on_transition_night_end(evt, cli, var):
     if not wolves or not wolf.wolf_can_kill(var, wolves[0]):
         return
 
-    # TODO: this should probably be a mass privmsg to reduce night lag,
-    # but there isn't a mass_privmsg equivalent with the new user API yet
     for wofl in wolves:
-        wofl.send(messages["angry_wolves"])
+        wofl.queue_message(messages["angry_wolves"])
+
+    wofl.send_messages()
 
 @event_listener("chk_win", priority=1)
 def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):

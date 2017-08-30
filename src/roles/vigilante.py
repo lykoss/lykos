@@ -123,17 +123,16 @@ def on_chk_nightdone(evt, cli, var):
     evt.data["nightroles"].extend(get_roles("vigilante"))
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    ps = list_players()
-    for vigilante in var.ROLES["vigilante"]:
+def on_transition_night_end(evt, var):
+    ps = get_players()
+    for vigilante in get_players(("vigilante",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)
-        if vigilante in var.PLAYERS and not is_user_simple(vigilante):
-            pm(cli, vigilante, messages["vigilante_notify"])
-        else:
-            pm(cli, vigilante, messages["vigilante_simple"])
-        pm(cli, vigilante, "Players: " + ", ".join(pl))
+        to_send = "vigilante_notify"
+        if vigilante.prefers_simple():
+            to_send = "vigilante_simple"
+        vigilante.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):

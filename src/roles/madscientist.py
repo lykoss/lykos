@@ -8,6 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -150,15 +151,15 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     evt.data["pl"] = pl
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    for ms in var.ROLES["mad scientist"]:
+def on_transition_night_end(evt, var):
+    for ms in get_players(("mad scientist",)):
         pl = list_players()
-        target1, target2 = _get_targets(var, pl, ms)
+        target1, target2 = _get_targets(var, pl, ms.nick) # FIXME: Need to update _get_targets to accept users
 
-        if ms in var.PLAYERS and not is_user_simple(ms):
-            pm(cli, ms, messages["mad_scientist_notify"].format(target1, target2))
-        else:
-            pm(cli, ms, messages["mad_scientist_simple"].format(target1, target2))
+        to_send = "mad_scientist_notify"
+        if ms.prefers_simple():
+            to_send = "mad_scientist_simple"
+        ms.send(messages[to_send].format(target1, target2))
 
 @event_listener("myrole")
 def on_myrole(evt, cli, var, nick):

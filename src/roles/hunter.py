@@ -131,19 +131,18 @@ def on_chk_nightdone(evt, cli, var):
     evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     ps = get_players()
-    for hunter in var.ROLES["hunter"]:
-        user = users._get(hunter) # FIXME
-        if user in HUNTERS:
+    for hunter in get_players(("hunter",)):
+        if hunter in HUNTERS:
             continue # already killed
         pl = ps[:]
         random.shuffle(pl)
-        pl.remove(user)
+        pl.remove(hunter)
         to_send = "hunter_notify"
-        if user.prefers_simple():
+        if hunter.prefers_simple():
             to_send = "hunter_simple"
-        user.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+        hunter.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):

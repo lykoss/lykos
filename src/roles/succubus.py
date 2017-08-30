@@ -267,16 +267,22 @@ def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
         evt.prevent_default = True
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, cli, var):
-    for succubus in var.ROLES["succubus"]:
-        pl = list_players()
+def on_transition_night_end(evt, var):
+    succubi = get_players(("succubus",))
+    for succubus in succubi:
+        pl = get_players()
         random.shuffle(pl)
         pl.remove(succubus)
-        if succubus in var.PLAYERS and not is_user_simple(succubus):
-            pm(cli, succubus, messages["succubus_notify"])
-        else:
-            pm(cli, succubus, messages["succubus_simple"])
-        pm(cli, succubus, "Players: " + ", ".join(("{0} ({1})".format(x, get_role(x)) if x in var.ROLES["succubus"] else x for x in pl)))
+        to_send = "succubus_notify"
+        if succubus.prefers_simple():
+            to_send = "succubus_simple"
+        succ = []
+        for p in pl:
+            if p in succubi:
+                succ.append("{0} (succubus)".format(p))
+            else:
+                succ.append(p.nick)
+        succubus.send(messages[to_send], "Players: " + ", ".join(succ), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

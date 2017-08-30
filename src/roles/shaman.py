@@ -7,7 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users
-from src.functions import get_players
+from src.functions import get_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -500,48 +500,50 @@ def on_transition_day_end(evt, cli, var):
     cli.msg(botconfig.CHANNEL, "\n".join(message))
 
 @event_listener("transition_night_end", priority=2.01)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     max_totems = defaultdict(int)
-    ps = list_players()
-    shamans = list_players(var.TOTEM_ORDER)
+    ps = get_players()
+    shamans = list_players(var.TOTEM_ORDER) # FIXME: Need to convert alongside the entire role
     for ix in range(len(var.TOTEM_ORDER)):
         for c in var.TOTEM_CHANCES.values():
             max_totems[var.TOTEM_ORDER[ix]] += c[ix]
     for s in list(LASTGIVEN.keys()):
         if s not in shamans:
             del LASTGIVEN[s]
-    for shaman in list_players(var.TOTEM_ORDER):
+    for shaman in get_players(var.TOTEM_ORDER):
         pl = ps[:]
         random.shuffle(pl)
-        if shaman in LASTGIVEN and LASTGIVEN[shaman] in pl:
-            pl.remove(LASTGIVEN[shaman])
-        role = get_role(shaman) # FIXME: don't use get_role here once split into one file per role
+        if shaman.nick in LASTGIVEN:
+            user = users._get(LASTGIVEN[shaman.nick]) # FIXME
+            if user in pl:
+                pl.remove(user)
+        role = get_main_role(shaman) # FIXME: don't use get_main_role here once split into one file per role
         indx = var.TOTEM_ORDER.index(role)
         target = 0
         rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
         for t in var.TOTEM_CHANCES.keys():
             target += var.TOTEM_CHANCES[t][indx]
             if rand <= target:
-                TOTEMS[shaman] = t
+                TOTEMS[shaman.nick] = t # FIXME: Fix once shaman is converted
                 break
-        if shaman in var.PLAYERS and not is_user_simple(shaman):
+        if shaman.prefers_simple():
             if role not in var.WOLFCHAT_ROLES:
-                pm(cli, shaman, messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
+                shaman.send(messages["shaman_simple"].format(role))
             if role != "crazed shaman":
-                totem = TOTEMS[shaman]
+                shaman.send(messages["totem_simple"].format(TOTEMS[shaman.nick])) # FIXME
+        else:
+            if role not in var.WOLFCHAT_ROLES:
+                shaman.send(messages["shaman_notify"].format(role, "random " if shaman.nick in var.ROLES["crazed shaman"] else "")) # FIXME
+            if role != "crazed shaman":
+                totem = TOTEMS[shaman.nick] # FIXME
                 tmsg = messages["shaman_totem"].format(totem)
                 try:
                     tmsg += messages[totem + "_totem"]
                 except KeyError:
                     tmsg += messages["generic_bug_totem"]
-                pm(cli, shaman, tmsg)
-        else:
-            if role not in var.WOLFCHAT_ROLES:
-                pm(cli, shaman, messages["shaman_simple"].format(role))
-            if role != "crazed shaman":
-                pm(cli, shaman, messages["totem_simple"].format(TOTEMS[shaman]))
+                shaman.send(tmsg)
         if role not in var.WOLFCHAT_ROLES:
-            pm(cli, shaman, "Players: " + ", ".join(pl))
+            shaman.send("Players: " + ", ".join(p.nick for p in pl))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

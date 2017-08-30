@@ -40,7 +40,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["nick_messages"].append(messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
 @event_listener("transition_night_end", priority=2.01)
-def on_transition_night_end(evt, cli, var):
+def on_transition_night_end(evt, var):
     # init with all roles that haven't been split yet
     special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
                                "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
@@ -51,19 +51,18 @@ def on_transition_night_end(evt, cli, var):
     neutral = set(get_players(var.TRUE_NEUTRAL_ROLES))
     special = evt2.data["special"]
 
-    for wolf in var.ROLES["wolf mystic"]:
+    for wolf in get_players(("wolf mystic",)):
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
         # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
         numvills = len(special & (pl - wolves - neutral))
-        pm(cli, wolf, messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-    for mystic in var.ROLES["mystic"]:
-        if mystic in var.PLAYERS and not is_user_simple(mystic):
-            pm(cli, mystic, messages["mystic_notify"])
-        else:
-            pm(cli, mystic, messages["mystic_simple"])
+        wolf.send(messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
+    for mystic in get_players(("mystic",)):
+        to_send = "mystic_notify"
+        if mystic.prefers_simple():
+            to_send = "mystic_simple"
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
         numevil = len(wolves)
-        pm(cli, mystic, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
+        mystic.send(messages[to_send], messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""), sep="\n")
 
 @event_listener("get_special")
 def on_get_special(evt, var):
