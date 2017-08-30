@@ -3438,7 +3438,7 @@ def transition_day(cli, gameid=0):
         if crow not in var.ROLES["werecrow"]:
             continue
         evt = Event("night_acted", {"acted": False})
-        evt.dispatch(cli, var, target, crow)
+        evt.dispatch(var, target, crow)
         if ((target in var.HVISITED and var.HVISITED[target]) or
                 (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):

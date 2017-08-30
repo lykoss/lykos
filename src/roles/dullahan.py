@@ -109,7 +109,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("night_acted")
-def on_acted(evt, cli, var, nick, sender):
+def on_acted(evt, var, nick, sender):
     if users._get(nick) in KILLS: # FIXME
         evt.data["acted"] = True
 

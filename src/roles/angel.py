@@ -90,7 +90,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
         PASSED.discard(nick)
 
 @event_listener("night_acted")
-def on_acted(evt, cli, var, nick, sender):
+def on_acted(evt, var, nick, sender):
     if nick in GUARDED:
         evt.data["acted"] = True
 

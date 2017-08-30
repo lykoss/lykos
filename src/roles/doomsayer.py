@@ -69,7 +69,7 @@ def on_rename(evt, cli, var, prefix, nick):
             del dictvar[prefix]
 
 @event_listener("night_acted")
-def on_acted(evt, cli, var, nick, sender):
+def on_acted(evt, var, nick, sender):
     if nick in SEEN:
         evt.data["acted"] = True
 

@@ -98,7 +98,7 @@ def on_transition_day_resolve_end3(evt, cli, var, victims):
             evt.data["dead"].append(harlot)
 
 @event_listener("night_acted")
-def on_night_acted(evt, cli, var, nick, sender):
+def on_night_acted(evt, var, nick, sender):
     if VISITED.get(nick):
         evt.data["acted"] = True
 
