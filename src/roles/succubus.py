@@ -299,7 +299,7 @@ def on_transition_day(evt, cli, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("succubus",)))
+    evt.data["special"].update(get_players(("succubus",)))
 
 @event_listener("vg_kill")
 def on_vg_kill(evt, var, ghost, target):

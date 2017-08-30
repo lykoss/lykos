@@ -67,6 +67,6 @@ def on_transition_night_end(evt, var):
 @event_listener("get_special")
 def on_get_special(evt, var):
     # mystics count as special even though they don't have any commands
-    evt.data["special"].update(get_all_players(("mystic",)))
+    evt.data["special"].update(get_players(("mystic",)))
 
 # vim: set sw=4 expandtab:

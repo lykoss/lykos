@@ -138,7 +138,7 @@ def on_begin_day(evt, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("harlot",)))
+    evt.data["special"].update(get_players(("harlot",)))
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):

@@ -86,16 +86,15 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if var.PHASE not in var.GAME_PHASES:
         return
 
-    for child in var.ROLES["wild child"].copy():
-        wild = users._get(child) # FIXME
-        if child not in IDOLS or child in evt.params.deadlist or IDOLS[child] not in evt.params.deadlist:
+    for child in get_all_players(("wild child",)):
+        if child.nick not in IDOLS or child.nick in evt.params.deadlist or IDOLS[child.nick] not in evt.params.deadlist:
             continue
 
         # change their main role to wolf, even if wild child was a template
-        wild.send(messages["idol_died"])
-        WILD_CHILDREN.add(child)
-        change_role(wild, get_main_role(wild), "wolf")
-        var.ROLES["wild child"].discard(child)
+        child.send(messages["idol_died"])
+        WILD_CHILDREN.add(child.nick)
+        change_role(child, get_main_role(child), "wolf")
+        var.ROLES["wild child"].discard(child.nick)
 
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -104,10 +103,10 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
         wolves = get_players(wcroles)
-        wolves.remove(wild)
+        wolves.remove(child)
         if wolves:
             for wolf in wolves:
-                wolf.queue_message(messages["wild_child_as_wolf"].format(wild))
+                wolf.queue_message(messages["wild_child_as_wolf"].format(child))
             wolf.send_messages()
         if var.PHASE == "day":
             random.shuffle(wolves)
@@ -115,14 +114,14 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             for i, wolf in enumerate(wolves):
                 wolfroles = get_main_role(wolf)
                 cursed = ""
-                if wolf.nick in var.ROLES["cursed villager"]:
+                if wolf.nick in var.ROLES["cursed villager"]: # FIXME
                     cursed = "cursed "
                 new.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles))
 
             if new:
-                wild.send("Wolves: " + ", ".join(new))
+                child.send("Wolves: " + ", ".join(new))
             else:
-                wild.send(messages["no_other_wolves"])
+                child.send(messages["no_other_wolves"])
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):
