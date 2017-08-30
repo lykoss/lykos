@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -229,7 +229,7 @@ def on_transition_night_begin(evt, cli, var):
 def on_transition_night_end(evt, var):
     # the messages for angel and guardian angel are different enough to merit individual loops
     ps = get_players()
-    for bg in get_players(("bodyguard",)):
+    for bg in get_all_players(("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)
@@ -243,7 +243,7 @@ def on_transition_night_end(evt, var):
             to_send = "bodyguard_simple"
         bg.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
-    for gangel in get_players(("guardian angel",)):
+    for gangel in get_all_players(("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)
         gself = messages["guardian_self_notification"]

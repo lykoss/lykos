@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -123,7 +123,7 @@ def on_exchange_roles(evt, cli, var, actor, nick, actor_role, nick_role):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    for harlot in get_players(("harlot",)):
+    for harlot in get_all_players(("harlot",)):
         pl = get_players()
         random.shuffle(pl)
         pl.remove(harlot)
@@ -138,7 +138,7 @@ def on_begin_day(evt, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("harlot",)))
+    evt.data["special"].update(get_all_players(("harlot",)))
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):

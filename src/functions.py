@@ -3,7 +3,7 @@ from src.events import Event
 from src import settings as var
 from src import users
 
-__all__ = ["get_players", "get_participants", "get_target", "get_main_role", "get_all_roles"]
+__all__ = ["get_players", "get_all_players", "get_participants", "get_target", "get_main_role", "get_all_roles"]
 
 def get_players(roles=None, *, mainroles=None):
     if mainroles is None:
@@ -20,6 +20,16 @@ def get_players(roles=None, *, mainroles=None):
         # so the elements of pl are not necessarily in var.ALL_PLAYERS
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl]
+
+def get_all_players(roles=None):
+    if roles is None:
+        roles = var.ROLES
+    pl = set()
+    for role in roles:
+        for nick in var.ROLES[role]:
+            pl.add(users._get(nick)) # FIXME
+
+    return pl
 
 def get_participants():
     """List all players who are still able to participate in the game."""

@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -44,12 +44,11 @@ def on_transition_day_resolve(evt, cli, var, victim):
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        for blessed in var.ROLES["blessed villager"]: # FIXME
-            user = users._get(blessed) # FIXME
+        for blessed in get_all_players(("blessed villager",)):
             to_send = "blessed_notify"
-            if user.prefers_simple():
+            if blessed.prefers_simple():
                 to_send = "blessed_simple"
-            user.send(messages[to_send])
+            blessed.send(messages[to_send])
 
 @event_listener("desperation_totem")
 def on_desperation(evt, cli, var, votee, target, prot):

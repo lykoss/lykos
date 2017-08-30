@@ -4,7 +4,7 @@ import random
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -51,12 +51,12 @@ def on_transition_night_end(evt, var):
     neutral = set(get_players(var.TRUE_NEUTRAL_ROLES))
     special = evt2.data["special"]
 
-    for wolf in get_players(("wolf mystic",)):
+    for wolf in get_all_players(("wolf mystic",)):
         # if adding this info to !myrole, you will need to save off this count so that they can't get updated info until the next night
         # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
         numvills = len(special & (pl - wolves - neutral))
         wolf.send(messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-    for mystic in get_players(("mystic",)):
+    for mystic in get_all_players(("mystic",)):
         to_send = "mystic_notify"
         if mystic.prefers_simple():
             to_send = "mystic_simple"
@@ -67,6 +67,6 @@ def on_transition_night_end(evt, var):
 @event_listener("get_special")
 def on_get_special(evt, var):
     # mystics count as special even though they don't have any commands
-    evt.data["special"].update(get_players(("mystic",)))
+    evt.data["special"].update(get_all_players(("mystic",)))
 
 # vim: set sw=4 expandtab:

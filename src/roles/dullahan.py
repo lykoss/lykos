@@ -4,7 +4,7 @@ import random
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src.functions import get_players, get_target
+from src.functions import get_players, get_all_players, get_target
 from src import users, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.messages import messages
@@ -131,7 +131,7 @@ def on_swap(evt, var, old_user, user):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("dullahan",)))
+    evt.data["special"].update(get_all_players(("dullahan",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
@@ -163,7 +163,7 @@ def on_chk_nightdone(evt, cli, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    for dullahan in get_players(("dullahan",)):
+    for dullahan in get_all_players(("dullahan",)):
         targets = list(TARGETS[dullahan])
         for target in targets[:]:
             if target.nick in var.DEAD:

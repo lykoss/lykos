@@ -4,7 +4,7 @@ import random
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -104,7 +104,7 @@ def on_doctor_immunize(evt, cli, var, doctor, target):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("doomsayer",)))
+    evt.data["special"].update(get_all_players(("doomsayer",)))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):

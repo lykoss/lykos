@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -268,7 +268,7 @@ def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    succubi = get_players(("succubus",))
+    succubi = get_all_players(("succubus",))
     for succubus in succubi:
         pl = get_players()
         random.shuffle(pl)
@@ -299,7 +299,7 @@ def on_transition_day(evt, cli, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("succubus",)))
+    evt.data["special"].update(get_all_players(("succubus",)))
 
 @event_listener("vg_kill")
 def on_vg_kill(evt, var, ghost, target):

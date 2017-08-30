@@ -5,7 +5,7 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src import users, debuglog, errlog, plog
-from src.functions import get_players, get_target
+from src.functions import get_players, get_all_players, get_target
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -102,7 +102,7 @@ def on_acted(evt, var, nick, sender):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("hunter",)))
+    evt.data["special"].update(get_all_players(("hunter",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
@@ -133,7 +133,7 @@ def on_chk_nightdone(evt, cli, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     ps = get_players()
-    for hunter in get_players(("hunter",)):
+    for hunter in get_all_players(("hunter",)):
         if hunter in HUNTERS:
             continue # already killed
         pl = ps[:]

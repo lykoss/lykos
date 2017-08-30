@@ -5,7 +5,7 @@ import random
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -67,7 +67,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("detective",)))
+    evt.data["special"].update(get_all_players(("detective",)))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
@@ -79,7 +79,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     ps = get_players()
-    for dttv in get_players(("detective",)):
+    for dttv in get_all_players(("detective",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(dttv)

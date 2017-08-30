@@ -4,7 +4,7 @@ import re
 import src.settings as var
 from src.utilities import *
 from src import users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -139,7 +139,7 @@ def on_transition_day_begin(evt, cli, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    for child in get_players(("wild child",)):
+    for child in get_all_players(("wild child",)):
         to_send = "child_notify"
         if child.prefers_simple():
             to_send = "child_simple"
