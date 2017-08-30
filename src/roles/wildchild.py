@@ -114,7 +114,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             for i, wolf in enumerate(wolves):
                 wolfroles = get_main_role(wolf)
                 cursed = ""
-                if wolf.nick in var.ROLES["cursed villager"]: # FIXME
+                if wolf in get_all_players(("cursed villager",)):
                     cursed = "cursed "
                 new.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles))
 
