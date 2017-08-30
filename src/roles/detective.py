@@ -62,12 +62,12 @@ def on_rename(evt, cli, var, prefix, nick):
         INVESTIGATED.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    INVESTIGATED.discard(nick)
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    INVESTIGATED.discard(user.nick)
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("detective",)))
+    evt.data["special"].update(get_players(("detective",)))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

@@ -138,14 +138,13 @@ def on_begin_day(evt, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("harlot",)))
+    evt.data["special"].update(get_players(("harlot",)))
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if "harlot" not in allroles:
         return
-    if nick in VISITED:
-        del VISITED[nick]
+    VISITED.pop(user.nick, None)
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):

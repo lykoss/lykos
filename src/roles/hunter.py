@@ -70,8 +70,7 @@ def hunter_pass(var, wrapper, message):
     chk_nightdone(wrapper.client)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    user = users._get(nick) # FIXME
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     HUNTERS.discard(user)
     PASSED.discard(user)
     KILLS.pop(user, None)
@@ -102,7 +101,7 @@ def on_acted(evt, var, nick, sender):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("hunter",)))
+    evt.data["special"].update(get_players(("hunter",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):

@@ -164,18 +164,18 @@ def on_can_exchange(evt, var, actor, nick):
         evt.stop_processing = True
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     global ALL_SUCC_IDLE
     if "succubus" not in allroles:
         return
-    if nick in VISITED:
+    if user.nick in VISITED:
         # if it's night, also unentrance the person they visited
         if var.PHASE == "night" and var.GAMEPHASE == "night":
-            if VISITED[nick] in ENTRANCED:
-                ENTRANCED.discard(visited[nick])
-                ENTRANCED_DYING.discard(visited[nick])
-                pm(cli, VISITED[nick], messages["entranced_revert_win"])
-        del VISITED[nick]
+            if VISITED[user.nick] in ENTRANCED:
+                ENTRANCED.discard(VISITED[user.nick])
+                ENTRANCED_DYING.discard(VISITED[user.nick])
+                pm(user.client, VISITED[user.nick], messages["entranced_revert_win"])
+        del VISITED[user.nick]
 
     # if all succubi are dead, one of two things happen:
     # 1. if all succubi idled out (every last one of them), un-entrance people
@@ -188,7 +188,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
         if ALL_SUCC_IDLE:
             while ENTRANCED:
                 e = ENTRANCED.pop()
-                pm(cli, e, messages["entranced_revert_win"])
+                pm(user.client, e, messages["entranced_revert_win"])
         elif entranced_alive:
             msg = []
             # Run in two loops so we can play the message for everyone dying at once before we actually
@@ -204,18 +204,18 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
                 else:
                     msg.append("\u0002{0}\u0002".format(e))
             if len(msg) == 1:
-                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(msg[0] + comma))
+                channels.Main.send(messages["succubus_die_kill"].format(msg[0] + comma))
             elif len(msg) == 2:
-                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(msg[0] + comma + " and " + msg[1] + comma))
+                channels.Main.send(messages["succubus_die_kill"].format(msg[0] + comma + " and " + msg[1] + comma))
             else:
-                cli.msg(botconfig.CHANNEL, messages["succubus_die_kill"].format(", ".join(msg[:-1]) + ", and " + msg[-1] + comma))
+                channels.Main.send(messages["succubus_die_kill"].format(", ".join(msg[:-1]) + ", and " + msg[-1] + comma))
             for e in entranced_alive:
                 # to ensure we do not double-kill someone, notify all child deaths that we'll be
                 # killing off everyone else that is entranced so they don't need to bother
                 dlc = list(evt.params.deadlist)
                 dlc.extend(entranced_alive - {e})
-                debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(nick, e, get_role(e)))
-                evt.params.del_player(cli, e, end_game=False, killer_role="succubus",
+                debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(user, e, get_role(e)))
+                evt.params.del_player(user.client, e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
         ENTRANCED_DYING.clear()
@@ -299,7 +299,7 @@ def on_transition_day(evt, cli, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("succubus",)))
+    evt.data["special"].update(get_players(("succubus",)))
 
 @event_listener("vg_kill")
 def on_vg_kill(evt, var, ghost, target):

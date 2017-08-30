@@ -87,11 +87,11 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             mapping.pop(nick, None)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    SEEN.discard(nick)
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    SEEN.discard(user.nick)
     for name, dictvar in _mappings:
         for k, v in list(dictvar.items()):
-            if nick == k or nick == v:
+            if user.nick in (k, v):
                 del dictvar[k]
 
 @event_listener("doctor_immunize")
@@ -104,7 +104,7 @@ def on_doctor_immunize(evt, cli, var, doctor, target):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_all_players(("doomsayer",)))
+    evt.data["special"].update(get_players(("doomsayer",)))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):
