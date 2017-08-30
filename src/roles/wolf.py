@@ -395,6 +395,8 @@ def on_transition_night_end(evt, var):
                     players.append("\u0002{0}\u0002 ({1}{2})".format(player, tags, prole))
                 elif tags:
                     players.append("{0} ({1})".format(player, tags))
+                else:
+                    players.append(player.nick)
         elif role == "warlock":
             # warlock specifically only sees cursed if they're not in wolfchat
             for player in pl:
