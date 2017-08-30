@@ -48,12 +48,12 @@ def _get_targets(var, pl, nick):
 
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if not death_triggers or "mad scientist" not in allroles:
         return
 
     pl = evt.data["pl"]
-    target1, target2 = _get_targets(var, pl, nick)
+    target1, target2 = _get_targets(var, pl, user.nick)
 
     # apply protections (if applicable)
     prots1 = deque(var.ACTIVE_PROTECTIONS[target1.nick])
@@ -68,13 +68,13 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
         refresh_pl=evt.params.refresh_pl,
         message_prefix="mad_scientist_fail_",
         source="mad scientist",
-        killer=nick,
+        killer=user.nick,
         killer_mainrole=mainrole,
         killer_allroles=allroles,
         prots=prots1)
     while len(prots1) > 0:
         # events may be able to cancel this kill
-        if not aevt.dispatch(cli, var, nick, target1.nick, prots1[0]):
+        if not aevt.dispatch(user.client, var, user.nick, target1.nick, prots1[0]):
             pl = aevt.data["pl"]
             if target1 is not aevt.data["target"]:
                 target1 = aevt.data["target"]
@@ -87,7 +87,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
     aevt.params.prots = prots2
     while len(prots2) > 0:
         # events may be able to cancel this kill
-        if not aevt.dispatch(cli, var, nick, target2.nick, prots2[0]):
+        if not aevt.dispatch(user.client, var, user.nick, target2.nick, prots2[0]):
             pl = aevt.data["pl"]
             if target2 is not aevt.data["target"]:
                 target2 = aevt.data["target"]
@@ -107,46 +107,46 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                 r2 = get_reveal_role(target2.nick)
                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill"].format(nick, target1, an1, r1, target2, an2, r2)
+                tmsg = messages["mad_scientist_kill"].format(user, target1, an1, r1, target2, an2, r2)
             else:
-                tmsg = messages["mad_scientist_kill_no_reveal"].format(nick, target1, target2)
-            cli.msg(botconfig.CHANNEL, tmsg)
-            debuglog(nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1.nick), target2, get_role(target2.nick)))
+                tmsg = messages["mad_scientist_kill_no_reveal"].format(user, target1, target2)
+            channels.Main.send(tmsg)
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1.nick), target2, get_role(target2.nick)))
             # here we DO want to tell that the other one is dying already so chained deaths don't mess things up
             deadlist1 = evt.params.deadlist[:]
             deadlist1.append(target2.nick)
             deadlist2 = evt.params.deadlist[:]
             deadlist2.append(target1.nick)
-            evt.params.del_player(cli, target1.nick, True, end_game=False, killer_role="mad scientist", deadlist=deadlist1, original=evt.params.original, ismain=False)
-            evt.params.del_player(cli, target2.nick, True, end_game=False, killer_role="mad scientist", deadlist=deadlist2, original=evt.params.original, ismain=False)
+            evt.params.del_player(user.client, target1.nick, True, end_game=False, killer_role="mad scientist", deadlist=deadlist1, original=evt.params.original, ismain=False)
+            evt.params.del_player(user.client, target2.nick, True, end_game=False, killer_role="mad scientist", deadlist=deadlist2, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
         else:
             if var.ROLE_REVEAL in ("on", "team"):
                 r1 = get_reveal_role(target1.nick)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill_single"].format(nick, target1, an1, r1)
+                tmsg = messages["mad_scientist_kill_single"].format(user, target1, an1, r1)
             else:
-                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target1)
-            cli.msg(botconfig.CHANNEL, tmsg)
-            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1.nick)))
-            evt.params.del_player(cli, target1.nick, True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target1)
+            channels.Main.send(tmsg)
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1.nick)))
+            evt.params.del_player(user.client, target1.nick, True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
     else:
         if kill2:
             if var.ROLE_REVEAL in ("on", "team"):
                 r2 = get_reveal_role(target2.nick)
                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill_single"].format(nick, target2, an2, r2)
+                tmsg = messages["mad_scientist_kill_single"].format(user, target2, an2, r2)
             else:
-                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(nick, target2)
-            cli.msg(botconfig.CHANNEL, tmsg)
-            debuglog(nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2.nick)))
-            evt.params.del_player(cli, target2.nick, True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target2)
+            channels.Main.send(tmsg)
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2.nick)))
+            evt.params.del_player(user.client, target2.nick, True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
         else:
-            tmsg = messages["mad_scientist_fail"].format(nick)
-            cli.msg(botconfig.CHANNEL, tmsg)
-            debuglog(nick, "(mad scientist) KILL FAIL")
+            tmsg = messages["mad_scientist_fail"].format(user)
+            channels.Main.send(tmsg)
+            debuglog(user.nick, "(mad scientist) KILL FAIL")
 
     evt.data["pl"] = pl
 

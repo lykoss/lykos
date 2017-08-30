@@ -109,7 +109,7 @@ def wolf_retract(cli, nick, chan, rest):
         relay_wolfchat_command(cli, nick, messages["wolfchat_no_bite"].format(nick), ("alpha wolf",), is_wolf_command=True)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if death_triggers:
         # TODO: split into alpha
         if allroles & var.WOLF_ROLES:
@@ -117,9 +117,9 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
 
     for a,b in list(KILLS.items()):
         for n in b:
-            if n == nick:
-                KILLS[a].remove(nick)
-        if a == nick or len(KILLS[a]) == 0:
+            if n == user.nick:
+                KILLS[a].remove(user.nick)
+        if a == user.nick or len(KILLS[a]) == 0:
             del KILLS[a]
 
 @event_listener("rename_player")

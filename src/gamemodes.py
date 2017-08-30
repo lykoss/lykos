@@ -9,6 +9,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src.messages import messages
+from src.functions import get_players
 from src.decorators import handle_error
 from src import events, channels, users
 
@@ -1135,25 +1136,25 @@ class SleepyMode(GameMode):
             var.DYING.add(self.having_nightmare)
             pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
 
-    def happy_fun_times(self, evt, cli, var, nick, mainrole, allroles, death_triggers):
+    def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:
             if mainrole == "priest":
                 pl = evt.data["pl"]
                 turn_chance = 3/4
-                seers = [p for p in var.ROLES["seer"] if p in pl and random.random() < turn_chance]
-                harlots = [p for p in var.ROLES["harlot"] if p in pl and random.random() < turn_chance]
-                cultists = [p for p in var.ROLES["cultist"] if p in pl and random.random() < turn_chance]
-                cli.msg(botconfig.CHANNEL, messages["sleepy_priest_death"])
+                seers = [p for p in get_players(("seer",)) if p.nick in pl and random.random() < turn_chance]
+                harlots = [p for p in get_players(("harlot",)) if p.nick in pl and random.random() < turn_chance]
+                cultists = [p for p in get_players(("cultist",)) if p.nick in pl and random.random() < turn_chance]
+                channels.Main.send(messages["sleepy_priest_death"])
                 for seer in seers:
-                    change_role(users._get(seer), "seer", "doomsayer") # FIXME
-                    pm(cli, seer, messages["sleepy_doomsayer_turn"])
-                    relay_wolfchat_command(cli, seer, messages["sleepy_doomsayer_wolfchat"].format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                    change_role(seer, "seer", "doomsayer")
+                    seer.send(messages["sleepy_doomsayer_turn"])
+                    relay_wolfchat_command(seer.client, seer.nick, messages["sleepy_doomsayer_wolfchat"].format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                 for harlot in harlots:
-                    change_role(users._get(harlot), "harlot", "succubus") # FIXME
-                    pm(cli, harlot, messages["sleepy_succubus_turn"])
+                    change_role(harlot, "harlot", "succubus")
+                    harlot.send(messages["sleepy_succubus_turn"])
                 for cultist in cultists:
-                    change_role(users._get(cultist), "cultist", "demoniac") # FIXME
-                    pm(cli, cultist, messages["sleepy_demoniac_turn"])
+                    change_role(cultist, "cultist", "demoniac")
+                    cultist.send(messages["sleepy_demoniac_turn"])
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
 @game_mode("maelstrom", minp = 8, maxp = 24, likelihood = 0)
@@ -1189,15 +1190,15 @@ class MaelstromMode(GameMode):
         events.remove_listener("del_player", self.on_del_player)
         events.remove_listener("join", self.on_join)
 
-    def on_del_player(self, evt, cli, var, nick, mainrole, allroles, death_triggers):
-        if is_fake_nick(nick):
+    def on_del_player(self, evt, var, user, mainrole, allroles, death_triggers):
+        if user.is_fake:
             return
 
         if not var.DISABLE_ACCOUNTS:
-            self.DEAD_ACCOUNTS.add(irc_lower(var.USERS[nick]["account"]))
+            self.DEAD_ACCOUNTS.add(user.lower().account)
 
         if not var.ACCOUNTS_ONLY:
-            self.DEAD_HOSTS.add(var.USERS[nick]["host"].lower())
+            self.DEAD_HOSTS.add(user.lower().host)
 
     def on_join(self, evt, var, wrapper, message, forced=False):
         if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):

@@ -82,8 +82,8 @@ def on_rename(evt, cli, var, prefix, nick):
         SEEN.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    SEEN.discard(nick)
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    SEEN.discard(user.nick)
 
 @event_listener("night_acted")
 def on_acted(evt, var, nick, sender):

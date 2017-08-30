@@ -4,7 +4,7 @@ import re
 import src.settings as var
 from src.utilities import *
 from src import users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -82,18 +82,19 @@ def on_myrole(evt, cli, var, nick):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if var.PHASE not in var.GAME_PHASES:
         return
 
     for child in var.ROLES["wild child"].copy():
+        wild = users._get(child) # FIXME
         if child not in IDOLS or child in evt.params.deadlist or IDOLS[child] not in evt.params.deadlist:
             continue
 
         # change their main role to wolf, even if wild child was a template
-        pm(cli, child, messages["idol_died"])
+        wild.send(messages["idol_died"])
         WILD_CHILDREN.add(child)
-        change_role(users._get(child), get_role(child), "wolf") # FIXME
+        change_role(wild, get_main_role(wild), "wolf")
         var.ROLES["wild child"].discard(child)
 
         wcroles = var.WOLFCHAT_ROLES
@@ -102,22 +103,26 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
                 wcroles = var.WOLF_ROLES
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
-        wolves = list_players(wcroles)
-        wolves.remove(child)
-        mass_privmsg(cli, wolves, messages["wild_child_as_wolf"].format(child))
+        wolves = get_players(wcroles)
+        wolves.remove(wild)
+        if wolves:
+            for wolf in wolves:
+                wolf.queue_message(messages["wild_child_as_wolf"].format(wild))
+            wolf.send_messages()
         if var.PHASE == "day":
             random.shuffle(wolves)
+            new = []
             for i, wolf in enumerate(wolves):
-                wolfroles = get_role(wolf)
+                wolfroles = get_main_role(wolf)
                 cursed = ""
-                if wolf in var.ROLES["cursed villager"]:
+                if wolf.nick in var.ROLES["cursed villager"]:
                     cursed = "cursed "
-                wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles)
+                new.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles))
 
-            if wolves:
-                pm(cli, child, "Wolves: " + ", ".join(wolves))
+            if new:
+                wild.send("Wolves: " + ", ".join(new))
             else:
-                pm(cli, child, messages["no_other_wolves"])
+                wild.send(messages["no_other_wolves"])
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, cli, var):

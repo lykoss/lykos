@@ -80,15 +80,14 @@ def on_rename(evt, cli, var, prefix, nick):
         PASSED.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    if var.PHASE == "night" and nick in GUARDED:
-        pm(cli, GUARDED[nick], messages["protector_disappeared"])
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    if var.PHASE == "night" and user.nick in GUARDED:
+        pm(user.client, GUARDED[user.nick], messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
         for k,v in list(dictvar.items()):
-            if nick in (k, v):
+            if user.nick in (k, v):
                 del dictvar[k]
-    if nick in PASSED:
-        PASSED.discard(nick)
+    PASSED.discard(user.nick)
 
 @event_listener("night_acted")
 def on_acted(evt, var, nick, sender):

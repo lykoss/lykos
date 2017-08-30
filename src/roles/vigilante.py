@@ -62,13 +62,13 @@ def vigilante_pass(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    PASSED.discard(nick)
-    if nick in KILLS:
-        del KILLS[nick]
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    PASSED.discard(user.nick)
+    if user.nick in KILLS:
+        del KILLS[user.nick]
     for h,v in list(KILLS.items()):
-        if v == nick:
-            pm(cli, h, messages["hunter_discard"])
+        if v == user.nick:
+            pm(user.client, h, messages["hunter_discard"])
             del KILLS[h]
 
 @event_listener("rename_player")

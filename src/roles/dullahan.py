@@ -59,16 +59,16 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["iwon"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     for h, v in list(KILLS.items()):
-        if v.nick == nick:
+        if v is user:
             h.send(messages["hunter_discard"])
             del KILLS[h]
-        elif h.nick == nick:
+        elif h is user:
             del KILLS[h]
     if death_triggers and "dullahan" in allroles:
         pl = evt.data["pl"]
-        targets = TARGETS[users._get(nick)].intersection(users._get(x) for x in pl) # FIXME
+        targets = TARGETS[user].intersection(users._get(x) for x in pl) # FIXME
         if targets:
             target = random.choice(list(targets))
             prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
@@ -79,7 +79,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
                     refresh_pl=evt.params.refresh_pl,
                     message_prefix="dullahan_die_",
                     source="dullahan",
-                    killer=nick,
+                    killer=user.nick,
                     killer_mainrole=mainrole,
                     killer_allroles=allroles,
                     prots=prots)
@@ -87,7 +87,7 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
                 # an event can read the current active protection and cancel or redirect the assassination
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
                 # so that it cannot be used again (if the protection is meant to be usable once-only)
-                if not aevt.dispatch(cli, var, nick, target.nick, prots[0]):
+                if not aevt.dispatch(user.client, var, user.nick, target.nick, prots[0]):
                     evt.data["pl"] = aevt.data["pl"]
                     if target is not aevt.data["target"]:
                         target = aevt.data["target"]
@@ -101,11 +101,11 @@ def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(target)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success"].format(nick, target, an, role))
+                channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
             else:
-                cli.msg(botconfig.CHANNEL, messages["dullahan_die_success_noreveal"].format(nick, target))
-            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(nick, target, get_role(target)))
-            evt.params.del_player(cli, target, True, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+                channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
+            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_role(target)))
+            evt.params.del_player(user.client, target, True, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("night_acted")

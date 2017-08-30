@@ -70,8 +70,7 @@ def hunter_pass(var, wrapper, message):
     chk_nightdone(wrapper.client)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
-    user = users._get(nick) # FIXME
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     HUNTERS.discard(user)
     PASSED.discard(user)
     KILLS.pop(user, None)

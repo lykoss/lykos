@@ -20,7 +20,7 @@ def on_wolf_numkills(evt, var):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")
-def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if death_triggers and "wolf cub" in allroles:
         global ANGRY_WOLVES
         ANGRY_WOLVES = True

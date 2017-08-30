@@ -2584,11 +2584,12 @@ def del_player(cli, nick, forced_death=False, devoice=True, end_game=True, death
             pl = refresh_pl(pl)
             # i herd u liek parameters
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
+            user = users._get(nick) # FIXME
             event = Event("del_player", {"pl": pl},
                     forced_death=forced_death, end_game=end_game,
                     deadlist=deadlist, original=original, killer_role=killer_role,
                     ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
-            event.dispatch(cli, var, nick, nickrole, allroles, evt_death_triggers)
+            event.dispatch(var, user, nickrole, allroles, evt_death_triggers)
 
             # update var.ROLE_STATS
             # Event priorities:
