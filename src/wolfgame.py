@@ -2236,7 +2236,7 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:
         for user in var.DEADCHAT_PLAYERS:
-            user.queue_message(messages["endgame_deadchat"].format(chan))
+            user.queue_message(messages["endgame_deadchat"].format(channels.Main))
 
         user.send_messages()
 
