@@ -130,8 +130,8 @@ def on_swap(evt, var, old_user, user):
             targets.add(user)
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(var.ROLES["dullahan"])
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("dullahan",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):

@@ -7,6 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users
+from src.functions import get_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -146,8 +147,8 @@ def on_acted(evt, var, nick, sender):
         evt.data["acted"] = True
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(list_players(("shaman", "crazed shaman", "wolf shaman")))
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("shaman", "crazed shaman", "wolf shaman")))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

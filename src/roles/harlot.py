@@ -8,6 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -137,8 +138,8 @@ def on_begin_day(evt, var):
     VISITED.clear()
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(var.ROLES["harlot"])
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("harlot",)))
 
 @event_listener("del_player")
 def on_del_player(evt, cli, var, nick, mainrole, allroles, death_triggers):

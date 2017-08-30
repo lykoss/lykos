@@ -8,6 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -291,8 +292,8 @@ def on_transition_day(evt, cli, var):
         # we do not add to killers as retribution totem should not work on entranced not following succubus
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(var.ROLES["succubus"])
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("succubus",)))
 
 @event_listener("vg_kill")
 def on_vg_kill(evt, var, ghost, target):

@@ -4,19 +4,23 @@ import random
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    special = set(list_players(("harlot", "priest", "prophet", "matchmaker",
-                                "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
+    if nick_role not in ("mystic", "wolf mystic") and actor_role not in ("mystic", "wolf mystic"):
+        return
+
+    special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
+                               "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
     evt2 = Event("get_special", {"special": special})
-    evt2.dispatch(cli, var)
-    pl = set(list_players())
-    wolves = set(list_players(var.WOLFTEAM_ROLES))
-    neutral = set(list_players(var.TRUE_NEUTRAL_ROLES))
+    evt2.dispatch(var)
+    pl = set(get_players())
+    wolves = set(get_players(var.WOLFTEAM_ROLES))
+    neutral = set(get_players(var.TRUE_NEUTRAL_ROLES))
     special = evt2.data["special"]
 
     if nick_role == "wolf mystic" and actor_role != "wolf mystic":
@@ -38,13 +42,13 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, cli, var):
     # init with all roles that haven't been split yet
-    special = set(list_players(("harlot", "priest", "prophet", "matchmaker",
-                                "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
+    special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
+                               "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
     evt2 = Event("get_special", {"special": special})
-    evt2.dispatch(cli, var)
-    pl = set(list_players())
-    wolves = set(list_players(var.WOLFTEAM_ROLES))
-    neutral = set(list_players(var.TRUE_NEUTRAL_ROLES))
+    evt2.dispatch(var)
+    pl = set(get_players())
+    wolves = set(get_players(var.WOLFTEAM_ROLES))
+    neutral = set(get_players(var.TRUE_NEUTRAL_ROLES))
     special = evt2.data["special"]
 
     for wolf in var.ROLES["wolf mystic"]:
@@ -62,8 +66,8 @@ def on_transition_night_end(evt, cli, var):
         pm(cli, mystic, messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
+def on_get_special(evt, var):
     # mystics count as special even though they don't have any commands
-    evt.data["special"].update(list_players(("mystic",)))
+    evt.data["special"].update(get_players(("mystic",)))
 
 # vim: set sw=4 expandtab:

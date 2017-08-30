@@ -101,8 +101,8 @@ def on_acted(evt, var, nick, sender):
         evt.data["acted"] = True
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(var.ROLES["hunter"])
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("hunter",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):

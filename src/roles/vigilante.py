@@ -5,6 +5,7 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
+from src.functions import get_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -92,8 +93,8 @@ def on_acted(evt, var, nick, sender):
         evt.data["acted"] = True
 
 @event_listener("get_special")
-def on_get_special(evt, cli, var):
-    evt.data["special"].update(var.ROLES["vigilante"])
+def on_get_special(evt, var):
+    evt.data["special"].update(get_players(("vigilante",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, cli, var):
