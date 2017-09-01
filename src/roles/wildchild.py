@@ -77,9 +77,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
-    if nick in IDOLS:
-        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[nick]))
+def on_myrole(evt, var, user):
+    if user.nick in IDOLS:
+        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user.nick]))
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):

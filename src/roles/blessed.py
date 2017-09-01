@@ -74,8 +74,8 @@ def on_assassinate(evt, cli, var, nick, target, prot):
         pm(cli, nick, messages["assassin_fail_blessed"].format(target))
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
-    if nick in var.ROLES["blessed villager"]:
+def on_myrole(evt, var, user):
+    if user.nick in var.ROLES["blessed villager"]:
         evt.data["messages"].append(messages["blessed_simple"])
 
 # vim: set sw=4 expandtab:

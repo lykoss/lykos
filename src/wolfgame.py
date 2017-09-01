@@ -49,7 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.functions import get_players, get_participants
+from src.functions import get_players, get_participants, get_main_role
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -6460,34 +6460,34 @@ def listroles(cli, nick, chan, rest):
 
     reply(cli, nick, chan, " ".join(msg))
 
-@cmd("myrole", pm=True, phases=("day", "night"))
-def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets converted
+@command("myrole", pm=True, phases=("day", "night"))
+def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets converted
     """Reminds you of your current role."""
 
     ps = get_participants()
-    if users._get(nick) not in ps:
+    if wrapper.source not in ps:
         return
 
-    role = get_role(nick)
+    role = get_main_role(wrapper.source)
     if role in var.HIDDEN_VILLAGERS:
         role = "villager"
     elif role in var.HIDDEN_ROLES:
         role = var.DEFAULT_ROLE
 
     evt = Event("myrole", {"role": role, "messages": []})
-    if not evt.dispatch(cli, var, nick):
+    if not evt.dispatch(var, wrapper.source):
         return
     role = evt.data["role"]
 
     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-    pm(cli, nick, messages["show_role"].format(an, role))
+    wrapper.pm(messages["show_role"].format(an, role))
 
     for msg in evt.data["messages"]:
-        pm(cli, nick, msg)
+        wrapper.pm(msg)
 
     # Remind clone who they have cloned
-    if role == "clone" and nick in var.CLONED:
-        pm(cli, nick, messages["clone_target"].format(var.CLONED[nick]))
+    if role == "clone" and wrapper.source.nick in var.CLONED:
+        wrapper.pm(messages["clone_target"].format(var.CLONED[wrapper.source.nick]))
 
     # Give minion the wolf list they would have recieved night one
     if role == "minion":
@@ -6495,31 +6495,31 @@ def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets con
         for wolfrole in var.WOLF_ROLES:
             for player in var.ORIGINAL_ROLES[wolfrole]:
                 wolves.append(player)
-        pm(cli, nick, messages["original_wolves"] + ", ".join(wolves))
+        wrapper.pm(messages["original_wolves"] + ", ".join(wolves))
 
     # Remind turncoats of their side
     if role == "turncoat":
-        pm(cli, nick, messages["turncoat_side"].format(var.TURNCOATS.get(nick, "none")[0]))
+        wrapper.pm(messages["turncoat_side"].format(var.TURNCOATS.get(wrapper.source.nick, "none")[0]))
 
     # Check for gun/bullets
-    if nick not in var.ROLES["amnesiac"] and nick in var.GUNNERS and var.GUNNERS[nick]:
+    if wrapper.source.nick not in var.ROLES["amnesiac"] and wrapper.source.nick in var.GUNNERS and var.GUNNERS[wrapper.source.nick]:
         role = "gunner"
-        if nick in var.ROLES["sharpshooter"]:
+        if wrapper.source.nick in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
-        pm(cli, nick, messages["gunner_simple"].format(role, var.GUNNERS[nick], "" if var.GUNNERS[nick] == 1 else "s"))
+        wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source.nick], "" if var.GUNNERS[wrapper.source.nick] == 1 else "s"))
 
     # Check assassin
-    if nick in var.ROLES["assassin"] and nick not in var.ROLES["amnesiac"]:
-        pm(cli, nick, messages["assassin_role_info"].format(messages["assassin_targeting"].format(var.TARGETED[nick]) if nick in var.TARGETED else ""))
+    if wrapper.source.nick in var.ROLES["assassin"] and wrapper.source.nick not in var.ROLES["amnesiac"]:
+        wrapper.pm(messages["assassin_role_info"].format(messages["assassin_targeting"].format(var.TARGETED[wrapper.source.nick]) if wrapper.source.nick in var.TARGETED else ""))
 
     # Remind prophet of their role, in sleepy mode only where it is hacked into a template instead of a role
-    if "prophet" in var.TEMPLATE_RESTRICTIONS and nick in var.ROLES["prophet"]:
-        pm(cli, nick, messages["prophet_simple"])
+    if "prophet" in var.TEMPLATE_RESTRICTIONS and wrapper.source.nick in var.ROLES["prophet"]:
+        wrapper.pm(messages["prophet_simple"])
 
     # Remind lovers of each other
-    if users._get(nick) in ps and nick in var.LOVERS:
+    if wrapper.source in ps and wrapper.source.nick in var.LOVERS:
         message = messages["matched_info"]
-        lovers = sorted(list(set(var.LOVERS[nick])))
+        lovers = sorted(list(set(var.LOVERS[wrapper.source.nick])))
         if len(lovers) == 1:
             message += lovers[0]
         elif len(lovers) == 2:
@@ -6527,7 +6527,7 @@ def myrole(cli, nick, chan, rest): # FIXME: Need to fix !swap once this gets con
         else:
             message += ", ".join(lovers[:-1]) + ", and " + lovers[-1]
         message += "."
-        pm(cli, nick, message)
+        wrapper.pm(message)
 
 @command("aftergame", "faftergame", flag="D", pm=True)
 def aftergame(var, wrapper, message):

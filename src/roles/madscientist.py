@@ -162,10 +162,10 @@ def on_transition_night_end(evt, var):
         ms.send(messages[to_send].format(target1, target2))
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
-    if nick in var.ROLES["mad scientist"]:
+def on_myrole(evt, var, user):
+    if user.nick in var.ROLES["mad scientist"]:
         pl = list_players()
-        target1, target2 = _get_targets(var, pl, nick)
+        target1, target2 = _get_targets(var, pl, user.nick)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")

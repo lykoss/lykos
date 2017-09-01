@@ -217,8 +217,7 @@ def on_transition_night_end(evt, var):
         debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
-    user = users._get(nick)
+def on_myrole(evt, var, user):
     if user in GHOSTS:
         evt.prevent_default = True
         if GHOSTS[user][0] != "!":

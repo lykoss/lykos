@@ -214,10 +214,10 @@ def on_succubus_visit(evt, cli, var, nick, victim):
         del KILLS[user]
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
+def on_myrole(evt, var, user):
     # Remind dullahans of their targets
-    if nick in var.ROLES["dullahan"]:
-        targets = list(TARGETS[users._get(nick)]) # FIXME
+    if user.nick in var.ROLES["dullahan"]:
+        targets = list(TARGETS[user])
         for target in list(targets):
             if target.nick in var.DEAD:
                 targets.remove(target)

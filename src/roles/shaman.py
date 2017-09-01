@@ -586,10 +586,10 @@ def on_succubus_visit(evt, cli, var, nick, victim):
         del SHAMANS[victim]
 
 @event_listener("myrole")
-def on_myrole(evt, cli, var, nick):
+def on_myrole(evt, var, user):
     role = evt.data["role"]
-    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and nick not in SHAMANS:
-        evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[nick]))
+    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and user.nick not in SHAMANS:
+        evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[user.nick]))
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var, wrapper, nickname, role):
