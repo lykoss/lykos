@@ -119,10 +119,10 @@ def on_rename(evt, cli, var, prefix, nick):
         del KILLS[prefix]
 
 @event_listener("transition_day_begin", priority=6)
-def on_transition_day_begin(evt, cli, var):
+def on_transition_day_begin(evt, var):
     # select a random target for VG if they didn't kill
-    wolves = set(list_players(var.WOLFTEAM_ROLES))
-    villagers = set(list_players()) - wolves
+    wolves = set(get_players(var.WOLFTEAM_ROLES))
+    villagers = set(get_players()) - wolves
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or ghost.nick in var.SILENCED:
             continue
@@ -133,42 +133,47 @@ def on_transition_day_begin(evt, cli, var):
             elif target == "villagers":
                 choice = villagers.copy()
             evt = Event("vg_kill", {"pl": choice})
-            evt.dispatch(var, ghost, target)
+            evt.dispatch(var, ghost, users._get(target)) # FIXME
             choice = evt.data["pl"]
             if choice:
-                KILLS[ghost.nick] = random.choice(list(choice))
+                KILLS[ghost.nick] = random.choice(list(choice)).nick
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for k, d in KILLS.items():
-        evt.data["victims"].append(d)
-        evt.data["onlybywolves"].discard(d)
-        evt.data["killers"][d].append(k)
+        actor = users._get(k) # FIXME
+        user = users._get(d) # FIXME
+        evt.data["victims"].append(user)
+        evt.data["onlybywolves"].discard(user)
+        evt.data["killers"][user].append(actor)
 
 @event_listener("transition_day", priority=3.01)
-def on_transition_day3(evt, cli, var):
+def on_transition_day3(evt, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[users._get(k)] == "villagers":
-            evt.data["killers"][d].remove(k)
-            evt.data["killers"][d].insert(0, k)
+        actor = users._get(k) # FIXME
+        user = users._get(d) # FIXME
+        if GHOSTS[actor] == "villagers":
+            evt.data["killers"][user].remove(actor)
+            evt.data["killers"][user].insert(0, actor)
 
 @event_listener("transition_day", priority=6.01)
-def on_transition_day6(evt, cli, var):
+def on_transition_day6(evt, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[users._get(k)] == "villagers" and k in evt.data["killers"][d]:
-            evt.data["killers"][d].remove(k)
-            evt.data["killers"][d].insert(0, k)
+        actor = users._get(k) # FIXME
+        user = users._get(d) # FIXME
+        if GHOSTS[actor] == "villagers" and actor in evt.data["killers"][user]:
+            evt.data["killers"][user].remove(actor)
+            evt.data["killers"][user].insert(0, actor)
         # important, otherwise our del_player listener messages the vg
         del KILLS[k]
 
-@event_listener("retribution_kill", priority=6) # FIXME: This function, and all of the event
-def on_retribution_kill(evt, cli, var, victim, orig_target):
-    t = evt.data["target"]
-    user = users._get(t)
+@event_listener("retribution_kill", priority=6)
+def on_retribution_kill(evt, var, victim, orig_target):
+    user = evt.data["target"]
     if user in GHOSTS:
         drivenoff[user] = GHOSTS[user]
         GHOSTS[user] = "!" + GHOSTS[user]
-        evt.data["message"].append(messages["totem_banish"].format(victim, t))
+        evt.data["message"].append(messages["totem_banish"].format(victim, user))
         evt.data["target"] = None
 
 @event_listener("get_participant_role")

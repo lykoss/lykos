@@ -7,16 +7,17 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import users, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
+from src.functions import get_players, get_all_players
 from src.messages import messages
 from src.events import Event
 
 @event_listener("transition_day", priority=4.8)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     # now that all protections are finished, add people back to onlybywolves
     # if they're down to 1 active kill and wolves were a valid killer
-    victims = set(list_players()) & set(evt.data["victims"]) - var.DYING
+    victims = set(get_players()) & set(evt.data["victims"]) - var.DYING
     for v in victims:
         if evt.data["numkills"][v] == 1 and v in evt.data["bywolves"]:
             evt.data["onlybywolves"].add(v)
@@ -25,17 +26,17 @@ def on_transition_day(evt, cli, var):
         for p, t in list(evt.data["protected"].items()):
             if p in evt.data["bywolves"]:
                 if p in evt.data["protected"]:
-                    pm(cli, p, messages["fallen_angel_deprotect"])
+                    p.send(messages["fallen_angel_deprotect"])
 
                 # let other roles do special things when we bypass their guards
-                killer = random.choice(list(var.ROLES["fallen angel"]))
+                killer = random.choice(list(get_all_players(("fallen angel",))))
                 fevt = Event("fallen_angel_guard_break", evt.data)
-                fevt.dispatch(cli, var, p, killer)
+                fevt.dispatch(var, p, killer)
 
                 if p in evt.data["protected"]:
                     del evt.data["protected"][p]
                 if p in var.ACTIVE_PROTECTIONS:
-                    del var.ACTIVE_PROTECTIONS[p]
+                    del var.ACTIVE_PROTECTIONS[p.nick]
                 # mark kill as performed by a random FA
                 # this is important as there may otherwise be no killers if every kill was blocked
                 evt.data["killers"][p].append(killer)

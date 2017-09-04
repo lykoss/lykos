@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src.functions import get_players, get_main_role, get_all_roles
+from src.functions import get_players, get_all_players, get_main_role, get_all_roles
 from src import debuglog, errlog, plog, users
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -148,7 +148,7 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(CAN_KILL))
 
 @event_listener("transition_day", priority=1)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     # figure out wolf target
     found = defaultdict(int)
     nevt = Event("wolf_numkills", {"numkills": 1})
@@ -173,31 +173,32 @@ def on_transition_day(evt, cli, var):
                 dups.append(v)
         if maxc and dups:
             victim = random.choice(dups)
-            evt.data["victims"].append(victim)
-            evt.data["bywolves"].add(victim)
-            evt.data["onlybywolves"].add(victim)
+            user = users._get(victim) # FIXME
+            evt.data["victims"].append(user)
+            evt.data["bywolves"].add(user)
+            evt.data["onlybywolves"].add(user)
             # special key to let us know to randomly select a wolf in case of retribution totem
-            evt.data["killers"][victim].append("@wolves")
+            evt.data["killers"][user].append("@wolves")
             del found[victim]
 
     # this should be moved to an event in kill, where monster prefixes their nick with !
     # and fallen angel subsequently removes the ! prefix
     # TODO: when monster is split off
     if len(var.ROLES["fallen angel"]) == 0:
-        for monster in var.ROLES["monster"]:
+        for monster in get_all_players(("monster",)):
             if monster in evt.data["victims"]:
                 evt.data["victims"].remove(monster)
                 evt.data["bywolves"].discard(monster)
                 evt.data["onlybywolves"].discard(monster)
 
 @event_listener("transition_day", priority=3)
-def on_transition_day3(evt, cli, var):
+def on_transition_day3(evt, var):
     evt.data["numkills"] = {v: evt.data["victims"].count(v) for v in set(evt.data["victims"])}
-    on_transition_day6(evt, cli, var)
+    on_transition_day6(evt, var)
 
 @event_listener("transition_day", priority=6)
-def on_transition_day6(evt, cli, var):
-    wolfteam = list_players(var.WOLFTEAM_ROLES)
+def on_transition_day6(evt, var):
+    wolfteam = get_players(var.WOLFTEAM_ROLES)
     for victim, killers in list(evt.data["killers"].items()):
         k2 = []
         kappend = []
@@ -215,10 +216,9 @@ def on_transition_day6(evt, cli, var):
         evt.data["killers"][victim] = k2
 
 @event_listener("retribution_kill")
-def on_retribution_kill(evt, cli, var, victim, orig_target):
-    t = evt.data["target"]
-    if t == "@wolves":
-        wolves = list_players(var.WOLF_ROLES)
+def on_retribution_kill(evt, var, victim, orig_target):
+    if evt.data["target"] == "@wolves":
+        wolves = get_players(var.WOLF_ROLES)
         evt.data["target"] = random.choice(wolves)
 
 @event_listener("exchange_roles", priority=2)

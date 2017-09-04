@@ -4,8 +4,8 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
-from src.functions import get_players, get_all_players
+from src import users, debuglog, errlog, plog
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -97,16 +97,18 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("vigilante",)))
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):
-        evt.data["victims"].append(d)
-        evt.data["onlybywolves"].discard(d)
-        evt.data["killers"][d].append(k)
+        actor = users._get(k) # FIXME
+        user = users._get(d) # FIXME
+        evt.data["victims"].append(user)
+        evt.data["onlybywolves"].discard(user)
+        evt.data["killers"][user].append(actor)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 
-        if get_role(d) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
-            var.DYING.add(k)
+        if get_main_role(user) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
+            var.DYING.add(actor)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

@@ -117,31 +117,31 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_players(("guardian angel", "bodyguard")))
 
 @event_listener("transition_day", priority=4.2)
-def on_transition_day(evt, cli, var):
-    pl = list_players()
+def on_transition_day(evt, var):
+    pl = get_players()
     vs = set(evt.data["victims"])
     for v in pl:
         if v in vs:
             if v in var.DYING:
                 continue
-            for g in var.ROLES["guardian angel"]:
-                if GUARDED.get(g) == v:
+            for g in get_all_players(("guardian angel",)):
+                if GUARDED.get(g.nick) == v.nick:
                     evt.data["numkills"][v] -= 1
                     if evt.data["numkills"][v] >= 0:
                         evt.data["killers"][v].pop(0)
                     if evt.data["numkills"][v] <= 0 and v not in evt.data["protected"]:
                         evt.data["protected"][v] = "angel"
                     elif evt.data["numkills"][v] <= 0:
-                        var.ACTIVE_PROTECTIONS[v].append("angel")
-            for g in var.ROLES["bodyguard"]:
-                if GUARDED.get(g) == v:
+                        var.ACTIVE_PROTECTIONS[v.nick].append("angel")
+            for g in get_all_players(("bodyguard",)):
+                if GUARDED.get(g.nick) == v.nick:
                     evt.data["numkills"][v] -= 1
                     if evt.data["numkills"][v] >= 0:
                         evt.data["killers"][v].pop(0)
                     if evt.data["numkills"][v] <= 0 and v not in evt.data["protected"]:
                         evt.data["protected"][v] = "bodyguard"
                     elif evt.data["numkills"][v] <= 0:
-                        var.ACTIVE_PROTECTIONS[v].append("bodyguard")
+                        var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
         else:
             for g in var.ROLES["guardian angel"]:
                 if GUARDED.get(g) == v:
@@ -151,9 +151,9 @@ def on_transition_day(evt, cli, var):
                     var.ACTIVE_PROTECTIONS[v].append("bodyguard")
 
 @event_listener("fallen_angel_guard_break")
-def on_fagb(evt, cli, var, victim, killer):
-    for g in var.ROLES["guardian angel"]:
-        if GUARDED.get(g) == victim:
+def on_fagb(evt, var, user, killer):
+    for g in get_all_players(("guardian angel",)):
+        if GUARDED.get(g.nick) == user.nick:
             if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
                 if g in evt.data["protected"]:
                     del evt.data["protected"][g]
@@ -162,10 +162,10 @@ def on_fagb(evt, cli, var, victim, killer):
                     evt.data["onlybywolves"].add(g)
                 evt.data["victims"].append(g)
                 evt.data["killers"][g].append(killer)
-            if g != victim:
-                pm(cli, g, messages["fallen_angel_success"].format(victim))
-    for g in var.ROLES["bodyguard"]:
-        if GUARDED.get(g) == victim:
+            if g is not user:
+                g.send(messages["fallen_angel_success"].format(user))
+    for g in get_all_players(("bodyguard",)):
+        if GUARDED.get(g.nick) == user.nick:
             if g in evt.data["protected"]:
                 del evt.data["protected"][g]
             evt.data["bywolves"].add(g)
@@ -173,19 +173,19 @@ def on_fagb(evt, cli, var, victim, killer):
                 evt.data["onlybywolves"].add(g)
             evt.data["victims"].append(g)
             evt.data["killers"][g].append(killer)
-            if g != victim:
-                pm(cli, g, messages["fallen_angel_success"].format(victim))
+            if g is not user:
+                g.send(messages["fallen_angel_success"].format(user))
 
 @event_listener("transition_day_resolve", priority=2)
-def on_transition_day_resolve(evt, cli, var, victim):
+def on_transition_day_resolve(evt, var, victim):
     if evt.data["protected"].get(victim) == "angel":
         evt.data["message"].append(messages["angel_protection"].format(victim))
         evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
     elif evt.data["protected"].get(victim) == "bodyguard":
-        for bodyguard in var.ROLES["bodyguard"]:
-            if GUARDED.get(bodyguard) == victim:
+        for bodyguard in get_all_players(("bodyguard",)):
+            if GUARDED.get(bodyguard.nick) == victim.nick:
                 evt.data["dead"].append(bodyguard)
                 evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["novictmsg"] = False
@@ -194,9 +194,9 @@ def on_transition_day_resolve(evt, cli, var, victim):
                 break
 
 @event_listener("transition_day_resolve_end")
-def on_transition_day_resolve_end(evt, cli, var, victims):
-    for bodyguard in var.ROLES["bodyguard"]:
-        if GUARDED.get(bodyguard) in list_players(var.WOLF_ROLES) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
+def on_transition_day_resolve_end(evt, var, victims):
+    for bodyguard in get_all_players(("bodyguard",)):
+        if GUARDED.get(bodyguard.nick) in list_players(var.WOLF_ROLES) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 evt.data["bywolves"].add(bodyguard)
@@ -206,8 +206,8 @@ def on_transition_day_resolve_end(evt, cli, var, victims):
                 else: # off and team
                     evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["dead"].append(bodyguard)
-    for gangel in var.ROLES["guardian angel"]:
-        if GUARDED.get(gangel) in list_players(var.WOLF_ROLES) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
+    for gangel in get_all_players(("guardian angel",)):
+        if GUARDED.get(gangel.nick) in list_players(var.WOLF_ROLES) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 evt.data["bywolves"].add(gangel)

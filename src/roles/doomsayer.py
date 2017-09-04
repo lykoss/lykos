@@ -3,7 +3,7 @@ import random
 
 import src.settings as var
 from src.utilities import *
-from src import debuglog, errlog, plog
+from src import users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -128,20 +128,25 @@ def on_get_voters(evt, var):
     evt.data["voters"].difference_update(SICK.values())
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, cli, var):
+def on_transition_day_begin(evt, var):
     for victim in SICK.values():
-        pm(cli, victim, messages["player_sick"])
+        user = users._get(victim)
+        user.queue_message(messages["player_sick"])
+    if SICK:
+        user.send_messages()
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):
-        evt.data["victims"].append(d)
+        actor = users._get(k) # FIXME
+        user = users._get(d) # FIXME
+        evt.data["victims"].append(user)
         # even though doomsayer is a wolf, remove from onlybywolves since
         # that particular item indicates that they were the target of a wolf !kill.
         # If doomsayer doesn't remove this, roles such as harlot or monster will not
         # die if they are the target of a doomsayer !see that ends up killing the target.
-        evt.data["onlybywolves"].discard(d)
-        evt.data["killers"][d].append(k)
+        evt.data["onlybywolves"].discard(user)
+        evt.data["killers"][user].append(actor)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
