@@ -3756,12 +3756,12 @@ def transition_day(cli, gameid=0):
                     var.GUNNERS[victim.nick] -= 1 # deduct the used bullet
 
     for victim in dead:
-        if victim in bywolves and victim in var.DISEASED:
+        if victim in bywolves and victim.nick in var.DISEASED:
             var.DISEASED_WOLVES = True
-        if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS.keys() and var.GUNNERS[victim] > 0:
+        if var.WOLF_STEALS_GUN and victim in bywolves and victim.nick in var.GUNNERS and var.GUNNERS[victim.nick] > 0:
             # victim has bullets
             try:
-                looters = list_players(var.WOLFCHAT_ROLES)
+                looters = get_players(var.WOLFCHAT_ROLES)
                 while len(looters) > 0:
                     guntaker = random.choice(looters)  # random looter
                     if guntaker not in dead:
@@ -3769,52 +3769,50 @@ def transition_day(cli, gameid=0):
                     else:
                         looters.remove(guntaker)
                 if guntaker not in dead:
-                    numbullets = var.GUNNERS[victim]
-                    if guntaker not in var.GUNNERS:
-                        var.GUNNERS[guntaker] = 0
-                    if guntaker not in var.ROLES["gunner"] and guntaker not in var.ROLES["sharpshooter"]:
-                        var.ROLES["gunner"].add(guntaker)
+                    numbullets = var.GUNNERS[victim.nick]
+                    if guntaker.nick not in var.GUNNERS:
+                        var.GUNNERS[guntaker.nick] = 0
+                    if guntaker not in get_all_players(("gunner", "sharpshooter")):
+                        var.ROLES["gunner"].add(guntaker.nick)
                     var.GUNNERS[guntaker] += 1  # only transfer one bullet
-                    mmsg = (messages["wolf_gunner"])
-                    mmsg = mmsg.format(victim)
-                    pm(cli, guntaker, mmsg)
+                    guntaker.send(messages["wolf_gunner"].format(victim))
             except IndexError:
                 pass # no wolves to give gun to (they were all killed during night or something)
-            var.GUNNERS[victim] = 0  # just in case
+            var.GUNNERS[victim.nick] = 0  # just in case
 
-    cli.msg(chan, "\n".join(message))
+    channels.Main.send("\n".join(message))
 
     for chump in bitten:
         # turn all bitten people into wolves
         # short-circuit if they are already a wolf or are dying
-        chumprole = get_role(chump)
+        chumprole = get_main_role(chump)
         if chump in dead or chumprole in var.WOLF_ROLES:
             continue
 
         newrole = "wolf"
         if chumprole == "guardian angel":
-            pm(cli, chump, messages["fallen_angel_turn"])
+            chump.send(messages["fallen_angel_turn"])
             # fallen angels also automatically gain the assassin template if they don't already have it
             newrole = "fallen angel"
-            var.ROLES["assassin"].add(chump)
-            debuglog("{0} ({1}) TURNED FALLEN ANGEL".format(chump, chumprole))
+            var.ROLES["assassin"].add(chump.nick)
+            debuglog("{0} (guardian angel) TURNED FALLEN ANGEL".format(chump))
         elif chumprole in ("seer", "oracle", "augur"):
-            pm(cli, chump, messages["seer_turn"])
+            chump.send(messages["seer_turn"])
             newrole = "doomsayer"
             debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
         elif chumprole in var.TOTEM_ORDER:
-            pm(cli, chump, messages["shaman_turn"])
+            chump.send(messages["shaman_turn"])
             newrole = "wolf shaman"
             debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
         elif chumprole == "harlot":
-            pm(cli, chump, messages["harlot_turn"])
-            debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
+            chump.send(messages["harlot_turn"])
+            debuglog("{0} (harlot) TURNED WOLF".format(chump))
         else:
-            pm(cli, chump, messages["bitten_turn"])
+            chump.send(messages["bitten_turn"])
             debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
-        var.BITTEN_ROLES[chump] = chumprole
-        change_role(users._get(chump), chumprole, newrole) # FIXME
-        relay_wolfchat_command(cli, chump, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+        var.BITTEN_ROLES[chump.nick] = chumprole
+        change_role(chump, chumprole, newrole)
+        relay_wolfchat_command(cli, chump.nick, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
     killer_role = {}
     for deadperson in dead:
@@ -3823,19 +3821,20 @@ def transition_day(cli, gameid=0):
             if killer == "@wolves":
                 killer_role[deadperson] = "wolf"
             else:
-                killer_role[deadperson] = get_role(killer)
+                killer_role[deadperson] = get_main_role(killer)
         else:
             # no killers, so assume suicide
-            killer_role[deadperson] = get_role(deadperson)
+            killer_role[deadperson] = get_main_role(deadperson)
 
+    dead_nicks = [p.nick for p in dead] # FIXME: Update once del_player has been updated
     for deadperson in dead:
         # check if they have already been killed since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
-        if deadperson in list_players():
-            del_player(cli, deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
+        if deadperson in get_players():
+            del_player(cli, deadperson.nick, end_game=False, killer_role=killer_role[deadperson], deadlist=dead_nicks, original=deadperson.nick)
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
-    event_end.dispatch(cli, var)
+    event_end.dispatch(var)
 
     if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
         return
