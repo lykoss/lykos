@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -60,11 +60,11 @@ def pass_cmd(cli, nick, chan, rest):
 
 @event_listener("bite")
 def on_bite(evt, var, actor, user):
-    if user.nick not in var.ROLES["harlot"]:
+    if user.nick not in var.ROLES["harlot"] or user.nick not in VISITED:
         return
-    hvisit = VISITED.get(user.nick)
+    hvisit = VISITED[user.nick]
     visited = users._get(hvisit) # FIXME
-    if hvisit and get_role(hvisit) not in var.WOLFCHAT_ROLES and (visited not in evt.param.bywolves or visited in evt.param.protected):
+    if hvisit and get_main_role(visited) not in var.WOLFCHAT_ROLES and (visited not in evt.param.bywolves or visited in evt.param.protected):
         evt.data["can_bite"] = False
 
 @event_listener("transition_day_resolve", priority=1)
