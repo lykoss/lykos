@@ -118,11 +118,6 @@ def on_rename(evt, cli, var, prefix, nick):
     if prefix in KILLS:
         del KILLS[prefix]
 
-@event_listener("night_acted")
-def on_acted(evt, var, nick, sender):
-    if nick in KILLS:
-        evt.data["acted"] = True
-
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, cli, var):
     # select a random target for VG if they didn't kill

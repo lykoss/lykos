@@ -3438,8 +3438,10 @@ def transition_day(cli, gameid=0):
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
+        actor = users._get(crow) # FIXME
+        user = users._get(target) # FIXME
         evt = Event("night_acted", {"acted": False})
-        evt.dispatch(var, target, crow)
+        evt.dispatch(var, user, actor)
         if ((target in var.HVISITED and var.HVISITED[target]) or
                 (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):

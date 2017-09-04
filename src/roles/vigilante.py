@@ -88,8 +88,8 @@ def on_rename(evt, cli, var, prefix, nick):
         PASSED.add(nick)
 
 @event_listener("night_acted")
-def on_acted(evt, var, nick, sender):
-    if nick in KILLS:
+def on_acted(evt, var, user, actor):
+    if user.nick in KILLS:
         evt.data["acted"] = True
 
 @event_listener("get_special")

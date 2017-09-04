@@ -246,8 +246,8 @@ def on_transition_day_resolve_end(evt, cli, var, victims):
                     evt.data["dead"].append(succ)
 
 @event_listener("night_acted")
-def on_night_acted(evt, var, nick, sender):
-    if VISITED.get(nick):
+def on_night_acted(evt, var, user, actor):
+    if VISITED.get(user.nick):
         evt.data["acted"] = True
 
 @event_listener("chk_nightdone")

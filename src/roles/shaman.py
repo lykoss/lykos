@@ -142,8 +142,8 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             del SHAMANS[a]
 
 @event_listener("night_acted")
-def on_acted(evt, var, nick, sender):
-    if nick in SHAMANS:
+def on_acted(evt, var, user, actor):
+    if user.nick in SHAMANS:
         evt.data["acted"] = True
 
 @event_listener("get_special")
