@@ -118,9 +118,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
     PASSED.discard(nick)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(KILLS) + len(PASSED)
-    evt.data["nightroles"].extend(get_roles("vigilante"))
+    evt.data["nightroles"].extend(get_all_players(("vigilante",)))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

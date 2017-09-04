@@ -210,9 +210,9 @@ class VillagergameMode(GameMode):
         else:
             evt.data["winner"] = None
 
-    def chk_nightdone(self, evt, cli, var):
+    def chk_nightdone(self, evt, var):
         transition_day = evt.data["transition_day"]
-        evt.data["transition_day"] = lambda cli2, gameid=0: self.prolong_night(cli2, var, gameid, transition_day)
+        evt.data["transition_day"] = lambda cli, gameid=0: self.prolong_night(cli, var, gameid, transition_day)
 
     def prolong_night(self, cli, var, gameid, transition_day):
         nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
@@ -1126,7 +1126,7 @@ class SleepyMode(GameMode):
             pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
         self.nightmare_step(cli)
 
-    def prolong_night(self, evt, cli, var):
+    def prolong_night(self, evt, var):
         if self.having_nightmare is not None:
             evt.data["actedcount"] = -1
 

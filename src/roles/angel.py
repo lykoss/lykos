@@ -112,9 +112,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             del LASTGUARDED[nick]
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(GUARDED) + len(PASSED)
-    evt.data["nightroles"].extend(list_players(("guardian angel", "bodyguard")))
+    evt.data["nightroles"].extend(get_players(("guardian angel", "bodyguard")))
 
 @event_listener("transition_day", priority=4.2)
 def on_transition_day(evt, cli, var):

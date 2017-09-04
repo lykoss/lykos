@@ -289,13 +289,13 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         del KILLS[nick]
 
 @event_listener("chk_nightdone", priority=3)
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     if not var.DISEASED_WOLVES:
         evt.data["actedcount"] += len(KILLS)
-        evt.data["nightroles"].extend(list_players(CAN_KILL))
+        evt.data["nightroles"].extend(get_players(CAN_KILL))
 
 @event_listener("chk_nightdone", priority=20)
-def on_chk_nightdone2(evt, cli, var):
+def on_chk_nightdone2(evt, var):
     if not evt.prevent_default:
         nevt = Event("wolf_numkills", {"numkills": 1})
         nevt.dispatch(var)

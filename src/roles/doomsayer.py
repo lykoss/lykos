@@ -107,9 +107,9 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("doomsayer",)))
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)
-    evt.data["nightroles"].extend(get_roles("doomsayer"))
+    evt.data["nightroles"].extend(get_all_players(("doomsayer",)))
 
 @event_listener("abstain")
 def on_abstain(evt, cli, var, nick):

@@ -49,7 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.functions import get_players, get_participants, get_main_role
+from src.functions import get_players, get_all_players, get_participants, get_main_role
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -3850,12 +3850,12 @@ def chk_nightdone(cli):
     if var.PHASE != "night":
         return
 
-    pl = list_players()
+    pl = get_players()
     spl = set(pl)
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED,
                                var.HEXED, var.CURSED, var.CHARMERS)))
 
-    nightroles = get_roles("sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")
+    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")))
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -3863,31 +3863,32 @@ def chk_nightdone(cli):
 
     if var.FIRST_NIGHT:
         actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
-        nightroles.extend(get_roles("matchmaker", "clone"))
+        nightroles.extend(get_all_players(("matchmaker", "clone")))
 
     if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
-        nightroles.extend(get_roles("alpha wolf"))
+        nightroles.extend(get_all_players(("alpha wolf",)))
         actedcount += len([p for p in var.ALPHA_WOLVES if p in var.ROLES["alpha wolf"]])
 
     # add in turncoats who should be able to act -- if they passed they're already in var.PASSED
     # but if they can act they're in var.TURNCOATS where the second tuple item is the current night
     # (if said tuple item is the previous night, then they are not allowed to act tonight)
     for tc, tu in var.TURNCOATS.items():
-        if tc not in pl:
+        user = users._get(tc) # FIXME
+        if user not in pl:
             continue
         if tu[1] == var.NIGHT_COUNT:
-            nightroles.append(tc)
+            nightroles.append(user)
             actedcount += 1
         elif tu[1] < var.NIGHT_COUNT - 1:
-            nightroles.append(tc)
+            nightroles.append(user)
 
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
-    event.dispatch(cli, var)
+    event.dispatch(var)
     actedcount = event.data["actedcount"]
 
-    # remove all instances of their name if they are silenced (makes implementing the event easier)
-    nightroles = [p for p in nightroles if p not in var.SILENCED]
+    # remove all instances of them if they are silenced (makes implementing the event easier)
+    nightroles = [p for p in nightroles if p.nick not in var.SILENCED]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         if not event.prevent_default:

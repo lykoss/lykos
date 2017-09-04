@@ -124,10 +124,10 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 child.send(messages["no_other_wolves"])
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     if var.FIRST_NIGHT:
         evt.data["actedcount"] += len(IDOLS.keys())
-        evt.data["nightroles"].extend(var.ROLES["wild child"])
+        evt.data["nightroles"].extend(get_all_players(("wild child",)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, cli, var):

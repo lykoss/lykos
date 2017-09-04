@@ -104,9 +104,9 @@ def on_night_acted(evt, var, user, actor):
         evt.data["acted"] = True
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(VISITED)
-    evt.data["nightroles"].extend(var.ROLES["harlot"])
+    evt.data["nightroles"].extend(get_all_players(("harlot",)))
 
 @event_listener("exchange_roles")
 def on_exchange_roles(evt, cli, var, actor, nick, actor_role, nick_role):

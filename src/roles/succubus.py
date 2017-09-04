@@ -251,9 +251,9 @@ def on_night_acted(evt, var, user, actor):
         evt.data["acted"] = True
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(VISITED)
-    evt.data["nightroles"].extend(var.ROLES["succubus"])
+    evt.data["nightroles"].extend(get_all_players(("succubus",)))
 
 @event_listener("targeted_command")
 def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):

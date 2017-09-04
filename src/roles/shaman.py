@@ -176,9 +176,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         TOTEMS[nick] = actor_totem
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SHAMANS)
-    evt.data["nightroles"].extend(list_players(var.TOTEM_ORDER))
+    evt.data["nightroles"].extend(get_players(var.TOTEM_ORDER))
 
 @event_listener("get_voters")
 def on_get_voters(evt, var):

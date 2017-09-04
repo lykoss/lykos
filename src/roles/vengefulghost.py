@@ -184,9 +184,9 @@ def on_get_participant_role(evt, var, user):
             evt.data["role"] = "villager"
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(KILLS)
-    evt.data["nightroles"].extend([p.nick for p in GHOSTS if GHOSTS[p][0] != "!"])
+    evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

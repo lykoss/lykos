@@ -5,7 +5,7 @@ import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog
 from src.decorators import cmd, event_listener
-from src.functions import get_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role
 from src.messages import messages
 from src.events import Event
 
@@ -100,9 +100,9 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
         SEEN.discard(actor)
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)
-    evt.data["nightroles"].extend(get_roles("seer", "oracle", "augur"))
+    evt.data["nightroles"].extend(get_all_players(("seer", "oracle", "augur")))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

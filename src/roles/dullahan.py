@@ -154,7 +154,7 @@ def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
             TARGET[users._get(actor)] = TARGETS.pop(k) - {users._get(actor)} # FIXME
 
 @event_listener("chk_nightdone")
-def on_chk_nightdone(evt, cli, var):
+def on_chk_nightdone(evt, var):
     spl = set(get_players())
     evt.data["actedcount"] += len(KILLS)
     for dullahan, targets in TARGETS.items():
