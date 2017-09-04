@@ -95,9 +95,9 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("seer", "oracle", "augur")))
 
 @event_listener("exchange_roles")
-def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    if actor_role in ("seer", "oracle", "augur"):
-        SEEN.discard(actor)
+def on_exchange(evt, var, user, target, user_role, target_role):
+    if user_role in ("seer", "oracle", "augur"):
+        SEEN.discard(user.nick)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

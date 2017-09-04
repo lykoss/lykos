@@ -142,16 +142,16 @@ def on_transition_day(evt, var):
         evt.data["killers"][d].append(k)
 
 @event_listener("exchange_roles")
-def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
+def on_exchange(evt, var, user, target, user_role, target_role):
     for k in set(KILLS):
-        if k.nick == actor or k.nick == nick:
+        if k is user or k is target:
             del KILLS[k]
 
     for k in set(TARGETS):
-        if actor_role == "dullahan" and nick_role != "dullahan" and k.nick == actor:
-            TARGETS[users._get(nick)] = TARGETS.pop(k) - {users._get(nick)} # FIXME
-        elif nick_role == "dullahan" and actor_role != "dullahan" and k.nick == nick:
-            TARGET[users._get(actor)] = TARGETS.pop(k) - {users._get(actor)} # FIXME
+        if user_role == "dullahan" and target_role != "dullahan" and k is user:
+            TARGETS[target] = TARGETS.pop(k) - {target}
+        elif target_role == "dullahan" and user_role != "dullahan" and k is target:
+            TARGET[user] = TARGETS.pop(k) - {user}
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

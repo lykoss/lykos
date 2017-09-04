@@ -113,9 +113,7 @@ def on_transition_day(evt, var):
         del KILLS[k]
 
 @event_listener("exchange_roles")
-def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    user = users._get(actor) # FIXME
-    target = users._get(nick) # FIXME
+def on_exchange(evt, var, user, target, user_role, target_role):
     KILLS.pop(user, None)
     KILLS.pop(target, None)
     HUNTERS.discard(user)

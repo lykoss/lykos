@@ -4058,8 +4058,12 @@ def check_exchange(cli, actor, nick):
     #some roles can act on themselves, ignore this
     if actor == nick:
         return False
+
+    user = users._get(actor) # FIXME
+    target = users._get(nick) # FIXME
+
     event = Event("can_exchange", {})
-    if not event.dispatch(var, actor, nick):
+    if not event.dispatch(var, user, target):
         return False # some roles such as succubus cannot be affected by exchange totem
     if nick in var.EXCHANGED:
         var.EXCHANGED.remove(nick)
@@ -4135,11 +4139,11 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "turncoat":
             del var.TURNCOATS[nick]
 
-        evt = Event("exchange_roles", {"actor_messages": [], "nick_messages": []})
-        evt.dispatch(cli, var, actor, nick, actor_role, nick_role)
+        evt = Event("exchange_roles", {"user_messages": [], "target_messages": []})
+        evt.dispatch(var, user, target, actor_role, nick_role)
 
-        change_role(users._get(actor), actor_role, nick_role) # FIXME
-        change_role(users._get(nick), nick_role, actor_role) # FIXME
+        change_role(user, actor_role, nick_role)
+        change_role(target, nick_role, actor_role)
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
                 var.BITTEN_ROLES[actor], var.BITTEN_ROLES[nick] = var.BITTEN_ROLES[nick], var.BITTEN_ROLES[actor]
@@ -4174,13 +4178,10 @@ def check_exchange(cli, actor, nick):
 
         # don't say who, since misdirection/luck totem may have switched it
         # and this makes life far more interesting
-        pm(cli, actor, messages["role_swap"].format(nick_rev_role))
-        pm(cli, nick,  messages["role_swap"].format(actor_rev_role))
-
-        for msg in evt.data["actor_messages"]:
-            pm(cli, actor, msg)
-        for msg in evt.data["nick_messages"]:
-            pm(cli, nick, msg)
+        user.send(messages["role_swap"].format(nick_rev_role))
+        target.send(messages["role_swap"].format(actor_rev_role))
+        user.send(*evt.data["user_messages"])
+        target.send(*evt.data["target_messages"])
 
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
