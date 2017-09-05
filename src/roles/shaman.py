@@ -518,7 +518,7 @@ def on_transition_night_end(evt, var):
     for shaman in get_players(var.TOTEM_ORDER):
         pl = ps[:]
         random.shuffle(pl)
-        if shaman.nick in LASTGIVEN:
+        if LASTGIVEN.get(shaman.nick):
             user = users._get(LASTGIVEN[shaman.nick]) # FIXME
             if user in pl:
                 pl.remove(user)
