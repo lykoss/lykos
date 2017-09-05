@@ -63,9 +63,10 @@ def on_bite(evt, var, actor, user):
     if user.nick not in var.ROLES["harlot"] or user.nick not in VISITED:
         return
     hvisit = VISITED[user.nick]
-    visited = users._get(hvisit) # FIXME
-    if hvisit and get_main_role(visited) not in var.WOLFCHAT_ROLES and (visited not in evt.param.bywolves or visited in evt.param.protected):
-        evt.data["can_bite"] = False
+    if hvisit is not None:
+        visited = users._get(hvisit) # FIXME
+        if get_main_role(visited) not in var.WOLFCHAT_ROLES and (visited not in evt.params.bywolves or visited in evt.params.protected):
+            evt.data["can_bite"] = False
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
@@ -82,7 +83,7 @@ def on_transition_day_resolve_end(evt, var, victims):
         if victim in evt.data["dead"] and victim.nick in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
             for hlt in VISITED:
                 user = users._get(hlt) # FIXME
-                if VISITED[hlt] == victim and user not in evt.data["bitten"] and user not in evt.data["dead"]:
+                if VISITED[hlt] == victim.nick and user not in evt.data["bitten"] and user not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
                         evt.data["message"].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
                     else:

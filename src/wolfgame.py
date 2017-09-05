@@ -3578,9 +3578,9 @@ def transition_day(cli, gameid=0):
     for v in victims_set:
         if v in var.DYING:
             victims.append(v)
-        elif v.nick in var.ROLES["bodyguard"] and users._get(angel.GUARDED.get(v.nick)) in victims_set: # FIXME
+        elif v.nick in var.ROLES["bodyguard"] and v.nick in angel.GUARDED and users._get(angel.GUARDED[v.nick]) in victims_set: # FIXME
             vappend.append(v)
-        elif v.nick in var.ROLES["harlot"] and users._get(harlot.VISITED.get(v.nick)) in victims_set: # FIXME
+        elif v.nick in var.ROLES["harlot"] and v.nick in harlot.VISITED and users._get(harlot.VISITED[v.nick]) in victims_set: # FIXME
             vappend.append(v)
         else:
             victims.append(v)
@@ -3598,7 +3598,7 @@ def transition_day(cli, gameid=0):
             if v.nick in var.ROLES["bodyguard"] and users._get(angel.GUARDED.get(v.nick)) not in vappend: # FIXME
                 vappend.remove(v)
                 victims.append(v)
-            elif v in var.ROLES["harlot"] and users._get(harlot.VISITED.get(v.nick)) not in vappend: # FIXME
+            elif v.nick in var.ROLES["harlot"] and users._get(harlot.VISITED.get(v.nick)) not in vappend: # FIXME
                 vappend.remove(v)
                 victims.append(v)
 
@@ -3667,7 +3667,7 @@ def transition_day(cli, gameid=0):
                     wolf.send(messages["lycan_wc_notification"].format(victim))
                     role = get_main_role(wolf)
                     wevt = Event("wolflist", {"tags": set()})
-                    wevt.dispatch(cli, var, wolf, victim)
+                    wevt.dispatch(cli, var, wolf.nick, victim.nick)
                     tags = " ".join(wevt.data["tags"])
                     if tags:
                         tags += " "
@@ -3749,7 +3749,7 @@ def transition_day(cli, gameid=0):
                 if woflset:
                     deadwolf = random.choice(tuple(woflset))
                     if var.ROLE_REVEAL in ("on", "team"):
-                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
+                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf.nick)))
                     else:
                         message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
@@ -3774,7 +3774,7 @@ def transition_day(cli, gameid=0):
                         var.GUNNERS[guntaker.nick] = 0
                     if guntaker not in get_all_players(("gunner", "sharpshooter")):
                         var.ROLES["gunner"].add(guntaker.nick)
-                    var.GUNNERS[guntaker] += 1  # only transfer one bullet
+                    var.GUNNERS[guntaker.nick] += 1  # only transfer one bullet
                     guntaker.send(messages["wolf_gunner"].format(victim))
             except IndexError:
                 pass # no wolves to give gun to (they were all killed during night or something)

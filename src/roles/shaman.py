@@ -316,7 +316,7 @@ def on_transition_day_begin(evt, var):
                 if user in ps:
                     ps.remove(user)
             levt = Event("get_random_totem_targets", {"targets": ps})
-            levt.dispatch(cli, var, shaman)
+            levt.dispatch(var, shaman)
             ps = levt.data["targets"]
             if ps:
                 target = random.choice(ps)

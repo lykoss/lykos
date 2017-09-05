@@ -138,7 +138,7 @@ def on_transition_day_begin(evt, var):
                 pl.remove(child)
                 if pl:
                     target = random.choice(pl)
-                    IDOLS[child] = target.nick
+                    IDOLS[child.nick] = target.nick
                     child.send(messages["wild_child_random_idol"].format(target))
 
 @event_listener("transition_night_end", priority=2)

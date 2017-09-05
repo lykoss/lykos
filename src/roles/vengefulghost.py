@@ -43,7 +43,7 @@ def vg_kill(var, wrapper, message):
     evt.dispatch(wrapper.source.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    target = evt.data["target"]
+    target = users._get(evt.data["target"]) # FIXME
 
     KILLS[wrapper.source] = target
 
@@ -135,15 +135,13 @@ def on_transition_day(evt, var):
 @event_listener("transition_day", priority=3.01)
 def on_transition_day3(evt, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[actor] == "villagers":
+        if GHOSTS[k] == "villagers":
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
 
 @event_listener("transition_day", priority=6.01)
 def on_transition_day6(evt, var):
     for k, d in list(KILLS.items()):
-        actor = users._get(k) # FIXME
-        user = users._get(d) # FIXME
         if GHOSTS[k] == "villagers" and k in evt.data["killers"][d]:
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
