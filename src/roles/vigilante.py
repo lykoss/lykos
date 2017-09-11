@@ -98,17 +98,17 @@ def on_get_special(evt, var):
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
-    for k, d in list(KILLS.items()):
-        actor = users._get(k) # FIXME
-        user = users._get(d) # FIXME
-        evt.data["victims"].append(user)
-        evt.data["onlybywolves"].discard(user)
-        evt.data["killers"][user].append(actor)
+    for k, v in list(KILLS.items()):
+        killer = users._get(k) # FIXME
+        victim = users._get(v) # FIXME
+        evt.data["victims"].append(victim)
+        evt.data["onlybywolves"].discard(victim)
+        evt.data["killers"][victim].append(killer)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 
-        if get_main_role(user) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
-            var.DYING.add(actor)
+        if get_main_role(victim) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
+            var.DYING.add(killer)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

@@ -398,11 +398,11 @@ def on_transition_day_begin2(evt, var):
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):
     for k, d in DEATH.items():
-        actor = users._get(k) # FIXME
-        user = users._get(d) # FIXME
-        evt.data["victims"].append(user)
-        evt.data["onlybywolves"].discard(user)
-        evt.data["killers"][user].append(actor)
+        shaman = users._get(k) # FIXME
+        target = users._get(d) # FIXME
+        evt.data["victims"].append(target)
+        evt.data["onlybywolves"].discard(target)
+        evt.data["killers"][target].append(shaman)
 
 @event_listener("transition_day", priority=4.1)
 def on_transition_day3(evt, var):
@@ -431,12 +431,12 @@ def on_transition_day3(evt, var):
                 var.ACTIVE_PROTECTIONS[v.nick].append("totem")
 
 @event_listener("fallen_angel_guard_break")
-def on_fagb(evt, var, user, killer):
+def on_fagb(evt, var, victim, killer):
     # we'll never end up killing a shaman who gave out protection, but delete the totem since
     # story-wise it gets demolished at night by the FA
-    while user.nick in havetotem:
-        havetotem.remove(user.nick)
-        brokentotem.add(user.nick)
+    while victim.nick in havetotem:
+        havetotem.remove(victim.nick)
+        brokentotem.add(victim.nick)
 
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve2(evt, var, victim):

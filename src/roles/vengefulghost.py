@@ -150,11 +150,11 @@ def on_transition_day6(evt, var):
 
 @event_listener("retribution_kill", priority=6)
 def on_retribution_kill(evt, var, victim, orig_target):
-    user = evt.data["target"]
-    if user in GHOSTS:
-        drivenoff[user] = GHOSTS[user]
-        GHOSTS[user] = "!" + GHOSTS[user]
-        evt.data["message"].append(messages["totem_banish"].format(victim, user))
+    target = evt.data["target"]
+    if target in GHOSTS:
+        drivenoff[target] = GHOSTS[target]
+        GHOSTS[target] = "!" + GHOSTS[target]
+        evt.data["message"].append(messages["totem_banish"].format(victim, target))
         evt.data["target"] = None
 
 @event_listener("get_participant_role")

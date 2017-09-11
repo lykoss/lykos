@@ -137,16 +137,16 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
-    for k, d in list(KILLS.items()):
-        actor = users._get(k) # FIXME
-        user = users._get(d) # FIXME
-        evt.data["victims"].append(user)
+    for k, v in list(KILLS.items()):
+        killer = users._get(k) # FIXME
+        victim = users._get(v) # FIXME
+        evt.data["victims"].append(victim)
         # even though doomsayer is a wolf, remove from onlybywolves since
         # that particular item indicates that they were the target of a wolf !kill.
         # If doomsayer doesn't remove this, roles such as harlot or monster will not
         # die if they are the target of a doomsayer !see that ends up killing the target.
-        evt.data["onlybywolves"].discard(user)
-        evt.data["killers"][user].append(actor)
+        evt.data["onlybywolves"].discard(victim)
+        evt.data["killers"][victim].append(killer)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

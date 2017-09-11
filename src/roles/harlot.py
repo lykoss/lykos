@@ -59,10 +59,10 @@ def pass_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @event_listener("bite")
-def on_bite(evt, var, actor, user):
-    if user.nick not in var.ROLES["harlot"] or user.nick not in VISITED:
+def on_bite(evt, var, alpha, target):
+    if target.nick not in var.ROLES["harlot"] or target.nick not in VISITED:
         return
-    hvisit = VISITED[user.nick]
+    hvisit = VISITED[target.nick]
     if hvisit is not None:
         visited = users._get(hvisit) # FIXME
         if get_main_role(visited) not in var.WOLFCHAT_ROLES and (visited not in evt.params.bywolves or visited in evt.params.protected):

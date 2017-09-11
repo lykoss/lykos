@@ -3664,7 +3664,7 @@ def transition_day(cli, gameid=0):
                 wolves.remove(victim)  # remove self from list
                 to_send = []
                 for wolf in wolves:
-                    wolf.send(messages["lycan_wc_notification"].format(victim))
+                    wolf.queue_message(messages["lycan_wc_notification"].format(victim))
                     role = get_main_role(wolf)
                     wevt = Event("wolflist", {"tags": set()})
                     wevt.dispatch(cli, var, wolf.nick, victim.nick)
@@ -3672,6 +3672,9 @@ def transition_day(cli, gameid=0):
                     if tags:
                         tags += " "
                     to_send.append("\u0002{0}\u0002 ({1}{2})".format(wolf, tags, role))
+
+                if wolves:
+                    wolf.send_messages()
 
                 victim.send("Wolves: " + ", ".join(to_send))
                 revt.data["novictmsg"] = False

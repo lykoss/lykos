@@ -144,11 +144,11 @@ def on_transition_day(evt, var):
                         var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
         else:
             for g in var.ROLES["guardian angel"]:
-                if GUARDED.get(g) == v:
-                    var.ACTIVE_PROTECTIONS[v].append("angel")
+                if GUARDED.get(g) == v.nick:
+                    var.ACTIVE_PROTECTIONS[v.nick].append("angel")
             for g in var.ROLES["bodyguard"]:
-                if GUARDED.get(g) == v:
-                    var.ACTIVE_PROTECTIONS[v].append("bodyguard")
+                if GUARDED.get(g) == v.nick:
+                    var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
 
 @event_listener("fallen_angel_guard_break")
 def on_fagb(evt, var, user, killer):
