@@ -130,16 +130,16 @@ def on_chk_nightdone(evt, var):
         evt.data["nightroles"].extend(get_all_players(("wild child",)))
 
 @event_listener("transition_day_begin")
-def on_transition_day_begin(evt, cli, var):
+def on_transition_day_begin(evt, var):
     if (not var.START_WITH_DAY or not var.FIRST_DAY) and var.FIRST_NIGHT:
-        for child in var.ROLES["wild child"]:
-            if child not in IDOLS:
-                pl = list_players()
+        for child in get_all_players(("wild child",)):
+            if child.nick not in IDOLS:
+                pl = get_players()
                 pl.remove(child)
                 if pl:
                     target = random.choice(pl)
-                    IDOLS[child] = target
-                    pm(cli, child, messages["wild_child_random_idol"].format(target))
+                    IDOLS[child.nick] = target.nick
+                    child.send(messages["wild_child_random_idol"].format(target))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

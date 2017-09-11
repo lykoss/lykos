@@ -5,12 +5,12 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players
+from src.functions import get_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[str, str]
+KILLS = {} # type: Dict[users.User, users.User]
 GHOSTS = {} # type: Dict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
@@ -22,34 +22,34 @@ def vg_kill(var, wrapper, message):
     if GHOSTS[wrapper.source][0] == "!":
         return
 
-    victim = get_victim(wrapper.source.client, wrapper.source.nick, re.split(" +", message)[0], False)
-    if not victim:
+    target = get_target(var, wrapper, re.split(" +", message)[0])
+    if not target:
         return
 
-    if victim == wrapper.source.nick:
+    if target is wrapper.source:
         wrapper.pm(messages["player_dead"])
         return
 
-    wolves = list_players(var.WOLFTEAM_ROLES)
-    if GHOSTS[wrapper.source] == "wolves" and victim not in wolves:
+    wolves = get_players(var.WOLFTEAM_ROLES)
+    if GHOSTS[wrapper.source] == "wolves" and target not in wolves:
         wrapper.pm(messages["vengeful_ghost_wolf"])
         return
-    elif GHOSTS[wrapper.source] == "villagers" and victim in wolves:
+    elif GHOSTS[wrapper.source] == "villagers" and target in wolves:
         wrapper.pm(messages["vengeful_ghost_villager"])
         return
 
-    orig = victim
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": False})
-    evt.dispatch(wrapper.source.client, var, "kill", wrapper.source.nick, victim, frozenset({"detrimental"}))
+    orig = target
+    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": False})
+    evt.dispatch(wrapper.source.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    target = users._get(evt.data["target"]) # FIXME
 
-    KILLS[wrapper.source.nick] = victim
+    KILLS[wrapper.source] = target
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, victim, get_role(victim)))
+    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, target, get_main_role(target)))
     chk_nightdone(wrapper.source.client)
 
 @command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
@@ -57,8 +57,8 @@ def vg_retract(var, wrapper, message):
     """Removes a vengeful ghost's kill selection."""
     if wrapper.source not in GHOSTS:
         return
-    if wrapper.source.nick in KILLS:
-        del KILLS[wrapper.source.nick]
+    if wrapper.source in KILLS:
+        del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
 
 @event_listener("get_participants")
@@ -90,9 +90,9 @@ def on_player_win(evt, var, user, role, winner, survived):
 
 @event_listener("del_player", priority=6)
 def on_del_player(evt, var, user, nickrole, nicktpls, death_triggers):
-    for h,v in list(KILLS.items()):
-        if v == user.nick:
-            pm(user.client, h, messages["hunter_discard"])
+    for h, v in list(KILLS.items()):
+        if user is v:
+            h.send(messages["hunter_discard"])
             del KILLS[h]
     # extending VG to work with new teams can be done by registering a listener
     # at priority < 6, importing src.roles.vengefulghost, and setting
@@ -105,28 +105,15 @@ def on_del_player(evt, var, user, nickrole, nicktpls, death_triggers):
         user.send(messages["vengeful_turn"].format(GHOSTS[user]))
         debuglog(user.nick, "(vengeful ghost) TRIGGER", GHOSTS[user])
 
-@event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
-    kvp = []
-    for a,b in KILLS.items():
-        if a == prefix:
-            a = nick
-        if b == prefix:
-            b = nick
-        kvp.append((a,b))
-    KILLS.update(kvp)
-    if prefix in KILLS:
-        del KILLS[prefix]
-
 @event_listener("transition_day_begin", priority=6)
-def on_transition_day_begin(evt, cli, var):
+def on_transition_day_begin(evt, var):
     # select a random target for VG if they didn't kill
-    wolves = set(list_players(var.WOLFTEAM_ROLES))
-    villagers = set(list_players()) - wolves
+    wolves = set(get_players(var.WOLFTEAM_ROLES))
+    villagers = set(get_players()) - wolves
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or ghost.nick in var.SILENCED:
             continue
-        if ghost.nick not in KILLS:
+        if ghost not in KILLS:
             choice = set()
             if target == "wolves":
                 choice = wolves.copy()
@@ -136,39 +123,38 @@ def on_transition_day_begin(evt, cli, var):
             evt.dispatch(var, ghost, target)
             choice = evt.data["pl"]
             if choice:
-                KILLS[ghost.nick] = random.choice(list(choice))
+                KILLS[ghost] = random.choice(list(choice))
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for k, d in KILLS.items():
         evt.data["victims"].append(d)
         evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
 
 @event_listener("transition_day", priority=3.01)
-def on_transition_day3(evt, cli, var):
+def on_transition_day3(evt, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[users._get(k)] == "villagers":
+        if GHOSTS[k] == "villagers":
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
 
 @event_listener("transition_day", priority=6.01)
-def on_transition_day6(evt, cli, var):
+def on_transition_day6(evt, var):
     for k, d in list(KILLS.items()):
-        if GHOSTS[users._get(k)] == "villagers" and k in evt.data["killers"][d]:
+        if GHOSTS[k] == "villagers" and k in evt.data["killers"][d]:
             evt.data["killers"][d].remove(k)
             evt.data["killers"][d].insert(0, k)
         # important, otherwise our del_player listener messages the vg
         del KILLS[k]
 
-@event_listener("retribution_kill", priority=6) # FIXME: This function, and all of the event
-def on_retribution_kill(evt, cli, var, victim, orig_target):
-    t = evt.data["target"]
-    user = users._get(t)
-    if user in GHOSTS:
-        drivenoff[user] = GHOSTS[user]
-        GHOSTS[user] = "!" + GHOSTS[user]
-        evt.data["message"].append(messages["totem_banish"].format(victim, t))
+@event_listener("retribution_kill", priority=6)
+def on_retribution_kill(evt, var, victim, orig_target):
+    target = evt.data["target"]
+    if target in GHOSTS:
+        drivenoff[target] = GHOSTS[target]
+        GHOSTS[target] = "!" + GHOSTS[target]
+        evt.data["message"].append(messages["totem_banish"].format(victim, target))
         evt.data["target"] = None
 
 @event_listener("get_participant_role")

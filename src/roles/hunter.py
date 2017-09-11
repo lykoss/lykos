@@ -104,11 +104,11 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("hunter",)))
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):
-        evt.data["victims"].append(d.nick)
-        evt.data["onlybywolves"].discard(d.nick)
-        evt.data["killers"][d.nick].append(k.nick)
+        evt.data["victims"].append(d)
+        evt.data["onlybywolves"].discard(d)
+        evt.data["killers"][d].append(k)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 

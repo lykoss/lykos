@@ -134,12 +134,12 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("dullahan",)))
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     while KILLS:
         k, d = KILLS.popitem()
-        evt.data["victims"].append(d.nick)
-        evt.data["onlybywolves"].discard(d.nick)
-        evt.data["killers"][d.nick].append(k.nick)
+        evt.data["victims"].append(d)
+        evt.data["onlybywolves"].discard(d)
+        evt.data["killers"][d].append(k)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):

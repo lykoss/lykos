@@ -223,7 +223,7 @@ class VillagergameMode(GameMode):
             t = threading.Timer(abs(rand), transition_day, args=(cli,), kwargs={"gameid": gameid})
             t.start()
 
-    def transition_day(self, evt, cli, var):
+    def transition_day(self, evt, var):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
         self.delaying_night = False
@@ -256,7 +256,7 @@ class VillagergameMode(GameMode):
         from src.roles import wolf
         wolf.KILLS[botconfig.NICK] = [tgt]
 
-    def on_retribution_kill(self, evt, cli, var, victim, orig_target):
+    def on_retribution_kill(self, evt, var, victim, orig_target):
         # There are no wolves for this totem to kill
         if orig_target == "@wolves":
             evt.data["target"] = None
@@ -1130,11 +1130,13 @@ class SleepyMode(GameMode):
         if self.having_nightmare is not None:
             evt.data["actedcount"] = -1
 
-    def nightmare_kill(self, evt, cli, var):
+    def nightmare_kill(self, evt, var):
         # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare is not True and self.having_nightmare in list_players():
-            var.DYING.add(self.having_nightmare)
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_death"])
+        if self.having_nightmare is not None and self.having_nightmare is not True:
+            user = users._get(self.having_nightmare) # FIXME
+            if user in get_players():
+                var.DYING.add(user)
+                user.send(messages["sleepy_nightmare_death"])
 
     def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:

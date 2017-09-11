@@ -90,9 +90,9 @@ def on_harlot_visit(evt, cli, var, nick, victim):
         ENTRANCED.add(nick)
 
 @event_listener("get_random_totem_targets")
-def on_get_random_totem_targets(evt, cli, var, shaman):
-    if shaman in ENTRANCED:
-        for succubus in var.ROLES["succubus"]:
+def on_get_random_totem_targets(evt, var, shaman):
+    if shaman.nick in ENTRANCED:
+        for succubus in get_all_players(("succubus",)):
             if succubus in evt.data["targets"]:
                 evt.data["targets"].remove(succubus)
 
@@ -221,8 +221,8 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         ENTRANCED_DYING.clear()
 
 @event_listener("transition_day_resolve", priority=1)
-def on_transition_day_resolve(evt, cli, var, victim):
-    if victim in var.ROLES["succubus"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+def on_transition_day_resolve(evt, var, victim):
+    if victim.nick in var.ROLES["succubus"] and VISITED.get(victim.nick) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         # TODO: check if this is necessary for succubus, it's to prevent a message playing if alpha bites
         # a harlot that is visiting a wolf, since the bite succeeds in that case.
         if victim not in evt.data["bitten"]:
@@ -232,18 +232,19 @@ def on_transition_day_resolve(evt, cli, var, victim):
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
-def on_transition_day_resolve_end(evt, cli, var, victims):
+def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims + evt.data["bitten"]:
-        if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
+        if victim in evt.data["dead"] and victim.nick in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
             for succ in VISITED:
-                if VISITED[succ] == victim and succ not in evt.data["bitten"] and succ not in evt.data["dead"]:
+                user = users._get(succ) # FIXME
+                if VISITED[succ] == victim.nick and user not in evt.data["bitten"] and user not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
                         evt.data["message"].append(messages["visited_victim"].format(succ, get_reveal_role(succ)))
                     else:
                         evt.data["message"].append(messages["visited_victim_noreveal"].format(succ))
-                    evt.data["bywolves"].add(succ)
-                    evt.data["onlybywolves"].add(succ)
-                    evt.data["dead"].append(succ)
+                    evt.data["bywolves"].add(user)
+                    evt.data["onlybywolves"].add(user)
+                    evt.data["dead"].append(user)
 
 @event_listener("night_acted")
 def on_night_acted(evt, var, user, actor):
@@ -290,11 +291,12 @@ def on_begin_day(evt, var):
     ENTRANCED_DYING.clear()
 
 @event_listener("transition_day", priority=2)
-def on_transition_day(evt, cli, var):
+def on_transition_day(evt, var):
     for v in ENTRANCED_DYING:
-        var.DYING.add(v) # indicate that the death bypasses protections
-        evt.data["victims"].append(v)
-        evt.data["onlybywolves"].discard(v)
+        user = users._get(v) # FIXME
+        var.DYING.add(user) # indicate that the death bypasses protections
+        evt.data["victims"].append(user)
+        evt.data["onlybywolves"].discard(user)
         # we do not add to killers as retribution totem should not work on entranced not following succubus
 
 @event_listener("get_special")

@@ -90,7 +90,7 @@ def on_reconfigure_stats(evt, cli, var, stats):
         stats["wolf cub"] = 0
 
 @event_listener("transition_day_resolve_end")
-def on_begin_day(evt, cli, var, victims):
+def on_begin_day(evt, var, victims):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
