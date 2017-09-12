@@ -4180,7 +4180,7 @@ def check_exchange(cli, actor, nick):
         # and this makes life far more interesting
         user.send(messages["role_swap"].format(nick_rev_role))
         target.send(messages["role_swap"].format(actor_rev_role))
-        user.send(*evt.data["user_messages"])
+        user.send(*evt.data["actor_messages"])
         target.send(*evt.data["target_messages"])
 
         wcroles = var.WOLFCHAT_ROLES
