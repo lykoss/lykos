@@ -151,15 +151,15 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("shaman", "crazed shaman", "wolf shaman")))
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    user_totem = None
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    actor_totem = None
     target_totem = None
-    if user_role in var.TOTEM_ORDER:
-        user_totem = TOTEMS.pop(user.nick)
-        if user.nick in SHAMANS:
-            del SHAMANS[user.nick]
-        if user.nick in LASTGIVEN:
-            del LASTGIVEN[user.nick]
+    if actor_role in var.TOTEM_ORDER:
+        actor_totem = TOTEMS.pop(actor.nick)
+        if actor.nick in SHAMANS:
+            del SHAMANS[actor.nick]
+        if actor.nick in LASTGIVEN:
+            del LASTGIVEN[actor.nick]
     if target_role in var.TOTEM_ORDER:
         target_totem = TOTEMS.pop(target.nick)
         if target.nick in SHAMANS:
@@ -168,12 +168,12 @@ def on_exchange(evt, var, user, target, user_role, target_role):
             del LASTGIVEN[target.nick]
     if target_totem:
         if target_role != "crazed shaman":
-            evt.data["user_messages"].append(messages["shaman_totem"].format(target_totem))
-        TOTEMS[user.nick] = target_totem
-    if user_totem:
-        if user_role != "crazed shaman":
-            evt.data["target_messages"].append(messages["shaman_totem"].format(user_totem))
-        TOTEMS[target.nick] = user_totem
+            evt.data["actor_messages"].append(messages["shaman_totem"].format(target_totem))
+        TOTEMS[actor.nick] = target_totem
+    if actor_totem:
+        if actor_role != "crazed shaman":
+            evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
+        TOTEMS[target.nick] = actor_totem
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

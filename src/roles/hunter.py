@@ -113,12 +113,12 @@ def on_transition_day(evt, var):
         del KILLS[k]
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    KILLS.pop(user, None)
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    KILLS.pop(actor, None)
     KILLS.pop(target, None)
-    HUNTERS.discard(user)
+    HUNTERS.discard(actor)
     HUNTERS.discard(target)
-    PASSED.discard(user)
+    PASSED.discard(actor)
     PASSED.discard(target)
 
 @event_listener("chk_nightdone")

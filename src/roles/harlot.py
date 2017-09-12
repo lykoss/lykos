@@ -112,13 +112,13 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("harlot",)))
 
 @event_listener("exchange_roles")
-def on_exchange_roles(evt, var, user, target, user_role, target_role):
-    if user_role == "harlot":
-        if user.nick in VISITED:
-            if VISITED[user.nick] is not None:
-                visited = users._get(VISITED[user.nick]) # FIXME
-                visited.send(messages["harlot_disappeared"].format(user))
-            del VISITED[user.nick]
+def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
+    if actor_role == "harlot":
+        if actor.nick in VISITED:
+            if VISITED[actor.nick] is not None:
+                visited = users._get(VISITED[actor.nick]) # FIXME
+                visited.send(messages["harlot_disappeared"].format(actor))
+            del VISITED[actor.nick]
     if target_role == "harlot":
         if target.nick in VISITED:
             if VISITED[target.nick] is not None:

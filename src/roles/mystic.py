@@ -10,8 +10,8 @@ from src.messages import messages
 from src.events import Event
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    if user_role not in ("mystic", "wolf mystic") and target_role not in ("mystic", "wolf mystic"):
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor_role not in ("mystic", "wolf mystic") and target_role not in ("mystic", "wolf mystic"):
         return
 
     special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
@@ -23,19 +23,19 @@ def on_exchange(evt, var, user, target, user_role, target_role):
     neutral = set(get_players(var.TRUE_NEUTRAL_ROLES))
     special = evt2.data["special"]
 
-    if target_role == "wolf mystic" and user_role != "wolf mystic":
+    if target_role == "wolf mystic" and actor_role != "wolf mystic":
         # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
         numvills = len(special & (pl - wolves - neutral))
-        evt.data["user_messages"].append(messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-    elif target_role == "mystic" and user_role != "mystic":
+        evt.data["actor_messages"].append(messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
+    elif target_role == "mystic" and actor_role != "mystic":
         numevil = len(wolves)
-        evt.data["user_messages"].append(messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
+        evt.data["actor_messages"].append(messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 
-    if user_role == "wolf mystic" and target_role != "wolf mystic":
+    if actor_role == "wolf mystic" and target_role != "wolf mystic":
         # # of special villagers = # of players - # of villagers - # of wolves - # of neutrals
         numvills = len(special & (pl - wolves - neutral))
         evt.data["target_messages"].append(messages["wolf_mystic_info"].format("are" if numvills != 1 else "is", numvills, "s" if numvills != 1 else ""))
-    elif user_role == "mystic" and target_role != "mystic":
+    elif actor_role == "mystic" and target_role != "mystic":
         numevil = len(wolves)
         evt.data["target_messages"].append(messages["mystic_info"].format("are" if numevil != 1 else "is", numevil, "s" if numevil != 1 else ""))
 

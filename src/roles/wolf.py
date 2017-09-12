@@ -222,7 +222,7 @@ def on_retribution_kill(evt, var, victim, orig_target):
         evt.data["target"] = random.choice(wolves)
 
 @event_listener("exchange_roles", priority=2)
-def on_exchange(evt, var, user, target, user_role, target_role):
+def on_exchange(evt, var, actor, target, actor_role, target_role):
     wcroles = var.WOLFCHAT_ROLES
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
@@ -230,18 +230,18 @@ def on_exchange(evt, var, user, target, user_role, target_role):
         else:
             wcroles = var.WOLF_ROLES | {"traitor"}
 
-    if target_role in wcroles and user_role not in wcroles:
+    if target_role in wcroles and actor_role not in wcroles:
         pl = get_players()
         random.shuffle(pl)
-        pl.remove(user)  # remove self from list
+        pl.remove(actor)  # remove self from list
         notify = []
         to_send = []
         for player in pl:
             prole = get_main_role(player)
             if player is target:
-                prole = user_role
+                prole = actor_role
             wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(user.client, var, player.nick, user.nick)
+            wevt.dispatch(actor.client, var, player.nick, actor.nick)
             tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
                 if tags:
@@ -254,15 +254,16 @@ def on_exchange(evt, var, user, target, user_role, target_role):
                 to_send.append(player.nick)
 
         for player in notify:
-            player.queue_message(messages["players_exchanged_roles"].format(target, user))
-        player.send_messages()
+            player.queue_message(messages["players_exchanged_roles"].format(target, actor))
+        if notify:
+            player.send_messages()
 
-        evt.data["user_messages"].append("Players: " + ", ".join(to_send))
+        evt.data["actor_messages"].append("Players: " + ", ".join(to_send))
         if target_role in CAN_KILL and var.DISEASED_WOLVES:
-            evt.data["user_messages"].append(messages["ill_wolves"])
-        if var.ALPHA_ENABLED and target_role == "alpha wolf" and user.nick not in var.ALPHA_WOLVES:
-            evt.data["user_messages"].append(messages["wolf_bite"])
-    elif user_role in wcroles and target_role not in wcroles:
+            evt.data["actor_messages"].append(messages["ill_wolves"])
+        if var.ALPHA_ENABLED and target_role == "alpha wolf" and actor.nick not in var.ALPHA_WOLVES:
+            evt.data["actor_messages"].append(messages["wolf_bite"])
+    elif actor_role in wcroles and target_role not in wcroles:
         pl = get_players()
         random.shuffle(pl)
         pl.remove(target)  # remove self from list
@@ -270,10 +271,10 @@ def on_exchange(evt, var, user, target, user_role, target_role):
         to_send = []
         for player in pl:
             prole = get_main_role(player)
-            if player is user:
+            if player is actor:
                 prole = target_role
             wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(user.client, var, player.nick, target.nick)
+            wevt.dispatch(actor.client, var, player.nick, target.nick)
             tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
                 if tags:
@@ -286,17 +287,18 @@ def on_exchange(evt, var, user, target, user_role, target_role):
                 to_send.append(player.nick)
 
         for player in notify:
-            player.queue_message(messages["players_exchanged_roles"].format(user, target))
-        player.send_messages()
+            player.queue_message(messages["players_exchanged_roles"].format(actor, target))
+        if notify:
+            player.send_messages()
 
         evt.data["target_messages"].append("Players: " + ", ".join(to_send))
-        if user_role in CAN_KILL and var.DISEASED_WOLVES:
+        if actor_role in CAN_KILL and var.DISEASED_WOLVES:
             evt.data["target_messages"].append(messages["ill_wolves"])
-        if var.ALPHA_ENABLED and user_role == "alpha wolf" and target.nick not in var.ALPHA_WOLVES:
+        if var.ALPHA_ENABLED and actor_role == "alpha wolf" and target.nick not in var.ALPHA_WOLVES:
             evt.data["target_messages"].append(messages["wolf_bite"])
 
-    if user.nick in KILLS:
-        del KILLS[user.nick]
+    if actor.nick in KILLS:
+        del KILLS[actor.nick]
     if target.nick in KILLS:
         del KILLS[target.nick]
 

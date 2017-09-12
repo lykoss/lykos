@@ -4139,7 +4139,7 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "turncoat":
             del var.TURNCOATS[nick]
 
-        evt = Event("exchange_roles", {"user_messages": [], "target_messages": []})
+        evt = Event("exchange_roles", {"actor_messages": [], "target_messages": []})
         evt.dispatch(var, user, target, actor_role, nick_role)
 
         change_role(user, actor_role, nick_role)

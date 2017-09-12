@@ -99,13 +99,13 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("guardian angel", "bodyguard")))
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    if user_role in ("bodyguard", "guardian angel"):
-        if user.nick in GUARDED:
-            guarded = users._get(GUARDED.pop(user.nick)) # FIXME
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor_role in ("bodyguard", "guardian angel"):
+        if actor.nick in GUARDED:
+            guarded = users._get(GUARDED.pop(actor.nick)) # FIXME
             guarded.send(messages["protector disappeared"])
-        if user.nick in LASTGUARDED:
-            del LASTGUARDED[user.nick]
+        if actor.nick in LASTGUARDED:
+            del LASTGUARDED[actor.nick]
     if target_role in ("bodyguard", "guardian angel"):
         if target.nick in GUARDED:
             guarded = users._get(GUARDED.pop(target.nick)) # FIXME

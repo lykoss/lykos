@@ -111,12 +111,12 @@ def on_transition_day(evt, var):
             var.DYING.add(killer)
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    if user.nick in KILLS:
-        del KILLS[user.nick]
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor.nick in KILLS:
+        del KILLS[actor.nick]
     if target.nick in KILLS:
         del KILLS[target.nick]
-    PASSED.discard(user.nick)
+    PASSED.discard(actor.nick)
     PASSED.discard(target.nick)
 
 @event_listener("chk_nightdone")

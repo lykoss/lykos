@@ -27,7 +27,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 # wolf fires on priority 2, so we can add our extra messages now (at default priority 5)
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
+def on_exchange(evt, var, actor, target, actor_role, target_role):
     if not ANGRY_WOLVES:
         return
 
@@ -38,9 +38,9 @@ def on_exchange(evt, var, user, target, user_role, target_role):
         else:
             wcroles = var.WOLF_ROLES | {"traitor"}
 
-    if target_role in wcroles and user_role not in wcroles and wolf.wolf_can_kill(var, target):
-        evt.data["user_messages"].append(messages["angry_wolves"])
-    elif user_role in wcroles and target_role not in wcroles and wolf.wolf_can_kill(var, user):
+    if target_role in wcroles and actor_role not in wcroles and wolf.wolf_can_kill(var, target):
+        evt.data["actor_messages"].append(messages["angry_wolves"])
+    elif actor_role in wcroles and target_role not in wcroles and wolf.wolf_can_kill(var, actor):
         evt.data["target_messages"].append(messages["angry_wolves"])
 
 @event_listener("transition_night_end", priority=3)

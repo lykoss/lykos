@@ -54,25 +54,25 @@ def on_rename(evt, cli, var, prefix, nick):
             IDOLS[wildchild] = nick
 
 @event_listener("exchange_roles")
-def on_exchange(evt, var, user, target, user_role, target_role):
-    if user_role == "wolf" and user.nick in WILD_CHILDREN and target.nick not in WILD_CHILDREN:
-        WILD_CHILDREN.discard(user.nick)
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor_role == "wolf" and actor.nick in WILD_CHILDREN and target.nick not in WILD_CHILDREN:
+        WILD_CHILDREN.discard(actor.nick)
         WILD_CHILDREN.add(target.nick)
-    elif user_role == "wild child":
+    elif actor_role == "wild child":
         if target_role == "wild child":
-            IDOLS[user.nick], IDOLS[target.nick] = IDOLS[target.nick], IDOLS[user.nick]
-            evt.data["user_messages"].append(messages["wild_child_idol"].format(IDOLS[user.nick]))
+            IDOLS[actor.nick], IDOLS[target.nick] = IDOLS[target.nick], IDOLS[actor.nick]
+            evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor.nick]))
             evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target.nick]))
         else:
-            IDOLS[target.nick] = IDOLS.pop(user.nick)
+            IDOLS[target.nick] = IDOLS.pop(actor.nick)
             evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target.nick]))
-    if target_role == "wolf" and target.nick in WILD_CHILDREN and user.nick not in WILD_CHILDREN:
+    if target_role == "wolf" and target.nick in WILD_CHILDREN and actor.nick not in WILD_CHILDREN:
         WILD_CHILDREN.discard(target.nick)
-        WILD_CHILDREN.add(user.nick)
-    elif target_role == "wild child" and user_role != "wild child":
+        WILD_CHILDREN.add(actor.nick)
+    elif target_role == "wild child" and actor_role != "wild child":
         # if they're both wild children, already swapped idols above
-        IDOLS[user.nick] = IDOLS.pop(target.nick)
-        evt.data["user_messages"].append(messages["wild_child_idol"].format(IDOLS[user.nick]))
+        IDOLS[actor.nick] = IDOLS.pop(target.nick)
+        evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor.nick]))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
