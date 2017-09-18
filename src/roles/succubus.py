@@ -184,7 +184,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if death_triggers:
         ALL_SUCC_IDLE = False
     if len(var.ROLES["succubus"]) == 0:
-        entranced_alive = ENTRANCED - set(evt.params.deadlist)
+        entranced_alive = {users._get(x) for x in ENTRANCED}.difference(evt.params.deadlist) # FIXME
         if ALL_SUCC_IDLE:
             while ENTRANCED:
                 e = ENTRANCED.pop()
@@ -198,7 +198,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 comma = ","
             for e in entranced_alive:
                 if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(e)
+                    role = get_reveal_role(e.nick)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                     msg.append("\u0002{0}\u0002, a{1} \u0002{2}\u0002".format(e, an, role))
                 else:
@@ -215,7 +215,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 dlc = list(evt.params.deadlist)
                 dlc.extend(entranced_alive - {e})
                 debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(user, e, get_role(e)))
-                evt.params.del_player(user.client, e, end_game=False, killer_role="succubus",
+                evt.params.del_player(e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
         ENTRANCED_DYING.clear()

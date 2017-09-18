@@ -576,12 +576,12 @@ def on_lynch(evt, cli, var, nick):
         evt.prevent_default = True
 
 @event_listener("assassinate")
-def on_assassinate(evt, cli, var, nick, target, prot):
+def on_assassinate(evt, var, killer, target, prot):
     if prot == "totem":
-        var.ACTIVE_PROTECTIONS[target].remove("totem")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("totem")
         evt.prevent_default = True
         evt.stop_processing = True
-        cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "totem"].format(nick, target))
+        channels.Main.send(messages[evt.params.message_prefix + "totem"].format(killer, target))
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
