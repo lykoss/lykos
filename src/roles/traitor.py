@@ -29,19 +29,19 @@ def on_get_final_role(evt, cli, var, nick, role):
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt, cli, var, nick, nickrole, nickreveal, nicktpls):
-    if nickrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
+def on_update_stats1(evt, var, player, mainrole, revealroles, allroles):
+    if mainrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)
-def on_update_stats3(evt, cli, var, nick, nickrole, nickreveal, nicktpls):
+def on_update_stats3(evt, var, player, mainrole, revealroles, allroles):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
     # ismain True = night death, False = chain death; chain deaths can be traitors
     # even if only wolves killed, so we short-circuit there as well
     # TODO: an observant user will be able to determine if traitor dies due to luck/misdirection totem
     # redirecting a wolf kill onto traitor
-    if "traitor" not in evt.data["possible"] or not evt.params.ismain or nickrole == "traitor":
+    if "traitor" not in evt.data["possible"] or not evt.params.ismain or mainrole == "traitor":
         return
     if var.PHASE == "day" and var.GAMEPHASE == "night":
         mevt = Event("get_role_metadata", {})
