@@ -75,16 +75,16 @@ def on_acted(evt, var, user, actor):
         evt.data["acted"] = True
 
 @event_listener("exchange_roles")
-def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    if actor_role == "doomsayer" and nick_role != "doomsayer":
-        SEEN.discard(actor)
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor_role == "doomsayer" and target_role != "doomsayer":
+        SEEN.discard(actor.nick)
         for name, mapping in _mappings:
-            mapping.pop(actor, None)
+            mapping.pop(actor.nick, None)
 
-    elif nick_role == "doomsayer" and actor_role != "doomsayer":
-        SEEN.discard(nick)
+    elif target_role == "doomsayer" and actor_role != "doomsayer":
+        SEEN.discard(target.nick)
         for name, mapping in _mappings:
-            mapping.pop(nick, None)
+            mapping.pop(target.nick, None)
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):

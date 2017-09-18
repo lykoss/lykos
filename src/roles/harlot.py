@@ -112,17 +112,19 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("harlot",)))
 
 @event_listener("exchange_roles")
-def on_exchange_roles(evt, cli, var, actor, nick, actor_role, nick_role):
+def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
     if actor_role == "harlot":
-        if actor in VISITED:
-            if VISITED[actor] is not None:
-                pm(cli, VISITED[actor], messages["harlot_disappeared"].format(actor))
-            del VISITED[actor]
-    if nick_role == "harlot":
-        if nick in VISITED:
-            if VISITED[nick] is not None:
-                pm(cli, VISITED[nick], messages["harlot_disappeared"].format(nick))
-            del VISITED[nick]
+        if actor.nick in VISITED:
+            if VISITED[actor.nick] is not None:
+                visited = users._get(VISITED[actor.nick]) # FIXME
+                visited.send(messages["harlot_disappeared"].format(actor))
+            del VISITED[actor.nick]
+    if target_role == "harlot":
+        if target.nick in VISITED:
+            if VISITED[target.nick] is not None:
+                visited = users._get(VISITED[target.nick]) # FIXME
+                visited.send(messages["harlot_disappeared"].format(target))
+            del VISITED[target.nick]
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

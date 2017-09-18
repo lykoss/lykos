@@ -70,11 +70,11 @@ def on_get_special(evt, var):
     evt.data["special"].update(get_players(("detective",)))
 
 @event_listener("exchange_roles")
-def on_exchange(evt, cli, var, actor, nick, actor_role, nick_role):
-    if actor_role == "detective" and nick_role != "detective":
-        INVESTIGATED.discard(actor)
-    elif nick_role == "detective" and actor_role != "detective":
-        INVESTIGATED.discard(nick)
+def on_exchange(evt, var, actor, target, actor_role, target_role):
+    if actor_role == "detective" and target_role != "detective":
+        INVESTIGATED.discard(actor.nick)
+    elif target_role == "detective" and actor_role != "detective":
+        INVESTIGATED.discard(target.nick)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

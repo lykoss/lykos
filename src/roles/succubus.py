@@ -158,8 +158,8 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
 
 @event_listener("can_exchange")
-def on_can_exchange(evt, var, actor, nick):
-    if actor in var.ROLES["succubus"] or nick in var.ROLES["succubus"]:
+def on_can_exchange(evt, var, user, target):
+    if user.nick in var.ROLES["succubus"] or target.nick in var.ROLES["succubus"]:
         evt.prevent_default = True
         evt.stop_processing = True
 
