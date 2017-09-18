@@ -1167,7 +1167,7 @@ def stats(cli, nick, chan, rest):
             for i, player in enumerate(ps):
                 prole = get_role(player)
                 wevt = Event("wolflist", {"tags": set()})
-                wevt.dispatch(cli, var, player, nick)
+                wevt.dispatch(var, users._get(player), users._get(nick)) # FIXME
                 tags = " ".join(wevt.data["tags"])
                 if prole in badguys:
                     if tags:
@@ -3667,7 +3667,7 @@ def transition_day(cli, gameid=0):
                     wolf.queue_message(messages["lycan_wc_notification"].format(victim))
                     role = get_main_role(wolf)
                     wevt = Event("wolflist", {"tags": set()})
-                    wevt.dispatch(cli, var, wolf.nick, victim.nick)
+                    wevt.dispatch(var, wolf, victim)
                     tags = " ".join(wevt.data["tags"])
                     if tags:
                         tags += " "

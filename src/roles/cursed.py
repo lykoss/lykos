@@ -18,8 +18,8 @@ def on_see(evt, cli, var, nick, victim):
         evt.data["role"] = "wolf"
 
 @event_listener("wolflist")
-def on_wolflist(evt, cli, var, nick, wolf):
-    if nick in var.ROLES["cursed villager"]:
+def on_wolflist(evt, var, player, wolf):
+    if player.nick in var.ROLES["cursed villager"]:
         evt.data["tags"].add("cursed")
 
 # vim: set sw=4 expandtab:

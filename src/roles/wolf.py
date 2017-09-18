@@ -241,7 +241,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             if player is target:
                 prole = actor_role
             wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(actor.client, var, player.nick, actor.nick)
+            wevt.dispatch(var, player, actor)
             tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
                 if tags:
@@ -274,7 +274,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             if player is actor:
                 prole = target_role
             wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(actor.client, var, player.nick, target.nick)
+            wevt.dispatch(var, player, target)
             tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
                 if tags:
@@ -363,7 +363,7 @@ def on_transition_night_end(evt, var):
         wevt = Event("wolflist", {"tags": set()})
         tags = ""
         if role in wcroles:
-            wevt.dispatch(wolf.client, var, wolf.nick, wolf.nick) # FIXME: Need to update the wolflist event
+            wevt.dispatch(var, wolf, wolf)
             tags = " ".join(wevt.data["tags"])
             if tags:
                 tags += " "
@@ -401,7 +401,7 @@ def on_transition_night_end(evt, var):
             for player in pl:
                 prole = get_main_role(player)
                 wevt.data["tags"] = set()
-                wevt.dispatch(wolf.client, var, player.nick, wolf.nick) # FIXME: Need to update the wolflist event
+                wevt.dispatch(var, player, wolf)
                 tags = " ".join(wevt.data["tags"])
                 if prole in wcroles:
                     if tags:
