@@ -13,7 +13,7 @@ import src.settings as var
 from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.utilities import reply, get_role, get_templates
-from src.functions import get_participants
+from src.functions import get_participants, get_all_roles
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error
 
@@ -69,7 +69,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     cmds = []
     phase = var.PHASE
     if user in get_participants():
-        roles = {get_role(user.nick)} | set(get_templates(user.nick))
+        roles = get_all_roles(user)
         if force_role is not None:
             roles &= {force_role} # only fire off role commands for the forced role
 

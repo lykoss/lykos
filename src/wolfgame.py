@@ -1084,7 +1084,7 @@ def fleave(var, wrapper, message):
                 return
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
-            if get_role(target.nick) != "person" and var.ROLE_REVEAL in ("on", "team"):
+            if get_main_role(target) != "person" and var.ROLE_REVEAL in ("on", "team"):
                 msg.append(messages["fquit_goodbye"].format(get_reveal_role(target.nick)))
             if var.PHASE == "join":
                 player_count = len(list_players()) - 1
@@ -3198,7 +3198,7 @@ def leave(var, what, user, why=None):
             population = " " + messages["new_player_count"].format(lpl)
 
     reveal = ""
-    if get_role(user.nick) == "person" or var.ROLE_REVEAL not in ("on", "team"):
+    if get_main_role(user) == "person" or var.ROLE_REVEAL not in ("on", "team"):
         reveal = "_no_reveal"
 
     grace_times = {"part": var.PART_GRACE_TIME, "quit": var.QUIT_GRACE_TIME, "account": var.ACC_GRACE_TIME, "leave": 0}

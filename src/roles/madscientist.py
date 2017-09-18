@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -22,7 +22,7 @@ def _get_targets(var, pl, user):
 
     """
     for index, player in enumerate(var.ALL_PLAYERS):
-        if player is user: # FIXME
+        if player is user:
             break
 
     num_players = len(var.ALL_PLAYERS)
@@ -111,7 +111,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 tmsg = messages["mad_scientist_kill_no_reveal"].format(user, target1, target2)
             channels.Main.send(tmsg)
-            debuglog(user.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_role(target1.nick), target2, get_role(target2.nick)))
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(target1), target2, get_main_role(target2)))
             # here we DO want to tell that the other one is dying already so chained deaths don't mess things up
             deadlist1 = evt.params.deadlist[:]
             deadlist1.append(target2.nick)
@@ -128,7 +128,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target1)
             channels.Main.send(tmsg)
-            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_role(target1.nick)))
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(target1)))
             evt.params.del_player(target1, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
     else:
@@ -140,7 +140,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target2)
             channels.Main.send(tmsg)
-            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_role(target2.nick)))
+            debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(target2)))
             evt.params.del_player(target2, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
         else:

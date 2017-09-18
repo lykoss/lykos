@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -214,7 +214,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 # killing off everyone else that is entranced so they don't need to bother
                 dlc = list(evt.params.deadlist)
                 dlc.extend(entranced_alive - {e})
-                debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(user, e, get_role(e)))
+                debuglog("{0} (succubus) SUCCUBUS DEATH KILL: {1} ({2})".format(user, e, get_main_role(e)))
                 evt.params.del_player(e, end_game=False, killer_role="succubus",
                     deadlist=dlc, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])

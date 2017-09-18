@@ -4,7 +4,7 @@ import random
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src.functions import get_players, get_all_players, get_target
+from src.functions import get_players, get_all_players, get_target, get_main_role
 from src import users, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.messages import messages
@@ -40,7 +40,7 @@ def dullahan_kill(var, wrapper, message):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_role(target.nick)))
+    debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
     chk_nightdone(wrapper.client)
 
@@ -103,7 +103,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
             else:
                 channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
-            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_role(target.nick)))
+            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
             evt.params.del_player(target, forced_death=True, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
