@@ -1103,7 +1103,7 @@ def fleave(var, wrapper, message):
                 if target.nick in var.PLAYERS:
                     var.DCED_PLAYERS[target.nick] = var.PLAYERS.pop(target.nick)
 
-            del_player(wrapper.client, target.nick, death_triggers=False) # FIXME: Need to fix once del_player is updated
+            del_player(target, death_triggers=False)
 
         elif dead_target is not None:
             leave_deadchat(var, dead_target, force=wrapper.source)
@@ -1885,7 +1885,8 @@ def chk_decision(cli, force=""):
                     else:
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                     cli.msg(botconfig.CHANNEL, lmsg)
-                    if not del_player(cli, votee, True, killer_role="villager", deadlist=deadlist, original=votee):
+                    better_deadlist = [users._get(p) for p in deadlist] # FIXME -- convert chk_decision_lynch to be user-aware
+                    if not del_player(users._get(votee), forced_death=True, killer_role="villager", deadlist=better_deadlist, original=votee): # FIXME
                         return
                 do_night_transision = True
                 break
@@ -2371,7 +2372,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         return True
 
 @handle_error
-def del_player(player, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original="", cmode=[], deadchat=[], ismain=True):
+def del_player(player, *, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original="", cmode=[], deadchat=[], ismain=True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched
@@ -2390,9 +2391,7 @@ def del_player(player, forced_death=False, devoice=True, end_game=True, death_tr
             #  either game ended, or a new game has started.
             return False
         ret = True
-        pl = set(get_players())
-        for dead in deadlist:
-            pl.discard(dead)
+        pl = set(get_players()).difference(deadlist)
         if player is not None and (player is original or player in pl):
             mainrole = get_main_role(player)
             revealrole = get_reveal_role(player.nick) # FIXME
@@ -2488,7 +2487,7 @@ def del_player(player, forced_death=False, devoice=True, end_game=True, death_tr
                             message = messages["lover_suicide_no_reveal"].format(lover.nick)
                         channels.Main.send(message)
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
-                        del_player(lover, True, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
+                        del_player(lover, forced_death=True, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
                         pl = refresh_pl(pl)
                 if "assassin" in allroles:
                     if player.nick in var.TARGETED:
@@ -2533,7 +2532,7 @@ def del_player(player, forced_death=False, devoice=True, end_game=True, death_tr
                                     message = messages["assassin_success_no_reveal"].format(player, target)
                                 channels.Main.send(message)
                                 debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
-                                del_player(target, True, end_game=False, killer_role=mainrole, deadlist=deadlist, original=original, ismain=False)
+                                del_player(target, forced_death=True, end_game=False, killer_role=mainrole, deadlist=deadlist, original=original, ismain=False)
                                 pl = refresh_pl(pl)
                 if mainrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -2775,7 +2774,7 @@ def reaper(cli, gameid):
                             var.ORIGINAL_ROLES[r].add("(dced)"+nck)
                     if var.IDLE_PENALTY:
                         add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
-                    del_player(cli, nck, end_game = False, death_triggers = False)
+                    del_player(users._get(nck), end_game=False, death_triggers=False) # FIXME
                 chk_win(cli)
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
@@ -2792,7 +2791,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY)
-                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
+                    if not del_player(users._get(dcedplayer), devoice=False, death_triggers=False): # FIXME
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     if get_role(dcedplayer) != "person" and var.ROLE_REVEAL in ("on", "team"):
@@ -2801,7 +2800,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY)
-                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
+                    if not del_player(users._get(dcedplayer), devoice=False, death_triggers=False): # FIXME
                         return
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
                     if get_role(dcedplayer) != "person" and var.ROLE_REVEAL in ("on", "team"):
@@ -2810,7 +2809,7 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
                         add_warning(cli, dcedplayer, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY)
-                    if not del_player(cli, dcedplayer, devoice = False, death_triggers = False):
+                    if not del_player(users._get(dcedplayer), devoice=False, death_triggers=False): # FIXME
                         return
         time.sleep(10)
 
@@ -3229,7 +3228,7 @@ def leave(var, what, user, why=None):
         var.USERS[user.nick]["moded"] = set()
 
     if killplayer:
-        del_player(user.client, user.nick, death_triggers=False)
+        del_player(user, death_triggers=False)
     else:
         temp = user.lower()
         var.DISCONNECTED[user.nick] = (temp.account, temp.userhost, datetime.now(), what) # FIXME: Need to make var.DISCONNECTED hold User instances
@@ -3283,7 +3282,7 @@ def leave_game(cli, nick, chan, rest):
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
-    del_player(cli, nick, death_triggers = False)
+    del_player(users._get(nick), death_triggers=False) # FIXME
 
 def begin_day(cli):
     chan = botconfig.CHANNEL
@@ -3832,12 +3831,11 @@ def transition_day(cli, gameid=0):
             # no killers, so assume suicide
             killer_role[deadperson] = get_main_role(deadperson)
 
-    dead_nicks = [p.nick for p in dead] # FIXME: Update once del_player has been updated
-    for deadperson in dead:
+    for deadperson in dead[:]:
         # check if they have already been killed since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
         if deadperson in get_players():
-            del_player(cli, deadperson.nick, end_game=False, killer_role=killer_role[deadperson], deadlist=dead_nicks, original=deadperson.nick)
+            del_player(deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(var)
@@ -4328,7 +4326,7 @@ def shoot(var, wrapper, message):
                 wrapper.send(messages["gunner_victim_wolf_death"].format(victim,an, victimrole))
             else: # off and team
                 wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(victim))
-            if not del_player(wrapper.source.client, victim, killer_role=get_role(wrapper.source.nick)):
+            if not del_player(users._get(victim), killer_role=get_main_role(wrapper.source)): # FIXME
                 return
         elif random.random() <= chances[3]:
             accident = "accidentally "
@@ -4337,7 +4335,7 @@ def shoot(var, wrapper, message):
             wrapper.send(messages["gunner_victim_villager_death"].format(victim, accident))
             if var.ROLE_REVEAL in ("on", "team"):
                 wrapper.send(messages["gunner_victim_role"].format(an, victimrole))
-            if not del_player(wrapper.source.client, victim, killer_role=get_role(wrapper.source.nick)):
+            if not del_player(users._get(victim), killer_role=get_main_role(wrapper.source)): # FIXME
                 return
         else:
             wrapper.send(messages["gunner_victim_injured"].format(victim))
@@ -4358,7 +4356,7 @@ def shoot(var, wrapper, message):
             wrapper.send(messages["gunner_suicide"].format(wrapper.source.nick, get_reveal_role(wrapper.source.nick)))
         else:
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source.nick))
-        if not del_player(wrapper.source.client, wrapper.source.nick, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something
+        if not del_player(wrapper.source, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something
             return  # Someone won.
 
 def is_safe(nick, victim): # replace calls to this with targeted_command event when splitting roles
