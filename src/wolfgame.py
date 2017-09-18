@@ -3001,8 +3001,7 @@ def rename_player(var, user, prefix):
             if prefix in var.PRAYED.keys():
                 del var.PRAYED[prefix]
 
-            for dictvar in (var.HVISITED, var.OBSERVED, var.TARGETED,
-                            var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
+            for dictvar in (var.OBSERVED, var.TARGETED, var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -3444,8 +3443,7 @@ def transition_day(cli, gameid=0):
         user = users._get(target) # FIXME
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(var, user, actor)
-        if ((target in var.HVISITED and var.HVISITED[target]) or
-                (target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
+        if ((target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
             actor.send(messages["werecrow_success"].format(user))
         else:
@@ -5175,7 +5173,6 @@ def transition_night(cli):
     var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
     var.CHARMERS = set() # pipers who have charmed
-    var.HVISITED = {}
     var.TOBESILENCED = set()
     var.CONSECRATING = set()
     for nick in var.PRAYED:
@@ -5635,7 +5632,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES = {var.DEFAULT_ROLE: set()}
     var.GUNNERS = {}
     var.OBSERVED = {}
-    var.HVISITED = {}
     var.CLONED = {}
     var.TARGETED = {}
     var.LASTHEXED = {}
