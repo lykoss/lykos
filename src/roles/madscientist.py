@@ -154,7 +154,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 def on_transition_night_end(evt, var):
     for ms in get_all_players(("mad scientist",)):
         pl = list_players()
-        target1, target2 = _get_targets(var, pl, ms.nick) # FIXME: Need to update _get_targets to accept users
+        target1, target2 = _get_targets(var, pl, ms)
 
         to_send = "mad_scientist_notify"
         if ms.prefers_simple():
@@ -165,14 +165,14 @@ def on_transition_night_end(evt, var):
 def on_myrole(evt, var, user):
     if user.nick in var.ROLES["mad scientist"]:
         pl = list_players()
-        target1, target2 = _get_targets(var, pl, user.nick)
+        target1, target2 = _get_targets(var, pl, user)
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var, wrapper, nickname, role):
     if role == "mad scientist":
         pl = list_players()
-        target1, target2 = _get_targets(var, pl, nickname)
+        target1, target2 = _get_targets(var, pl, users._get(nickname)) # FIXME
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 
 
