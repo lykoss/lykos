@@ -1886,7 +1886,7 @@ def chk_decision(cli, force=""):
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                     cli.msg(botconfig.CHANNEL, lmsg)
                     better_deadlist = [users._get(p) for p in deadlist] # FIXME -- convert chk_decision_lynch to be user-aware
-                    if not del_player(users._get(votee), forced_death=True, killer_role="villager", deadlist=better_deadlist, original=votee): # FIXME
+                    if not del_player(users._get(votee), forced_death=True, killer_role="villager", deadlist=better_deadlist): # FIXME
                         return
                 do_night_transision = True
                 break
@@ -2372,7 +2372,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         return True
 
 @handle_error
-def del_player(player, *, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original="", cmode=[], deadchat=[], ismain=True):
+def del_player(player, *, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original=None, cmode=[], deadchat=[], ismain=True):
     """
     Returns: False if one side won.
     arg: forced_death = True when lynched
@@ -2385,6 +2385,9 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
 
     var.LAST_STATS = None # reset
     var.LAST_VOTES = None
+
+    if original is None:
+        original = player
 
     with var.GRAVEYARD_LOCK:
         if not var.GAME_ID or var.GAME_ID > t:
@@ -2407,7 +2410,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
             # handle roles that trigger on death
             # clone happens regardless of death_triggers being true or not
             if var.PHASE in var.GAME_PHASES:
-                clones = var.ROLES["clone"][:]
+                clones = var.ROLES["clone"].copy()
                 for clone in clones:
                     # clone is a User, var.CLONED is a Dict[str,str]
                     # dealist is a List[User]; ensure we add .nick appropriately
@@ -3833,7 +3836,7 @@ def transition_day(cli, gameid=0):
         # check if they have already been killed since del_player could do chain reactions and we want
         # to avoid sending duplicate messages.
         if deadperson in get_players():
-            del_player(deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead, original=deadperson)
+            del_player(deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead)
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(var)
