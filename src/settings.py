@@ -334,6 +334,9 @@ DISABLED_ROLES = frozenset()
 # Game modes that cannot be randomly picked or voted for
 DISABLED_GAMEMODES = frozenset()
 
+# Commands listed here cannot be used by anyone (even admins/owners)
+DISABLED_COMMANDS = frozenset()
+
 # Roles which have a command equivalent to the role name need to implement special handling for being
 # passed their command again as a prefix and strip it out. For example, both !clone foo and !clone clone foo
 # should be valid. Failure to add such a command to this set will result in the bot not starting

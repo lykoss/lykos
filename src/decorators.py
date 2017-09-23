@@ -224,6 +224,10 @@ class command:
 
         alias = False
         self.aliases = []
+
+        if var.DISABLED_COMMANDS.intersection(commands):
+            return # command is disabled, do not add to COMMANDS
+
         for name in commands:
             if exclusive and name in COMMANDS:
                 raise ValueError("exclusive command already exists for {0}".format(name))
@@ -350,6 +354,9 @@ class cmd:
 
         alias = False
         self.aliases = []
+        if var.DISABLED_COMMANDS.intersection(cmds):
+            return # command is disabled, do not add to COMMANDS
+
         for name in cmds:
             for func in COMMANDS[name]:
                 if (func.owner_only != owner_only or
