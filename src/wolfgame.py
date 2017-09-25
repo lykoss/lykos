@@ -49,7 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.functions import get_players, get_all_players, get_participants, get_main_role
+from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -2481,7 +2481,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                             continue # already died somehow
                         if player.nick not in var.LOVERS[lover.nick]:
                             continue
-                        var.LOVERS[other].remove(player.nick)
+                        var.LOVERS[lover.nick].remove(player.nick)
                         if var.ROLE_REVEAL in ("on", "team"):
                             role = get_reveal_role(lover.nick)
                             an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -2625,7 +2625,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                     d = dict(rs)
                     if p in d and d[p] >= 1:
                         d[p] -= 1
-                        event.dispatch(cli, var, d)
+                        event.dispatch(var, d)
                         if min(d.values()) >= 0:
                             newstats.add(frozenset(d.items()))
             var.ROLE_STATS = frozenset(newstats)
@@ -2638,7 +2638,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                     deadchat.append(player)
             # devoice all players that died as a result, if we are in the original del_player
             if ismain:
-                mass_mode(cli, cmode, [])
+                channels.Main.mode(*cmode)
                 del cmode[:]
             if var.PHASE == "join":
                 if player.nick in var.GAMEMODE_VOTES:

@@ -78,7 +78,7 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.stop_processing = True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, cli, var, stats):
+def on_reconfigure_stats(evt, var, stats):
     if "wolf cub" not in stats or stats["wolf cub"] == 0:
         return
     for role in var.WOLF_ROLES - {"wolf cub"}:
