@@ -104,7 +104,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
             debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
-            evt.params.del_player(target, forced_death=True, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("night_acted")

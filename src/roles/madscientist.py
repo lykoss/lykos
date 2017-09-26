@@ -117,8 +117,8 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             deadlist1.append(target2)
             deadlist2 = evt.params.deadlist[:]
             deadlist2.append(target1)
-            evt.params.del_player(target1, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=deadlist1, original=evt.params.original, ismain=False)
-            evt.params.del_player(target2, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=deadlist2, original=evt.params.original, ismain=False)
+            evt.params.del_player(target1, end_game=False, killer_role="mad scientist", deadlist=deadlist1, original=evt.params.original, ismain=False)
+            evt.params.del_player(target2, end_game=False, killer_role="mad scientist", deadlist=deadlist2, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
         else:
             if var.ROLE_REVEAL in ("on", "team"):
@@ -129,7 +129,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target1)
             channels.Main.send(tmsg)
             debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(target1)))
-            evt.params.del_player(target1, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.params.del_player(target1, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
     else:
         if kill2:
@@ -141,7 +141,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 tmsg = messages["mad_scientist_kill_single_no_reveal"].format(user, target2)
             channels.Main.send(tmsg)
             debuglog(user.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(target2)))
-            evt.params.del_player(target2, forced_death=True, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.params.del_player(target2, end_game=False, killer_role="mad scientist", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
             pl = evt.params.refresh_pl(pl)
         else:
             tmsg = messages["mad_scientist_fail"].format(user)

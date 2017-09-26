@@ -299,7 +299,7 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
             evt.data["deadlist"].append(target)
             better_deadlist = [users._get(p) for p in evt.data["deadlist"]] # FIXME
             target_user = users._get(target) # FIXME
-            evt.params.del_player(target_user, forced_death=True, end_game=False, killer_role="shaman", deadlist=better_deadlist, ismain=False)
+            evt.params.del_player(target_user, end_game=False, killer_role="shaman", deadlist=better_deadlist, ismain=False)
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, rol, winner, survived):

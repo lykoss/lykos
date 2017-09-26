@@ -1886,7 +1886,7 @@ def chk_decision(cli, force=""):
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                     cli.msg(botconfig.CHANNEL, lmsg)
                     better_deadlist = [users._get(p) for p in deadlist] # FIXME -- convert chk_decision_lynch to be user-aware
-                    if not del_player(users._get(votee), forced_death=True, killer_role="villager", deadlist=better_deadlist): # FIXME
+                    if not del_player(users._get(votee), killer_role="villager", deadlist=better_deadlist): # FIXME
                         return
                 do_night_transision = True
                 break
@@ -2372,10 +2372,9 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         return True
 
 @handle_error
-def del_player(player, *, forced_death=False, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original=None, cmode=[], deadchat=[], ismain=True):
+def del_player(player, *, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original=None, cmode=[], deadchat=[], ismain=True):
     """
     Returns: False if one side won.
-    arg: forced_death = True when lynched
     """
 
     def refresh_pl(old_pl):
@@ -2490,7 +2489,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                             message = messages["lover_suicide_no_reveal"].format(lover)
                         channels.Main.send(message)
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
-                        del_player(lover, forced_death=True, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
+                        del_player(lover, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
                         pl = refresh_pl(pl)
                 if "assassin" in allroles:
                     if player.nick in var.TARGETED:
@@ -2535,7 +2534,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                                     message = messages["assassin_success_no_reveal"].format(player, target)
                                 channels.Main.send(message)
                                 debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
-                                del_player(target, forced_death=True, end_game=False, killer_role=mainrole, deadlist=deadlist, original=original, ismain=False)
+                                del_player(target, end_game=False, killer_role=mainrole, deadlist=deadlist, original=original, ismain=False)
                                 pl = refresh_pl(pl)
                 if mainrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
@@ -2592,7 +2591,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
             # i herd u liek parameters
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
             event = Event("del_player", {"pl": pl},
-                    forced_death=forced_death, end_game=end_game,
+                    end_game=end_game,
                     deadlist=deadlist, original=original, killer_role=killer_role,
                     ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
             event.dispatch(var, player, mainrole, allroles, evt_death_triggers)
@@ -2684,7 +2683,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                 # if these aren't cleared properly night may end prematurely
                 for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED, var.CHARMERS):
                     x.discard(player.nick)
-            if var.PHASE == "day" and not forced_death and ret:  # didn't die from lynching
+            if var.PHASE == "day" and ret:
                 var.VOTES.pop(player.nick, None)  #  Delete other people's votes on the player
                 for k in list(var.VOTES.keys()):
                     if player.nick in var.VOTES[k]:
