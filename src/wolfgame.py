@@ -2697,10 +2697,10 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                 var.WOUNDED.discard(player.nick)
                 var.CONSECRATING.discard(player.nick)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
-                # we only want to induce a lynch if it's actually day
-                if var.GAMEPHASE == "day":
+                # we only want to induce a lynch if it's actually day and we aren't in a chained death
+                if var.GAMEPHASE == "day" and ismain:
                     chk_decision(channels.Main.client)
-            elif var.PHASE == "night" and ret:
+            elif var.PHASE == "night" and ret and ismain:
                 chk_nightdone(channels.Main.client)
 
         return ret
