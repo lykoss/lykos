@@ -2409,7 +2409,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             # handle roles that trigger on death
             # clone happens regardless of death_triggers being true or not
             if var.PHASE in var.GAME_PHASES:
-                clones = var.ROLES["clone"].copy()
+                clones = get_all_players(("clone",))
                 for clone in clones:
                     # clone is a User, var.CLONED is a Dict[str,str]
                     # dealist is a List[User]; ensure we add .nick appropriately
