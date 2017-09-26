@@ -341,7 +341,6 @@ DISABLED_COMMANDS = frozenset()
 ROLE_COMMAND_EXCEPTIONS = set()
 
 GIF_CHANCE = 1/50
-FORTUNE_CHANCE = 1/25
 
 ALL_FLAGS = frozenset("AaDdFjms")
 

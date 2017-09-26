@@ -3760,17 +3760,6 @@ def transition_day(cli, gameid=0):
                     "https://i.imgur.com/PIIfL15.gifv",
                     "https://i.imgur.com/eJiMG5z.gifv"]
                     ))
-            elif random.random() < var.FORTUNE_CHANCE:
-                try:
-                    out = subprocess.check_output(("fortune", "-s"))
-                except FileNotFoundError:
-                    pass
-                else:
-                    out = out.decode("utf-8", "replace")
-                    out = out.replace("\n", " ")
-                    out = re.sub(r"\s+", " ", out)  # collapse whitespace
-                    out = out.strip()  # remove surrounding whitespace
-                    revt.data["message"].append(out)
 
     # Priorities:
     # 1 = harlot/succubus visiting victim
