@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
 from src.functions import get_players, get_all_players
 from src.messages import messages

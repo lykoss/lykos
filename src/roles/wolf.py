@@ -5,7 +5,7 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles
-from src import debuglog, errlog, plog, users
+from src import debuglog, errlog, plog, users, channels
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event

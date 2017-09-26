@@ -5,7 +5,7 @@ from collections import defaultdict, deque
 
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
