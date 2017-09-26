@@ -2485,9 +2485,9 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                         if var.ROLE_REVEAL in ("on", "team"):
                             role = get_reveal_role(lover.nick)
                             an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                            message = messages["lover_suicide"].format(lover.nick, an, role)
+                            message = messages["lover_suicide"].format(lover, an, role)
                         else:
-                            message = messages["lover_suicide_no_reveal"].format(lover.nick)
+                            message = messages["lover_suicide_no_reveal"].format(lover)
                         channels.Main.send(message)
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
                         del_player(lover, forced_death=True, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
@@ -2586,7 +2586,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                             t.daemon = True
                             t.start()
 
-                    debuglog(player, "(time lord) TRIGGER")
+                    debuglog(player.nick, "(time lord) TRIGGER")
 
             pl = refresh_pl(pl)
             # i herd u liek parameters
@@ -2634,7 +2634,7 @@ def del_player(player, *, forced_death=False, devoice=True, end_game=True, death
                 cmode.append(("-v", player.nick))
             if not player.is_fake:
                 lplayer = player.lower()
-                if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayerhost not in var.DEADCHAT_PREFS:
+                if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
                     deadchat.append(player)
             # devoice all players that died as a result, if we are in the original del_player
             if ismain:
