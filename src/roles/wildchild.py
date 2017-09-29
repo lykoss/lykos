@@ -3,7 +3,7 @@ import re
 
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -85,7 +85,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         return
 
     for child in get_all_players(("wild child",)):
-        if child.nick not in IDOLS or child.nick in evt.params.deadlist or IDOLS[child.nick] not in evt.params.deadlist:
+        if child.nick not in IDOLS or child in evt.params.deadlist or users._get(IDOLS[child.nick]) not in evt.params.deadlist: # FIXME
             continue
 
         # change their main role to wolf, even if wild child was a template

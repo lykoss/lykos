@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -266,19 +266,19 @@ def on_transition_night_end(evt, var):
         gangel.send(messages[to_send].format(warning, gself), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("assassinate")
-def on_assassinate(evt, cli, var, nick, target, prot):
+def on_assassinate(evt, var, killer, target, prot):
     if prot == "angel" and var.GAMEPHASE == "night":
-        var.ACTIVE_PROTECTIONS[target].remove("angel")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("angel")
         evt.prevent_default = True
         evt.stop_processing = True
-        cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "angel"].format(nick, target))
+        channels.Main.send(messages[evt.params.message_prefix + "angel"].format(killer, target))
     elif prot == "bodyguard":
-        var.ACTIVE_PROTECTIONS[target].remove("bodyguard")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("bodyguard")
         evt.prevent_default = True
         evt.stop_processing = True
         for bg in var.ROLES["bodyguard"]:
-            if GUARDED.get(bg) == target:
-                cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "bodyguard"].format(nick, target, bg))
+            if GUARDED.get(bg) == target.nick:
+                channels.Main.send(messages[evt.params.message_prefix + "bodyguard"].format(killer, target, bg))
                 # redirect the assassination to the bodyguard
                 evt.data["target"] = users._get(bg) # FIXME
                 break

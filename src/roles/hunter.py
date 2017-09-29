@@ -4,8 +4,8 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_target
+from src import users, channels, debuglog, errlog, plog
+from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -42,7 +42,7 @@ def hunter_kill(var, wrapper, message):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_role(target.nick)))
+    debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
     chk_nightdone(wrapper.client)
 
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))

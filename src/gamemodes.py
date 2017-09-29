@@ -1143,9 +1143,9 @@ class SleepyMode(GameMode):
             if mainrole == "priest":
                 pl = evt.data["pl"]
                 turn_chance = 3/4
-                seers = [p for p in get_all_players(("seer",)) if p.nick in pl and random.random() < turn_chance]
-                harlots = [p for p in get_all_players(("harlot",)) if p.nick in pl and random.random() < turn_chance]
-                cultists = [p for p in get_all_players(("cultist",)) if p.nick in pl and random.random() < turn_chance]
+                seers = [p for p in get_players(("seer",)) if p in pl and random.random() < turn_chance]
+                harlots = [p for p in get_players(("harlot",)) if p in pl and random.random() < turn_chance]
+                cultists = [p for p in get_players(("cultist",)) if p in pl and random.random() < turn_chance]
                 channels.Main.send(messages["sleepy_priest_death"])
                 for seer in seers:
                     change_role(seer, "seer", "doomsayer")

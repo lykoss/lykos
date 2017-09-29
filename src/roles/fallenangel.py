@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
 from src.functions import get_players, get_all_players
 from src.messages import messages
@@ -42,7 +42,7 @@ def on_transition_day(evt, var):
                 evt.data["killers"][p].append(killer)
 
 @event_listener("assassinate", priority=1)
-def on_assassinate(evt, cli, var, nick, target, prot):
+def on_assassinate(evt, var, killer, target, prot):
     # bypass all protection if FA is doing the killing
     # we do this by stopping propagation, meaning future events won't fire
     if "fallen angel" in evt.params.killer_allroles:

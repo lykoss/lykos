@@ -297,7 +297,9 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
             cli.msg(botconfig.CHANNEL, tmsg)
             # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
             evt.data["deadlist"].append(target)
-            evt.params.del_player(cli, target, True, end_game=False, killer_role="shaman", deadlist=evt.data["deadlist"], original=target, ismain=False)
+            better_deadlist = [users._get(p) for p in evt.data["deadlist"]] # FIXME
+            target_user = users._get(target) # FIXME
+            evt.params.del_player(target_user, end_game=False, killer_role="shaman", deadlist=better_deadlist, ismain=False)
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, rol, winner, survived):
@@ -576,12 +578,12 @@ def on_lynch(evt, cli, var, nick):
         evt.prevent_default = True
 
 @event_listener("assassinate")
-def on_assassinate(evt, cli, var, nick, target, prot):
+def on_assassinate(evt, var, killer, target, prot):
     if prot == "totem":
-        var.ACTIVE_PROTECTIONS[target].remove("totem")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("totem")
         evt.prevent_default = True
         evt.stop_processing = True
-        cli.msg(botconfig.CHANNEL, messages[evt.params.message_prefix + "totem"].format(nick, target))
+        channels.Main.send(messages[evt.params.message_prefix + "totem"].format(killer, target))
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):

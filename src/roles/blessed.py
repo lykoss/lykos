@@ -7,7 +7,7 @@ from collections import defaultdict
 import botconfig
 import src.settings as var
 from src.utilities import *
-from src import users, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.messages import messages
@@ -65,13 +65,13 @@ def on_retribution(evt, var, victim, target, prot):
         evt.stop_processing = True
 
 @event_listener("assassinate")
-def on_assassinate(evt, cli, var, nick, target, prot):
+def on_assassinate(evt, var, killer, target, prot):
     if prot == "blessing":
-        var.ACTIVE_PROTECTIONS[target].remove("blessing")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
         evt.prevent_default = True
         evt.stop_processing = True
         # don't message the channel whenever a blessing blocks a kill, but *do* let the killer know so they don't try to report it as a bug
-        pm(cli, nick, messages["assassin_fail_blessed"].format(target))
+        killer.send(messages["assassin_fail_blessed"].format(target))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

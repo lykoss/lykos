@@ -89,7 +89,7 @@ def on_player_win(evt, var, user, role, winner, survived):
             evt.data["iwon"] = False
 
 @event_listener("del_player", priority=6)
-def on_del_player(evt, var, user, nickrole, nicktpls, death_triggers):
+def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     for h, v in list(KILLS.items()):
         if user is v:
             h.send(messages["hunter_discard"])
@@ -97,7 +97,7 @@ def on_del_player(evt, var, user, nickrole, nicktpls, death_triggers):
     # extending VG to work with new teams can be done by registering a listener
     # at priority < 6, importing src.roles.vengefulghost, and setting
     # GHOSTS[user] to something; if that is done then this logic is not run.
-    if death_triggers and nickrole == "vengeful ghost" and user not in GHOSTS:
+    if death_triggers and mainrole == "vengeful ghost" and user not in GHOSTS:
         if evt.params.killer_role in var.WOLFTEAM_ROLES:
             GHOSTS[user] = "wolves"
         else:
