@@ -16,6 +16,7 @@ import botconfig
 import src.settings as var
 from src.dispatcher import MessageDispatcher
 from src.utilities import *
+from src.functions import get_players
 from src.messages import messages
 from src import channels, users, logger, errlog, events
 
@@ -282,7 +283,7 @@ class command:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (user.nick not in list_players() or user.nick in var.DISCONNECTED): # FIXME: Need to change this once list_players() / var.DISCONNECTED use User instances
+        if self.playing and (user not in get_players() or user.nick in var.DISCONNECTED): # FIXME: Need to change this once var.DISCONNECTED uses User instances
             return
 
         for role in self.roles:
