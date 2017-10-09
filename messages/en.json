@@ -787,7 +787,7 @@
     "fspectate_off": "You are no longer spectating {0}.",
     "maelstrom_dead": "You are dead and cannot join again.",
     "villagergame_lose": "Game over! The villagers realize too late that there are actually no wolves, and never manage to rebuild to what they had before this fiasco. Nobody wins. (Hint: next time if you suspect there are no wolves, have everyone {0}vote {1}.)",
-    "villagergame_win": "Game over! The villagers come to their senses and realize there are actually no wolves, and live in harmony forevermore. Everybody wins.",
+    "villagergame_win": "Game over! The villagers come to their senses and realize there are actually no wolves, the previous deaths having been freak accidents. Everybody wins.",
     "villagergame_nope": "Game over! The villagers decided incorrectly that there are actually no wolves, allowing the wolves to slaughter the remainder of them in their sleep with impunity.",
     "stop_bot_ingame_safeguard": "Warning: A game is currently running. If you want to {what} the bot anyway, use \"{prefix}{cmd} -force\".",
     "invalid_restart_mode": "\u0002{0}\u0002 is not a valid mode. Valid modes are: {1}",
