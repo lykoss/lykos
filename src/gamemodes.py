@@ -237,7 +237,8 @@ class VillagergameMode(GameMode):
             seer = list(var.ROLES["seer"])[0]
         if len(var.ROLES["harlot"]) == 1:
             hlt = list(var.ROLES["harlot"])[0]
-            hvst = var.HVISITED.get(hlt)
+            from src.roles import harlot
+            hvst = harlot.VISITED.get(hlt)
             if hvst:
                 pl.remove(hlt)
         if len(var.ROLES["shaman"]) == 1:
