@@ -3582,7 +3582,7 @@ def transition_day(cli, gameid=0):
             victims.append(v)
         elif v.nick in var.ROLES["bodyguard"] and v.nick in angel.GUARDED and users._get(angel.GUARDED[v.nick]) in victims_set: # FIXME
             vappend.append(v)
-        elif v.nick in var.ROLES["harlot"] and harlot.VISITED[v.nick] is not None and users._get(harlot.VISITED[v.nick]) in victims_set: # FIXME
+        elif v.nick in var.ROLES["harlot"] and harlot.VISITED.get(v.nick) is not None and users._get(harlot.VISITED[v.nick]) in victims_set: # FIXME
             vappend.append(v)
         else:
             victims.append(v)
