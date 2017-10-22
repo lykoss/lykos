@@ -193,8 +193,8 @@ class IRCClient:
 
                 try:
                     self.socket = ctx.wrap_socket(self.socket)
-                except (ssl.CertificateError, ssl.SSLError, Exception) as error:
-                    print("Error occured while connecting with TLS: {0}".format(error))
+                except Exception as error:
+                    self.stream_handler("Error occured while connecting with TLS: {0}".format(error), level="warning")
                     raise
 
                 if self.cert_fp:
@@ -209,8 +209,8 @@ class IRCClient:
                     try:
                         h = hashlib.new(algo)
                     except ValueError as error:
-                        print("TLS certificate fingerprint verification failed: {}".format(error))
-                        print("Supported algorithms on this sytem: {0}".format(", ".join(hashlib.algorithms_available)))
+                        self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
+                        self.stream_handler("Supported algorithms on this sytem: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
                         raise
 
                     h.update(self.socket.getpeercert(True))
@@ -222,7 +222,7 @@ class IRCClient:
                             matched = fingerprint
 
                     if not matched:
-                        print("Certificate fingerprint {0} did not match any excpected fingerprints".format(peercertfp))
+                        self.stream_handler("Certificate fingerprint {0} did not match any excpected fingerprints".format(peercertfp), level="warning")
                         raise ssl.CertificateError("Certificate fingerprint does not match.")
 
                 if self.cert_verify and not self.cert_fp:
@@ -230,8 +230,8 @@ class IRCClient:
 
                     try:
                         ssl.match_hostname(cert, self.host)
-                    except ssl.CertificateError as error:
-                        print("TLS certificate verification failed: {0}".format(error))
+                    except Exception as error:
+                        self.stream_handler("TLS certificate verification failed: {0}".format(error), level="warning")
                         raise
 
 
