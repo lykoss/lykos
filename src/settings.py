@@ -36,6 +36,7 @@ TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
 GOAT_RATE_LIMIT = 300 # (per-user)
+GOAT_ATTACK_OWNER = {}  # users in this list will always be actioned by their own goats
 SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
 SHARPSHOOTER_MULTIPLIER = 0.06
 MIN_PLAYERS = 4
