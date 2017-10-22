@@ -22,6 +22,8 @@ import threading
 import time
 import traceback
 import os
+import hashlib
+import hmac
 
 from oyoyo.parse import parse_raw_irc_command
 
@@ -98,6 +100,10 @@ class IRCClient:
         self.blocking = True
         self.sasl_auth = False
         self.use_ssl = False
+        self.cert_verify = False
+        self.cert_fp = None
+        self.client_certfile = None
+        self.client_keyfile = None
         self.server_pass = None
         self.lock = threading.RLock()
         self.stream_handler = lambda output, level=None: print(output)
@@ -174,7 +180,60 @@ class IRCClient:
                         sys.exit(1)
 
             if self.use_ssl:
-                self.socket = ssl.wrap_socket(self.socket)
+                ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+
+                if self.cert_verify or self.cert_fp:
+                    ctx.verify_mode = ssl.CERT_REQUIRED
+                    ctx.load_default_certs()
+
+                if self.client_certfile:
+                    # if client_keyfile is not specified, the ssl module will look to the
+                    # client_certfile for it.
+                    ctx.load_cert_chain(self.client_certfile, self.client_keyfile)
+
+                try:
+                    self.socket = ctx.wrap_socket(self.socket)
+                except (ssl.CertificateError, ssl.SSLError, Exception) as error:
+                    print("Error occured while connecting with TLS: {0}".format(error))
+                    raise
+
+                if self.cert_fp:
+
+                    algo = "sha256"
+                    if self.cert_fp.find(":") != -1:
+                        algo, fp = self.cert_fp.split(":")
+                        fp = fp.split(",")
+                    else:
+                        fp = self.cert_fp.split(",")
+
+                    try:
+                        h = hashlib.new(algo)
+                    except ValueError as error:
+                        print("TLS certificate fingerprint verification failed: {}".format(error))
+                        print("Supported algorithms on this sytem: {0}".format(", ".join(hashlib.algorithms_available)))
+                        raise
+
+                    h.update(self.socket.getpeercert(True))
+                    peercertfp = h.hexdigest()
+
+                    matched = False
+                    for fingerprint in fp:
+                        if hmac.compare_digest(fingerprint, peercertfp):
+                            matched = fingerprint
+
+                    if not matched:
+                        print("Certificate fingerprint {0} did not match any excpected fingerprints".format(peercertfp))
+                        raise ssl.CertificateError("Certificate fingerprint does not match.")
+
+                if self.cert_verify and not self.cert_fp:
+                    cert = self.socket.getpeercert()
+
+                    try:
+                        ssl.match_hostname(cert, self.host)
+                    except ssl.CertificateError as error:
+                        print("TLS certificate verification failed: {0}".format(error))
+                        raise
+
 
             if not self.blocking:
                 self.socket.setblocking(0)

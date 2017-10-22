@@ -6,6 +6,19 @@ from collections import defaultdict, OrderedDict
 import botconfig
 
 LANGUAGE = 'en'
+
+## TLS settings
+# if SSL_CERTFP is supplied, the bot will attempt to verify that with the server. if not, then the
+# bot will attempt certificate verification, otherwise it will abort the connection.
+# you may specify the hash algorithm to use when verifying fingerprints. if unspecified, it will
+# default to SHA256. multiple fingerprints may be comma separated for networks with multiple
+# servers. check your Python version for suported algorithms.
+# syntax: SSL_CERTFP = "[HASH-ALGO]:fingerprint1,fingerprint2,fingerprint3"
+SSL_VERIFY = True
+SSL_CERTFILE = None # client cert file to connect with in PEM format; can also contain keyfile
+SSL_KEYFILE = None # keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line
+SSL_CERTFP = None
+
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join

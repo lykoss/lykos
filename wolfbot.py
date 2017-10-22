@@ -51,6 +51,7 @@ from oyoyo.client import IRCClient
 import src
 from src import handler
 from src.events import Event
+import src.settings as var
 
 def main():
     evt = Event("init", {})
@@ -70,6 +71,10 @@ def main():
                      sasl_auth=botconfig.SASL_AUTHENTICATION,
                      server_pass=botconfig.SERVER_PASS,
                      use_ssl=botconfig.USE_SSL,
+                     cert_verify=var.SSL_VERIFY,
+                     cert_fp=var.SSL_CERTFP,
+                     client_certfile=var.SSL_CERTFILE,
+                     client_keyfile=var.SSL_KEYFILE,
                      connect_cb=handler.connect_callback,
                      stream_handler=src.stream,
     )
