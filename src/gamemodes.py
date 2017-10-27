@@ -238,9 +238,10 @@ class VillagergameMode(GameMode):
         if len(var.ROLES["harlot"]) == 1:
             hlt = list(var.ROLES["harlot"])[0]
             from src.roles import harlot
-            hvst = harlot.VISITED.get(hlt)
-            if hvst:
+            hvst = harlot.VISITED.get(users._get(hlt)) # FIXME
+            if hvst is not None:
                 pl.remove(hlt)
+                hvst = hvst.nick # FIXME
         if len(var.ROLES["shaman"]) == 1:
             shmn = list(var.ROLES["shaman"])[0]
         if random.random() < 0.3:

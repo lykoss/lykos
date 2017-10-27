@@ -83,11 +83,11 @@ def pass_cmd(cli, nick, chan, rest):
     chk_nightdone(cli)
 
 @event_listener("harlot_visit")
-def on_harlot_visit(evt, cli, var, nick, victim):
-    if victim in var.ROLES["succubus"]:
-        pm(cli, nick, messages["notify_succubus_target"].format(victim))
-        pm(cli, victim, messages["succubus_harlot_success"].format(nick))
-        ENTRANCED.add(nick)
+def on_harlot_visit(evt, var, actor, victim):
+    if victim.nick in var.ROLES["succubus"]:
+        actor.send(messages["notify_succubus_target"].format(victim))
+        victim.send(messages["succubus_harlot_success"].format(actor))
+        ENTRANCED.add(actor.nick)
 
 @event_listener("get_random_totem_targets")
 def on_get_random_totem_targets(evt, var, shaman):
