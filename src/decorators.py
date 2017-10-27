@@ -283,7 +283,7 @@ class command:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (user not in get_players() or user.nick in var.DISCONNECTED): # FIXME: Need to change this once var.DISCONNECTED uses User instances
+        if self.playing and (user not in get_players() or user in var.DISCONNECTED):
             return
 
         for role in self.roles:
@@ -430,7 +430,7 @@ class cmd:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (nick not in list_players() or nick in var.DISCONNECTED):
+        if self.playing and (nick not in list_players() or users._get(nick) in var.DISCONNECTED):
             return
 
         for role in self.roles:

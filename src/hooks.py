@@ -550,6 +550,8 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch.state = channels._States.Joined
 
     user = users._add(cli, nick=rawnick, realname=realname, account=account) # FIXME
+    # mark the user as here, in case they used to be connected before but left
+    user.disconnected = False
     ch.users.add(user)
     user.channels[ch] = set()
 

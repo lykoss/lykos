@@ -91,7 +91,6 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     This function takes up to 5 keyword-only arguments (and one positional
     argument, cli): nick, ident, host, realname and account.
     With the exception of the first one, any parameter can be omitted.
-    If a matching user already exists, a ValueError will be raised.
 
     """
 
@@ -149,6 +148,10 @@ def users():
     """Iterate over the users in the registry."""
     yield from _users
 
+def disconnected():
+    """Iterate over the users who are in-game but disconnected."""
+    yield from _ghosts
+
 def complete_match(string, users):
     matches = []
     string = lower(string)
@@ -178,10 +181,10 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
 def _cleanup_user(evt, var, user):
     """Removes a user from our global tracking set once it has left all channels."""
-    if var.PHASE not in var.GAME_PHASES or user not in var.ALL_PLAYERS:
-        _users.discard(user)
-    elif var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
+    if var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
         _ghosts.add(user)
+    else:
+        _users.discard(user)
 
 def _reset(evt, var):
     """Cleans up users that left during game during game end."""
@@ -190,13 +193,17 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
+def _swap_player(evt, var, old_user, user):
+    """Marks the user as no longer being a ghost, if they are one."""
+    _ghosts.discard(old_user)
+    if not old_user.channels:
+        _users.discard(old_user)
+
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 events.add_listener("cleanup_user", _cleanup_user)
 events.add_listener("reset", _reset)
-# FIXME: when there is a swap_player event, we need a listener for that as well
-# to remove the swapped player from _ghosts if they're in there (helps prevent
-# duplicate user lookup bugs where the ghost and new player have the same nick)
+events.add_listener("swap_player", _swap_player, priority=1)
 
 class User(IRCContext):
 
@@ -563,6 +570,20 @@ class User(IRCContext):
     @userhost.setter
     def userhost(self, userhost):
         nick, self.ident, self.host = parse_rawnick(userhost)
+
+    @property
+    def disconnected(self):
+        return self in _ghosts
+
+    @disconnected.setter
+    def disconnected(self, disconnected):
+        if disconnected:
+            _ghosts.add(self)
+        else:
+            _ghosts.discard(self)
+            # ensure dangling users aren't left around in our tracking var
+            if not self.channels:
+                _users.discard(self)
 
 class FakeUser(User):
 
