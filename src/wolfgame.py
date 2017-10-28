@@ -2910,16 +2910,15 @@ def return_to_village(var, target, *, show_message):
     # rejoined IRC, the join handler already took care of marking them no longer dced.
     with var.GRAVEYARD_LOCK:
         if target in var.DISCONNECTED:
-            temp = target.lower()
             del var.DISCONNECTED[target]
-            var.LAST_SAID_TIME[temp.nick] = datetime.now()
+            var.LAST_SAID_TIME[target.nick] = datetime.now()
             for roleset in var.ORIGINAL_ROLES.values():
-                if "(dced)" + temp.nick in roleset:
-                    roleset.remove("(dced)" + temp.nick)
-                    roleset.add(temp.nick)
+                if "(dced)" + target.nick in roleset:
+                    roleset.remove("(dced)" + target.nick)
+                    roleset.add(target.nick)
 
-            if temp.nick in var.DCED_PLAYERS:
-                var.PLAYERS[temp.nick] = var.DCED_PLAYERS.pop(temp.nick)
+            if target.nick in var.DCED_PLAYERS:
+                var.PLAYERS[target.nick] = var.DCED_PLAYERS.pop(target.nick)
 
             if show_message:
                 channels.Main.mode(("+" + hooks.Features["PREFIX"]["+"], target))
