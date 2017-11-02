@@ -187,6 +187,9 @@ class IRCClient:
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
                 self.send(message)
+            elif self.server_pass:
+                message = "PASS :{0}".format(self.server_pass)
+                self.send(message)
 
             self.send("NICK", self.nickname)
             self.user(self.ident, self.real_name)
