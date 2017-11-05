@@ -6908,9 +6908,7 @@ def can_run_restricted_cmd(user):
 
     return True
 
-@command("spectate", "fspectate", flag="a", pm=True, phases=("day", "night"))
-def fspectate(var, wrapper, message):
-    """Spectate wolfchat or deadchat."""
+def spectate_chat(var, wrapper, message, spectate_warning):
     if not can_run_restricted_cmd(wrapper.source):
         wrapper.pm(messages["fspectate_restricted"])
         return
@@ -6936,19 +6934,43 @@ def fspectate(var, wrapper, message):
     else:
         players = []
         if what == "wolfchat":
+            already_spectating = wrapper.source.nick in var.SPECTATING_WOLFCHAT
             var.SPECTATING_WOLFCHAT.add(wrapper.source.nick)
-            players = [p for p in list_players() if in_wolflist(p, p)]
+            players = [p for p in get_players() if in_wolflist(p.nick, p.nick)]
+            if spectate_warning and not already_spectating and var.SPECTATE_NOTICE:
+                spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
+                for player in players:
+                    player.queue_message(messages["fspectate_notice"].format(spectator, what))
+                if players:
+                    player.send_messages()
         elif var.ENABLE_DEADCHAT:
+            already_spectating = wrapper.source in var.SPECTATING_DEADCHAT
             if wrapper.source in var.DEADCHAT_PLAYERS:
                 wrapper.pm(messages["fspectate_in_deadchat"])
                 return
             var.SPECTATING_DEADCHAT.add(wrapper.source)
-            players = [user.nick for user in var.DEADCHAT_PLAYERS]
+            players = var.DEADCHAT_PLAYERS
+            if spectate_warning and not already_spectating and var.SPECTATE_NOTICE:
+                spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
+                for player in players:
+                    player.queue_message(messages["fspectate_notice"].format(spectator, what))
+                if players:
+                    player.send_messages()
         else:
             wrapper.pm(messages["fspectate_deadchat_disabled"])
             return
         wrapper.pm(messages["fspectate_on"].format(what))
-        wrapper.pm("People in {0}: {1}".format(what, ", ".join(players)))
+        wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
+
+@command("spectate", flag="p", pm=True, phases=("day", "night"))
+def fspectate(var, wrapper, message):
+    """Spectate wolfchat or deadchat."""
+    spectate_chat(var, wrapper, message, True)
+
+@command("fspectate", flag="F", pm=True, phases=("day", "night"))
+def fspectate(var, wrapper, message):
+    """Spectate wolfchat or deadchat."""
+    spectate_chat(var, wrapper, message, False)
 
 @command("revealroles", flag="a", pm=True, phases=("day", "night"))
 def revealroles(var, wrapper, message):

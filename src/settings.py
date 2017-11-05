@@ -89,6 +89,11 @@ AUTO_SANCTION = (
         (20, 20, {"tempban": 10})
         )
 
+# Send a message to deadchat or wolfchat when a user spectates them
+SPECTATE_NOTICE = True
+# Whether to include which user is doing the spectating in the message
+SPECTATE_NOTICE_USER = False
+
 # The following is a bitfield, and they can be mixed together
 # Defaults to none of these, can be changed on a per-game-mode basis
 RESTRICT_WOLFCHAT = 0x00
@@ -345,7 +350,7 @@ ROLE_COMMAND_EXCEPTIONS = set()
 
 GIF_CHANCE = 1/50
 
-ALL_FLAGS = frozenset("AaDdFgjmNSsw")
+ALL_FLAGS = frozenset("AaDdFgjmNpSsw")
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
