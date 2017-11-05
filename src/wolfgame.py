@@ -2910,12 +2910,7 @@ def goat(var, wrapper, message):
     if not target:
         wrapper.pm(messages["not_enough_parameters"])
         return
-
-    if wrapper.source in var.GOAT_ATTACK_OWNER:
-        victim = wrapper.source
-    else:
-        victim, _ = users.complete_match(users.lower(target), wrapper.target.users)
-
+    victim, _ = users.complete_match(users.lower(target), wrapper.target.users)
     if not victim:
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
@@ -2929,12 +2924,7 @@ def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
 
     nick = message.split(' ')[0].strip()
-
-    if wrapper.source in var.GOAT_ATTACK_OWNER:
-        victim = wrapper.source
-    else:
-        victim, _ = users.complete_match(users.lower(nick), wrapper.target.users)
-
+    victim, _ = users.complete_match(users.lower(nick), wrapper.target.users)
     if victim:
         togoat = victim
     else:
@@ -3149,7 +3139,7 @@ def nick_change(evt, var, user, old_rawnick):
     if nick not in var.DISCONNECTED: # FIXME: Need to update this once var.DISCONNECTED holds User instances
         rename_player(var, user, nick) # FIXME: Fix when rename_player supports the new interface
 
-@event_listener("cleanup_user")
+@event_listener("cleanup_user") 
 def cleanup_user(evt, var, user):
     var.LAST_GOAT.pop(user, None)
 
@@ -3447,7 +3437,7 @@ def transition_day(cli, gameid=0):
 
     var.CHARMED.update(var.TOBECHARMED)
     var.TOBECHARMED.clear()
-
+    
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
@@ -6615,7 +6605,7 @@ def game_stats(cli, nick, chan, rest):
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
             matches = complete_match(gamemode, var.GAME_MODES.keys())
             if len(matches) == 1:
-                gamemode = matches[0]
+                gamemode = matches[0]  
             if not matches:
                 cli.notice(nick, messages["invalid_mode"].format(rest[0]))
                 return
@@ -6700,7 +6690,7 @@ def player_stats(cli, nick, chan, rest):
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return
             if len(matches) > 1:
-                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
+                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches))) 
                 return
             role = matches[0]
         # Attempt to find the player's stats
@@ -6731,7 +6721,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             return
         if len(matches) == 1:
             gamemode = matches[0]
-
+        
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
         if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
             wrapper.pm(messages["already_voted_game"].format(gamemode))
