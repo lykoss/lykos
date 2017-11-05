@@ -185,11 +185,18 @@ class IRCClient:
                 if self.cert_verify or self.cert_fp:
                     ctx.verify_mode = ssl.CERT_REQUIRED
                     ctx.load_default_certs()
+                else:
+                    self.stream_handler("NOT validating the servers TLS certificate! Set 'SSL_VERIFY=True' in botconfig.py to enable this.", level="warning")
 
                 if self.client_certfile:
                     # if client_keyfile is not specified, the ssl module will look to the
                     # client_certfile for it.
-                    ctx.load_cert_chain(self.client_certfile, self.client_keyfile)
+
+                    try:
+                        ctx.load_cert_chain(self.client_certfile, self.client_keyfile)
+                        self.stream_handler("Connecting with a TLS client certificate", level="info")
+                    except Exception as error:
+                        self.stream_handler("Unable to load client cert/key pair: {0}".format(error), level="warning")
 
                 try:
                     self.socket = ctx.wrap_socket(self.socket)
@@ -198,7 +205,6 @@ class IRCClient:
                     raise
 
                 if self.cert_fp:
-
                     algo = "sha256"
                     if self.cert_fp.find(":") != -1:
                         algo, fp = self.cert_fp.split(":")
@@ -206,9 +212,11 @@ class IRCClient:
                     else:
                         fp = self.cert_fp.split(",")
 
+                    self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
+
                     try:
                         h = hashlib.new(algo)
-                    except ValueError as error:
+                    except Exception as error:
                         self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
                         self.stream_handler("Supported algorithms on this sytem: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
                         raise
@@ -224,6 +232,7 @@ class IRCClient:
                     if not matched:
                         self.stream_handler("Certificate fingerprint {0} did not match any excpected fingerprints".format(peercertfp), level="warning")
                         raise ssl.CertificateError("Certificate fingerprint does not match.")
+                    self.stream_handler("Server certificate fingerprint matched {0}".format(matched), level="info")
 
                 if self.cert_verify and not self.cert_fp:
                     cert = self.socket.getpeercert()
@@ -234,6 +243,7 @@ class IRCClient:
                         self.stream_handler("TLS certificate verification failed: {0}".format(error), level="warning")
                         raise
 
+                    self.stream_handler("Server's certificate is trusted.", level="info")
 
             if not self.blocking:
                 self.socket.setblocking(0)
