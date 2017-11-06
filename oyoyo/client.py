@@ -203,7 +203,7 @@ class IRCClient:
                     # TLS session tickets harm forward secrecy (this symbol is only defined in 3.6 and later)
                     ctx.options |= ssl.OP_NO_TICKET
 
-                if self.cert_verify or self.cert_fp:
+                if self.cert_verify and not self.cert_fp:
                     ctx.verify_mode = ssl.CERT_REQUIRED
 
                     if not self.cert_fp:
@@ -211,8 +211,8 @@ class IRCClient:
 
                     ctx.load_default_certs()
 
-                else:
-                    self.stream_handler("NOT validating the server's TLS certificate! Set 'SSL_VERIFY=True' in botconfig.py to enable this.", level="warning")
+                elif not self.cert_verify and not self.cert_fp:
+                    self.stream_handler("NOT validating the server's TLS certificate! Set 'SSL_VERIFY=True' or define a fingerprint in 'SSL_CERTFP' in botconfig.py to enable this.", level="warning")
 
                 if self.client_certfile:
                     # if client_keyfile is not specified, the ssl module will look to the
