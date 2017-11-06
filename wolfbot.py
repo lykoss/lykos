@@ -75,6 +75,7 @@ def main():
                      cert_fp=var.SSL_CERTFP,
                      client_certfile=var.SSL_CERTFILE,
                      client_keyfile=var.SSL_KEYFILE,
+                     cipher_list=var.SSL_CIPHERS,
                      connect_cb=handler.connect_callback,
                      stream_handler=src.stream,
     )

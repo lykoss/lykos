@@ -18,6 +18,7 @@ SSL_VERIFY = True
 SSL_CERTFILE = None # client cert file to connect with in PEM format; can also contain keyfile
 SSL_KEYFILE = None # keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line
 SSL_CERTFP = None
+SSL_CIPHERS = None # custom list of available ciphers in OpenSSL cipher list format (<https://wiki.openssl.org/index.php/Manual:Ciphers(1)#CIPHER_LIST_FORMAT>)
 
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30

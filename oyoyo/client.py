@@ -104,6 +104,7 @@ class IRCClient:
         self.cert_fp = None
         self.client_certfile = None
         self.client_keyfile = None
+        self.cipher_list = None
         self.server_pass = None
         self.lock = threading.RLock()
         self.stream_handler = lambda output, level=None: print(output)
@@ -182,6 +183,26 @@ class IRCClient:
             if self.use_ssl:
                 ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
 
+                if self.cipher_list:
+                    try:
+                        ctx.set_ciphers(self.cipher_list)
+                    except Exception:
+                        self.stream_handler("No ciphers could be selected from the cipher list. TLS is not available.", level="warning")
+                        self.stream_handler("Use `openssl ciphers' to see which ciphers are available on this system.", level="warning")
+                        raise
+
+                # explicitly disable old protocols
+                ctx.options |= ssl.OP_NO_SSLv2
+                ctx.options |= ssl.OP_NO_SSLv3
+                ctx.options |= ssl.OP_NO_TLSv1
+
+                # explicitly disable compression (CRIME attack)
+                ctx.options |= ssl.OP_NO_COMPRESSION
+
+                if sys.version_info >= (3, 6):
+                    # TLS session tickets harm forward secrecy (this symbol is only defined in 3.6 and later)
+                    ctx.options |= ssl.OP_NO_TICKET
+
                 if self.cert_verify or self.cert_fp:
                     ctx.verify_mode = ssl.CERT_REQUIRED
 
@@ -191,7 +212,7 @@ class IRCClient:
                     ctx.load_default_certs()
 
                 else:
-                    self.stream_handler("NOT validating the servers TLS certificate! Set 'SSL_VERIFY=True' in botconfig.py to enable this.", level="warning")
+                    self.stream_handler("NOT validating the server's TLS certificate! Set 'SSL_VERIFY=True' in botconfig.py to enable this.", level="warning")
 
                 if self.client_certfile:
                     # if client_keyfile is not specified, the ssl module will look to the
