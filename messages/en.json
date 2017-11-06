@@ -779,6 +779,7 @@
     "already_up_to_date": "Already up-to-date.",
     "admin_fleave_deadchat": "You have forced {0} to leave the deadchat.",
     "available_mode_setters_help": "Votes to make a specific game mode more likely. Available game mode setters: ",
+    "spectate_help": "Usage: spectate <wolfchat> [on|off]",
     "fspectate_help": "Usage: fspectate <wolfchat|deadchat> [on|off]",
     "fspectate_restricted": "You may not spectate while playing.",
     "fspectate_deadchat_disabled": "Deadchat is disabled and may not be spectated.",
