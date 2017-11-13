@@ -70,6 +70,8 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     phase = var.PHASE
     if user in get_participants():
         roles = get_all_roles(user)
+        # A user can be a participant but not have a role, for example, dead vengeful ghost
+        has_roles = len(roles) != 0
         if force_role is not None:
             roles &= {force_role} # only fire off role commands for the forced role
 
@@ -93,7 +95,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
             # allow things like "wolf pstats" because that just doesn't make sense.
             return
 
-        if not common_roles:
+        if has_roles and not common_roles:
             # getting here means that at least one of the role_cmds is disjoint
             # from the others. For example, augur see vs seer see when a bare see
             # is executed. In this event, display a helpful error message instructing
