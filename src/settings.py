@@ -8,17 +8,17 @@ import botconfig
 LANGUAGE = 'en'
 
 ## TLS settings
-# if SSL_CERTFP is supplied, the bot will attempt to verify that with the server. if not, then the
+# If SSL_CERTFP is supplied, the bot will attempt to verify that with the server. If not, then the
 # bot will attempt certificate verification, otherwise it will abort the connection.
-# you may specify the hash algorithm to use when verifying fingerprints. if unspecified, it will
-# default to SHA256. multiple fingerprints may be comma separated for networks with multiple
-# servers. check your Python version for suported algorithms.
-# syntax: SSL_CERTFP = "[HASH-ALGO]:fingerprint1,fingerprint2,fingerprint3"
+# You may specify the hash algorithm to use when verifying fingerprints. If unspecified, it will
+# default to SHA256. Multiple fingerprints may be comma separated for networks with multiple
+# servers. Check your Python version for suported algorithms.
+# Xyntax: SSL_CERTFP = "[HASH-ALGO]:fingerprint1,fingerprint2,fingerprint3"
 SSL_VERIFY = True
-SSL_CERTFILE = None # client cert file to connect with in PEM format; can also contain keyfile
-SSL_KEYFILE = None # keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line
+SSL_CERTFILE = None # Client cert file to connect with in PEM format; can also contain keyfile.
+SSL_KEYFILE = None # Keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line.
 SSL_CERTFP = None
-SSL_CIPHERS = None # custom list of available ciphers in OpenSSL cipher list format (<https://wiki.openssl.org/index.php/Manual:Ciphers(1)#CIPHER_LIST_FORMAT>)
+SSL_CIPHERS = None # Custom list of available ciphers in OpenSSL cipher list format. (<https://wiki.openssl.org/index.php/Manual:Ciphers(1)#CIPHER_LIST_FORMAT>)
 
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30

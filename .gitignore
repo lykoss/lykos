@@ -8,7 +8,7 @@
 __pycache__/
 *.py[co]
 
-# linter files
+# Linter files
 .mypy_cache/
 
 # Config files

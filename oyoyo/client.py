@@ -101,7 +101,7 @@ class IRCClient:
         self.sasl_auth = False
         self.use_ssl = False
         self.cert_verify = False
-        self.cert_fp = None
+        self.cert_fp = ""
         self.client_certfile = None
         self.client_keyfile = None
         self.cipher_list = None
@@ -231,34 +231,65 @@ class IRCClient:
                     raise
 
                 if self.cert_fp:
-                    algo = "sha256"
-                    if self.cert_fp.find(":") != -1:
+                    algo = None
+                    if ":" in self.cert_fp:
                         algo, fp = self.cert_fp.split(":")
                         fp = fp.split(",")
+                        self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
                     else:
                         fp = self.cert_fp.split(",")
 
-                    self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
+                    hashlen = {32: "md5", 40: "sha1", 56: "sha224",
+                               64: "sha256", 96: "sha384", 128: "sha512"}
 
-                    try:
-                        h = hashlib.new(algo)
-                    except Exception as error:
-                        self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
-                        self.stream_handler("Supported algorithms on this sytem: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
-                        raise
 
-                    h.update(self.socket.getpeercert(True))
-                    peercertfp = h.hexdigest()
+                    peercert = self.socket.getpeercert(True)
+
+                    h = None
+                    peercertfp = None
+
+                    if algo:
+                        try:
+                            h = hashlib.new(algo)
+                        except Exception as error:
+                            self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
+                            self.stream_handler("Supported algorithms on this system: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
+                            raise
+
+                        h.update(peercert)
+                        peercertfp = h.hexdigest()
 
                     matched = False
-                    for fingerprint in fp:
+                    for n, fingerprint in enumerate(fp):
+
+                        if not h:
+                            fplen = len(fingerprint)
+                            if fplen not in hashlen:
+                                self.stream_handler("Unable to auto-detect fingerprint #{0} ({1}) "
+                                                    "algorithm type by length".format(n, fp),
+                                                    level="warning")
+                                continue
+
+                            algo = hashlen[fplen]
+                            self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
+
+                            try:
+                                h = hashlib.new(algo)
+                            except Exception as error:
+                                self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
+                                self.stream_handler("Supported algorithms on this system: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
+                                raise
+
+                            h.update(peercert)
+                            peercertfp = h.hexdigest()
+
                         if hmac.compare_digest(fingerprint, peercertfp):
                             matched = fingerprint
 
                     if not matched:
-                        self.stream_handler("Certificate fingerprint {0} did not match any excpected fingerprints".format(peercertfp), level="warning")
+                        self.stream_handler("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp), level="warning")
                         raise ssl.CertificateError("Certificate fingerprint does not match.")
-                    self.stream_handler("Server certificate fingerprint matched {0}".format(matched), level="info")
+                    self.stream_handler("Server certificate fingerprint matched {0} ({1})".format(matched, algo), level="info")
 
                 self.stream_handler("Connected with cipher {0}".format(self.socket.cipher()[0]), level="info")
 
