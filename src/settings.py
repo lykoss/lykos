@@ -11,9 +11,11 @@ LANGUAGE = 'en'
 # If SSL_CERTFP is supplied, the bot will attempt to verify that with the server. If not, then the
 # bot will attempt certificate verification, otherwise it will abort the connection.
 # You may specify the hash algorithm to use when verifying fingerprints. If unspecified, it will
-# default to SHA256. Multiple fingerprints may be comma separated for networks with multiple
-# servers. Check your Python version for suported algorithms.
-# Xyntax: SSL_CERTFP = "[HASH-ALGO]:fingerprint1,fingerprint2,fingerprint3"
+# attempt to autodetect the hash type of each fingerprint individually. (Limited to MD5, SHA1,
+# SHA224, SHA384, and SHA512).
+# Multiple fingerprints may be comma separated for networks with multipleservers. Check your Python
+# version for suported algorithms.
+# Syntax: SSL_CERTFP = "[HASH-ALGO:]fingerprint1,fingerprint2,fingerprint3"
 SSL_VERIFY = True
 SSL_CERTFILE = None # Client cert file to connect with in PEM format; can also contain keyfile.
 SSL_KEYFILE = None # Keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line.

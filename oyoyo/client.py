@@ -265,9 +265,7 @@ class IRCClient:
                         if not h:
                             fplen = len(fingerprint)
                             if fplen not in hashlen:
-                                self.stream_handler("Unable to auto-detect fingerprint #{0} ({1}) "
-                                                    "algorithm type by length".format(n, fp),
-                                                    level="warning")
+                                self.stream_handler("Unable to auto-detect fingerprint #{0} ({1}) algorithm type by length".format(n, fp), level="warning")
                                 continue
 
                             algo = hashlen[fplen]
