@@ -98,7 +98,6 @@ var.RESTARTING = False
 
 var.BITTEN_ROLES = {}
 var.LYCAN_ROLES = {}
-var.CHARMED = set()
 var.START_VOTES = set()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
@@ -2132,7 +2131,7 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
             # determine if this player's team won
             if rol in var.TRUE_NEUTRAL_ROLES:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
-                teams = {"monster":"monsters", "piper":"pipers", "demoniac":"demoniacs"}
+                teams = {"monster":"monsters", "demoniac":"demoniacs"}
                 if rol in teams and winner == teams[rol]:
                     won = True
                 elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
@@ -2168,14 +2167,13 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
                     elif winner == "demoniacs" and lvrrol == "demoniac":
                         iwon = True
                         break
+                    # TODO: split this into piper.py once matchmaker is split
                     elif winner == "pipers" and lvrrol == "piper":
                         iwon = True
                         break
             elif rol == "monster" and splr in survived and winner == "monsters":
                 iwon = True
             elif rol == "demoniac" and splr in survived and winner == "demoniacs":
-                iwon = True
-            elif rol == "piper" and splr in survived and winner == "pipers":
                 iwon = True
             elif rol == "clone":
                 # this means they ended game while being clone and not some other role
@@ -2311,7 +2309,6 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         lmonsters = len(rolemap.get("monster", ()))
         ldemoniacs = len(rolemap.get("demoniac", ()))
         ltraitors = len(rolemap.get("traitor", ()))
-        lpipers = len(rolemap.get("piper", ()))
 
         message = ""
         # fool won, chk_win was called from !lynch
@@ -2321,9 +2318,6 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
             message = messages["no_win"]
             # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
             winner = "no_team_wins"
-        elif var.PHASE == "day" and lpipers and len(list_players()) - lpipers == len(var.CHARMED - var.ROLES["piper"]):
-            winner = "pipers"
-            message = messages["piper_win"].format("s" if lpipers > 1 else "", "s" if lpipers == 1 else "")
         elif lrealwolves == 0 and ltraitors == 0 and lcubs == 0:
             if ldemoniacs > 0:
                 s = "s" if ldemoniacs > 1 else ""
@@ -2344,6 +2338,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
                 message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
 
+        # TODO: convert to using users, flip priority order (so that things like fool run last, and therefore override previous win conds)
         # Priorities:
         # 0 = fool, other roles that end game immediately
         # 1 = things that could short-circuit game ending, such as cub growing up or traitor turning
@@ -2403,8 +2398,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 var.ROLES[r].remove(player.nick) # FIXME
             if player.nick in var.BITTEN_ROLES:
                 del var.BITTEN_ROLES[player.nick] # FIXME
-            if player.nick in var.CHARMED:
-                var.CHARMED.remove(player.nick) # FIXME
             pl.discard(player)
             # handle roles that trigger on death
             # clone happens regardless of death_triggers being true or not
@@ -2681,7 +2674,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
                 # if these aren't cleared properly night may end prematurely
-                for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED, var.CHARMERS):
+                for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED):
                     x.discard(player.nick)
             if var.PHASE == "day" and ret:
                 var.VOTES.pop(player.nick, None)  #  Delete other people's votes on the player
@@ -3046,8 +3039,7 @@ def rename_player(var, user, prefix):
             for setvar in (var.HEXED, var.SILENCED, var.MATCHMAKERS, var.PASSED,
                            var.JESTERS, var.AMNESIACS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
-                           var.ALPHA_WOLVES, var.CURSED, var.CHARMERS, var.CHARMED, var.TOBECHARMED,
-                           var.PRIESTS, var.CONSECRATING):
+                           var.ALPHA_WOLVES, var.CURSED, var.PRIESTS, var.CONSECRATING):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3404,40 +3396,6 @@ def transition_day(cli, gameid=0):
     var.WOUNDED = set()
     var.NO_LYNCH = set()
 
-    # Send out PMs to players who have been charmed
-    for victim in var.TOBECHARMED:
-        charmedlist = list(var.CHARMED | var.TOBECHARMED - {victim})
-        message = messages["charmed"]
-
-        if len(charmedlist) <= 0:
-            pm(cli, victim, message + messages["no_charmed_players"])
-        elif len(charmedlist) == 1:
-            pm(cli, victim, message + messages["one_charmed_player"].format(charmedlist[0]))
-        elif len(charmedlist) == 2:
-            pm(cli, victim, message + messages["two_charmed_players"].format(charmedlist[0], charmedlist[1]))
-        else:
-            pm(cli, victim, message + messages["many_charmed_players"].format("\u0002, \u0002".join(charmedlist[:-1]), charmedlist[-1]))
-
-    if var.TOBECHARMED:
-        tobecharmedlist = list(var.TOBECHARMED)
-        for victim in var.CHARMED:
-            if len(tobecharmedlist) == 1:
-                message = messages["players_charmed_one"].format(tobecharmedlist[0])
-            elif len(tobecharmedlist) == 2:
-                message = messages["players_charmed_two"].format(tobecharmedlist[0], tobecharmedlist[1])
-            else:
-                message = messages["players_charmed_many"].format(
-                          "\u0002, \u0002".join(tobecharmedlist[:-1]), tobecharmedlist[-1])
-
-            previouscharmed = var.CHARMED - {victim}
-            if len(previouscharmed):
-                pm(cli, victim, message + (messages["previously_charmed"]).format("\u0002, \u0002".join(previouscharmed)))
-            else:
-                pm(cli, victim, message)
-
-    var.CHARMED.update(var.TOBECHARMED)
-    var.TOBECHARMED.clear()
-    
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in var.ROLES["werecrow"]:
             continue
@@ -3445,7 +3403,7 @@ def transition_day(cli, gameid=0):
         user = users._get(target) # FIXME
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(var, user, actor)
-        if ((target in var.PRAYED and var.PRAYED[target][0] > 0) or target in var.CHARMERS or
+        if ((target in var.PRAYED and var.PRAYED[target][0] > 0) or
                 target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
             actor.send(messages["werecrow_success"].format(user))
         else:
@@ -3846,10 +3804,9 @@ def chk_nightdone(cli):
 
     pl = get_players()
     spl = set(pl)
-    actedcount = sum(map(len, (var.PASSED, var.OBSERVED,
-                               var.HEXED, var.CURSED, var.CHARMERS)))
+    actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
 
-    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow", "piper", "prophet")))
+    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow", "prophet")))
 
     for nick, info in var.PRAYED.items():
         if info[0] > 0:
@@ -4911,81 +4868,6 @@ def clone(cli, nick, chan, rest):
 
 var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
-@cmd("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
-def charm(cli, nick, chan, rest):
-    """Charm a player, slowly leading to your win!"""
-    if nick in var.CHARMERS:
-        pm(cli, nick, messages["already_charmed"])
-        return
-
-    pieces = re.split(" +",rest)
-    victim = pieces[0]
-    if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            victim2 = pieces[2]
-        else:
-            victim2 = pieces[1]
-    else:
-        victim2 = None
-
-    victim = get_victim(cli, nick, victim, False, True)
-    if not victim:
-        return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("charm"))
-        return
-    if victim2 is not None:
-        victim2 = get_victim(cli, nick, victim2, False, True)
-        if not victim2:
-            return
-        if is_safe(nick, victim2):
-            pm(cli, nick, messages["no_acting_on_succubus"].format("charm"))
-            return
-
-    if victim == victim2:
-        pm(cli, nick, messages["must_charm_multiple"])
-        return
-    if nick in (victim, victim2):
-        pm(cli, nick, messages["no_charm_self"])
-        return
-    charmedlist = var.CHARMED|var.TOBECHARMED
-    if victim in charmedlist or victim2 and victim2 in charmedlist:
-        if victim in charmedlist and victim2 and victim2 in charmedlist:
-            pm(cli, nick, messages["targets_already_charmed"].format(victim, victim2))
-            return
-        if (len(list_players()) - len(var.ROLES["piper"]) - len(charmedlist) - 2 >= 0 or
-            victim in charmedlist and not victim2):
-            pm(cli, nick, messages["target_already_charmed"].format(victim in charmedlist and victim or victim2))
-            return
-
-    var.CHARMERS.add(nick)
-    var.PASSED.discard(nick)
-
-    var.TOBECHARMED.add(victim)
-    if victim2:
-        var.TOBECHARMED.add(victim2)
-        pm(cli, nick, messages["charm_multiple_success"].format(victim, victim2))
-    else:
-        pm(cli, nick, messages["charm_success"].format(victim))
-
-    # if there are other pipers, tell them who gets charmed (so they don't have to keep guessing who they are still allowed to charm)
-    for piper in var.ROLES["piper"]:
-        if piper != nick:
-            if victim2:
-                pm(cli, piper, messages["another_piper_charmed_multiple"].format(victim, victim2))
-            else:
-                pm(cli, piper, messages["another_piper_charmed"].format(victim))
-
-    if victim2:
-        debuglog("{0} ({1}) CHARM {2} ({3}) && {4} ({5})".format(nick, get_role(nick),
-                                                                 victim, get_role(victim),
-                                                                 victim2, get_role(victim2)))
-    else:
-        debuglog("{0} ({1}) CHARM {2} ({3})".format(nick, get_role(nick),
-                                                    victim, get_role(victim)))
-
-    chk_nightdone(cli)
-
 @event_listener("targeted_command", priority=9)
 def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
     if evt.data["misdirection"]:
@@ -5163,7 +5045,6 @@ def transition_night(cli):
     var.CURSED = set() # set of warlocks that have cursed
     var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
-    var.CHARMERS = set() # pipers who have charmed
     var.TOBESILENCED = set()
     var.CONSECRATING = set()
     for nick in var.PRAYED:
@@ -5322,19 +5203,6 @@ def transition_night(cli):
             else:
                 pm(cli, ass, messages["assassin_simple"])
             pm(cli, ass, "Players: " + ", ".join(pl))
-
-    for piper in var.ROLES["piper"]:
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(piper)
-        for charmed in var.CHARMED:
-            if charmed in pl: # corner case: if there are multiple pipers and a piper is charmed, the piper will be in var.CHARMED but not in pl
-                pl.remove(charmed)
-        if piper in var.PLAYERS and not is_user_simple(piper):
-            pm(cli, piper, (messages["piper_notify"]))
-        else:
-            pm(cli, piper, messages["piper_simple"])
-        pm(cli, piper, "Players: " + ", ".join(pl))
 
     for turncoat in var.ROLES["turncoat"]:
         # they start out as unsided, but can change n1
@@ -5654,9 +5522,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BITTEN_ROLES = {}
     var.LYCAN_ROLES = {}
     var.AMNESIAC_ROLES = {}
-    var.CHARMERS = set()
-    var.CHARMED = set()
-    var.TOBECHARMED = set()
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.TURNCOATS = {}
     var.EXCHANGED_ROLES = []
@@ -7014,10 +6879,6 @@ def revealroles(var, wrapper, message):
     #show who got immunized
     if var.IMMUNIZED:
         output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
-
-    # get charmed players
-    if var.CHARMED | var.TOBECHARMED:
-        output.append("\u0002charmed players\u0002: {0}".format(", ".join(var.CHARMED | var.TOBECHARMED)))
 
     evt = Event("revealroles", {"output": output})
     evt.dispatch(var, wrapper)

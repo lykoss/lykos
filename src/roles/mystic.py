@@ -15,7 +15,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         return
 
     special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
-                               "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
+                               "doctor", "hag", "sorcerer", "turncoat", "clone")))
     evt2 = Event("get_special", {"special": special})
     evt2.dispatch(var)
     pl = set(get_players())
@@ -43,7 +43,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 def on_transition_night_end(evt, var):
     # init with all roles that haven't been split yet
     special = set(get_players(("harlot", "priest", "prophet", "matchmaker",
-                               "doctor", "hag", "sorcerer", "turncoat", "clone", "piper")))
+                               "doctor", "hag", "sorcerer", "turncoat", "clone")))
     evt2 = Event("get_special", {"special": special})
     evt2.dispatch(var)
     pl = set(get_players())
