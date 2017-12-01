@@ -924,7 +924,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             # Abandon Hope All Ye Who Enter Here
             leave_deadchat(var, wrapper.source)
             var.SPECTATING_DEADCHAT.discard(wrapper.source)
-            var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
+            var.SPECTATING_WOLFCHAT.discard(wrapper.source)
             return True
         var.ROLES["person"].add(wrapper.source.nick)
         var.MAIN_ROLES[wrapper.source] = "person"
@@ -2959,11 +2959,6 @@ def return_to_village(var, chan, target, *, show_message):
 def rename_player(var, user, prefix):
     nick = user.nick
 
-    if var.PHASE in var.GAME_PHASES:
-        if prefix in var.SPECTATING_WOLFCHAT:
-            var.SPECTATING_WOLFCHAT.remove(prefix)
-            var.SPECTATING_WOLFCHAT.add(nick)
-
     event = Event("rename_player", {})
     event.dispatch(user.client, var, prefix, nick) # FIXME: Need to update all the callbacks
 
@@ -3220,7 +3215,7 @@ def leave(var, what, user, why=None):
         killplayer = False
 
     channels.Main.send(msg.format(user, get_reveal_role(user.nick)) + population) # FIXME: Need to fix this once get_reveal_role() accepts User instances
-    var.SPECTATING_WOLFCHAT.discard(user.nick) # FIXME: Need to fix this once the variable holds User instances
+    var.SPECTATING_WOLFCHAT.discard(user)
     var.SPECTATING_DEADCHAT.discard(user)
     leave_deadchat(var, user)
 
@@ -5128,10 +5123,16 @@ def relay(var, wrapper, message):
         if message.startswith("\u0001ACTION"):
             message = message[7:-1]
             mass_privmsg(wrapper.client, to_msg, "* \u0002{0}\u0002{1}".format(wrapper.source, message))
-            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "* [wolfchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
+            for player in var.SPECTATING_WOLFCHAT:
+                player.queue_message("* [wolfchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
+            if var.SPECTATING_WOLFCHAT:
+                player.send_messages()
         else:
             mass_privmsg(wrapper.client, to_msg, "\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
-            mass_privmsg(wrapper.client, var.SPECTATING_WOLFCHAT, "[wolfchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+            for player in var.SPECTATING_WOLFCHAT:
+                player.queue_message("[wolfchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+            if var.SPECTATING_WOLFCHAT:
+                player.send_messages()
 
 @handle_error
 def transition_night(cli):
@@ -6908,9 +6909,7 @@ def can_run_restricted_cmd(user):
 
     return True
 
-@command("spectate", "fspectate", flag="a", pm=True, phases=("day", "night"))
-def fspectate(var, wrapper, message):
-    """Spectate wolfchat or deadchat."""
+def spectate_chat(var, wrapper, message, *, is_fspectate):
     if not can_run_restricted_cmd(wrapper.source):
         wrapper.pm(messages["fspectate_restricted"])
         return
@@ -6923,32 +6922,50 @@ def fspectate(var, wrapper, message):
     elif len(params) > 1:
         on = params[1].lower()
     what = params[0].lower()
-    if what not in ("wolfchat", "deadchat") or on not in ("on", "off"):
-        wrapper.pm(messages["fspectate_help"])
+    allowed = ("wolfchat", "deadchat") if is_fspectate else ("wolfchat",)
+    if what not in allowed or on not in ("on", "off"):
+        wrapper.pm(messages["fspectate_help" if is_fspectate else "spectate_help"])
         return
 
     if on == "off":
         if what == "wolfchat":
-            var.SPECTATING_WOLFCHAT.discard(wrapper.source.nick)
+            var.SPECTATING_WOLFCHAT.discard(wrapper.source)
         else:
             var.SPECTATING_DEADCHAT.discard(wrapper.source)
         wrapper.pm(messages["fspectate_off"].format(what))
     else:
         players = []
         if what == "wolfchat":
-            var.SPECTATING_WOLFCHAT.add(wrapper.source.nick)
-            players = [p for p in list_players() if in_wolflist(p, p)]
+            already_spectating = wrapper.source in var.SPECTATING_WOLFCHAT
+            var.SPECTATING_WOLFCHAT.add(wrapper.source)
+            players = [p for p in get_players() if in_wolflist(p.nick, p.nick)]
+            if not is_fspectate and not already_spectating and var.SPECTATE_NOTICE:
+                spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
+                for player in players:
+                    player.queue_message(messages["fspectate_notice"].format(spectator, what))
+                if players:
+                    player.send_messages()
         elif var.ENABLE_DEADCHAT:
             if wrapper.source in var.DEADCHAT_PLAYERS:
                 wrapper.pm(messages["fspectate_in_deadchat"])
                 return
             var.SPECTATING_DEADCHAT.add(wrapper.source)
-            players = [user.nick for user in var.DEADCHAT_PLAYERS]
+            players = var.DEADCHAT_PLAYERS
         else:
             wrapper.pm(messages["fspectate_deadchat_disabled"])
             return
         wrapper.pm(messages["fspectate_on"].format(what))
-        wrapper.pm("People in {0}: {1}".format(what, ", ".join(players)))
+        wrapper.pm("People in {0}: {1}".format(what, ", ".join([player.nick for player in players])))
+
+@command("spectate", flag="p", pm=True, phases=("day", "night"))
+def spectate(var, wrapper, message):
+    """Spectate wolfchat or deadchat."""
+    spectate_chat(var, wrapper, message, is_fspectate=False)
+
+@command("fspectate", flag="F", pm=True, phases=("day", "night"))
+def fspectate(var, wrapper, message):
+    """Spectate wolfchat or deadchat."""
+    spectate_chat(var, wrapper, message, is_fspectate=True)
 
 @command("revealroles", flag="a", pm=True, phases=("day", "night"))
 def revealroles(var, wrapper, message):

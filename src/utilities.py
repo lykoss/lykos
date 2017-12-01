@@ -170,7 +170,10 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
     wcwolves = list_players(wcroles)
     wcwolves.remove(nick)
     mass_privmsg(cli, wcwolves, message)
-    mass_privmsg(cli, var.SPECTATING_WOLFCHAT, "[wolfchat] " + message)
+    for player in var.SPECTATING_WOLFCHAT:
+        player.queue_message("[wolfchat] " + message)
+    if var.SPECTATING_WOLFCHAT:
+        player.send_messages()
 
 @proxy.stub
 def chk_nightdone(cli):
