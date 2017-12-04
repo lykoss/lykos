@@ -2739,7 +2739,7 @@ def reaper(cli, gameid):
                 to_warn_pm = []
                 to_kill    = []
                 for nick in list_players():
-                    if not is_fake_nick(nick) or nick == "2" or nick == "3":
+                    if is_fake_nick(nick):
                         continue
                     lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
