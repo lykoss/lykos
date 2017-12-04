@@ -2697,7 +2697,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 var.CONSECRATING.discard(player.nick)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
                 # we only want to induce a lynch if it's actually day and we aren't in a chained death
-                if var.GAMEPHASE == "day" and ismain:
+                if var.GAMEPHASE == "day" and ismain and not end_game:
                     chk_decision(channels.Main.client)
             elif var.PHASE == "night" and ret and ismain:
                 chk_nightdone(channels.Main.client)
@@ -2739,7 +2739,7 @@ def reaper(cli, gameid):
                 to_warn_pm = []
                 to_kill    = []
                 for nick in list_players():
-                    if is_fake_nick(nick):
+                    if not is_fake_nick(nick) or nick == "2" or nick == "3":
                         continue
                     lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
@@ -2777,7 +2777,9 @@ def reaper(cli, gameid):
                     if var.IDLE_PENALTY:
                         add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(users._get(nck), end_game=False, death_triggers=False) # FIXME
-                chk_win(cli)
+                win = chk_win(cli)
+                if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
+                    chk_decision(cli)
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
