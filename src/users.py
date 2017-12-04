@@ -194,7 +194,7 @@ def _reset(evt, var):
     _ghosts.clear()
 
 def _swap_player(evt, var, old_user, user):
-    """Marks the user as no longer being a ghost, if they are one."""
+    """Mark the user as no longer being a ghost, if they are one."""
     _ghosts.discard(old_user)
     if not old_user.channels:
         _users.discard(old_user)
