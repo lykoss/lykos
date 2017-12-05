@@ -3132,7 +3132,7 @@ def leave(var, what, user, why=None):
 
     ps = get_players()
     # Only mark living players as disconnected, unless they were kicked
-    if user in var.ALL_PLAYERS and (what == "kick" or user in ps):
+    if user.nick in var.PLAYERS and (what == "kick" or user in ps): # FIXME: Convert var.PLAYERS
         # Prevent duplicate entry in var.ORIGINAL_ROLES
         for roleset in var.ORIGINAL_ROLES.values():
             if user.nick in roleset: # FIXME: Need to fix this once the role sets hold User instances
@@ -3140,7 +3140,7 @@ def leave(var, what, user, why=None):
                 roleset.add("(dced)" + user.nick) # FIXME: Need to get rid of all the (dced) hacks
                 break
 
-        var.DCED_PLAYERS[user.nick] = var.PLAYERS.pop(user.nick) # FIXME: Need to fix this once var.DCED_PLAYERS hold User instances
+        var.DCED_PLAYERS[user.nick] = var.PLAYERS.pop(user.nick) # FIXME: Convert var.PLAYERS and var.DCED_PLAYERS
 
     if user not in ps or user in var.DISCONNECTED:
         return
