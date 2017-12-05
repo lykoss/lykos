@@ -20,12 +20,8 @@ def hunter_kill(var, wrapper, message):
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
         return
-    target = get_target(var, wrapper, re.split(" +", message)[0])
+    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
-        return
-
-    if wrapper.source is target:
-        wrapper.pm(messages["no_suicide"])
         return
 
     orig = target

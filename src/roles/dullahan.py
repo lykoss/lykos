@@ -21,12 +21,8 @@ def dullahan_kill(var, wrapper, message):
         wrapper.pm(messages["dullahan_targets_dead"])
         return
 
-    target = get_target(var, wrapper, re.split(" +", message)[0])
+    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
-        return
-
-    if target is wrapper.source:
-        wrapper.pm(messages["no_suicide"])
         return
 
     orig = target
