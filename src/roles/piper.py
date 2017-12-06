@@ -92,7 +92,7 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if lp == 0: # no alive pipers, short-circuit this check
         return
 
-    uncharmed = set(get_players()) - CHARMED - pipers
+    uncharmed = set(get_players(mainroles=mainroles)) - CHARMED - pipers
 
     if var.PHASE == "day" and len(uncharmed) == 0:
         evt.data["winner"] = "pipers"
