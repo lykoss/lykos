@@ -37,7 +37,7 @@ def get_participants():
     evt.dispatch(var)
     return evt.data["players"]
 
-def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False):
+def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_self_message=None):
     if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
@@ -52,7 +52,8 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False):
     match, count = users.complete_match(message, players)
     if match is None:
         if not count and users.lower(wrapper.source.nick).startswith(users.lower(message)):
-            return wrapper.source
+            wrapper.pm(messages[not_self_message or "no_target_self"])
+            return
         wrapper.pm(messages["not_playing"].format(message))
         return
 
