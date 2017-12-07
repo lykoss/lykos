@@ -188,6 +188,11 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("piper",)))
 
+@event_listener("night_acted")
+def on_acted(evt, var, target, spy):
+    if target in TOBECHARMED:
+        evt.data["acted"] = True
+
 @event_listener("reset")
 def on_reset(evt, var):
     CHARMED.clear()
@@ -197,5 +202,19 @@ def on_reset(evt, var):
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
         evt.data["output"].append("\u0002charmed players\u0002: {0}".format(", ".join(p.nick for p in CHARMED)))
+
+@event_listener("swap_player")
+def on_swap_player(evt, var, old, new):
+    if old in CHARMED:
+        CHARMED.remove(old)
+        CHARMED.add(new)
+
+    if old in TOBECHARMED:
+        TOBECHARMED[new] = TOBECHARMED.pop(old)
+
+    for s in TOBECHARMED.values():
+        if old in s:
+            s.remove(old)
+            s.add(new)
 
 # vim: set sw=4 expandtab:
