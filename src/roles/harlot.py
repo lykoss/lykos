@@ -23,12 +23,8 @@ def hvisit(var, wrapper, message):
     if VISITED.get(wrapper.source):
         wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
         return
-    target = get_target(var, wrapper, re.split(" +", message)[0], allow_bot=True)
+    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="harlot_not_self")
     if not target:
-        return
-
-    if target is wrapper.source:
-        wrapper.pm(messages["harlot_not_self"])
         return
 
     evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": True})
