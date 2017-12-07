@@ -583,7 +583,6 @@ def replace(var, wrapper, message):
         evt.dispatch(var, target, wrapper.source)
         rename_player(var, wrapper.source, target.nick)
         if var.PHASE in var.GAME_PHASES:
-            # FIXME: This doesn't actually do anything right now because rename_player calls return_to_village with show_message=True
             return_to_village(var, target, show_message=False)
 
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
@@ -2898,7 +2897,7 @@ def fgoat(var, wrapper, message):
     wrapper.send(messages["goat_success"].format(wrapper.source, goatact, togoat))
 
 @handle_error
-def return_to_village(var, target, *, show_message):
+def return_to_village(var, target, *, show_message, new_user=None):
     # Note: we do not manipulate or check target.disconnected, as that property
     # is used to determine if they are entirely dc'ed rather than just maybe using
     # a different account or /parting the channel. If they were dced for real and
@@ -2906,6 +2905,9 @@ def return_to_village(var, target, *, show_message):
     with var.GRAVEYARD_LOCK:
         if target in var.DISCONNECTED:
             del var.DISCONNECTED[target]
+            if new_user is None:
+                new_user = target
+
             var.LAST_SAID_TIME[target.nick] = datetime.now()
             for roleset in var.ORIGINAL_ROLES.values():
                 if "(dced)" + target.nick in roleset:
@@ -2915,9 +2917,22 @@ def return_to_village(var, target, *, show_message):
             if target.nick in var.DCED_PLAYERS:
                 var.PLAYERS[target.nick] = var.DCED_PLAYERS.pop(target.nick)
 
+            if new_user is not target:
+                # different users, perform a swap. This will clean up disconnected users.
+                evt = Event("swap_player", {})
+                evt.dispatch(var, target, new_user)
+
+            if target.nick != new_user.nick:
+                # have a nickchange, update tracking vars
+                rename_player(var, new_user, target.nick)
+
             if show_message:
-                channels.Main.mode(("+" + hooks.Features["PREFIX"]["+"], target))
-                channels.Main.send(messages["player_return"].format(target))
+                if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
+                    channels.Main.mode(("+" + hooks.Features["PREFIX"]["+"], new_user))
+                if target.nick == new_user.nick:
+                    channels.Main.send(messages["player_return"].format(new_user))
+                else:
+                    channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
         else:
             # this particular user doesn't exist in var.DISCONNECTED, but that doesn't
             # mean that they aren't dced. They may have rejoined as a different nick,
@@ -2929,7 +2944,7 @@ def return_to_village(var, target, *, show_message):
                 userlist = users._get(host=target.host, allow_multiple=True)
             userlist = [u for u in userlist if u in var.DISCONNECTED]
             if len(userlist) == 1:
-                return_to_village(var, userlist[0], show_message=show_message)
+                return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 def rename_player(var, user, prefix):
     nick = user.nick
@@ -3050,10 +3065,6 @@ def rename_player(var, user, prefix):
                     var.START_VOTES.discard(prefix)
                     var.START_VOTES.add(nick)
 
-    # Check if player was disconnected
-    if var.PHASE in var.GAME_PHASES:
-        return_to_village(var, user, show_message=True)
-
     if prefix in var.NO_LYNCH:
         var.NO_LYNCH.remove(prefix)
         var.NO_LYNCH.add(nick)
@@ -3091,6 +3102,8 @@ def nick_change(evt, var, user, old_rawnick):
         return
 
     rename_player(var, user, nick)
+    # perhaps mark them as back
+    return_to_village(var, user, show_message=True)
 
 @event_listener("cleanup_user") 
 def cleanup_user(evt, var, user):
