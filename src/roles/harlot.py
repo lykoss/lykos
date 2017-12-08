@@ -136,6 +136,14 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
+@event_listener("swap_player")
+def on_swap(evt, var, old_user, user):
+    for actor, target in set(VISITED.items()):
+        if target is old_user:
+            VISITED[actor] = user
+        if actor is old_user:
+            VISITED[user] = VISITED.pop(actor)
+
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["special"].update(get_players(("harlot",)))
