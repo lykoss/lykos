@@ -1429,7 +1429,13 @@ class MudkipMode(GameMode):
         if avail != voted:
             return
 
+        majority = avail // 2 + 1
         maxv = max(evt.data["numvotes"].values())
+        if maxv >= majority or force:
+            # normal vote code will result in someone being lynched
+            # not bailing out here will result in the person being voted twice
+            return
+
         # make a copy in case an event mutates it in recursive calls
         tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
         self.recursion_guard = True
