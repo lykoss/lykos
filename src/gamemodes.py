@@ -1358,4 +1358,53 @@ class MaelstromMode(GameMode):
 
         return addroles
 
+# someone let woffle commit while drunk again... tsk tsk
+@game_mode("mudkip", minp=4, maxp=15, likelihood=1)
+class MudkipMode(GameMode):
+    """Why are all the professors named after trees?"""
+    def __init__(self, arg=""):
+        super().__init__(arg)
+        self.ABSTAIN_ENABLED = False
+                                              #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
+        self.TOTEM_CHANCES = {       "death": (      4      ,       1       ,      0      ),
+                                "protection": (      0      ,       1       ,      4      ),
+                                   "silence": (      0      ,       1       ,      0      ),
+                                 "revealing": (      0      ,       1       ,      0      ),
+                               "desperation": (      0      ,       1       ,      0      ),
+                                "impatience": (      0      ,       1       ,      0      ),
+                                  "pacifism": (      0      ,       1       ,      0      ),
+                                 "influence": (      0      ,       1       ,      0      ),
+                                "narcolepsy": (      0      ,       1       ,      0      ),
+                                  "exchange": (      0      ,       1       ,      0      ),
+                               "lycanthropy": (      0      ,       1       ,      0      ),
+                                      "luck": (      0      ,       1       ,      0      ),
+                                "pestilence": (      4      ,       1       ,      0      ),
+                               "retribution": (      2      ,       1       ,      2      ),
+                              "misdirection": (      0      ,       1       ,      4      ),
+                                    "deceit": (      0      ,       1       ,      0      ),
+                             }
+        self.ROLE_INDEX =         (  4  ,  5  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 14  , 15  )
+        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
+        self.ROLE_GUIDE.update({# village roles
+              "detective"       : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "guardian angel"  : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "shaman"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "priest"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
+              "amnesiac"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
+              # wolf roles
+              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
+              "doomsayer"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "wolf shaman"     : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
+              "cultist"         : (  0  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "minion"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              # neutral roles
+              "jester"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "succubus"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
+              # templates
+              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              })
+
+
+
 # vim: set sw=4 expandtab:
