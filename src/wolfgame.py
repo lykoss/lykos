@@ -1722,7 +1722,9 @@ def hurry_up(cli, gameid, change):
     chan = botconfig.CHANNEL
 
     if not change:
-        cli.msg(chan, messages["daylight_warning"])
+        event = Event("daylight_warning", {"message": "daylight_warning"})
+        event.dispatch(var)
+        cli.msg(chan, event.data["message"])
         return
 
     var.DAY_ID = 0

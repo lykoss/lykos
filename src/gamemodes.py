@@ -1366,8 +1366,8 @@ class MudkipMode(GameMode):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
                                               #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
-        self.TOTEM_CHANCES = {       "death": (      4      ,       1       ,      0      ),
-                                "protection": (      0      ,       1       ,      4      ),
+        self.TOTEM_CHANCES = {       "death": (      5      ,       1       ,      0      ),
+                                "protection": (      0      ,       1       ,      5      ),
                                    "silence": (      0      ,       1       ,      0      ),
                                  "revealing": (      0      ,       1       ,      0      ),
                                "desperation": (      0      ,       1       ,      0      ),
@@ -1378,9 +1378,9 @@ class MudkipMode(GameMode):
                                   "exchange": (      0      ,       1       ,      0      ),
                                "lycanthropy": (      0      ,       1       ,      0      ),
                                       "luck": (      0      ,       1       ,      0      ),
-                                "pestilence": (      4      ,       1       ,      0      ),
-                               "retribution": (      2      ,       1       ,      2      ),
-                              "misdirection": (      0      ,       1       ,      4      ),
+                                "pestilence": (      5      ,       1       ,      0      ),
+                               "retribution": (      0      ,       1       ,      0      ),
+                              "misdirection": (      0      ,       1       ,      5      ),
                                     "deceit": (      0      ,       1       ,      0      ),
                              }
         self.ROLE_INDEX =         (  4  ,  5  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 14  , 15  )
@@ -1396,8 +1396,7 @@ class MudkipMode(GameMode):
               "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
               "doomsayer"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "wolf shaman"     : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              "cultist"         : (  0  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
-              "minion"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "cultist"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # neutral roles
               "jester"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "succubus"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
@@ -1405,6 +1404,41 @@ class MudkipMode(GameMode):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
+        self.recursion_guard = False
 
+    def startup(self):
+        events.add_listener("chk_decision", self.chk_decision)
+        events.add_listener("daylight_warning", self.daylight_warning)
+
+    def teardown(self):
+        events.remove_listener("chk_decision", self.chk_decision)
+        events.remove_listener("daylight_warning", self.daylight_warning)
+
+    def chk_decision(self, evt, cli, var, force):
+        # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
+        # kill all tied players rather than hanging. The intent of this is to benefit village team in the event
+        # of a stalemate, as they could use the extra help (especially in 5p).
+        if self.recursion_guard:
+            # in here, this means we're in a child chk_decision event called from this one
+            # the only thing we need to do is ensure we don't turn into nighttime prematurely
+            evt.data["transition_night"] = lambda cli: None
+            return
+
+        avail = len(evt.params.voters)
+        voted = sum(map(len, evt.data["votelist"].values()))
+        if avail != voted:
+            return
+
+        maxv = max(evt.data["numvotes"].values())
+        # make a copy in case an event mutates it in recursive calls
+        tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
+        self.recursion_guard = True
+        for p in tovote:
+            chk_decision(cli, force=p)
+        self.recursion_guard = False
+        evt.data["transition_night"](cli)
+
+    def daylight_warning(self, evt, var):
+        evt.data["message"] = "daylight_warning_killtie"
 
 # vim: set sw=4 expandtab:
