@@ -1724,7 +1724,7 @@ def hurry_up(cli, gameid, change):
     if not change:
         event = Event("daylight_warning", {"message": "daylight_warning"})
         event.dispatch(var)
-        cli.msg(chan, event.data["message"])
+        cli.msg(chan, messages[event.data["message"]])
         return
 
     var.DAY_ID = 0
