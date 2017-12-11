@@ -184,7 +184,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if death_triggers:
         ALL_SUCC_IDLE = False
     if len(var.ROLES["succubus"]) == 0:
-        entranced_alive = {users._get(x) for x in ENTRANCED}.difference(evt.params.deadlist).intersection(get_players()) # FIXME
+        entranced_alive = {users._get(x) for x in ENTRANCED}.difference(evt.params.deadlist).intersection(evt.data["pl"]) # FIXME
         if ALL_SUCC_IDLE:
             while ENTRANCED:
                 e = ENTRANCED.pop()
