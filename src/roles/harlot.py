@@ -13,8 +13,8 @@ from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
 
-VISITED = {}
-PASSED = set()
+VISITED = {} # type: Dict[users.User, users.User]
+PASSED = set() # type: Set[users.User]
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(var, wrapper, message):
@@ -98,8 +98,8 @@ def on_transition_day_resolve_end3(evt, var, victims):
             evt.data["dead"].append(harlot)
 
 @event_listener("night_acted")
-def on_night_acted(evt, var, user, actor):
-    if VISITED.get(user):
+def on_night_acted(evt, var, target, spy):
+    if VISITED.get(target):
         evt.data["acted"] = True
 
 @event_listener("chk_nightdone")
@@ -138,11 +138,15 @@ def on_begin_day(evt, var):
 
 @event_listener("swap_player")
 def on_swap(evt, var, old_user, user):
-    for actor, target in set(VISITED.items()):
+    for harlot, target in set(VISITED.items()):
         if target is old_user:
-            VISITED[actor] = user
-        if actor is old_user:
-            VISITED[user] = VISITED.pop(actor)
+            VISITED[harlot] = user
+        if harlot is old_user:
+            VISITED[user] = VISITED.pop(harlot)
+
+    if old_user in PASSED:
+        PASSED.remove(old_user)
+        PASSED.add(user)
 
 @event_listener("get_special")
 def on_get_special(evt, var):
