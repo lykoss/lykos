@@ -6135,7 +6135,7 @@ def show_admins(cli, nick, chan, rest):
 def coin(var, wrapper, message):
     """It's a bad idea to base any decisions on this command."""
 
-    wrapper.send(messages["coin_toss"].format(wrapper.source.nick))
+    wrapper.send(messages["coin_toss"].format(wrapper.source))
     rnd = random.random()
     # 59/29/12 split, 59+29=88
     if rnd < 0.59:
@@ -6150,7 +6150,7 @@ def coin(var, wrapper, message):
 def pony(var, wrapper, message):
     """Toss a magical pony into the air and see what happens!"""
 
-    wrapper.send(messages["pony_toss"].format(wrapper.source.nick))
+    wrapper.send(messages["pony_toss"].format(wrapper.source))
     # 59/29/7/5 split
     rnd = random.random()
     if rnd < 0.59:
@@ -6167,8 +6167,7 @@ def pony(var, wrapper, message):
 @command("cat", pm=True)
 def cat(var, wrapper, message):
     """Toss a cat into the air and see what happens!"""
-    wrapper.send(messages["cat_toss"].format(wrapper.source.nick))
-    wrapper.send(messages["cat_land"])
+    wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"], sep="\n")
 
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
