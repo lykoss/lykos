@@ -963,9 +963,8 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
 @handle_error
 def kill_join(var, wrapper):
-    pl = list_players()
+    pl = [x.nick for x in get_players()]
     pl.sort(key=lambda x: x.lower())
-    msg = "PING! " + break_long_message(pl).replace("\n", "\nPING! ")
     reset_modes_timers(var)
     reset()
     wrapper.send(*pl, first="PING! ")
@@ -3519,7 +3518,7 @@ def transition_day(cli, gameid=0):
             victims.append(v)
         elif v.nick in var.ROLES["bodyguard"] and v.nick in angel.GUARDED and users._get(angel.GUARDED[v.nick]) in victims_set: # FIXME
             vappend.append(v)
-        elif v.nick in var.ROLES["harlot"] and harlot.VISITED.get(v.nick) is not None and users._get(harlot.VISITED[v.nick]) in victims_set: # FIXME
+        elif harlot.VISITED.get(v) in victims_set:
             vappend.append(v)
         else:
             victims.append(v)
@@ -3537,7 +3536,7 @@ def transition_day(cli, gameid=0):
             if v.nick in var.ROLES["bodyguard"] and users._get(angel.GUARDED.get(v.nick)) not in vappend: # FIXME
                 vappend.remove(v)
                 victims.append(v)
-            elif v.nick in var.ROLES["harlot"] and users._get(harlot.VISITED.get(v.nick)) not in vappend: # FIXME
+            elif harlot.VISITED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
 
