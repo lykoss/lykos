@@ -432,14 +432,14 @@ def on_transition_night_end(evt, var):
             wolf.send(messages["wolf_bite"])
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    if var.ROLES["succubus"].intersection(users._get(x) for x in KILLS.get(victim, ())): # FIXME: once KILLS holds User instances
+def on_succubus_visit(evt, var, succubus, target):
+    if var.ROLES["succubus"].intersection(users._get(x) for x in KILLS.get(target.nick, ())): # FIXME: once KILLS holds User instances
         for s in var.ROLES["succubus"]:
-            if s.nick in KILLS[victim]: # FIXME
-                pm(cli, victim, messages["no_kill_succubus"].format(nick))
-                KILLS[victim].remove(s.nick) # FIXME
-        if not KILLS[victim]:
-            del KILLS[victim]
+            if s.nick in KILLS[target.nick]:
+                target.send(messages["no_kill_succubus"].format(succubus))
+                KILLS[target.nick].remove(s.nick)
+        if not KILLS[target.nick]:
+            del KILLS[target.nick]
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

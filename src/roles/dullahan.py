@@ -194,19 +194,13 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
                 ts.add(target)
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    user = users._get(victim) # FIXME
-    if user in TARGETS:
-        succ_target = False
-        for target in set(TARGETS[user]):
-            if target in var.ROLES["succubus"]:
-                TARGETS[user].remove(target)
-                succ_target = True
-        if succ_target:
-            pm(cli, victim, messages["dullahan_no_kill_succubus"])
-    if user in KILLS and KILLS[user] in var.ROLES["succubus"]:
-        pm(cli, victim, messages["no_kill_succubus"].format(KILLS[user]))
-        del KILLS[user]
+def on_succubus_visit(evt, var, succubus, target):
+    if target in TARGETS and succubus in TARGETS[target]:
+        TARGETS[target].remove(succubus)
+        target.send(messages["dullahan_no_kill_succubus"])
+    if target in KILLS and KILLS[target] in var.ROLES["succubus"]:
+        target.send(messages["no_kill_succubus"].format(KILLS[target]))
+        del KILLS[target]
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

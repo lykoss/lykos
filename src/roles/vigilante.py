@@ -122,12 +122,10 @@ def on_transition_night_end(evt, var):
         vigilante.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    for vigilante, target in set(KILLS.items()):
-        if vigilante.nick == victim:
-            if target in var.ROLES["succubus"]:
-                vigilante.send(messages["no_kill_succubus"].format(target))
-                del KILLS[vigilante]
+def on_succubus_visit(evt, var, succubus, target):
+    if target in KILLS and KILLS[target] in var.ROLES["succubus"]:
+        target.send(messages["no_kill_succubus"].format(KILLS[target]))
+        del KILLS[target]
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

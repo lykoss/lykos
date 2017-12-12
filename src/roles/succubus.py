@@ -38,7 +38,8 @@ def hvisit(cli, nick, chan, rest):
     evt.dispatch(var, "visit", succ, target, frozenset({"detrimental", "immediate"}))
     if evt.prevent_default:
         return
-    victim = evt.data["target"].nick
+    target = evt.data["target"]
+    victim = target.nick
 
     VISITED[nick] = victim
     if victim not in var.ROLES["succubus"]:
@@ -51,8 +52,9 @@ def hvisit(cli, nick, chan, rest):
             pm(cli, victim, messages["notify_succubus_target"].format(nick))
         else:
             pm(cli, victim, messages["harlot_success"].format(nick))
+
         revt = Event("succubus_visit", {})
-        revt.dispatch(cli, var, nick, victim)
+        revt.dispatch(var, succ, target)
 
         # TODO: split these into assassin, hag, and alpha wolf when they are split off
         if var.TARGETED.get(victim) in var.ROLES["succubus"]:

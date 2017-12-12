@@ -138,12 +138,11 @@ def on_transition_night_end(evt, var):
         hunter.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    user = users._get(victim) # FIXME
-    if user in KILLS and KILLS[user] in var.ROLES["succubus"]:
-        user.send(messages["no_kill_succubus"].format(KILLS[user]))
-        del KILLS[user]
-        HUNTERS.discard(user)
+def on_succubus_visit(evt, var, succubus, target):
+    if target in KILLS and KILLS[target] in var.ROLES["succubus"]:
+        target.send(messages["no_kill_succubus"].format(KILLS[target]))
+        del KILLS[target]
+        HUNTERS.discard(target)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
