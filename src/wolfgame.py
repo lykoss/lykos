@@ -6130,11 +6130,11 @@ def show_admins(cli, nick, chan, rest):
 
     channels.Main.who()
 
-@cmd("coin", pm=True)
-def coin(cli, nick, chan, rest):
+@command("coin", pm=True)
+def coin(var, wrapper, message):
     """It's a bad idea to base any decisions on this command."""
 
-    reply(cli, nick, chan, messages["coin_toss"].format(nick))
+    wrapper.send(messages["coin_toss"].format(wrapper.source))
     rnd = random.random()
     # 59/29/12 split, 59+29=88
     if rnd < 0.59:
@@ -6143,14 +6143,13 @@ def coin(cli, nick, chan, rest):
         coin = messages["coin_choices"][1]
     else:
         coin = messages["coin_choices"][2]
-    cmsg = messages["coin_land"].format(coin)
-    reply(cli, nick, chan, cmsg)
+    wrapper.send(messages["coin_land"].format(coin))
 
-@cmd("pony", pm=True)
-def pony(cli, nick, chan, rest):
+@command("pony", "horse", pm=True)
+def pony(var, wrapper, message):
     """Toss a magical pony into the air and see what happens!"""
 
-    reply(cli, nick, chan, messages["pony_toss"].format(nick))
+    wrapper.send(messages["pony_toss"].format(wrapper.source))
     # 59/29/7/5 split
     rnd = random.random()
     if rnd < 0.59:
@@ -6160,16 +6159,14 @@ def pony(cli, nick, chan, rest):
     elif rnd < 0.95:
         pony = messages["pony_choices"][2].format(nick=nick)
     else:
-        reply(cli, nick, chan, messages["pony_fly"])
+        wrapper.send(messages["pony_fly"])
         return
-    cmsg = messages["pony_land"].format(pony)
-    reply(cli, nick, chan, cmsg)
+    wrapper.send(messages["pony_land"].format(pony))
 
-@cmd("cat", pm=True)
-def cat(cli, nick, chan, rest):
+@command("cat", pm=True)
+def cat(var, wrapper, message):
     """Toss a cat into the air and see what happens!"""
-    reply(cli, nick, chan, messages["cat_toss"].format(nick))
-    reply(cli, nick, chan, messages["cat_land"])
+    wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"], sep="\n")
 
 @cmd("time", pm=True, phases=("join", "day", "night"))
 def timeleft(cli, nick, chan, rest):
