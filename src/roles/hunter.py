@@ -140,7 +140,7 @@ def on_transition_night_end(evt, var):
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
     user = users._get(victim) # FIXME
-    if user in KILLS and KILLS[user].nick in var.ROLES["succubus"]: # FIXME
+    if user in KILLS and KILLS[user] in var.ROLES["succubus"]:
         user.send(messages["no_kill_succubus"].format(KILLS[user]))
         del KILLS[user]
         HUNTERS.discard(user)
@@ -161,7 +161,7 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # hunters is the set of all hunters that have not killed in a *previous* night
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
-        hunters = ({users._get(h) for h in var.ROLES["hunter"]} - HUNTERS) | set(KILLS.keys()) # FIXME
+        hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
 
 # vim: set sw=4 expandtab:

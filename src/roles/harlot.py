@@ -59,7 +59,7 @@ def pass_cmd(var, wrapper, message):
 
 @event_listener("bite")
 def on_bite(evt, var, alpha, target):
-    if target.nick not in var.ROLES["harlot"] or target not in VISITED:
+    if target not in var.ROLES["harlot"] or target not in VISITED:
         return
     hvisit = VISITED[target]
     if get_main_role(hvisit) not in var.WOLFCHAT_ROLES and (hvisit not in evt.params.bywolves or hvisit in evt.params.protected):
@@ -67,7 +67,7 @@ def on_bite(evt, var, alpha, target):
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
-    if victim.nick in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         if victim not in evt.data["bitten"]:
             evt.data["message"].append(messages["target_not_home"])
             evt.data["novictmsg"] = False

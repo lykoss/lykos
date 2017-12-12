@@ -224,3 +224,5 @@ class IRCContext:
         if sep is None:
             sep = " "
         _send(data, first, sep, self.client, send_type, name)
+
+# vim: set sw=4 expandtab:

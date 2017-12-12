@@ -455,7 +455,7 @@ def on_transition_day_resolve6(evt, var, victim):
     # that will not be an issue once everything is using the event
     if evt.data["protected"].get(victim):
         return
-    if victim.nick in var.ROLES["lycan"] and victim in evt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
+    if victim in var.ROLES["lycan"] and victim in evt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
         return
     # END checks to remove
 
@@ -540,7 +540,7 @@ def on_transition_night_end(evt, var):
                 shaman.send(messages["totem_simple"].format(TOTEMS[shaman.nick])) # FIXME
         else:
             if role not in var.WOLFCHAT_ROLES:
-                shaman.send(messages["shaman_notify"].format(role, "random " if shaman.nick in var.ROLES["crazed shaman"] else "")) # FIXME
+                shaman.send(messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
             if role != "crazed shaman":
                 totem = TOTEMS[shaman.nick] # FIXME
                 tmsg = messages["shaman_totem"].format(totem)
@@ -587,7 +587,7 @@ def on_assassinate(evt, var, killer, target, prot):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
-    if (SHAMANS.get(victim, (None, None))[1] in var.ROLES["succubus"] and
+    if (users._get(SHAMANS.get(victim, (None, None))[1]) in var.ROLES["succubus"] and # FIXME (psst Vgr: this probably breaks now if the shaman didn't give out totems when succ visits)
        (get_role(victim) == "crazed shaman" or TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
         pm(cli, victim, messages["retract_totem_succubus"].format(SHAMANS[victim]))
         del SHAMANS[victim]

@@ -642,3 +642,5 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
+
+# vim: set sw=4 expandtab:

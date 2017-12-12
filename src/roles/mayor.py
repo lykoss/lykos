@@ -23,7 +23,7 @@ def on_rename_player(evt, cli, var, prefix, nick):
 @event_listener("chk_decision_lynch", priority=3)
 def on_chk_decision_lynch(evt, cli, var, voters):
     votee = evt.data["votee"]
-    if votee in var.ROLES["mayor"] and votee not in REVEALED_MAYORS:
+    if users._get(votee) in var.ROLES["mayor"] and votee not in REVEALED_MAYORS: # FIXME
         cli.msg(botconfig.CHANNEL, messages["mayor_reveal"].format(votee))
         REVEALED_MAYORS.add(votee)
         evt.data["votee"] = None

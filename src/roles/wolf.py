@@ -102,7 +102,7 @@ def wolf_retract(cli, nick, chan, rest):
         del KILLS[nick]
         pm(cli, nick, messages["retracted_kill"])
         relay_wolfchat_command(cli, nick, messages["wolfchat_retracted_kill"].format(nick), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-    if nick in var.ROLES["alpha wolf"] and nick in var.BITE_PREFERENCES:
+    if users._get(nick) in var.ROLES["alpha wolf"] and nick in var.BITE_PREFERENCES: # FIXME
         del var.BITE_PREFERENCES[nick]
         var.ALPHA_WOLVES.remove(nick)
         pm(cli, nick, messages["no_bite"])
@@ -414,7 +414,7 @@ def on_transition_night_end(evt, var):
         elif role == "warlock":
             # warlock specifically only sees cursed if they're not in wolfchat
             for player in pl:
-                if player.nick in var.ROLES["cursed villager"]: # FIXME: Once var.ROLES holds User instances
+                if player in var.ROLES["cursed villager"]:
                     players.append(player.nick + " (cursed)")
                 else:
                     players.append(player.nick)
@@ -428,11 +428,11 @@ def on_transition_night_end(evt, var):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
-    if var.ROLES["succubus"].intersection(KILLS.get(victim, ())):
+    if var.ROLES["succubus"].intersection(users._get(x) for x in KILLS.get(victim, ())): # FIXME: once KILLS holds User instances
         for s in var.ROLES["succubus"]:
-            if s in KILLS[victim]:
+            if s.nick in KILLS[victim]: # FIXME
                 pm(cli, victim, messages["no_kill_succubus"].format(nick))
-                KILLS[victim].remove(s)
+                KILLS[victim].remove(s.nick) # FIXME
         if not KILLS[victim]:
             del KILLS[victim]
 
