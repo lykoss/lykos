@@ -74,12 +74,15 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
     if role != "crazed shaman" and TOTEMS[nick] in var.BENEFICIAL_TOTEMS:
         tags.add("beneficial")
 
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True},
+    shaman = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True},
             action="give a totem{0} to".format(totem))
-    evt.dispatch(cli, var, "totem", nick, victim, frozenset(tags))
+    evt.dispatch(var, "totem", shaman, target, frozenset(tags))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    victim = evt.data["target"].nick
     victimrole = get_role(victim)
 
     pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))

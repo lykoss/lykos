@@ -30,11 +30,15 @@ def hvisit(cli, nick, chan, rest):
     if nick == victim:
         pm(cli, nick, messages["succubus_not_self"])
         return
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": False})
-    evt.dispatch(cli, var, "visit", nick, victim, frozenset({"detrimental", "immediate"}))
+
+    succ = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": False})
+    evt.dispatch(var, "visit", succ, target, frozenset({"detrimental", "immediate"}))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    victim = evt.data["target"].nick
 
     VISITED[nick] = victim
     if victim not in var.ROLES["succubus"]:
@@ -257,13 +261,13 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("succubus",)))
 
 @event_listener("targeted_command")
-def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
-    if "beneficial" not in tags and actor in ENTRANCED and evt.data["target"] in var.ROLES["succubus"]:
+def on_targeted_command(evt, var, name, actor, orig_target, tags):
+    if "beneficial" not in tags and actor.nick in ENTRANCED and evt.data["target"].nick in var.ROLES["succubus"]:
         try:
             what = evt.params.action
         except AttributeError:
-            what = cmd
-        pm(cli, actor, messages["no_acting_on_succubus"].format(what))
+            what = name
+        actor.send(messages["no_acting_on_succubus"].format(what))
         evt.stop_processing = True
         evt.prevent_default = True
 

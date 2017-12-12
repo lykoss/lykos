@@ -26,11 +26,11 @@ def dullahan_kill(var, wrapper, message):
         return
 
     orig = target
-    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": True})
-    evt.dispatch(wrapper.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    evt.dispatch(var, "kill", wrapper.source, target, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    target = users._get(evt.data["target"]) # FIXME: Need to fix once targeted_command uses the new API
+    target = evt.data["target"]
 
     KILLS[wrapper.source] = target
 

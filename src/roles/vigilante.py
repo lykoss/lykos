@@ -20,11 +20,11 @@ def vigilante_kill(var, wrapper, message):
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
 
     orig = target
-    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": True})
-    evt.dispatch(wrapper.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    evt.dispatch(var, "kill", wrapper.source, target, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    target = users._get(evt.data["target"]) # FIXME
+    target = evt.data["target"]
 
     KILLS[wrapper.source] = target
     PASSED.discard(wrapper.source)

@@ -39,11 +39,11 @@ def vg_kill(var, wrapper, message):
         return
 
     orig = target
-    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": False})
-    evt.dispatch(wrapper.source.client, var, "kill", wrapper.source.nick, target.nick, frozenset({"detrimental"}))
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": False})
+    evt.dispatch(var, "kill", wrapper.source, target, frozenset({"detrimental"}))
     if evt.prevent_default:
         return
-    target = users._get(evt.data["target"]) # FIXME
+    target = evt.data["target"]
 
     KILLS[wrapper.source] = target
 

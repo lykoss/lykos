@@ -26,11 +26,14 @@ def investigate(cli, nick, chan, rest):
         pm(cli, nick, messages["no_investigate_self"])
         return
 
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
-    evt.dispatch(cli, var, "see", nick, victim, frozenset({"info", "immediate"}))
+    det = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    evt.dispatch(var, "see", det, target, frozenset({"info", "immediate"}))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    victim = evt.data["target"].nick
     vrole = get_role(victim)
     if vrole == "amnesiac":
         vrole = var.AMNESIAC_ROLES[victim]

@@ -4824,11 +4824,11 @@ def clone(cli, nick, chan, rest):
 var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
 @event_listener("targeted_command", priority=9)
-def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
+def on_targeted_command(evt, var, name, actor, orig_target, tags):
     if evt.data["misdirection"]:
-        evt.data["target"] = choose_target(actor, evt.data["target"])
+        evt.data["target"] = users._get(choose_target(actor.nick, evt.data["target"].nick)) # FIXME
 
-    if evt.data["exchange"] and check_exchange(cli, actor, evt.data["target"]):
+    if evt.data["exchange"] and check_exchange(actor.client, actor.nick, evt.data["target"].nick):
         evt.stop_processing = True
         evt.prevent_default = True
 

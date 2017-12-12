@@ -34,11 +34,15 @@ def guard(cli, nick, chan, rest):
     if role == "guardian angel" and LASTGUARDED.get(nick) == victim:
         pm(cli, nick, messages["guardian_target_another"].format(victim))
         return
+
+    angel = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+
     # self-guard ignores luck/misdirection/exchange totem
-    evt = Event("targeted_command", {"target": victim, "misdirection": victim != nick, "exchange": victim != nick})
-    if not evt.dispatch(cli, var, "guard", nick, victim, frozenset({"beneficial"})):
+    evt = Event("targeted_command", {"target": target, "misdirection": (angel is not target), "exchange": (angel is not target)})
+    if not evt.dispatch(var, "guard", angel, target, frozenset({"beneficial"})):
         return
-    victim = evt.data["target"]
+    victim = evt.data["target"].nick
     GUARDED[nick] = victim
     LASTGUARDED[nick] = victim
     if victim == nick:

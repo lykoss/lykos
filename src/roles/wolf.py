@@ -45,6 +45,8 @@ def wolf_kill(cli, nick, chan, rest):
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
 
+    wolf = users._get(nick) # FIXME
+
     i = 0
     extra = 0
     while i < num_kills + extra:
@@ -67,11 +69,14 @@ def wolf_kill(cli, nick, chan, rest):
             pm(cli, nick, messages["wolf_no_target_wolf"])
             return
         orig.append(victim)
-        evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
-        evt.dispatch(cli, var, "kill", nick, victim, frozenset({"detrimental"}))
+
+        target = users._get(victim) # FIXME
+
+        evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+        evt.dispatch(var, "kill", wolf, target, frozenset({"detrimental"}))
         if evt.prevent_default:
             return
-        victim = evt.data["target"]
+        victim = evt.data["target"].nick
         victims.append(victim)
         i += 1
 
