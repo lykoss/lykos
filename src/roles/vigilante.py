@@ -77,8 +77,8 @@ def on_swap(evt, var, old_user, user):
         PASSED.add(user)
 
 @event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in KILLS:
+def on_acted(evt, var, target, spy):
+    if target in KILLS:
         evt.data["acted"] = True
 
 @event_listener("get_special")
