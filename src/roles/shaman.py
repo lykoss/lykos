@@ -587,7 +587,7 @@ def on_assassinate(evt, var, killer, target, prot):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, cli, var, nick, victim):
-    if (users._get(SHAMANS.get(victim, (None, None))[1]) in var.ROLES["succubus"] and # FIXME (psst Vgr: this probably breaks now if the shaman didn't give out totems when succ visits)
+    if (users._get(SHAMANS.get(victim, (None, None))[1], allow_none=True) in var.ROLES["succubus"] and
        (get_role(victim) == "crazed shaman" or TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
         pm(cli, victim, messages["retract_totem_succubus"].format(SHAMANS[victim]))
         del SHAMANS[victim]
