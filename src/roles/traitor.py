@@ -67,16 +67,16 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
             rolemap["cursed villager"].discard(traitor)
-            mainroles[users._get(traitor)] = "wolf" # FIXME
+            mainroles[traitor] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:
-                var.FINAL_ROLES[traitor] = "wolf"
-                pm(cli, traitor, messages["traitor_turn"])
+                var.FINAL_ROLES[traitor.nick] = "wolf" # FIXME
+                traitor.send(messages["traitor_turn"])
                 debuglog(traitor, "(traitor) TURNING")
     if did_something:
         if var.PHASE in var.GAME_PHASES:
             var.TRAITOR_TURNED = True
-            cli.msg(botconfig.CHANNEL, messages["traitor_turn_channel"])
+            channels.Main.send(messages["traitor_turn_channel"])
         evt.prevent_default = True
         evt.stop_processing = True
 
