@@ -1439,10 +1439,16 @@ class MudkipMode(GameMode):
         # make a copy in case an event mutates it in recursive calls
         tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
         self.recursion_guard = True
+        gameid = var.GAME_ID
+        last = tovote[-1]
         for p in tovote:
-            chk_decision(cli, force=p)
+            deadlist = tovote[:]
+            deadlist.remove(p)
+            chk_decision(cli, force=p, deadlist=deadlist, end_game=p is last)
         self.recursion_guard = False
-        evt.data["transition_night"](cli)
+        # gameid changes if game stops due to us voting someone
+        if var.GAME_ID == gameid:
+            evt.data["transition_night"](cli)
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"

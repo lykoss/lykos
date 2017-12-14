@@ -180,7 +180,7 @@ def chk_nightdone(cli):
     pass
 
 @proxy.stub
-def chk_decision(cli, force=""):
+def chk_decision(cli, force="", end_game=True, deadlist=[]):
     pass
 
 @proxy.stub

@@ -1793,7 +1793,7 @@ def fday(cli, nick, chan, rest):
 
 # Specify force = "nick" to force nick to be lynched
 @proxy.impl
-def chk_decision(cli, force=""):
+def chk_decision(cli, force="", end_game=True, deadlist=[]):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
@@ -1808,7 +1808,7 @@ def chk_decision(cli, force=""):
         avail = len(pl)
         votesneeded = avail // 2 + 1
         not_lynching = set(var.NO_LYNCH)
-        deadlist = []
+        deadlist = deadlist[:] # make a copy as events may mutate it
         votelist = copy.deepcopy(var.VOTES)
 
         event = Event("chk_decision", {
@@ -1862,6 +1862,7 @@ def chk_decision(cli, force=""):
                     not_lynching=not_lynching)
                 if vote_evt.dispatch(cli, var, voters):
                     votee = vote_evt.data["votee"]
+                    deadlist = vote_evt.data["deadlist"]
                     # roles that end the game upon being lynched
                     if votee in get_roles("fool"): # FIXME
                         # ends game immediately, with fool as only winner
@@ -1884,7 +1885,7 @@ def chk_decision(cli, force=""):
                         lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                     cli.msg(botconfig.CHANNEL, lmsg)
                     better_deadlist = [users._get(p) for p in deadlist] # FIXME -- convert chk_decision_lynch to be user-aware
-                    if not del_player(users._get(votee), killer_role="villager", deadlist=better_deadlist): # FIXME
+                    if not del_player(users._get(votee), killer_role="villager", deadlist=better_deadlist, end_game=end_game): # FIXME
                         return
                 do_night_transision = True
                 break
