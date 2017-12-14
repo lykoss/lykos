@@ -6120,7 +6120,7 @@ def pony(var, wrapper, message):
     elif rnd < 0.88:
         pony = messages["pony_choices"][1]
     elif rnd < 0.95:
-        pony = messages["pony_choices"][2].format(nick=nick)
+        pony = messages["pony_choices"][2].format(nick=wrapper.source.nick)
     else:
         wrapper.send(messages["pony_fly"])
         return
