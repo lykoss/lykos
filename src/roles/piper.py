@@ -87,7 +87,7 @@ def charm(var, wrapper, message):
 def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     # lpl doesn't included wounded/sick people or consecrating priests
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
-    pipers = set(users._get(p) for p in rolemap.get("piper", ())) # FIXME
+    pipers = rolemap.get("piper", set())
     lp = len(pipers)
     if lp == 0: # no alive pipers, short-circuit this check
         return

@@ -64,15 +64,14 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         for wc in list(rolemap["wolf cub"]):
             rolemap["wolf"].add(wc)
             rolemap["wolf cub"].remove(wc)
-            wcu = users._get(wc) # FIXME
-            if mainroles[wcu] == "wolf cub":
-                mainroles[wcu] = "wolf"
+            if mainroles[wc] == "wolf cub":
+                mainroles[wc] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:
                 # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
                 # stats as cub still.
-                wcu.send(messages["cub_grow_up"])
-                debuglog(wc, "(wolf cub) GROW UP")
+                wc.send(messages["cub_grow_up"])
+                debuglog("{0} (wolf cub) GROW UP".format(wc))
     if did_something:
         evt.prevent_default = True
         evt.stop_processing = True

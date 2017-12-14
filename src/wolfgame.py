@@ -4678,7 +4678,7 @@ def target(cli, nick, chan, rest):
     var.TARGETED[nick] = victim
     pm(cli, nick, messages["assassin_target_success"].format(victim))
 
-    debuglog("{0} ({1}-{2}) TARGET: {3} ({4})".format(nick, "-".join(get_templates(nick)), get_role(nick), victim, get_role(victim)))
+    debuglog("{0} (assassin) TARGET: {1} ({2})".format(nick, victim, get_role(victim)))
     chk_nightdone(cli)
 
 @cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
