@@ -2070,7 +2070,7 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
                 continue
             for x in ppl:
                 if x is not None:
-                    if x in var.FINAL_ROLES:
+                    if x.nick in var.FINAL_ROLES:
                         plrl[x] = var.FINAL_ROLES[x.nick]
                     else:
                         plrl[x] = role
