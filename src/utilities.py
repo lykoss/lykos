@@ -211,7 +211,7 @@ def irc_lower(nick):
 def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
-is_role = lambda plyr, rol: rol in var.ROLES and plyr in var.ROLES[rol]
+is_role = lambda plyr, rol: rol in var.ROLES and users._get(plyr) in var.ROLES[rol]
 
 def match_hostmask(hostmask, nick, ident, host):
     # support n!u@h, u@h, or just h by itself
@@ -344,7 +344,7 @@ def get_roles(*roles, rolemap=None):
     all_roles = []
     for role in roles:
         all_roles.append(rolemap[role])
-    return list(itertools.chain(*all_roles))
+    return [u.nick for u in itertools.chain(*all_roles)]
 
 def get_reveal_role(nick):
     # FIXME: make the arg a user instead of a nick
@@ -371,18 +371,18 @@ def get_reveal_role(nick):
         return "village member"
 
 def get_templates(nick):
-    # FIXME: make the arg a user instead of a nick
     mainrole = get_role(nick)
     tpl = []
-    for role, nicks in var.ROLES.items():
-        if nick in nicks and role != mainrole:
+    for role, users in var.ROLES.items():
+        if users._get(nick) in users and role != mainrole:
             tpl.append(role)
 
     return tpl
 
+# TODO: move this to functions.py
 def change_role(user, oldrole, newrole, set_final=True):
-    var.ROLES[oldrole].remove(user.nick)
-    var.ROLES[newrole].add(user.nick)
+    var.ROLES[oldrole].remove(user)
+    var.ROLES[newrole].add(user)
     # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the user's actual role
     if var.MAIN_ROLES[user] == oldrole:
         var.MAIN_ROLES[user] = newrole

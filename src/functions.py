@@ -21,13 +21,15 @@ def get_players(roles=None, *, mainroles=None):
         return list(pl)
     return [p for p in var.ALL_PLAYERS if p in pl]
 
-def get_all_players(roles=None):
+def get_all_players(roles=None, *, rolemap=None):
+    if rolemap is None:
+        rolemap = var.ROLES
     if roles is None:
-        roles = var.ROLES
+        roles = set(rolemap.keys())
     pl = set()
     for role in roles:
-        for nick in var.ROLES[role]:
-            pl.add(users._get(nick)) # FIXME
+        for user in rolemap[role]:
+            pl.add(user)
 
     return pl
 
@@ -73,4 +75,6 @@ def get_main_role(user):
     return role
 
 def get_all_roles(user):
-    return {role for role, nicks in var.ROLES.items() if user.nick in nicks}
+    return {role for role, users in var.ROLES.items() if user in users}
+
+# vim: set sw=4 expandtab:

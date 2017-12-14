@@ -146,10 +146,10 @@ def on_transition_day(evt, var):
                         var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
         else:
             for g in var.ROLES["guardian angel"]:
-                if GUARDED.get(g) == v.nick:
+                if GUARDED.get(g.nick) == v.nick:
                     var.ACTIVE_PROTECTIONS[v.nick].append("angel")
             for g in var.ROLES["bodyguard"]:
-                if GUARDED.get(g) == v.nick:
+                if GUARDED.get(g.nick) == v.nick:
                     var.ACTIVE_PROTECTIONS[v.nick].append("bodyguard")
 
 @event_listener("fallen_angel_guard_break")
@@ -277,10 +277,10 @@ def on_assassinate(evt, var, killer, target, prot):
         evt.prevent_default = True
         evt.stop_processing = True
         for bg in var.ROLES["bodyguard"]:
-            if GUARDED.get(bg) == target.nick:
+            if GUARDED.get(bg.nick) == target.nick:
                 channels.Main.send(messages[evt.params.message_prefix + "bodyguard"].format(killer, target, bg))
                 # redirect the assassination to the bodyguard
-                evt.data["target"] = users._get(bg) # FIXME
+                evt.data["target"] = bg
                 break
 
 @event_listener("begin_day")

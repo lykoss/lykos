@@ -179,9 +179,9 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
     if var.ROLES["dullahan"]:
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
-            TARGETS[users._get(dull)] = set() # FIXME
+            TARGETS[dull] = set()
         dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
-        dull_targets.dispatch(cli, var, {users._get(x) for x in var.ROLES["dullahan"]}, max_targets) # FIXME
+        dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
 
         players = [users._get(x) for x in pl] # FIXME
 
@@ -199,19 +199,19 @@ def on_succubus_visit(evt, cli, var, nick, victim):
     if user in TARGETS:
         succ_target = False
         for target in set(TARGETS[user]):
-            if target.nick in var.ROLES["succubus"]:
+            if target in var.ROLES["succubus"]:
                 TARGETS[user].remove(target)
                 succ_target = True
         if succ_target:
             pm(cli, victim, messages["dullahan_no_kill_succubus"])
-    if user in KILLS and KILLS[user].nick in var.ROLES["succubus"]:
+    if user in KILLS and KILLS[user] in var.ROLES["succubus"]:
         pm(cli, victim, messages["no_kill_succubus"].format(KILLS[user]))
         del KILLS[user]
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     # Remind dullahans of their targets
-    if user.nick in var.ROLES["dullahan"]:
+    if user in var.ROLES["dullahan"]:
         targets = list(TARGETS[user])
         for target in list(targets):
             if target.nick in var.DEAD:
@@ -250,8 +250,7 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         num = 0
         for dull in var.ROLES["dullahan"]:
-            user = users._get(dull) # FIXME
-            for target in TARGETS[user]:
+            for target in TARGETS[dull]:
                 if target.nick not in var.DEAD:
                     num += 1
                     break

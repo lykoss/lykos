@@ -79,7 +79,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     ps = get_players()
-    for dttv in get_all_players(("detective",)):
+    for dttv in var.ROLES["detective"]:
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(dttv)

@@ -125,7 +125,7 @@ def on_transition_night_end(evt, var):
 def on_succubus_visit(evt, cli, var, nick, victim):
     for vigilante, target in set(KILLS.items()):
         if vigilante.nick == victim:
-            if target.nick in var.ROLES["succubus"]:
+            if target in var.ROLES["succubus"]:
                 vigilante.send(messages["no_kill_succubus"].format(target))
                 del KILLS[vigilante]
 

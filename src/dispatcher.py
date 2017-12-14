@@ -46,3 +46,5 @@ class MessageDispatcher:
         else:
             kwargs.setdefault("first", first)
             self.target.send(*messages, **kwargs)
+
+# vim: set sw=4 expandtab:

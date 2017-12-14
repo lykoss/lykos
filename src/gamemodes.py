@@ -215,7 +215,7 @@ class VillagergameMode(GameMode):
         evt.data["transition_day"] = lambda cli, gameid=0: self.prolong_night(cli, var, gameid, transition_day)
 
     def prolong_night(self, cli, var, gameid, transition_day):
-        nspecials = len(var.ROLES["seer"] | var.ROLES["harlot"] | var.ROLES["shaman"] | var.ROLES["crazed shaman"])
+        nspecials = len(get_all_players(("seer", "harlot", "shaman", "crazed shaman")))
         rand = random.gauss(5, 1.5)
         if rand <= 0 and nspecials > 0:
             transition_day(cli, gameid=gameid)
@@ -227,7 +227,7 @@ class VillagergameMode(GameMode):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
         self.delaying_night = False
-        pl = list_players()
+        pl = get_players()
         tgt = None
         seer = None
         hlt = None
@@ -238,10 +238,9 @@ class VillagergameMode(GameMode):
         if len(var.ROLES["harlot"]) == 1:
             hlt = list(var.ROLES["harlot"])[0]
             from src.roles import harlot
-            hvst = harlot.VISITED.get(users._get(hlt)) # FIXME
+            hvst = harlot.VISITED.get(hlt)
             if hvst is not None:
                 pl.remove(hlt)
-                hvst = hvst.nick # FIXME
         if len(var.ROLES["shaman"]) == 1:
             shmn = list(var.ROLES["shaman"])[0]
         if random.random() < 0.3:
@@ -256,7 +255,7 @@ class VillagergameMode(GameMode):
         if not tgt:
             tgt = random.choice(pl)
         from src.roles import wolf
-        wolf.KILLS[botconfig.NICK] = [tgt]
+        wolf.KILLS[botconfig.NICK] = [tgt.nick]
 
     def on_retribution_kill(self, evt, var, victim, orig_target):
         # There are no wolves for this totem to kill
@@ -914,7 +913,7 @@ class SleepyMode(GameMode):
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
-            evt.data["targets"][dull] = {users._get(x) for x in var.ROLES["priest"]}
+            evt.data["targets"][dull] = set(var.ROLES["priest"])
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
@@ -1225,7 +1224,7 @@ class MaelstromMode(GameMode):
         from src import hooks, channels
         role = random.choice(self.roles)
         rolemap = copy.deepcopy(var.ROLES)
-        rolemap[role].add(wrapper.source.nick) # FIXME: add user instead of nick (can only be done once var.ROLES itself uses users)
+        rolemap[role].add(wrapper.source)
         mainroles = copy.deepcopy(var.MAIN_ROLES)
         mainroles[wrapper.source] = role
 
@@ -1238,9 +1237,9 @@ class MaelstromMode(GameMode):
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
             channels.Main.mode(*cmodes)
-        var.ROLES[role].add(wrapper.source.nick) # FIXME: add user instead of nick
-        var.ORIGINAL_ROLES[role].add(wrapper.source.nick)
-        var.FINAL_ROLES[wrapper.source.nick] = role
+        var.ROLES[role].add(wrapper.source)
+        var.ORIGINAL_ROLES[role].add(wrapper.source)
+        var.FINAL_ROLES[wrapper.source.nick] = role # FIXME: once FINAL_ROLES stores users
         var.MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
         if wrapper.source.nick in var.USERS:
@@ -1258,19 +1257,19 @@ class MaelstromMode(GameMode):
             relay_wolfchat_command(wrapper.source.client, wrapper.source.nick, messages["wolfchat_new_member"].format(wrapper.source.nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
             # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
             wolves = list_players(var.WOLFCHAT_ROLES)
-            pl = list_players()
+            pl = get_players()
             random.shuffle(pl)
-            pl.remove(wrapper.source.nick)
+            pl.remove(wrapper.source)
             for i, player in enumerate(pl):
-                prole = get_role(player)
+                prole = get_main_role(player)
                 if prole in var.WOLFCHAT_ROLES:
                     cursed = ""
                     if player in var.ROLES["cursed villager"]:
                         cursed = "cursed "
                     pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
                 elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player + " (cursed)"
-            wrapper.pm("Players: " + ", ".join(pl))
+                    pl[i] = player.nick + " (cursed)"
+            wrapper.pm("Players: " + ", ".join(p.nick for p in pl))
 
     def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
@@ -1280,7 +1279,7 @@ class MaelstromMode(GameMode):
         # don't do this n1
         if var.FIRST_NIGHT:
             return
-        villagers = list_players()
+        villagers = get_players()
         lpl = len(villagers)
         addroles = self._role_attribution(cli, var, villagers, False)
 
@@ -1293,7 +1292,7 @@ class MaelstromMode(GameMode):
 
         # Handle roles that need extra help
         for doctor in var.ROLES["doctor"]:
-            var.DOCTORS[doctor] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
+            var.DOCTORS[doctor.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
 
         # Clear totem tracking; this would let someone that gets shaman twice in a row to give
         # out a totem to the same person twice in a row, but oh well
@@ -1312,8 +1311,8 @@ class MaelstromMode(GameMode):
                         continue
                     var.ORIGINAL_ROLES[r].discard(p)
                 var.ORIGINAL_ROLES[role].add(p)
-                var.FINAL_ROLES[p] = role
-                var.MAIN_ROLES[users._get(p)] = role # FIXME
+                var.FINAL_ROLES[p.nick] = role # FIXME
+                var.MAIN_ROLES[p] = role
 
     def _role_attribution(self, cli, var, villagers, do_templates):
         lpl = len(villagers) - 1
@@ -1349,7 +1348,7 @@ class MaelstromMode(GameMode):
             if count > 0:
                 for j in range(count):
                     u = users.FakeUser.from_nick(str(i + j))
-                    rolemap[role].add(u.nick)
+                    rolemap[role].add(u)
                     if role not in var.TEMPLATE_RESTRICTIONS:
                         mainroles[u] = role
                 i += count

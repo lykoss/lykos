@@ -92,7 +92,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         child.send(messages["idol_died"])
         WILD_CHILDREN.add(child.nick)
         change_role(child, get_main_role(child), "wolf")
-        var.ROLES["wild child"].discard(child.nick)
+        var.ROLES["wild child"].discard(child)
 
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:

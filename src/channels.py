@@ -303,3 +303,5 @@ class FakeChannel(Channel):
                     targets.append(target)
 
         self.update_modes(users.Bot.rawnick, "".join(modes), targets)
+
+# vim: set sw=4 expandtab:

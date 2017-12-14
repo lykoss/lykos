@@ -287,7 +287,7 @@ class command:
             return
 
         for role in self.roles:
-            if user.nick in var.ROLES[role]: # FIXME: Need to change this once var.ROLES[role] holds User instances
+            if user in var.ROLES[role]:
                 break
         else:
             if (self.users is not None and user not in self.users) or self.roles:
@@ -434,7 +434,7 @@ class cmd:
             return
 
         for role in self.roles:
-            if nick in var.ROLES[role]:
+            if users._get(nick) in var.ROLES[role]:
                 break
         else:
             if (self.nicks is not None and nick not in self.nicks) or self.roles:
