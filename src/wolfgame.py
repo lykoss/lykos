@@ -72,7 +72,7 @@ var.LAST_GOAT = {}
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.ORIGINAL_ROLES = {}
+var.ORIGINAL_ROLES = {} # type: Dict[str, Set[users.User]]
 var.DCED_LOSERS = set() # type: Set[users.User]
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
@@ -599,6 +599,10 @@ def swap_player(evt, var, old_user, user):
     var.ALL_PLAYERS[var.ALL_PLAYERS.index(old_user)] = user
     var.MAIN_ROLES[user] = var.MAIN_ROLES.pop(old_user)
     for role, players in var.ROLES.items():
+        if old_user in players:
+            players.remove(old_user)
+            players.add(user)
+    for role, players in var.ORIGINAL_ROLES.items():
         if old_user in players:
             players.remove(old_user)
             players.add(user)
