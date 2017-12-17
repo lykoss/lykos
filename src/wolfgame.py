@@ -2023,7 +2023,7 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
                 prev = True
             elif role == "amnesiac":
                 playersformatted.append("\u0002{0}\u0002 (would be {1})".format(p,
-                                        var.AMNESIAC_ROLES[p]))
+                                        var.AMNESIAC_ROLES[p.nick]))
             else:
                 playersformatted.append("\u0002{0}\u0002".format(p))
         if len(rolelist[role]) == 2:
