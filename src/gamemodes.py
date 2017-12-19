@@ -1365,6 +1365,8 @@ class MudkipMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
+
+        # If changing totem chances, pay attention to the transition_night_begin listener as well further down
                                               #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
         self.TOTEM_CHANCES = {       "death": (      5      ,       1       ,      0      ),
                                 "protection": (      0      ,       1       ,      5      ),
@@ -1396,7 +1398,7 @@ class MudkipMode(GameMode):
               "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
               "doomsayer"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "wolf shaman"     : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              "cultist"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
+              "minion"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
               # neutral roles
               "jester"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "succubus"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
@@ -1409,10 +1411,12 @@ class MudkipMode(GameMode):
     def startup(self):
         events.add_listener("chk_decision", self.chk_decision)
         events.add_listener("daylight_warning", self.daylight_warning)
+        events.add_listener("transition_night_begin", self.transition_night_begin)
 
     def teardown(self):
         events.remove_listener("chk_decision", self.chk_decision)
         events.remove_listener("daylight_warning", self.daylight_warning)
+        events.remove_listener("transition_night_begin", self.transition_night_begin)
 
     def chk_decision(self, evt, cli, var, force):
         # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
@@ -1452,5 +1456,12 @@ class MudkipMode(GameMode):
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"
+
+    def transition_night_begin(self, evt, cli, var):
+        if var.FIRST_NIGHT:
+            # ensure shaman gets death totem on the first night
+            var.TOTEM_CHANCES["pestilence"] = (0, 1, 0)
+        else:
+            var.TOTEM_CHANCES["pestilence"] = (5, 1, 0)
 
 # vim: set sw=4 expandtab:
