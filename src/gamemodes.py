@@ -1269,7 +1269,7 @@ class MaelstromMode(GameMode):
                     pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
                 elif player in var.ROLES["cursed villager"]:
                     pl[i] = player.nick + " (cursed)"
-            wrapper.pm("Players: " + ", ".join(p.nick for p in pl))
+            wrapper.pm("Players: " + ", ".join(pl))
 
     def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
@@ -1424,8 +1424,11 @@ class MudkipMode(GameMode):
         # of a stalemate, as they could use the extra help (especially in 5p).
         if self.recursion_guard:
             # in here, this means we're in a child chk_decision event called from this one
-            # the only thing we need to do is ensure we don't turn into nighttime prematurely
+            # we need to ensure we don't turn into nighttime prematurely or try to vote
+            # anyone other than the person we're forcing the lynch on
             evt.data["transition_night"] = lambda cli: None
+            evt.data["votelist"] = {force: set()}
+            evt.data["numvotes"] = {force: 0}
             return
 
         avail = len(evt.params.voters)
@@ -1453,6 +1456,10 @@ class MudkipMode(GameMode):
         # gameid changes if game stops due to us voting someone
         if var.GAME_ID == gameid:
             evt.data["transition_night"](cli)
+
+        # make original chk_decision that called us no-op
+        evt.data["votelist"] = {}
+        evt.data["numvotes"] = {}
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"
