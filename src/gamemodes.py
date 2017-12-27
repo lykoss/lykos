@@ -1427,8 +1427,12 @@ class MudkipMode(GameMode):
             # we need to ensure we don't turn into nighttime prematurely or try to vote
             # anyone other than the person we're forcing the lynch on
             evt.data["transition_night"] = lambda cli: None
-            evt.data["votelist"] = {force: set()}
-            evt.data["numvotes"] = {force: 0}
+            if force:
+                evt.data["votelist"] = {force: set()}
+                evt.data["numvotes"] = {force: 0}
+            else:
+                evt.data["votelist"] = {}
+                evt.data["numvotes"] = {}
             return
 
         avail = len(evt.params.voters)
