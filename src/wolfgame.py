@@ -2754,10 +2754,13 @@ def reaper(cli, gameid):
                         cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(nck)))
                     else:
                         cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
-                    users._get(nck).disconnected = True # FIXME
+                    user = users._get(nck) # FIXME
+                    user.disconnected = True
+                    if var.PHASE in var.GAME_PHASES:
+                        var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
                         add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
-                    del_player(users._get(nck), end_game=False, death_triggers=False) # FIXME
+                    del_player(user, end_game=False, death_triggers=False)
                 win = chk_win(cli)
                 if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
                     chk_decision(cli)
@@ -2777,6 +2780,8 @@ def reaper(cli, gameid):
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
+                    if var.PHASE in var.GAME_PHASES:
+                        var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
                         return
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
@@ -2786,6 +2791,8 @@ def reaper(cli, gameid):
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
+                    if var.PHASE in var.GAME_PHASES:
+                        var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
                         return
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
@@ -2795,6 +2802,8 @@ def reaper(cli, gameid):
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
                         add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
+                    if var.PHASE in var.GAME_PHASES:
+                        var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
                         return
         time.sleep(10)
