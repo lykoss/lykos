@@ -197,7 +197,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     # death_triggers is False for an idle-out, so we use that to determine which it is
     if death_triggers:
         ALL_SUCC_IDLE = False
-    if get_all_players(("succubus",)):
+    if not get_all_players(("succubus",)):
         entranced_alive = ENTRANCED.difference(evt.params.deadlist).intersection(evt.data["pl"])
         if ALL_SUCC_IDLE:
             while ENTRANCED:
