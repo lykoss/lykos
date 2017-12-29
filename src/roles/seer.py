@@ -76,7 +76,6 @@ def see(cli, nick, chan, rest):
         debuglog("{0} ({1}) SEE: {2} ({3}) as {4} ({5} aura)".format(nick, role, victim, vrole, victimrole, aura))
 
     SEEN.add(nick)
-    chk_nightdone(cli)
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):

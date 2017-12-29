@@ -47,7 +47,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, dispatcher, channels, users, hooks, logger, proxy, debuglog, errlog, plog
+from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles
 from src.messages import messages
@@ -225,7 +225,7 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
     trgt = ""
     keeptrg = False
     target = list(target)
-    if target and target != [botconfig.NICK]:
+    if target and target != [users.Bot.nick]:
         while modeaction:
             if len(modeaction) > 1:
                 prefix = modeaction[0]
@@ -1796,7 +1796,6 @@ def fday(cli, nick, chan, rest):
         transition_day(cli)
 
 # Specify force = "nick" to force nick to be lynched
-@proxy.impl
 def chk_decision(cli, force="", end_game=True, deadlist=[]):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
@@ -1829,8 +1828,8 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
 
         gm = var.CURRENT_GAMEMODE.name
         if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
-            if botconfig.NICK in votelist:
-                if len(votelist[botconfig.NICK]) == avail:
+            if users.Bot.nick in votelist:
+                if len(votelist[users.Bot.nick]) == avail:
                     if gm == "default":
                         cli.msg(botconfig.CHANNEL, messages["villagergame_nope"])
                         stop_game("wolves")
@@ -1840,7 +1839,7 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
                         stop_game("everyone")
                         return
                 else:
-                    del votelist[botconfig.NICK]
+                    del votelist[users.Bot.nick]
 
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
@@ -2245,7 +2244,6 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
 
     return True
 
-@proxy.impl
 def chk_win(cli, end_game=True, winner=None):
     """ Returns True if someone won """
     chan = botconfig.CHANNEL
@@ -2759,7 +2757,7 @@ def reaper(cli, gameid):
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
-                        add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
+                        add_warning(cli, nck, var.IDLE_PENALTY, users.Bot.nick, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(user, end_game=False, death_triggers=False)
                 win = chk_win(cli)
                 if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
@@ -2779,7 +2777,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -2790,7 +2788,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -2801,7 +2799,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -3225,7 +3223,7 @@ def leave_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         var.DCED_LOSERS.add(users._get(nick)) # FIXME
         if var.LEAVE_PENALTY:
-            add_warning(cli, nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
+            add_warning(cli, nick, var.LEAVE_PENALTY, users.Bot.nick, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
@@ -3751,7 +3749,6 @@ def on_transition_day_resolve_end(evt, var, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
         evt.data["message"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
 
-@proxy.impl
 def chk_nightdone(cli):
     if var.PHASE != "night":
         return
@@ -4369,7 +4366,6 @@ def observe(cli, nick, chan, rest):
         relay_wolfchat_command(cli, nick, messages["sorcerer_success_wolfchat"].format(nick, victim), ("sorcerer"))
 
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
 def pray(cli, nick, chan, rest):
@@ -4412,7 +4408,6 @@ def pray(cli, nick, chan, rest):
                 pm(cli, nick, messages["vision_only_role_self"].format(role))
                 var.PRAYED[nick][0] = 2
                 debuglog("{0} ({1}) PRAY {2} - ONLY".format(nick, get_role(nick), role))
-                chk_nightdone(cli)
                 return
             # select someone with the role that we haven't looked at before for this particular role
             prevlist = (p for p, rl in var.PRAYED[nick][3].items() if role in rl)
@@ -4422,7 +4417,6 @@ def pray(cli, nick, chan, rest):
                 pm(cli, nick, messages["vision_no_more_role"].format(plural(role)))
                 var.PRAYED[nick][0] = 2
                 debuglog("{0} ({1}) PRAY {2} - NO OTHER".format(nick, get_role(nick), role))
-                chk_nightdone(cli)
                 return
             target = random.choice(list(people))
             var.PRAYED[nick][0] = 1
@@ -4474,8 +4468,6 @@ def pray(cli, nick, chan, rest):
         if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
             pm(cli, target, messages["vision_prophet"].format(nick))
             debuglog("{0} ({1}) PRAY REVEAL".format(nick, get_role(nick)))
-
-    chk_nightdone(cli)
 
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 @cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
@@ -4548,7 +4540,6 @@ def bite_cmd(cli, nick, chan, rest):
     pm(cli, nick, messages["alpha_bite_target"].format(victim))
     relay_wolfchat_command(cli, nick, messages["alpha_bite_wolfchat"].format(nick, victim), ("alpha wolf",), is_wolf_command=True)
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, get_role(nick), actual, get_role(actual)))
-    chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
     roles=("turncoat", "warlock"))
@@ -4585,7 +4576,6 @@ def pass_cmd(cli, nick, chan, rest):
         var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
-    chk_nightdone(cli)
 
 @cmd("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def change_sides(cli, nick, chan, rest, sendmsg=True):
@@ -4602,7 +4592,6 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
     pm(cli, nick, messages["turncoat_success"].format(team))
     var.TURNCOATS[nick] = (team, var.NIGHT_COUNT)
     debuglog("{0} ({1}) SIDE {2}".format(nick, get_role(nick), team))
-    chk_nightdone(cli)
 
 @cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 @cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
@@ -4666,7 +4655,6 @@ def choose(cli, nick, chan, rest, sendmsg=True): # XXX: transition_day also need
         pm(cli, victim2, messages["matchmaker_target_notify_simple"].format(victim))
 
     debuglog("{0} ({1}) MATCH: {2} ({3}) + {4} ({5})".format(nick, get_role(nick), victim, get_role(victim), victim2, get_role(victim2)))
-    chk_nightdone(cli)
 
 @cmd("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
 def target(cli, nick, chan, rest):
@@ -4692,7 +4680,6 @@ def target(cli, nick, chan, rest):
     pm(cli, nick, messages["assassin_target_success"].format(victim))
 
     debuglog("{0} (assassin) TARGET: {1} ({2})".format(nick, victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
 def hex_target(cli, nick, chan, rest):
@@ -4735,7 +4722,6 @@ def hex_target(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["hex_success_wolfchat"].format(nick, victim), ("hag",))
 
     debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @cmd("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def curse(cli, nick, chan, rest):
@@ -4780,7 +4766,6 @@ def curse(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["curse_success_wolfchat"].format(nick, victim), ("warlock",))
 
     debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, get_role(nick), victim, vrole))
-    chk_nightdone(cli)
 
 @cmd("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
 def clone(cli, nick, chan, rest):
@@ -4819,7 +4804,6 @@ def clone(cli, nick, chan, rest):
     pm(cli, nick, messages["clone_target_success"].format(victim))
 
     debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
-    chk_nightdone(cli)
 
 var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
@@ -5074,7 +5058,7 @@ def transition_night(cli):
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
-        start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
+        start(cli, users.Bot.nick, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
         return
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
@@ -5248,7 +5232,6 @@ def transition_night(cli):
     debuglog("BEGIN NIGHT")
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone(cli)
-
 
 def cgamemode(cli, arg):
     chan = botconfig.CHANNEL
@@ -6943,7 +6926,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["incorrect_syntax"])
             return
         who = rst.pop(0).strip()
-        if not who or who == botconfig.NICK:
+        if not who or who == users.Bot.nick:
             cli.msg(chan, messages["invalid_target"])
             return
         if who == "*":
@@ -7037,7 +7020,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
         if not is_fake_nick(who):
             who = ul[ull.index(who.lower())]
-        if who == botconfig.NICK or not who:
+        if who == users.Bot.nick or not who:
             cli.msg(chan, messages["invalid_target"])
             return
         pl = list_players()

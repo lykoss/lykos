@@ -39,7 +39,6 @@ def hunter_kill(var, wrapper, message):
     wrapper.pm(messages["player_kill"].format(orig))
 
     debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
-    chk_nightdone(wrapper.client)
 
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 def hunter_retract(var, wrapper, message):
@@ -63,7 +62,6 @@ def hunter_pass(var, wrapper, message):
     wrapper.pm(messages["hunter_pass"])
 
     debuglog("{0} (hunter) PASS".format(wrapper.source))
-    chk_nightdone(wrapper.client)
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):

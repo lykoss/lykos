@@ -3,7 +3,7 @@ import re
 
 import botconfig
 import src.settings as var
-from src import channels, db
+from src import channels, db, users
 from src.utilities import *
 from src.decorators import cmd, COMMANDS
 from src.events import Event
@@ -146,7 +146,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
     if tacc is None and thm is None:
         return False
 
-    if actor not in var.USERS and actor != botconfig.NICK:
+    if actor not in var.USERS and actor != users.Bot.nick:
         return False
     sacc = None
     shm = None
@@ -203,9 +203,9 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
         mass_mode(cli, cmodes, [])
         for (nick, user) in var.USERS.items():
             if user["account"] in acclist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=botconfig.NICK, reason=reason))
+                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
             elif user["host"] in hmlist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=botconfig.NICK, reason=reason))
+                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
 
     # Update any tracking vars that may have changed due to this
     db.init_vars()

@@ -12,7 +12,7 @@ import botconfig
 import src.settings as var
 from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
-from src.utilities import reply, get_role, get_templates
+from src.utilities import reply
 from src.functions import get_participants, get_all_roles
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error

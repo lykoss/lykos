@@ -206,7 +206,7 @@ class VillagergameMode(GameMode):
         pc = len(var.ALL_PLAYERS)
         if (pc >= 8 and lpl <= 4) or lpl <= 2:
             evt.data["winner"] = ""
-            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, botconfig.NICK)
+            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, users.Bot.nick)
         else:
             evt.data["winner"] = None
 
@@ -255,7 +255,7 @@ class VillagergameMode(GameMode):
         if not tgt:
             tgt = random.choice(pl)
         from src.roles import wolf
-        wolf.KILLS[botconfig.NICK] = [tgt.nick]
+        wolf.KILLS[users.Bot.nick] = [tgt.nick]
 
     def on_retribution_kill(self, evt, var, victim, orig_target):
         # There are no wolves for this totem to kill
@@ -985,7 +985,6 @@ class SleepyMode(GameMode):
             if "correct" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_wake"])
                 self.having_nightmare = None
-                chk_nightdone(cli)
             elif "fake1" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_1"])
                 self.step = 0
@@ -1452,10 +1451,13 @@ class MudkipMode(GameMode):
         self.recursion_guard = True
         gameid = var.GAME_ID
         last = tovote[-1]
+
+        from src.wolfgame import chk_decision
         for p in tovote:
             deadlist = tovote[:]
             deadlist.remove(p)
             chk_decision(cli, force=p, deadlist=deadlist, end_game=p is last)
+
         self.recursion_guard = False
         # gameid changes if game stops due to us voting someone
         if var.GAME_ID == gameid:

@@ -44,7 +44,6 @@ def hvisit(var, wrapper, message):
         revt.dispatch(var, wrapper.source, target)
 
     debuglog("{0} (harlot) VISIT: {1} ({2})".format(wrapper.source, target, vrole))
-    chk_nightdone(wrapper.client)
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def pass_cmd(var, wrapper, message):
@@ -55,7 +54,6 @@ def pass_cmd(var, wrapper, message):
     PASSED.add(wrapper.source)
     wrapper.pm(messages["no_visit"])
     debuglog("{0} (harlot) PASS".format(wrapper.source))
-    chk_nightdone(wrapper.client)
 
 @event_listener("bite")
 def on_bite(evt, var, alpha, target):

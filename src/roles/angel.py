@@ -51,7 +51,6 @@ def guard(cli, nick, chan, rest):
         pm(cli, nick, messages["protecting_target"].format(GUARDED[nick]))
         pm(cli, victim, messages["target_protected"])
     debuglog("{0} ({1}) GUARD: {2} ({3})".format(nick, role, victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("bodyguard", "guardian angel"))
 def pass_cmd(cli, nick, chan, rest):
@@ -62,7 +61,6 @@ def pass_cmd(cli, nick, chan, rest):
     PASSED.add(nick)
     pm(cli, nick, messages["guardian_no_protect"])
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
-    chk_nightdone(cli)
 
 @event_listener("rename_player")
 def on_rename(evt, cli, var, prefix, nick):

@@ -33,8 +33,6 @@ def vigilante_kill(var, wrapper, message):
 
     debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-    chk_nightdone(wrapper.client)
-
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 def vigilante_retract(var, wrapper, message):
     """Removes a vigilante's kill selection."""
@@ -53,7 +51,6 @@ def vigilante_pass(var, wrapper, message):
     wrapper.send(messages["hunter_pass"])
 
     debuglog("{0} (vigilante) PASS".format(wrapper.source))
-    chk_nightdone(wrapper.client)
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
