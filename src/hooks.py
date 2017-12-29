@@ -493,7 +493,7 @@ def on_nick_change(cli, old_rawnick, nick):
 
     """
 
-    user = users._get(old_rawnick) # FIXME
+    user = users._get(old_rawnick, allow_bot=True) # FIXME
     user.nick = nick
 
     Event("nick_change", {}).dispatch(var, user, old_rawnick)
