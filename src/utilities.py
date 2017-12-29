@@ -4,7 +4,7 @@ import re
 
 import botconfig
 import src.settings as var
-from src import proxy, debuglog
+from src import proxy, debuglog, users
 from src.events import Event
 from src.messages import messages
 
@@ -433,8 +433,8 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     pll = [x.lower() for x in pl]
 
     if bot_in_list: # for villagergame
-        pl.append(botconfig.NICK)
-        pll.append(botconfig.NICK.lower())
+        pl.append(users.Bot.nick)
+        pll.append(users.Bot.nick.lower())
 
     tempvictims = complete_match(victim.lower(), pll)
     if len(tempvictims) != 1:

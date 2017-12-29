@@ -206,7 +206,7 @@ class VillagergameMode(GameMode):
         pc = len(var.ALL_PLAYERS)
         if (pc >= 8 and lpl <= 4) or lpl <= 2:
             evt.data["winner"] = ""
-            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, botconfig.NICK)
+            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, users.Bot.nick)
         else:
             evt.data["winner"] = None
 
@@ -255,7 +255,7 @@ class VillagergameMode(GameMode):
         if not tgt:
             tgt = random.choice(pl)
         from src.roles import wolf
-        wolf.KILLS[botconfig.NICK] = [tgt.nick]
+        wolf.KILLS[users.Bot.nick] = [tgt.nick]
 
     def on_retribution_kill(self, evt, var, victim, orig_target):
         # There are no wolves for this totem to kill

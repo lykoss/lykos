@@ -225,7 +225,7 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
     trgt = ""
     keeptrg = False
     target = list(target)
-    if target and target != [botconfig.NICK]:
+    if target and target != [users.Bot.nick]:
         while modeaction:
             if len(modeaction) > 1:
                 prefix = modeaction[0]
@@ -1829,8 +1829,8 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
 
         gm = var.CURRENT_GAMEMODE.name
         if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
-            if botconfig.NICK in votelist:
-                if len(votelist[botconfig.NICK]) == avail:
+            if users.Bot.nick in votelist:
+                if len(votelist[users.Bot.nick]) == avail:
                     if gm == "default":
                         cli.msg(botconfig.CHANNEL, messages["villagergame_nope"])
                         stop_game("wolves")
@@ -1840,7 +1840,7 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
                         stop_game("everyone")
                         return
                 else:
-                    del votelist[botconfig.NICK]
+                    del votelist[users.Bot.nick]
 
         # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
         # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
@@ -2759,7 +2759,7 @@ def reaper(cli, gameid):
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
-                        add_warning(cli, nck, var.IDLE_PENALTY, botconfig.NICK, messages["idle_warning"], expires=var.IDLE_EXPIRY)
+                        add_warning(cli, nck, var.IDLE_PENALTY, users.Bot.nick, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(user, end_game=False, death_triggers=False)
                 win = chk_win(cli)
                 if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
@@ -2779,7 +2779,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -2790,7 +2790,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, botconfig.NICK, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -2801,7 +2801,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, botconfig.NICK, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
+                        add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     if not del_player(dcedplayer, devoice=False, death_triggers=False):
@@ -3225,7 +3225,7 @@ def leave_game(cli, nick, chan, rest):
     if var.PHASE != "join":
         var.DCED_LOSERS.add(users._get(nick)) # FIXME
         if var.LEAVE_PENALTY:
-            add_warning(cli, nick, var.LEAVE_PENALTY, botconfig.NICK, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
+            add_warning(cli, nick, var.LEAVE_PENALTY, users.Bot.nick, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
         if nick in var.PLAYERS:
             var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
 
@@ -5074,7 +5074,7 @@ def transition_night(cli):
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
-        start(cli, botconfig.NICK, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
+        start(cli, users.Bot.nick, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
         return
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
@@ -6943,7 +6943,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["incorrect_syntax"])
             return
         who = rst.pop(0).strip()
-        if not who or who == botconfig.NICK:
+        if not who or who == users.Bot.nick:
             cli.msg(chan, messages["invalid_target"])
             return
         if who == "*":
@@ -7037,7 +7037,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 return
         if not is_fake_nick(who):
             who = ul[ull.index(who.lower())]
-        if who == botconfig.NICK or not who:
+        if who == users.Bot.nick or not who:
             cli.msg(chan, messages["invalid_target"])
             return
         pl = list_players()
