@@ -93,7 +93,6 @@ def wolf_kill(cli, nick, chan, rest):
 
     if in_wolflist(nick, nick):
         relay_wolfchat_command(cli, nick, msg, var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-    chk_nightdone(cli)
 
 @cmd("retract", "r", chan=False, pm=True, playing=True, phases=("night",))
 def wolf_retract(cli, nick, chan, rest):

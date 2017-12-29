@@ -4,18 +4,16 @@ import re
 
 import botconfig
 import src.settings as var
-from src import proxy, debuglog
+from src import debuglog
 from src.events import Event
 from src.messages import messages
 
 __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
-           "relay_wolfchat_command", "chk_nightdone", "chk_decision",
-           "chk_win", "irc_lower", "irc_equals", "match_hostmask",
+           "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "list_players_and_roles", "get_role", "get_roles",
-           "get_reveal_role", "change_role", "role_order", "break_long_message",
-           "complete_match","complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
+           "get_role", "get_roles", "get_reveal_role", "change_role", "role_order", "break_long_message",
+           "complete_match", "complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -175,18 +173,6 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
     if var.SPECTATING_WOLFCHAT:
         player.send_messages()
 
-@proxy.stub
-def chk_nightdone(cli):
-    pass
-
-@proxy.stub
-def chk_decision(cli, force="", end_game=True, deadlist=[]):
-    pass
-
-@proxy.stub
-def chk_win(cli, end_game=True, winner=None):
-    pass
-
 def irc_lower(nick):
     if nick is None:
         return None
@@ -313,11 +299,6 @@ def singular(plural):
 def list_players(roles=None, *, mainroles=None):
     from src.functions import get_players
     return [p.nick for p in get_players(roles, mainroles=mainroles)]
-
-def list_players_and_roles():
-    # TODO DEPRECATED: replace with iterating over var.MAIN_ROLES directly
-    # (and working with user objects instead of nicks)
-    return {u.nick: r for u, r in var.MAIN_ROLES.items()}
 
 def get_role(p):
     # TODO DEPRECATED: replace with get_main_role(user)

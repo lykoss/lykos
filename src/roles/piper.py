@@ -81,8 +81,6 @@ def charm(var, wrapper, message):
         debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(target1)))
         wrapper.send(messages["charm_success"].format(orig1))
 
-    chk_nightdone(wrapper.client)
-
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     # lpl doesn't included wounded/sick people or consecrating priests

@@ -33,7 +33,6 @@ def choose_idol(cli, nick, chan, rest):
     pm(cli, nick, messages["wild_child_success"].format(victim))
 
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(nick, victim, get_role(victim)))
-    chk_nightdone(cli)
 
 @event_listener("see")
 def on_see(evt, cli, var, seer, victim):

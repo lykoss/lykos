@@ -50,7 +50,6 @@ def vg_kill(var, wrapper, message):
     wrapper.pm(messages["player_kill"].format(orig))
 
     debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, target, get_main_role(target)))
-    chk_nightdone(wrapper.source.client)
 
 @command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(var, wrapper, message):

@@ -985,7 +985,6 @@ class SleepyMode(GameMode):
             if "correct" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_wake"])
                 self.having_nightmare = None
-                chk_nightdone(cli)
             elif "fake1" in self.on_path:
                 pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_1"])
                 self.step = 0
@@ -1452,10 +1451,13 @@ class MudkipMode(GameMode):
         self.recursion_guard = True
         gameid = var.GAME_ID
         last = tovote[-1]
+
+        from src.wolfgame import chk_decision
         for p in tovote:
             deadlist = tovote[:]
             deadlist.remove(p)
             chk_decision(cli, force=p, deadlist=deadlist, end_game=p is last)
+
         self.recursion_guard = False
         # gameid changes if game stops due to us voting someone
         if var.GAME_ID == gameid:

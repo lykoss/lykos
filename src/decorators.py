@@ -278,7 +278,8 @@ class command:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            return self.func(var, dispatcher, rest)
+            self.func(var, dispatcher, rest)
+            return
 
         if self.phases and var.PHASE not in self.phases:
             return
@@ -298,12 +299,18 @@ class command:
             return
 
         if self.roles or (self.users is not None and user in self.users):
-            return self.func(var, dispatcher, rest) # don't check restrictions for role commands
+            self.func(var, dispatcher, rest) # don't check restrictions for role commands
+            # Role commands might end the night if it's nighttime
+            if var.PHASE == "night":
+                from src.wolfgame import chk_nightdone
+                chk_nightdone(cli)
+            return
 
         if self.owner_only:
             if user.is_owner():
                 adminlog(chan, rawnick, self.name, rest)
-                return self.func(var, dispatcher, rest)
+                self.func(var, dispatcher, rest)
+                return
 
             dispatcher.pm(messages["not_owner"])
             return
@@ -325,12 +332,13 @@ class command:
         if self.flag:
             if self.flag in flags:
                 adminlog(chan, rawnick, self.name, rest)
-                return self.func(var, dispatcher, rest)
+                self.func(var, dispatcher, rest)
+                return
 
             dispatcher.pm(messages["not_an_admin"])
             return
 
-        return self.func(var, dispatcher, rest)
+        self.func(var, dispatcher, rest)
 
 class cmd:
     def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
@@ -425,7 +433,8 @@ class cmd:
         hostmask = nick + "!" + ident + "@" + host
 
         if "" in self.cmds:
-            return self.func(*largs)
+            self.func(*largs)
+            return
 
         if self.phases and var.PHASE not in self.phases:
             return
@@ -448,7 +457,12 @@ class cmd:
             return
 
         if self.roles or (self.nicks is not None and nick in self.nicks):
-            return self.func(*largs) # don't check restrictions for role commands
+            self.func(*largs) # don't check restrictions for role commands
+            # Role commands might end the night if it's nighttime
+            if var.PHASE == "night":
+                from src.wolfgame import chk_nightdone
+                chk_nightdone(cli)
+            return
 
         forced_owner_only = False
         if hasattr(botconfig, "OWNERS_ONLY_COMMANDS"):
@@ -461,7 +475,8 @@ class cmd:
         if self.owner_only or forced_owner_only:
             if owner:
                 adminlog(chan, rawnick, self.name, rest)
-                return self.func(*largs)
+                self.func(*largs)
+                return
 
             if chan == nick:
                 pm(cli, nick, messages["not_owner"])
@@ -473,7 +488,8 @@ class cmd:
         admin = is_admin(nick, ident, host)
         if self.flag and (admin or owner):
             adminlog(chan, rawnick, self.name, rest)
-            return self.func(*largs)
+            self.func(*largs)
+            return
 
         denied_cmds = var.DENY[hostmask] | var.DENY_ACCS[acc]
         for command in self.cmds:
@@ -487,14 +503,15 @@ class cmd:
         if self.flag:
             if self.flag in flags:
                 adminlog(chan, rawnick, self.name, rest)
-                return self.func(*largs)
+                self.func(*largs)
+                return
             elif chan == nick:
                 pm(cli, nick, messages["not_an_admin"])
             else:
                 cli.notice(nick, messages["not_an_admin"])
             return
 
-        return self.func(*largs)
+        self.func(*largs)
 
 class hook:
     def __init__(self, name, hookid=-1):
