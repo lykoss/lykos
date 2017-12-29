@@ -123,7 +123,7 @@ def on_transition_night_end(evt, var):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):
-    if target in KILLS and KILLS[target] in var.ROLES["succubus"]:
+    if target in KILLS and KILLS[target] in get_all_players(("succubus",)):
         target.send(messages["no_kill_succubus"].format(KILLS[target]))
         del KILLS[target]
 

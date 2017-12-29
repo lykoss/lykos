@@ -40,14 +40,14 @@ def hvisit(var, wrapper, message):
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
 
-    if target.nick not in var.ROLES["succubus"]:
+    if target not in get_all_players(("succubus",)):
         ENTRANCED.add(target)
         wrapper.send(messages["succubus_target_success"].format(target))
     else:
         wrapper.send(messages["harlot_success"].format(target))
 
     if wrapper.source is not target:
-        if target not in var.ROLES["succubus"]:
+        if target not in get_all_players(("succubus",)):
             target.send(messages["notify_succubus_target"].format(wrapper.source))
         else:
             target.send(messages["harlot_success"].format(wrapper.source))
@@ -56,21 +56,21 @@ def hvisit(var, wrapper, message):
         revt.dispatch(var, wrapper.source, target)
 
         # TODO: split these into assassin, hag, and alpha wolf when they are split off
-        if users._get(var.TARGETED.get(target.nick), allow_none=True) in var.ROLES["succubus"]: # FIXME
+        if users._get(var.TARGETED.get(target.nick), allow_none=True) in get_all_players(("succubus",)): # FIXME
             msg = messages["no_target_succubus"].format(var.TARGETED[target.nick])
             del var.TARGETED[target.nick]
-            if target.nick in var.ROLES["village drunk"]:
-                victim = random.choice(list(get_players() - var.ROLES["succubus"] - {target}))
+            if target in get_all_players(("village drunk",)):
+                victim = random.choice(list(get_all_players() - get_all_players(("succubus",)) - {target}))
                 msg += messages["drunk_target"].format(victim)
                 var.TARGETED[target.nick] = victim.nick
             target.send(msg)
 
-        if target.nick in var.HEXED and users._get(var.LASTHEXED[target.nick]) in var.ROLES["succubus"]: # FIXME
+        if target.nick in var.HEXED and users._get(var.LASTHEXED[target.nick]) in get_all_players(("succubus",)): # FIXME
             target.send(messages["retract_hex_succubus"].format(var.LASTHEXED[target.nick]))
             var.TOBESILENCED.remove(wrapper.source.nick)
             var.HEXED.remove(target.nick)
             del var.LASTHEXED[target.nick]
-        if users._get(var.BITE_PREFERENCES.get(target.nick), allow_none=True) in var.ROLES["succubus"]: # FIXME
+        if users._get(var.BITE_PREFERENCES.get(target.nick), allow_none=True) in get_all_players(("succubus",)): # FIXME
             target.send(messages["no_kill_succubus"].format(var.BITE_PREFERENCES[target.nick]))
             del var.BITE_PREFERENCES[target.nick]
 
@@ -91,7 +91,7 @@ def pass_cmd(var, wrapper, message):
 
 @event_listener("harlot_visit")
 def on_harlot_visit(evt, var, harlot, victim):
-    if victim in var.ROLES["succubus"]:
+    if victim in get_all_players(("succubus",)):
         harlot.send(messages["notify_succubus_target"].format(victim))
         victim.send(messages["succubus_harlot_success"].format(harlot))
         ENTRANCED.add(harlot)
@@ -106,13 +106,13 @@ def on_get_random_totem_targets(evt, var, shaman):
 @event_listener("chk_decision", priority=0)
 def on_chk_decision(evt, cli, var, force):
     for votee, voters in evt.data["votelist"].items():
-        if users._get(votee) in var.ROLES["succubus"]: # FIXME
+        if users._get(votee) in get_all_players(("succubus",)): # FIXME
             for vtr in ENTRANCED:
                 if vtr.nick in voters:
                     voters.remove(vtr.nick)
 
 def _kill_entranced_voters(var, votelist, not_lynching, votee):
-    if not var.ROLES["succubus"] & (set(itertools.chain(*votelist.values())) | not_lynching):
+    if not {p.nick for p in get_all_players(("succubus",))} & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
         # none of the succubi voted (or there aren't any succubi), so short-circuit
         return
     # kill off everyone entranced that did not follow one of the succubi's votes or abstain
@@ -122,7 +122,7 @@ def _kill_entranced_voters(var, votelist, not_lynching, votee):
             ENTRANCED_DYING.add(x)
 
     for other_votee, other_voters in votelist.items():
-        if {p.nick for p in var.ROLES["succubus"]} & set(other_voters): # FIXME
+        if {p.nick for p in get_all_players(("succubus",))} & set(other_voters): # FIXME
             if votee == other_votee:
                 ENTRANCED_DYING.clear()
                 return
@@ -131,7 +131,7 @@ def _kill_entranced_voters(var, votelist, not_lynching, votee):
                 if x.nick in other_voters:
                     ENTRANCED_DYING.remove(x)
 
-    if {p.nick for p in var.ROLES["succubus"]} & not_lynching: # FIXME
+    if {p.nick for p in get_all_players(("succubus",))} & not_lynching: # FIXME
         if votee is None:
             ENTRANCED_DYING.clear()
             return
@@ -174,8 +174,8 @@ def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
 
 @event_listener("can_exchange")
-def on_can_exchange(evt, var, user, target):
-    if user in var.ROLES["succubus"] or target in var.ROLES["succubus"]:
+def on_can_exchange(evt, var, actor, target):
+    if actor in get_all_players(("succubus",)) or target in get_all_players(("succubus",)):
         evt.prevent_default = True
         evt.stop_processing = True
 
@@ -199,7 +199,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     # death_triggers is False for an idle-out, so we use that to determine which it is
     if death_triggers:
         ALL_SUCC_IDLE = False
-    if var.ROLES["succubus"]:
+    if get_all_players(("succubus",)):
         entranced_alive = ENTRANCED.difference(evt.params.deadlist).intersection(evt.data["pl"])
         if ALL_SUCC_IDLE:
             while ENTRANCED:
@@ -238,7 +238,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
-    if victim in var.ROLES["succubus"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
         # TODO: check if this is necessary for succubus, it's to prevent a message playing if alpha bites
         # a harlot that is visiting a wolf, since the bite succeeds in that case.
         if victim not in evt.data["bitten"]:
@@ -273,7 +273,7 @@ def on_chk_nightdone(evt, var):
 
 @event_listener("targeted_command")
 def on_targeted_command(evt, var, name, actor, orig_target, tags):
-    if "beneficial" not in tags and actor in ENTRANCED and evt.data["target"].nick in var.ROLES["succubus"]:
+    if "beneficial" not in tags and actor in ENTRANCED and evt.data["target"] in get_all_players(("succubus",)):
         try:
             what = evt.params.action
         except AttributeError:

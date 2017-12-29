@@ -433,8 +433,8 @@ def on_transition_night_end(evt, var):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):
-    if var.ROLES["succubus"].intersection(users._get(x) for x in KILLS.get(target.nick, ())): # FIXME: once KILLS holds User instances
-        for s in var.ROLES["succubus"]:
+    if get_all_players(("succubus",)).intersection(users._get(x) for x in KILLS.get(target.nick, ())): # FIXME: once KILLS holds User instances
+        for s in get_all_players(("succubus",)):
             if s.nick in KILLS[target.nick]:
                 target.send(messages["no_kill_succubus"].format(succubus))
                 KILLS[target.nick].remove(s.nick)
