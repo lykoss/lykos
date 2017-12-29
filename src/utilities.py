@@ -4,17 +4,17 @@ import re
 
 import botconfig
 import src.settings as var
-from src import proxy, debuglog, users
+from src import proxy, debuglog
 from src.events import Event
 from src.messages import messages
 
 __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
            "relay_wolfchat_command", "chk_nightdone", "chk_decision",
-           "chk_win", "irc_lower", "irc_equals", "is_role", "match_hostmask",
+           "chk_win", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "list_players_and_roles", "get_role", "get_roles",
-           "get_reveal_role", "get_templates", "change_role", "role_order", "break_long_message",
+           "get_reveal_role", "change_role", "role_order", "break_long_message",
            "complete_match","complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
@@ -211,8 +211,6 @@ def irc_lower(nick):
 def irc_equals(nick1, nick2):
     return irc_lower(nick1) == irc_lower(nick2)
 
-is_role = lambda plyr, rol: rol in var.ROLES and users._get(plyr) in var.ROLES[rol]
-
 def match_hostmask(hostmask, nick, ident, host):
     # support n!u@h, u@h, or just h by itself
     matches = re.match('(?:(?:(.*?)!)?(.*?)@)?(.*)', hostmask)
@@ -322,21 +320,10 @@ def list_players_and_roles():
     return {u.nick: r for u, r in var.MAIN_ROLES.items()}
 
 def get_role(p):
-    # FIXME: make the arg a user instead of a nick
+    # TODO DEPRECATED: replace with get_main_role(user)
     from src import users
-    from src.functions import get_participants
-    user = users._get(p)
-    role = var.MAIN_ROLES.get(user, None)
-    if role is not None:
-        return role
-    # not found in player list, see if they're a special participant
-    if user in get_participants():
-        evt = Event("get_participant_role", {"role": None})
-        evt.dispatch(var, user)
-        role = evt.data["role"]
-    if role is None:
-        raise ValueError("User {0} isn't playing and has no defined participant role".format(user))
-    return role
+    from src.functions import get_main_role
+    return get_main_role(users._get(p))
 
 def get_roles(*roles, rolemap=None):
     if rolemap is None:
@@ -369,15 +356,6 @@ def get_reveal_role(nick):
         return "neutral player"
     else:
         return "village member"
-
-def get_templates(nick):
-    mainrole = get_role(nick)
-    tpl = []
-    for role, users in var.ROLES.items():
-        if users._get(nick) in users and role != mainrole:
-            tpl.append(role)
-
-    return tpl
 
 # TODO: move this to functions.py
 def change_role(user, oldrole, newrole, set_final=True):
@@ -425,6 +403,7 @@ def complete_one_match(string, matches):
 
 #wrapper around complete_match() used for roles
 def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False):
+    from src import users
     chan = botconfig.CHANNEL if in_chan else nick
     if not victim:
         reply(cli, nick, chan, messages["not_enough_parameters"], private=True)

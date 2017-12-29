@@ -154,11 +154,6 @@ def on_transition_day_begin(evt, var):
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
 
-@event_listener("night_acted")
-def on_night_acted(evt, var, target, actor):
-    if target in TOBECHARMED:
-        evt.data["acted"] = True
-
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(TOBECHARMED.keys())
