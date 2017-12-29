@@ -75,7 +75,6 @@ def hvisit(var, wrapper, message):
             del var.BITE_PREFERENCES[target.nick]
 
     debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
-    chk_nightdone(wrapper.client)
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
 def pass_cmd(var, wrapper, message):
@@ -87,7 +86,6 @@ def pass_cmd(var, wrapper, message):
     PASSED.add(wrapper.source)
     wrapper.send(messages["succubus_pass"])
     debuglog("{0} (succubus) PASS".format(wrapper.source))
-    chk_nightdone(wrapper.client)
 
 @event_listener("harlot_visit")
 def on_harlot_visit(evt, var, harlot, victim):
