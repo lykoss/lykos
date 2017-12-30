@@ -5030,8 +5030,8 @@ def transition_night(cli):
             event = Event("amnesiac_turn", {})
             if event.dispatch(var, amn, var.AMNESIAC_ROLES[amn]):
                 amnrole = var.AMNESIAC_ROLES[amn]
-                amnuser = users._get(amn)
-                change_role(amnuser, "amnesiac", amnrole) # FIXME
+                amnuser = users._get(amn) # FIXME
+                change_role(amnuser, "amnesiac", amnrole)
                 var.AMNESIACS.add(amn)
                 # TODO: turn into event when amnesiac is split
                 from src.roles import succubus

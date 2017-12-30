@@ -42,7 +42,7 @@ def charm(var, wrapper, message):
     orig2 = target2
 
     evt1 = Event("targeted_command", {"target": target1.nick, "misdirection": True, "exchange": True})
-    evt1.dispatch(var, "charm", wrapper.source.nick, target1.nick, frozenset({"detrimental"}))
+    evt1.dispatch(var, "charm", wrapper.source, target1, frozenset({"detrimental"}))
     if evt1.prevent_default:
         return
     target1 = users._get(evt1.data["target"]) # FIXME: need to make targeted_command use users
