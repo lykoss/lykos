@@ -2542,28 +2542,28 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                     if var.GAMEPHASE == "day" and timeleft_internal("day") > var.DAY_TIME_LIMIT and var.DAY_TIME_LIMIT > 0:
                         if "day" in var.TIMERS:
                             var.TIMERS["day"][0].cancel()
-                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [channels.Main.client, var.DAY_ID, True])
                         var.TIMERS["day"] = (t, time.time(), var.DAY_TIME_LIMIT)
                         t.daemon = True
                         t.start()
                         # Don't duplicate warnings, i.e. only set the warn timer if a warning was not already given
                         if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
                             var.TIMERS["day_warn"][0].cancel()
-                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [cli, var.DAY_ID, False])
+                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [channels.Main.client, var.DAY_ID, False])
                             var.TIMERS["day_warn"] = (t, time.time(), var.DAY_TIME_WARN)
                             t.daemon = True
                             t.start()
                     elif var.GAMEPHASE == "night" and timeleft_internal("night") > var.NIGHT_TIME_LIMIT and var.NIGHT_TIME_LIMIT > 0:
                         if "night" in var.TIMERS:
                             var.TIMERS["night"][0].cancel()
-                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [cli, var.NIGHT_ID, True])
+                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [channels.Main.client, var.NIGHT_ID, True])
                         var.TIMERS["night"] = (t, time.time(), var.NIGHT_TIME_LIMIT)
                         t.daemon = True
                         t.start()
                         # Don't duplicate warnings, e.g. only set the warn timer if a warning was not already given
                         if "night_warn" in var.TIMERS and var.TIMERS["night_warn"][0].isAlive():
                             var.TIMERS["night_warn"][0].cancel()
-                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [cli, var.NIGHT_ID, False])
+                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [channels.Main.client, var.NIGHT_ID, False])
                             var.TIMERS["night_warn"] = (t, time.time(), var.NIGHT_TIME_WARN)
                             t.daemon = True
                             t.start()
