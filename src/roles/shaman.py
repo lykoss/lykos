@@ -7,7 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
-from src.functions import get_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
