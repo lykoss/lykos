@@ -1,4 +1,5 @@
 import fnmatch
+import time
 import re
 
 from src.context import IRCContext, Features, lower, equals
@@ -218,6 +219,7 @@ class User(IRCContext):
         self.realname = realname
         self.account = account
         self.channels = {}
+        self.timestamp = time.time()
 
         if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
             self = Bot
@@ -225,6 +227,7 @@ class User(IRCContext):
             self.host = host
             self.realname = realname
             self.account = account
+            self.timestamp = time.time()
 
         elif ident is not None and host is not None:
             users = set(_users)
