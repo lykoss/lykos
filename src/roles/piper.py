@@ -41,18 +41,18 @@ def charm(var, wrapper, message):
     orig1 = target1
     orig2 = target2
 
-    evt1 = Event("targeted_command", {"target": target1.nick, "misdirection": True, "exchange": True})
+    evt1 = Event("targeted_command", {"target": target1, "misdirection": True, "exchange": True})
     evt1.dispatch(var, "charm", wrapper.source, target1, frozenset({"detrimental"}))
     if evt1.prevent_default:
         return
-    target1 = users._get(evt1.data["target"]) # FIXME: need to make targeted_command use users
+    target1 = evt1.data["target"]
 
     if target2 is not None:
-        evt2 = Event("targeted_command", {"target": target2.nick, "misdirection": True, "exchange": True})
-        evt2.dispatch(wrapper.client, var, "charm", wrapper.source.nick, target2.nick, frozenset({"detrimental"}))
+        evt2 = Event("targeted_command", {"target": target2, "misdirection": True, "exchange": True})
+        evt2.dispatch(var, "charm", wrapper.source, target2, frozenset({"detrimental"}))
         if evt2.prevent_default:
             return
-        target2 = users._get(evt2.data["target"]) # FIXME
+        target2 = evt2.data["target"]
 
     # Do these checks based on original targets, so piper doesn't know to change due to misdirection/luck totem
     if orig1 is orig2:
