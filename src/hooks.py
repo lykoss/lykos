@@ -175,8 +175,13 @@ def host_hidden(cli, server, nick, host, message):
 
     """
 
-    assert nick == users.Bot.nick
-    users.Bot = users.Bot.with_host(host)
+    # Either we get our own nick, or the nick is a UID
+    # If it's our nick, update ourself. Otherwise, ignore
+    # UnrealIRCd does some weird stuff where it sends our host twice,
+    # Once with our nick and once with our UID. We ignore the last one
+
+    if nick == users.Bot.nick:
+        users.Bot = users.Bot.with_host(host)
 
 ### Server PING handling
 
