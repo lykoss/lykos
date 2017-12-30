@@ -30,7 +30,7 @@ def investigate(cli, nick, chan, rest):
     target = users._get(victim) # FIXME
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, "see", det, target, frozenset({"info", "immediate"}))
+    evt.dispatch(var, "identify", det, target, frozenset({"info", "immediate"}))
     if evt.prevent_default:
         return
     victim = evt.data["target"].nick
