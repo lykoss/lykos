@@ -5030,12 +5030,13 @@ def transition_night(cli):
             event = Event("amnesiac_turn", {})
             if event.dispatch(var, amn, var.AMNESIAC_ROLES[amn]):
                 amnrole = var.AMNESIAC_ROLES[amn]
-                change_role(users._get(amn), "amnesiac", amnrole) # FIXME
+                amnuser = users._get(amn)
+                change_role(amnuser, "amnesiac", amnrole) # FIXME
                 var.AMNESIACS.add(amn)
                 # TODO: turn into event when amnesiac is split
                 from src.roles import succubus
-                if amnrole == "succubus" and amn in succubus.ENTRANCED:
-                    succubus.ENTRANCED.remove(amn)
+                if amnrole == "succubus" and amnuser in succubus.ENTRANCED:
+                    succubus.ENTRANCED.remove(amnuser)
                     pm(cli, amn, messages["no_longer_entranced"])
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue
