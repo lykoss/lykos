@@ -7076,6 +7076,19 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
                 var.ORIGINAL_ROLES[rol].add(users._get(who)) # FIXME
             evt = Event("frole_role", {})
             evt.dispatch(cli, var, who, rol, oldrole, rolargs)
+            if rol == "amnesiac":
+                if len(rolargs) == 2 and rolargs[1] in var.ROLES:
+                    var.AMNESIAC_ROLES[who] = rolargs[1]
+                else:
+                    # Pick amnesiac role like normal
+                    amnroles = var.ROLE_GUIDE.keys() - {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
+                    if var.AMNESIAC_NIGHTS > 1 and "matchmaker" in amnroles:
+                        amnroles.remove("matchmaker")
+                    for nope in var.AMNESIAC_BLACKLIST:
+                        amnroles.discard(nope)
+                    for nope in var.TEMPLATE_RESTRICTIONS.keys():
+                        amnroles.discard(nope)
+                    var.AMNESIAC_ROLES[who] = random.choice(list(amnroles))
             if not is_fake_nick(who):
                 cli.mode(chan, "+v", who)
         else:
