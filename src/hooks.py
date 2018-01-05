@@ -316,11 +316,11 @@ def mode_change(cli, rawnick, chan, mode, *targets):
 
     """
 
-    actor = users._add(cli, nick=rawnick) # FIXME
     if chan == users.Bot.nick: # we only see user modes set to ourselves
         users.Bot.modes.update(mode)
         return
 
+    actor = users._add(cli, nick=rawnick) # FIXME
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
