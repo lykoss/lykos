@@ -243,31 +243,34 @@ def connect_callback(cli):
     supported_caps = set()
 
     @hook("cap")
-    def on_cap(cli, svr, mynick, cmd, caps, star=None):
+    def on_cap(cli, svr, mynick, cmd, *caps):
+        # caps is a star because we might receive multiline in LS
         if cmd == "LS":
-            if caps == "*":
-                # Multi-line LS
-                supported_caps.update(star.split())
-            else:
-                supported_caps.update(caps.split())
+            for item in caps[-1].split(): # First item may or may not be *, for multiline
+                supported_caps.add(item.split("=")[0]) # If there's any value, we just don't care
 
-                if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
-                    alog("Server does not support SASL authentication")
-                    cli.quit()
+            if caps[0] == "*": # Multiline, don't continue yet
+                return
 
-                common_caps = request_caps & supported_caps
+            if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
+                alog("Server does not support SASL authentication")
+                cli.quit()
+                raise ValueError("Server does not support SASL authentication")
 
-                if common_caps:
-                    cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
+            common_caps = request_caps & supported_caps
+
+            if common_caps:
+                cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
+
         elif cmd == "ACK":
-            if "sasl" in caps:
+            if "sasl" in caps[0]:
                 cli.send("AUTHENTICATE PLAIN")
             else:
                 cli.send("CAP END")
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
-            alog("Server refused capabilities: {0}".format(" ".join(caps)))
+            alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")
