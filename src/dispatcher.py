@@ -1,7 +1,7 @@
 from src import channels, users
 from src import settings as var
 
-from src.utilities import list_players
+from src.functions import get_players
 
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
@@ -39,8 +39,10 @@ class MessageDispatcher:
         if self.private:
             self.source.send(*messages, **kwargs)
         elif (self.target is channels.Main and
-                ((self.source.nick not in list_players() and var.PHASE in var.GAME_PHASES) or
-                (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))): # FIXME
+                ((self.source not in get_players() and var.PHASE in var.GAME_PHASES) or
+                (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
+            # TODO: ideally the above check would be handled in game logic somehow
+            # (perhaps via an event) rather than adding game logic to the transport layer
             kwargs.setdefault("notice", True)
             self.source.send(*messages, **kwargs)
         else:

@@ -2,6 +2,7 @@ import random
 import math
 import threading
 import copy
+import functools
 from datetime import datetime
 from collections import defaultdict, OrderedDict
 
@@ -10,7 +11,7 @@ import src.settings as var
 from src.utilities import *
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role
-from src.decorators import handle_error
+from src.decorators import handle_error, command
 from src import events, channels, users
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -877,17 +878,16 @@ class SleepyMode(GameMode):
         self.having_nightmare = None
 
     def startup(self):
-        from src import decorators
         events.add_listener("dullahan_targets", self.dullahan_targets)
         events.add_listener("transition_night_begin", self.setup_nightmares)
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
         events.add_listener("rename_player", self.rename_player)
-        self.north_cmd = decorators.cmd("north", "n", chan=False, pm=True, playing=True, phases=("night",))(self.north)
-        self.east_cmd = decorators.cmd("east", "e", chan=False, pm=True, playing=True, phases=("night",))(self.east)
-        self.south_cmd = decorators.cmd("south", "s", chan=False, pm=True, playing=True, phases=("night",))(self.south)
-        self.west_cmd = decorators.cmd("west", "w", chan=False, pm=True, playing=True, phases=("night",))(self.west)
+        self.north_cmd = command("north", "n", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "n"))
+        self.east_cmd = command("east", "e", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "e"))
+        self.south_cmd = command("south", "s", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "s"))
+        self.west_cmd = command("west", "w", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "w"))
 
     def teardown(self):
         from src import decorators
@@ -919,7 +919,7 @@ class SleepyMode(GameMode):
         if random.random() < 1/5:
             self.having_nightmare = True
             with var.WARNING_LOCK:
-                t = threading.Timer(60, self.do_nightmare, (cli, var, random.choice(list_players()), var.NIGHT_COUNT))
+                t = threading.Timer(60, self.do_nightmare, (var, random.choice(get_players()), var.NIGHT_COUNT))
                 t.daemon = True
                 t.start()
         else:
@@ -930,14 +930,14 @@ class SleepyMode(GameMode):
             self.having_nightmare = nick
 
     @handle_error
-    def do_nightmare(self, cli, var, target, night):
+    def do_nightmare(self, var, target, night):
         if var.PHASE != "night" or var.NIGHT_COUNT != night:
             return
-        if target not in list_players():
+        if target not in get_players():
             return
         self.having_nightmare = target
-        pm(cli, self.having_nightmare, messages["sleepy_nightmare_begin"])
-        pm(cli, self.having_nightmare, messages["sleepy_nightmare_navigate"])
+        target.send(messages["sleepy_nightmare_begin"])
+        target.send(messages["sleepy_nightmare_navigate"])
         self.correct = [None, None, None]
         self.fake1 = [None, None, None]
         self.fake2 = [None, None, None]
@@ -963,9 +963,9 @@ class SleepyMode(GameMode):
         self.prev_direction = "n"
         self.start_direction = "n"
         self.on_path = set()
-        self.nightmare_step(cli)
+        self.nightmare_step()
 
-    def nightmare_step(self, cli):
+    def nightmare_step(self):
         if self.prev_direction == "n":
             directions = "north, east, and west"
         elif self.prev_direction == "e":
@@ -976,155 +976,60 @@ class SleepyMode(GameMode):
             directions = "north, south, and west"
 
         if self.step == 0:
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_0"].format(directions))
+            self.having_nightmare.send(messages["sleepy_nightmare_0"].format(directions))
         elif self.step == 1:
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_1"].format(directions))
+            self.having_nightmare.send(messages["sleepy_nightmare_1"].format(directions))
         elif self.step == 2:
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_2"].format(directions))
+            self.having_nightmare.send(messages["sleepy_nightmare_2"].format(directions))
         elif self.step == 3:
             if "correct" in self.on_path:
-                pm(cli, self.having_nightmare, messages["sleepy_nightmare_wake"])
+                self.having_nightmare.send(messages["sleepy_nightmare_wake"])
                 self.having_nightmare = None
             elif "fake1" in self.on_path:
-                pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_1"])
+                self.having_nightmare.send(messages["sleepy_nightmare_fake_1"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
-                self.nightmare_step(cli)
+                self.nightmare_step()
             elif "fake2" in self.on_path:
-                pm(cli, self.having_nightmare, messages["sleepy_nightmare_fake_2"])
+                self.having_nightmare.send(messages["sleepy_nightmare_fake_2"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
-                self.nightmare_step(cli)
+                self.nightmare_step()
 
-    def north(self, cli, nick, chan, rest):
-        if nick != self.having_nightmare:
+    def move(self, direction, var, wrapper, message):
+        if self.having_nightmare is not wrapper.source:
             return
-        if self.prev_direction == "s":
-            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
+        opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
+        if self.prev_direction == opposite[direction]:
+            wrapper.pm(messages["sleepy_nightmare_invalid_direction"])
             return
         advance = False
-        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "n":
+        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == direction:
             self.on_path.add("correct")
             advance = True
         else:
             self.on_path.discard("correct")
-        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "n":
+        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == direction:
             self.on_path.add("fake1")
             advance = True
         else:
             self.on_path.discard("fake1")
-        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "n":
+        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == direction:
             self.on_path.add("fake2")
             advance = True
         else:
             self.on_path.discard("fake2")
         if advance:
             self.step += 1
-            self.prev_direction = "n"
+            self.prev_direction = direction
         else:
             self.step = 0
             self.on_path = set()
             self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
-        self.nightmare_step(cli)
-
-    def east(self, cli, nick, chan, rest):
-        if nick != self.having_nightmare:
-            return
-        if self.prev_direction == "w":
-            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
-            return
-        advance = False
-        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "e":
-            self.on_path.add("correct")
-            advance = True
-        else:
-            self.on_path.discard("correct")
-        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "e":
-            self.on_path.add("fake1")
-            advance = True
-        else:
-            self.on_path.discard("fake1")
-        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "e":
-            self.on_path.add("fake2")
-            advance = True
-        else:
-            self.on_path.discard("fake2")
-        if advance:
-            self.step += 1
-            self.prev_direction = "e"
-        else:
-            self.step = 0
-            self.on_path = set()
-            self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
-        self.nightmare_step(cli)
-
-    def south(self, cli, nick, chan, rest):
-        if nick != self.having_nightmare:
-            return
-        if self.prev_direction == "n":
-            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
-            return
-        advance = False
-        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "s":
-            self.on_path.add("correct")
-            advance = True
-        else:
-            self.on_path.discard("correct")
-        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "s":
-            self.on_path.add("fake1")
-            advance = True
-        else:
-            self.on_path.discard("fake1")
-        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "s":
-            self.on_path.add("fake2")
-            advance = True
-        else:
-            self.on_path.discard("fake2")
-        if advance:
-            self.step += 1
-            self.prev_direction = "s"
-        else:
-            self.step = 0
-            self.on_path = set()
-            self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
-        self.nightmare_step(cli)
-
-    def west(self, cli, nick, chan, rest):
-        if nick != self.having_nightmare:
-            return
-        if self.prev_direction == "e":
-            pm(cli, nick, messages["sleepy_nightmare_invalid_direction"])
-            return
-        advance = False
-        if ("correct" in self.on_path or self.step == 0) and self.correct[self.step] == "w":
-            self.on_path.add("correct")
-            advance = True
-        else:
-            self.on_path.discard("correct")
-        if ("fake1" in self.on_path or self.step == 0) and self.fake1[self.step] == "w":
-            self.on_path.add("fake1")
-            advance = True
-        else:
-            self.on_path.discard("fake1")
-        if ("fake2" in self.on_path or self.step == 0) and self.fake2[self.step] == "w":
-            self.on_path.add("fake2")
-            advance = True
-        else:
-            self.on_path.discard("fake2")
-        if advance:
-            self.step += 1
-            self.prev_direction = "w"
-        else:
-            self.step = 0
-            self.on_path = set()
-            self.prev_direction = self.start_direction
-            pm(cli, self.having_nightmare, messages["sleepy_nightmare_restart"])
-        self.nightmare_step(cli)
+            wrapper.pm(messages["sleepy_nightmare_restart"])
+        self.nightmare_step()
 
     def prolong_night(self, evt, var):
         if self.having_nightmare is not None:
@@ -1132,11 +1037,9 @@ class SleepyMode(GameMode):
 
     def nightmare_kill(self, evt, var):
         # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare is not True:
-            user = users._get(self.having_nightmare) # FIXME
-            if user in get_players():
-                var.DYING.add(user)
-                user.send(messages["sleepy_nightmare_death"])
+        if self.having_nightmare is not None and self.having_nightmare in get_players():
+            var.DYING.add(self.having_nightmare)
+            self.having_nightmare.send(messages["sleepy_nightmare_death"])
 
     def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:

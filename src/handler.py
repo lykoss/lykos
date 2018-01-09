@@ -15,10 +15,7 @@ from src.messages import messages
 from src.utilities import reply
 from src.functions import get_participants, get_all_roles
 from src.dispatcher import MessageDispatcher
-from src.decorators import handle_error
-
-cmd = decorators.cmd
-hook = decorators.hook
+from src.decorators import handle_error, command, hook
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
@@ -132,14 +129,14 @@ def unhandled(cli, prefix, cmd, *args):
 def ping_server(cli):
     cli.send("PING :{0}".format(time.time()))
 
-@cmd("latency", pm=True)
-def latency(cli, nick, chan, rest):
-    ping_server(cli)
+@command("latency", pm=True)
+def latency(var, wrapper, message):
+    ping_server(wrapper.client)
 
     @hook("pong", hookid=300)
     def latency_pong(cli, server, target, ts):
         lat = round(time.time() - float(ts), 3)
-        reply(cli, nick, chan, messages["latency"].format(lat, "" if lat == 1 else "s"))
+        wrapper.reply(messages["latency"].format(lat, "" if lat == 1 else "s"))
         hook.unhook(300)
 
 def connect_callback(cli):
