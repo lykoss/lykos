@@ -12,7 +12,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "get_role", "get_roles", "get_reveal_role", "change_role", "role_order", "break_long_message",
+           "get_role", "get_roles", "change_role", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
@@ -313,30 +313,6 @@ def get_roles(*roles, rolemap=None):
     for role in roles:
         all_roles.append(rolemap[role])
     return [u.nick for u in itertools.chain(*all_roles)]
-
-def get_reveal_role(nick):
-    # FIXME: make the arg a user instead of a nick
-    from src import users
-    if var.HIDDEN_AMNESIAC and nick in var.ORIGINAL_ROLES["amnesiac"]:
-        role = "amnesiac"
-    elif var.HIDDEN_CLONE and nick in var.ORIGINAL_ROLES["clone"]:
-        role = "clone"
-    else:
-        role = get_role(nick)
-
-    evt = Event("get_reveal_role", {"role": role})
-    evt.dispatch(var, users._get(nick))
-    role = evt.data["role"]
-
-    if var.ROLE_REVEAL != "team":
-        return role
-
-    if role in var.WOLFTEAM_ROLES:
-        return "wolfteam player"
-    elif role in var.TRUE_NEUTRAL_ROLES:
-        return "neutral player"
-    else:
-        return "village member"
 
 # TODO: move this to functions.py
 def change_role(user, oldrole, newrole, set_final=True):

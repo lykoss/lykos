@@ -13,7 +13,7 @@ from src.messages import messages
 from src.events import Event
 
 @event_listener("get_reveal_role")
-def on_get_reveal_role(evt, var, nick):
+def on_get_reveal_role(evt, var, user):
     # in team reveal, show traitor as wolfteam, otherwise team stats won't sync with how
     # they're revealed upon death. Team stats should show traitor as wolfteam or else
     # the stats are wrong in that they'll report one less wolf than actually exists,

@@ -3,7 +3,11 @@ from src.events import Event
 from src import settings as var
 from src import users
 
-__all__ = ["get_players", "get_all_players", "get_participants", "get_target", "get_main_role", "get_all_roles"]
+__all__ = [
+    "get_players", "get_all_players", "get_participants",
+    "get_target",
+    "get_main_role", "get_all_roles", "get_reveal_role"
+    ]
 
 def get_players(roles=None, *, mainroles=None):
     if mainroles is None:
@@ -76,5 +80,29 @@ def get_main_role(user):
 
 def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
+
+def get_reveal_role(user):
+    # FIXME: when amnesiac and clone are split, move this into an event
+    if var.HIDDEN_AMNESIAC and user in var.ORIGINAL_ROLES["amnesiac"]:
+        role = "amnesiac"
+    elif var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
+        role = "clone"
+    else:
+        role = get_main_role(user)
+
+    evt = Event("get_reveal_role", {"role": role})
+    evt.dispatch(var, user)
+    role = evt.data["role"]
+
+    if var.ROLE_REVEAL != "team":
+        return role
+
+    if role in var.WOLFTEAM_ROLES:
+        return "wolfteam player"
+    elif role in var.TRUE_NEUTRAL_ROLES:
+        return "neutral player"
+    else:
+        return "village member"
+
 
 # vim: set sw=4 expandtab:

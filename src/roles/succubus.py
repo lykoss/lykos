@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_target
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -209,7 +209,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 comma = ","
             for e in entranced_alive:
                 if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(e.nick)
+                    role = get_reveal_role(e)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                     msg.append("\u0002{0}\u0002, a{1} \u0002{2}\u0002".format(e, an, role))
                 else:
@@ -249,7 +249,7 @@ def on_transition_day_resolve_end(evt, var, victims):
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["bitten"] and succubus not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus.nick)))
+                        evt.data["message"].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
                     else:
                         evt.data["message"].append(messages["visited_victim_noreveal"].format(succubus))
                     evt.data["bywolves"].add(succubus)

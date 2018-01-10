@@ -8,7 +8,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command, event_listener
 from src.messages import messages
 from src.events import Event
@@ -103,9 +103,9 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if kill1:
         if kill2:
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target1.nick)
+                r1 = get_reveal_role(target1)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                r2 = get_reveal_role(target2.nick)
+                r2 = get_reveal_role(target2)
                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
                 tmsg = messages["mad_scientist_kill"].format(user, target1, an1, r1, target2, an2, r2)
             else:
@@ -122,7 +122,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             pl = evt.params.refresh_pl(pl)
         else:
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target1.nick)
+                r1 = get_reveal_role(target1)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                 tmsg = messages["mad_scientist_kill_single"].format(user, target1, an1, r1)
             else:
@@ -134,7 +134,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     else:
         if kill2:
             if var.ROLE_REVEAL in ("on", "team"):
-                r2 = get_reveal_role(target2.nick)
+                r2 = get_reveal_role(target2)
                 an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
                 tmsg = messages["mad_scientist_kill_single"].format(user, target2, an2, r2)
             else:

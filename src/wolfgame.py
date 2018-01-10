@@ -49,7 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles
+from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -1091,7 +1091,7 @@ def fleave(var, wrapper, message):
 
             msg = [messages["fquit_success"].format(wrapper.source, target)]
             if get_main_role(target) != "person" and var.ROLE_REVEAL in ("on", "team"):
-                msg.append(messages["fquit_goodbye"].format(get_reveal_role(target.nick)))
+                msg.append(messages["fquit_goodbye"].format(get_reveal_role(target)))
             if var.PHASE == "join":
                 player_count = len(list_players()) - 1
                 to_say = "new_player_count"
@@ -1881,7 +1881,7 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
                         var.JESTERS.add(votee)
 
                     if var.ROLE_REVEAL in ("on", "team"):
-                        rrole = get_reveal_role(votee)
+                        rrole = get_reveal_role(users._get(votee)) # FIXME
                         an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
                         lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
                     else:
@@ -2381,7 +2381,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
         pl = set(get_players()).difference(deadlist)
         if player is not None and (player is original or player in pl):
             mainrole = get_main_role(player)
-            revealrole = get_reveal_role(player.nick) # FIXME
+            revealrole = get_reveal_role(player)
             allroles = get_all_roles(player)
             del var.MAIN_ROLES[player]
             for r in allroles:
@@ -2465,7 +2465,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                             continue
                         var.LOVERS[lover.nick].remove(player.nick)
                         if var.ROLE_REVEAL in ("on", "team"):
-                            role = get_reveal_role(lover.nick)
+                            role = get_reveal_role(lover)
                             an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                             message = messages["lover_suicide"].format(lover, an, role)
                         else:
@@ -2510,7 +2510,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                                 prots.popleft()
                             if len(prots) == 0:
                                 if var.ROLE_REVEAL in ("on", "team"):
-                                    role = get_reveal_role(target.nick)
+                                    role = get_reveal_role(target)
                                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                                     message = messages["assassin_success"].format(player, target, an, role)
                                 else:
@@ -2749,7 +2749,7 @@ def reaper(cli, gameid):
                     if nck not in list_players():
                         continue
                     if var.ROLE_REVEAL in ("on", "team"):
-                        cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(nck)))
+                        cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(users._get(nck)))) # FIXME
                     else:
                         cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
                     user = users._get(nck) # FIXME
@@ -2770,7 +2770,7 @@ def reaper(cli, gameid):
                 mass_privmsg(cli, msg_targets, messages["player_idle_warning"].format(chan), privmsg=True)
             for dcedplayer, (timeofdc, what) in list(var.DISCONNECTED.items()):
                 mainrole = get_main_role(dcedplayer)
-                revealrole = get_reveal_role(dcedplayer.nick) # FIXME
+                revealrole = get_reveal_role(dcedplayer)
                 if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
@@ -3166,7 +3166,7 @@ def leave(var, what, user, why=None):
         population = ""
         killplayer = False
 
-    channels.Main.send(msg.format(user, get_reveal_role(user.nick)) + population) # FIXME: Need to fix this once get_reveal_role() accepts User instances
+    channels.Main.send(msg.format(user, get_reveal_role(user)) + population)
     var.SPECTATING_WOLFCHAT.discard(user)
     var.SPECTATING_DEADCHAT.discard(user)
     leave_deadchat(var, user)
@@ -3206,7 +3206,7 @@ def leave_game(cli, nick, chan, rest):
         return
 
     if get_role(nick) != "person" and var.ROLE_REVEAL in ("on", "team"):
-        role = get_reveal_role(nick)
+        role = get_reveal_role(users._get(nick)) # FIXME
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
         if var.DYNQUIT_DURING_GAME:
             lmsg = random.choice(messages["quit"]).format(nick, an, role)
@@ -3592,7 +3592,7 @@ def transition_day(cli, gameid=0):
                 revt.data["novictmsg"] = False
         elif victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(victim.nick)
+                role = get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                 revt.data["message"].append(messages["death"].format(victim, an, role))
             else:
@@ -3653,7 +3653,7 @@ def transition_day(cli, gameid=0):
                 if woflset:
                     deadwolf = random.choice(tuple(woflset))
                     if var.ROLE_REVEAL in ("on", "team"):
-                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf.nick)))
+                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
                     else:
                         message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
@@ -4210,7 +4210,7 @@ def shoot(var, wrapper, message):
 
     wolfvictim = victim in list_players(var.WOLF_ROLES)
     realrole = get_role(victim)
-    victimrole = get_reveal_role(victim)
+    victimrole = get_reveal_role(users._get(victim)) # FIXME
 
     alwaysmiss = (realrole == "werekitten")
 
@@ -4251,7 +4251,7 @@ def shoot(var, wrapper, message):
         wrapper.send(messages["gunner_miss"].format(wrapper.source.nick))
     else:
         if var.ROLE_REVEAL in ("on", "team"):
-            wrapper.send(messages["gunner_suicide"].format(wrapper.source.nick, get_reveal_role(wrapper.source.nick)))
+            wrapper.send(messages["gunner_suicide"].format(wrapper.source.nick, get_reveal_role(wrapper.source)))
         else:
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source.nick))
         if not del_player(wrapper.source, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something

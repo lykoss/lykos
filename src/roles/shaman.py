@@ -7,7 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
-from src.functions import get_players, get_all_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -291,7 +291,7 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
                     return
                 prots.popleft()
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target)
+                r1 = get_reveal_role(users._get(target)) # FIXME
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                 tmsg = messages["totem_desperation"].format(votee, target, an1, r1)
             else:
@@ -491,7 +491,7 @@ def on_transition_day_resolve6(evt, var, victim):
                 prots.popleft()
             evt.data["dead"].append(loser)
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(loser.nick)
+                role = get_reveal_role(loser)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                 evt.data["message"].append(messages["totem_death"].format(victim, loser, an, role))
             else:

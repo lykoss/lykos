@@ -4,7 +4,7 @@ import random
 from collections import defaultdict, deque
 
 from src.utilities import *
-from src.functions import get_players, get_all_players, get_target, get_main_role
+from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.messages import messages
@@ -92,7 +92,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 prots.popleft()
 
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(target.nick)
+                role = get_reveal_role(target)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
                 channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
             else:
