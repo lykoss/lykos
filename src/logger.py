@@ -53,7 +53,7 @@ def get_timestamp(use_utc=None, ts_format=None):
 def stream(output, level="normal"):
     if botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
         plog(output)
-    elif level == "warning":
+    elif level in ("warning", "error"):
         plog(output)
 
 
