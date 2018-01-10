@@ -3181,53 +3181,53 @@ def leave(var, what, user, why=None):
         temp = user.lower()
         var.DISCONNECTED[user] = (datetime.now(), what)
 
-@cmd("quit", "leave", pm=True, phases=("join", "day", "night"))
-def leave_game(cli, nick, chan, rest):
+@command("quit", "leave", pm=True, phases=("join", "day", "night"))
+def leave_game(var, wrapper, message):
     """Quits the game."""
-    if chan == botconfig.CHANNEL:
-        if nick not in list_players():
+    if wrapper.target is channels.Main:
+        if wrapper.source not in get_players():
             return
         if var.PHASE == "join":
-            lpl = len(list_players()) - 1
+            lpl = len(get_players()) - 1
             if lpl == 0:
                 population = " " + messages["no_players_remaining"]
             else:
                 population = " " + messages["new_player_count"].format(lpl)
         else:
-            if not rest.startswith("-force"):
-                reply(cli, nick, chan, messages["leave_game_ingame_safeguard"].format(botconfig.CMD_CHAR), private=True)
+            if not message.startswith("-force"):
+                wrapper.pm(messages["leave_game_ingame_safeguard"].format(botconfig.CMD_CHAR))
                 return
             population = ""
-    elif chan == nick:
-        if var.PHASE in var.GAME_PHASES and nick not in list_players() and users._get(nick) in var.DEADCHAT_PLAYERS:
-            leave_deadchat(var, users._get(nick))
+    elif wrapper.private:
+        if var.PHASE in var.GAME_PHASES and wrapper.source not in get_players() and wrapper.source in var.DEADCHAT_PLAYERS:
+            leave_deadchat(var, wrapper.source)
         return
     else:
         return
 
-    if get_role(nick) != "person" and var.ROLE_REVEAL in ("on", "team"):
-        role = get_reveal_role(users._get(nick)) # FIXME
+    if get_main_role(wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
+        role = get_reveal_role(wrapper.source)
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
         if var.DYNQUIT_DURING_GAME:
-            lmsg = random.choice(messages["quit"]).format(nick, an, role)
-            cli.msg(botconfig.CHANNEL, lmsg)
+            lmsg = random.choice(messages["quit"]).format(wrapper.source.nick, an, role)
+            channels.Main.send(lmsg)
         else:
-            cli.msg(botconfig.CHANNEL, (messages["static_quit"] + "{2}").format(nick, role, population))
+            channels.Main.send((messages["static_quit"] + "{2}").format(wrapper.source.nick, role, population))
     else:
         # DYNQUIT_DURING_GAME should not have any effect during the join phase, so only check if we aren't in that
         if var.PHASE != "join" and not var.DYNQUIT_DURING_GAME:
-            cli.msg(botconfig.CHANNEL, (messages["static_quit_no_reveal"] + "{1}").format(nick, population))
+            channels.Main.send((messages["static_quit_no_reveal"] + "{1}").format(wrapper.source.nick, population))
         else:
-            lmsg = random.choice(messages["quit_no_reveal"]).format(nick) + population
-            cli.msg(botconfig.CHANNEL, lmsg)
+            lmsg = random.choice(messages["quit_no_reveal"]).format(wrapper.source.nick) + population
+            channels.Main.send(lmsg)
     if var.PHASE != "join":
-        var.DCED_LOSERS.add(users._get(nick)) # FIXME
+        var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
-            add_warning(cli, nick, var.LEAVE_PENALTY, users.Bot.nick, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
-        if nick in var.PLAYERS:
-            var.DCED_PLAYERS[nick] = var.PLAYERS.pop(nick)
+            add_warning(wrapper.client, wrapper.source.nick, var.LEAVE_PENALTY, users.Bot.nick, messages["leave_warning"], expires=var.LEAVE_EXPIRY) # FIXME
+        if wrapper.source.nick in var.PLAYERS:
+            var.DCED_PLAYERS[wrapper.source.nick] = var.PLAYERS.pop(wrapper.source.nick)
 
-    del_player(users._get(nick), death_triggers=False) # FIXME
+    del_player(wrapper.source, death_triggers=False)
 
 def begin_day(cli):
     chan = botconfig.CHANNEL
