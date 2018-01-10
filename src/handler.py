@@ -238,13 +238,23 @@ def connect_callback(cli):
         request_caps.add("sasl")
 
     supported_caps = set()
+    supported_sasl = None
+    selected_sasl = None
 
     @hook("cap")
     def on_cap(cli, svr, mynick, cmd, *caps):
+        nonlocal supported_sasl, selected_sasl
         # caps is a star because we might receive multiline in LS
         if cmd == "LS":
             for item in caps[-1].split(): # First item may or may not be *, for multiline
-                supported_caps.add(item.split("=")[0]) # If there's any value, we just don't care
+                try:
+                    key, value = item.split("=", 1)
+                except ValueError:
+                    key = item
+                    value = None
+                supported_caps.add(key)
+                if key == "sasl" and value is not None:
+                    supported_sasl = set(value.split(","))
 
             if caps[0] == "*": # Multiline, don't continue yet
                 return
@@ -261,7 +271,18 @@ def connect_callback(cli):
 
         elif cmd == "ACK":
             if "sasl" in caps[0]:
-                cli.send("AUTHENTICATE PLAIN")
+                if var.SSL_CERTFILE:
+                    mech = "EXTERNAL"
+                else:
+                    mech = "PLAIN"
+                selected_sasl = mech
+
+                if supported_sasl is None or mech in supported_sasl:
+                    cli.send("AUTHENTICATE {0}".format(mech))
+                else:
+                    alog("Server does not support the SASL {0} mechanism".format(mech))
+                    cli.quit()
+                    raise ValueError("Server does not support the SASL {0} mechanism".format(mech))
             else:
                 cli.send("CAP END")
         elif cmd == "NAK":
@@ -273,10 +294,13 @@ def connect_callback(cli):
         @hook("authenticate")
         def auth_plus(cli, something, plus):
             if plus == "+":
-                account = (botconfig.USERNAME or botconfig.NICK).encode("utf-8")
-                password = botconfig.PASS.encode("utf-8")
-                auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
-                cli.send("AUTHENTICATE " + auth_token)
+                if selected_sasl == "EXTERNAL":
+                    cli.send("AUTHENTICATE +")
+                elif selected_sasl == "PLAIN":
+                    account = (botconfig.USERNAME or botconfig.NICK).encode("utf-8")
+                    password = botconfig.PASS.encode("utf-8")
+                    auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
+                    cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
@@ -287,9 +311,16 @@ def connect_callback(cli):
         @hook("906")
         @hook("907")
         def on_failure_auth(cli, *etc):
-            alog("Authentication failed.  Did you fill the account name "
-                 "in botconfig.USERNAME if it's different from the bot nick?")
-            cli.quit()
+            nonlocal selected_sasl
+            if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
+                # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
+                selected_sasl = "PLAIN"
+                alog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
+                cli.send("AUTHENTICATE PLAIN")
+            else:
+                alog("Authentication failed.  Did you fill the account name "
+                     "in botconfig.USERNAME if it's different from the bot nick?")
+                cli.quit()
 
     users.Bot = users.BotUser(cli, botconfig.NICK)
 

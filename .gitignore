@@ -8,6 +8,9 @@
 __pycache__/
 *.py[co]
 
+# Linter files
+.mypy_cache/
+
 # Config files
 botconfig.py
 /gamemodes.py
@@ -20,3 +23,6 @@ botconfig.py
 
 # Log files
 *.log
+
+# Certificates/keys
+*.pem

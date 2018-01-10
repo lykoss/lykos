@@ -22,6 +22,8 @@ import threading
 import time
 import traceback
 import os
+import hashlib
+import hmac
 
 from oyoyo.parse import parse_raw_irc_command
 
@@ -98,6 +100,11 @@ class IRCClient:
         self.blocking = True
         self.sasl_auth = False
         self.use_ssl = False
+        self.cert_verify = False
+        self.cert_fp = ()
+        self.client_certfile = None
+        self.client_keyfile = None
+        self.cipher_list = None
         self.server_pass = None
         self.lock = threading.RLock()
         self.stream_handler = lambda output, level=None: print(output)
@@ -145,7 +152,8 @@ class IRCClient:
                                                                    for arg in args]), i))
 
             msg = bytes(" ", "utf_8").join(bargs)
-            self.stream_handler('---> send {0}'.format(str(msg)[1:]))
+            logmsg = kwargs.get("log") or str(msg)[1:]
+            self.stream_handler('---> send {0}'.format(logmsg))
 
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
@@ -174,7 +182,69 @@ class IRCClient:
                         sys.exit(1)
 
             if self.use_ssl:
-                self.socket = ssl.wrap_socket(self.socket)
+                ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+
+                if self.cipher_list:
+                    try:
+                        ctx.set_ciphers(self.cipher_list)
+                    except Exception:
+                        self.stream_handler("No ciphers could be selected from the cipher list. TLS is not available.", level="warning")
+                        self.stream_handler("Use `openssl ciphers' to see which ciphers are available on this system.", level="warning")
+                        raise
+
+                # explicitly disable old protocols
+                ctx.options |= ssl.OP_NO_SSLv2
+                ctx.options |= ssl.OP_NO_SSLv3
+                ctx.options |= ssl.OP_NO_TLSv1
+
+                # explicitly disable compression (CRIME attack)
+                ctx.options |= ssl.OP_NO_COMPRESSION
+
+                if sys.version_info >= (3, 6):
+                    # TLS session tickets harm forward secrecy (this symbol is only defined in 3.6 and later)
+                    ctx.options |= ssl.OP_NO_TICKET
+
+                if self.cert_verify and not self.cert_fp:
+                    ctx.verify_mode = ssl.CERT_REQUIRED
+
+                    if not self.cert_fp:
+                        ctx.check_hostname = True
+
+                    ctx.load_default_certs()
+                elif not self.cert_verify and not self.cert_fp:
+                    self.stream_handler("**NOT** validating the server's TLS certificate! Set SSL_VERIFY or SSL_CERTFP in botconfig.py.", level="warning")
+
+                if self.client_certfile:
+                    # if client_keyfile is not specified, the ssl module will look to the client_certfile for it.
+                    try:
+                        # specify blank password to ensure that encrypted certs will outright fail rather than prompting for password on stdin
+                        # in a scenario where a user does !update or !restart, they will be unable to type in such a password and effectively kill the bot
+                        # until someone can SSH in to restart it via CLI.
+                        ctx.load_cert_chain(self.client_certfile, self.client_keyfile, password="")
+                        self.stream_handler("Connecting with a TLS client certificate", level="info")
+                    except Exception as error:
+                        self.stream_handler("Unable to load client cert/key pair: {0}".format(error), level="error")
+                        raise
+
+                try:
+                    self.socket = ctx.wrap_socket(self.socket, server_hostname=self.host)
+                except Exception as error:
+                    self.stream_handler("Could not connect with TLS: {0}".format(error), level="error")
+                    raise
+
+                if self.cert_fp:
+                    valid_fps = set(fp.replace(":", "").lower() for fp in self.cert_fp)
+                    peercert = self.socket.getpeercert(True)
+                    h = hashlib.new("sha256")
+                    h.update(peercert)
+                    peercertfp = h.hexdigest()
+
+                    if peercertfp not in valid_fps:
+                        self.stream_handler("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp), level="error")
+                        raise ssl.CertificateError("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp))
+                    self.stream_handler("Server certificate fingerprint matched {0}".format(peercertfp), level="info")
+
+                self.stream_handler("Connected with cipher {0}".format(self.socket.cipher()[0]), level="info")
 
             if not self.blocking:
                 self.socket.setblocking(0)
@@ -186,10 +256,10 @@ class IRCClient:
                 message = "PASS :{0}".format(self.server_pass).format(
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
-                self.send(message)
+                self.send(message, log="PASS :[redacted]")
             elif self.server_pass:
                 message = "PASS :{0}".format(self.server_pass)
-                self.send(message)
+                self.send(message, log="PASS :[redacted]")
 
             self.send("NICK", self.nickname)
             self.user(self.ident, self.real_name)
@@ -298,3 +368,5 @@ class IRCClient:
             if not next(conn):
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
+
+# vim: set sw=4 expandtab:
