@@ -149,14 +149,11 @@ def on_chk_decision_abstain(evt, cli, var, not_lynching):
     _kill_entranced_voters(var, evt.params.votelist, not_lynching, None)
 
 # entranced logic should run after team wins have already been determined (aka run last)
-# we do not want to override the win conditions for neutral roles should they win while entranced
-# For example, entranced monsters should win with other monsters should mosnters win, and be
-# properly credited with a team win in that event.
 @event_listener("player_win", priority=6)
 def on_player_win(evt, var, user, role, winner, survived):
     if user in ENTRANCED:
         evt.data["special"].append("entranced")
-        if winner != "succubi" and role not in var.TRUE_NEUTRAL_ROLES:
+        if winner != "succubi":
             evt.data["won"] = False
         else:
             evt.data["iwon"] = True
