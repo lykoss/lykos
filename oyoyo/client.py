@@ -101,7 +101,7 @@ class IRCClient:
         self.sasl_auth = False
         self.use_ssl = False
         self.cert_verify = False
-        self.cert_fp = ""
+        self.cert_fp = ()
         self.client_certfile = None
         self.client_keyfile = None
         self.cipher_list = None
@@ -152,7 +152,8 @@ class IRCClient:
                                                                    for arg in args]), i))
 
             msg = bytes(" ", "utf_8").join(bargs)
-            self.stream_handler('---> send {0}'.format(str(msg)[1:]))
+            logmsg = kwargs.get("log") or str(msg)[1:]
+            self.stream_handler('---> send {0}'.format(logmsg))
 
             while not self.tokenbucket.consume(1):
                 time.sleep(0.3)
@@ -210,84 +211,38 @@ class IRCClient:
                         ctx.check_hostname = True
 
                     ctx.load_default_certs()
-
                 elif not self.cert_verify and not self.cert_fp:
-                    self.stream_handler("NOT validating the server's TLS certificate! Set 'SSL_VERIFY=True' or define a fingerprint in 'SSL_CERTFP' in botconfig.py to enable this.", level="warning")
+                    self.stream_handler("**NOT** validating the server's TLS certificate! Set SSL_VERIFY or SSL_CERTFP in botconfig.py.", level="warning")
 
                 if self.client_certfile:
-                    # if client_keyfile is not specified, the ssl module will look to the
-                    # client_certfile for it.
-
+                    # if client_keyfile is not specified, the ssl module will look to the client_certfile for it.
                     try:
-                        ctx.load_cert_chain(self.client_certfile, self.client_keyfile)
+                        # specify blank password to ensure that encrypted certs will outright fail rather than prompting for password on stdin
+                        # in a scenario where a user does !update or !restart, they will be unable to type in such a password and effectively kill the bot
+                        # until someone can SSH in to restart it via CLI.
+                        ctx.load_cert_chain(self.client_certfile, self.client_keyfile, password="")
                         self.stream_handler("Connecting with a TLS client certificate", level="info")
                     except Exception as error:
-                        self.stream_handler("Unable to load client cert/key pair: {0}".format(error), level="warning")
+                        self.stream_handler("Unable to load client cert/key pair: {0}".format(error), level="error")
+                        raise
 
                 try:
                     self.socket = ctx.wrap_socket(self.socket, server_hostname=self.host)
                 except Exception as error:
-                    self.stream_handler("Error occured while connecting with TLS: {0}".format(error), level="warning")
+                    self.stream_handler("Could not connect with TLS: {0}".format(error), level="error")
                     raise
 
                 if self.cert_fp:
-                    algo = None
-                    if ":" in self.cert_fp:
-                        algo, fp = self.cert_fp.split(":")
-                        fp = fp.split(",")
-                        self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
-                    else:
-                        fp = self.cert_fp.split(",")
-
-                    hashlen = {32: "md5", 40: "sha1", 56: "sha224",
-                               64: "sha256", 96: "sha384", 128: "sha512"}
-
-
+                    valid_fps = set(fp.replace(":", "").lower() for fp in self.cert_fp)
                     peercert = self.socket.getpeercert(True)
+                    h = hashlib.new("sha256")
+                    h.update(peercert)
+                    peercertfp = h.hexdigest()
 
-                    h = None
-                    peercertfp = None
-
-                    if algo:
-                        try:
-                            h = hashlib.new(algo)
-                        except Exception as error:
-                            self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
-                            self.stream_handler("Supported algorithms on this system: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
-                            raise
-
-                        h.update(peercert)
-                        peercertfp = h.hexdigest()
-
-                    matched = False
-                    for n, fingerprint in enumerate(fp):
-
-                        if not h:
-                            fplen = len(fingerprint)
-                            if fplen not in hashlen:
-                                self.stream_handler("Unable to auto-detect fingerprint #{0} ({1}) algorithm type by length".format(n, fp), level="warning")
-                                continue
-
-                            algo = hashlen[fplen]
-                            self.stream_handler("Checking server's certificate {0} hash sum".format(algo), level="info")
-
-                            try:
-                                h = hashlib.new(algo)
-                            except Exception as error:
-                                self.stream_handler("TLS certificate fingerprint verification failed: {}".format(error), level="warning")
-                                self.stream_handler("Supported algorithms on this system: {0}".format(", ".join(hashlib.algorithms_available)), level="warning")
-                                raise
-
-                            h.update(peercert)
-                            peercertfp = h.hexdigest()
-
-                        if hmac.compare_digest(fingerprint, peercertfp):
-                            matched = fingerprint
-
-                    if not matched:
-                        self.stream_handler("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp), level="warning")
-                        raise ssl.CertificateError("Certificate fingerprint does not match.")
-                    self.stream_handler("Server certificate fingerprint matched {0} ({1})".format(matched, algo), level="info")
+                    if peercertfp not in valid_fps:
+                        self.stream_handler("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp), level="error")
+                        raise ssl.CertificateError("Certificate fingerprint {0} did not match any expected fingerprints".format(peercertfp))
+                    self.stream_handler("Server certificate fingerprint matched {0}".format(peercertfp), level="info")
 
                 self.stream_handler("Connected with cipher {0}".format(self.socket.cipher()[0]), level="info")
 
@@ -301,10 +256,10 @@ class IRCClient:
                 message = "PASS :{0}".format(self.server_pass).format(
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
-                self.send(message)
+                self.send(message, log="PASS :[redacted]")
             elif self.server_pass:
                 message = "PASS :{0}".format(self.server_pass)
-                self.send(message)
+                self.send(message, log="PASS :[redacted]")
 
             self.send("NICK", self.nickname)
             self.user(self.ident, self.real_name)
@@ -413,3 +368,5 @@ class IRCClient:
             if not next(conn):
                 self.stream_handler("Calling sys.exit()...", level="warning")
                 sys.exit()
+
+# vim: set sw=4 expandtab:

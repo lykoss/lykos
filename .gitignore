@@ -23,3 +23,6 @@ botconfig.py
 
 # Log files
 *.log
+
+# Certificates/keys
+*.pem

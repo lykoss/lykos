@@ -7,21 +7,6 @@ import botconfig
 
 LANGUAGE = 'en'
 
-## TLS settings
-# If SSL_CERTFP is supplied, the bot will attempt to verify that with the server. If not, then the
-# bot will attempt certificate verification, otherwise it will abort the connection.
-# You may specify the hash algorithm to use when verifying fingerprints. If unspecified, it will
-# attempt to autodetect the hash type of each fingerprint individually. (Limited to MD5, SHA1,
-# SHA224, SHA384, and SHA512).
-# Multiple fingerprints may be comma separated for networks with multipleservers. Check your Python
-# version for suported algorithms.
-# Syntax: SSL_CERTFP = "[HASH-ALGO:]fingerprint1,fingerprint2,fingerprint3"
-SSL_VERIFY = True
-SSL_CERTFILE = None # Client cert file to connect with in PEM format; can also contain keyfile.
-SSL_KEYFILE = None # Keyfile for the certfile in PEM format. if encrypted, password will prompt on the command line.
-SSL_CERTFP = None
-SSL_CIPHERS = None # Custom list of available ciphers in OpenSSL cipher list format. (<https://wiki.openssl.org/index.php/Manual:Ciphers(1)#CIPHER_LIST_FORMAT>)
-
 MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
@@ -207,6 +192,13 @@ GAME_PHASES = ("night", "day") # all phases that constitute "in game", game mode
 ACCOUNTS_ONLY = False # If True, will use only accounts for everything
 DISABLE_ACCOUNTS = False # If True, all account-related features are disabled. Automatically set if we discover we do not have proper ircd support for accounts
                         # This will override ACCOUNTS_ONLY if it is set
+
+SSL_VERIFY = True
+SSL_CERTFP = ()
+# Tracking Mozilla's "modern" compatibility list -- https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
+SSL_CIPHERS = "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256"
+SSL_CERTFILE = None
+SSL_KEYFILE = None
 
 NICKSERV = "NickServ"
 NICKSERV_IDENTIFY_COMMAND = "IDENTIFY {account} {password}"
