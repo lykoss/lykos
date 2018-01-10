@@ -273,10 +273,6 @@ def add_game(mode, size, started, finished, winner, players, options):
     }
     """
 
-    if mode == "roles":
-        # Do not record stats for games with custom roles
-        return
-
     # Normalize players dict
     conn = _conn()
     for p in players:
