@@ -4808,11 +4808,11 @@ def clone(cli, nick, chan, rest):
 var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
 @event_listener("targeted_command", priority=9)
-def on_targeted_command(evt, cli, var, cmd, actor, orig_target, tags):
+def on_targeted_command(evt, var, name, actor, orig_target, tags):
     if evt.data["misdirection"]:
-        evt.data["target"] = choose_target(actor, evt.data["target"])
+        evt.data["target"] = users._get(choose_target(actor.nick, evt.data["target"].nick)) # FIXME
 
-    if evt.data["exchange"] and check_exchange(cli, actor, evt.data["target"]):
+    if evt.data["exchange"] and check_exchange(actor.client, actor.nick, evt.data["target"].nick):
         evt.stop_processing = True
         evt.prevent_default = True
 
@@ -5030,12 +5030,13 @@ def transition_night(cli):
             event = Event("amnesiac_turn", {})
             if event.dispatch(var, amn, var.AMNESIAC_ROLES[amn]):
                 amnrole = var.AMNESIAC_ROLES[amn]
-                change_role(users._get(amn), "amnesiac", amnrole) # FIXME
+                amnuser = users._get(amn) # FIXME
+                change_role(amnuser, "amnesiac", amnrole)
                 var.AMNESIACS.add(amn)
                 # TODO: turn into event when amnesiac is split
                 from src.roles import succubus
-                if amnrole == "succubus" and amn in succubus.ENTRANCED:
-                    succubus.ENTRANCED.remove(amn)
+                if amnrole == "succubus" and amnuser in succubus.ENTRANCED:
+                    succubus.ENTRANCED.remove(amnuser)
                     pm(cli, amn, messages["no_longer_entranced"])
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue

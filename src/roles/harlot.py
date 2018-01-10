@@ -27,11 +27,11 @@ def hvisit(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target.nick, "misdirection": True, "exchange": True})
-    evt.dispatch(wrapper.client, var, "visit", wrapper.source.nick, target.nick, frozenset({"immediate"}))
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    evt.dispatch(var, "visit", wrapper.source, target, frozenset({"immediate"}))
     if evt.prevent_default:
         return
-    target = users._get(evt.data["target"]) # FIXME
+    target = evt.data["target"]
     vrole = get_main_role(target)
 
     VISITED[wrapper.source] = target

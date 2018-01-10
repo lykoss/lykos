@@ -7,7 +7,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
-from src.functions import get_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
 from src.messages import messages
 from src.events import Event
@@ -74,12 +74,15 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
     if role != "crazed shaman" and TOTEMS[nick] in var.BENEFICIAL_TOTEMS:
         tags.add("beneficial")
 
-    evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True},
+    shaman = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True},
             action="give a totem{0} to".format(totem))
-    evt.dispatch(cli, var, "totem", nick, victim, frozenset(tags))
+    evt.dispatch(var, "totem", shaman, target, frozenset(tags))
     if evt.prevent_default:
         return
-    victim = evt.data["target"]
+    victim = evt.data["target"].nick
     victimrole = get_role(victim)
 
     pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))
@@ -585,11 +588,11 @@ def on_assassinate(evt, var, killer, target, prot):
         channels.Main.send(messages[evt.params.message_prefix + "totem"].format(killer, target))
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    if (users._get(SHAMANS.get(victim, (None, None))[1], allow_none=True) in var.ROLES["succubus"] and
-       (get_role(victim) == "crazed shaman" or TOTEMS[victim] not in var.BENEFICIAL_TOTEMS)):
-        pm(cli, victim, messages["retract_totem_succubus"].format(SHAMANS[victim]))
-        del SHAMANS[victim]
+def on_succubus_visit(evt, var, succubus, target):
+    if (users._get(SHAMANS.get(target.nick, (None, None))[1], allow_none=True) in get_all_players(("succubus",)) and # FIXME
+       (get_main_role(target) == "crazed shaman" or TOTEMS[target.nick] not in var.BENEFICIAL_TOTEMS)):
+        target.send(messages["retract_totem_succubus"].format(SHAMANS[target.nick][1]))
+        del SHAMANS[target.nick]
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

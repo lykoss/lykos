@@ -45,6 +45,8 @@ def wolf_kill(cli, nick, chan, rest):
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
 
+    wolf = users._get(nick) # FIXME
+
     i = 0
     extra = 0
     while i < num_kills + extra:
@@ -67,11 +69,14 @@ def wolf_kill(cli, nick, chan, rest):
             pm(cli, nick, messages["wolf_no_target_wolf"])
             return
         orig.append(victim)
-        evt = Event("targeted_command", {"target": victim, "misdirection": True, "exchange": True})
-        evt.dispatch(cli, var, "kill", nick, victim, frozenset({"detrimental"}))
+
+        target = users._get(victim) # FIXME
+
+        evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+        evt.dispatch(var, "kill", wolf, target, frozenset({"detrimental"}))
         if evt.prevent_default:
             return
-        victim = evt.data["target"]
+        victim = evt.data["target"].nick
         victims.append(victim)
         i += 1
 
@@ -426,14 +431,14 @@ def on_transition_night_end(evt, var):
             wolf.send(messages["wolf_bite"])
 
 @event_listener("succubus_visit")
-def on_succubus_visit(evt, cli, var, nick, victim):
-    if var.ROLES["succubus"].intersection(users._get(x) for x in KILLS.get(victim, ())): # FIXME: once KILLS holds User instances
-        for s in var.ROLES["succubus"]:
-            if s.nick in KILLS[victim]: # FIXME
-                pm(cli, victim, messages["no_kill_succubus"].format(nick))
-                KILLS[victim].remove(s.nick) # FIXME
-        if not KILLS[victim]:
-            del KILLS[victim]
+def on_succubus_visit(evt, var, succubus, target):
+    if get_all_players(("succubus",)).intersection(users._get(x) for x in KILLS.get(target.nick, ())): # FIXME: once KILLS holds User instances
+        for s in get_all_players(("succubus",)):
+            if s.nick in KILLS[target.nick]:
+                target.send(messages["no_kill_succubus"].format(succubus))
+                KILLS[target.nick].remove(s.nick)
+        if not KILLS[target.nick]:
+            del KILLS[target.nick]
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
