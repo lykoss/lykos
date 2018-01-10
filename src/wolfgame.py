@@ -6576,7 +6576,7 @@ def vote(cli, nick, chan, rest):
     else:
         return show_votes.caller(cli, nick, chan, rest)
 
-def _call_command(cli, nick, chan, command, no_out=False):
+def _call_command(wrapper, command, no_out=False):
     """
     Executes a system command.
 
@@ -6592,7 +6592,7 @@ def _call_command(cli, nick, chan, command, no_out=False):
 
     if not (no_out and ret == 0):
         for line in (out + err).splitlines():
-            reply(cli, nick, chan, line.decode("utf-8"), private=True)
+            wrapper.pm(line.decode("utf-8"))
 
     if ret != 0:
         if ret < 0:
@@ -6601,41 +6601,44 @@ def _call_command(cli, nick, chan, command, no_out=False):
         else:
             cause = "status"
 
-        reply(cli, nick, chan, messages["process_exited"].format(command, cause, ret), private=True)
+        wrapper.pm(messages["process_exited"].format(command, cause, ret))
 
     return (ret, out)
 
-@cmd("pull", "fpull", flag="D", pm=True)
-def fpull(cli, nick, chan, rest):
-    """Pulls from the repository to update the bot."""
-
-    (ret, _) = _call_command(cli, nick, chan, "git fetch")
+def _git_pull(wrapper):
+    (ret, _) = _call_command(wrapper, "git fetch")
     if ret != 0:
         return False
 
-    (ret, out) = _call_command(cli, nick, chan, "git status -b --porcelain", no_out=True)
+    (ret, out) = _call_command(wrapper, "git status -b --porcelain", no_out=True)
     if ret != 0:
         return False
 
     if not re.search(rb"behind \d+", out.splitlines()[0]):
         # Already up-to-date
-        reply(cli, nick, chan, messages["already_up_to_date"], private=True)
+        wrapper.pm(messages["already_up_to_date"])
         return False
 
-    (ret, _) = _call_command(cli, nick, chan, "git rebase --stat --preserve-merges")
+    (ret, _) = _call_command(wrapper, "git rebase --stat --preserve-merges")
     return (ret == 0)
 
-@cmd("update", flag="D", pm=True)
-def update(cli, nick, chan, rest):
+
+@command("pull", "fpull", flag="D", pm=True)
+def fpull(var, wrapper, message):
+    """Pulls from the repository to update the bot."""
+    _git_pull(wrapper)
+
+@command("update", flag="D", pm=True)
+def update(var, wrapper, message):
     """Pulls from the repository and restarts the bot to update it."""
 
-    force = (rest.strip() == "-force")
+    force = (message.strip() == "-force")
 
     if var.PHASE in var.GAME_PHASES:
         if var.PHASE == "join" or force:
             stop_game(log=False)
         else:
-            reply(cli, nick, chan, messages["stop_bot_ingame_safeguard"].format(
+            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
                 what="restart", cmd="update", prefix=botconfig.CMD_CHAR), private=True)
             return
 
@@ -6643,10 +6646,9 @@ def update(cli, nick, chan, rest):
         # Display "Scheduled restart" instead of "Forced restart" when called with !faftergame
         restart_program.aftergame = True
 
-    ret = fpull.caller(cli, nick, chan, "")
-
+    ret = _git_pull(wrapper)
     if ret:
-        restart_program.caller(cli, nick, chan, "Updating bot")
+        restart_program.func(var, wrapper, "Updating bot")
 
 @command("fsend", flag="F", pm=True)
 def fsend(var, wrapper, message):
