@@ -293,7 +293,6 @@ def connect_callback(cli):
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")
         def auth_plus(cli, something, plus):
-            nonlocal selected_sasl
             if plus == "+":
                 if selected_sasl == "EXTERNAL":
                     cli.send("AUTHENTICATE +")
@@ -312,7 +311,7 @@ def connect_callback(cli):
         @hook("906")
         @hook("907")
         def on_failure_auth(cli, *etc):
-            nonlocal supported_sasl, selected_sasl
+            nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
                 selected_sasl = "PLAIN"
