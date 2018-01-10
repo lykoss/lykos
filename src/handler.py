@@ -277,7 +277,7 @@ def connect_callback(cli):
                     mech = "PLAIN"
                 selected_sasl = mech
 
-                if supported_sasl and mech in supported_sasl:
+                if supported_sasl is None or mech in supported_sasl:
                     cli.send("AUTHENTICATE {0}".format(mech))
                 else:
                     alog("Server does not support the SASL {0} mechanism".format(mech))
