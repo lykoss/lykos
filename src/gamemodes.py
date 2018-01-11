@@ -1134,7 +1134,7 @@ class MaelstromMode(GameMode):
             return self._on_join(var, wrapper)
 
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
-            cmodes = [("+" + hooks.Features["PREFIX"]["+"], wrapper.source)]
+            cmodes = [("+v", wrapper.source)]
             for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)

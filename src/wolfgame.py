@@ -281,8 +281,9 @@ def reset_modes_timers(var):
 
     # Reset modes
     cmodes = []
-    for plr in list_players():
-        cmodes.append(("-" + hooks.Features["PREFIX"]["+"], plr))
+    for plr in get_players():
+        if not plr.is_fake:
+            cmodes.append(("-v", plr.nick))
     for user, modes in var.OLD_MODES.items():
         for mode in modes:
             cmodes.append(("+" + mode, user))
@@ -588,8 +589,7 @@ def replace(var, wrapper, message):
             return_to_village(var, target, show_message=False)
 
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
-            mode = hooks.Features["PREFIX"]["+"]
-            channels.Main.mode(("-" + mode, target), ("+" + mode, wrapper.source))
+            channels.Main.mode(("-v", target), ("+v", wrapper.source))
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: Old API
@@ -868,9 +868,11 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         wrapper.pm(messages["warn_unacked"])
         return False
 
-    cmodes = [("+" + hooks.Features["PREFIX"]["+"], wrapper.source)]
+    cmodes = []
+    if not wrapper.source.is_fake:
+        cmodes.append(("+v", wrapper.source))
     if var.PHASE == "none":
-        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+        if not wrapper.source.is_fake:
             for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
@@ -2610,9 +2612,9 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                             newstats.add(frozenset(d.items()))
             var.ROLE_STATS = frozenset(newstats)
 
-            if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
-                cmode.append(("-v", player.nick))
             if not player.is_fake:
+                if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
+                    cmode.append(("-v", player.nick))
                 lplayer = player.lower()
                 if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
                     deadchat.append(player)
@@ -2922,7 +2924,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
 
             if show_message:
                 if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
-                    channels.Main.mode(("+" + hooks.Features["PREFIX"]["+"], new_user))
+                    channels.Main.mode(("+v", new_user))
                 if target.nick == new_user.nick:
                     channels.Main.send(messages["player_return"].format(new_user))
                 else:
@@ -3056,14 +3058,12 @@ def account_change(evt, var, user):
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
-    voice = hooks.Features["PREFIX"]["+"]
-
     if user.account is None and var.ACCOUNTS_ONLY and user in get_players():
         leave(var, "account", user)
         if var.PHASE == "join":
             user.send(messages["account_midgame_change"], notice=True)
         else:
-            channels.Main.mode(["-" + voice, user.nick])
+            channels.Main.mode(["-v", user.nick])
             user.send(messages["account_reidentify"].format(user.account), notice=True)
 
     # if they were gone, maybe mark them as back
@@ -3075,7 +3075,7 @@ def nick_change(evt, var, user, old_rawnick):
 
     if user not in var.DISCONNECTED and user in get_players() and re.search(var.GUEST_NICK_PATTERN, user.nick):
         if var.PHASE != "join":
-            channels.Main.mode(["-" + hooks.Features["PREFIX"]["+"], user.nick])
+            channels.Main.mode(["-v", user.nick])
         temp = users.FakeUser(None, nick, user.ident, user.host, user.realname, user.account)
         leave(var, "badnick", temp) # pass in a fake user with the old nick (since the user holds the new nick)
         return # Don't do anything else; they're using a guest/away nick
@@ -3273,8 +3273,9 @@ def begin_day(cli):
 
     if var.DEVOICE_DURING_NIGHT:
         modes = []
-        for player in list_players():
-            modes.append(("+v", player))
+        for player in get_players():
+            if not player.is_fake:
+                modes.append(("+v", player.nick))
         mass_mode(cli, modes, [])
 
     event = Event("begin_day", {})
@@ -4975,8 +4976,9 @@ def transition_night(cli):
 
     if var.DEVOICE_DURING_NIGHT:
         modes = []
-        for player in list_players():
-            modes.append(("-v", player))
+        for player in get_players():
+            if not player.is_fake:
+                modes.append(("-v", player.nick))
         mass_mode(cli, modes, [])
 
     for x, tmr in var.TIMERS.items():  # cancel daytime timer
