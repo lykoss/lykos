@@ -1748,9 +1748,7 @@ def hurry_up(cli, gameid, change):
     votelist = copy.deepcopy(var.VOTES)
 
     # Note: this event can be differentiated between regular chk_decision
-    # by checking evt.param.timeout. A priority 1.1 event stops event
-    # propagation, so your priority should be between 1 and 1.1 if you wish
-    # to handle this event
+    # by checking evt.params.timeout.
     event = Event("chk_decision", {
         "not_lynching": not_lynching,
         "votelist": votelist,

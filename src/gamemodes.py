@@ -1339,7 +1339,7 @@ class MudkipMode(GameMode):
 
         avail = len(evt.params.voters)
         voted = sum(map(len, evt.data["votelist"].values()))
-        if avail != voted:
+        if avail != voted and not evt.params.timeout:
             return
 
         majority = avail // 2 + 1

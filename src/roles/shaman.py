@@ -229,11 +229,6 @@ def on_chk_decision(evt, cli, var, force):
             evt.data["weights"][votee][v] = weight
         evt.data["numvotes"][votee] = numvotes
 
-@event_listener("chk_decision", priority=1.1)
-def on_hurry_up(evt, cli, var, force):
-    if evt.params.timeout:
-       evt.stop_processing = True
-
 @event_listener("chk_decision_abstain")
 def on_chk_decision_abstain(evt, cli, var, nl):
     for p in nl:

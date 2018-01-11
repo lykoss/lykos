@@ -101,13 +101,14 @@ def on_get_random_totem_targets(evt, var, shaman):
             if succubus in evt.data["targets"]:
                 evt.data["targets"].remove(succubus)
 
-@event_listener("chk_decision", priority=0)
+@event_listener("chk_decision")
 def on_chk_decision(evt, cli, var, force):
     for votee, voters in evt.data["votelist"].items():
         if users._get(votee) in get_all_players(("succubus",)): # FIXME
             for vtr in ENTRANCED:
                 if vtr.nick in voters:
-                    voters.remove(vtr.nick)
+                    evt.data["numvotes"][votee] -= evt.data["weights"][votee][vtr.nick]
+                    evt.data["weights"][votee][vtr.nick] = 0
 
 def _kill_entranced_voters(var, votelist, not_lynching, votee):
     if not {p.nick for p in get_all_players(("succubus",))} & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
