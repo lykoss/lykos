@@ -167,6 +167,7 @@
     "daylight_warning": "\u0002As the sun sinks inexorably toward the horizon, turning the lanky pine trees into fire-edged silhouettes, the villagers are reminded that very little time remains for them to reach a decision; if darkness falls before they have done so, the majority will win the vote. No one will be lynched if there are no votes or an even split.\u0002",
     "daylight_warning_killtie": "\u0002As the sun sinks inexorably toward the horizon, turning the lanky pine trees into fire-edged silhouettes, the villagers are reminded that very little time remains for them to reach a decision; if darkness falls before they have done so, the plurality will win the vote. Ties for plurality will cause all tied players to be lynched, but no one will be lynched if there are no votes.\u0002",
     "sunset": "As the sun sets, the villagers agree to retire to their beds and wait for morning.",
+    "sunset_lynch": "The sun sets.",
     "twilight_warning": "\u0002A few villagers awake early and notice it is still dark outside. The night is almost over and there are still whispers heard in the village.\u0002",
     "sunrise": "Night lasted \u0002{0:0>2}:{1:0>2}\u0002. It is now daytime. The villagers awake, thankful for surviving the night, and search the village... ",
     "not_daytime": "It is not daytime.",

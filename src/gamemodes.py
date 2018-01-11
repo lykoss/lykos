@@ -1355,6 +1355,9 @@ class MudkipMode(GameMode):
         gameid = var.GAME_ID
         last = tovote[-1]
 
+        if evt.params.timeout:
+            channels.Main.send(messages["sunset_lynch"])
+
         from src.wolfgame import chk_decision
         for p in tovote:
             deadlist = tovote[:]
@@ -1367,8 +1370,7 @@ class MudkipMode(GameMode):
             evt.data["transition_night"](cli)
 
         # make original chk_decision that called us no-op
-        evt.data["votelist"] = {}
-        evt.data["numvotes"] = {}
+        evt.prevent_default = True
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"

@@ -1758,7 +1758,8 @@ def hurry_up(cli, gameid, change):
         "weights": {}, # filled as part of a priority 1 event
         "transition_night": transition_night
         }, voters=pl, timeout=True)
-    event.dispatch(cli, var, "")
+    if not event.dispatch(cli, var, ""):
+        return
     not_lynching = event.data["not_lynching"]
     votelist = event.data["votelist"]
     numvotes = event.data["numvotes"]
@@ -1772,7 +1773,7 @@ def hurry_up(cli, gameid, change):
         elif numvotes[votee] == maxfound[0]:
             found_dup = True
     if maxfound[0] > 0 and not found_dup:
-        cli.msg(chan, "The sun sets.")
+        cli.msg(chan, messages["sunset_lynch"])
         chk_decision(cli, force=maxfound[1])  # Induce a lynch
     else:
         cli.msg(chan, messages["sunset"])
@@ -1821,7 +1822,8 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
             "weights": {}, # filled as part of a priority 1 event
             "transition_night": transition_night
             }, voters=pl, timeout=False)
-        event.dispatch(cli, var, force)
+        if not event.dispatch(cli, var, force):
+            return
         not_lynching = event.data["not_lynching"]
         votelist = event.data["votelist"]
         numvotes = event.data["numvotes"]
