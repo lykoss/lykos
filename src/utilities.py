@@ -382,10 +382,10 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
 # wrapper around complete_match() used for any nick on the channel
-def get_nick(cli, nick):
-    ul = [x for x in var.USERS]
-    ull = [x.lower() for x in var.USERS]
-    lnick = complete_match(nick.lower(), ull)
+def get_nick(nick):
+    ul = list(var.USERS.keys())
+    ull = [u.lower() for u in ul]
+    lnick = complete_one_match(nick.lower(), ull)
     if not lnick:
         return None
     return ul[ull.index(lnick)]
