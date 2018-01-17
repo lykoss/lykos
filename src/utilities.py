@@ -13,7 +13,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "get_role", "get_roles", "change_role", "role_order", "break_long_message",
-           "complete_match", "complete_one_match", "get_victim", "get_nick", "InvalidModeException"]
+           "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
     if is_fake_nick(target) and botconfig.DEBUG_MODE:
@@ -380,15 +380,6 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
-
-# wrapper around complete_match() used for any nick on the channel
-def get_nick(nick):
-    ul = list(var.USERS.keys())
-    ull = [u.lower() for u in ul]
-    lnick = complete_one_match(nick.lower(), ull)
-    if not lnick:
-        return None
-    return ul[ull.index(lnick)]
 
 class InvalidModeException(Exception): pass
 
