@@ -673,12 +673,16 @@ def join_timer_handler(var):
             for num in var.PING_IF_NUMS_ACCS:
                 if num <= len(pl):
                     for acc in var.PING_IF_NUMS_ACCS[num]:
+                        if db.has_unacknowledged_warnings(acc, None):
+                            continue
                         chk_acc.add(users.lower(acc))
 
         if not var.ACCOUNTS_ONLY:
             for num in var.PING_IF_NUMS:
                 if num <= len(pl):
                     for hostmask in var.PING_IF_NUMS[num]:
+                        if db.has_unacknowledged_warnings(None, hostmask):
+                            continue
                         checker.add(users.lower(hostmask, casemapping="ascii"))
 
         # Don't ping alt connections of users that have already joined
