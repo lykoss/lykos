@@ -65,7 +65,7 @@ def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
         # and therefore cannot be traitor. However, we currently do not have the logic to deduce this
 
 @event_listener("chk_win", priority=1.1)
-def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):

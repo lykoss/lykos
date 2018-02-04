@@ -82,7 +82,7 @@ def charm(var, wrapper, message):
         wrapper.send(messages["charm_success"].format(orig1))
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     # lpl doesn't included wounded/sick people or consecrating priests
     # whereas we want to ensure EVERYONE (even wounded people) are charmed for piper win
     pipers = rolemap.get("piper", set())

@@ -58,7 +58,7 @@ def on_transition_night_end(evt, var):
     wofl.send_messages()
 
 @event_listener("chk_win", priority=1)
-def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):

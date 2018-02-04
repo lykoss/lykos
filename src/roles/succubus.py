@@ -162,7 +162,7 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["won"] = True
 
 @event_listener("chk_win", priority=2)
-def on_chk_win(evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lsuccubi = len(rolemap.get("succubus", ()))
     lentranced = len([x for x in ENTRANCED if x.nick not in var.DEAD])
     if lsuccubi and var.PHASE == "day" and lpl - lsuccubi == lentranced:
