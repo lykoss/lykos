@@ -1879,7 +1879,7 @@ def chk_decision(cli, force="", end_game=True, deadlist=[]):
                         # so we want to show "fool" even if it's a template
                         lmsg = random.choice(messages["lynch_reveal"]).format(votee, "", "fool")
                         cli.msg(botconfig.CHANNEL, lmsg)
-                        if chk_win(cli, winner="@" + votee):
+                        if chk_win(winner="@" + votee):
                             return
                     deadlist.append(votee)
                     # Other
@@ -2250,9 +2250,8 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
 
     return True
 
-def chk_win(cli, end_game=True, winner=None):
+def chk_win(*, end_game=True, winner=None):
     """ Returns True if someone won """
-    chan = botconfig.CHANNEL
     lpl = len(list_players())
 
     if var.PHASE == "join":
@@ -2266,7 +2265,7 @@ def chk_win(cli, end_game=True, winner=None):
                 var.AFTER_FLASTGAME()
                 var.AFTER_FLASTGAME = None
             if var.ADMIN_TO_PING is not None:  # It was an flastgame
-                cli.msg(chan, "PING! {0}".format(var.ADMIN_TO_PING))
+                channels.Main.send("PING! {0}".format(var.ADMIN_TO_PING))
                 var.ADMIN_TO_PING = None
 
             return True
@@ -2274,14 +2273,13 @@ def chk_win(cli, end_game=True, winner=None):
     if var.PHASE not in var.GAME_PHASES:
         return False #some other thread already ended game probably
 
-    return chk_win_conditions(cli, var.ROLES, var.MAIN_ROLES, end_game, winner)
+    return chk_win_conditions(var.ROLES, var.MAIN_ROLES, end_game, winner)
 
-def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
+def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
-    chan = botconfig.CHANNEL
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
+            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING) # TODO: Convert to users
             evt = Event("get_voters", {"voters": pl})
             evt.dispatch(var)
             pl = evt.data["voters"]
@@ -2334,7 +2332,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
                 message = messages["monster_wolf_win"].format(s)
                 winner = "monsters"
 
-        # TODO: convert to using users, flip priority order (so that things like fool run last, and therefore override previous win conds)
+        # TODO: flip priority order (so that things like fool run last, and therefore override previous win conds)
         # Priorities:
         # 0 = fool, other roles that end game immediately
         # 1 = things that could short-circuit game ending, such as cub growing up or traitor turning
@@ -2348,8 +2346,8 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
         #     (monster's message changes based on who would have otherwise won)
         # 5 = gamemode-specific win conditions
         event = Event("chk_win", {"winner": winner, "message": message, "additional_winners": None})
-        if not event.dispatch(cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
-            return chk_win_conditions(cli, rolemap, mainroles, end_game, winner)
+        if not event.dispatch(var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+            return chk_win_conditions(rolemap, mainroles, end_game, winner)
         winner = event.data["winner"]
         message = event.data["message"]
 
@@ -2358,7 +2356,7 @@ def chk_win_conditions(cli, rolemap, mainroles, end_game=True, winner=None):
 
         if end_game:
             debuglog("WIN:", winner)
-            cli.msg(chan, message)
+            channels.Main.send(message)
             stop_game(winner, additional_winners=event.data["additional_winners"])
         return True
 
@@ -2645,13 +2643,13 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                     cmode.append(("+" + mode, player.nick))
                 del var.OLD_MODES[player]
                 var.ALL_PLAYERS.remove(player)
-                ret = not chk_win(channels.Main.client) # FIXME
+                ret = not chk_win()
             else:
                 # Died during the game, so quiet!
                 if var.QUIET_DEAD_PLAYERS and not player.is_fake:
                     cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+player.nick+"!*@*"))
                 var.DEAD.add(player.nick)
-                ret = not chk_win(channels.Main.client, end_game) # FIXME
+                ret = not chk_win(end_game=end_game)
             # only join to deadchat if the game isn't about to end
             if ismain:
                 if ret:
@@ -2765,7 +2763,7 @@ def reaper(cli, gameid):
                     if var.IDLE_PENALTY:
                         add_warning(cli, nck, var.IDLE_PENALTY, users.Bot.nick, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     del_player(user, end_game=False, death_triggers=False)
-                win = chk_win(cli)
+                win = chk_win()
                 if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
                     chk_decision(cli)
                 pl = list_players()
@@ -3744,7 +3742,7 @@ def transition_day(cli, gameid=0):
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(var)
 
-    if chk_win(cli):  # if after the last person is killed, one side wins, then actually end the game here
+    if chk_win():  # if after the last person is killed, one side wins, then actually end the game here
         return
 
     event_end.data["begin_day"](cli)
@@ -4251,7 +4249,7 @@ def shoot(var, wrapper, message):
                         del var.VOTES[cand]
                     break
             chk_decision(wrapper.source.client)
-            chk_win(wrapper.source.client)
+            chk_win()
     elif rand <= chances[0] + chances[1]:
         wrapper.send(messages["gunner_miss"].format(wrapper.source.nick))
     else:
@@ -4320,7 +4318,7 @@ def consecrate(cli, nick, chan, rest):
     pm(cli, nick, messages["consecrate_success"].format(victim))
     debuglog("{0} ({1}) CONSECRATE: {2}".format(nick, get_role(nick), victim))
     # consecrating can possibly cause game to end, so check for that
-    chk_win(cli)
+    chk_win()
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
@@ -5064,12 +5062,12 @@ def transition_night(cli):
                     var.TURNCOATS[amn] = ("none", -1)
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
-    if var.FIRST_NIGHT and chk_win(cli, end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
+    if var.FIRST_NIGHT and chk_win(end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
         start(cli, users.Bot.nick, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
         return
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
-    if chk_win(cli):
+    if chk_win():
         return
 
     # send PMs
@@ -7110,7 +7108,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             var.STATS_TYPE = "accurate"
 
             cli.msg(chan, messages["stats_accurate"].format(botconfig.CMD_CHAR))
-        chk_win(cli)
+        chk_win()
 
 
 if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:

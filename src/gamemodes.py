@@ -106,7 +106,7 @@ class GameMode:
         pass
 
     # Here so any game mode can use it
-    def lovers_chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def lovers_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         winner = evt.data["winner"]
         if winner is not None and winner.startswith("@"):
             return # fool won, lovers can't win even if they would
@@ -121,7 +121,7 @@ class GameMode:
             evt.data["additional_winners"] = list(lovers)
             evt.data["message"] = messages["lovers_win"]
 
-    def all_dead_chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def all_dead_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         if evt.data["winner"] == "no_team_wins":
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
@@ -200,7 +200,7 @@ class VillagergameMode(GameMode):
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
 
-    def chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         # village can only win via unanimous vote on the bot nick
         # villagergame_lose should probably explain that mechanic
         # Note: not implemented here since that needs to work in default too
@@ -355,7 +355,7 @@ class EvilVillageMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
 
-    def chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lsafes = len(list_players(["oracle", "seer", "guardian angel", "shaman", "hunter", "villager"]))
         lcultists = len(list_players(["cultist"]))
         evt.stop_processing = True
@@ -780,7 +780,7 @@ class GuardianMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
 
-    def chk_win(self, evt, cli, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
+    def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lguardians = len(list_players(["guardian angel", "bodyguard"]))
 
         if lpl < 1:
