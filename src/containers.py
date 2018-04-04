@@ -136,28 +136,28 @@ class UserSet(set):
     def __iand__(self, other):
         res = super().__iand__(other)
         if not isinstance(other, set):
-            raise TypeError("must use &= with another set")
+            return NotImplemented
 
         self.intersection_update(other)
         return self
 
     def __ior__(self, other):
         if not isinstance(other, set):
-            raise TypeError("must use |= with another set")
+            return NotImplemented
 
         self.update(other)
         return self
 
     def __isub__(self, other):
         if not isinstance(other, set):
-            raise TypeError("must use -= with another set")
+            return NotImplemented
 
         self.difference_update(other)
         return
 
     def __ixor__(self, other):
         if not isinstance(other, set):
-            raise TypeError("must use ^= with another set")
+            return NotImplemented
 
         self.symmetric_difference_update(other)
         return self
