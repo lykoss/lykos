@@ -7,12 +7,13 @@ from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 import botconfig
 
-KILLS = {} # type: Dict[users.User, users.User]
-TARGETS = {} # type: Dict[users.User, Set[users.User]]
+KILLS = UserDict() # type: Dict[users.User, users.User]
+TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(var, wrapper, message):
@@ -62,65 +63,49 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             del KILLS[h]
     if death_triggers and "dullahan" in allroles:
         pl = evt.data["pl"]
-        targets = TARGETS[user].intersection(pl)
-        if targets:
-            target = random.choice(list(targets))
-            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-            aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
-                    del_player=evt.params.del_player,
-                    deadlist=evt.params.deadlist,
-                    original=evt.params.original,
-                    refresh_pl=evt.params.refresh_pl,
-                    message_prefix="dullahan_die_",
-                    source="dullahan",
-                    killer=user,
-                    killer_mainrole=mainrole,
-                    killer_allroles=allroles,
-                    prots=prots)
-            while len(prots) > 0:
-                # an event can read the current active protection and cancel or redirect the assassination
-                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                # so that it cannot be used again (if the protection is meant to be usable once-only)
-                if not aevt.dispatch(var, user, target, prots[0]):
-                    evt.data["pl"] = aevt.data["pl"]
-                    if target is not aevt.data["target"]:
-                        target = aevt.data["target"]
-                        prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                        aevt.params.prots = prots
-                        continue
-                    return
-                prots.popleft()
+        with TARGETS[user].intersection(pl) as targets:
+            if targets:
+                target = random.choice(list(targets))
+                prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
+                aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
+                        del_player=evt.params.del_player,
+                        deadlist=evt.params.deadlist,
+                        original=evt.params.original,
+                        refresh_pl=evt.params.refresh_pl,
+                        message_prefix="dullahan_die_",
+                        source="dullahan",
+                        killer=user,
+                        killer_mainrole=mainrole,
+                        killer_allroles=allroles,
+                        prots=prots)
+                while len(prots) > 0:
+                    # an event can read the current active protection and cancel or redirect the assassination
+                    # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                    # so that it cannot be used again (if the protection is meant to be usable once-only)
+                    if not aevt.dispatch(var, user, target, prots[0]):
+                        evt.data["pl"] = aevt.data["pl"]
+                        if target is not aevt.data["target"]:
+                            target = aevt.data["target"]
+                            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
+                            aevt.params.prots = prots
+                            continue
+                        return
+                    prots.popleft()
 
-            if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(target)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
-            else:
-                channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
-            debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
-            evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-            evt.data["pl"] = evt.params.refresh_pl(pl)
+                if var.ROLE_REVEAL in ("on", "team"):
+                    role = get_reveal_role(target)
+                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                    channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
+                else:
+                    channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
+                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
+                evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+                evt.data["pl"] = evt.params.refresh_pl(pl)
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
     if user in KILLS:
         evt.data["acted"] = True
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    if old_user in KILLS:
-        KILLS[user] = KILLS.pop(old_user)
-    if old_user in TARGETS:
-        TARGETS[user] = TARGETS.pop(old_user)
-
-    for dullahan, target in KILLS.items():
-        if target is old_user:
-            KILLS[dullahan] = user
-
-    for dullahan, targets in TARGETS.items():
-        if old_user in targets:
-            targets.remove(old_user)
-            targets.add(user)
 
 @event_listener("get_special")
 def on_get_special(evt, var):
@@ -177,7 +162,7 @@ def on_role_assignment(evt, cli, var, gamemode, pl, restart):
     if var.ROLES["dullahan"]:
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
-            TARGETS[dull] = set()
+            TARGETS[dull] = UserSet()
         dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
         dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
 

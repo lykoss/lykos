@@ -7,11 +7,12 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+KILLS = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_kill(var, wrapper, message):
@@ -60,18 +61,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         if target is user:
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    for vigilante, target in set(KILLS.items()):
-        if vigilante is old_user:
-            KILLS[user] = KILLS.pop(vigilante)
-        if target is old_user:
-            KILLS[vigilante] = user
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
 
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):

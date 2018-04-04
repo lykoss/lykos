@@ -49,6 +49,7 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
+from src.containers import UserList, UserSet, UserDict
 from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
 from src.warnings import *
@@ -81,6 +82,9 @@ var.AFTER_FLASTGAME = None
 var.PINGING_IFS = False
 var.TIMERS = {}
 var.OLD_MODES = defaultdict(set)
+
+var.ROLES = {} # type: Dict[str, Set[users.User]]
+var.ALL_PLAYERS = UserList()
 
 var.ORIGINAL_SETTINGS = {}
 var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
@@ -297,11 +301,10 @@ def reset_modes_timers(var):
 def reset():
     var.PHASE = "none" # "join", "day", or "night"
     var.GAME_ID = 0
+    var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
     var.DEAD = set()
-    var.ROLES = {"person" : set()} # type: Dict[str, Set[users.User]]
     var.MAIN_ROLES = {} # type: Dict[users.User, str]
-    var.ALL_PLAYERS = []
     var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
     var.PINGED_ALREADY = set()
@@ -323,6 +326,11 @@ def reset():
     var.DCED_LOSERS.clear()
     var.SPECTATING_WOLFCHAT = set()
     var.SPECTATING_DEADCHAT = set()
+
+    for s in var.ROLES.values():
+        s.clear()
+    var.ROLES.clear()
+    var.ROLES["person"] = UserSet()
 
     evt = Event("reset", {})
     evt.dispatch(var)
@@ -585,6 +593,7 @@ def replace(var, wrapper, message):
         evt = Event("swap_player", {})
         evt.dispatch(var, target, wrapper.source)
         rename_player(var, wrapper.source, target.nick)
+        target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
             return_to_village(var, target, show_message=False)
 
@@ -5438,7 +5447,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
-    var.ROLES = {var.DEFAULT_ROLE: set()} # type: Dict[str, Set[users.User]]
+    var.ROLES = {var.DEFAULT_ROLE: UserSet()} # type: Dict[str, Set[users.User]]
     var.GUNNERS = {}
     var.OBSERVED = {}
     var.CLONED = {}
@@ -5493,7 +5502,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         for x in selected:
             var.MAIN_ROLES[users._get(x)] = role # FIXME
             villagers.remove(x)
-        var.ROLES[role] = set(users._get(x) for x in selected) # FIXME
+        var.ROLES[role] = UserSet(users._get(x) for x in selected) # FIXME
         fixed_count = count - roleset_roles[role]
         if fixed_count > 0:
             for pr in possible_rolesets:
@@ -5533,7 +5542,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 var.ROLES[template] = set()
                 continue
 
-        var.ROLES[template] = set(users._get(x) for x in random.sample(possible, len(var.ROLES[template]))) # FIXME
+        var.ROLES[template] = UserSet(users._get(x) for x in random.sample(possible, len(var.ROLES[template]))) # FIXME
 
     # Handle gunner
     cannot_be_sharpshooter = get_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"])
@@ -5550,7 +5559,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         else:
             var.GUNNERS[gunner.nick] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
 
-    var.ROLES["sharpshooter"] = set(var.ROLES["sharpshooter"])
+    var.ROLES["sharpshooter"] = UserSet(var.ROLES["sharpshooter"])
     var.ROLES["sharpshooter"].discard(None)
 
     with var.WARNING_LOCK: # cancel timers
@@ -6987,7 +6996,7 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
         elif who == "gunner":
             tgt = {users._get(g) for g in var.GUNNERS.keys()} # FIXME
         else:
-            tgt = var.ROLES[who].copy()
+            tgt = set(var.ROLES[who])
 
         comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
         if comm in COMMANDS and not COMMANDS[comm][0].owner_only:

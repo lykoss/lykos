@@ -220,6 +220,10 @@ class User(IRCContext):
         self.account = account
         self.channels = {}
         self.timestamp = time.time()
+        self.sets = []
+        self.lists = []
+        self.dict_keys = []
+        self.dict_values = []
 
         if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
             self = Bot
@@ -313,6 +317,24 @@ class User(IRCContext):
 
     def __deepcopy__(self, memo):
         return self
+
+    def swap(self, new):
+        """Swap yourself out with the new user everywhere."""
+        for l in self.lists:
+            while self in l:
+                l[l.find(self)] = new
+
+        for s in self.sets:
+            s.remove(self)
+            s.add(new)
+
+        for dk in self.dict_keys:
+            dk[new] = dk.pop(self)
+
+        for dv in self.dict_values:
+            for key in dv:
+                if dv[key] is self:
+                    dv[key] = new
 
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))

@@ -10,6 +10,7 @@ from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
