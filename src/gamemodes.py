@@ -1290,7 +1290,7 @@ class MudkipMode(GameMode):
         self.ROLE_INDEX =         (  4  ,  5  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 14  , 15  )
         self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
         self.ROLE_GUIDE.update({# village roles
-              "detective"       : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
+              "investigator"    : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "guardian angel"  : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "shaman"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
@@ -1339,7 +1339,7 @@ class MudkipMode(GameMode):
 
         avail = len(evt.params.voters)
         voted = sum(map(len, evt.data["votelist"].values()))
-        if avail != voted and not evt.params.timeout:
+        if (avail != voted and not evt.params.timeout) or voted == 0:
             return
 
         majority = avail // 2 + 1

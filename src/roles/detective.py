@@ -55,7 +55,7 @@ def investigate(cli, nick, chan, rest):
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
 
-        mass_privmsg(cli, list_players(wcroles), messages["investigator_reveal"].format(nick))
+        mass_privmsg(cli, list_players(wcroles), messages["detective_reveal"].format(nick))
         debuglog("{0} ({1}) PAPER DROP".format(nick, get_role(nick)))
 
 @event_listener("rename_player")
