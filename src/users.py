@@ -320,6 +320,9 @@ class User(IRCContext):
 
     def swap(self, new):
         """Swap yourself out with the new user everywhere."""
+        if self is new:
+            return # as far as the caller is aware, we've swapped
+
         for l in self.lists:
             while self in l:
                 l[l.find(self)] = new

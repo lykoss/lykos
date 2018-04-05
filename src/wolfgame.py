@@ -73,8 +73,8 @@ var.LAST_GOAT = {}
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.ORIGINAL_ROLES = {} # type: Dict[str, Set[users.User]]
-var.DCED_LOSERS = set() # type: Set[users.User]
+var.ORIGINAL_ROLES = UserDict() # type: Dict[str, Set[users.User]]
+var.DCED_LOSERS = UserSet() # type: Set[users.User]
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
 var.ADMIN_TO_PING = None
@@ -83,8 +83,12 @@ var.PINGING_IFS = False
 var.TIMERS = {}
 var.OLD_MODES = defaultdict(set)
 
-var.ROLES = {} # type: Dict[str, Set[users.User]]
+var.ROLES = UserDict() # type: Dict[str, Set[users.User]]
+var.MAIN_ROLES = UserDict() # type: Dict[users.User, str]
 var.ALL_PLAYERS = UserList()
+
+var.DYING = UserSet()
+var.DEADCHAT_PLAYERS = UserSet()
 
 var.ORIGINAL_SETTINGS = {}
 var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
@@ -304,7 +308,6 @@ def reset():
     var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
     var.DEAD = set()
-    var.MAIN_ROLES = {} # type: Dict[users.User, str]
     var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
     var.PINGED_ALREADY = set()
@@ -327,10 +330,9 @@ def reset():
     var.SPECTATING_WOLFCHAT = set()
     var.SPECTATING_DEADCHAT = set()
 
-    for s in var.ROLES.values():
-        s.clear()
     var.ROLES.clear()
     var.ROLES["person"] = UserSet()
+    var.MAIN_ROLES.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)
@@ -602,19 +604,6 @@ def replace(var, wrapper, message):
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: Old API
-
-@event_listener("swap_player", priority=0)
-def swap_player(evt, var, old_user, user):
-    var.ALL_PLAYERS[var.ALL_PLAYERS.index(old_user)] = user
-    var.MAIN_ROLES[user] = var.MAIN_ROLES.pop(old_user)
-    for role, players in var.ROLES.items():
-        if old_user in players:
-            players.remove(old_user)
-            players.add(user)
-    for role, players in var.ORIGINAL_ROLES.items():
-        if old_user in players:
-            players.remove(old_user)
-            players.add(user)
 
 
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
@@ -3256,7 +3245,7 @@ def begin_day(cli):
     var.LUCKY = set()
     var.DISEASED = set()
     var.MISDIRECTED = set()
-    var.DYING = set()
+    var.DYING.clear()
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     cli.msg(chan, msg)
@@ -4553,8 +4542,7 @@ def bite_cmd(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["alpha_bite_wolfchat"].format(nick, victim), ("alpha wolf",), is_wolf_command=True)
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, get_role(nick), actual, get_role(actual)))
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",),
-    roles=("turncoat", "warlock"))
+@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat", "warlock"))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
     nickrole = get_role(nick)
@@ -5447,7 +5435,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
         for decor in (COMMANDS["join"] + COMMANDS["start"]):
             decor(_command_disabled)
 
-    var.ROLES = {var.DEFAULT_ROLE: UserSet()} # type: Dict[str, Set[users.User]]
+    var.ROLES.clear()
+    var.ROLES[var.DEFAULT_ROLE] = UserSet()
     var.GUNNERS = {}
     var.OBSERVED = {}
     var.CLONED = {}
@@ -5462,7 +5451,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DAY_COUNT = 0
     var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
-    var.MAIN_ROLES = {}
+    var.MAIN_ROLES.clear()
     var.FINAL_ROLES = {}
     var.ORIGINAL_LOVERS = {}
     var.LYCANTHROPES = set()
@@ -5487,10 +5476,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXTRA_WOLVES = 0
     var.PRIESTS = set()
     var.CONSECRATING = set()
-    var.DYING = set()
+    var.DYING.clear()
     var.PRAYED = {}
 
-    var.DEADCHAT_PLAYERS = set()
+    var.DEADCHAT_PLAYERS.clear()
     var.SPECTATING_WOLFCHAT = set()
     var.SPECTATING_DEADCHAT = set()
 
@@ -5532,14 +5521,15 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if len(possible) < len(var.ROLES[template]):
             cli.msg(chan, messages["not_enough_targets"].format(template))
             if var.ORIGINAL_SETTINGS:
-                var.ROLES = {"person": set(var.ALL_PLAYERS)}
+                var.ROLES.clear()
+                var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
                 reset_settings()
                 cli.msg(chan, messages["default_reset"].format(botconfig.CMD_CHAR))
                 var.PHASE = "join"
                 return
             else:
                 cli.msg(chan, messages["role_skipped"])
-                var.ROLES[template] = set()
+                var.ROLES[template] = UserSet()
                 continue
 
         var.ROLES[template] = UserSet(users._get(x) for x in random.sample(possible, len(var.ROLES[template]))) # FIXME
@@ -5614,7 +5604,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cli.msg(chan, messages["welcome"].format(", ".join(pl), gamemode, options))
         cli.mode(chan, "+m")
 
-    var.ORIGINAL_ROLES = copy.deepcopy(var.ROLES)  # Make a copy
+    var.ORIGINAL_ROLES.clear()
+    var.ORIGINAL_ROLES.update(var.ROLES)
 
     # Handle amnesiac;
     # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1

@@ -12,6 +12,7 @@ from src.utilities import *
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import handle_error, command
+from src.containers import UserList, UserSet, UserDict
 from src import events, channels, users
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -913,7 +914,7 @@ class SleepyMode(GameMode):
 
     def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
         for dull in dullahans:
-            evt.data["targets"][dull] = set(var.ROLES["priest"])
+            evt.data["targets"][dull] = UserSet(var.ROLES["priest"])
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
@@ -1125,13 +1126,12 @@ class MaelstromMode(GameMode):
     def _on_join(self, var, wrapper):
         from src import hooks, channels
         role = random.choice(self.roles)
-        rolemap = copy.deepcopy(var.ROLES)
-        rolemap[role].add(wrapper.source)
-        mainroles = copy.deepcopy(var.MAIN_ROLES)
-        mainroles[wrapper.source] = role
+        with copy.deepcopy(var.ROLES) as rolemap, copy.deepcopy(var.MAIN_ROLES) as mainroles:
+            rolemap[role].add(wrapper.source)
+            mainroles[wrapper.source] = role
 
-        if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
-            return self._on_join(var, wrapper)
+            if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
+                return self._on_join(var, wrapper)
 
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
             cmodes = [("+v", wrapper.source)]
@@ -1188,7 +1188,7 @@ class MaelstromMode(GameMode):
         # shameless copy/paste of regular role attribution
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
-            var.ROLES[role] = set(selected)
+            var.ROLES[role] = UserSet(selected)
             for x in selected:
                 villagers.remove(x)
 

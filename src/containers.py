@@ -6,9 +6,11 @@ class UserList(list):
     def __init__(self, iterable=()):
         super().__init__()
         for item in iterable:
-            if isinstance(item, User):
-                if self not in item.lists:
-                    item.lists.append(self)
+            if not isinstance(item, User):
+                raise TypeError("UserList may only contain User instances")
+
+            if self not in item.lists:
+                item.lists.append(self)
             self.append(item)
 
     def __enter__(self):
@@ -24,15 +26,16 @@ class UserList(list):
         self.extend(other)
 
     def __setitem__(self, index, value):
+        if not isinstance(value, User):
+            raise TypeError("UserList may only contain User instances")
+
         item = self[index]
         super().__setitem__(index, value)
-        if isinstance(item, User):
-            if item not in self:
-                item.lists.remove(self)
+        if item not in self:
+            item.lists.remove(self)
 
-        if isinstance(value, User):
-            if self not in value.lists:
-                value.lists.append(self)
+        if self not in value.lists:
+            value.lists.append(self)
 
     def __delitem__(self, index):
         item = self[index]
@@ -43,9 +46,11 @@ class UserList(list):
             item.lists.remove(self)
 
     def append(self, item):
-        if isinstance(item, User):
-            if self not in item.lists:
-                item.lists.append(self)
+        if not isinstance(item, User):
+            raise TypeError("UserList may only contain User instances")
+
+        if self not in item.lists:
+            item.lists.append(self)
 
         super().append(item)
 
@@ -60,9 +65,11 @@ class UserList(list):
 
     def extend(self, iterable):
         for item in iterable:
-            if isinstance(item, User):
-                if self not in item.lists:
-                    item.lists.append(self)
+            if not isinstance(item, User):
+                raise TypeError("UserList may only contain User instances")
+
+            if self not in item.lists:
+                item.lists.append(self)
             super().append(item)
 
     def insert(self, index, item):
@@ -70,33 +77,35 @@ class UserList(list):
 
         # If it didn't work, we don't get here
 
-        if isinstance(item, User):
-            if self not in item.lists:
-                item.lists.append(self)
+        if not isinstance(item, User):
+            raise TypeError("UserList may only contain User instances")
+
+        if self not in item.lists:
+            item.lists.append(self)
 
     def pop(self, index=-1):
         item = super().pop(index)
 
-        if isinstance(item, User):
-            if item not in self:
-                item.lists.remove(self)
+        if item not in self:
+            item.lists.remove(self)
 
         return item
 
     def remove(self, item):
         super().remove(item)
 
-        if isinstance(item, User):
-            if item not in self:
-                item.lists.remove(self)
+        if item not in self:
+            item.lists.remove(self)
 
 class UserSet(set):
     def __init__(self, iterable=()):
         super().__init__()
         for item in iterable:
-            if isinstance(item, User):
-                if self not in item.sets:
-                    item.sets.append(self)
+            if not isinstance(item, User):
+                raise TypeError("UserSet may only contain User instances")
+
+            if self not in item.sets:
+                item.sets.append(self)
             self.add(item)
 
     def __enter__(self):
@@ -164,8 +173,10 @@ class UserSet(set):
 
     def add(self, item):
         if item not in self:
-            if isinstance(item, User):
-                item.sets.append(self)
+            if not isinstance(item, User):
+                raise TypeError("UserSet may only contain User instances")
+
+            item.sets.append(self)
             super().add(item)
 
     def clear(self):
@@ -187,8 +198,7 @@ class UserSet(set):
 
     def discard(self, item):
         if item in self:
-            if isinstance(item, User):
-                item.sets.remove(self)
+            item.sets.remove(self)
 
         super().discard(item)
 
@@ -202,15 +212,13 @@ class UserSet(set):
 
     def pop(self):
         item = super().pop()
-        if isinstance(item, User):
-            item.sets.remove(self)
+        item.sets.remove(self)
         return item
 
     def remove(self, item):
         super().remove(item)
 
-        if isinstance(item, User):
-            item.sets.remove(self)
+        item.sets.remove(self)
 
     def symmetric_difference(self, iterable):
         return type(self)(super().symmetric_difference(iterable))
@@ -280,6 +288,11 @@ class UserDict(dict):
                 if self in value.dict_values:
                     value.dict_values.remove(self)
 
+            if isinstance(key, (UserList, UserSet, UserDict)):
+                key.clear()
+            if isinstance(value, (UserList, UserSet, UserDict)):
+                value.clear()
+
         super().clear()
 
     def copy(self):
@@ -313,5 +326,7 @@ class UserDict(dict):
         return self[key]
 
     def update(self, iterable):
+        if hasattr(iterable, "items"):
+            iterable = iterable.items()
         for key, value in iterable:
             self[key] = value
