@@ -45,6 +45,12 @@ class UserList(list):
         if item not in self: # there may have been multiple instances
             item.lists.remove(self)
 
+    def as_list(self, *, consume=True):
+        """Return a list of self. If consume is True, clear self."""
+        ret = list(self)
+        self.clear()
+        return ret
+
     def append(self, item):
         if not isinstance(item, User):
             raise TypeError("UserList may only contain User instances")
@@ -171,6 +177,12 @@ class UserSet(set):
         self.symmetric_difference_update(other)
         return self
 
+    def as_set(self, *, consume=True):
+        """Return a set of self. If consume is True, clear self."""
+        ret = set(self)
+        self.clear()
+        return ret
+
     def add(self, item):
         if item not in self:
             if not isinstance(item, User):
@@ -279,6 +291,12 @@ class UserDict(dict):
         if isinstance(value, User):
             if value not in self.values():
                 item.dict_values.remove(self)
+
+    def as_dict(self, *, consume=True):
+        """Return a dict of self. If consume is True, clear self."""
+        ret = dict(self)
+        self.clear()
+        return ret
 
     def clear(self):
         for key, value in self.items():
