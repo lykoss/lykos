@@ -17,8 +17,7 @@ from src.events import Event
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
 
 # Instead of using list, set or dict, please use UserList, UserSet or UserDict respectively
-# However, you MUST call the .clear() method on each instance before letting it go out of scope
-# Alternatively, 'with container' will automatically clear it upon exiting (and is safe should exceptions occur)
+# Please refer to the notes in containers.py for proper use
 
 # Add to evt.data["actedcount"] and evt.data["nightroles"] if this role can act during night
 # nightroles lists all Users who have this role and are capable of acting tonight

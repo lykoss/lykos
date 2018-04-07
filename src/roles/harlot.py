@@ -14,8 +14,8 @@ from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-VISITED = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+VISITED = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(var, wrapper, message):
@@ -134,18 +134,6 @@ def on_transition_night_end(evt, var):
 def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    for harlot, target in set(VISITED.items()):
-        if target is old_user:
-            VISITED[harlot] = user
-        if harlot is old_user:
-            VISITED[user] = VISITED.pop(harlot)
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
 
 @event_listener("get_special")
 def on_get_special(evt, var):

@@ -14,8 +14,8 @@ from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-TOBECHARMED = {} # type: Dict[users.User, Set[users.User]]
-CHARMED = set() # type: Set[users.User]
+TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
+CHARMED = UserSet() # type: Set[users.User]
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
@@ -70,7 +70,12 @@ def charm(var, wrapper, message):
         wrapper.send(messages["target_already_charmed"].format(orig2))
         return
 
-    TOBECHARMED[wrapper.source] = {target1, target2}
+    if wrapper.source in TOBECHARMED:
+        TOBECHARMED[wrapper.source].clear()
+    else:
+        TOBECHARMED[wrapper.source] = UserSet()
+
+    TOBECHARMED[wrapper.source].update({target1, target2})
     TOBECHARMED[wrapper.source].discard(None)
 
     if orig2:
@@ -196,19 +201,5 @@ def on_reset(evt, var):
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
         evt.data["output"].append("\u0002charmed players\u0002: {0}".format(", ".join(p.nick for p in CHARMED)))
-
-@event_listener("swap_player")
-def on_swap_player(evt, var, old, new):
-    if old in CHARMED:
-        CHARMED.remove(old)
-        CHARMED.add(new)
-
-    if old in TOBECHARMED:
-        TOBECHARMED[new] = TOBECHARMED.pop(old)
-
-    for s in TOBECHARMED.values():
-        if old in s:
-            s.remove(old)
-            s.add(new)
 
 # vim: set sw=4 expandtab:

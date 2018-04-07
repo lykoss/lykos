@@ -145,7 +145,7 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # hunters is the set of all hunters that have not killed in a *previous* night
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
-        hunters = (set(var.ROLES["hunter"]) - HUNTERS) | set(KILLS.keys())
+        hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
 
 # vim: set sw=4 expandtab:

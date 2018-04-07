@@ -2,6 +2,33 @@ from src.users import User
 
 __all__ = ["UserList", "UserSet", "UserDict"]
 
+""" * Important *
+
+The containers present here should always follow these rules:
+
+- Once a global variable has been set to one of the containers, it *must not* be overwritten;
+
+- The proper way to empty a container is with the 'container.clear()' method. The 'UserDict.clear' method
+  also takes care of calling the '.clear()' method of nested containers (if any), so you needn't do that;
+
+- If any local variable points to a container, the 'container.clear()' method
+  *must* be called before the variable goes out of scope;
+
+- Copying a container for mutation purpose in a local context should make use of context managers,
+  e.g. 'with copy.deepcopy(var.ROLES) as rolelist:' instead of 'rolelist = copy.deepcopy(var.ROLES)',
+  with all operations on 'rolelist' being done inside the block. Once the 'with' block is exited (be it
+  through exceptions or normal execution), the copied contained ('rolelist' in this case) is automatically cleared.
+
+- If fetching a container from a 'UserDict' with the intent to keep it around separate from the dictionary,
+  a copy is advised, as `UserDict.clear` is recursive and will clear all nested containers, even if they
+  are being used outside (as the function has no way to know).
+
+Role files should use User containers as their global variables without ever overwriting them. It is advised to
+pay close attention to where the variables get touched, to keep the above rules enforced. Refer to existing role
+files to get an idea of how those containers should be used.
+
+"""
+
 class UserList(list):
     def __init__(self, iterable=()):
         super().__init__()
@@ -44,12 +71,6 @@ class UserList(list):
 
         if item not in self: # there may have been multiple instances
             item.lists.remove(self)
-
-    def as_list(self, *, consume=True):
-        """Return a list of self. If consume is True, clear self."""
-        ret = list(self)
-        self.clear()
-        return ret
 
     def append(self, item):
         if not isinstance(item, User):
@@ -120,32 +141,6 @@ class UserSet(set):
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
-    # Magic method wrappers
-
-    def __and__(self, other):
-        return type(self)(super().__and__(other))
-
-    def __rand__(self, other):
-        return type(self)(super().__rand__(other))
-
-    def __or__(self, other):
-        return type(self)(super().__or__(other))
-
-    def __ror__(self, other):
-        return type(self)(super().__ror__(other))
-
-    def __sub__(self, other):
-        return type(self)(super().__sub__(other))
-
-    def __rsub__(self, other):
-        return type(self)(super().__rsub__(other))
-
-    def __xor__(self, other):
-        return type(self)(super().__xor__(other))
-
-    def __rxor__(self, other):
-        return type(self)(super().__rxor__(other))
-
     # Augmented assignment method overrides
 
     def __iand__(self, other):
@@ -176,12 +171,6 @@ class UserSet(set):
 
         self.symmetric_difference_update(other)
         return self
-
-    def as_set(self, *, consume=True):
-        """Return a set of self. If consume is True, clear self."""
-        ret = set(self)
-        self.clear()
-        return ret
 
     def add(self, item):
         if item not in self:
@@ -291,12 +280,6 @@ class UserDict(dict):
         if isinstance(value, User):
             if value not in self.values():
                 item.dict_values.remove(self)
-
-    def as_dict(self, *, consume=True):
-        """Return a dict of self. If consume is True, clear self."""
-        ret = dict(self)
-        self.clear()
-        return ret
 
     def clear(self):
         for key, value in self.items():
