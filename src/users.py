@@ -323,18 +323,18 @@ class User(IRCContext):
         if self is new:
             return # as far as the caller is aware, we've swapped
 
-        for l in self.lists:
+        for l in self.lists[:]:
             while self in l:
                 l[l.find(self)] = new
 
-        for s in self.sets:
+        for s in self.sets[:]:
             s.remove(self)
             s.add(new)
 
-        for dk in self.dict_keys:
+        for dk in self.dict_keys[:]:
             dk[new] = dk.pop(self)
 
-        for dv in self.dict_values:
+        for dv in self.dict_values[:]:
             for key in dv:
                 if dv[key] is self:
                     dv[key] = new

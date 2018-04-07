@@ -2007,41 +2007,41 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
     roles_msg = []
 
     origroles = {} # user-based list of original roles
-    rolelist = copy.deepcopy(var.ORIGINAL_ROLES)
-    for role, playerlist in var.ORIGINAL_ROLES.items():
-        if role in var.TEMPLATE_RESTRICTIONS.keys():
-            continue
-        for p in playerlist:
-            final = var.FINAL_ROLES.get(p.nick, role)
-            if role != final:
-                origroles[p] = role
-                rolelist[role].remove(p)
-                rolelist[final].add(p)
-    prev = False
-    for role in role_order():
-        if len(rolelist[role]) == 0:
-            continue
-        playersformatted = []
-        for p in rolelist[role]:
-            if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys():
-                playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p,
-                                        "" if prev else "was ", origroles[p]))
-                prev = True
-            elif role == "amnesiac":
-                playersformatted.append("\u0002{0}\u0002 (would be {1})".format(p,
-                                        var.AMNESIAC_ROLES[p.nick]))
+    with copy.deepcopy(var.ORIGINAL_ROLES) as rolelist:
+        for role, playerlist in var.ORIGINAL_ROLES.items():
+            if role in var.TEMPLATE_RESTRICTIONS.keys():
+                continue
+            for p in playerlist:
+                final = var.FINAL_ROLES.get(p.nick, role)
+                if role != final:
+                    origroles[p] = role
+                    rolelist[role].remove(p)
+                    rolelist[final].add(p)
+        prev = False
+        for role in role_order():
+            if len(rolelist[role]) == 0:
+                continue
+            playersformatted = []
+            for p in rolelist[role]:
+                if p in origroles and role not in var.TEMPLATE_RESTRICTIONS.keys():
+                    playersformatted.append("\u0002{0}\u0002 ({1}{2})".format(p,
+                                            "" if prev else "was ", origroles[p]))
+                    prev = True
+                elif role == "amnesiac":
+                    playersformatted.append("\u0002{0}\u0002 (would be {1})".format(p,
+                                            var.AMNESIAC_ROLES[p.nick]))
+                else:
+                    playersformatted.append("\u0002{0}\u0002".format(p))
+            if len(rolelist[role]) == 2:
+                msg = "The {1} were {0[0]} and {0[1]}."
+                roles_msg.append(msg.format(playersformatted, plural(role)))
+            elif len(rolelist[role]) == 1:
+                roles_msg.append("The {1} was {0[0]}.".format(playersformatted, role))
             else:
-                playersformatted.append("\u0002{0}\u0002".format(p))
-        if len(rolelist[role]) == 2:
-            msg = "The {1} were {0[0]} and {0[1]}."
-            roles_msg.append(msg.format(playersformatted, plural(role)))
-        elif len(rolelist[role]) == 1:
-            roles_msg.append("The {1} was {0[0]}.".format(playersformatted, role))
-        else:
-            msg = "The {2} were {0}, and {1}."
-            roles_msg.append(msg.format(", ".join(playersformatted[0:-1]),
-                                                  playersformatted[-1],
-                                                  plural(role)))
+                msg = "The {2} were {0}, and {1}."
+                roles_msg.append(msg.format(", ".join(playersformatted[0:-1]),
+                                                      playersformatted[-1],
+                                                      plural(role)))
     message = ""
     count = 0
     if not abort:

@@ -66,7 +66,7 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
         return
 
     original_victim = victim
-    role = get_role(nick) # FIXME: this is bad, check if nick is in var.ROLES[thingy] instead once split
+    role = get_role(nick) # FIXME: this is bad, check if user is in var.ROLES[thingy] instead once converted
     totem = ""
     if role != "crazed shaman":
         totem = " of " + TOTEMS[nick]
