@@ -141,6 +141,9 @@ class UserSet(set):
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
+    # Operators are not overloaded - 'user_set & other_set' will return a regular set
+    # This is a deliberate design decision. To get a UserSet out of them, use the named ones
+
     # Augmented assignment method overrides
 
     def __iand__(self, other):
