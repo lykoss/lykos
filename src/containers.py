@@ -32,13 +32,12 @@ files to get an idea of how those containers should be used.
 class UserList(list):
     def __init__(self, iterable=()):
         super().__init__()
-        for item in iterable:
-            if not isinstance(item, User):
-                raise TypeError("UserList may only contain User instances")
-
-            if self not in item.lists:
-                item.lists.append(self)
-            self.append(item)
+        try:
+            for item in iterable:
+                self.append(item)
+        except:
+            self.clear()
+            raise
 
     def __enter__(self):
         return self
@@ -83,7 +82,8 @@ class UserList(list):
 
     def clear(self):
         for item in self:
-            item.lists.remove(self)
+            if self in item.lists:
+                item.lists.remove(self)
 
         super().clear()
 
@@ -92,11 +92,6 @@ class UserList(list):
 
     def extend(self, iterable):
         for item in iterable:
-            if not isinstance(item, User):
-                raise TypeError("UserList may only contain User instances")
-
-            if self not in item.lists:
-                item.lists.append(self)
             super().append(item)
 
     def insert(self, index, item):
@@ -127,13 +122,12 @@ class UserList(list):
 class UserSet(set):
     def __init__(self, iterable=()):
         super().__init__()
-        for item in iterable:
-            if not isinstance(item, User):
-                raise TypeError("UserSet may only contain User instances")
-
-            if self not in item.sets:
-                item.sets.append(self)
-            self.add(item)
+        try:
+            for item in iterable:
+                self.add(item)
+        except:
+            self.clear()
+            raise
 
     def __enter__(self):
         return self
@@ -245,10 +239,15 @@ class UserSet(set):
 class UserDict(dict):
     def __init__(_self, _it=(), **kwargs):
         super().__init__()
-        for key, value in _it:
-            self[key] = value
-        for key, value in kwargs.items():
-            self[key] = value
+        try:
+            for key, value in _it:
+                self[key] = value
+            for key, value in kwargs.items():
+                self[key] = value
+        except:
+            while self:
+                self.popitem() # don't clear, as it's recursive (we might not want that)
+            raise
 
     def __enter__(self):
         return self
@@ -257,14 +256,11 @@ class UserDict(dict):
         self.clear()
 
     def __setitem__(self, item, value):
-        in_self = item in self
-        if in_self:
-            old = self[item]
+        old = self.get(item)
         super().__setitem__(item, value)
-        if in_self:
-            if isinstance(old, User):
-                if old not in self.values():
-                    old.dict_values.remove(self)
+        if isinstance(old, User):
+            if old not in self.values():
+                old.dict_values.remove(self)
 
         if isinstance(item, User):
             if self not in item.dict_keys:

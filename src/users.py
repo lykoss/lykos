@@ -339,6 +339,10 @@ class User(IRCContext):
                 if dv[key] is self:
                     dv[key] = new
 
+        # It is the containers' reponsibility to properly remove themself from the users
+        # So if any list is non-empty, something went terribly wrong
+        assert not self.lists + self.sets + self.dict_keys + self.dict_values
+
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
