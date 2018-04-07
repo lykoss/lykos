@@ -11,11 +11,11 @@ from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[users.User, users.User]
-GHOSTS = {} # type: Dict[users.User, str]
+KILLS = UserDict() # type: Dict[users.User, users.User]
+GHOSTS = UserDict() # type: Dict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
-drivenoff = {} # type: Dict[users.User, str]
+drivenoff = UserDict() # type: Dict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(var, wrapper, message):

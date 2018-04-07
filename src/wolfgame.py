@@ -90,6 +90,9 @@ var.ALL_PLAYERS = UserList()
 var.DYING = UserSet()
 var.DEADCHAT_PLAYERS = UserSet()
 
+var.SPECTATING_WOLFCHAT = UserSet()
+var.SPECTATING_DEADCHAT = UserSet()
+
 var.ORIGINAL_SETTINGS = {}
 var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
 
@@ -327,8 +330,8 @@ def reset():
     var.DCED_PLAYERS.clear()
     var.DISCONNECTED.clear()
     var.DCED_LOSERS.clear()
-    var.SPECTATING_WOLFCHAT = set()
-    var.SPECTATING_DEADCHAT = set()
+    var.SPECTATING_WOLFCHAT.clear()
+    var.SPECTATING_DEADCHAT.clear()
 
     var.ROLES.clear()
     var.ROLES["person"] = UserSet()
@@ -5437,6 +5440,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     var.ROLES.clear()
     var.ROLES[var.DEFAULT_ROLE] = UserSet()
+    var.MAIN_ROLES.clear()
     var.GUNNERS = {}
     var.OBSERVED = {}
     var.CLONED = {}
@@ -5451,7 +5455,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DAY_COUNT = 0
     var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
-    var.MAIN_ROLES.clear()
     var.FINAL_ROLES = {}
     var.ORIGINAL_LOVERS = {}
     var.LYCANTHROPES = set()
@@ -5480,8 +5483,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.PRAYED = {}
 
     var.DEADCHAT_PLAYERS.clear()
-    var.SPECTATING_WOLFCHAT = set()
-    var.SPECTATING_DEADCHAT = set()
+    var.SPECTATING_WOLFCHAT.clear()
+    var.SPECTATING_DEADCHAT.clear()
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
