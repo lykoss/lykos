@@ -10,10 +10,11 @@ from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-INVESTIGATED = set()
+INVESTIGATED = UserSet()
 
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
 def investigate(var, wrapper, message):
@@ -97,12 +98,6 @@ def investigate(var, wrapper, message):
         wrapper.source, target1, get_main_role(target1), target2, get_main_role(target2),
         "same" if same else "different"))
 
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    if old_user in INVESTIGATED:
-        INVESTIGATED.discard(old_user)
-        INVESTIGATED.add(user)
-
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     INVESTIGATED.discard(user)
@@ -116,7 +111,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role == "investigator" and target_role != "investigator":
         INVESTIGATED.discard(actor)
     elif target_role == "investigator" and actor_role != "investigator":
-        INVESTIGATED.discard(targe)
+        INVESTIGATED.discard(target)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
