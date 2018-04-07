@@ -194,17 +194,10 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
-def _swap_player(evt, var, old_user, user):
-    """Mark the user as no longer being a ghost, if they are one."""
-    _ghosts.discard(old_user)
-    if not old_user.channels:
-        _users.discard(old_user)
-
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 events.add_listener("cleanup_user", _cleanup_user)
 events.add_listener("reset", _reset)
-events.add_listener("swap_player", _swap_player, priority=1)
 
 class User(IRCContext):
 
@@ -322,6 +315,10 @@ class User(IRCContext):
         """Swap yourself out with the new user everywhere."""
         if self is new:
             return # as far as the caller is aware, we've swapped
+
+        _ghosts.discard(self)
+        if not self.channels:
+            _users.discard(self) # Goodbye, my old friend
 
         for l in self.lists[:]:
             while self in l:

@@ -64,11 +64,6 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
 def on_reset(evt, var):
     pass
 
-# Swap out a user with a different one. Update all game state to use the new User.
-@event_listener("swap_player")
-def on_swap_player(evt, var, old, new):
-    pass
-
 # Gets metadata about this role; kind will be a str with one of the following values:
 # night_kills: Add metadata about any deaths this role can cause at night which use the standard
 #              death message (i.e. do not have a custom death message). Set the data as follows:

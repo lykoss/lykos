@@ -595,8 +595,6 @@ def replace(var, wrapper, message):
             return
 
     if users.equals(target.account, wrapper.source.account) and target is not wrapper.source:
-        evt = Event("swap_player", {})
-        evt.dispatch(var, target, wrapper.source)
         rename_player(var, wrapper.source, target.nick)
         target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
@@ -2920,8 +2918,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
 
             if new_user is not target:
                 # different users, perform a swap. This will clean up disconnected users.
-                evt = Event("swap_player", {})
-                evt.dispatch(var, target, new_user)
+                target.swap(new_user)
 
             if target.nick != new_user.nick:
                 # have a nickchange, update tracking vars
