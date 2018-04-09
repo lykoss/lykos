@@ -628,26 +628,6 @@ def on_reset(evt, var):
     MISDIRECTION.clear()
     DECEIT.clear()
 
-@event_listener("frole_role")
-def on_frole_role(evt, cli, var, who, role, oldrole, args):
-    if role in var.TOTEM_ORDER:
-        if len(args) == 2:
-            TOTEMS[who] = args[1]
-        else:
-            max_totems = defaultdict(int)
-            for ix in range(len(var.TOTEM_ORDER)):
-                for c in var.TOTEM_CHANCES.values():
-                    max_totems[var.TOTEM_ORDER[ix]] += c[ix]
-            for shaman in list_players(var.TOTEM_ORDER):
-                indx = var.TOTEM_ORDER.index(role)
-                target = 0
-                rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
-                for t in var.TOTEM_CHANCES.keys():
-                    target += var.TOTEM_CHANCES[t][indx]
-                    if rand <= target:
-                        TOTEMS[shaman] = t
-                        break
-
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":

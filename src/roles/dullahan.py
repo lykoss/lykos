@@ -157,19 +157,17 @@ def on_transition_night_end(evt, var):
         dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
 
 @event_listener("role_assignment")
-def on_role_assignment(evt, cli, var, gamemode, pl, restart):
+def on_role_assignment(evt, var, gamemode, pl):
     # assign random targets to dullahan to kill
     if var.ROLES["dullahan"]:
         max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
         for dull in var.ROLES["dullahan"]:
             TARGETS[dull] = UserSet()
         dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
-        dull_targets.dispatch(cli, var, var.ROLES["dullahan"], max_targets)
-
-        players = [users._get(x) for x in pl] # FIXME
+        dull_targets.dispatch(var, var.ROLES["dullahan"], max_targets)
 
         for dull, ts in TARGETS.items():
-            ps = players[:]
+            ps = pl[:]
             ps.remove(dull)
             while len(ts) < max_targets:
                 target = random.choice(ps)

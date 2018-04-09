@@ -135,6 +135,9 @@ class UserSet(set):
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
+    def __eq__(self, other):
+        return self is other
+
     # Operators are not overloaded - 'user_set & other_set' will return a regular set
     # This is a deliberate design decision. To get a UserSet out of them, use the named ones
 
@@ -305,7 +308,8 @@ class UserDict(dict):
     def pop(self, key, *default):
         value = super().pop(key, *default)
         if isinstance(key, User):
-            key.dict_keys.remove(self)
+            if self in key.dict_keys:
+                key.dict_keys.remove(self)
         if isinstance(value, User):
             if value not in self.values():
                 value.dict_values.remove(self)

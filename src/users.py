@@ -322,7 +322,7 @@ class User(IRCContext):
 
         for l in self.lists[:]:
             while self in l:
-                l[l.find(self)] = new
+                l[l.index(self)] = new
 
         for s in self.sets[:]:
             s.remove(self)
@@ -639,7 +639,7 @@ class FakeUser(User):
 
     @rawnick.setter
     def rawnick(self, rawnick):
-        self.nick = parse_rawnick_as_dict(rawnick)["nick"]
+        raise ValueError("may not change the raw nick of a fake user")
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 

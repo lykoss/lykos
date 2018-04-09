@@ -334,6 +334,7 @@ def reset():
     var.SPECTATING_DEADCHAT.clear()
 
     var.ROLES.clear()
+    var.ORIGINAL_ROLES.clear()
     var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
 
@@ -5483,15 +5484,28 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
+    user = users._get(nick)
+    dummy_role = None
+
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
+        if var.FGAMED and var.FGAMED.startswith("roles="):
+            if var.FGAMED[6:].startswith(role):
+                var.MAIN_ROLES[user] = role
+                dummy_role = role
+                count = count-1
+            if user in villagers:
+                villagers.remove(user)
+
         selected = random.sample(villagers, count)
         for x in selected:
             var.MAIN_ROLES[users._get(x)] = role # FIXME
             villagers.remove(x)
         var.ROLES[role] = UserSet(users._get(x) for x in selected) # FIXME
+        if dummy_role == role:
+            var.ROLES[role].add(user)
         fixed_count = count - roleset_roles[role]
         if fixed_count > 0:
             for pr in possible_rolesets:
@@ -5549,8 +5563,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         else:
             var.GUNNERS[gunner.nick] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
 
-    var.ROLES["sharpshooter"] = UserSet(var.ROLES["sharpshooter"])
-    var.ROLES["sharpshooter"].discard(None)
+    var.ROLES["sharpshooter"] = UserSet(p for p in var.ROLES["sharpshooter"] if p is not None)
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
@@ -5563,7 +5576,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_VOTES = None
 
     event = Event("role_assignment", {})
-    event.dispatch(cli, var, var.CURRENT_GAMEMODE.name, pl[:], restart)
+    event.dispatch(var, var.CURRENT_GAMEMODE.name, get_players())
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
@@ -5605,7 +5618,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cli.mode(chan, "+m")
 
     var.ORIGINAL_ROLES.clear()
-    var.ORIGINAL_ROLES.update(var.ROLES)
+    for role, players in var.ROLES.items():
+        var.ORIGINAL_ROLES[role] = players.copy()
 
     # Handle amnesiac;
     # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1
@@ -6883,7 +6897,7 @@ def fgame(cli, nick, chan, rest):
 
         if cgamemode(cli, "=".join(parts)):
             cli.msg(chan, messages["fgame_success"].format(nick))
-            var.FGAMED = True
+            var.FGAMED = "=".join(parts)
     else:
         cli.notice(nick, fgame.__doc__())
 
@@ -6920,9 +6934,6 @@ if botconfig.DEBUG_MODE:
             exec(message)
         except Exception as e:
             wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
-
-
-if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
 
     # DO NOT MAKE THIS A PMCOMMAND ALSO
     @cmd("force", flag="d")
@@ -7007,114 +7018,5 @@ if botconfig.DEBUG_MODE or botconfig.ALLOWED_NORMAL_MODE_COMMANDS:
             cli.msg(chan, messages["operation_successful"])
         else:
             cli.msg(chan, messages["command_not_found"])
-
-
-
-    @cmd("frole", flag="d", phases=("day", "night"))
-    def frole(cli, nick, chan, rest):
-        """Change the role or template of a player."""
-        rst = re.split(" +",rest)
-        if len(rst) < 2:
-            cli.msg(chan, messages["incorrect_syntax"])
-            return
-        who = rst.pop(0).strip()
-        rol = " ".join(rst).strip()
-        ul = list(var.USERS.keys())
-        ull = [u.lower() for u in ul]
-        if who.lower() not in ull:
-            if not is_fake_nick(who):
-                cli.msg(chan, messages["invalid_target"])
-                return
-        if not is_fake_nick(who):
-            who = ul[ull.index(who.lower())]
-        if who == users.Bot.nick or not who:
-            cli.msg(chan, messages["invalid_target"])
-            return
-        pl = list_players()
-        rolargs = re.split("\s*=\s*", rol, 1)
-        rol = rolargs[0]
-        if rol[0] in ("+", "-"):
-            addrem = rol[0]
-            rol = rol[1:]
-            is_gunner = (rol == "gunner" or rol == "sharpshooter")
-            if addrem == "+" and who not in get_roles(rol): # FIXME
-                if is_gunner:
-                    if len(rolargs) == 2 and rolargs[1].isdigit():
-                        if len(rolargs[1]) < 7:
-                            var.GUNNERS[who] = int(rolargs[1])
-                        else:
-                            var.GUNNERS[who] = 999
-                    elif rol == "gunner":
-                        var.GUNNERS[who] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
-                    else:
-                        var.GUNNERS[who] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
-                if who not in pl:
-                    var.ROLES[var.DEFAULT_ROLE].add(users._get(who)) # FIXME
-                    var.MAIN_ROLES[users._get(who)] = var.DEFAULT_ROLE # FIXME
-                    var.ALL_PLAYERS.append(users._get(who)) # FIXME
-                    if not is_fake_nick(who):
-                        cli.mode(chan, "+v", who)
-                    cli.msg(chan, messages["template_default_role"].format(var.DEFAULT_ROLE))
-
-                var.ROLES[rol].add(users._get(who)) # FIXME
-                evt = Event("frole_template", {})
-                evt.dispatch(cli, var, addrem, who, rol, rolargs)
-            elif addrem == "-" and who in get_roles(rol) and get_role(who) != rol:
-                var.ROLES[rol].remove(users._get(who)) # FIXME
-                evt = Event("frole_template", {})
-                evt.dispatch(cli, var, addrem, who, rol, rolargs)
-                if is_gunner and who in var.GUNNERS:
-                    del var.GUNNERS[who]
-            else:
-                cli.msg(chan, messages["improper_template_mod"])
-                return
-        elif rol in var.TEMPLATE_RESTRICTIONS.keys():
-            cli.msg(chan, messages["template_mod_syntax"].format(rol))
-            return
-        elif rol in var.ROLES:
-            oldrole = None
-            if who in pl:
-                oldrole = get_role(who)
-                change_role(users._get(who), oldrole, rol) # FIXME
-            else:
-                var.ALL_PLAYERS.append(users._get(who)) # FIXME
-                var.ROLES[rol].add(users._get(who)) # FIXME
-                var.MAIN_ROLES[users._get(who)] = rol # FIXME
-                var.ORIGINAL_ROLES[rol].add(users._get(who)) # FIXME
-            evt = Event("frole_role", {})
-            evt.dispatch(cli, var, who, rol, oldrole, rolargs)
-            if rol == "amnesiac":
-                if len(rolargs) == 2 and rolargs[1] in var.ROLES:
-                    var.AMNESIAC_ROLES[who] = rolargs[1]
-                else:
-                    # Pick amnesiac role like normal
-                    amnroles = var.ROLE_GUIDE.keys() - {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
-                    if var.AMNESIAC_NIGHTS > 1 and "matchmaker" in amnroles:
-                        amnroles.remove("matchmaker")
-                    for nope in var.AMNESIAC_BLACKLIST:
-                        amnroles.discard(nope)
-                    for nope in var.TEMPLATE_RESTRICTIONS.keys():
-                        amnroles.discard(nope)
-                    var.AMNESIAC_ROLES[who] = random.choice(list(amnroles))
-            if not is_fake_nick(who):
-                cli.mode(chan, "+v", who)
-        else:
-            cli.msg(chan, messages["invalid_role"])
-            return
-        cli.msg(chan, messages["operation_successful"])
-        # default stats determination does not work if we're mucking with !frole
-        if var.STATS_TYPE == "default":
-            var.ORIGINAL_SETTINGS["STATS_TYPE"] = var.STATS_TYPE
-            var.STATS_TYPE = "accurate"
-
-            cli.msg(chan, messages["stats_accurate"].format(botconfig.CMD_CHAR))
-        chk_win()
-
-
-if botconfig.ALLOWED_NORMAL_MODE_COMMANDS and not botconfig.DEBUG_MODE:
-    for comd in list(COMMANDS.keys()):
-        if (comd not in before_debug_mode_commands and
-            comd not in botconfig.ALLOWED_NORMAL_MODE_COMMANDS):
-            del COMMANDS[comd]
 
 # vim: set sw=4 expandtab:

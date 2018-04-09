@@ -41,7 +41,6 @@ OWNERS_ACCOUNTS = ("1owner_acc",)
 
 #RULES = "https://werewolf.chat/Freenode:Rules"
 
-ALLOWED_NORMAL_MODE_COMMANDS = []  # Debug mode commands to be allowed in normal mode
 OWNERS_ONLY_COMMANDS = [] # Commands that should only be allowed for owners, regardless of their original permissions
 
 DISABLE_DEBUG_MODE_REAPER = True

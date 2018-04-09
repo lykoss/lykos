@@ -630,7 +630,7 @@ class RandomMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if chk_win_conditions(cli, rolemap, mainroles, end_game=False):
+        if chk_win_conditions(rolemap, mainroles, end_game=False):
             return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
@@ -912,7 +912,7 @@ class SleepyMode(GameMode):
         remove_command("west", self.west_cmd)
         remove_command("w", self.west_cmd)
 
-    def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
+    def dullahan_targets(self, evt, var, dullahans, max_targets):
         for dull in dullahans:
             evt.data["targets"][dull] = UserSet(var.ROLES["priest"])
 
@@ -1255,7 +1255,7 @@ class MaelstromMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if self.chk_win_conditions(cli, rolemap, mainroles, end_game=False):
+        if self.chk_win_conditions(rolemap, mainroles, end_game=False):
             return self._role_attribution(cli, var, villagers, do_templates)
 
         return addroles
