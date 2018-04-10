@@ -64,7 +64,7 @@ def pass_cmd(cli, nick, chan, rest):
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     for dictvar in (GUARDED, LASTGUARDED):
         kvp = {}
         for a,b in dictvar.items():

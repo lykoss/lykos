@@ -93,7 +93,7 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, TOTEMS[nick]))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in TOTEMS:
         TOTEMS[nick] = TOTEMS.pop(prefix)
 

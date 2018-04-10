@@ -876,19 +876,18 @@ class SleepyMode(GameMode):
         # disable wolfchat
         #self.RESTRICT_WOLFCHAT = 0x0f
 
-        self.having_nightmare = None
-
     def startup(self):
         events.add_listener("dullahan_targets", self.dullahan_targets)
         events.add_listener("transition_night_begin", self.setup_nightmares)
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
-        events.add_listener("rename_player", self.rename_player)
         self.north_cmd = command("north", "n", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "n"))
         self.east_cmd = command("east", "e", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "e"))
         self.south_cmd = command("south", "s", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "s"))
         self.west_cmd = command("west", "w", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "w"))
+
+        self.having_nightmare = UserList()
 
     def teardown(self):
         from src import decorators
@@ -897,7 +896,6 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
-        events.remove_listener("rename_player", self.rename_player)
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:
                 decorators.COMMANDS[name].remove(command)
@@ -912,23 +910,18 @@ class SleepyMode(GameMode):
         remove_command("west", self.west_cmd)
         remove_command("w", self.west_cmd)
 
+        self.having_nightmare.clear()
+
     def dullahan_targets(self, evt, var, dullahans, max_targets):
         for dull in dullahans:
             evt.data["targets"][dull] = UserSet(var.ROLES["priest"])
 
     def setup_nightmares(self, evt, cli, var):
         if random.random() < 1/5:
-            self.having_nightmare = True
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (var, random.choice(get_players()), var.NIGHT_COUNT))
                 t.daemon = True
                 t.start()
-        else:
-            self.having_nightmare = None
-
-    def rename_player(self, evt, cli, var, prefix, nick):
-        if self.having_nightmare == prefix:
-            self.having_nightmare = nick
 
     @handle_error
     def do_nightmare(self, var, target, night):
@@ -936,7 +929,7 @@ class SleepyMode(GameMode):
             return
         if target not in get_players():
             return
-        self.having_nightmare = target
+        self.having_nightmare.append(target)
         target.send(messages["sleepy_nightmare_begin"])
         target.send(messages["sleepy_nightmare_navigate"])
         self.correct = [None, None, None]
@@ -977,30 +970,30 @@ class SleepyMode(GameMode):
             directions = "north, south, and west"
 
         if self.step == 0:
-            self.having_nightmare.send(messages["sleepy_nightmare_0"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_0"].format(directions))
         elif self.step == 1:
-            self.having_nightmare.send(messages["sleepy_nightmare_1"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_1"].format(directions))
         elif self.step == 2:
-            self.having_nightmare.send(messages["sleepy_nightmare_2"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_2"].format(directions))
         elif self.step == 3:
             if "correct" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_wake"])
-                self.having_nightmare = None
+                self.having_nightmare[0].send(messages["sleepy_nightmare_wake"])
+                del self.having_nightmare[0]
             elif "fake1" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_fake_1"])
+                self.having_nightmare[0].send(messages["sleepy_nightmare_fake_1"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step()
             elif "fake2" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_fake_2"])
+                self.having_nightmare[0].send(messages["sleepy_nightmare_fake_2"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step()
 
     def move(self, direction, var, wrapper, message):
-        if self.having_nightmare is not wrapper.source:
+        if self.having_nightmare[0] is not wrapper.source:
             return
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         if self.prev_direction == opposite[direction]:
@@ -1033,14 +1026,14 @@ class SleepyMode(GameMode):
         self.nightmare_step()
 
     def prolong_night(self, evt, var):
-        if self.having_nightmare is not None:
+        if self.having_nightmare:
             evt.data["actedcount"] = -1
 
     def nightmare_kill(self, evt, var):
         # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare in get_players():
-            var.DYING.add(self.having_nightmare)
-            self.having_nightmare.send(messages["sleepy_nightmare_death"])
+        if self.having_nightmare and self.having_nightmare[0] in get_players():
+            var.DYING.add(self.having_nightmare[0])
+            self.having_nightmare[0].send(messages["sleepy_nightmare_death"])
 
     def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:

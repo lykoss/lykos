@@ -2949,7 +2949,7 @@ def rename_player(var, user, prefix):
     nick = user.nick
 
     event = Event("rename_player", {})
-    event.dispatch(user.client, var, prefix, nick) # FIXME: Need to update all the callbacks
+    event.dispatch(var, prefix, nick)
 
     if user in var.ALL_PLAYERS:
         if var.PHASE in var.GAME_PHASES:

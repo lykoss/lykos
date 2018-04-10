@@ -128,7 +128,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             del KILLS[a]
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     kvp = []
     for a,b in KILLS.items():
         nl = []

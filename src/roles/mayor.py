@@ -16,7 +16,7 @@ from src.events import Event
 REVEALED_MAYORS = set()
 
 @event_listener("rename_player")
-def on_rename_player(evt, cli, var, prefix, nick):
+def on_rename_player(evt, var, prefix, nick):
     if prefix in REVEALED_MAYORS:
         REVEALED_MAYORS.remove(prefix)
         REVEALED_MAYORS.add(nick)

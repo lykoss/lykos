@@ -41,7 +41,7 @@ def on_see(evt, cli, var, seer, victim):
         evt.data["role"] = "wild child"
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in WILD_CHILDREN:
         WILD_CHILDREN.remove(prefix)
         WILD_CHILDREN.add(nick)

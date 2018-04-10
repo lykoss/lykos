@@ -60,7 +60,7 @@ def investigate(cli, nick, chan, rest):
         debuglog("{0} ({1}) PAPER DROP".format(nick, get_role(nick)))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in INVESTIGATED:
         INVESTIGATED.remove(prefix)
         INVESTIGATED.add(nick)

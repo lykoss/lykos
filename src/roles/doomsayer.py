@@ -56,7 +56,7 @@ def see(cli, nick, chan, rest):
     SEEN.add(nick)
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in SEEN:
         SEEN.remove(prefix)
         SEEN.add(nick)
