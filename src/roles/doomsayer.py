@@ -98,7 +98,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 del dictvar[k]
 
 @event_listener("doctor_immunize")
-def on_doctor_immunize(evt, cli, var, doctor, target):
+def on_doctor_immunize(evt, var, doctor, target):
     if target in SICK.values():
         for n, v in list(SICK.items()):
             if v == target:

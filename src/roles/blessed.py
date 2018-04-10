@@ -52,7 +52,7 @@ def on_transition_night_end(evt, var):
             blessed.send(messages[to_send])
 
 @event_listener("desperation_totem")
-def on_desperation(evt, cli, var, votee, target, prot):
+def on_desperation(evt, var, votee, target, prot):
     if prot == "blessing":
         var.ACTIVE_PROTECTIONS[target].remove("blessing")
         evt.prevent_default = True

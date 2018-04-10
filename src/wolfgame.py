@@ -4487,7 +4487,7 @@ def immunize(cli, nick, chan, rest):
     if check_exchange(cli, nick, victim):
         return
     evt = Event("doctor_immunize", {"success": True, "message": "villager_immunized"})
-    if evt.dispatch(cli, var, nick, victim):
+    if evt.dispatch(var, nick, victim):
         pm(cli, nick, messages["doctor_success"].format(victim))
         lycan = False
         if victim in var.DISEASED:

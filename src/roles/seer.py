@@ -48,7 +48,7 @@ def see(cli, nick, chan, rest):
                 victimrole = "villager"
 
         evt = Event("see", {"role": victimrole})
-        evt.dispatch(cli, var, nick, victim)
+        evt.dispatch(var, nick, victim)
         victimrole = evt.data["role"]
     else:
         if victimrole == "amnesiac":

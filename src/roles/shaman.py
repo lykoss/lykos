@@ -131,7 +131,7 @@ def on_rename(evt, var, prefix, nick):
                 setvar.add(nick)
 
 @event_listener("see", priority=10)
-def on_see(evt, cli, var, nick, victim):
+def on_see(evt, var, nick, victim):
     if (victim in DECEIT) ^ (nick in DECEIT):
         if evt.data["role"] in var.SEEN_WOLF and evt.data["role"] not in var.SEEN_DEFAULT:
             evt.data["role"] = "villager"
@@ -283,7 +283,7 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
                 # so that it cannot be used again (if the protection is meant to be usable once-only)
                 desp_evt = Event("desperation_totem", {})
-                if not desp_evt.dispatch(cli, var, votee, target, prots[0]):
+                if not desp_evt.dispatch(var, votee, target, prots[0]):
                     return
                 prots.popleft()
             if var.ROLE_REVEAL in ("on", "team"):
