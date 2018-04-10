@@ -1031,7 +1031,6 @@ class SleepyMode(GameMode):
             evt.data["actedcount"] = -1
 
     def nightmare_kill(self, evt, var):
-        # if True, it means night ended before 1 minute
         if self.having_nightmare and self.having_nightmare[0] in get_players():
             var.DYING.add(self.having_nightmare[0])
             self.having_nightmare[0].send(messages["sleepy_nightmare_death"])

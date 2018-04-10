@@ -36,7 +36,7 @@ def choose_idol(cli, nick, chan, rest):
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(nick, victim, get_role(victim)))
 
 @event_listener("see")
-def on_see(evt, cli, var, seer, victim):
+def on_see(evt, var, seer, victim):
     if victim in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
