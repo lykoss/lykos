@@ -75,8 +75,7 @@ def charm(var, wrapper, message):
     else:
         TOBECHARMED[wrapper.source] = UserSet()
 
-    TOBECHARMED[wrapper.source].update({target1, target2})
-    TOBECHARMED[wrapper.source].discard(None)
+    TOBECHARMED[wrapper.source].update({target1, target2} - {None})
 
     if orig2:
         debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,

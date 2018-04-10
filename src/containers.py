@@ -20,7 +20,7 @@ The containers present here should always follow these rules:
   through exceptions or normal execution), the copied contained ('rolelist' in this case) is automatically cleared.
 
 - If fetching a container from a 'UserDict' with the intent to keep it around separate from the dictionary,
-  a copy is advised, as `UserDict.clear` is recursive and will clear all nested containers, even if they
+  a copy is advised, as 'UserDict.clear' is recursive and will clear all nested containers, even if they
   are being used outside (as the function has no way to know).
 
 Role files should use User containers as their global variables without ever overwriting them. It is advised to
@@ -92,15 +92,15 @@ class UserList(list):
 
     def extend(self, iterable):
         for item in iterable:
-            super().append(item)
+            self.append(item)
 
     def insert(self, index, item):
+        if not isinstance(item, User):
+            raise TypeError("UserList may only contain User instances")
+
         super().insert(index, item)
 
         # If it didn't work, we don't get here
-
-        if not isinstance(item, User):
-            raise TypeError("UserList may only contain User instances")
 
         if self not in item.lists:
             item.lists.append(self)
@@ -134,6 +134,9 @@ class UserSet(set):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
+
+    # Comparing UserSet instances for equality doesn't make much sense in our context
+    # However, if there are identical instances in a list, we only want to remove ourselves
 
     def __eq__(self, other):
         return self is other

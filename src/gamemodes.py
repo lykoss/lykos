@@ -1130,7 +1130,7 @@ class MaelstromMode(GameMode):
             rolemap[role].add(wrapper.source)
             mainroles[wrapper.source] = role
 
-            if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
+            if self.chk_win_conditions(rolemap, mainroles, end_game=False):
                 return self._on_join(var, wrapper)
 
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
