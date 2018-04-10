@@ -242,6 +242,8 @@ class UserSet(set):
 class UserDict(dict):
     def __init__(_self, _it=(), **kwargs):
         super().__init__()
+        if hasattr(_it, "items"):
+            _it = _it.items()
         try:
             for key, value in _it:
                 self[key] = value
@@ -270,8 +272,8 @@ class UserDict(dict):
                 item.dict_keys.append(self)
 
         if isinstance(value, User):
-            if self not in item.dict_values:
-                item.dict_values.append(self)
+            if self not in value.dict_values:
+                value.dict_values.append(self)
 
     def __delitem__(self, item):
         value = self[item]
@@ -281,7 +283,7 @@ class UserDict(dict):
 
         if isinstance(value, User):
             if value not in self.values():
-                item.dict_values.remove(self)
+                value.dict_values.remove(self)
 
     def clear(self):
         for key, value in self.items():

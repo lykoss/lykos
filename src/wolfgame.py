@@ -5484,28 +5484,16 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
-    user = users._get(nick)
-    dummy_role = None
-
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
-        if var.FGAMED and var.FGAMED.startswith("roles="):
-            if var.FGAMED[6:].startswith(role):
-                var.MAIN_ROLES[user] = role
-                dummy_role = role
-                count = count-1
-            if user in villagers:
-                villagers.remove(user)
 
         selected = random.sample(villagers, count)
         for x in selected:
             var.MAIN_ROLES[users._get(x)] = role # FIXME
             villagers.remove(x)
         var.ROLES[role] = UserSet(users._get(x) for x in selected) # FIXME
-        if dummy_role == role:
-            var.ROLES[role].add(user)
         fixed_count = count - roleset_roles[role]
         if fixed_count > 0:
             for pr in possible_rolesets:
@@ -6897,7 +6885,7 @@ def fgame(cli, nick, chan, rest):
 
         if cgamemode(cli, "=".join(parts)):
             cli.msg(chan, messages["fgame_success"].format(nick))
-            var.FGAMED = "=".join(parts)
+            var.FGAMED = True
     else:
         cli.notice(nick, fgame.__doc__())
 
