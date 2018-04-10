@@ -929,6 +929,7 @@ class SleepyMode(GameMode):
             return
         if target not in get_players():
             return
+        self.having_nightmare.clear()
         self.having_nightmare.append(target)
         target.send(messages["sleepy_nightmare_begin"])
         target.send(messages["sleepy_nightmare_navigate"])
@@ -1034,6 +1035,7 @@ class SleepyMode(GameMode):
         if self.having_nightmare and self.having_nightmare[0] in get_players():
             var.DYING.add(self.having_nightmare[0])
             self.having_nightmare[0].send(messages["sleepy_nightmare_death"])
+            del self.having_nightmare[0]
 
     def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:
