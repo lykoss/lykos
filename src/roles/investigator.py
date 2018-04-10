@@ -126,7 +126,7 @@ def on_transition_night_end(evt, var):
         inv.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     INVESTIGATED.clear()
 
 @event_listener("reset")

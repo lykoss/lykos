@@ -162,7 +162,7 @@ def on_begin_day(evt, var):
     LYCANS.clear()
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     SICK.clear()
 
 @event_listener("reset")

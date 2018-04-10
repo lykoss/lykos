@@ -224,7 +224,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     # needs to be here in order to allow bodyguard protections to work during the daytime
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()

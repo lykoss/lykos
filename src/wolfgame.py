@@ -4974,7 +4974,7 @@ def transition_night(cli):
     var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
 
     event_begin = Event("transition_night_begin", {})
-    event_begin.dispatch(cli, var)
+    event_begin.dispatch(var)
 
     if var.DEVOICE_DURING_NIGHT:
         modes = []
@@ -5379,7 +5379,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     addroles = {}
 
     event = Event("role_attribution", {"addroles": addroles})
-    if event.dispatch(cli, var, chk_win_conditions, villagers):
+    if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):

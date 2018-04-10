@@ -602,7 +602,7 @@ class RandomMode(GameMode):
         events.remove_listener("role_attribution", self.role_attribution)
         events.remove_listener("chk_win", self.lovers_chk_win)
 
-    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
+    def role_attribution(self, evt, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
         for role in var.ROLE_GUIDE:
@@ -631,7 +631,7 @@ class RandomMode(GameMode):
                 i += count
 
         if chk_win_conditions(rolemap, mainroles, end_game=False):
-            return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
+            return self.role_attribution(evt, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
 
@@ -1173,22 +1173,23 @@ class MaelstromMode(GameMode):
                     pl[i] = player.nick + " (cursed)"
             wrapper.pm("Players: " + ", ".join(pl))
 
-    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
+    def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
-        evt.data["addroles"] = self._role_attribution(cli, var, villagers, True)
+        evt.data["addroles"] = self._role_attribution(var, villagers, True)
 
-    def transition_night_begin(self, evt, cli, var):
+    def transition_night_begin(self, evt, var):
         # don't do this n1
         if var.FIRST_NIGHT:
             return
         villagers = get_players()
         lpl = len(villagers)
-        addroles = self._role_attribution(cli, var, villagers, False)
+        addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
-            var.ROLES[role] = UserSet(selected)
+            var.ROLES[role].clear()
+            var.ROLES[role].update(selected)
             for x in selected:
                 villagers.remove(x)
 
@@ -1216,7 +1217,7 @@ class MaelstromMode(GameMode):
                 var.FINAL_ROLES[p.nick] = role # FIXME
                 var.MAIN_ROLES[p] = role
 
-    def _role_attribution(self, cli, var, villagers, do_templates):
+    def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
         addroles = {}
         for role in var.ROLE_GUIDE:
@@ -1256,7 +1257,7 @@ class MaelstromMode(GameMode):
                 i += count
 
         if self.chk_win_conditions(rolemap, mainroles, end_game=False):
-            return self._role_attribution(cli, var, villagers, do_templates)
+            return self._role_attribution(var, villagers, do_templates)
 
         return addroles
 
@@ -1375,7 +1376,7 @@ class MudkipMode(GameMode):
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"
 
-    def transition_night_begin(self, evt, cli, var):
+    def transition_night_begin(self, evt, var):
         if var.FIRST_NIGHT:
             # ensure shaman gets death totem on the first night
             var.TOTEM_CHANCES["pestilence"] = (0, 1, 0)
