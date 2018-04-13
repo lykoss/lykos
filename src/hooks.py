@@ -320,7 +320,16 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         users.Bot.modes.update(mode)
         return
 
-    actor = users._add(cli, nick=rawnick) # FIXME
+    if "!" not in rawnick:
+        # Only sync modes if a server changed modes because
+        # 1) human ops probably know better
+        # 2) other bots might start a fight over modes
+        # 3) recursion; we see our own mode changes.
+        evt = Event("sync_modes", {})
+        evt.dispatch(var)
+        return
+
+    actor = users._get(rawnick) # FIXME
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 

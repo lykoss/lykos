@@ -269,12 +269,6 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
                         var.USERS[trgt]["moded"].remove(change)
                 elif change in var.USERS[trgt]["modes"]:
                     var.USERS[trgt]["modes"].remove(change)
-    # Only sync modes if a server changed modes because
-    # 1) human ops probably know better
-    # 2) other bots might start a fight over modes
-    # 3) recursion; we see our own mode changes.
-    if "!" not in rnick:
-        sync_modes(var)
 
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
@@ -346,6 +340,10 @@ reset()
 @command("sync", "fsync", flag="m", pm=True)
 def fsync(var, wrapper, message):
     """Makes the bot apply the currently appropriate channel modes."""
+    sync_modes(var)
+
+@event_listener("sync_modes")
+def on_sync_modes(evt, var):
     sync_modes(var)
 
 def sync_modes(var):
