@@ -47,9 +47,6 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
     user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
-    if "serv" in nick.lower():
-        ch = channels.Dummy
-    else:
     ch = channels.add(chan, cli)
 
     if ch not in user.channels:
@@ -113,9 +110,6 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
     user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account) # FIXME
-    if "serv" in nick.lower():
-        ch = channels.Dummy
-    else:
     ch = channels.add(chan, cli)
 
     if ch not in user.channels:
