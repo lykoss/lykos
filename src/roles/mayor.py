@@ -9,13 +9,14 @@ import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
 REVEALED_MAYORS = set()
 
 @event_listener("rename_player")
-def on_rename_player(evt, cli, var, prefix, nick):
+def on_rename_player(evt, var, prefix, nick):
     if prefix in REVEALED_MAYORS:
         REVEALED_MAYORS.remove(prefix)
         REVEALED_MAYORS.add(nick)

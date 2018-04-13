@@ -7,6 +7,7 @@ from src.utilities import *
 from src.functions import get_players
 from src import debuglog, errlog, plog, users, channels
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 from src.roles import wolf

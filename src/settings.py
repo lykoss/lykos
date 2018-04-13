@@ -3,8 +3,6 @@ import re
 import threading
 from collections import defaultdict, OrderedDict
 
-import botconfig
-
 LANGUAGE = 'en'
 
 MINIMUM_WAIT = 60

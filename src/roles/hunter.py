@@ -7,12 +7,13 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[users.User, users.User]
-HUNTERS = set()
-PASSED = set()
+KILLS = UserDict() # type: Dict[users.User, users.User]
+HUNTERS = UserSet()
+PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
 def hunter_kill(var, wrapper, message):
@@ -73,20 +74,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             HUNTERS.discard(h)
             h.send(messages["hunter_discard"])
             del KILLS[h]
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    for a, b in list(KILLS.items()):
-        if a is old_user:
-            KILLS[user] = KILLS.pop(old_user)
-        if b is old_user:
-            KILLS[user] = KILLS.pop(old_user)
-    if old_user in HUNTERS:
-        HUNTERS.discard(old_user)
-        HUNTERS.add(user)
-    if old_user in PASSED:
-        PASSED.discard(old_user)
-        PASSED.add(user)
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):

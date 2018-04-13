@@ -6,6 +6,7 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
@@ -55,7 +56,7 @@ def see(cli, nick, chan, rest):
     SEEN.add(nick)
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in SEEN:
         SEEN.remove(prefix)
         SEEN.add(nick)
@@ -97,7 +98,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 del dictvar[k]
 
 @event_listener("doctor_immunize")
-def on_doctor_immunize(evt, cli, var, doctor, target):
+def on_doctor_immunize(evt, var, doctor, target):
     if target in SICK.values():
         for n, v in list(SICK.items()):
             if v == target:
@@ -161,7 +162,7 @@ def on_begin_day(evt, var):
     LYCANS.clear()
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     SICK.clear()
 
 @event_listener("reset")

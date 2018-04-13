@@ -9,6 +9,7 @@ from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
@@ -65,7 +66,7 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
         return
 
     original_victim = victim
-    role = get_role(nick) # FIXME: this is bad, check if nick is in var.ROLES[thingy] instead once split
+    role = get_role(nick) # FIXME: this is bad, check if user is in var.ROLES[thingy] instead once converted
     totem = ""
     if role != "crazed shaman":
         totem = " of " + TOTEMS[nick]
@@ -92,7 +93,7 @@ def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin 
     debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, TOTEMS[nick]))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in TOTEMS:
         TOTEMS[nick] = TOTEMS.pop(prefix)
 
@@ -130,7 +131,7 @@ def on_rename(evt, cli, var, prefix, nick):
                 setvar.add(nick)
 
 @event_listener("see", priority=10)
-def on_see(evt, cli, var, nick, victim):
+def on_see(evt, var, nick, victim):
     if (victim in DECEIT) ^ (nick in DECEIT):
         if evt.data["role"] in var.SEEN_WOLF and evt.data["role"] not in var.SEEN_DEFAULT:
             evt.data["role"] = "villager"
@@ -282,7 +283,7 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
                 # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
                 # so that it cannot be used again (if the protection is meant to be usable once-only)
                 desp_evt = Event("desperation_totem", {})
-                if not desp_evt.dispatch(cli, var, votee, target, prots[0]):
+                if not desp_evt.dispatch(var, votee, target, prots[0]):
                     return
                 prots.popleft()
             if var.ROLE_REVEAL in ("on", "team"):
@@ -626,26 +627,6 @@ def on_reset(evt, var):
     RETRIBUTION.clear()
     MISDIRECTION.clear()
     DECEIT.clear()
-
-@event_listener("frole_role")
-def on_frole_role(evt, cli, var, who, role, oldrole, args):
-    if role in var.TOTEM_ORDER:
-        if len(args) == 2:
-            TOTEMS[who] = args[1]
-        else:
-            max_totems = defaultdict(int)
-            for ix in range(len(var.TOTEM_ORDER)):
-                for c in var.TOTEM_CHANCES.values():
-                    max_totems[var.TOTEM_ORDER[ix]] += c[ix]
-            for shaman in list_players(var.TOTEM_ORDER):
-                indx = var.TOTEM_ORDER.index(role)
-                target = 0
-                rand = random.random() * max_totems[var.TOTEM_ORDER[indx]]
-                for t in var.TOTEM_CHANCES.keys():
-                    target += var.TOTEM_CHANCES[t][indx]
-                    if rand <= target:
-                        TOTEMS[shaman] = t
-                        break
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

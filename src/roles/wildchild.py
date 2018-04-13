@@ -6,6 +6,7 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
@@ -35,12 +36,12 @@ def choose_idol(cli, nick, chan, rest):
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(nick, victim, get_role(victim)))
 
 @event_listener("see")
-def on_see(evt, cli, var, seer, victim):
+def on_see(evt, var, seer, victim):
     if victim in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in WILD_CHILDREN:
         WILD_CHILDREN.remove(prefix)
         WILD_CHILDREN.add(nick)

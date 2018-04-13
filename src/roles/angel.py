@@ -10,6 +10,7 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
@@ -63,7 +64,7 @@ def pass_cmd(cli, nick, chan, rest):
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     for dictvar in (GUARDED, LASTGUARDED):
         kvp = {}
         for a,b in dictvar.items():
@@ -223,7 +224,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     # needs to be here in order to allow bodyguard protections to work during the daytime
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()

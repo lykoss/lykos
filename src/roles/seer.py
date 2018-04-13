@@ -5,6 +5,7 @@ import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.functions import get_players, get_all_players, get_main_role
 from src.messages import messages
 from src.events import Event
@@ -47,7 +48,7 @@ def see(cli, nick, chan, rest):
                 victimrole = "villager"
 
         evt = Event("see", {"role": victimrole})
-        evt.dispatch(cli, var, nick, victim)
+        evt.dispatch(var, nick, victim)
         victimrole = evt.data["role"]
     else:
         if victimrole == "amnesiac":
@@ -78,7 +79,7 @@ def see(cli, nick, chan, rest):
     SEEN.add(nick)
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in SEEN:
         SEEN.remove(prefix)
         SEEN.add(nick)

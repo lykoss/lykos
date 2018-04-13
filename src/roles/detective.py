@@ -7,6 +7,7 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
@@ -59,7 +60,7 @@ def investigate(cli, nick, chan, rest):
         debuglog("{0} ({1}) PAPER DROP".format(nick, get_role(nick)))
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     if prefix in INVESTIGATED:
         INVESTIGATED.remove(prefix)
         INVESTIGATED.add(nick)
@@ -96,7 +97,7 @@ def on_transition_night_end(evt, var):
         dttv.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
 
 @event_listener("transition_night_begin")
-def on_transition_night_begin(evt, cli, var):
+def on_transition_night_begin(evt, var):
     INVESTIGATED.clear()
 
 @event_listener("reset")

@@ -10,13 +10,14 @@ from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
-ENTRANCED = set() # type: Set[users.User]
-ENTRANCED_DYING = set() # type: Set[users.User]
-VISITED = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+ENTRANCED = UserSet() # type: Set[users.User]
+ENTRANCED_DYING = UserSet() # type: Set[users.User]
+VISITED = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 ALL_SUCC_IDLE = True
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
@@ -318,25 +319,6 @@ def on_get_special(evt, var):
 def on_vg_kill(evt, var, ghost, target):
     if ghost in ENTRANCED:
         evt.data["pl"] -= get_all_players(("succubus",))
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    if old_user in ENTRANCED:
-        ENTRANCED.remove(old_user)
-        ENTRANCED.add(user)
-    if old_user in ENTRANCED_DYING:
-        ENTRANCED_DYING.remove(old_user)
-        ENTRANCED_DYING.add(user)
-
-    for succubus, target in set(VISITED.items()):
-        if old_user is succubus:
-            VISITED[user] = VISITED.pop(succubus)
-        if old_user is target:
-            VISITED[succubus] = user
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
 
 @event_listener("reset")
 def on_reset(evt, var):

@@ -9,11 +9,12 @@ import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict
 from src.messages import messages
 from src.events import Event
 
 @event_listener("see")
-def on_see(evt, cli, var, nick, victim):
+def on_see(evt, var, nick, victim):
     if users._get(victim) in var.ROLES["cursed villager"]: # FIXME
         evt.data["role"] = "wolf"
 
