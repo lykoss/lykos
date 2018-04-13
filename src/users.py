@@ -118,30 +118,6 @@ def add(nick, **blah): # backwards-compatible API
     var.USERS[nick] = blah
     return _user(nick)
 
-def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
-    """Return True if a matching user exists.
-
-    Positional and keyword arguments are the same as get(), with the
-    exception of allow_none.
-
-    """
-
-    sentinel = object()
-
-    if ident is None and host is None and nick is not None:
-        nick, ident, host = parse_rawnick(nick)
-
-    cls = User
-    if predicate(nick):
-        cls = FakeUser
-
-    temp = cls(sentinel, nick, ident, host, realname, account)
-
-    if temp.client is sentinel: # doesn't exist; if it did, the client would be an actual client
-        return False
-
-    return temp is not Bot or allow_bot
-
 def exists(nick, *stuff, **morestuff): # backwards-compatible API
     return nick in var.USERS
 
