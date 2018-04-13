@@ -161,9 +161,6 @@ def connect_callback(cli):
         channels.Main = channels.add(botconfig.CHANNEL, cli)
         channels.Dummy = channels.add("*", cli)
 
-        context._who(cli, "ChanServ")
-        context._who(cli, "NickServ")
-
         if botconfig.ALT_CHANNELS:
             for chan in botconfig.ALT_CHANNELS.split(","):
                 channels.add(chan, cli)

@@ -50,7 +50,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     if "serv" in nick.lower():
         ch = channels.Dummy
     else:
-        ch = channels.add(chan, cli)
+    ch = channels.add(chan, cli)
 
     if ch not in user.channels:
         user.channels[ch] = modes
@@ -63,7 +63,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
     event.dispatch(var, ch, user)
 
-    if ch is channels.Main and not users.exists(nick) and ch is not channels.Dummy: # FIXME
+    if ch is channels.Main and not users.exists(nick): # FIXME
         users.add(nick, ident=ident, host=host, account="*", inchan=True, modes=modes, moded=set())
 
 @hook("whospcrpl")
@@ -116,7 +116,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     if "serv" in nick.lower():
         ch = channels.Dummy
     else:
-        ch = channels.add(chan, cli)
+    ch = channels.add(chan, cli)
 
     if ch not in user.channels:
         user.channels[ch] = modes
@@ -129,7 +129,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
     event.dispatch(var, ch, user)
 
-    if ch is channels.Main and not users.exists(nick) and ch is not channels.Dummy: # FIXME
+    if ch is channels.Main and not users.exists(nick): # FIXME
         users.add(nick, ident=ident, host=host, account=account, inchan=True, modes=modes, moded=set())
 
 @hook("endofwho")
@@ -335,7 +335,7 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         evt.dispatch(var)
         return
 
-    actor = users._get(rawnick) # FIXME
+    actor = users._get(rawnick, allow_none=True) # FIXME
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
