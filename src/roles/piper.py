@@ -114,7 +114,9 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
     CHARMED.discard(player)
-    TOBECHARMED.pop(player, None)
+    x = TOBECHARMED.pop(player, None)
+    if x is not None:
+        x.clear()
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
