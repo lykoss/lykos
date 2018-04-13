@@ -170,7 +170,7 @@ def connect_callback():
         if request is channels.Main:
             if "WHOX" not in hooks.Features:
                 if not var.DISABLE_ACCOUNTS:
-                    plog("IRCd does not support accounts, disabling account-related features.")
+                    plog("IRCd does not support WHOX, disabling account-related features.")
                 var.DISABLE_ACCOUNTS = True
                 var.ACCOUNTS_ONLY = False
 
@@ -703,11 +703,10 @@ def join_timer_handler(var):
                 return
 
             temp = user.lower()
-            if not var.DISABLE_ACCOUNTS and temp.account is not None:
-                if temp.account in chk_acc:
-                    to_ping.append(temp)
-                    var.PINGED_ALREADY_ACCS.add(temp.account)
-                    return
+            if temp.account in chk_acc:
+                to_ping.append(temp)
+                var.PINGED_ALREADY_ACCS.add(temp.account)
+                return
 
             if not var.ACCOUNTS_ONLY:
                 if temp.userhost in checker:
@@ -2096,8 +2095,7 @@ def stop_game(winner="", abort=False, additional_winners=None, log=True):
                       "dced": False}
             if plr in var.DCED_LOSERS:
                 pentry["dced"] = True
-            if not var.DISABLE_ACCOUNTS:
-                pentry["account"] = plr.account
+            pentry["account"] = plr.account
             pentry["nick"] = plr.nick
             pentry["ident"] = plr.ident
             pentry["host"] = plr.host

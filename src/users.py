@@ -186,7 +186,7 @@ class User(IRCContext):
         self._ident = ident
         self._host = host
         self.realname = realname
-        self.account = account
+        self.account = account if not var.DISABLE_ACCOUNTS else None
         self.channels = {}
         self.timestamp = time.time()
         self.sets = []
@@ -199,7 +199,7 @@ class User(IRCContext):
             self.ident = ident
             self.host = host
             self.realname = realname
-            self.account = account
+            self.account = account if not var.DISABLE_ACCOUNTS else None
             self.timestamp = time.time()
 
         elif ident is not None and host is not None:
@@ -330,7 +330,7 @@ class User(IRCContext):
         hosts = set(botconfig.OWNERS)
         accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-        if not var.DISABLE_ACCOUNTS and self.account is not None:
+        if self.account is not None:
             for pattern in accounts:
                 if fnmatch.fnmatch(lower(self.account), lower(pattern)):
                     return True
@@ -352,7 +352,7 @@ class User(IRCContext):
                 hosts = set(botconfig.ADMINS)
                 accounts = set(botconfig.ADMINS_ACCOUNTS)
 
-                if not var.DISABLE_ACCOUNTS and self.account is not None:
+                if self.account is not None:
                     for pattern in accounts:
                         if fnmatch.fnmatch(lower(self.account), lower(pattern)):
                             return True
@@ -417,11 +417,10 @@ class User(IRCContext):
     def get_pingif_count(self):
         temp = self.lower()
 
-        if not var.DISABLE_ACCOUNTS and temp.account is not None:
-            if temp.account in var.PING_IF_PREFS_ACCS:
-                return var.PING_IF_PREFS_ACCS[temp.account]
+        if temp.account in var.PING_IF_PREFS_ACCS:
+            return var.PING_IF_PREFS_ACCS[temp.account]
 
-        elif not var.ACCOUNTS_ONLY:
+        if not var.ACCOUNTS_ONLY:
             for hostmask, pref in var.PING_IF_PREFS.items():
                 if temp.match_hostmask(hostmask):
                     return pref
@@ -432,14 +431,13 @@ class User(IRCContext):
         temp = self.lower()
 
         if not value:
-            if not var.DISABLE_ACCOUNTS and temp.account:
-                if temp.account in var.PING_IF_PREFS_ACCS:
-                    del var.PING_IF_PREFS_ACCS[temp.account]
-                    db.set_pingif(0, temp.account, None)
-                    if old is not None:
-                        with var.WARNING_LOCK:
-                            if old in var.PING_IF_NUMS_ACCS:
-                                var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+            if temp.account in var.PING_IF_PREFS_ACCS:
+                del var.PING_IF_PREFS_ACCS[temp.account]
+                db.set_pingif(0, temp.account, None)
+                if old is not None:
+                    with var.WARNING_LOCK:
+                        if old in var.PING_IF_NUMS_ACCS:
+                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
 
             if not var.ACCOUNTS_ONLY:
                 for hostmask in list(var.PING_IF_PREFS):
@@ -453,7 +451,7 @@ class User(IRCContext):
                                     var.PING_IF_NUMS[old].discard(temp.host)
 
         else:
-            if not var.DISABLE_ACCOUNTS and temp.account:
+            if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
                 db.set_pingif(value, temp.account, None)
                 with var.WARNING_LOCK:
@@ -491,11 +489,7 @@ class User(IRCContext):
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
         temp = self.lower()
-        amount = 0
-
-        if not var.DISABLE_ACCOUNTS:
-            amount = var.STASISED_ACCS.get(temp.account, 0)
-
+        amount = var.STASISED_ACCS.get(temp.account, 0)
         amount = max(amount, var.STASISED.get(temp.userhost, 0))
 
         return amount
@@ -552,7 +546,7 @@ class User(IRCContext):
 
     @account.setter
     def account(self, account):
-        if account in ("0", "*"):
+        if account in ("0", "*") or var.DISABLE_ACCOUNTS:
             account = None
         self._account = account
 

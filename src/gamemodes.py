@@ -1094,7 +1094,7 @@ class MaelstromMode(GameMode):
         if user.is_fake:
             return
 
-        if not var.DISABLE_ACCOUNTS:
+        if user.account is not None:
             self.DEAD_ACCOUNTS.add(user.lower().account)
 
         if not var.ACCOUNTS_ONLY:
