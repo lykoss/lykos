@@ -10,7 +10,7 @@ import functools
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, events, context, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.utilities import reply
 from src.functions import get_participants, get_all_roles
@@ -160,6 +160,9 @@ def connect_callback(cli):
 
         channels.Main = channels.add(botconfig.CHANNEL, cli)
         channels.Dummy = channels.add("*", cli)
+
+        context._who(cli, "ChanServ")
+        context._who(cli, "NickServ")
 
         if botconfig.ALT_CHANNELS:
             for chan in botconfig.ALT_CHANNELS.split(","):
