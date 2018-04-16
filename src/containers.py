@@ -1,6 +1,8 @@
+import copy
+
 from src.users import User
 
-__all__ = ["UserList", "UserSet", "UserDict"]
+__all__ = ["UserList", "UserSet", "UserDict", "DefaultUserDict"]
 
 """ * Important *
 
@@ -44,6 +46,15 @@ class UserList(list):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
+
+    def __eq__(self, other):
+        return self is other
+
+    def __copy__(self):
+        return type(self)(self)
+
+    def __deepcopy__(self, memo):
+        return type(self)(copy.deepcopy(x, memo) for x in self)
 
     def __add__(self, other):
         if not isinstance(other, list):
@@ -134,6 +145,12 @@ class UserSet(set):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
+
+    def __copy__(self):
+        return type(self)(self)
+
+    def __deepcopy__(self, memo):
+        return type(self)(copy.deepcopy(x, memo) for x in self)
 
     # Comparing UserSet instances for equality doesn't make much sense in our context
     # However, if there are identical instances in a list, we only want to remove ourselves
@@ -263,6 +280,18 @@ class UserDict(dict):
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
 
+    def __eq__(self, other):
+        return self is other
+
+    def __copy__(self):
+        return type(self)(self)
+
+    def __deepcopy__(self, memo):
+        new = type(self)()
+        for key, value in self.items():
+            new[key] = copy.deepcopy(value, memo)
+        return new
+
     def __setitem__(self, item, value):
         old = self.get(item)
         super().__setitem__(item, value)
@@ -339,3 +368,12 @@ class UserDict(dict):
             iterable = iterable.items()
         for key, value in iterable:
             self[key] = value
+
+class DefaultUserDict(UserDict):
+    def __init__(_self, _factory, _it=(), **kwargs):
+        _self.factory = _factory
+        super().__init__(_it, **kwargs)
+
+    def __missing__(self, key):
+        self[key] = self.factory()
+        return self[key]

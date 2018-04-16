@@ -303,7 +303,7 @@ class command:
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone(cli)
+                chk_nightdone()
             return
 
         if self.owner_only:
@@ -461,7 +461,7 @@ class cmd:
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone(cli)
+                chk_nightdone()
             return
 
         forced_owner_only = False

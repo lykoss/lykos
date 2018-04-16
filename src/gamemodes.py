@@ -12,7 +12,7 @@ from src.utilities import *
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import handle_error, command
-from src.containers import UserList, UserSet, UserDict
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -214,15 +214,15 @@ class VillagergameMode(GameMode):
 
     def chk_nightdone(self, evt, var):
         transition_day = evt.data["transition_day"]
-        evt.data["transition_day"] = lambda cli, gameid=0: self.prolong_night(cli, var, gameid, transition_day)
+        evt.data["transition_day"] = lambda gameid=0: self.prolong_night(var, gameid, transition_day)
 
-    def prolong_night(self, cli, var, gameid, transition_day):
+    def prolong_night(self, var, gameid, transition_day):
         nspecials = len(get_all_players(("seer", "harlot", "shaman", "crazed shaman")))
         rand = random.gauss(5, 1.5)
         if rand <= 0 and nspecials > 0:
-            transition_day(cli, gameid=gameid)
+            transition_day(gameid=gameid)
         else:
-            t = threading.Timer(abs(rand), transition_day, args=(cli,), kwargs={"gameid": gameid})
+            t = threading.Timer(abs(rand), transition_day, kwargs={"gameid": gameid})
             t.start()
 
     def transition_day(self, evt, var):
@@ -1315,7 +1315,7 @@ class MudkipMode(GameMode):
         events.remove_listener("daylight_warning", self.daylight_warning)
         events.remove_listener("transition_night_begin", self.transition_night_begin)
 
-    def chk_decision(self, evt, cli, var, force):
+    def chk_decision(self, evt, var, force):
         # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
         # kill all tied players rather than hanging. The intent of this is to benefit village team in the event
         # of a stalemate, as they could use the extra help (especially in 5p).
@@ -1323,13 +1323,15 @@ class MudkipMode(GameMode):
             # in here, this means we're in a child chk_decision event called from this one
             # we need to ensure we don't turn into nighttime prematurely or try to vote
             # anyone other than the person we're forcing the lynch on
-            evt.data["transition_night"] = lambda cli: None
+            evt.data["transition_night"] = lambda: None
             if force:
-                evt.data["votelist"] = {force: set()}
-                evt.data["numvotes"] = {force: 0}
+                evt.data["votelist"].clear()
+                evt.data["votelist"][force] = []
+                evt.data["numvotes"].clear()
+                evt.data["numvotes"][force] = 0
             else:
-                evt.data["votelist"] = {}
-                evt.data["numvotes"] = {}
+                evt.data["votelist"].clear()
+                evt.data["numvotes"].clear()
             return
 
         avail = len(evt.params.voters)
@@ -1345,24 +1347,24 @@ class MudkipMode(GameMode):
             return
 
         # make a copy in case an event mutates it in recursive calls
-        tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
-        self.recursion_guard = True
-        gameid = var.GAME_ID
-        last = tovote[-1]
+        with UserList(p for p, n in evt.data["numvotes"].items() if n == maxv) as tovote:
+            self.recursion_guard = True
+            gameid = var.GAME_ID
+            last = tovote[-1]
 
-        if evt.params.timeout:
-            channels.Main.send(messages["sunset_lynch"])
+            if evt.params.timeout:
+                channels.Main.send(messages["sunset_lynch"])
 
-        from src.wolfgame import chk_decision
-        for p in tovote:
-            deadlist = tovote[:]
-            deadlist.remove(p)
-            chk_decision(cli, force=p, deadlist=deadlist, end_game=p is last)
+            from src.wolfgame import chk_decision
+            for p in tovote:
+                with tovote[:] as deadlist:
+                    deadlist.remove(p)
+                    chk_decision(force=p, deadlist=deadlist, end_game=p is last)
 
         self.recursion_guard = False
         # gameid changes if game stops due to us voting someone
         if var.GAME_ID == gameid:
-            evt.data["transition_night"](cli)
+            evt.data["transition_night"]()
 
         # make original chk_decision that called us no-op
         evt.prevent_default = True

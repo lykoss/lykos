@@ -10,7 +10,7 @@ from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
-from src.containers import UserList, UserSet, UserDict
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -103,16 +103,16 @@ def on_get_random_totem_targets(evt, var, shaman):
                 evt.data["targets"].remove(succubus)
 
 @event_listener("chk_decision")
-def on_chk_decision(evt, cli, var, force):
+def on_chk_decision(evt, var, force):
     for votee, voters in evt.data["votelist"].items():
-        if users._get(votee) in get_all_players(("succubus",)): # FIXME
+        if votee in get_all_players(("succubus",)):
             for vtr in ENTRANCED:
-                if vtr.nick in voters:
-                    evt.data["numvotes"][votee] -= evt.data["weights"][votee][vtr.nick]
-                    evt.data["weights"][votee][vtr.nick] = 0
+                if vtr in voters:
+                    evt.data["numvotes"][votee] -= evt.data["weights"][votee][vtr]
+                    evt.data["weights"][votee][vtr] = 0
 
 def _kill_entranced_voters(var, votelist, not_lynching, votee):
-    if not {p.nick for p in get_all_players(("succubus",))} & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
+    if not get_all_players(("succubus",)) & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
         # none of the succubi voted (or there aren't any succubi), so short-circuit
         return
     # kill off everyone entranced that did not follow one of the succubi's votes or abstain
@@ -122,32 +122,28 @@ def _kill_entranced_voters(var, votelist, not_lynching, votee):
             ENTRANCED_DYING.add(x)
 
     for other_votee, other_voters in votelist.items():
-        if {p.nick for p in get_all_players(("succubus",))} & set(other_voters): # FIXME
-            if votee == other_votee:
+        if get_all_players(("succubus",)) & set(other_voters): # FIXME
+            if votee is other_votee:
                 ENTRANCED_DYING.clear()
                 return
 
-            for x in set(ENTRANCED_DYING):
-                if x.nick in other_voters:
-                    ENTRANCED_DYING.remove(x)
+            ENTRANCED_DYING.difference_update(other_voters)
 
-    if {p.nick for p in get_all_players(("succubus",))} & not_lynching: # FIXME
+    if get_all_players(("succubus",)) & not_lynching:
         if votee is None:
             ENTRANCED_DYING.clear()
             return
 
-        for x in set(ENTRANCED_DYING):
-            if x.nick in not_lynching:
-                ENTRANCED_DYING.remove(x)
+        ENTRANCED_DYING.difference_update(not_lynching)
 
 @event_listener("chk_decision_lynch", priority=5)
-def on_chk_decision_lynch(evt, cli, var, voters):
+def on_chk_decision_lynch(evt, var, voters):
     # a different event may override the original votee, but people voting along with succubus
     # won't necessarily know that, so base whether or not they risk death on the person originally voted
     _kill_entranced_voters(var, evt.params.votelist, evt.params.not_lynching, evt.params.original_votee)
 
 @event_listener("chk_decision_abstain")
-def on_chk_decision_abstain(evt, cli, var, not_lynching):
+def on_chk_decision_abstain(evt, var, not_lynching):
     _kill_entranced_voters(var, evt.params.votelist, not_lynching, None)
 
 # entranced logic should run after team wins have already been determined (aka run last)

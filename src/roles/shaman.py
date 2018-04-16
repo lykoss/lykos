@@ -7,9 +7,10 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
-from src.decorators import cmd, event_listener
-from src.containers import UserList, UserSet, UserDict
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
 
@@ -27,70 +28,101 @@ from src.events import Event
 #
 # Modifying this file to add new totems or new shaman roles is generally never required
 
-TOTEMS = {}          # type: Dict[str, str]
-LASTGIVEN = {}       # type: Dict[str, str]
-SHAMANS = {}         # type: Dict[str, Tuple[str, str]]
+TOTEMS = UserDict()         # type: Dict[users.User, str]
+LASTGIVEN = UserDict()      # type: Dict[users.User, users.User]
+SHAMANS = UserDict()        # type: Dict[users.User, List[users.User]]
 
-DEATH = {}           # type: Dict[str, str]
-PROTECTION = []      # type: List[str]
-REVEALING = set()    # type: Set[str]
-NARCOLEPSY = set()   # type: Set[str]
-SILENCE = set()      # type: Set[str]
-DESPERATION = set()  # type: Set[str]
-IMPATIENCE = []      # type: List[str]
-PACIFISM = []        # type: List[str]
-INFLUENCE = set()    # type: Set[str]
-EXCHANGE = set()     # type: Set[str]
-LYCANTHROPY = set()  # type: Set[str]
-LUCK = set()         # type: Set[str]
-PESTILENCE = set()   # type: Set[str]
-RETRIBUTION = set()  # type: Set[str]
-MISDIRECTION = set() # type: Set[str]
-DECEIT = set()       # type: Set[str]
+DEATH = UserDict()          # type: Dict[users.User, users.User]
+PROTECTION = UserList()     # type: List[users.User]
+REVEALING = UserSet()       # type: Set[users.User]
+NARCOLEPSY = UserSet()      # type: Set[users.User]
+SILENCE = UserSet()         # type: Set[users.User]
+DESPERATION = UserSet()     # type: Set[users.User]
+IMPATIENCE = UserList()     # type: List[users.User]
+PACIFISM = UserList()       # type: List[users.User]
+INFLUENCE = UserSet()       # type: Set[users.User]
+EXCHANGE = UserSet()        # type: Set[users.User]
+LYCANTHROPY = UserSet()     # type: Set[users.User]
+LUCK = UserSet()            # type: Set[users.User]
+PESTILENCE = UserSet()      # type: Set[users.User]
+RETRIBUTION = UserSet()     # type: Set[users.User]
+MISDIRECTION = UserSet()    # type: Set[users.User]
+DECEIT = UserSet()          # type: Set[users.User]
 
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
-havetotem = [] # type: List[str]
-brokentotem = set() # type: Set[str]
+havetotem = []              # type: List[users.User]
+brokentotem = set()         # type: Set[users.User]
 
-# FIXME: this needs to be split into shaman.py, wolfshaman.py, and crazedshaman.py
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-@cmd("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=var.TOTEM_ORDER)
-def totem(cli, nick, chan, rest, prefix="You"): # XXX: The transition_day_begin event needs updating alongside this
-    """Give a totem to a player."""
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
-    if not victim:
-        return
-    if LASTGIVEN.get(nick) == victim:
-        pm(cli, nick, messages["shaman_no_target_twice"].format(victim))
+def _get_target(var, wrapper, message):
+    target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=True)
+    if not target:
         return
 
-    original_victim = victim
-    role = get_role(nick) # FIXME: this is bad, check if user is in var.ROLES[thingy] instead once converted
-    totem = ""
-    if role != "crazed shaman":
-        totem = " of " + TOTEMS[nick]
+    if LASTGIVEN.get(wrapper.source) is target:
+        wrapper.send(messages["shaman_no_target_twice"].format(target))
+        return
 
-    tags = set()
-    if role != "crazed shaman" and TOTEMS[nick] in var.BENEFICIAL_TOTEMS:
-        tags.add("beneficial")
+    return target
 
-    shaman = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
+def _give_totem(var, wrapper, target, prefix, tags, role, msg):
+
+    orig_target = target
+    orig_role = get_main_role(orig_target)
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True},
-            action="give a totem{0} to".format(totem))
-    evt.dispatch(var, "totem", shaman, target, frozenset(tags))
-    if evt.prevent_default:
-        return
-    victim = evt.data["target"].nick
-    victimrole = get_role(victim)
+                action = "give a totem{0} to".format(msg))
 
-    pm(cli, nick, messages["shaman_success"].format(prefix, totem, original_victim))
-    if role == "wolf shaman":
-        relay_wolfchat_command(cli, nick, messages["shaman_wolfchat"].format(nick, original_victim), ("wolf shaman",), is_wolf_command=True)
-    SHAMANS[nick] = (victim, original_victim)
-    debuglog("{0} ({1}) TOTEM: {2} ({3})".format(nick, role, victim, TOTEMS[nick]))
+    if not evt.dispatch(var, "totem", wrapper.source, target, frozenset(tags)):
+        return
+
+    target = evt.data["target"]
+    targrole = get_main_role(target)
+
+    wrapper.send(messages["shaman_success"].format(prefix, msg, orig_target))
+    SHAMANS[wrapper.source] = UserList((target, orig_target))
+
+    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
+
+@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
+def shaman_totem(var, wrapper, message, prefix="You"):
+    """Give a totem to a player."""
+
+    target = _get_target(var, wrapper, message)
+    if not target:
+        return
+
+    tags = set()
+    if TOTEMS[wrapper.source] in var.BENEFICIAL_TOTEMS:
+        tags.add("beneficial")
+
+    _give_totem(var, wrapper, target, prefix, tags, "shaman", " of {0}".format(TOTEMS[wrapper.source]))
+
+@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
+def crazed_shaman_totem(var, wrapper, message, prefix="You"):
+    """Give a random totem to a player."""
+
+    target = _get_target(var, wrapper, message)
+    if not target:
+        return
+
+    _give_totem(var, wrapper, target, prefix, set(), "crazed shaman", "")
+
+@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
+def wolf_shaman_totem(var, wrapper, message, prefix="You"):
+    """Give a totem to a player."""
+
+    target = _get_target(var, wrapper, message)
+    if not target:
+        return
+
+    tags = set()
+    if TOTEMS[wrapper.source] in var.BENEFICIAL_TOTEMS:
+        tags.add("beneficial")
+
+    _give_totem(var, wrapper, target, prefix, tags, "wolf shaman", " of {0}".format(TOTEMS[wrapper.source]))
+
+    relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), is_wolf_command=True)
 
 @event_listener("rename_player")
 def on_rename(evt, var, prefix, nick):
@@ -132,7 +164,7 @@ def on_rename(evt, var, prefix, nick):
 
 @event_listener("see", priority=10)
 def on_see(evt, var, nick, victim):
-    if (victim in DECEIT) ^ (nick in DECEIT):
+    if (users._get(victim) in DECEIT) ^ (users._get(nick) in DECEIT): # FIXME
         if evt.data["role"] in var.SEEN_WOLF and evt.data["role"] not in var.SEEN_DEFAULT:
             evt.data["role"] = "villager"
         else:
@@ -141,12 +173,13 @@ def on_see(evt, var, nick, victim):
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     for a,(b,c) in list(SHAMANS.items()):
-        if user.nick in (a, b, c):
+        if user in (a, b, c):
+            SHAMANS[a].clear()
             del SHAMANS[a]
 
 @event_listener("night_acted")
 def on_acted(evt, var, user, actor):
-    if user.nick in SHAMANS:
+    if user in SHAMANS:
         evt.data["acted"] = True
 
 @event_listener("get_special")
@@ -158,25 +191,29 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     actor_totem = None
     target_totem = None
     if actor_role in var.TOTEM_ORDER:
-        actor_totem = TOTEMS.pop(actor.nick)
-        if actor.nick in SHAMANS:
-            del SHAMANS[actor.nick]
-        if actor.nick in LASTGIVEN:
+        actor_totem = TOTEMS.pop(actor)
+        if actor in SHAMANS:
+            SHAMANS[actor].clear()
+            del SHAMANS[actor]
+        if actor in LASTGIVEN:
             del LASTGIVEN[actor.nick]
+
     if target_role in var.TOTEM_ORDER:
-        target_totem = TOTEMS.pop(target.nick)
-        if target.nick in SHAMANS:
-            del SHAMANS[target.nick]
-        if target.nick in LASTGIVEN:
-            del LASTGIVEN[target.nick]
+        target_totem = TOTEMS.pop(target)
+        if target in SHAMANS:
+            SHAMANS[target].clear()
+            del SHAMANS[target]
+        if target in LASTGIVEN:
+            del LASTGIVEN[target]
+
     if target_totem:
         if target_role != "crazed shaman":
             evt.data["actor_messages"].append(messages["shaman_totem"].format(target_totem))
-        TOTEMS[actor.nick] = target_totem
+        TOTEMS[actor] = target_totem
     if actor_totem:
         if actor_role != "crazed shaman":
             evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
-        TOTEMS[target.nick] = actor_totem
+        TOTEMS[target] = actor_totem
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -188,7 +225,7 @@ def on_get_voters(evt, var):
     evt.data["voters"] -= NARCOLEPSY
 
 @event_listener("chk_decision", priority=1)
-def on_chk_decision(evt, cli, var, force):
+def on_chk_decision(evt, var, force):
     nl = []
     for p in PACIFISM:
         if p in evt.params.voters:
@@ -197,13 +234,13 @@ def on_chk_decision(evt, cli, var, force):
     for p in IMPATIENCE:
         if p in nl:
             nl.remove(p)
-    evt.data["not_lynching"] |= set(nl)
+    evt.data["not_lynching"].update(nl)
 
     for votee, voters in evt.data["votelist"].items():
         numvotes = 0
         random.shuffle(IMPATIENCE)
         for v in IMPATIENCE:
-            if v in evt.params.voters and v not in voters and v != votee:
+            if v in evt.params.voters and v not in voters and v is not votee:
                 # don't add them in if they have the same number or more of pacifism totems
                 # this matters for desperation totem on the votee
                 imp_count = IMPATIENCE.count(v)
@@ -214,6 +251,7 @@ def on_chk_decision(evt, cli, var, force):
                 # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
                 # already !vote earlier. sucks to suck. >:)
                 voters.append(v)
+
         for v in voters:
             weight = 1
             imp_count = IMPATIENCE.count(v)
@@ -231,52 +269,52 @@ def on_chk_decision(evt, cli, var, force):
         evt.data["numvotes"][votee] = numvotes
 
 @event_listener("chk_decision_abstain")
-def on_chk_decision_abstain(evt, cli, var, nl):
-    for p in nl:
+def on_chk_decision_abstain(evt, var, not_lynching):
+    for p in not_lynching:
         if p in PACIFISM and p not in var.NO_LYNCH:
-            cli.msg(botconfig.CHANNEL, messages["player_meek_abstain"].format(p))
+            channels.Main.send(messages["player_meek_abstain"].format(p))
 
 @event_listener("chk_decision_lynch", priority=1)
-def on_chk_decision_lynch1(evt, cli, var, voters):
+def on_chk_decision_lynch1(evt, var, voters):
     votee = evt.data["votee"]
     for p in voters:
         if p in IMPATIENCE and p not in var.VOTES[votee]:
-            cli.msg(botconfig.CHANNEL, messages["impatient_vote"].format(p, votee))
+            channels.Main.send(messages["impatient_vote"].format(p, votee))
 
 # mayor is at exactly 3, so we want that to always happen before revealing totem
 @event_listener("chk_decision_lynch", priority=3.1)
-def on_chk_decision_lynch3(evt, cli, var, voters):
+def on_chk_decision_lynch3(evt, var, voters):
     votee = evt.data["votee"]
     if votee in REVEALING:
-        role = get_role(votee)
+        role = get_main_role(votee)
         rev_evt = Event("revealing_totem", {"role": role})
-        rev_evt.dispatch(cli, var, votee)
+        rev_evt.dispatch(var, votee)
         role = rev_evt.data["role"]
         # TODO: once amnesiac is split, roll this into the revealing_totem event
         if role == "amnesiac":
-            role = var.AMNESIAC_ROLES[votee]
-            change_role(users._get(votee), "amnesiac", role) # FIXME
-            var.AMNESIACS.add(votee)
-            pm(cli, votee, messages["totem_amnesia_clear"])
+            role = var.AMNESIAC_ROLES[votee.nick]
+            change_role(votee, "amnesiac", role)
+            var.AMNESIACS.add(votee.nick)
+            votee.send(messages["totem_amnesia_clear"])
             # If wolfteam, don't bother giving list of wolves since night is about to start anyway
             # Existing wolves also know that someone just joined their team because revealing totem says what they are
             # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
             if role == "turncoat":
-                var.TURNCOATS[votee] = ("none", -1)
+                var.TURNCOATS[votee.nick] = ("none", -1)
 
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-        cli.msg(botconfig.CHANNEL, messages["totem_reveal"].format(votee, an, role))
+        channels.Main.send(messages["totem_reveal"].format(votee, an, role))
         evt.data["votee"] = None
         evt.prevent_default = True
         evt.stop_processing = True
 
 @event_listener("chk_decision_lynch", priority=5)
-def on_chk_decision_lynch5(evt, cli, var, voters):
+def on_chk_decision_lynch5(evt, var, voters):
     votee = evt.data["votee"]
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
-        if target != votee:
+        if target is not votee:
             prots = deque(var.ACTIVE_PROTECTIONS[target])
             while len(prots) > 0:
                 # an event can read the current active protection and cancel the totem
@@ -287,17 +325,15 @@ def on_chk_decision_lynch5(evt, cli, var, voters):
                     return
                 prots.popleft()
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(users._get(target)) # FIXME
+                r1 = get_reveal_role(target)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
                 tmsg = messages["totem_desperation"].format(votee, target, an1, r1)
             else:
                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
-            cli.msg(botconfig.CHANNEL, tmsg)
+            channels.Main.send(tmsg)
             # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
             evt.data["deadlist"].append(target)
-            better_deadlist = [users._get(p) for p in evt.data["deadlist"]] # FIXME
-            target_user = users._get(target) # FIXME
-            evt.params.del_player(target_user, end_game=False, killer_role="shaman", deadlist=better_deadlist, ismain=False)
+            evt.params.del_player(target, end_game=False, killer_role="shaman", deadlist=evt.data["deadlist"], ismain=False)
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, rol, winner, survived):
@@ -309,22 +345,47 @@ def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(var.TOTEM_ORDER):
-        if shaman.nick not in SHAMANS and shaman.nick not in var.SILENCED:
+        if shaman not in SHAMANS and shaman.nick not in var.SILENCED:
             ps = pl[:]
-            if shaman.nick in LASTGIVEN:
-                user = users._get(LASTGIVEN[shaman.nick]) # FIXME
-                if user in ps:
-                    ps.remove(user)
+            if shaman in LASTGIVEN:
+                if LASTGIVEN[shaman] in ps:
+                    ps.remove(shaman)
             levt = Event("get_random_totem_targets", {"targets": ps})
             levt.dispatch(var, shaman)
             ps = levt.data["targets"]
             if ps:
                 target = random.choice(ps)
-                totem.func(target.client, shaman.nick, shaman.nick, target.nick, messages["random_totem_prefix"]) # XXX: Old API
+                dispatcher = MessageDispatcher(shaman, shaman)
+
+                # We can't use get_main_role here, because they might be templates and it wouldn't work
+                if shaman in get_all_players(("crazed shaman",)):
+                    role = "crazed shaman"
+                    totem = ""
+                    tags = set()
+                elif shaman in get_all_players(("shaman",)):
+                    role = "shaman"
+                    totem = " of {0}".format(TOTEMS[shaman])
+                    tags = set()
+                    if TOTEMS[shaman] in var.BENEFICIAL_TOTEMS:
+                        tags.add("beneficial")
+                elif shaman in get_all_players(("wolf shaman",)):
+                    role = "wolf shaman"
+                    totem = " of {0}".format(TOTEMS[shaman])
+                    tags = set()
+                    if TOTEMS[shaman] in var.BENEFICIAL_TOTEMS:
+                        tags.add("beneficial")
+                else:
+                    shaman.send(messages["random_totem_bug"])
+                    channels.Main.send(messages["something_happened"])
+                    return
+
+                _give_totem(var, dispatcher, target, messages["random_totem_prefix"], tags, role, totem)
+                if role == "wolf shaman":
+                    relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
             else:
-                LASTGIVEN[shaman.nick] = None
+                LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:
-            LASTGIVEN[shaman.nick] = None
+            LASTGIVEN[shaman] = None
 
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin2(evt, var):
@@ -383,9 +444,8 @@ def on_transition_day_begin2(evt, var):
             DECEIT.add(victim)
         # other totem types possibly handled in an earlier event,
         # as such there is no else: clause here
-        if target != victim:
-            user = users._get(shaman) # FIXME
-            user.send(messages["totem_retarget"].format(victim))
+        if target is not victim:
+            shaman.send(messages["totem_retarget"].format(victim))
         LASTGIVEN[shaman] = victim
 
     # In transition_day_end we report who was given totems based on havetotem.
@@ -397,9 +457,7 @@ def on_transition_day_begin2(evt, var):
 
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):
-    for k, d in DEATH.items():
-        shaman = users._get(k) # FIXME
-        target = users._get(d) # FIXME
+    for shaman, target in DEATH.items():
         evt.data["victims"].append(target)
         evt.data["onlybywolves"].discard(target)
         evt.data["killers"][target].append(shaman)
@@ -412,7 +470,7 @@ def on_transition_day3(evt, var):
     pl = get_players()
     vs = set(evt.data["victims"])
     for v in pl:
-        numtotems = PROTECTION.count(v.nick)
+        numtotems = PROTECTION.count(v)
         if v in vs:
             if v in var.DYING:
                 continue
@@ -457,7 +515,7 @@ def on_transition_day_resolve6(evt, var, victim):
         return
     # END checks to remove
 
-    if victim.nick in RETRIBUTION:
+    if victim in RETRIBUTION:
         killers = list(evt.data["killers"].get(victim, []))
         loser = None
         while killers:
@@ -508,20 +566,19 @@ def on_transition_day_end(evt, var):
 def on_transition_night_end(evt, var):
     max_totems = defaultdict(int)
     ps = get_players()
-    shamans = list_players(var.TOTEM_ORDER) # FIXME: Need to convert alongside the entire role
+    shamans = get_players(var.TOTEM_ORDER)
     for ix in range(len(var.TOTEM_ORDER)):
         for c in var.TOTEM_CHANCES.values():
             max_totems[var.TOTEM_ORDER[ix]] += c[ix]
-    for s in list(LASTGIVEN.keys()):
+    for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]
     for shaman in get_players(var.TOTEM_ORDER):
         pl = ps[:]
         random.shuffle(pl)
-        if LASTGIVEN.get(shaman.nick):
-            user = users._get(LASTGIVEN[shaman.nick]) # FIXME
-            if user in pl:
-                pl.remove(user)
+        if LASTGIVEN.get(shaman):
+            if LASTGIVEN[shaman] in pl:
+                pl.remove(LASTGIVEN[shaman])
         role = get_main_role(shaman) # FIXME: don't use get_main_role here once split into one file per role
         indx = var.TOTEM_ORDER.index(role)
         target = 0
@@ -529,23 +586,24 @@ def on_transition_night_end(evt, var):
         for t in var.TOTEM_CHANCES.keys():
             target += var.TOTEM_CHANCES[t][indx]
             if rand <= target:
-                TOTEMS[shaman.nick] = t # FIXME: Fix once shaman is converted
+                TOTEMS[shaman] = t
                 break
         if shaman.prefers_simple():
             if role not in var.WOLFCHAT_ROLES:
                 shaman.send(messages["shaman_simple"].format(role))
             if role != "crazed shaman":
-                shaman.send(messages["totem_simple"].format(TOTEMS[shaman.nick])) # FIXME
+                shaman.send(messages["totem_simple"].format(TOTEMS[shaman]))
         else:
             if role not in var.WOLFCHAT_ROLES:
                 shaman.send(messages["shaman_notify"].format(role, "random " if shaman in var.ROLES["crazed shaman"] else ""))
             if role != "crazed shaman":
-                totem = TOTEMS[shaman.nick] # FIXME
+                totem = TOTEMS[shaman]
                 tmsg = messages["shaman_totem"].format(totem)
                 try:
                     tmsg += messages[totem + "_totem"]
                 except KeyError:
                     tmsg += messages["generic_bug_totem"]
+                    channels.Main.send(messages["something_happened"])
                 shaman.send(tmsg)
         if role not in var.WOLFCHAT_ROLES:
             shaman.send("Players: " + ", ".join(p.nick for p in pl))
@@ -553,26 +611,26 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
-    var.EXCHANGED.update(EXCHANGE)
-    var.SILENCED.update(SILENCE)
-    var.LYCANTHROPES.update(LYCANTHROPY)
+    var.EXCHANGED.update(p.nick for p in EXCHANGE)
+    var.SILENCED.update(p.nick for p in SILENCE)
+    var.LYCANTHROPES.update(p.nick for p in LYCANTHROPY)
     # pestilence doesn't take effect on immunized players
-    var.DISEASED.update(PESTILENCE - var.IMMUNIZED)
-    var.LUCKY.update(LUCK)
-    var.MISDIRECTED.update(MISDIRECTION)
+    var.DISEASED.update({p.nick for p in PESTILENCE} - var.IMMUNIZED)
+    var.LUCKY.update(p.nick for p in LUCK)
+    var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
 
     SHAMANS.clear()
 
 @event_listener("abstain")
-def on_abstain(evt, cli, var, nick):
-    if nick in NARCOLEPSY:
-        pm(cli, nick, messages["totem_narcolepsy"])
+def on_abstain(evt, var, user):
+    if user in NARCOLEPSY:
+        user.send(messages["totem_narcolepsy"])
         evt.prevent_default = True
 
 @event_listener("lynch")
-def on_lynch(evt, cli, var, nick):
-    if nick in NARCOLEPSY:
-        pm(cli, nick, messages["totem_narcolepsy"])
+def on_lynch(evt, var, user):
+    if user in NARCOLEPSY:
+        user.send(messages["totem_narcolepsy"])
         evt.prevent_default = True
 
 @event_listener("assassinate")
@@ -585,26 +643,27 @@ def on_assassinate(evt, var, killer, target, prot):
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):
-    if (users._get(SHAMANS.get(target.nick, (None, None))[1], allow_none=True) in get_all_players(("succubus",)) and # FIXME
-       (get_main_role(target) == "crazed shaman" or TOTEMS[target.nick] not in var.BENEFICIAL_TOTEMS)):
-        target.send(messages["retract_totem_succubus"].format(SHAMANS[target.nick][1]))
-        del SHAMANS[target.nick]
+    if (SHAMANS.get(target, (None, None))[1] in get_all_players(("succubus",)) and
+       (get_main_role(target) == "crazed shaman" or TOTEMS[target] not in var.BENEFICIAL_TOTEMS)):
+        target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
+        SHAMANS[target].clear()
+        del SHAMANS[target]
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     role = evt.data["role"]
-    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and user.nick not in SHAMANS:
-        evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[user.nick]))
+    if role in var.TOTEM_ORDER and role != "crazed shaman" and var.PHASE == "night" and user not in SHAMANS:
+        evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[user]))
 
 @event_listener("revealroles_role")
-def on_revealroles(evt, var, wrapper, nickname, role):
-    if role in var.TOTEM_ORDER and nickname in TOTEMS:
-        if nickname in SHAMANS:
-            evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[nickname], SHAMANS[nickname][0]))
+def on_revealroles(evt, var, wrapper, user, role):
+    if role in var.TOTEM_ORDER and user in TOTEMS:
+        if user in SHAMANS:
+            evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[user], SHAMANS[user][0]))
         elif var.PHASE == "night":
-            evt.data["special_case"].append("has {0} totem".format(TOTEMS[nickname]))
-        elif nickname in LASTGIVEN and LASTGIVEN[nickname]:
-            evt.data["special_case"].append("gave {0} totem to {1}".format(TOTEMS[nickname], LASTGIVEN[nickname]))
+            evt.data["special_case"].append("has {0} totem".format(TOTEMS[user]))
+        elif user in LASTGIVEN and LASTGIVEN[user]:
+            evt.data["special_case"].append("gave {0} totem to {1}".format(TOTEMS[user], LASTGIVEN[user]))
 
 @event_listener("reset")
 def on_reset(evt, var):

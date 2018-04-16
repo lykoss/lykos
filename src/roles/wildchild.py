@@ -6,7 +6,7 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import cmd, event_listener
-from src.containers import UserList, UserSet, UserDict
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -148,10 +148,10 @@ def on_transition_night_end(evt, var):
         child.send(messages[to_send])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, var, wrapper, nick, role):
+def on_revealroles_role(evt, var, wrapper, user, role):
     if role == "wild child":
-        if nick in IDOLS:
-            evt.data["special_case"].append("picked {0} as idol".format(IDOLS[nick]))
+        if user.nick in IDOLS:
+            evt.data["special_case"].append("picked {0} as idol".format(IDOLS[user.nick]))
         else:
             evt.data["special_case"].append("no idol picked yet")
 

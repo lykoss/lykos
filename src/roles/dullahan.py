@@ -7,7 +7,7 @@ from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
-from src.containers import UserList, UserSet, UserDict
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 import botconfig
@@ -199,9 +199,8 @@ def on_myrole(evt, var, user):
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, var, wrapper, nickname, role):
-    user = users._get(nickname) # FIXME
-    if role == "dullahan" and user in TARGETS: # FIXME
+def on_revealroles_role(evt, var, wrapper, user, role):
+    if role == "dullahan" and user in TARGETS:
         targets = set(TARGETS[user])
         for target in TARGETS[user]:
             if target.nick in var.DEAD:
