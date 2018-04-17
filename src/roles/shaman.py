@@ -13,7 +13,7 @@ from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
 
-from src.roles._shaman_helper import *
+from src.roles._shaman_helper import havetotem, _get_target, _give_totem, _apply_totem
 
 TOTEMS = UserDict()         # type: Dict[users.User, str]
 LASTGIVEN = UserDict()      # type: Dict[users.User, users.User]

@@ -1,6 +1,7 @@
 import itertools
 import random
 import re
+from collections import deque
 
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
@@ -8,14 +9,6 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-
-__all__ = ["DEATH", "PROTECTION", "REVEALING", "NARCOLEPSY", "SILENCE",
-           "DESPERATION", "IMPATIENCE", "PACIFISM", "INFLUENCE",
-           "EXCHANGE", "LYCANTHROPY", "LUCK", "PESTILENCE",
-           "RETRIBUTION", "MISDIRECTION", "DECEIT",
-           "havetotem", "brokentotem",
-           "_get_target", "_give_totem", "_apply_totem",
-          ]
 
 DEATH = UserDict()          # type: Dict[users.User, users.User]
 PROTECTION = UserList()     # type: List[users.User]
@@ -155,7 +148,7 @@ def on_chk_decision(evt, var, force):
                 imp_count = IMPATIENCE.count(v)
                 pac_count = PACIFISM.count(v)
                 if pac_count >= imp_count:
-                        continue
+                    continue
 
                 # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
                 # already !vote earlier. sucks to suck. >:)
