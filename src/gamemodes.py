@@ -916,7 +916,7 @@ class SleepyMode(GameMode):
         for dull in dullahans:
             evt.data["targets"][dull] = UserSet(var.ROLES["priest"])
 
-    def setup_nightmares(self, evt, cli, var):
+    def setup_nightmares(self, evt, var):
         if random.random() < 1/5:
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (var, random.choice(get_players()), var.NIGHT_COUNT))
