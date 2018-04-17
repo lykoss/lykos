@@ -2,7 +2,6 @@ import re
 import random
 from collections import defaultdict
 
-import src.settings as var
 from src.utilities import *
 from src.functions import get_players
 from src import debuglog, errlog, plog, users, channels

@@ -1,4 +1,3 @@
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players

@@ -1860,7 +1860,7 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
                 event.data["transition_night"]()
                 return
             for votee, voters in votelist.items():
-                if numvotes[votee] >= votesneeded or votee == force:
+                if numvotes[votee] >= votesneeded or votee is force:
                     # priorities:
                     # 1 = displaying impatience totem messages
                     # 3 = mayor/revealing totem

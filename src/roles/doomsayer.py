@@ -1,7 +1,6 @@
 import re
 import random
 
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target, is_known_wolf_ally
@@ -35,6 +34,8 @@ def see(var, wrapper, message):
     evt.dispatch(var, "see", wrapper.source, target, frozenset({"detrimental", "immediate"}))
     if evt.prevent_default:
         return
+
+    target = evt.data["target"]
     targrole = get_main_role(target)
 
     mode, mapping = random.choice(_mappings)

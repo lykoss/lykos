@@ -5,7 +5,6 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src import channels, users, debuglog, errlog, plog

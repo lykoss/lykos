@@ -5,7 +5,6 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener

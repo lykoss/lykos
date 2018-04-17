@@ -62,6 +62,12 @@ class UserList(list):
 
         self.extend(other)
 
+    def __getitem__(self, item):
+        new = super().__getitem__(item)
+        if isinstance(item, slice):
+            new = type(self)(new)
+        return new
+
     def __setitem__(self, index, value):
         if not isinstance(value, User):
             raise TypeError("UserList may only contain User instances")
@@ -316,6 +322,9 @@ class UserDict(dict):
         if isinstance(value, User):
             if value not in self.values():
                 value.dict_values.remove(self)
+
+        if isinstance(value, (UserSet, UserList, UserDict)):
+            value.clear()
 
     def clear(self):
         for key, value in self.items():
