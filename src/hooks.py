@@ -683,8 +683,11 @@ def on_chghost(cli, rawnick, ident, host):
     new = users._add(cli, nick=user.nick, ident=ident, host=host, realname=user.realname, account=user.account) # FIXME
 
     if user is not new:
-        new.channels = user.channels
+        new.channels = user.channels.copy()
         new.timestamp = user.timestamp # We lie, but it's ok
+        for chan in set(user.channels):
+            chan.remove_user(user)
+            chan.users.add(new)
         user.swap(new)
 
 # vim: set sw=4 expandtab:
