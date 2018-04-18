@@ -10,7 +10,7 @@ import functools
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, events, context, channels, hooks, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.utilities import reply
 from src.functions import get_participants, get_all_roles
@@ -232,7 +232,7 @@ def connect_callback(cli):
         hook("unavailresource", hookid=240)(mustrelease)
         hook("nicknameinuse", hookid=241)(mustregain)
 
-    request_caps = {"account-notify", "extended-join", "multi-prefix"}
+    request_caps = {"account-notify", "extended-join", "multi-prefix", "chghost"}
 
     if botconfig.SASL_AUTHENTICATION:
         request_caps.add("sasl")
