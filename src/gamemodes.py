@@ -1326,7 +1326,7 @@ class MudkipMode(GameMode):
             evt.data["transition_night"] = lambda: None
             if force:
                 evt.data["votelist"].clear()
-                evt.data["votelist"][force] = []
+                evt.data["votelist"][force] = set()
                 evt.data["numvotes"].clear()
                 evt.data["numvotes"][force] = 0
             else:

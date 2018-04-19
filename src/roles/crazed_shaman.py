@@ -33,7 +33,6 @@ def crazed_shaman_totem(var, wrapper, message, prefix="You"):
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     for a,(b,c) in list(SHAMANS.items()):
         if user in (a, b, c):
-            SHAMANS[a].clear()
             del SHAMANS[a]
 
 @event_listener("night_acted")
@@ -87,7 +86,7 @@ def on_transition_day_begin(evt, var):
             ps = pl[:]
             if shaman in LASTGIVEN:
                 if LASTGIVEN[shaman] in ps:
-                    ps.remove(shaman)
+                    ps.remove(LASTGIVEN[shaman])
             levt = Event("get_random_totem_targets", {"targets": ps})
             levt.dispatch(var, shaman)
             ps = levt.data["targets"]
@@ -176,8 +175,6 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         # only add shamans here if they were given a death totem
         # even though retribution kills, it is given a special kill message
-        # note that all shaman types (shaman/CS/wolf shaman) are lumped under the "shaman" key (for now),
-        # this will change so they all get their own key in the future (once this is split into 3 files)
         evt.data["crazed shaman"] = list(TOTEMS.values()).count("death")
 
 # vim: set sw=4 expandtab:

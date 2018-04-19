@@ -2671,9 +2671,8 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED):
                     x.discard(player.nick)
             if var.PHASE == "day" and ret:
-                x = var.VOTES.pop(player, None)  #  Delete other people's votes on the player
-                if x is not None:
-                    x.clear()
+                if player in var.VOTES:
+                    del var.VOTES[player] # Delete other people's votes on the player
                 for k in list(var.VOTES.keys()):
                     if player in var.VOTES[k]:
                         var.VOTES[k].remove(player)
@@ -3332,6 +3331,7 @@ def transition_day(gameid=0):
 
     # Reset daytime variables
     var.INVESTIGATED = set()
+    var.WOUNDED.clear()
     var.NO_LYNCH.clear()
 
     for crow, target in iter(var.OBSERVED.items()):
@@ -3829,6 +3829,12 @@ def lynch(var, wrapper, message):
     if not message:
         show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
         return
+    if wrapper.source in var.WOUNDED:
+        wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
+        return
+    if wrapper.source in var.CONSECRATING:
+        wrapper.pm(messages["consecrating_no_vote"])
+        return
 
     msg = re.split(" +", message)[0].strip()
 
@@ -3849,13 +3855,6 @@ def lynch(var, wrapper, message):
     if not evt.dispatch(var, wrapper.source):
         return
     voted = evt.data["target"]
-
-    if wrapper.source in var.WOUNDED:
-        wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
-        return
-    if wrapper.source in var.CONSECRATING:
-        wrapper.pm(messages["consecrating_no_vote"])
-        return
 
     var.NO_LYNCH.discard(wrapper.source)
 
@@ -4111,15 +4110,15 @@ def retract(var, wrapper, message):
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
         if var.PHASE == "join":
-            if not wrapper.source.nick in var.START_VOTES:
+            if not wrapper.source in var.START_VOTES:
                 wrapper.pm(messages["start_novote"])
             else:
-                var.START_VOTES.discard(nick)
+                var.START_VOTES.discard(wrapper.source)
                 wrapper.send(messages["start_retract"].format(wrapper.source))
 
                 if len(var.START_VOTES) < 1:
-                    var.TIMERS['start_votes'][0].cancel()
-                    del var.TIMERS['start_votes']
+                    var.TIMERS["start_votes"][0].cancel()
+                    del var.TIMERS["start_votes"]
 
     if var.PHASE != "day":
         return
@@ -5101,7 +5100,6 @@ def transition_night():
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(ass)
-        role = get_main_role(ass)
         if ass in get_all_players(("village drunk",)):
             var.TARGETED[ass.nick] = random.choice(pl)
             message = messages["drunken_assassin_notification"].format(var.TARGETED[ass.nick])

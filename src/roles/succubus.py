@@ -111,7 +111,8 @@ def on_chk_decision(evt, var, force):
                     evt.data["weights"][votee][vtr] = 0
 
 def _kill_entranced_voters(var, votelist, not_lynching, votee):
-    if not get_all_players(("succubus",)) & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
+    voters = set(itertools.chain(*votelist.values()))
+    if not get_all_players(("succubus",)) & (voters | not_lynching):
         # none of the succubi voted (or there aren't any succubi), so short-circuit
         return
     # kill off everyone entranced that did not follow one of the succubi's votes or abstain
@@ -121,7 +122,7 @@ def _kill_entranced_voters(var, votelist, not_lynching, votee):
             ENTRANCED_DYING.add(x)
 
     for other_votee, other_voters in votelist.items():
-        if get_all_players(("succubus",)) & set(other_voters): # FIXME
+        if get_all_players(("succubus",)) & set(other_voters):
             if votee is other_votee:
                 ENTRANCED_DYING.clear()
                 return
