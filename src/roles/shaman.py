@@ -183,6 +183,8 @@ def on_myrole(evt, var, user):
 
 @event_listener("revealroles_role")
 def on_revealroles(evt, var, wrapper, user, role):
+    if role not in var.TOTEM_ORDER:
+        return
     if user in TOTEMS:
         if user in SHAMANS:
             evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[user], SHAMANS[user][0]))
