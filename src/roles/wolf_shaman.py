@@ -15,7 +15,13 @@ from src.events import Event
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True)
+def get_tags(var, totem):
+    tags = set()
+    if totem in var.BENEFICIAL_TOTEMS:
+        tags.add("beneficial")
+    return tags
+
+TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True, get_tags=get_tags)
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
 def wolf_shaman_totem(var, wrapper, message):
@@ -25,11 +31,9 @@ def wolf_shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    tags = set()
-    if TOTEMS[wrapper.source] in var.BENEFICIAL_TOTEMS:
-        tags.add("beneficial")
+    totem = TOTEMS[wrapper.source]
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=tags, role="wolf shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=get_tags(var, totem), role="wolf shaman", msg=" of {0}".format(totem))
 
     relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), is_wolf_command=True)
 
@@ -50,9 +54,7 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                tags = set()
-                if TOTEMS[shaman] in var.BENEFICIAL_TOTEMS:
-                    tags.add("beneficial")
+                tags = get_tags(var, TOTEMS[shaman])
 
                 SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], tags=tags, role="wolf shaman", msg=" of {0}".format(TOTEMS[shaman]))
                 relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
@@ -100,12 +102,5 @@ def on_transition_night_end(evt, var):
                 tmsg += messages["generic_bug_totem"]
                 channels.Main.send(messages["something_happened"])
             shaman.send(tmsg)
-
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    if target in SHAMANS and SHAMANS[target][1] in get_all_players(("succubus",)):
-        if TOTEMS[target] not in var.BENEFICIAL_TOTEMS:
-            target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
-            del SHAMANS[target]
 
 # vim: set sw=4 expandtab:

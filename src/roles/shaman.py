@@ -15,7 +15,13 @@ from src.events import Event
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("shaman", knows_totem=True)
+def get_tags(var, totem):
+    tags = set()
+    if totem in var.BENEFICIAL_TOTEMS:
+        tags.add("beneficial")
+    return tags
+
+TOTEMS, LASTGIVEN, SHAMANS = setup_variables("shaman", knows_totem=True, get_tags=get_tags)
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
 def shaman_totem(var, wrapper, message):
@@ -25,11 +31,9 @@ def shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    tags = set()
-    if TOTEMS[wrapper.source] in var.BENEFICIAL_TOTEMS:
-        tags.add("beneficial")
+    totem = TOTEMS[wrapper.source]
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=tags, role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=get_tags(var, totem), role="shaman", msg=" of {0}".format(totem))
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
@@ -48,9 +52,7 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                tags = set()
-                if TOTEMS[shaman] in var.BENEFICIAL_TOTEMS:
-                    tags.add("beneficial")
+                tags = get_tags(var, TOTEMS[shaman])
 
                 SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], tags=tags, role="shaman", msg=" of {0}".format(TOTEMS[shaman]))
             else:
@@ -99,12 +101,5 @@ def on_transition_night_end(evt, var):
                 channels.Main.send(messages["something_happened"])
             shaman.send(tmsg)
         shaman.send("Players: " + ", ".join(p.nick for p in pl))
-
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    if target in SHAMANS and SHAMANS[target][1] in get_all_players(("succubus",)):
-        if TOTEMS[target] not in var.BENEFICIAL_TOTEMS:
-            target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
-            del SHAMANS[target]
 
 # vim: set sw=4 expandtab:

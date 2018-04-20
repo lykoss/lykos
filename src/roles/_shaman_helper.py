@@ -42,12 +42,14 @@ brokentotem = set()         # type: Set[users.User]
 # 1. Expand var.TOTEM_ORDER and upate var.TOTEM_CHANCES to account for the new width
 # 2. Add the role to var.ROLE_GUIDE
 # 3. Add the role to whatever other holding vars are necessary based on what it does
-# 4. Setup initial variables and events with setup_variables(rolename, knows_totem=(bool))
+# 4. Setup initial variables and events with setup_variables(rolename, knows_totem, get_tags)
+#    knows_totem is a bool and keyword-only. get_tags is a function in the form get_tags(var, totem)
+#    and should return a set
 # 5. Implement custom events if the role does anything else beyond giving totems.
 #
 # Modifying this file to add new totems or new shaman roles is generally never required
 
-def setup_variables(rolename, *, knows_totem):
+def setup_variables(rolename, *, knows_totem, get_tags):
     """Setup role variables and shared events."""
     TOTEMS = UserDict()     # type: Dict[users.User, str]
     LASTGIVEN = UserDict()  # type: Dict[users.User, users.User]
@@ -77,7 +79,41 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("transition_day_begin", priority=7)
     def on_transition_day_begin2(evt, var):
         for shaman, (victim, target) in SHAMANS.items():
-            apply_totem(TOTEMS[shaman], shaman, victim)
+            totem = TOTEMS[shaman]
+            if totem == "death": # this totem stacks
+                DEATH[shaman] = victim
+            elif totem == "protection": # this totem stacks
+                PROTECTION.append(victim)
+            elif totem == "revealing":
+                REVEALING.add(victim)
+            elif totem == "narcolepsy":
+                NARCOLEPSY.add(victim)
+            elif totem == "silence":
+                SILENCE.add(victim)
+            elif totem == "desperation":
+                DESPERATION.add(victim)
+            elif totem == "impatience": # this totem stacks
+                IMPATIENCE.append(victim)
+            elif totem == "pacifism": # this totem stacks
+                PACIFISM.append(victim)
+            elif totem == "influence":
+                INFLUENCE.add(victim)
+            elif totem == "exchange":
+                EXCHANGE.add(victim)
+            elif totem == "lycanthropy":
+                LYCANTHROPY.add(victim)
+            elif totem == "luck":
+                LUCK.add(victim)
+            elif totem == "pestilence":
+                PESTILENCE.add(victim)
+            elif totem == "retribution":
+                RETRIBUTION.add(victim)
+            elif totem == "misdirection":
+                MISDIRECTION.add(victim)
+            elif totem == "deceit":
+                DECEIT.add(victim)
+            # other totem types possibly handled in an earlier event,
+            # as such there is no else: clause here
 
             if target is not victim:
                 shaman.send(messages["totem_retarget"].format(victim))
@@ -139,6 +175,14 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
             TOTEMS[target] = actor_totem
 
+    @event_listener("succubus_visit")
+    def on_succubus_visit(evt, var, succubus, target):
+        if target in SHAMANS and SHAMANS[target][1] in get_all_players(("succubus",)):
+            tags = get_tags(var, TOTEMS[target])
+            if "beneficial" not in tags:
+                target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
+                del SHAMANS[target]
+
     if knows_totem:
         @event_listener("myrole")
         def on_myrole(evt, var, user):
@@ -178,43 +222,6 @@ def give_totem(var, wrapper, target, prefix, tags, role, msg):
     debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
 
     return UserList((target, orig_target))
-
-def apply_totem(totem, shaman, victim):
-    """Apply the effect of a single totem."""
-    if totem == "death": # this totem stacks
-        DEATH[shaman] = victim
-    elif totem == "protection": # this totem stacks
-        PROTECTION.append(victim)
-    elif totem == "revealing":
-        REVEALING.add(victim)
-    elif totem == "narcolepsy":
-        NARCOLEPSY.add(victim)
-    elif totem == "silence":
-        SILENCE.add(victim)
-    elif totem == "desperation":
-        DESPERATION.add(victim)
-    elif totem == "impatience": # this totem stacks
-        IMPATIENCE.append(victim)
-    elif totem == "pacifism": # this totem stacks
-        PACIFISM.append(victim)
-    elif totem == "influence":
-        INFLUENCE.add(victim)
-    elif totem == "exchange":
-        EXCHANGE.add(victim)
-    elif totem == "lycanthropy":
-        LYCANTHROPY.add(victim)
-    elif totem == "luck":
-        LUCK.add(victim)
-    elif totem == "pestilence":
-        PESTILENCE.add(victim)
-    elif totem == "retribution":
-        RETRIBUTION.add(victim)
-    elif totem == "misdirection":
-        MISDIRECTION.add(victim)
-    elif totem == "deceit":
-        DECEIT.add(victim)
-    # other totem types possibly handled in an earlier event,
-    # as such there is no else: clause here
 
 @event_listener("see", priority=10)
 def on_see(evt, var, nick, victim):

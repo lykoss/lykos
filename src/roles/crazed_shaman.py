@@ -15,7 +15,10 @@ from src.events import Event
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("crazed shaman", knows_totem=False)
+def get_tags(var, totem):
+    return set()
+
+TOTEMS, LASTGIVEN, SHAMANS = setup_variables("crazed shaman", knows_totem=False, get_tags=get_tags)
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
 def crazed_shaman_totem(var, wrapper, message):
@@ -25,7 +28,9 @@ def crazed_shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=set(), role="crazed shaman", msg="")
+    totem = TOTEMS[wrapper.source]
+
+    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=get_tags(var, totem), role="crazed shaman", msg="")
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
@@ -49,7 +54,9 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], tags=set(), role="crazed shaman", msg="")
+                tags = get_tags(var, TOTEMS[shaman])
+
+                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], tags=tags, role="crazed shaman", msg="")
             else:
                 LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:
@@ -87,11 +94,5 @@ def on_transition_night_end(evt, var):
         else:
             shaman.send(messages["shaman_notify"].format("crazed shaman", "random "))
         shaman.send("Players: " + ", ".join(p.nick for p in pl))
-
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    if target in SHAMANS and SHAMANS[target][1] in get_all_players(("succubus",)):
-        target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
-        del SHAMANS[target]
 
 # vim: set sw=4 expandtab:
