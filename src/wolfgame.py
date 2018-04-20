@@ -1765,8 +1765,6 @@ def hurry_up(gameid, change):
             }, voters=pl, timeout=True)
         if not event.dispatch(var, None):
             return
-        not_lynching = event.data["not_lynching"]
-        votelist = event.data["votelist"]
         numvotes = event.data["numvotes"]
 
         found_dup = False
