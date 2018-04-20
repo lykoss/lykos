@@ -1803,7 +1803,9 @@ def fday(cli, nick, chan, rest):
         transition_day()
 
 # Specify force = user to force user to be lynched
-def chk_decision(force=None, end_game=True, deadlist=UserList()):
+def chk_decision(force=None, end_game=True, deadlist=None):
+    if deadlist is None:
+        deadlist = []
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
@@ -1813,7 +1815,6 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(var)
         pl = evt.data["voters"]
-        dead = list(deadlist)
         not_lynching = set(var.NO_LYNCH)
 
         avail = len(pl)
@@ -1831,8 +1832,6 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
             if not event.dispatch(var, force):
                 return
 
-            not_lynching = event.data["not_lynching"]
-            votelist = event.data["votelist"]
             numvotes = event.data["numvotes"]
 
             gm = var.CURRENT_GAMEMODE.name
@@ -1866,7 +1865,7 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
                     # 3 = mayor/revealing totem
                     # 4 = fool
                     # 5 = desperation totem, other things that happen on generic lynch
-                    vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": dead},
+                    vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
                         del_player=del_player,
                         original_votee=votee,
                         force=(votee is force),
@@ -1874,7 +1873,6 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
                         not_lynching=not_lynching)
                     if vote_evt.dispatch(var, voters):
                         votee = vote_evt.data["votee"]
-                        dead = vote_evt.data["deadlist"]
                         # roles that end the game upon being lynched
                         if votee in get_all_players(("fool",)):
                             # ends game immediately, with fool as only winner
@@ -1884,7 +1882,7 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
                             channels.Main.send(lmsg)
                             if chk_win(winner="@" + votee.nick):
                                 return
-                        dead.append(votee)
+                        deadlist.append(votee)
                         # Other
                         if votee in get_all_players(("jester",)):
                             var.JESTERS.add(votee.nick)
@@ -1896,7 +1894,7 @@ def chk_decision(force=None, end_game=True, deadlist=UserList()):
                         else:
                             lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                         channels.Main.send(lmsg)
-                        if not del_player(votee, killer_role="villager", deadlist=dead, end_game=end_game):
+                        if not del_player(votee, killer_role="villager", deadlist=deadlist, end_game=end_game):
                             return
                     do_night_transision = True
                     break

@@ -38,17 +38,117 @@ brokentotem = set()         # type: Set[users.User]
 #    the totem (this is displayed at night if !simple is off)
 # 3. Add events as necessary to implement the totem's functionality
 #
-# XXX The paragraph below is obsolete, needs to be updated
-#
 # To add new shaman roles in your custom roles/whatever.py file:
 # 1. Expand var.TOTEM_ORDER and upate var.TOTEM_CHANCES to account for the new width
 # 2. Add the role to var.ROLE_GUIDE
 # 3. Add the role to whatever other holding vars are necessary based on what it does
-# 4. Implement custom events if the role does anything else beyond giving totems.
+# 4. Setup initial variables and events with setup_variables(rolename, knows_totem=(bool))
+# 5. Implement custom events if the role does anything else beyond giving totems.
 #
 # Modifying this file to add new totems or new shaman roles is generally never required
 
-def _get_target(var, wrapper, message, lastgiven):
+def setup_variables(rolename, *, knows_totem):
+    """Setup role variables and shared events."""
+    TOTEMS = UserDict()     # type: Dict[users.User, str]
+    LASTGIVEN = UserDict()  # type: Dict[users.User, users.User]
+    SHAMANS = UserDict()    # type: Dict[users.User, List[users.User]]
+
+    @event_listener("reset")
+    def on_reset(evt, var):
+        TOTEMS.clear()
+        LASTGIVEN.clear()
+        SHAMANS.clear()
+
+    @event_listener("begin_day")
+    def on_begin_day(evt, var):
+        SHAMANS.clear()
+
+    @event_listener("revealroles_role")
+    def on_revealroles(evt, var, wrapper, user, role):
+        if role == rolename and user in TOTEMS:
+            if user in SHAMANS:
+                evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[user], SHAMANS[user][0]))
+            elif var.PHASE == "night":
+                evt.data["special_case"].append("has {0} totem".format(TOTEMS[user]))
+            elif user in LASTGIVEN and LASTGIVEN[user]:
+                evt.data["special_case"].append("gave {0} totem to {1}".format(TOTEMS[user], LASTGIVEN[user]))
+
+
+    @event_listener("transition_day_begin", priority=7)
+    def on_transition_day_begin2(evt, var):
+        for shaman, (victim, target) in SHAMANS.items():
+            apply_totem(TOTEMS[shaman], shaman, victim)
+
+            if target is not victim:
+                shaman.send(messages["totem_retarget"].format(victim))
+            LASTGIVEN[shaman] = victim
+
+        havetotem.extend(sorted(filter(None, LASTGIVEN.values())))
+
+    @event_listener("del_player")
+    def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+        for a,(b,c) in list(SHAMANS.items()):
+            if user in (a, b, c):
+                del SHAMANS[a]
+
+    @event_listener("night_acted")
+    def on_acted(evt, var, user, actor):
+        if user in SHAMANS:
+            evt.data["acted"] = True
+
+    @event_listener("get_special")
+    def on_get_special(evt, var):
+        evt.data["special"].update(get_players((rolename,)))
+
+    @event_listener("chk_nightdone")
+    def on_chk_nightdone(evt, var):
+        evt.data["actedcount"] += len(SHAMANS)
+        evt.data["nightroles"].extend(get_players((rolename,)))
+
+    @event_listener("get_role_metadata")
+    def on_get_role_metadata(evt, var, kind):
+        if kind == "night_kills":
+            # only add shamans here if they were given a death totem
+            # even though retribution kills, it is given a special kill message
+            evt.data[rolename] = list(TOTEMS.values()).count("death")
+
+    @event_listener("exchange_roles")
+    def on_exchange(evt, var, actor, target, actor_role, target_role):
+        actor_totem = None
+        target_totem = None
+        if actor_role == rolename:
+            actor_totem = TOTEMS.pop(actor)
+            if actor in SHAMANS:
+                del SHAMANS[actor]
+            if actor in LASTGIVEN:
+                del LASTGIVEN[actor]
+
+        if target_role == rolename:
+            target_totem = TOTEMS.pop(target)
+            if target in SHAMANS:
+                del SHAMANS[target]
+            if target in LASTGIVEN:
+                del LASTGIVEN[target]
+
+        if target_totem:
+            if knows_totem:
+                evt.data["actor_messages"].append(messages["shaman_totem"].format(target_totem))
+            TOTEMS[actor] = target_totem
+        if actor_totem:
+            if knows_totem:
+                evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
+            TOTEMS[target] = actor_totem
+
+    if knows_totem:
+        @event_listener("myrole")
+        def on_myrole(evt, var, user):
+            if evt.data["role"] == rolename and var.PHASE == "night" and user not in SHAMANS:
+                evt.data["messages"].append(messages["totem_simple"].format(TOTEMS[user]))
+
+    return (TOTEMS, LASTGIVEN, SHAMANS)
+
+def get_totem_target(var, wrapper, message, lastgiven):
+    """Get the totem target."""
     target = get_target(var, wrapper, re.split(" +", message)[0], allow_self=True)
     if not target:
         return
@@ -59,13 +159,14 @@ def _get_target(var, wrapper, message, lastgiven):
 
     return target
 
-def _give_totem(var, wrapper, target, prefix, tags, role, msg, shamans):
+def give_totem(var, wrapper, target, prefix, tags, role, msg):
+    """Give a totem to a player. Return the value of SHAMANS[user]."""
 
     orig_target = target
     orig_role = get_main_role(orig_target)
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True},
-                action = "give a totem{0} to".format(msg))
+                action="give a totem{0} to".format(msg))
 
     if not evt.dispatch(var, "totem", wrapper.source, target, frozenset(tags)):
         return
@@ -74,11 +175,12 @@ def _give_totem(var, wrapper, target, prefix, tags, role, msg, shamans):
     targrole = get_main_role(target)
 
     wrapper.send(messages["shaman_success"].format(prefix, msg, orig_target))
-    shamans[wrapper.source] = UserList((target, orig_target))
-
     debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
 
-def _apply_totem(totem, shaman, victim):
+    return UserList((target, orig_target))
+
+def apply_totem(totem, shaman, victim):
+    """Apply the effect of a single totem."""
     if totem == "death": # this totem stacks
         DEATH[shaman] = victim
     elif totem == "protection": # this totem stacks

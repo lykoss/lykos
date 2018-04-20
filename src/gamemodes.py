@@ -1347,19 +1347,19 @@ class MudkipMode(GameMode):
             return
 
         # make a copy in case an event mutates it in recursive calls
-        with UserList(p for p, n in evt.data["numvotes"].items() if n == maxv) as tovote:
-            self.recursion_guard = True
-            gameid = var.GAME_ID
-            last = tovote[-1]
+        tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
+        self.recursion_guard = True
+        gameid = var.GAME_ID
+        last = tovote[-1]
 
-            if evt.params.timeout:
-                channels.Main.send(messages["sunset_lynch"])
+        if evt.params.timeout:
+            channels.Main.send(messages["sunset_lynch"])
 
-            from src.wolfgame import chk_decision
-            for p in tovote:
-                with tovote[:] as deadlist:
-                    deadlist.remove(p)
-                    chk_decision(force=p, deadlist=deadlist, end_game=p is last)
+        from src.wolfgame import chk_decision
+        for p in tovote:
+            deadlist = tovote[:]
+            deadlist.remove(p)
+            chk_decision(force=p, deadlist=deadlist, end_game=p is last)
 
         self.recursion_guard = False
         # gameid changes if game stops due to us voting someone
