@@ -96,11 +96,7 @@ def on_transition_night_end(evt, var):
         else:
             totem = TOTEMS[shaman]
             tmsg = messages["shaman_totem"].format(totem)
-            try:
-                tmsg += messages[totem + "_totem"]
-            except KeyError:
-                tmsg += messages["generic_bug_totem"]
-                channels.Main.send(messages["something_happened"])
+            tmsg += messages[totem + "_totem"]
             shaman.send(tmsg)
 
 # vim: set sw=4 expandtab:
