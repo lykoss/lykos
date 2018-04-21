@@ -172,6 +172,23 @@ class DefaultMode(GameMode):
         self.ROLE_INDEX = role_index
         self.ROLE_GUIDE = role_guide
 
+    def startup(self):
+        events.add_listener("chk_decision", self.chk_decision, priority=20)
+
+    def teardown(self):
+        events.remove_listener("chk_decision", self.chk_decision, priority=20)
+
+    def chk_decision(self, evt, var, force):
+        if len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
+            if users.Bot in evt.data["votelist"]:
+                if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
+                    channels.Main.send(messages["villagergame_nope"])
+                    from src.wolfgame import stop_game
+                    stop_game("wolves")
+                    evt.prevent_default = True
+                else:
+                    del evt.data["votelist"][users.Bot]
+
 @game_mode("villagergame", minp = 4, maxp = 9, likelihood = 0)
 class VillagergameMode(GameMode):
     """This mode definitely does not exist, now please go away."""
@@ -194,12 +211,14 @@ class VillagergameMode(GameMode):
         events.add_listener("chk_nightdone", self.chk_nightdone)
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
+        events.add_listener("chk_decision", self.chk_decision, priority=20)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
         events.remove_listener("chk_nightdone", self.chk_nightdone)
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
+        events.remove_listener("chk_decision", self.chk_decision, priority=20)
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         # village can only win via unanimous vote on the bot nick
@@ -264,6 +283,16 @@ class VillagergameMode(GameMode):
         if orig_target == "@wolves":
             evt.data["target"] = None
             evt.stop_processing = True
+
+    def chk_decision(self, evt, var, force):
+        if users.Bot in evt.data["votelist"]:
+            if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
+                channels.Main.send(messages["villagergame_win"])
+                from src.wolfgame import stop_game
+                stop_game("everyone")
+                evt.prevent_default = True
+            else:
+                del evt.data["votelist"][users.Bot]
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):

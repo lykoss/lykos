@@ -1832,21 +1832,6 @@ def chk_decision(force=None, end_game=True, deadlist=None):
 
             numvotes = event.data["numvotes"]
 
-            gm = var.CURRENT_GAMEMODE.name
-            if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
-                if users.Bot in votelist:
-                    if len(votelist[users.Bot]) == avail:
-                        if gm == "default":
-                            channels.Main.send(messages["villagergame_nope"])
-                            stop_game("wolves")
-                            return
-                        else:
-                            channels.Main.send(messages["villagergame_win"])
-                            stop_game("everyone")
-                            return
-                    else:
-                        del votelist[users.Bot]
-
             # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
             # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
             if len(not_lynching) >= math.ceil(avail / 2):
@@ -4150,7 +4135,11 @@ def shoot(var, wrapper, message):
         return
 
     # get actual victim
-    target = users._get(choose_target(wrapper.source.nick, target.nick)) # FIXME
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    if not evt.dispatch(var, "shoot", wrapper.source, target, frozenset({"detrimental"})):
+        return
+
+    target = evt.data["target"]
 
     wolfshooter = wrapper.source in get_players(var.WOLFCHAT_ROLES)
     var.GUNNERS[wrapper.source] -= 1
