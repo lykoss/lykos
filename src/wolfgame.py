@@ -3015,12 +3015,6 @@ def rename_player(var, user, prefix):
                     var.IDLE_WARNED_PM.remove(prefix)
                     var.IDLE_WARNED_PM.add(nick)
 
-        if var.PHASE == "day":
-            for setvar in (var.INVESTIGATED,):
-                if prefix in setvar:
-                    setvar.remove(prefix)
-                    setvar.add(nick)
-
         if var.PHASE == "join":
             if prefix in var.GAMEMODE_VOTES:
                 var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES.pop(prefix)
@@ -3311,7 +3305,6 @@ def transition_day(gameid=0):
                     mm.send(messages["random_matchmaker"])
 
     # Reset daytime variables
-    var.INVESTIGATED = set()
     var.WOUNDED.clear()
     var.NO_LYNCH.clear()
 
