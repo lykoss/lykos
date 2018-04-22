@@ -248,6 +248,10 @@ class command:
                 self.aliases.append(name)
             alias = True
 
+        if playing: # Don't restrict to owners or allow in alt channels
+            self.owner_only = False
+            self.alt_allowed = False
+
     def __call__(self, func):
         if isinstance(func, command):
             func = func.func
