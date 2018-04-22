@@ -75,7 +75,6 @@ def setup_variables(rolename, *, knows_totem, get_tags):
             elif user in LASTGIVEN and LASTGIVEN[user]:
                 evt.data["special_case"].append("gave {0} totem to {1}".format(TOTEMS[user], LASTGIVEN[user]))
 
-
     @event_listener("transition_day_begin", priority=7)
     def on_transition_day_begin2(evt, var):
         for shaman, (victim, target) in SHAMANS.items():
