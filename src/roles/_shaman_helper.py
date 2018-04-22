@@ -10,7 +10,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-DEATH = UserDict()          # type: Dict[users.User, users.User]
+DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
 PROTECTION = UserList()     # type: List[users.User]
 REVEALING = UserSet()       # type: Set[users.User]
 NARCOLEPSY = UserSet()      # type: Set[users.User]
@@ -80,7 +80,9 @@ def setup_variables(rolename, *, knows_totem, get_tags):
         for shaman, (victim, target) in SHAMANS.items():
             totem = TOTEMS[shaman]
             if totem == "death": # this totem stacks
-                DEATH[shaman] = victim
+                if shaman not in DEATH:
+                    DEATH[shaman] = UserList()
+                DEATH[shaman].append(victim)
             elif totem == "protection": # this totem stacks
                 PROTECTION.append(victim)
             elif totem == "revealing":
@@ -347,10 +349,11 @@ def on_chk_decision_lynch5(evt, var, voters):
 
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):
-    for shaman, target in DEATH.items():
-        evt.data["victims"].append(target)
-        evt.data["onlybywolves"].discard(target)
-        evt.data["killers"][target].append(shaman)
+    for shaman, targets in DEATH.items():
+        for target in targets:
+            evt.data["victims"].append(target)
+            evt.data["onlybywolves"].discard(target)
+            evt.data["killers"][target].append(shaman)
 
 @event_listener("transition_day", priority=4.1)
 def on_transition_day3(evt, var):
@@ -527,5 +530,8 @@ def on_reset(evt, var):
     RETRIBUTION.clear()
     MISDIRECTION.clear()
     DECEIT.clear()
+
+    brokentotem.clear()
+    havetotem.clear()
 
 # vim: set sw=4 expandtab:
