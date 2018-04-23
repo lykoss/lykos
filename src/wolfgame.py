@@ -49,8 +49,8 @@ import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
-from src.containers import UserList, UserSet, UserDict
-from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role, get_target
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -86,8 +86,16 @@ var.OLD_MODES = defaultdict(set)
 var.ROLES = UserDict() # type: Dict[str, Set[users.User]]
 var.MAIN_ROLES = UserDict() # type: Dict[users.User, str]
 var.ALL_PLAYERS = UserList()
+var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DYING = UserSet()
+var.WOUNDED = UserSet()
+var.CONSECRATING = UserSet()
+var.GUNNERS = UserDict()
+
+var.NO_LYNCH = UserSet()
+var.VOTES = UserDict()
+
 var.DEADCHAT_PLAYERS = UserSet()
 
 var.SPECTATING_WOLFCHAT = UserSet()
@@ -108,7 +116,7 @@ var.RESTARTING = False
 
 var.BITTEN_ROLES = {}
 var.LYCAN_ROLES = {}
-var.START_VOTES = set()
+var.START_VOTES = UserSet()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.NIGHT_TIME_LIMIT = 0 # 120
@@ -309,13 +317,14 @@ def reset():
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
-    var.NO_LYNCH = set()
+    var.NO_LYNCH.clear()
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES.clear() # list of players who have voted to !start
     var.LOVERS = {} # need to be here for purposes of random
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
     var.ROLE_SETS = [] # type: List[Tuple[Counter[str], int]]
+    var.VOTES.clear()
 
     reset_settings()
 
@@ -331,6 +340,7 @@ def reset():
     var.ORIGINAL_ROLES.clear()
     var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
+    var.FORCE_ROLES.clear()
 
     evt = Event("reset", {})
     evt.dispatch(var)
@@ -1720,65 +1730,58 @@ def stats(cli, nick, chan, rest):
     reply(cli, nick, chan, stats_mssg)
 
 @handle_error
-def hurry_up(cli, gameid, change):
+def hurry_up(gameid, change):
     if var.PHASE != "day": return
     if gameid:
         if gameid != var.DAY_ID:
             return
 
-    chan = botconfig.CHANNEL
-
     if not change:
         event = Event("daylight_warning", {"message": "daylight_warning"})
         event.dispatch(var)
-        cli.msg(chan, messages[event.data["message"]])
+        channels.Main.send(messages[event.data["message"]])
         return
 
     var.DAY_ID = 0
 
-    pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
+    pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
     evt = Event("get_voters", {"voters": pl})
     evt.dispatch(var)
     pl = evt.data["voters"]
-
-    avail = len(pl)
-    votesneeded = avail // 2 + 1
-    not_lynching = len(var.NO_LYNCH)
-
-    avail = len(pl)
-    votesneeded = avail // 2 + 1
     not_lynching = set(var.NO_LYNCH)
-    votelist = copy.deepcopy(var.VOTES)
 
-    # Note: this event can be differentiated between regular chk_decision
-    # by checking evt.params.timeout.
-    event = Event("chk_decision", {
-        "not_lynching": not_lynching,
-        "votelist": votelist,
-        "numvotes": {}, # filled as part of a priority 1 event
-        "weights": {}, # filled as part of a priority 1 event
-        "transition_night": transition_night
-        }, voters=pl, timeout=True)
-    if not event.dispatch(cli, var, ""):
-        return
-    not_lynching = event.data["not_lynching"]
-    votelist = event.data["votelist"]
-    numvotes = event.data["numvotes"]
+    avail = len(pl)
+    votesneeded = avail // 2 + 1
 
-    found_dup = False
-    maxfound = (0, "")
-    for votee, voters in votelist.items():
-        if numvotes[votee] > maxfound[0]:
-            maxfound = (numvotes[votee], votee)
-            found_dup = False
-        elif numvotes[votee] == maxfound[0]:
-            found_dup = True
+    with copy.deepcopy(var.VOTES) as votelist:
+        # Note: this event can be differentiated between regular chk_decision
+        # by checking evt.params.timeout.
+        event = Event("chk_decision", {
+            "not_lynching": not_lynching,
+            "votelist": votelist,
+            "numvotes": {}, # filled as part of a priority 1 event
+            "weights": {}, # filled as part of a priority 1 event
+            "transition_night": transition_night
+            }, voters=pl, timeout=True)
+        if not event.dispatch(var, None):
+            return
+        numvotes = event.data["numvotes"]
+
+        found_dup = False
+        maxfound = (0, "")
+        for votee, voters in votelist.items():
+            if numvotes[votee] > maxfound[0]:
+                maxfound = (numvotes[votee], votee)
+                found_dup = False
+            elif numvotes[votee] == maxfound[0]:
+                found_dup = True
+
     if maxfound[0] > 0 and not found_dup:
-        cli.msg(chan, messages["sunset_lynch"])
-        chk_decision(cli, force=maxfound[1])  # Induce a lynch
+        channels.Main.send(messages["sunset_lynch"])
+        chk_decision(force=maxfound[1])  # Induce a lynch
     else:
-        cli.msg(chan, messages["sunset"])
-        event.data["transition_night"](cli)
+        channels.Main.send(messages["sunset"])
+        event.data["transition_night"]()
 
 @cmd("fnight", flag="N")
 def fnight(cli, nick, chan, rest):
@@ -1786,7 +1789,7 @@ def fnight(cli, nick, chan, rest):
     if var.PHASE != "day":
         cli.notice(nick, messages["not_daytime"])
     else:
-        hurry_up(cli, 0, True)
+        hurry_up(0, True)
 
 
 @cmd("fday", flag="N")
@@ -1795,108 +1798,91 @@ def fday(cli, nick, chan, rest):
     if var.PHASE != "night":
         cli.notice(nick, messages["not_nighttime"])
     else:
-        transition_day(cli)
+        transition_day()
 
-# Specify force = "nick" to force nick to be lynched
-def chk_decision(cli, force="", end_game=True, deadlist=[]):
+# Specify force = user to force user to be lynched
+def chk_decision(force=None, end_game=True, deadlist=None):
+    if deadlist is None:
+        deadlist = []
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
         # Even if the lynch fails, we want to go to night phase if we are forcing a lynch (day timeout)
         do_night_transision = True if force else False
-        chan = botconfig.CHANNEL
-        pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
+        pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(var)
         pl = evt.data["voters"]
+        not_lynching = set(var.NO_LYNCH)
 
         avail = len(pl)
         votesneeded = avail // 2 + 1
-        not_lynching = set(var.NO_LYNCH)
-        deadlist = deadlist[:] # make a copy as events may mutate it
-        votelist = copy.deepcopy(var.VOTES)
 
-        event = Event("chk_decision", {
-            "not_lynching": not_lynching,
-            "votelist": votelist,
-            "numvotes": {}, # filled as part of a priority 1 event
-            "weights": {}, # filled as part of a priority 1 event
-            "transition_night": transition_night
-            }, voters=pl, timeout=False)
-        if not event.dispatch(cli, var, force):
-            return
-        not_lynching = event.data["not_lynching"]
-        votelist = event.data["votelist"]
-        numvotes = event.data["numvotes"]
+        with copy.deepcopy(var.VOTES) as votelist:
 
-        gm = var.CURRENT_GAMEMODE.name
-        if (gm == "default" or gm == "villagergame") and len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
-            if users.Bot.nick in votelist:
-                if len(votelist[users.Bot.nick]) == avail:
-                    if gm == "default":
-                        cli.msg(botconfig.CHANNEL, messages["villagergame_nope"])
-                        stop_game("wolves")
-                        return
-                    else:
-                        cli.msg(botconfig.CHANNEL, messages["villagergame_win"])
-                        stop_game("everyone")
-                        return
-                else:
-                    del votelist[users.Bot.nick]
+            event = Event("chk_decision", {
+                "not_lynching": not_lynching,
+                "votelist": votelist,
+                "numvotes": {}, # filled as part of a priority 1 event
+                "weights": {}, # filled as part of a priority 1 event
+                "transition_night": transition_night
+                }, voters=pl, timeout=False)
+            if not event.dispatch(var, force):
+                return
 
-        # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
-        # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
-        if len(not_lynching) >= math.ceil(avail / 2):
-            abs_evt = Event("chk_decision_abstain", {}, votelist=votelist, numvotes=numvotes)
-            abs_evt.dispatch(cli, var, not_lynching)
-            cli.msg(botconfig.CHANNEL, messages["village_abstain"])
-            var.ABSTAINED = True
-            event.data["transition_night"](cli)
-            return
-        for votee, voters in votelist.items():
-            if numvotes[votee] >= votesneeded or votee == force:
-                # priorities:
-                # 1 = displaying impatience totem messages
-                # 3 = mayor/revealing totem
-                # 4 = fool
-                # 5 = desperation totem, other things that happen on generic lynch
-                vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
-                    del_player=del_player,
-                    original_votee=votee,
-                    force=(votee == force),
-                    votelist=votelist,
-                    not_lynching=not_lynching)
-                if vote_evt.dispatch(cli, var, voters):
-                    votee = vote_evt.data["votee"]
-                    deadlist = vote_evt.data["deadlist"]
-                    # roles that end the game upon being lynched
-                    if votee in get_roles("fool"): # FIXME
-                        # ends game immediately, with fool as only winner
-                        # hardcode "fool" as the role since game is ending due to them being lynched,
-                        # so we want to show "fool" even if it's a template
-                        lmsg = random.choice(messages["lynch_reveal"]).format(votee, "", "fool")
-                        cli.msg(botconfig.CHANNEL, lmsg)
-                        if chk_win(winner="@" + votee):
+            numvotes = event.data["numvotes"]
+
+            # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
+            # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
+            if len(not_lynching) >= math.ceil(avail / 2):
+                abs_evt = Event("chk_decision_abstain", {}, votelist=votelist, numvotes=numvotes)
+                abs_evt.dispatch(var, not_lynching)
+                channels.Main.send(messages["village_abstain"])
+                var.ABSTAINED = True
+                event.data["transition_night"]()
+                return
+            for votee, voters in votelist.items():
+                if numvotes[votee] >= votesneeded or votee is force:
+                    # priorities:
+                    # 1 = displaying impatience totem messages
+                    # 3 = mayor/revealing totem
+                    # 4 = fool
+                    # 5 = desperation totem, other things that happen on generic lynch
+                    vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
+                        del_player=del_player,
+                        original_votee=votee,
+                        force=(votee is force),
+                        votelist=votelist,
+                        not_lynching=not_lynching)
+                    if vote_evt.dispatch(var, voters):
+                        votee = vote_evt.data["votee"]
+                        # roles that end the game upon being lynched
+                        if votee in get_all_players(("fool",)):
+                            # ends game immediately, with fool as only winner
+                            # hardcode "fool" as the role since game is ending due to them being lynched,
+                            # so we want to show "fool" even if it's a template
+                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, "", "fool")
+                            channels.Main.send(lmsg)
+                            if chk_win(winner="@" + votee.nick):
+                                return
+                        deadlist.append(votee)
+                        # Other
+                        if votee in get_all_players(("jester",)):
+                            var.JESTERS.add(votee.nick)
+
+                        if var.ROLE_REVEAL in ("on", "team"):
+                            rrole = get_reveal_role(votee)
+                            an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
+                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
+                        else:
+                            lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
+                        channels.Main.send(lmsg)
+                        if not del_player(votee, killer_role="villager", deadlist=deadlist, end_game=end_game):
                             return
-                    deadlist.append(votee)
-                    # Other
-                    if votee in get_roles("jester"): # FIXME
-                        var.JESTERS.add(votee)
-
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        rrole = get_reveal_role(users._get(votee)) # FIXME
-                        an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                        lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
-                    else:
-                        lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
-                    cli.msg(botconfig.CHANNEL, lmsg)
-                    better_deadlist = [users._get(p) for p in deadlist] # FIXME -- convert chk_decision_lynch to be user-aware
-                    if not del_player(users._get(votee), killer_role="villager", deadlist=better_deadlist, end_game=end_game): # FIXME
-                        return
-                do_night_transision = True
-                break
-        if do_night_transision:
-            event.data["transition_night"](cli)
+                    do_night_transision = True
+                    break
+            if do_night_transision:
+                event.data["transition_night"]()
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
 def show_votes(cli, nick, chan, rest):
@@ -1926,7 +1912,7 @@ def show_votes(cli, nick, chan, rest):
 
         with var.WARNING_LOCK:
             if var.START_VOTES:
-                the_message += messages["start_votes"].format(len(var.START_VOTES), ', '.join(var.START_VOTES))
+                the_message += messages["start_votes"].format(len(var.START_VOTES), ", ".join(p.nick for p in var.START_VOTES))
 
     elif var.PHASE == "night":
         cli.notice(nick, messages["voting_daytime_only"])
@@ -1953,13 +1939,13 @@ def show_votes(cli, nick, chan, rest):
         else:
             votelist = ["{0}: {1} ({2})".format(votee,
                                              len(var.VOTES[votee]),
-                                             " ".join(var.VOTES[votee]))
+                                             " ".join(p.nick for p in var.VOTES[votee]))
                         for votee in var.VOTES.keys()]
             msg = "{0}{1}".format(_nick, ", ".join(votelist))
 
         reply(cli, nick, chan, msg)
 
-        pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING)
+        pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(var)
         pl = evt.data["voters"]
@@ -2275,13 +2261,13 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            pl = set(list_players()) - (var.WOUNDED | var.CONSECRATING) # TODO: Convert to users
+            pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
             evt = Event("get_voters", {"voters": pl})
             evt.dispatch(var)
             pl = evt.data["voters"]
             lpl = len(pl)
         else:
-            pl = set(list_players(mainroles=mainroles))
+            pl = set(get_players(mainroles=mainroles))
             lpl = len(pl)
 
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -2292,10 +2278,10 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
         else:
             wcroles = var.WOLFCHAT_ROLES
 
-        wolves = set(list_players(wcroles, mainroles=mainroles))
+        wolves = set(get_players(wcroles, mainroles=mainroles))
         lwolves = len(wolves & pl)
         lcubs = len(rolemap.get("wolf cub", ()))
-        lrealwolves = len(list_players(var.WOLF_ROLES - {"wolf cub"}, mainroles=mainroles))
+        lrealwolves = len(get_players(var.WOLF_ROLES - {"wolf cub"}, mainroles=mainroles))
         lmonsters = len(rolemap.get("monster", ()))
         ldemoniacs = len(rolemap.get("demoniac", ()))
         ltraitors = len(rolemap.get("traitor", ()))
@@ -2542,28 +2528,28 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                     if var.GAMEPHASE == "day" and timeleft_internal("day") > var.DAY_TIME_LIMIT and var.DAY_TIME_LIMIT > 0:
                         if "day" in var.TIMERS:
                             var.TIMERS["day"][0].cancel()
-                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [channels.Main.client, var.DAY_ID, True])
+                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [var.DAY_ID, True])
                         var.TIMERS["day"] = (t, time.time(), var.DAY_TIME_LIMIT)
                         t.daemon = True
                         t.start()
                         # Don't duplicate warnings, i.e. only set the warn timer if a warning was not already given
                         if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
                             var.TIMERS["day_warn"][0].cancel()
-                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [channels.Main.client, var.DAY_ID, False])
+                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [var.DAY_ID, False])
                             var.TIMERS["day_warn"] = (t, time.time(), var.DAY_TIME_WARN)
                             t.daemon = True
                             t.start()
                     elif var.GAMEPHASE == "night" and timeleft_internal("night") > var.NIGHT_TIME_LIMIT and var.NIGHT_TIME_LIMIT > 0:
                         if "night" in var.TIMERS:
                             var.TIMERS["night"][0].cancel()
-                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [channels.Main.client, var.NIGHT_ID, True])
+                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [var.NIGHT_ID, True])
                         var.TIMERS["night"] = (t, time.time(), var.NIGHT_TIME_LIMIT)
                         t.daemon = True
                         t.start()
                         # Don't duplicate warnings, e.g. only set the warn timer if a warning was not already given
                         if "night_warn" in var.TIMERS and var.TIMERS["night_warn"][0].isAlive():
                             var.TIMERS["night_warn"][0].cancel()
-                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [channels.Main.client, var.NIGHT_ID, False])
+                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [var.NIGHT_ID, False])
                             var.TIMERS["night_warn"] = (t, time.time(), var.NIGHT_TIME_WARN)
                             t.daemon = True
                             t.start()
@@ -2627,7 +2613,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                     del var.GAMEMODE_VOTES[player.nick]
 
                 with var.WARNING_LOCK:
-                    var.START_VOTES.discard(player.nick)
+                    var.START_VOTES.discard(player)
 
                     # Cancel the start vote timer if there are no votes left
                     if not var.START_VOTES and "start_votes" in var.TIMERS:
@@ -2666,23 +2652,24 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED):
                     x.discard(player.nick)
             if var.PHASE == "day" and ret:
-                var.VOTES.pop(player.nick, None)  #  Delete other people's votes on the player
+                if player in var.VOTES:
+                    del var.VOTES[player] # Delete other people's votes on the player
                 for k in list(var.VOTES.keys()):
-                    if player.nick in var.VOTES[k]:
-                        var.VOTES[k].remove(player.nick)
+                    if player in var.VOTES[k]:
+                        var.VOTES[k].remove(player)
                         if not var.VOTES[k]:  # no more votes on that person
                             del var.VOTES[k]
                         break # can only vote once
 
-                var.NO_LYNCH.discard(player.nick)
-                var.WOUNDED.discard(player.nick)
-                var.CONSECRATING.discard(player.nick)
+                var.NO_LYNCH.discard(player)
+                var.WOUNDED.discard(player)
+                var.CONSECRATING.discard(player)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
                 # we only want to induce a lynch if it's actually day and we aren't in a chained death
                 if var.GAMEPHASE == "day" and ismain and not end_game:
-                    chk_decision(channels.Main.client)
+                    chk_decision()
             elif var.PHASE == "night" and ret and ismain:
-                chk_nightdone(channels.Main.client)
+                chk_nightdone()
 
         return ret
 
@@ -2761,7 +2748,7 @@ def reaper(cli, gameid):
                     del_player(user, end_game=False, death_triggers=False)
                 win = chk_win()
                 if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
-                    chk_decision(cli)
+                    chk_decision()
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
@@ -2982,7 +2969,7 @@ def rename_player(var, user, prefix):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.FINAL_ROLES, var.GUNNERS, var.TURNCOATS,
+            for dictvar in (var.FINAL_ROLES, var.TURNCOATS,
                             var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES, var.AMNESIAC_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
@@ -3014,7 +3001,7 @@ def rename_player(var, user, prefix):
             for setvar in (var.HEXED, var.SILENCED, var.MATCHMAKERS, var.PASSED,
                            var.JESTERS, var.AMNESIACS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
-                           var.ALPHA_WOLVES, var.CURSED, var.PRIESTS, var.CONSECRATING):
+                           var.ALPHA_WOLVES, var.CURSED, var.PRIESTS):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3028,29 +3015,9 @@ def rename_player(var, user, prefix):
                     var.IDLE_WARNED_PM.remove(prefix)
                     var.IDLE_WARNED_PM.add(nick)
 
-        if var.PHASE == "day":
-            for setvar in (var.WOUNDED, var.INVESTIGATED):
-                if prefix in setvar:
-                    setvar.remove(prefix)
-                    setvar.add(nick)
-            if prefix in var.VOTES:
-                var.VOTES[nick] = var.VOTES.pop(prefix)
-            for v in var.VOTES.values():
-                if prefix in v:
-                    v.remove(prefix)
-                    v.append(nick)
-
         if var.PHASE == "join":
             if prefix in var.GAMEMODE_VOTES:
                 var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES.pop(prefix)
-            with var.WARNING_LOCK:
-                if prefix in var.START_VOTES:
-                    var.START_VOTES.discard(prefix)
-                    var.START_VOTES.add(nick)
-
-    if prefix in var.NO_LYNCH:
-        var.NO_LYNCH.remove(prefix)
-        var.NO_LYNCH.add(nick)
 
 @event_listener("account_change")
 def account_change(evt, var, user):
@@ -3226,9 +3193,7 @@ def leave_game(var, wrapper, message):
 
     del_player(wrapper.source, death_triggers=False)
 
-def begin_day(cli):
-    chan = botconfig.CHANNEL
-
+def begin_day():
     # Reset nighttime variables
     var.GAMEPHASE = "day"
     var.KILLER = ""  # nickname of who chose the victim
@@ -3245,15 +3210,15 @@ def begin_day(cli):
     var.DYING.clear()
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
-    cli.msg(chan, msg)
+    channels.Main.send(msg)
 
     var.DAY_ID = time.time()
     if var.DAY_TIME_WARN > 0:
         if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            t1 = threading.Timer(var.SHORT_DAY_WARN, hurry_up, [cli, var.DAY_ID, False])
+            t1 = threading.Timer(var.SHORT_DAY_WARN, hurry_up, [var.DAY_ID, False])
             l = var.SHORT_DAY_WARN
         else:
-            t1 = threading.Timer(var.DAY_TIME_WARN, hurry_up, [cli, var.DAY_ID, False])
+            t1 = threading.Timer(var.DAY_TIME_WARN, hurry_up, [var.DAY_ID, False])
             l = var.DAY_TIME_WARN
         var.TIMERS["day_warn"] = (t1, var.DAY_ID, l)
         t1.daemon = True
@@ -3261,10 +3226,10 @@ def begin_day(cli):
 
     if var.DAY_TIME_LIMIT > 0:  # Time limit enabled
         if var.STARTED_DAY_PLAYERS <= var.SHORT_DAY_PLAYERS:
-            t2 = threading.Timer(var.SHORT_DAY_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+            t2 = threading.Timer(var.SHORT_DAY_LIMIT, hurry_up, [var.DAY_ID, True])
             l = var.SHORT_DAY_LIMIT
         else:
-            t2 = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [cli, var.DAY_ID, True])
+            t2 = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [var.DAY_ID, True])
             l = var.DAY_TIME_LIMIT
         var.TIMERS["day"] = (t2, var.DAY_ID, l)
         t2.daemon = True
@@ -3275,12 +3240,12 @@ def begin_day(cli):
         for player in get_players():
             if not player.is_fake:
                 modes.append(("+v", player.nick))
-        mass_mode(cli, modes, [])
+        channels.Main.mode(*modes)
 
     event = Event("begin_day", {})
     event.dispatch(var)
     # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
-    chk_decision(cli)
+    chk_decision()
 
 @handle_error
 def night_warn(gameid):
@@ -3293,7 +3258,7 @@ def night_warn(gameid):
     channels.Main.send(messages["twilight_warning"])
 
 @handle_error
-def transition_day(cli, gameid=0):
+def transition_day(gameid=0):
     if gameid:
         if gameid != var.NIGHT_ID:
             return
@@ -3306,9 +3271,7 @@ def transition_day(cli, gameid=0):
     var.DAY_COUNT += 1
     var.FIRST_DAY = (var.DAY_COUNT == 1)
     var.DAY_START_TIME = datetime.now()
-    var.VOTES = {}
-
-    chan = botconfig.CHANNEL
+    var.VOTES.clear()
 
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
@@ -3342,9 +3305,8 @@ def transition_day(cli, gameid=0):
                     mm.send(messages["random_matchmaker"])
 
     # Reset daytime variables
-    var.INVESTIGATED = set()
-    var.WOUNDED = set()
-    var.NO_LYNCH = set()
+    var.WOUNDED.clear()
+    var.NO_LYNCH.clear()
 
     for crow, target in iter(var.OBSERVED.items()):
         if crow not in get_roles("werecrow"): # FIXME
@@ -3362,7 +3324,7 @@ def transition_day(cli, gameid=0):
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
         # but this is good enough for now to prevent it from crashing
-        begin_day(cli)
+        begin_day()
         return
 
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
@@ -3383,23 +3345,27 @@ def transition_day(cli, gameid=0):
     # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
     #     fixing killers dict priority again (in case step 4 or 5 added to it)
     # Actually killing off the victims happens in transition_day_resolve
+    # We set the variables here first; listeners should mutate, not replace
+    # We don't need to use User containers here, as these don't persist long enough
+    # This removes the burden of having to clear them at the end or should an error happen
+    victims = []
+    killers = defaultdict(list)
+    bywolves = set()
+    onlybywolves = set()
+    protected = {}
+    bitten = []
+    numkills = {}
+
     evt = Event("transition_day", {
-        "victims": [],
-        "killers": defaultdict(list),
-        "bywolves": set(),
-        "onlybywolves": set(),
-        "protected": {},
-        "bitten": [],
-        "numkills": {} # populated at priority 3
+        "victims": victims,
+        "killers": killers,
+        "bywolves": bywolves,
+        "onlybywolves": onlybywolves,
+        "protected": protected,
+        "bitten": bitten,
+        "numkills": numkills, # populated at priority 3
         })
     evt.dispatch(var)
-    victims = evt.data["victims"]
-    killers = evt.data["killers"]
-    bywolves = evt.data["bywolves"]
-    onlybywolves = evt.data["onlybywolves"]
-    protected = evt.data["protected"]
-    bitten = evt.data["bitten"]
-    numkills = evt.data["numkills"]
 
     for player in var.DYING:
         victims.append(player)
@@ -3476,7 +3442,7 @@ def transition_day(cli, gameid=0):
 
 
     var.BITE_PREFERENCES = {}
-    victims = []
+    victims.clear()
     # Ensures that special events play for bodyguard and harlot-visiting-victim so that kill can
     # be correctly attributed to wolves (for vengeful ghost lover), and that any gunner events
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
@@ -3621,25 +3587,19 @@ def transition_day(cli, gameid=0):
     revt2 = Event("transition_day_resolve_end", {
         "message": revt.data["message"],
         "novictmsg": revt.data["novictmsg"],
-        "dead": revt.data["dead"],
-        "bywolves": revt.data["bywolves"],
-        "onlybywolves": revt.data["onlybywolves"],
-        "killers": revt.data["killers"],
-        "protected": revt.data["protected"],
-        "bitten": revt.data["bitten"]
+        "dead": dead,
+        "bywolves": bywolves,
+        "onlybywolves": onlybywolves,
+        "killers": killers,
+        "protected": protected,
+        "bitten": bitten
         })
     revt2.dispatch(var, victims)
     message = revt2.data["message"]
     novictmsg = revt2.data["novictmsg"]
-    dead = revt2.data["dead"]
-    bywolves = revt2.data["bywolves"]
-    onlybywolves = revt2.data["onlybywolves"]
-    killers = revt2.data["killers"]
-    protected = revt2.data["protected"]
-    bitten = revt2.data["bitten"]
 
     for victim in list(dead):
-        if victim.nick in var.GUNNERS and var.GUNNERS[victim.nick] > 0 and victim in bywolves:
+        if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                 # pick a random wofl to be shot
                 woflset = {wolf for wolf in get_players(var.WOLF_ROLES) if wolf not in dead}
@@ -3655,12 +3615,12 @@ def transition_day(cli, gameid=0):
                     else:
                         message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
-                    var.GUNNERS[victim.nick] -= 1 # deduct the used bullet
+                    var.GUNNERS[victim] -= 1 # deduct the used bullet
 
     for victim in dead:
-        if victim in bywolves and victim.nick in var.DISEASED:
+        if victim in bywolves and victim in var.DISEASED:
             var.DISEASED_WOLVES = True
-        if var.WOLF_STEALS_GUN and victim in bywolves and victim.nick in var.GUNNERS and var.GUNNERS[victim.nick] > 0:
+        if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
             # victim has bullets
             try:
                 looters = get_players(var.WOLFCHAT_ROLES)
@@ -3671,16 +3631,16 @@ def transition_day(cli, gameid=0):
                     else:
                         looters.remove(guntaker)
                 if guntaker not in dead:
-                    numbullets = var.GUNNERS[victim.nick]
+                    numbullets = var.GUNNERS[victim]
                     if guntaker.nick not in var.GUNNERS:
-                        var.GUNNERS[guntaker.nick] = 0
+                        var.GUNNERS[guntaker] = 0
                     if guntaker not in get_all_players(("gunner", "sharpshooter")):
                         var.ROLES["gunner"].add(guntaker)
-                    var.GUNNERS[guntaker.nick] += 1  # only transfer one bullet
+                    var.GUNNERS[guntaker] += 1  # only transfer one bullet
                     guntaker.send(messages["wolf_gunner"].format(victim))
             except IndexError:
                 pass # no wolves to give gun to (they were all killed during night or something)
-            var.GUNNERS[victim.nick] = 0  # just in case
+            var.GUNNERS[victim] = 0  # just in case
 
     channels.Main.send("\n".join(message))
 
@@ -3714,7 +3674,7 @@ def transition_day(cli, gameid=0):
             debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
         var.BITTEN_ROLES[chump.nick] = chumprole
         change_role(chump, chumprole, newrole)
-        relay_wolfchat_command(cli, chump.nick, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+        relay_wolfchat_command(chump.client, chump.nick, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
 
     killer_role = {}
     for deadperson in dead:
@@ -3740,14 +3700,14 @@ def transition_day(cli, gameid=0):
     if chk_win():  # if after the last person is killed, one side wins, then actually end the game here
         return
 
-    event_end.data["begin_day"](cli)
+    event_end.data["begin_day"]()
 
 @event_listener("transition_day_resolve_end", priority=2)
 def on_transition_day_resolve_end(evt, var, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
         evt.data["message"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
 
-def chk_nightdone(cli):
+def chk_nightdone():
     if var.PHASE != "night":
         return
 
@@ -3804,103 +3764,93 @@ def chk_nightdone(cli):
 
         var.TIMERS = {}
         if var.PHASE == "night":  # Double check
-            event.data["transition_day"](cli)
+            event.data["transition_day"]()
 
-@cmd("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
-def no_lynch(cli, nick, chan, rest):
+@command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
+def no_lynch(var, wrapper, message):
     """Allows you to abstain from voting for the day."""
-    if chan == botconfig.CHANNEL:
-        evt = Event("abstain", {})
-        if not var.ABSTAIN_ENABLED:
-            cli.notice(nick, messages["command_disabled"])
-            return
-        elif var.LIMIT_ABSTAIN and var.ABSTAINED:
-            cli.notice(nick, messages["exhausted_abstain"])
-            return
-        elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
-            cli.notice(nick, messages["no_abstain_day_one"])
-            return
-        elif not evt.dispatch(cli, var, nick):
-            return
-        elif nick in var.WOUNDED:
-            cli.msg(chan, messages["wounded_no_vote"].format(nick))
-            return
-        elif nick in var.CONSECRATING:
-            pm(cli, nick, messages["consecrating_no_vote"])
-            return
-        candidates = var.VOTES.keys()
-        for voter in list(candidates):
-            if nick in var.VOTES[voter]:
-                var.VOTES[voter].remove(nick)
-                if not var.VOTES[voter]:
-                    del var.VOTES[voter]
-        var.NO_LYNCH.add(nick)
-        cli.msg(chan, messages["player_abstain"].format(nick))
-
-        chk_decision(cli)
+    evt = Event("abstain", {})
+    if not var.ABSTAIN_ENABLED:
+        wrapper.pm(messages["command_disabled"])
         return
+    elif var.LIMIT_ABSTAIN and var.ABSTAINED:
+        wrapper.pm(messages["exhausted_abstain"])
+        return
+    elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
+        wrapper.pm(messages["no_abstain_day_one"])
+        return
+    elif not evt.dispatch(var, wrapper.source):
+        return
+    elif wrapper.source in var.WOUNDED:
+        channels.Main.send(messages["wounded_no_vote"].format(wrapper.source))
+        return
+    elif wrapper.source in var.CONSECRATING:
+        wrapper.pm(messages["consecrating_no_vote"])
+        return
+    for voter in list(var.VOTES):
+        if wrapper.source in var.VOTES[voter]:
+            var.VOTES[voter].remove(wrapper.source)
+            if not var.VOTES[voter]:
+                del var.VOTES[voter]
+    var.NO_LYNCH.add(wrapper.source)
+    channels.Main.send(messages["player_abstain"].format(wrapper.source))
 
-@cmd("lynch", playing=True, pm=True, phases=("day",))
-def lynch(cli, nick, chan, rest):
+    chk_decision()
+
+@command("lynch", playing=True, pm=True, phases=("day",))
+def lynch(var, wrapper, message):
     """Use this to vote for a candidate to be lynched."""
-    if not rest:
-        show_votes.caller(cli, nick, chan, rest)
+    if not message:
+        show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
         return
-    if chan != botconfig.CHANNEL:
+    if wrapper.source in var.WOUNDED:
+        wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
+        return
+    if wrapper.source in var.CONSECRATING:
+        wrapper.pm(messages["consecrating_no_vote"])
         return
 
-    rest = re.split(" +",rest)[0].strip()
+    msg = re.split(" +", message)[0].strip()
 
     troll = False
     if ((var.CURRENT_GAMEMODE.name == "default" or var.CURRENT_GAMEMODE.name == "villagergame")
             and var.VILLAGERGAME_CHANCE > 0 and len(var.ALL_PLAYERS) <= 9):
         troll = True
 
-    voted = get_victim(cli, nick, rest, True, var.SELF_LYNCH_ALLOWED, bot_in_list=troll)
+    no_vote_self = "save_self"
+    if wrapper.source in get_all_players(("fool", "jester")):
+        no_vote_self = "no_self_lynch"
+
+    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=troll, not_self_message=no_vote_self)
     if not voted:
         return
 
     evt = Event("lynch", {"target": voted})
-    if not evt.dispatch(cli, var, nick):
+    if not evt.dispatch(var, wrapper.source):
         return
     voted = evt.data["target"]
 
-    if not var.SELF_LYNCH_ALLOWED:
-        if nick == voted:
-            if nick in get_roles("fool", "jester"): # FIXME
-                cli.notice(nick, messages["no_self_lynch"])
-            else:
-                cli.notice(nick, messages["save_self"])
-            return
-    if nick in var.WOUNDED:
-        cli.msg(chan, (messages["wounded_no_vote"]).format(nick))
-        return
-    if nick in var.CONSECRATING:
-        pm(cli, nick, messages["consecrating_no_vote"])
-        return
-
-    var.NO_LYNCH.discard(nick)
+    var.NO_LYNCH.discard(wrapper.source)
 
     lcandidates = list(var.VOTES.keys())
     for voters in lcandidates:  # remove previous vote
-        if voters == voted and nick in var.VOTES[voters]:
+        if voters is voted and wrapper.source in var.VOTES[voters]:
             break
-        if nick in var.VOTES[voters]:
-            var.VOTES[voters].remove(nick)
-            if not var.VOTES.get(voters) and voters != voted:
+        if wrapper.source in var.VOTES[voters]:
+            var.VOTES[voters].remove(wrapper.source)
+            if not var.VOTES.get(voters) and voters is not voted:
                 del var.VOTES[voters]
             break
 
-    if voted not in var.VOTES.keys():
-        var.VOTES[voted] = []
-    if nick not in var.VOTES[voted]:
-        var.VOTES[voted].append(nick)
-        cli.msg(chan, (messages["player_vote"]).format(nick, voted))
+    if voted not in var.VOTES:
+        var.VOTES[voted] = UserList()
+    if wrapper.source not in var.VOTES[voted]:
+        var.VOTES[voted].append(wrapper.source)
+        wrapper.send(messages["player_vote"].format(wrapper.source, voted))
 
     var.LAST_VOTES = None # reset
 
-    chk_decision(cli)
-
+    chk_decision()
 
 # chooses a target given nick, taking luck totem/misdirection totem into effect
 # returns the actual target
@@ -4126,73 +4076,66 @@ def check_exchange(cli, actor, nick):
         return True
     return False
 
-@cmd("retract", "r", pm=True, phases=("day", "join"))
-def retract(cli, nick, chan, rest):
+@command("retract", "r", phases=("day", "join"))
+def retract(var, wrapper, message):
     """Takes back your vote during the day (for whom to lynch)."""
-
-    if chan != botconfig.CHANNEL:
-        return
-    user = users._get(nick) # FIXME
-    if user not in get_players() or user in var.DISCONNECTED:
+    if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED:
         return
 
     with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
         if var.PHASE == "join":
-            if chan == botconfig.CHANNEL:
-                if not nick in var.START_VOTES:
-                    cli.notice(nick, messages["start_novote"])
-                else:
-                    var.START_VOTES.discard(nick)
-                    cli.msg(chan, messages["start_retract"].format(nick))
+            if not wrapper.source in var.START_VOTES:
+                wrapper.pm(messages["start_novote"])
+            else:
+                var.START_VOTES.discard(wrapper.source)
+                wrapper.send(messages["start_retract"].format(wrapper.source))
 
-                    if len(var.START_VOTES) < 1:
-                        var.TIMERS['start_votes'][0].cancel()
-                        del var.TIMERS['start_votes']
-            return
+                if len(var.START_VOTES) < 1:
+                    var.TIMERS["start_votes"][0].cancel()
+                    del var.TIMERS["start_votes"]
 
     if var.PHASE != "day":
         return
-    if nick in var.NO_LYNCH:
-        var.NO_LYNCH.remove(nick)
-        cli.msg(chan, messages["retracted_vote"].format(nick))
+    if wrapper.source in var.NO_LYNCH:
+        var.NO_LYNCH.remove(wrapper.source)
+        wrapper.send(messages["retracted_vote"].format(wrapper.source))
         var.LAST_VOTES = None # reset
         return
 
-    candidates = var.VOTES.keys()
-    for voter in list(candidates):
-        if nick in var.VOTES[voter]:
-            var.VOTES[voter].remove(nick)
+    for voter in list(var.VOTES):
+        if wrapper.source in var.VOTES[voter]:
+            var.VOTES[voter].remove(wrapper.source)
             if not var.VOTES[voter]:
                 del var.VOTES[voter]
-            cli.msg(chan, messages["retracted_vote"].format(nick))
+            wrapper.send(messages["retracted_vote"].format(wrapper.source))
             var.LAST_VOTES = None # reset
             break
     else:
-        cli.notice(nick, messages["pending_vote"])
+        wrapper.pm(messages["pending_vote"])
 
 @command("shoot", playing=True, silenced=True, phases=("day",))
 def shoot(var, wrapper, message):
     """Use this to fire off a bullet at someone in the day if you have bullets."""
-    if wrapper.target is not channels.Main:
-        return
-
-    if wrapper.source.nick not in var.GUNNERS.keys():
+    if wrapper.source not in var.GUNNERS.keys():
         wrapper.pm(messages["no_gun"])
         return
-    elif not var.GUNNERS.get(wrapper.source.nick):
+    elif not var.GUNNERS.get(wrapper.source):
         wrapper.pm(messages["no_bullets"])
         return
-    victim = get_victim(wrapper.source.client, wrapper.source.nick, re.split(" +", message)[0], True)
-    if not victim:
-        return
-    if victim == wrapper.source.nick:
-        wrapper.pm(messages["gunner_target_self"])
-        return
-    # get actual victim
-    victim = choose_target(wrapper.source.nick, victim)
 
-    wolfshooter = wrapper.source.nick in list_players(var.WOLFCHAT_ROLES)
-    var.GUNNERS[wrapper.source.nick] -= 1
+    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
+    if not target:
+        return
+
+    # get actual victim
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    if not evt.dispatch(var, "shoot", wrapper.source, target, frozenset({"detrimental"})):
+        return
+
+    target = evt.data["target"]
+
+    wolfshooter = wrapper.source in get_players(var.WOLFCHAT_ROLES)
+    var.GUNNERS[wrapper.source] -= 1
 
     rand = random.random()
     if wrapper.source in var.ROLES["village drunk"]:
@@ -4203,61 +4146,63 @@ def shoot(var, wrapper, message):
         chances = var.GUN_CHANCES
 
     # TODO: make this into an event once we split off gunner
-    if victim in get_roles("succubus"): # FIXME
+    if target in get_all_players(("succubus",)):
         chances = chances[:3] + (0,)
 
-    wolfvictim = victim in list_players(var.WOLF_ROLES)
-    realrole = get_role(victim)
-    victimrole = get_reveal_role(users._get(victim)) # FIXME
+    wolfvictim = target in get_players(var.WOLF_ROLES)
+    realrole = get_main_role(target)
+    targrole = get_reveal_role(target)
 
     alwaysmiss = (realrole == "werekitten")
 
     if rand <= chances[0] and not (wolfshooter and wolfvictim) and not alwaysmiss:
         # didn't miss or suicide and it's not a wolf shooting another wolf
 
-        wrapper.send(messages["shoot_success"].format(wrapper.source.nick, victim))
-        an = "n" if victimrole.startswith(("a", "e", "i", "o", "u")) else ""
+        wrapper.send(messages["shoot_success"].format(wrapper.source, target))
+        an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
         if realrole in var.WOLF_ROLES:
             if var.ROLE_REVEAL == "on":
-                wrapper.send(messages["gunner_victim_wolf_death"].format(victim,an, victimrole))
+                wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
             else: # off and team
-                wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(victim))
-            if not del_player(users._get(victim), killer_role=get_main_role(wrapper.source)): # FIXME
+                wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(target))
+            if not del_player(target, killer_role=get_main_role(wrapper.source)):
                 return
         elif random.random() <= chances[3]:
             accident = "accidentally "
             if wrapper.source in var.ROLES["sharpshooter"]:
                 accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
-            wrapper.send(messages["gunner_victim_villager_death"].format(victim, accident))
+            wrapper.send(messages["gunner_victim_villager_death"].format(target, accident))
             if var.ROLE_REVEAL in ("on", "team"):
-                wrapper.send(messages["gunner_victim_role"].format(an, victimrole))
-            if not del_player(users._get(victim), killer_role=get_main_role(wrapper.source)): # FIXME
+                wrapper.send(messages["gunner_victim_role"].format(an, targrole))
+            if not del_player(target, killer_role=get_main_role(wrapper.source)):
                 return
         else:
-            wrapper.send(messages["gunner_victim_injured"].format(victim))
-            var.WOUNDED.add(victim)
+            wrapper.send(messages["gunner_victim_injured"].format(target))
+            var.WOUNDED.add(target)
             lcandidates = list(var.VOTES.keys())
             for cand in lcandidates:  # remove previous vote
-                if victim in var.VOTES[cand]:
-                    var.VOTES[cand].remove(victim)
+                if target in var.VOTES[cand]:
+                    var.VOTES[cand].remove(target)
                     if not var.VOTES.get(cand):
                         del var.VOTES[cand]
                     break
-            chk_decision(wrapper.source.client)
+            chk_decision()
             chk_win()
+
     elif rand <= chances[0] + chances[1]:
-        wrapper.send(messages["gunner_miss"].format(wrapper.source.nick))
+        wrapper.send(messages["gunner_miss"].format(wrapper.source))
     else:
         if var.ROLE_REVEAL in ("on", "team"):
-            wrapper.send(messages["gunner_suicide"].format(wrapper.source.nick, get_reveal_role(wrapper.source)))
+            wrapper.send(messages["gunner_suicide"].format(wrapper.source, get_reveal_role(wrapper.source)))
         else:
-            wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source.nick))
-        if not del_player(wrapper.source, killer_role="villager"): # blame explosion on villager's shoddy gun construction or something
-            return  # Someone won.
+            wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
+        del_player(wrapper.source, killer_role="villager") # blame explosion on villager's shoddy gun construction or something
 
 def is_safe(nick, victim): # replace calls to this with targeted_command event when splitting roles
     from src.roles import succubus
-    return nick in succubus.ENTRANCED and victim in get_roles("succubus") # FIXME
+    user = users._get(nick) # FIXME
+    target = users._get(victim) # FIXME
+    return user in succubus.ENTRANCED and target in get_all_players(("succubus",))
 
 @cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(cli, nick, chan, rest):
@@ -4309,7 +4254,7 @@ def consecrate(cli, nick, chan, rest):
     if users._get(victim) in vengefulghost.GHOSTS:
         var.SILENCED.add(victim)
 
-    var.CONSECRATING.add(nick)
+    var.CONSECRATING.add(users._get(nick)) # FIXME
     pm(cli, nick, messages["consecrate_success"].format(victim))
     debuglog("{0} ({1}) CONSECRATE: {2}".format(nick, get_role(nick), victim))
     # consecrating can possibly cause game to end, so check for that
@@ -4959,7 +4904,7 @@ def relay(var, wrapper, message):
                 player.send_messages()
 
 @handle_error
-def transition_night(cli):
+def transition_night():
     if var.PHASE == "night":
         return
     var.PHASE = "night"
@@ -4976,8 +4921,8 @@ def transition_night(cli):
         modes = []
         for player in get_players():
             if not player.is_fake:
-                modes.append(("-v", player.nick))
-        mass_mode(cli, modes, [])
+                modes.append(("-v", player))
+        channels.Main.mode(*modes)
 
     for x, tmr in var.TIMERS.items():  # cancel daytime timer
         tmr[0].cancel()
@@ -4990,7 +4935,7 @@ def transition_night(cli):
     var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
     var.TOBESILENCED = set()
-    var.CONSECRATING = set()
+    var.CONSECRATING.clear()
     for nick in var.PRAYED:
         var.PRAYED[nick][0] = 0
         var.PRAYED[nick][1] = None
@@ -5005,11 +4950,9 @@ def transition_night(cli):
         min, sec = td.seconds // 60, td.seconds % 60
         daydur_msg = messages["day_lasted"].format(min,sec)
 
-    chan = botconfig.CHANNEL
-
     var.NIGHT_ID = time.time()
     if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [cli, var.NIGHT_ID])
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [var.NIGHT_ID])
         var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
         t.daemon = True
         t.start()
@@ -5035,7 +4978,7 @@ def transition_night(cli):
                 from src.roles import succubus
                 if amnrole == "succubus" and amnuser in succubus.ENTRANCED:
                     succubus.ENTRANCED.remove(amnuser)
-                    pm(cli, amn, messages["no_longer_entranced"])
+                    amnuser.send(messages["no_longer_entranced"])
                 if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
                     continue
                 showrole = amnrole
@@ -5046,18 +4989,18 @@ def transition_night(cli):
                 n = ""
                 if showrole.startswith(("a", "e", "i", "o", "u")):
                     n = "n"
-                pm(cli, amn, messages["amnesia_clear"].format(n, showrole))
+                amnuser.send(messages["amnesia_clear"].format(n, showrole))
                 if in_wolflist(amn, amn):
                     if amnrole in var.WOLF_ROLES:
-                        relay_wolfchat_command(cli, amn, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                        relay_wolfchat_command(amnuser.client, amn, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
                     else:
-                        relay_wolfchat_command(cli, amn, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLFCHAT_ROLES)
+                        relay_wolfchat_command(amnuser.client, amn, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLFCHAT_ROLES)
                 elif amnrole == "turncoat":
                     var.TURNCOATS[amn] = ("none", -1)
                 debuglog("{0} REMEMBER: {1} as {2}".format(amn, amnrole, showrole))
 
     if var.FIRST_NIGHT and chk_win(end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
-        start(cli, users.Bot.nick, botconfig.CHANNEL, restart=var.CURRENT_GAMEMODE.name)
+        start(channels.Main.client, users.Bot.nick, channels.Main.name, restart=var.CURRENT_GAMEMODE.name)
         return
 
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
@@ -5065,160 +5008,158 @@ def transition_night(cli):
         return
 
     # send PMs
-    ps = list_players()
+    ps = get_players()
 
-    for pht in get_roles("prophet"): # FIXME
+    for pht in get_all_players(("prophet",)):
         chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)
         chance2 = math.floor(var.PROPHET_REVEALED_CHANCE[1] * 100)
         an1 = "n" if chance1 >= 80 and chance1 < 90 else ""
         an2 = "n" if chance2 >= 80 and chance2 < 90 else ""
-        if pht in var.PLAYERS and not is_user_simple(pht):
+        if pht.prefers_simple():
+            pht.send(messages["prophet_simple"])
+        else:
             if chance1 > 0:
-                pm(cli, pht, messages["prophet_notify_both"].format(an1, chance1, an2, chance2))
+                pht.send(messages["prophet_notify_both"].format(an1, chance1, an2, chance2))
             elif chance2 > 0:
-                pm(cli, pht, messages["prophet_notify_second"].format(an2, chance2))
+                pht.send(messages["prophet_notify_second"].format(an2, chance2))
             else:
-                pm(cli, pht, messages["prophet_notify_none"])
-        else:
-            pm(cli, pht, messages["prophet_simple"])
+                pht.send(messages["prophet_notify_none"])
 
-    for drunk in get_roles("village drunk"): # FIXME
-        if drunk in var.PLAYERS and not is_user_simple(drunk):
-            pm(cli, drunk, messages["drunk_notification"])
+    for drunk in get_all_players(("village drunk",)):
+        if drunk.prefers_simple():
+            drunk.send(messages["drunk_simple"])
         else:
-            pm(cli, drunk, messages["drunk_simple"])
+            drunk.send(messages["drunk_notification"])
 
-    for doctor in get_roles("doctor"): # FIXME
-        if doctor in var.DOCTORS and var.DOCTORS[doctor] > 0: # has immunizations remaining
+    for doctor in get_all_players(("doctor",)):
+        if doctor.nick in var.DOCTORS and var.DOCTORS[doctor.nick] > 0: # has immunizations remaining
             pl = ps[:]
             random.shuffle(pl)
-            if doctor in var.PLAYERS and not is_user_simple(doctor):
-                pm(cli, doctor, messages["doctor_notify"])
+            if doctor.prefers_simple():
+                doctor.send(messages["doctor_simple"])
             else:
-                pm(cli, doctor, messages["doctor_simple"])
-            pm(cli, doctor, messages["doctor_immunizations"].format(var.DOCTORS[doctor], 's' if var.DOCTORS[doctor] > 1 else ''))
+                doctor.send(messages["doctor_notify"])
+            doctor.send(messages["doctor_immunizations"].format(var.DOCTORS[doctor.nick], 's' if var.DOCTORS[doctor.nick] > 1 else ''))
 
-    for fool in get_roles("fool"): # FIXME
-        if fool in var.PLAYERS and not is_user_simple(fool):
-            pm(cli, fool, messages["fool_notify"])
+    for fool in get_all_players(("fool",)):
+        if fool.prefers_simple():
+            fool.send(messages["fool_simple"])
         else:
-            pm(cli, fool, messages["fool_simple"])
+            fool.send(messages["fool_notify"])
 
-    for jester in get_roles("jester"): # FIXME
-        if jester in var.PLAYERS and not is_user_simple(jester):
-            pm(cli, jester, messages["jester_notify"])
+    for jester in get_all_players(("jester",)):
+        if jester.prefers_simple():
+            jester.send(messages["jester_simple"])
         else:
-            pm(cli, jester, messages["jester_simple"])
+            jester.send(messages["jester_notify"])
 
-    for monster in get_roles("monster"): # FIXME
-        if monster in var.PLAYERS and not is_user_simple(monster):
-            pm(cli, monster, messages["monster_notify"])
+    for monster in get_all_players(("monster",)):
+        if monster.prefers_simple():
+            monster.send(messages["monster_simple"])
         else:
-            pm(cli, monster, messages["monster_simple"])
+            monster.send(messages["monster_notify"])
 
-    for demoniac in get_roles("demoniac"): # FIXME
-        if demoniac in var.PLAYERS and not is_user_simple(demoniac):
-            pm(cli, demoniac, messages["demoniac_notify"])
+    for demoniac in get_all_players(("demoniac",)):
+        if demoniac.prefers_simple():
+            demoniac.send(messages["demoniac_simple"])
         else:
-            pm(cli, demoniac, messages["demoniac_simple"])
+            demoniac.send(messages["demoniac_notify"])
 
 
-    for lycan in get_roles("lycan"): # FIXME
-        if lycan in var.PLAYERS and not is_user_simple(lycan):
-            pm(cli, lycan, messages["lycan_notify"])
+    for lycan in get_all_players(("lycan",)):
+        if lycan.prefers_simple():
+            lycan.send(messages["lycan_simple"])
         else:
-            pm(cli, lycan, messages["lycan_simple"])
+            lycan.send(messages["lycan_notify"])
 
-    for ass in get_roles("assassin"): # FIXME
-        if ass in var.TARGETED and var.TARGETED[ass] != None:
+    for ass in get_all_players(("assassin",)):
+        if ass.nick in var.TARGETED and var.TARGETED[ass.nick] is not None:
             continue # someone already targeted
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(ass)
-        role = get_role(ass)
-        if role == "village drunk":
-            var.TARGETED[ass] = random.choice(pl)
-            message = messages["drunken_assassin_notification"].format(var.TARGETED[ass])
-            if ass in var.PLAYERS and not is_user_simple(ass):
+        if ass in get_all_players(("village drunk",)):
+            var.TARGETED[ass.nick] = random.choice(pl)
+            message = messages["drunken_assassin_notification"].format(var.TARGETED[ass.nick])
+            if not ass.prefers_simple():
                 message += messages["assassin_info"]
-            pm(cli, ass, message)
+            ass.send(message)
         else:
-            if ass in var.PLAYERS and not is_user_simple(ass):
-                pm(cli, ass, (messages["assassin_notify"]))
+            if ass.prefers_simple():
+                ass.send(messages["assassin_simple"])
             else:
-                pm(cli, ass, messages["assassin_simple"])
-            pm(cli, ass, "Players: " + ", ".join(pl))
+                ass.send(messages["assassin_notify"])
+            ass.send("Players: " + ", ".join(p.nick for p in pl))
 
-    for turncoat in get_roles("turncoat"): # FIXME
+    for turncoat in get_all_players(("turncoat",)):
         # they start out as unsided, but can change n1
-        if turncoat not in var.TURNCOATS:
-            var.TURNCOATS[turncoat] = ("none", -1)
+        if turncoat.nick not in var.TURNCOATS:
+            var.TURNCOATS[turncoat.nick] = ("none", -1)
 
-        if turncoat in var.PLAYERS and not is_user_simple(turncoat):
+        if turncoat.prefers_simple():
+            turncoat.send(messages["turncoat_simple"].format(var.TURNCOATS[turncoat.nick][0]))
+        else:
             message = messages["turncoat_notify"]
-            if var.TURNCOATS[turncoat][0] != "none":
-                message += messages["turncoat_current_team"].format(var.TURNCOATS[turncoat][0])
+            if var.TURNCOATS[turncoat.nick][0] != "none":
+                message += messages["turncoat_current_team"].format(var.TURNCOATS[turncoat.nick][0])
             else:
                 message += messages["turncoat_no_team"]
-            pm(cli, turncoat, message)
-        else:
-            pm(cli, turncoat, messages["turncoat_simple"].format(var.TURNCOATS[turncoat][0]))
+            turncoat.send(message)
 
-    for priest in get_roles("priest"): # FIXME
-        if priest in var.PLAYERS and not is_user_simple(priest):
-            pm(cli, priest, messages["priest_notify"])
+    for priest in get_all_players(("priest",)):
+        if priest.prefers_simple():
+            priest.send(messages["priest_simple"])
         else:
-            pm(cli, priest, messages["priest_simple"])
+            priest.send(messages["priest_notify"])
 
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        for mm in get_roles("matchmaker"): # FIXME
+        for mm in get_all_players(("matchmaker",)):
             pl = ps[:]
             random.shuffle(pl)
-            if mm in var.PLAYERS and not is_user_simple(mm):
-                pm(cli, mm, messages["matchmaker_notify"])
+            if mm.prefers_simple():
+                mm.send(messages["matchmaker_simple"])
             else:
-                pm(cli, mm, messages["matchmaker_simple"])
-            pm(cli, mm, "Players: " + ", ".join(pl))
+                mm.send(messages["matchmaker_notify"])
+            mm.send("Players: " + ", ".join(p.nick for p in pl))
 
-        for clone in get_roles("clone"): # FIXME
+        for clone in get_all_players(("clone",)):
             pl = ps[:]
             random.shuffle(pl)
             pl.remove(clone)
-            if clone in var.PLAYERS and not is_user_simple(clone):
-                pm(cli, clone, messages["clone_notify"])
+            if clone.prefers_simple():
+                clone.send(messages["clone_simple"])
             else:
-                pm(cli, clone, messages["clone_simple"])
-            pm(cli, clone, "Players: "+", ".join(pl))
+                clone.send(messages["clone_notify"])
+            clone.send("Players: "+", ".join(p.nick for p in pl))
 
-        for minion in get_roles("minion"): # FIXME
-            wolves = list_players(var.WOLF_ROLES)
+        for minion in get_all_players(("minion",)):
+            wolves = get_players(var.WOLF_ROLES)
             random.shuffle(wolves)
-            if minion in var.PLAYERS and not is_user_simple(minion):
-                pm(cli, minion, messages["minion_notify"])
+            if minion.prefers_simple():
+                minion.send(messages["minion_simple"])
             else:
-                pm(cli, minion, messages["minion_simple"])
-            pm(cli, minion, "Wolves: " + ", ".join(wolves))
+                minion.send(messages["minion_notify"])
+            minion.send("Wolves: " + ", ".join(p.nick for p in wolves))
 
-    for g in var.GUNNERS.keys():
+    for g in var.GUNNERS:
         if g not in ps:
             continue
         elif not var.GUNNERS[g]:
             continue
         elif var.GUNNERS[g] == 0:
             continue
-        norm_notify = g in var.PLAYERS and not is_user_simple(g)
         role = "gunner"
-        if g in get_roles("sharpshooter"): # FIXME
+        if g in get_all_players(("sharpshooter",)):
             role = "sharpshooter"
-        if norm_notify:
+        if g.prefers_simple():
+            gun_msg = messages["gunner_simple"].format(role, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
+        else:
             if role == "gunner":
                 gun_msg = messages["gunner_notify"].format(role, botconfig.CMD_CHAR, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
             elif role == "sharpshooter":
                 gun_msg = messages["sharpshooter_notify"].format(role, botconfig.CMD_CHAR, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
-        else:
-            gun_msg = messages["gunner_simple"].format(role, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
 
-        pm(cli, g, gun_msg)
+        g.send(gun_msg)
 
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
@@ -5227,13 +5168,12 @@ def transition_night(cli):
 
     if not var.FIRST_NIGHT:
         dmsg = (dmsg + messages["first_night_begin"])
-    cli.msg(chan, dmsg)
+    channels.Main.send(dmsg)
     debuglog("BEGIN NIGHT")
     # If there are no nightroles that can act, immediately turn it to daytime
-    chk_nightdone(cli)
+    chk_nightdone()
 
-def cgamemode(cli, arg):
-    chan = botconfig.CHANNEL
+def cgamemode(arg):
     if var.ORIGINAL_SETTINGS:  # needs reset
         reset_settings()
 
@@ -5256,7 +5196,7 @@ def cgamemode(cli, arg):
             var.CURRENT_GAMEMODE = gm
             return True
         except InvalidModeException as e:
-            cli.msg(botconfig.CHANNEL, "Invalid mode: "+str(e))
+            channels.Main.send("Invalid mode: "+str(e))
             return False
     else:
         cli.msg(chan, messages["game_mode_not_found"].format(modeargs[0]))
@@ -5297,6 +5237,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         return
 
     villagers = list_players()
+    vils = set(get_players())
     pl = villagers[:]
 
     if not restart:
@@ -5326,8 +5267,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
 
         with var.WARNING_LOCK:
-            if not forced and nick in var.START_VOTES:
-                cli.notice(nick, messages["start_already_voted"])
+            user = users._get(nick) # FIXME
+            if not forced and user in var.START_VOTES:
+                user.send(messages["start_already_voted"], notice=True)
                 return
 
             start_votes_required = min(math.ceil(len(villagers) * var.START_VOTES_SCALE), var.START_VOTES_MAX)
@@ -5336,7 +5278,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 # Checked here to make sure that a player that has already voted can't
                 # vote again for the final start.
                 if len(var.START_VOTES) < start_votes_required - 1:
-                    var.START_VOTES.add(nick)
+                    var.START_VOTES.add(user)
                     msg = messages["start_voted"]
                     remaining_votes = start_votes_required - len(var.START_VOTES)
 
@@ -5360,16 +5302,16 @@ def start(cli, nick, chan, forced = False, restart = ""):
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if len(voted):
-                cgamemode(cli, random.choice(voted))
+                cgamemode(random.choice(voted))
             else:
                 possiblegamemodes = []
                 for gamemode in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
                     if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
                         possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
-                cgamemode(cli, random.choice(possiblegamemodes))
+                cgamemode(random.choice(possiblegamemodes))
 
     else:
-        cgamemode(cli, restart)
+        cgamemode(restart)
         var.GAME_ID = time.time() # restart reaper timer
 
     addroles = {}
@@ -5380,10 +5322,14 @@ def start(cli, nick, chan, forced = False, restart = ""):
         for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
             if var.ROLE_INDEX[index] <= len(villagers):
                 for role, num in var.ROLE_GUIDE.items(): # allow event to override some roles
-                    addroles[role] = addroles.get(role, num[index])
+                    addroles[role] = max(addroles.get(role, num[index]), len(var.FORCE_ROLES.get(role, ())))
                 break
         else:
             cli.msg(chan, messages["no_settings_defined"].format(nick, len(villagers)))
+            return
+
+        if sum([addroles[r] for r in addroles if r not in var.TEMPLATE_RESTRICTIONS]) > len(villagers):
+            channels.Main.send(messages["too_many_roles"])
             return
 
     possible_rolesets = []
@@ -5435,7 +5381,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES.clear()
     var.ROLES[var.DEFAULT_ROLE] = UserSet()
     var.MAIN_ROLES.clear()
-    var.GUNNERS = {}
+    var.GUNNERS.clear()
     var.OBSERVED = {}
     var.CLONED = {}
     var.TARGETED = {}
@@ -5472,7 +5418,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
     var.PRIESTS = set()
-    var.CONSECRATING = set()
+    var.CONSECRATING.clear()
     var.DYING.clear()
     var.PRAYED = {}
 
@@ -5480,26 +5426,41 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
+    for role, ps in var.FORCE_ROLES.items():
+        vils.difference_update(ps)
+
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
 
-        selected = random.sample(villagers, count)
+        to_add = set()
+
+        if role in var.FORCE_ROLES:
+            if len(var.FORCE_ROLES[role]) > count:
+                channels.Main.send(messages["error_frole_too_many"].format(role))
+                return
+            for user in var.FORCE_ROLES[role]:
+                var.MAIN_ROLES[user] = role
+                to_add.add(user)
+                count -= 1
+
+        selected = random.sample(vils, count)
         for x in selected:
-            var.MAIN_ROLES[users._get(x)] = role # FIXME
-            villagers.remove(x)
-        var.ROLES[role] = UserSet(users._get(x) for x in selected) # FIXME
+            var.MAIN_ROLES[x] = role
+            vils.remove(x)
+        var.ROLES[role] = UserSet(selected)
+        var.ROLES[role].update(to_add)
         fixed_count = count - roleset_roles[role]
         if fixed_count > 0:
             for pr in possible_rolesets:
                 pr[role] += fixed_count
-    var.ROLES[var.DEFAULT_ROLE].update(users._get(x) for x in villagers) # FIXME
-    for x in villagers:
-        var.MAIN_ROLES[users._get(x)] = var.DEFAULT_ROLE # FIXME
-    if villagers:
+    var.ROLES[var.DEFAULT_ROLE].update(vils)
+    for x in vils:
+        var.MAIN_ROLES[x] = var.DEFAULT_ROLE
+    if vils:
         for pr in possible_rolesets:
-            pr[var.DEFAULT_ROLE] += len(villagers)
+            pr[var.DEFAULT_ROLE] += len(vils)
 
     # Collapse possible_rolesets into var.ROLE_STATS
     # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
@@ -5538,14 +5499,14 @@ def start(cli, nick, chan, forced = False, restart = ""):
     num_sharpshooters = 0
     for gunner in gunner_list:
         if gunner in var.ROLES["village drunk"]:
-            var.GUNNERS[gunner.nick] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
+            var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
         elif num_sharpshooters < addroles["sharpshooter"] and gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
-            var.GUNNERS[gunner.nick] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
+            var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
             var.ROLES["gunner"].remove(gunner)
             var.ROLES["sharpshooter"].append(gunner)
             num_sharpshooters += 1
         else:
-            var.GUNNERS[gunner.nick] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+            var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
 
     var.ROLES["sharpshooter"] = UserSet(p for p in var.ROLES["sharpshooter"] if p is not None)
 
@@ -5650,11 +5611,11 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
         var.GAMEPHASE = "night"
-        transition_night(cli)
+        transition_night()
     else:
         var.FIRST_DAY = True
         var.GAMEPHASE = "day"
-        transition_day(cli)
+        transition_day()
 
     decrement_stasis()
 
@@ -6307,11 +6268,11 @@ def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets con
         wrapper.pm(messages["turncoat_side"].format(var.TURNCOATS.get(wrapper.source.nick, "none")[0]))
 
     # Check for gun/bullets
-    if wrapper.source not in var.ROLES["amnesiac"] and wrapper.source.nick in var.GUNNERS and var.GUNNERS[wrapper.source.nick]:
+    if wrapper.source not in var.ROLES["amnesiac"] and wrapper.source in var.GUNNERS and var.GUNNERS[wrapper.source]:
         role = "gunner"
         if wrapper.source in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
-        wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source.nick], "" if var.GUNNERS[wrapper.source.nick] == 1 else "s"))
+        wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source], "" if var.GUNNERS[wrapper.source] == 1 else "s"))
 
     # Check assassin
     if wrapper.source in var.ROLES["assassin"] and wrapper.source not in var.ROLES["amnesiac"]:
@@ -6789,37 +6750,39 @@ def revealroles(var, wrapper, message):
     for role in role_order():
         if var.ROLES.get(role):
             # make a copy since this list is modified
-            nicks = [p.nick for p in var.ROLES[role]] # FIXME: convert to users
+            users = list(var.ROLES[role])
+            out = []
             # go through each nickname, adding extra info if necessary
-            for i in range(len(nicks)):
+            for user in users:
                 special_case = []
-                nickname = nicks[i]
-                if role == "assassin" and nickname in var.TARGETED:
-                    special_case.append("targeting {0}".format(var.TARGETED[nickname]))
-                elif role == "clone" and nickname in var.CLONED:
-                    special_case.append("cloning {0}".format(var.CLONED[nickname]))
-                elif role == "amnesiac" and nickname in var.AMNESIAC_ROLES:
-                    special_case.append("will become {0}".format(var.AMNESIAC_ROLES[nickname]))
+                if role == "assassin" and user.nick in var.TARGETED:
+                    special_case.append("targeting {0}".format(var.TARGETED[user.nick]))
+                elif role == "clone" and user.nick in var.CLONED:
+                    special_case.append("cloning {0}".format(var.CLONED[user.nick]))
+                elif role == "amnesiac" and user.nick in var.AMNESIAC_ROLES:
+                    special_case.append("will become {0}".format(var.AMNESIAC_ROLES[user.nick]))
                 # print how many bullets normal gunners have
-                elif (role == "gunner" or role == "sharpshooter") and nickname in var.GUNNERS:
-                    special_case.append("{0} bullet{1}".format(var.GUNNERS[nickname], "" if var.GUNNERS[nickname] == 1 else "s"))
-                elif role == "turncoat" and nickname in var.TURNCOATS:
-                    special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[nickname][0])
-                                        if var.TURNCOATS[nickname][0] != "none" else "not currently on any side")
+                elif (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
+                    special_case.append("{0} bullet{1}".format(var.GUNNERS[user], "" if var.GUNNERS[user] == 1 else "s"))
+                elif role == "turncoat" and user.nick in var.TURNCOATS:
+                    special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[user.nick][0])
+                                        if var.TURNCOATS[user.nick][0] != "none" else "not currently on any side")
 
                 evt = Event("revealroles_role", {"special_case": special_case})
-                evt.dispatch(var, wrapper, nickname, role)
+                evt.dispatch(var, wrapper, user, role)
                 special_case = evt.data["special_case"]
 
-                user = users._get(nickname) # FIXME
                 if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
                     for old_role in role_order(): # order doesn't matter here, but oh well
                         if user in var.ORIGINAL_ROLES[old_role] and user not in var.ROLES[old_role]:
                             special_case.append("was {0}".format(old_role))
                             break
                 if special_case:
-                    nicks[i] = "".join((nicks[i], " (", ", ".join(special_case), ")"))
-            output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(nicks)))
+                    out.append("".join((user.nick, " (", ", ".join(special_case), ")")))
+                else:
+                    out.append(user.nick)
+
+            output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(out)))
 
     # print out lovers too
     done = {}
@@ -6851,19 +6814,16 @@ def revealroles(var, wrapper, message):
     else:
         wrapper.pm(*output, sep=" | ")
 
-
-@cmd("fgame", flag="g", raw_nick=True, phases=("join",))
-def fgame(cli, nick, chan, rest):
+@command("fgame", flag="g", phases=("join",))
+def fgame(var, wrapper, message):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
-    nick = parse_nick(nick)[0]
+    pl = get_players()
 
-    pl = list_players()
-
-    if nick not in pl and not is_admin(nick):
+    if wrapper.source not in pl and not wrapper.source.is_admin():
         return
 
-    if rest:
-        gamemode = rest.strip().lower()
+    if message:
+        gamemode = message.strip().lower()
         parts = gamemode.replace("=", " ", 1).split(None, 1)
         if len(parts) > 1:
             gamemode, modeargs = parts
@@ -6875,15 +6835,50 @@ def fgame(cli, nick, chan, rest):
             gamemode = gamemode.split()[0]
             gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
             if not gamemode:
-                cli.notice(nick, messages["invalid_mode"].format(rest.split()[0]))
+                wrapper.pm(messages["invalid_mode"].format(message.split()[0]))
                 return
             parts[0] = gamemode
 
-        if cgamemode(cli, "=".join(parts)):
-            cli.msg(chan, messages["fgame_success"].format(nick))
+        if cgamemode("=".join(parts)):
+            channels.Main.send(messages["fgame_success"].format(wrapper.source))
             var.FGAMED = True
     else:
-        cli.notice(nick, fgame.__doc__())
+        wrapper.pm(fgame.__doc__())
+
+@command("frole", flag="d", phases=("join",))
+def frole(var, wrapper, message):
+    """Force a player into a certain role."""
+    pl = get_players()
+    if wrapper.source not in pl and not wrapper.source.is_admin():
+        return
+
+    to_force = {}
+
+    parts = message.strip().lower().replace(":", " ").replace(",", " ").replace("=", " ").split()
+    if len(parts) % 2: # odd number of arguments; invalid
+        wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, message))
+        return
+
+    for name, role in zip(parts[::2], parts[1::2]):
+        user, _ = users.complete_match(name, pl)
+        role = role.replace("_", " ")
+        if role in var.ROLE_ALIASES:
+            role = var.ROLE_ALIASES[role]
+        if user is None or role not in var.ROLE_GUIDE or role == var.DEFAULT_ROLE:
+            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, message))
+            return
+        to_force[user] = role
+
+    for user, role in to_force.items():
+        for key, ps in tuple(var.FORCE_ROLES.items()):
+            if user in ps:
+                ps.remove(user)
+            if not ps:
+                del var.FORCE_ROLES[key]
+
+        var.FORCE_ROLES[role].add(user)
+
+    wrapper.send(messages["operation_successful"])
 
 def fgame_help(args=""):
     args = args.strip()
@@ -6897,9 +6892,6 @@ def fgame_help(args=""):
 
 
 fgame.__doc__ = fgame_help
-
-
-before_debug_mode_commands = list(COMMANDS.keys())
 
 if botconfig.DEBUG_MODE:
 
@@ -6974,13 +6966,13 @@ if botconfig.DEBUG_MODE:
         who = who.replace("_", " ")
 
         if who == "*": # wildcard match
-            tgt = list_players()
+            tgt = get_players()
         elif (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
             or var.PHASE in ("none", "join")):
             cli.msg(chan, nick+": invalid role")
             return
         elif who == "gunner":
-            tgt = {users._get(g) for g in var.GUNNERS.keys()} # FIXME
+            tgt = set(var.GUNNERS)
         else:
             tgt = set(var.ROLES[who])
 

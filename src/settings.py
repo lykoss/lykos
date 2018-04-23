@@ -1,7 +1,7 @@
 import fnmatch
 import re
 import threading
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 
 LANGUAGE = 'en'
 

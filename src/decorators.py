@@ -248,6 +248,10 @@ class command:
                 self.aliases.append(name)
             alias = True
 
+        if playing: # Don't restrict to owners or allow in alt channels
+            self.owner_only = False
+            self.alt_allowed = False
+
     def __call__(self, func):
         if isinstance(func, command):
             func = func.func
@@ -303,7 +307,7 @@ class command:
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone(cli)
+                chk_nightdone()
             return
 
         if self.owner_only:
@@ -461,7 +465,7 @@ class cmd:
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
-                chk_nightdone(cli)
+                chk_nightdone()
             return
 
         forced_owner_only = False

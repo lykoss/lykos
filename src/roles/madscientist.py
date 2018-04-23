@@ -5,12 +5,11 @@ import math
 from collections import defaultdict, deque
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role
 from src.decorators import command, event_listener
-from src.containers import UserList, UserSet, UserDict
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -170,11 +169,10 @@ def on_myrole(evt, var, user):
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
-def on_revealroles(evt, var, wrapper, nickname, role):
+def on_revealroles(evt, var, wrapper, user, role):
     if role == "mad scientist":
         pl = get_players()
-        target1, target2 = _get_targets(var, pl, users._get(nickname)) # FIXME
+        target1, target2 = _get_targets(var, pl, user)
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
-
 
 # vim: set sw=4 expandtab:

@@ -24,10 +24,12 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
 
     user = users._get(rawnick, allow_none=True) # FIXME
 
+    ch = chan.lstrip("".join(hooks.Features["PREFIX"]))
+
     if users.equals(chan, users.Bot.nick): # PM
         target = users.Bot
     else:
-        target = channels.get(chan, allow_none=True)
+        target = channels.get(ch, allow_none=True)
 
     if user is None or target is None:
         return
@@ -43,7 +45,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
 
     if force_role is None: # if force_role isn't None, that indicates recursion; don't fire these off twice
         for fn in decorators.COMMANDS[""]:
-            fn.caller(cli, rawnick, chan, msg)
+            fn.caller(cli, rawnick, ch, msg)
 
     parts = msg.split(sep=" ", maxsplit=1)
     key = parts[0].lower()
@@ -120,7 +122,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
     for fn in cmds:
         if phase == var.PHASE:
             # FIXME: pass in var, wrapper, message instead of cli, rawnick, chan, message
-            fn.caller(cli, rawnick, chan, message)
+            fn.caller(cli, rawnick, ch, message)
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):
