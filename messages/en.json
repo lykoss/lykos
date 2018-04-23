@@ -251,7 +251,6 @@
     "static_quit_no_reveal": "\u0002{0}\u0002 has died of an unknown disease.",
     "villagers_lynch": "The villagers must now vote for whom to lynch. Use \"{0}lynch <nick>\" to cast your vote. {1} votes are required to lynch.",
     "random_totem_prefix": "Because you forgot to give out your totem at night, you",
-    "random_totem_bug": "You didn't give out your totem at night, but I don't know what to do now. This is a bug, so please report this to the admins.",
     "random_clone": "Because you forgot to select someone to clone at night, you are now cloning \u0002{0}\u0002.",
     "random_matchmaker": "Because you forgot to choose lovers at night, two lovers have been selected for you.",
     "totem_retarget": "It seems that \u0002{0}\u0002 now has the totem you gave out last night.",
