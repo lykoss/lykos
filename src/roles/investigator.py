@@ -58,11 +58,11 @@ def investigate(var, wrapper, message):
         t2role = var.AMNESIAC_ROLES[target2.nick]
 
     evt = Event("investigate", {"role": t1role})
-    evt.dispatch(wrapper.client, var, wrapper.source.nick, target1.nick) # FIXME
+    evt.dispatch(var, wrapper.source, target1)
     t1role = evt.data["role"]
 
     evt = Event("investigate", {"role": t2role})
-    evt.dispatch(wrapper.client, var, wrapper.source.nick, target2.nick) # FIXME
+    evt.dispatch(var, wrapper.source, target2)
     t2role = evt.data["role"]
 
     # FIXME: make a standardized way of getting team affiliation, and make

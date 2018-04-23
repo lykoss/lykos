@@ -13,8 +13,8 @@ from src.messages import messages
 from src.events import Event
 
 @event_listener("see")
-def on_see(evt, var, nick, victim):
-    if users._get(victim) in var.ROLES["cursed villager"]: # FIXME
+def on_see(evt, var, seer, target):
+    if target in var.ROLES["cursed villager"]:
         evt.data["role"] = "wolf"
 
 @event_listener("wolflist")

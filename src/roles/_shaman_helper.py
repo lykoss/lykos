@@ -225,8 +225,8 @@ def give_totem(var, wrapper, target, prefix, tags, role, msg):
     return UserList((target, orig_target))
 
 @event_listener("see", priority=10)
-def on_see(evt, var, nick, victim):
-    if (users._get(victim) in DECEIT) ^ (users._get(nick) in DECEIT): # FIXME
+def on_see(evt, var, seer, target):
+    if (seer in DECEIT) ^ (target in DECEIT):
         if evt.data["role"] in var.SEEN_WOLF and evt.data["role"] not in var.SEEN_DEFAULT:
             evt.data["role"] = "villager"
         else:

@@ -29,7 +29,7 @@ def on_get_final_role(evt, cli, var, nick, role):
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt, var, player, mainrole, revealroles, allroles):
+def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
     if mainrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
 

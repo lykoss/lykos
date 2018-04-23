@@ -463,7 +463,6 @@
     "seer_ability": "the role of a player",
     "oracle_ability": "whether or not a player is a wolf",
     "augur_ability": "which team a player is on",
-    "seer_role_bug": "??? (this is a bug, please report to admins)",
     "seer_role_info": "You are {0} \u0002{1}\u0002. It is your job to detect the wolves, you may have a vision once per night. Use \"see <nick>\" to see {2}.",
     "seer_simple": "You are {0} \u0002{1}\u0002.",
     "harlot_info": "You are a \u0002harlot\u0002. You may spend the night with one person per round. If you visit a victim of a wolf, or visit a wolf, you will die. Use \"visit <nick>\" to visit a player or \"pass\" to stay home tonight.",
