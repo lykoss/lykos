@@ -288,9 +288,11 @@ def singular(plural):
     # fool is present since we store fool wins as 'fool' rather than
     # 'fools' as only a single fool wins, however we don't want to
     # chop off the l and have it report 'foo wins'
+    # same thing with 'everyone'
     conv = {"wolves": "wolf",
             "succubi": "succubus",
-            "fool": "fool"}
+            "fool": "fool",
+            "everyone": "everyone"}
     if plural in conv:
         return conv[plural]
     # otherwise we just added an s on the end

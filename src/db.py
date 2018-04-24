@@ -412,7 +412,10 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
-        bits.append("{0} wins: {1} ({2}%)".format(singular(row[0]).title(), row[1], round(row[1]/total_games * 100)))
+        winner = singular(row[0]).title()
+        if not winner:
+            winner = botconfig.NICK.title()
+        bits.append("{0} wins: {1} ({2}%)".format(winner, row[1], round(row[1]/total_games * 100)))
     bits.append("Total games: {0}".format(total_games))
 
     return msg + ", ".join(bits)
