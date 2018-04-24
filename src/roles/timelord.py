@@ -6,7 +6,6 @@ import time
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.decorators import command, event_listener
