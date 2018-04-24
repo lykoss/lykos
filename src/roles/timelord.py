@@ -49,9 +49,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         return
 
     if timeleft_internal(var, var.GAMEPHASE) > time_limit > 0:
-        if var.GAMEPHASE in var.TIMERS:
-            var.TIMERS[var.GAMEPHASE][0].cancel()
-
         t = threading.Timer(time_limit, hurry_up, [cli, phase_id, True])
         var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
         t.daemon = True
