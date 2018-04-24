@@ -23,7 +23,7 @@ TIME_ATTRIBUTES = (
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if not death_triggers or "time lord" not in allroles:
+    if not death_triggers or "time lord" not in allroles or user not in get_all_players(("time lord",)):
         return
 
     for attr, new_attr in TIME_ATTRIBUTES:
