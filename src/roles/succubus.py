@@ -55,16 +55,7 @@ def hvisit(var, wrapper, message):
         revt = Event("succubus_visit", {})
         revt.dispatch(var, wrapper.source, target)
 
-        # TODO: split these into assassin, hag, and alpha wolf when they are split off
-        if users._get(var.TARGETED.get(target.nick), allow_none=True) in get_all_players(("succubus",)): # FIXME
-            msg = messages["no_target_succubus"].format(var.TARGETED[target.nick])
-            del var.TARGETED[target.nick]
-            if target in get_all_players(("village drunk",)):
-                victim = random.choice(list(get_all_players() - get_all_players(("succubus",)) - {target}))
-                msg += messages["drunk_target"].format(victim)
-                var.TARGETED[target.nick] = victim.nick
-            target.send(msg)
-
+        # TODO: split these into hag and alpha wolf when they are split off
         if target.nick in var.HEXED and users._get(var.LASTHEXED[target.nick]) in get_all_players(("succubus",)): # FIXME
             target.send(messages["retract_hex_succubus"].format(var.LASTHEXED[target.nick]))
             var.TOBESILENCED.remove(wrapper.source.nick)
