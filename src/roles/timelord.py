@@ -48,7 +48,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     else:
         return
 
-    if timeleft_internal(var.GAMEPHASE) > time_limit > 0:
+    if timeleft_internal(var, var.GAMEPHASE) > time_limit > 0:
         if var.GAMEPHASE in var.TIMERS:
             var.TIMERS[var.GAMEPHASE][0].cancel()
 

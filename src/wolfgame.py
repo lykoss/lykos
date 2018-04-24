@@ -5910,7 +5910,7 @@ def timeleft(cli, nick, chan, rest):
             reply(cli, nick, chan, msg)
 
     if var.PHASE in var.TIMERS:
-        remaining = timeleft_internal(var.PHASE)
+        remaining = timeleft_internal(var, var.PHASE)
         if var.PHASE == "day":
             what = "sunset"
         elif var.PHASE == "night":
