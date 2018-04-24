@@ -355,7 +355,7 @@ def complete_match(string, matches):
     return sorted(possible_matches)
 
 def complete_one_match(string, matches):
-    matches = complete_match(string,matches) 
+    matches = complete_match(string,matches)
     if len(matches) == 1:
         return matches.pop()
     return None

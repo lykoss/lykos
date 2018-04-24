@@ -2472,56 +2472,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
                         del_player(lover, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
                         pl = refresh_pl(pl)
-                if mainrole == "time lord":
-                    if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT"] = var.DAY_TIME_LIMIT
-                    if "DAY_TIME_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["DAY_TIME_WARN"] = var.DAY_TIME_WARN
-                    if "SHORT_DAY_LIMIT" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_LIMIT"] = var.SHORT_DAY_LIMIT
-                    if "SHORT_DAY_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["SHORT_DAY_WARN"] = var.SHORT_DAY_WARN
-                    if "NIGHT_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["NIGHT_TIME_LIMIT"] = var.NIGHT_TIME_LIMIT
-                    if "NIGHT_TIME_WARN" not in var.ORIGINAL_SETTINGS:
-                        var.ORIGINAL_SETTINGS["NIGHT_TIME_WARN"] = var.NIGHT_TIME_WARN
-                    var.DAY_TIME_LIMIT = var.TIME_LORD_DAY_LIMIT
-                    var.DAY_TIME_WARN = var.TIME_LORD_DAY_WARN
-                    var.SHORT_DAY_LIMIT = var.TIME_LORD_DAY_LIMIT
-                    var.SHORT_DAY_WARN = var.TIME_LORD_DAY_WARN
-                    var.NIGHT_TIME_LIMIT = var.TIME_LORD_NIGHT_LIMIT
-                    var.NIGHT_TIME_WARN = var.TIME_LORD_NIGHT_WARN
-                    channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
-                    if var.GAMEPHASE == "day" and timeleft_internal("day") > var.DAY_TIME_LIMIT and var.DAY_TIME_LIMIT > 0:
-                        if "day" in var.TIMERS:
-                            var.TIMERS["day"][0].cancel()
-                        t = threading.Timer(var.DAY_TIME_LIMIT, hurry_up, [var.DAY_ID, True])
-                        var.TIMERS["day"] = (t, time.time(), var.DAY_TIME_LIMIT)
-                        t.daemon = True
-                        t.start()
-                        # Don't duplicate warnings, i.e. only set the warn timer if a warning was not already given
-                        if "day_warn" in var.TIMERS and var.TIMERS["day_warn"][0].isAlive():
-                            var.TIMERS["day_warn"][0].cancel()
-                            t = threading.Timer(var.DAY_TIME_WARN, hurry_up, [var.DAY_ID, False])
-                            var.TIMERS["day_warn"] = (t, time.time(), var.DAY_TIME_WARN)
-                            t.daemon = True
-                            t.start()
-                    elif var.GAMEPHASE == "night" and timeleft_internal("night") > var.NIGHT_TIME_LIMIT and var.NIGHT_TIME_LIMIT > 0:
-                        if "night" in var.TIMERS:
-                            var.TIMERS["night"][0].cancel()
-                        t = threading.Timer(var.NIGHT_TIME_LIMIT, hurry_up, [var.NIGHT_ID, True])
-                        var.TIMERS["night"] = (t, time.time(), var.NIGHT_TIME_LIMIT)
-                        t.daemon = True
-                        t.start()
-                        # Don't duplicate warnings, e.g. only set the warn timer if a warning was not already given
-                        if "night_warn" in var.TIMERS and var.TIMERS["night_warn"][0].isAlive():
-                            var.TIMERS["night_warn"][0].cancel()
-                            t = threading.Timer(var.NIGHT_TIME_WARN, hurry_up, [var.NIGHT_ID, False])
-                            var.TIMERS["night_warn"] = (t, time.time(), var.NIGHT_TIME_WARN)
-                            t.daemon = True
-                            t.start()
-
-                    debuglog(player.nick, "(time lord) TRIGGER")
 
             pl = refresh_pl(pl)
             # i herd u liek parameters
@@ -3020,7 +2970,7 @@ def nick_change(evt, var, user, old_rawnick):
     # perhaps mark them as back
     return_to_village(var, user, show_message=True)
 
-@event_listener("cleanup_user") 
+@event_listener("cleanup_user")
 def cleanup_user(evt, var, user):
     var.LAST_GOAT.pop(user, None)
 
@@ -5973,9 +5923,6 @@ def timeleft(cli, nick, chan, rest):
 
     reply(cli, nick, chan, msg)
 
-def timeleft_internal(phase):
-    return int((var.TIMERS[phase][1] + var.TIMERS[phase][2]) - time.time()) if phase in var.TIMERS else -1
-
 @cmd("roles", pm=True)
 def listroles(cli, nick, chan, rest):
     """Displays which roles are enabled at a certain number of players."""
@@ -6216,7 +6163,7 @@ def game_stats(cli, nick, chan, rest):
         if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
             matches = complete_match(gamemode, var.GAME_MODES.keys())
             if len(matches) == 1:
-                gamemode = matches[0]  
+                gamemode = matches[0]
             if not matches:
                 cli.notice(nick, messages["invalid_mode"].format(rest[0]))
                 return
@@ -6301,7 +6248,7 @@ def player_stats(cli, nick, chan, rest):
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return
             if len(matches) > 1:
-                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches))) 
+                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
                 return
             role = matches[0]
         # Attempt to find the player's stats
@@ -6332,7 +6279,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             return
         if len(matches) == 1:
             gamemode = matches[0]
-        
+
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
         if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
             wrapper.pm(messages["already_voted_game"].format(gamemode))
