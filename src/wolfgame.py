@@ -73,7 +73,6 @@ var.LAST_GOAT = {}
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.ORIGINAL_ROLES = UserDict() # type: Dict[str, Set[users.User]]
 var.DCED_LOSERS = UserSet() # type: Set[users.User]
 var.PLAYERS = {}
 var.DCED_PLAYERS = {}
@@ -84,7 +83,9 @@ var.TIMERS = {}
 var.OLD_MODES = defaultdict(set)
 
 var.ROLES = UserDict() # type: Dict[str, Set[users.User]]
+var.ORIGINAL_ROLES = UserDict() # type: Dict[str, Set[users.User]]
 var.MAIN_ROLES = UserDict() # type: Dict[users.User, str]
+var.ORIGINAL_MAIN_ROLES = UserDict() # type: Dict[users.User, str]
 var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
 
@@ -340,6 +341,7 @@ def reset():
     var.ORIGINAL_ROLES.clear()
     var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
+    var.ORIGINAL_MAIN_ROLES.clear()
     var.FORCE_ROLES.clear()
 
     evt = Event("reset", {})
@@ -1988,36 +1990,53 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
     roles_msg = []
 
-    origroles = {} # user-based list of original roles
-    with copy.deepcopy(var.ORIGINAL_ROLES) as rolelist:
-        for role, playerlist in var.ORIGINAL_ROLES.items():
-            if role in var.TEMPLATE_RESTRICTIONS.keys():
-                continue
-            for p in playerlist:
-                # The final role is set at priority 0, other roles can override that
-                evt = Event("get_final_role", {"role": role})
-                evt.dispatch(var, p, role)
-                if role != evt.data["role"]:
-                    origroles[p] = role
-                    rolelist[role].remove(p)
-                    rolelist[evt.data["role"]].add(p)
+    # squirrel away a copy of our original roleset for stats recording, as the following code
+    # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
+    rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
 
-        done = False
-        for role in role_order():
-            if len(rolelist[role]) == 0:
-                continue
-            evt = Event("get_endgame_message", {"message": [], "done": done})
-            evt.dispatch(var, role, rolelist[role], origroles)
+    # save some typing
+    rolemap = var.ORIGINAL_ROLES
+    mainroles = var.ORIGINAL_MAIN_ROLES
+    orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
-            msg = evt.data["message"]
-            done = evt.data["done"]
+    for player, role in mainroles.items():
+        evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player.nick, role)})
+        evt.dispatch(var, player, role)
+        if role != evt.data["role"]:
+            rolemap[role].remove(player)
+            rolemap[evt.data["role"]].add(player)
+            mainroles[player] = evt.data["role"]
+            orig_main[player] = role
 
-            if len(rolelist[role]) == 2:
-                roles_msg.append("The {1} were {0[0]} and {0[1]}.".format(msg, plural(role)))
-            elif len(rolelist[role]) == 1:
-                roles_msg.append("The {1} was {0[0]}.".format(msg, role))
+    # track if we already printed "was" for a role swap, e.g. The wolves were A (was seer), B (harlot)
+    # so that we can make the message a bit more concise
+    roleswap_key = "endgame_roleswap_long"
+
+    for role in role_order():
+        numrole = len(rolemap[role])
+        if numrole == 0:
+            continue
+        msg = []
+        for player in rolemap[role]:
+            # check if the player changed roles during game, and if so insert the "was X" message
+            player_msg = []
+            if mainroles[player] == role and player in orig_main:
+                player_msg.append(messages[roleswap_key].format(orig_main[player]))
+                roleswap_key = "endgame_roleswap_short"
+            evt = Event("get_endgame_message", {"message": player_msg})
+            evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
+            if player_msg:
+                msg.append("\u0002{0}\u0002 ({1})".format(player, ", ".join(player_msg)))
             else:
-                roles_msg.append("The {2} were {0}, and {1}.".format(", ".join(msg[0:-1]), msg[-1], plural(role)))
+                msg.append("\u0002{0}\u0002".format(player))
+
+        # FIXME: get rid of hardcoded English
+        if numrole == 2:
+            roles_msg.append("The {1} were {0[0]} and {0[1]}.".format(msg, plural(role)))
+        elif numrole == 1:
+            roles_msg.append("The {1} was {0[0]}.".format(msg, role))
+        else:
+            roles_msg.append("The {2} were {0}, and {1}.".format(", ".join(msg[0:-1]), msg[-1], plural(role)))
 
     message = ""
     count = 0
@@ -2041,30 +2060,19 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
         channels.Main.send(*roles_msg)
 
+    # map player: all roles of that player (for below)
+    allroles = {player: {role for role, players in rolemap.items() if player in players} for player in mainroles}
+
     # "" indicates everyone died or abnormal game stop
     if winner != "" or log:
-        plrl = {}
-        pltp = defaultdict(list)
         winners = set()
         player_list = []
         if additional_winners is not None:
             winners.update(additional_winners)
-        for role, ppl in var.ORIGINAL_ROLES.items():
-            if role in var.TEMPLATE_RESTRICTIONS.keys():
-                for x in ppl:
-                    if x is not None:
-                        pltp[x].append(role)
-                continue
-            for x in ppl:
-                if x is not None:
-                    if x.nick in var.FINAL_ROLES:
-                        plrl[x] = var.FINAL_ROLES[x.nick]
-                    else:
-                        plrl[x] = role
-        for plr, rol in plrl.items():
-            orol = rol # original role, since we overwrite rol in case of clone
+        for plr, rol in mainroles.items():
             splr = plr.nick # FIXME: for backwards-compat
-            pentry = {"nick": None,
+            pentry = {"version": 2,
+                      "nick": None,
                       "account": None,
                       "ident": None,
                       "host": None,
@@ -2081,8 +2089,8 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             pentry["ident"] = plr.ident
             pentry["host"] = plr.host
 
-            pentry["role"] = rol
-            pentry["templates"] = pltp[plr]
+            pentry["mainrole"] = rol
+            pentry["allroles"] = allroles[plr]
             if splr in var.LOVERS:
                 pentry["special"].append("lover")
 
@@ -2090,6 +2098,16 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             iwon = False
             survived = get_players()
             if not pentry["dced"]:
+                # determine default win status (event can override)
+                if rol in var.WOLFTEAM_ROLES or (var.DEFAULT_ROLE == "cultist" and role in var.HIDDEN_ROLES):
+                    if winner == "wolves":
+                        won = True
+                        iwon = plr in survived
+                elif role not in var.TRUE_NEUTRAL_ROLES and winner == "villagers":
+                    won = True
+                    iwon = plr in survived
+                # true neutral roles are handled via the event below
+
                 evt = Event("player_win", {"won": won, "iwon": iwon, "special": pentry["special"]})
                 evt.dispatch(var, plr, rol, winner, plr in survived)
                 won = evt.data["won"]
@@ -2125,9 +2143,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                         # cannot win with dead lover (if splr in survived and lvr is not, that means lvr idled out)
                         continue
 
-                    lvrrol = "" #somehow lvrrol wasn't set and caused a crash once
-                    if lvuser in plrl:
-                        lvrrol = plrl[lvuser]
+                    lvrrol = mainroles[lvuser]
 
                     if not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
                         iwon = True
@@ -5390,12 +5406,14 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 return
             for user in var.FORCE_ROLES[role]:
                 var.MAIN_ROLES[user] = role
+                var.ORIGINAL_MAIN_ROLES[user] = role
                 to_add.add(user)
                 count -= 1
 
         selected = random.sample(vils, count)
         for x in selected:
             var.MAIN_ROLES[x] = role
+            var.ORIGINAL_MAIN_ROLES[x] = role
             vils.remove(x)
         var.ROLES[role] = UserSet(selected)
         var.ROLES[role].update(to_add)
@@ -5406,6 +5424,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES[var.DEFAULT_ROLE].update(vils)
     for x in vils:
         var.MAIN_ROLES[x] = var.DEFAULT_ROLE
+        var.ORIGINAL_MAIN_ROLES[x] = var.DEFAULT_ROLE
     if vils:
         for pr in possible_rolesets:
             pr[var.DEFAULT_ROLE] += len(vils)

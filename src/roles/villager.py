@@ -35,25 +35,6 @@ def on_transition_night_end(evt, var):
                 cultist.queue_message(messages[to_send])
             cultist.send_messages()
 
-# No listeners should register before this one
-# This sets up the initial state, based on village/wolfteam/neutral affiliation
-@event_listener("player_win", priority=0)
-def on_player_win(evt, var, user, role, winner, survived):
-    # init won/iwon to False
-    evt.data["won"] = False
-    evt.data["iwon"] = False
-
-    if role in var.WOLFTEAM_ROLES or (var.DEFAULT_ROLE == "cultist" and role in var.HIDDEN_ROLES):
-        if winner == "wolves":
-            evt.data["won"] = True
-            evt.data["iwon"] = survived
-    elif role in var.TRUE_NEUTRAL_ROLES:
-        # handled in their individual files
-        pass
-    elif winner == "villagers":
-        evt.data["won"] = True
-        evt.data["iwon"] = survived
-
 @event_listener("chk_win", priority=3)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if evt.data["winner"] is not None:
@@ -67,19 +48,5 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     elif lwolves > lpl / 2:
         evt.data["winner"] = "wolves"
         evt.data["message"] = messages["wolf_win_greater"]
-
-@event_listener("get_final_role", priority=0)
-def on_get_final_role(evt, var, user, role):
-    if user.nick in var.FINAL_ROLES:
-        evt.data["role"] = var.FINAL_ROLES[user.nick]
-
-@event_listener("get_endgame_message", priority=10)
-def on_get_endgame_message(evt, var, role, players, original_roles):
-    for player in players:
-        if player in original_roles and role not in var.TEMPLATE_RESTRICTIONS:
-            evt.data["message"].append("\u0002{0}\u0002 ({1}{2})".format(player, "" if evt.data["done"] else "was ", original_roles[player]))
-            evt.data["done"] = True
-        else:
-            evt.data["message"].append("\u0002{0}\u0002".format(player))
 
 # vim: set sw=4 expandtab:

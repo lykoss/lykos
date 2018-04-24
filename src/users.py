@@ -186,7 +186,7 @@ class User(IRCContext):
         self._ident = ident
         self._host = host
         self.realname = realname
-        self.account = account if not var.DISABLE_ACCOUNTS else None
+        self.account = account
         self.channels = {}
         self.timestamp = time.time()
         self.sets = []
@@ -199,7 +199,7 @@ class User(IRCContext):
             self.ident = ident
             self.host = host
             self.realname = realname
-            self.account = account if not var.DISABLE_ACCOUNTS else None
+            self.account = account
             self.timestamp = time.time()
 
         elif ident is not None and host is not None:

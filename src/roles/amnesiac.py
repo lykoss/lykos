@@ -14,25 +14,35 @@ from src.messages import messages
 from src.events import Event
 
 ROLES = UserDict()  # type: Dict[users.User, str]
+STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
-@event_listener("role_assignment")
-def on_role_assignment(evt, var, gamemode, pl):
-    # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1
+def _get_blacklist(var):
+    # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1.
+
     # clone and traitor are blacklisted due to assumptions made in default !stats computations.
     # If you remove these from the blacklist you will need to modify the default !stats logic
     # chains in order to correctly account for these. As a forewarning, such modifications are
     # nontrivial and will likely require a great deal of thought (and likely new tracking vars)
+    # FIXME: once experimental stats become the new stats, clone and traitor will work properly
+    # and we can remove those from hardcoded blacklist and remove this comment block.
+    blacklist = var.TEMPLATE_RESTRICTIONS.keys() | var.AMNESIAC_BLACKLIST | {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
+    if var.AMNESIAC_NIGHTS > 1:
+        blacklist.add("matchmaker")
+    return blacklist
 
-    roles = var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - var.AMNESIAC_BLACKLIST - {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
-    if var.AMNESIAC_NIGHTS > 1 and "matchmaker" in roles:
-        roles.remove("matchmaker")
+@event_listener("role_assignment")
+def on_role_assignment(evt, var, gamemode, pl):
+    roles = var.ROLE_GUIDE.keys() - _get_blacklist(var)
     for amnesiac in get_all_players(("amnesiac",)):
         ROLES[amnesiac] = random.choice(list(roles))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):
+    global STATS_FLAG
     if var.NIGHT_COUNT == var.AMNESIAC_NIGHTS:
         amnesiacs = get_all_players(("amnesiac",))
+        if amnesiacs and not var.HIDDEN_AMNESIAC:
+            STATS_FLAG = True
 
         for amn in amnesiacs:
             role = ROLES[amn]
@@ -72,6 +82,7 @@ def on_investigate(evt, var, actor, target):
 
 @event_listener("exchange_roles")
 def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
+    # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
     if actor_role == "amnesiac":
         actor_role = ROLES[actor]
         if target in ROLES:
@@ -94,6 +105,9 @@ def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
 
 @event_listener("revealing_totem")
 def on_revealing_totem(evt, var, votee):
+    if evt.data["role"] not in _get_blacklist(var) and not var.HIDDEN_AMNESIAC and len(var.ORIGINAL_ROLES["amnesiac"]):
+        global STATS_FLAG
+        STATS_FLAG = True
     if evt.data["role"] == "amnesiac":
         role = ROLES[votee]
         change_role(votee, "amnesiac", role)
@@ -106,15 +120,14 @@ def on_revealing_totem(evt, var, votee):
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt, var, user):
-    if var.HIDDEN_AMNESIAC and user in var.ORIGINAL_ROLES["amnesiac"]:
+    if var.HIDDEN_AMNESIAC and var.ORIGINAL_MAIN_ROLES[user] == "amnesiac":
         evt.data["role"] = "amnesiac"
 
 @event_listener("get_endgame_message")
-def on_get_endgame_message(evt, var, role, players, original_roles):
+def on_get_endgame_message(evt, var, player, role, is_mainrole):
     if role == "amnesiac":
-        for player in players:
-            evt.data["message"].append("\u0002{0}\u0002 (would be {1})".format(player, ROLES[player]))
-        evt.stop_processing = True
+        # FIXME: Harcoded English
+        evt.data["message"].append("would be {0}".format(ROLES[player]))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
@@ -123,12 +136,13 @@ def on_revealroles_role(evt, var, user, role):
 
 @event_listener("update_stats")
 def on_update_stats(evt, var, player, mainrole, revealrole, allroles):
-    if not var.HIDDEN_AMNESIAC and var.NIGHT_COUNT >= var.AMNESIAC_NIGHTS:
-        if not var.AMNESIAC_BLACKLIST & {mainrole, revealrole}: # make sure roles aren't blacklisted
-            evt.data["possible"].add("amnesiac")
+    if STATS_FLAG and not _get_blacklist(var) & {mainrole, revealrole}:
+        evt.data["possible"].add("amnesiac")
 
 @event_listener("reset")
 def on_reset(evt, var):
+    global STATS_FLAG
     ROLES.clear()
+    STATS_FLAG = False
 
 # vim: set sw=4 expandtab:

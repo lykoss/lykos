@@ -260,12 +260,15 @@ def add_game(mode, size, started, finished, winner, players, options):
 
     Players dict format:
     {
+        version: 2 (key is omitted for v1)
         nick: "Nickname"
         account: "Account name" (or None, "*" is converted to None)
         ident: "Ident"
         host: "Host"
-        role: "role name"
-        templates: ["template names", ...]
+        mainrole: "role name" (v2+)
+        allroles: {"role name", ...} (v2+)
+        role: "role name" (v1 only)
+        templates: ["template names", ...] (v1 only)
         special: ["special qualities", ... (lover, entranced, etc.)]
         won: True/False
         iwon: True/False
