@@ -169,7 +169,7 @@ def on_myrole(evt, var, user):
         evt.data["messages"].append(messages["mad_scientist_myrole_targets"].format(target1, target2))
 
 @event_listener("revealroles_role")
-def on_revealroles(evt, var, wrapper, user, role):
+def on_revealroles(evt, var,  user, role):
     if role == "mad scientist":
         pl = get_players()
         target1, target2 = _get_targets(var, pl, user)

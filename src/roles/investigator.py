@@ -51,11 +51,6 @@ def investigate(var, wrapper, message):
 
     t1role = get_main_role(target1)
     t2role = get_main_role(target2)
-    # FIXME: split into amnesiac via investigate event once amnesiac is split
-    if t1role == "amnesiac":
-        t1role = var.AMNESIAC_ROLES[target1.nick]
-    if t2role == "amnesiac":
-        t2role = var.AMNESIAC_ROLES[target2.nick]
 
     evt = Event("investigate", {"role": t1role})
     evt.dispatch(var, wrapper.source, target1)

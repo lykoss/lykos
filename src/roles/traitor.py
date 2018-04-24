@@ -22,7 +22,7 @@ def on_get_reveal_role(evt, var, user):
         evt.data["role"] = var.DEFAULT_ROLE
 
 @event_listener("get_final_role")
-def on_get_final_role(evt, cli, var, nick, role):
+def on_get_final_role(evt, var, user, role):
     # if a traitor turns we want to show them as traitor in the end game readout
     # instead of "wolf (was traitor)"
     if role == "traitor" and evt.data["role"] == "wolf":

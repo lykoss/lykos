@@ -199,7 +199,7 @@ def on_myrole(evt, var, user):
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, var, wrapper, user, role):
+def on_revealroles_role(evt, var, user, role):
     if role == "dullahan" and user in TARGETS:
         targets = set(TARGETS[user])
         for target in TARGETS[user]:

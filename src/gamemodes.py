@@ -81,7 +81,7 @@ class GameMode:
                 elif val == "team" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "team"
             elif key in ("stats type", "stats"):
-                if val not in ("default", "accurate", "team", "disabled"):
+                if val not in ("default", "accurate", "team", "disabled", "experimental"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val
             elif key == "abstain":
@@ -184,7 +184,7 @@ class DefaultMode(GameMode):
                 if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
                     channels.Main.send(messages["villagergame_nope"])
                     from src.wolfgame import stop_game
-                    stop_game("wolves")
+                    stop_game(var, "wolves")
                     evt.prevent_default = True
                 else:
                     del evt.data["votelist"][users.Bot]
@@ -289,7 +289,7 @@ class VillagergameMode(GameMode):
             if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
                 channels.Main.send(messages["villagergame_win"])
                 from src.wolfgame import stop_game
-                stop_game("everyone")
+                stop_game(var, "everyone")
                 evt.prevent_default = True
             else:
                 del evt.data["votelist"][users.Bot]

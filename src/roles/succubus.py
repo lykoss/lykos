@@ -316,6 +316,12 @@ def on_vg_kill(evt, var, ghost, target):
     if ghost in ENTRANCED:
         evt.data["pl"] -= get_all_players(("succubus",))
 
+@event_listener("new_role")
+def on_new_role(evt, var, user, role):
+    if role == "succubus" and user in ENTRANCED:
+        ENTRANCED.remove(user)
+        user.send(messages["no_longer_entranced"])
+
 @event_listener("reset")
 def on_reset(evt, var):
     global ALL_SUCC_IDLE

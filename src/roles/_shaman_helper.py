@@ -66,7 +66,7 @@ def setup_variables(rolename, *, knows_totem, get_tags):
         SHAMANS.clear()
 
     @event_listener("revealroles_role")
-    def on_revealroles(evt, var, wrapper, user, role):
+    def on_revealroles(evt, var, user, role):
         if role == rolename and user in TOTEMS:
             if user in SHAMANS:
                 evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[user], SHAMANS[user][0]))
@@ -302,17 +302,6 @@ def on_chk_decision_lynch3(evt, var, voters):
         rev_evt = Event("revealing_totem", {"role": role})
         rev_evt.dispatch(var, votee)
         role = rev_evt.data["role"]
-        # TODO: once amnesiac is split, roll this into the revealing_totem event
-        if role == "amnesiac":
-            role = var.AMNESIAC_ROLES[votee.nick]
-            change_role(votee, "amnesiac", role)
-            var.AMNESIACS.add(votee.nick)
-            votee.send(messages["totem_amnesia_clear"])
-            # If wolfteam, don't bother giving list of wolves since night is about to start anyway
-            # Existing wolves also know that someone just joined their team because revealing totem says what they are
-            # If turncoat, set their initial starting side to "none" just in case game ends before they can set it themselves
-            if role == "turncoat":
-                var.TURNCOATS[votee.nick] = ("none", -1)
 
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
         channels.Main.send(messages["totem_reveal"].format(votee, an, role))

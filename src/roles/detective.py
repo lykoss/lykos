@@ -31,9 +31,6 @@ def investigate(var, wrapper, message):
     target = evt.data["target"]
     targrole = get_main_role(target)
 
-    if targrole == "amnesiac":
-        targrole = var.AMNESIAC_ROLES[target.nick]
-
     evt = Event("investigate", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]

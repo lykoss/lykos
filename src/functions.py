@@ -83,13 +83,10 @@ def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
 
 def get_reveal_role(user):
-    # FIXME: when amnesiac and clone are split, move this into an event
-    if var.HIDDEN_AMNESIAC and user in var.ORIGINAL_ROLES["amnesiac"]:
-        role = "amnesiac"
-    elif var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
+    # FIXME: when clone is split, move this into an event
+    role = get_main_role(user)
+    if var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
         role = "clone"
-    else:
-        role = get_main_role(user)
 
     evt = Event("get_reveal_role", {"role": role})
     evt.dispatch(var, user)

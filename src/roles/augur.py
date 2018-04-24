@@ -33,9 +33,6 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    if targrole == "amnesiac":
-        targrole = var.AMNESIAC_ROLES[target.nick]
-
     evt = Event("investigate", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]

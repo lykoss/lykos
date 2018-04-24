@@ -441,7 +441,7 @@
     "harlot_turn": "While out visiting last night, you were overpowered by a large werewolf and bitten. Shortly thereafter, you found yourself turning into a werewolf yourself!",
     "bitten_turn": "You woke suddenly last night to a sharp pain, as you were bit by a large werewolf. Shortly thereafter, you found yourself turning into a werewolf yourself!",
     "wolfchat_new_member": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
-    "amnesia_clear": "Your amnesia clears and you now remember that you are a{0} \u0002{1}\u0002!",
+    "amnesia_clear": "Your amnesia clears and you now remember that you are {0} \u0002{1}\u0002!",
     "amnesia_wolfchat": "\u0002{0}\u0002 is now a \u0002{1}\u0002!",
     "wolf_notify": "You are a \u0002{0}wolf\u0002. It is your job to kill all the villagers. Use \"kill <nick>\" to kill a villager.",
     "cursed_traitor_notify": "You are a \u0002{0}cursed traitor\u0002. Normally, you would be seen as a villager by the seer and oracle, but since you're cursed, you are seen as a wolf.",

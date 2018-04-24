@@ -148,7 +148,7 @@ def on_transition_night_end(evt, var):
         child.send(messages[to_send])
 
 @event_listener("revealroles_role")
-def on_revealroles_role(evt, var, wrapper, user, role):
+def on_revealroles_role(evt, var, user, role):
     if role == "wild child":
         if user.nick in IDOLS:
             evt.data["special_case"].append("picked {0} as idol".format(IDOLS[user.nick]))
