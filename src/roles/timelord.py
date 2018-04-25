@@ -51,7 +51,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         time_left = int((var.TIMERS[var.GAMEPHASE][1] + var.TIMERS[var.GAMEPHASE][2]) - time.time())
 
         if time_left > time_limit > 0:
-            t = threading.Timer(time_limit, hurry_up, [cli, phase_id, True])
+            t = threading.Timer(time_limit, hurry_up, [phase_id, True])
             var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
             t.daemon = True
             t.start()
@@ -61,7 +61,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 timer = var.TIMERS[timer_name][0]
                 if timer.isAlive():
                     timer.cancel()
-                    t = threading.Timer(time_warn, hurry_up, [cli, phase_id, False])
+                    t = threading.Timer(time_warn, hurry_up, [phase_id, False])
                     var.TIMERS[timer_name] = (t, time.time(), time_warn)
                     t.daemon = True
                     t.start()
