@@ -45,8 +45,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         time_warn = var.NIGHT_TIME_WARN
         phase_id = "NIGHT_ID"
         timer_name = "night_warn"
-    else:
-        raise ValueError("var.GAMEPHASE is neither day nor night: {}".format(var.GAMEPHASE))
 
     if timeleft_internal(var, var.GAMEPHASE) > time_limit > 0:
         t = threading.Timer(time_limit, hurry_up, [cli, phase_id, True])
