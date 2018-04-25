@@ -212,6 +212,17 @@ def on_reset(evt, var):
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
-        evt.data["output"].append("\u0002charmed players\u0002: {0}".format(", ".join(p.nick for p in CHARMED)))
+        nicks = ", ".join(p.nick for p in CHARMED)
+        evt.data["output"].append(messages["piper_revealroles_charmed"].format(nicks))
+    if TOBECHARMED:
+        if len(get_players(("piper",))) == 1:
+            message = messages["piper_revealroles_tocharm"]
+        else:
+            message = messages["piper_revealroles_tocharm_user"]
+
+        for piper, to_charm in TOBECHARMED.items():
+            if to_charm:
+                nicks = ", ".join(p.nick for p in to_charm)
+                evt.data["output"].append(message.format(nicks, piper.nick))
 
 # vim: set sw=4 expandtab:
