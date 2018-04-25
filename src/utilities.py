@@ -1,7 +1,6 @@
 import itertools
 import fnmatch
 import re
-import time
 
 import botconfig
 import src.settings as var
@@ -12,7 +11,7 @@ from src.messages import messages
 __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
-           "is_owner", "is_admin", "timeleft_internal", "plural", "singular", "list_players",
+           "is_owner", "is_admin", "plural", "singular", "list_players",
            "get_role", "get_roles", "change_role", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
@@ -264,9 +263,6 @@ def is_admin(nick, ident=None, host=None, acc=None):
         return is_owner(nick, ident, host, acc)
 
     return True
-
-def timeleft_internal(var, phase):
-    return int((var.TIMERS[phase][1] + var.TIMERS[phase][2]) - time.time()) if phase in var.TIMERS else -1
 
 def plural(role, count=2):
     if count == 1:

@@ -5910,13 +5910,14 @@ def timeleft(cli, nick, chan, rest):
             reply(cli, nick, chan, msg)
 
     if var.PHASE in var.TIMERS:
-        remaining = timeleft_internal(var, var.PHASE)
         if var.PHASE == "day":
             what = "sunset"
         elif var.PHASE == "night":
             what = "sunrise"
         elif var.PHASE == "join":
             what = "the game is canceled if it's not started"
+
+        remaining = int((var.TIMERS[var.PHASE][1] + var.TIMERS[var.PHASE][2]) - time.time())
         msg = "There is \u0002{0[0]:0>2}:{0[1]:0>2}\u0002 remaining until {1}.".format(divmod(remaining, 60), what)
     else:
         msg = messages["timers_disabled"].format(var.PHASE.capitalize())

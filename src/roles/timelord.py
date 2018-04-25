@@ -2,6 +2,7 @@ import re
 import random
 import itertools
 import math
+import time
 from collections import defaultdict
 
 import botconfig
@@ -46,21 +47,24 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         phase_id = "NIGHT_ID"
         timer_name = "night_warn"
 
-    if timeleft_internal(var, var.GAMEPHASE) > time_limit > 0:
-        t = threading.Timer(time_limit, hurry_up, [cli, phase_id, True])
-        var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
-        t.daemon = True
-        t.start()
+    if var.GAMEPHASE in var.TIMERS:
+        time_left = int((var.TIMERS[var.GAMEPHASE][1] + var.TIMERS[var.GAMEPHASE][2]) - time.time())
 
-        # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
-        if timer_name in var.TIMERS:
-            timer = var.TIMERS[timer_name][0]
-            if timer.isAlive():
-                timer.cancel()
-                t = threading.Timer(time_warn, hurry_up, [cli, phase_id, False])
-                var.TIMERS[timer_name] = (t, time.time(), time_warn)
-                t.daemon = True
-                t.start()
+        if time_left > time_limit > 0:
+            t = threading.Timer(time_limit, hurry_up, [cli, phase_id, True])
+            var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
+            t.daemon = True
+            t.start()
+
+            # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
+            if timer_name in var.TIMERS:
+                timer = var.TIMERS[timer_name][0]
+                if timer.isAlive():
+                    timer.cancel()
+                    t = threading.Timer(time_warn, hurry_up, [cli, phase_id, False])
+                    var.TIMERS[timer_name] = (t, time.time(), time_warn)
+                    t.daemon = True
+                    t.start()
 
     debuglog("{0} (time lord) TRIGGER".format(user))
 
