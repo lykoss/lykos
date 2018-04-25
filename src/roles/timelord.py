@@ -64,6 +64,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 t.daemon = True
                 t.start()
 
-    debuglog("{0} (time lord) TRIGGER".format(player))
+    debuglog("{0} (time lord) TRIGGER".format(user))
 
 # vim: set sw=4 expandtab:

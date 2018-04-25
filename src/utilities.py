@@ -12,7 +12,7 @@ from src.messages import messages
 __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
-           "is_owner", "is_admin", "plural", "singular", "list_players",
+           "is_owner", "is_admin", "timeleft_internal", "plural", "singular", "list_players",
            "get_role", "get_roles", "change_role", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
