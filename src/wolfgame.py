@@ -6774,10 +6774,6 @@ def revealroles(var, wrapper, message):
 @command("fgame", flag="g", phases=("join",))
 def fgame(var, wrapper, message):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
-    pl = get_players()
-
-    if wrapper.source not in pl and not wrapper.source.is_admin():
-        return
 
     if message:
         gamemode = message.strip().lower()
@@ -6806,8 +6802,6 @@ def fgame(var, wrapper, message):
 def frole(var, wrapper, message):
     """Force a player into a certain role."""
     pl = get_players()
-    if wrapper.source not in pl and not wrapper.source.is_admin():
-        return
 
     parts = message.strip().lower().replace("=", " ").split(",")
     for part in parts:
