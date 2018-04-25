@@ -293,11 +293,9 @@ def add_game(mode, size, started, finished, winner, players, options):
             c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
                          VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["won"], p["iwon"], p["dced"]))
             gpid = c.lastrowid
-            c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                         VALUES (?, ?, 0)""", (gpid, p["role"]))
-            for tpl in p["templates"]:
+            for role in p["allroles"]:
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                             VALUES (?, ?, 0)""", (gpid, tpl))
+                             VALUES (?, ?, 0)""", (gpid, role))
             for sq in p["special"]:
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
                              VALUES (?, ?, 1)""", (gpid, sq))
