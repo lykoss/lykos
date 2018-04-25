@@ -5391,7 +5391,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_DEADCHAT.clear()
 
     for role, ps in var.FORCE_ROLES.items():
-        vils.difference_update(ps)
+        if role not in var.TEMPLATE_RESTRICTIONS.keys():
+            vils.difference_update(ps)
 
     for role, count in addroles.items():
         if role in var.TEMPLATE_RESTRICTIONS.keys():
@@ -5401,11 +5402,16 @@ def start(cli, nick, chan, forced = False, restart = ""):
         to_add = set()
 
         if role in var.FORCE_ROLES:
+            # Templates are handled later
+            if role in var.TEMPLATE_RESTRICTIONS:
+                continue
             if len(var.FORCE_ROLES[role]) > count:
                 channels.Main.send(messages["error_frole_too_many"].format(role))
                 return
             for user in var.FORCE_ROLES[role]:
-                var.MAIN_ROLES[user] = role
+                # If multiple main roles were forced, only first one is put in MAIN_ROLES
+                if not user in var.MAIN_ROLES:
+                    var.MAIN_ROLES[user] = role
                 var.ORIGINAL_MAIN_ROLES[user] = role
                 to_add.add(user)
                 count -= 1
@@ -5438,13 +5444,21 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     # Now for the templates
     for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
-        if template == "sharpshooter":
-            continue # sharpshooter gets applied specially
+        templ_count = len(var.ROLES[template])
+        var.ROLES[template] = UserSet()
+        if template in var.FORCE_ROLES:
+            ps = var.FORCE_ROLES[template]
+            var.ROLES[template].update(ps)
+            templ_count -= len(ps)
+        # sharpshooter gets applied specially
+        # Don't do anything further if this template was forced on enough players already
+        if template == "sharpshooter" or templ_count <= 0:
+            continue
         possible = pl[:]
         for cannotbe in list_players(restrictions):
             if cannotbe in possible:
                 possible.remove(cannotbe)
-        if len(possible) < len(var.ROLES[template]):
+        if len(possible) < templ_count:
             cli.msg(chan, messages["not_enough_targets"].format(template))
             if var.ORIGINAL_SETTINGS:
                 var.ROLES.clear()
@@ -5455,13 +5469,12 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 return
             else:
                 cli.msg(chan, messages["role_skipped"])
-                var.ROLES[template] = UserSet()
                 continue
 
-        var.ROLES[template] = UserSet(users._get(x) for x in random.sample(possible, len(var.ROLES[template]))) # FIXME
+        var.ROLES[template].update([users._get(x) for x in random.sample(possible, templ_count)]) # FIXME
 
     # Handle gunner
-    cannot_be_sharpshooter = get_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"])
+    cannot_be_sharpshooter = get_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"]) + list(var.FORCE_ROLES["gunner"])
     gunner_list = set(var.ROLES["gunner"]) # make a copy since we mutate var.ROLES["gunner"]
     num_sharpshooters = 0
     for gunner in gunner_list:
@@ -5470,12 +5483,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
         elif num_sharpshooters < addroles["sharpshooter"] and gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
             var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
             var.ROLES["gunner"].remove(gunner)
-            var.ROLES["sharpshooter"].append(gunner)
+            var.ROLES["sharpshooter"].add(gunner)
             num_sharpshooters += 1
         else:
             var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
-
-    var.ROLES["sharpshooter"] = UserSet(p for p in var.ROLES["sharpshooter"] if p is not None)
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
@@ -6763,10 +6774,6 @@ def revealroles(var, wrapper, message):
 @command("fgame", flag="g", phases=("join",))
 def fgame(var, wrapper, message):
     """Force a certain game mode to be picked. Disable voting for game modes upon use."""
-    pl = get_players()
-
-    if wrapper.source not in pl and not wrapper.source.is_admin():
-        return
 
     if message:
         gamemode = message.strip().lower()
@@ -6795,33 +6802,21 @@ def fgame(var, wrapper, message):
 def frole(var, wrapper, message):
     """Force a player into a certain role."""
     pl = get_players()
-    if wrapper.source not in pl and not wrapper.source.is_admin():
-        return
 
-    to_force = {}
-
-    parts = message.strip().lower().replace(":", " ").replace(",", " ").replace("=", " ").split()
-    if len(parts) % 2: # odd number of arguments; invalid
-        wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, message))
-        return
-
-    for name, role in zip(parts[::2], parts[1::2]):
+    parts = message.strip().lower().replace("=", " ").split(",")
+    for part in parts:
+        try:
+            (name, role) = part.strip().split(" ", 1)
+        except ValueError:
+            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
+            return
         user, _ = users.complete_match(name, pl)
         role = role.replace("_", " ")
         if role in var.ROLE_ALIASES:
             role = var.ROLE_ALIASES[role]
         if user is None or role not in var.ROLE_GUIDE or role == var.DEFAULT_ROLE:
-            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, message))
+            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
             return
-        to_force[user] = role
-
-    for user, role in to_force.items():
-        for key, ps in tuple(var.FORCE_ROLES.items()):
-            if user in ps:
-                ps.remove(user)
-            if not ps:
-                del var.FORCE_ROLES[key]
-
         var.FORCE_ROLES[role].add(user)
 
     wrapper.send(messages["operation_successful"])
