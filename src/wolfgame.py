@@ -2472,51 +2472,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                         debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
                         del_player(lover, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
                         pl = refresh_pl(pl)
-                if "assassin" in allroles:
-                    if player.nick in var.TARGETED:
-                        targetnick = var.TARGETED[player.nick]
-                        del var.TARGETED[player.nick]
-                        if targetnick is None:
-                            target = None
-                        else:
-                            target = users._get(targetnick) # FIXME
-                        if target is not None and target in pl:
-                            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                            aevt = Event("assassinate", {"pl": pl, "target": target},
-                                del_player=del_player,
-                                deadlist=deadlist,
-                                original=original,
-                                refresh_pl=refresh_pl,
-                                message_prefix="assassin_fail_",
-                                source="assassin",
-                                killer=player,
-                                killer_mainrole=mainrole,
-                                killer_allroles=allroles,
-                                prots=prots)
-                            while len(prots) > 0:
-                                # an event can read the current active protection and cancel the assassination
-                                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                                # so that it cannot be used again (if the protection is meant to be usable once-only)
-                                if not aevt.dispatch(var, player, target, prots[0]):
-                                    pl = aevt.data["pl"]
-                                    if target is not aevt.data["target"]:
-                                        target = aevt.data["target"]
-                                        prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                                        aevt.params.prots = prots
-                                        continue
-                                    break
-                                prots.popleft()
-                            if len(prots) == 0:
-                                if var.ROLE_REVEAL in ("on", "team"):
-                                    role = get_reveal_role(target)
-                                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                                    message = messages["assassin_success"].format(player, target, an, role)
-                                else:
-                                    message = messages["assassin_success_no_reveal"].format(player, target)
-                                channels.Main.send(message)
-                                debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
-                                del_player(target, end_game=False, killer_role=mainrole, deadlist=deadlist, original=original, ismain=False)
-                                pl = refresh_pl(pl)
                 if mainrole == "time lord":
                     if "DAY_TIME_LIMIT" not in var.ORIGINAL_SETTINGS:
                         var.ORIGINAL_SETTINGS["DAY_TIME_LIMIT"] = var.DAY_TIME_LIMIT
@@ -2652,7 +2607,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             if var.PHASE in var.GAME_PHASES:
                 # remove the player from variables if they're in there
                 if ret:
-                    for x in (var.OBSERVED, var.TARGETED, var.LASTHEXED):
+                    for x in (var.OBSERVED, var.LASTHEXED):
                         for k in list(x):
                             if player.nick in (k, x[k]):
                                 del x[k]
@@ -2970,7 +2925,7 @@ def rename_player(var, user, prefix):
             if prefix in var.PRAYED.keys():
                 del var.PRAYED[prefix]
 
-            for dictvar in (var.OBSERVED, var.TARGETED, var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
+            for dictvar in (var.OBSERVED, var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -3356,6 +3311,8 @@ def transition_day(gameid=0):
     # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
     # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
     #     fixing killers dict priority again (in case step 4 or 5 added to it)
+    # 7 = killer-less deaths (i.e. var.DYING)
+    # 8 = read-only operations
     # Actually killing off the victims happens in transition_day_resolve
     # We set the variables here first; listeners should mutate, not replace
     # We don't need to use User containers here, as these don't persist long enough
@@ -3378,10 +3335,6 @@ def transition_day(gameid=0):
         "numkills": numkills, # populated at priority 3
         })
     evt.dispatch(var)
-
-    for player in var.DYING:
-        victims.append(player)
-        onlybywolves.discard(player)
 
     # remove duplicates
     victims_set = set(victims)
@@ -3489,20 +3442,6 @@ def transition_day(gameid=0):
             elif harlot.VISITED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
-
-    # Select a random target for assassin that isn't already going to die if they didn't target
-    pl = get_players()
-    for ass in get_all_players(("assassin",)):
-        if ass.nick not in var.TARGETED and ass.nick not in var.SILENCED:
-            ps = pl[:]
-            ps.remove(ass)
-            for victim in victims:
-                if victim in ps:
-                    ps.remove(victim)
-            if len(ps) > 0:
-                target = random.choice(ps)
-                var.TARGETED[ass.nick] = target.nick
-                ass.send(messages["assassin_random"].format(target))
 
     message = [messages["sunrise"].format(min, sec)]
 
@@ -3763,14 +3702,6 @@ def chk_nightdone():
     nightroles = [p for p in nightroles if p.nick not in var.SILENCED]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
-        if not event.prevent_default:
-            # check for assassins that have not yet targeted
-            # must be handled separately because assassin only acts on nights when their target is dead
-            # and silenced assassin shouldn't add to actedcount
-            for ass in var.ROLES["assassin"]:
-                if ass.nick not in var.TARGETED.keys() | var.SILENCED: # FIXME
-                    return
-
         for x, t in var.TIMERS.items():
             t[0].cancel()
 
@@ -4600,31 +4531,6 @@ def choose(cli, nick, chan, rest, sendmsg=True): # XXX: transition_day also need
 
     debuglog("{0} ({1}) MATCH: {2} ({3}) + {4} ({5})".format(nick, get_role(nick), victim, get_role(victim), victim2, get_role(victim2)))
 
-@cmd("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
-def target(cli, nick, chan, rest):
-    """Pick a player as your target, killing them if you die."""
-    if var.TARGETED.get(nick) is not None:
-        pm(cli, nick, messages["assassin_already_targeted"])
-        return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-    if not victim:
-        return
-
-    if nick == victim:
-        pm(cli, nick, messages["no_target_self"])
-        return
-
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("target"))
-        return
-
-    victim = choose_target(nick, victim)
-    # assassin is a template so it will never get swapped, so don't check for exchanges with it
-    var.TARGETED[nick] = victim
-    pm(cli, nick, messages["assassin_target_success"].format(victim))
-
-    debuglog("{0} (assassin) TARGET: {1} ({2})".format(nick, victim, get_role(victim)))
-
 @cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
 def hex_target(cli, nick, chan, rest):
     """Hex someone, preventing them from acting the next day and night."""
@@ -5038,25 +4944,6 @@ def transition_night():
         else:
             lycan.send(messages["lycan_notify"])
 
-    for ass in get_all_players(("assassin",)):
-        if ass.nick in var.TARGETED and var.TARGETED[ass.nick] is not None:
-            continue # someone already targeted
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(ass)
-        if ass in get_all_players(("village drunk",)):
-            var.TARGETED[ass.nick] = random.choice(pl)
-            message = messages["drunken_assassin_notification"].format(var.TARGETED[ass.nick])
-            if not ass.prefers_simple():
-                message += messages["assassin_info"]
-            ass.send(message)
-        else:
-            if ass.prefers_simple():
-                ass.send(messages["assassin_simple"])
-            else:
-                ass.send(messages["assassin_notify"])
-            ass.send("Players: " + ", ".join(p.nick for p in pl))
-
     for turncoat in get_all_players(("turncoat",)):
         # they start out as unsided, but can change n1
         if turncoat.nick not in var.TURNCOATS:
@@ -5350,7 +5237,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.GUNNERS.clear()
     var.OBSERVED = {}
     var.CLONED = {}
-    var.TARGETED = {}
     var.LASTHEXED = {}
     var.MATCHMAKERS = set()
     var.SILENCED = set()
@@ -6233,10 +6119,6 @@ def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets con
             role = "sharpshooter"
         wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source], "" if var.GUNNERS[wrapper.source] == 1 else "s"))
 
-    # Check assassin
-    if wrapper.source in var.ROLES["assassin"] and wrapper.source not in var.ROLES["amnesiac"]:
-        wrapper.pm(messages["assassin_role_info"].format(messages["assassin_targeting"].format(var.TARGETED[wrapper.source.nick]) if wrapper.source.nick in var.TARGETED else ""))
-
     # Remind prophet of their role, in sleepy mode only where it is hacked into a template instead of a role
     if "prophet" in var.TEMPLATE_RESTRICTIONS and wrapper.source in var.ROLES["prophet"]:
         wrapper.pm(messages["prophet_simple"])
@@ -6714,9 +6596,7 @@ def revealroles(var, wrapper, message):
             # go through each nickname, adding extra info if necessary
             for user in users:
                 special_case = []
-                if role == "assassin" and user.nick in var.TARGETED:
-                    special_case.append("targeting {0}".format(var.TARGETED[user.nick]))
-                elif role == "clone" and user.nick in var.CLONED:
+                if role == "clone" and user.nick in var.CLONED:
                     special_case.append("cloning {0}".format(var.CLONED[user.nick]))
                 # print how many bullets normal gunners have
                 elif (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
