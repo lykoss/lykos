@@ -89,13 +89,13 @@ def charm(var, wrapper, message):
 def pass_cmd(var, wrapper, message):
     """Do not charm anyone tonight."""
 
-    debuglog("{0} (piper) CHARM NOBODY".format(wrapper.source))
-    wrapper.send(messages["piper_pass"])
-
     if wrapper.source in TOBECHARMED:
         TOBECHARMED[wrapper.source].clear()
     else:
         TOBECHARMED[wrapper.source] = UserSet()
+
+    debuglog("{0} (piper) CHARM NOBODY".format(wrapper.source))
+    wrapper.send(messages["piper_pass"])
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
