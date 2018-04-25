@@ -18,7 +18,7 @@ CHARMED = UserSet() # type: Set[users.User]
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
-    """Charm a player, slowly leading to your win!"""
+    """Charm a player or two, slowly leading to your win!"""
     pieces = re.split(" +", message)
     target1 = pieces[0]
     if len(pieces) > 1:
@@ -84,6 +84,18 @@ def charm(var, wrapper, message):
     else:
         debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(target1)))
         wrapper.send(messages["charm_success"].format(orig1))
+
+@command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+def pass_cmd(var, wrapper, message):
+    """Do not charm anyone tonight."""
+
+    debuglog("{0} (piper) CHARM NOBODY".format(wrapper.source))
+    wrapper.send(messages["piper_pass"])
+
+    if wrapper.source in TOBECHARMED:
+        TOBECHARMED[wrapper.source].clear()
+    else:
+        TOBECHARMED[wrapper.source] = UserSet()
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
