@@ -44,6 +44,7 @@ def dullahan_retract(var, wrapper, message):
     """Removes a dullahan's kill selection."""
     if KILLS.pop(wrapper.source, None):
         wrapper.pm(messages["retracted_kill"])
+        debuglog("{0} (dullahan) RETRACT".format(wrapper.source))
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
@@ -129,7 +130,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         if actor_role == "dullahan" and target_role != "dullahan" and k is actor:
             TARGETS[target] = TARGETS.pop(k) - {target}
         elif target_role == "dullahan" and actor_role != "dullahan" and k is target:
-            TARGET[actor] = TARGETS.pop(k) - {actor}
+            TARGETS[actor] = TARGETS.pop(k) - {actor}
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -205,7 +206,7 @@ def on_revealroles_role(evt, var, user, role):
         for target in TARGETS[user]:
             if target.nick in var.DEAD:
                 targets.remove(target)
-        if targets: 
+        if targets:
             evt.data["special_case"].append(messages["dullahan_to_kill"].format(", ".join(t.nick for t in targets)))
         else:
             evt.data["special_case"].append(messages["dullahan_all_dead"])

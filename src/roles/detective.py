@@ -16,7 +16,7 @@ INVESTIGATED = UserSet()
 @command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("detective",))
 def investigate(var, wrapper, message):
     """Investigate a player to determine their exact role."""
-    if wrapper.source in INVESTIGATED:  
+    if wrapper.source in INVESTIGATED:
         wrapper.send(messages["already_investigated"])
         return
 
@@ -38,7 +38,7 @@ def investigate(var, wrapper, message):
     INVESTIGATED.add(wrapper.source)
     wrapper.send(messages["investigate_success"].format(target, targrole))
     debuglog("{0} (detective) ID: {1} ({2})".format(wrapper.source, target, targrole))
-    
+
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
         wcroles = var.WOLFCHAT_ROLES

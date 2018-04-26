@@ -46,7 +46,6 @@ def _get_targets(var, pl, user):
 
     return (target1, target2)
 
-
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if not death_triggers or "mad scientist" not in allroles:

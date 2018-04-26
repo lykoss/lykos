@@ -62,7 +62,7 @@ def wolf_kill(cli, nick, chan, rest):
         victim = get_victim(cli, nick, victim, False)
         if not victim:
             return
-        
+
         if victim == nick:
             pm(cli, nick, messages["no_suicide"])
             return
