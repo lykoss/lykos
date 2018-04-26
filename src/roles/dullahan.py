@@ -130,7 +130,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         if actor_role == "dullahan" and target_role != "dullahan" and k is actor:
             TARGETS[target] = TARGETS.pop(k) - {target}
         elif target_role == "dullahan" and actor_role != "dullahan" and k is target:
-            TARGET[actor] = TARGETS.pop(k) - {actor}
+            TARGETS[actor] = TARGETS.pop(k) - {actor}
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
