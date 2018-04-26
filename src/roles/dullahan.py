@@ -128,9 +128,17 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 
     for k in set(TARGETS):
         if actor_role == "dullahan" and target_role != "dullahan" and k is actor:
-            TARGETS[target] = TARGETS.pop(k) - {target}
-        elif target_role == "dullahan" and actor_role != "dullahan" and k is target:
-            TARGETS[actor] = TARGETS.pop(k) - {actor}
+            targets = TARGETS.pop(k)
+            if target in targets:
+                targets.remove(target)
+                targets.add(actor)
+            TARGETS[target] = targets
+        if target_role == "dullahan" and actor_role != "dullahan" and k is target:
+            targets = TARGETS.pop(k)
+            if actor in targets:
+                targets.remove(actor)
+                targets.add(target)
+            TARGETS[actor] = targets
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
