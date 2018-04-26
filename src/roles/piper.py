@@ -93,7 +93,7 @@ def pass_cmd(var, wrapper, message):
     TOBECHARMED.pop(wrapper.source, None)
     PASSED.add(wrapper.source)
 
-    debuglog("{0} (piper) CHARM NOBODY".format(wrapper.source))
+    debuglog("{0} (piper) PASS".format(wrapper.source))
     wrapper.send(messages["piper_pass"])
 
 @command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
@@ -104,6 +104,8 @@ def retract(var, wrapper, message):
 
     TOBECHARMED.pop(wrapper.source, None)
     PASSED.discard(wrapper.source)
+
+    debuglog("{0} (piper) RETRACT".format(wrapper.source))
     wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
