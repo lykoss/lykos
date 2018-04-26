@@ -43,12 +43,12 @@ def hunter_kill(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 def hunter_retract(var, wrapper, message):
     """Removes a hunter's kill selection."""
-    if wrapper.source not in KILLS and wrapper.source not in PASSED:
-        return
-    KILLS.pop(wrapper.source, None)
+    del KILLS[:wrapper.source:]
     HUNTERS.discard(wrapper.source)
     PASSED.discard(wrapper.source)
+
     wrapper.pm(messages["retracted_kill"])
+    debuglog("{0} (hunter) RETRACT".format(wrapper.source))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hunter",))
 def hunter_pass(var, wrapper, message):
@@ -56,7 +56,7 @@ def hunter_pass(var, wrapper, message):
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
         return
-    KILLS.pop(wrapper.source, None)
+    del KILLS[:wrapper.source:]
     HUNTERS.discard(wrapper.source)
     PASSED.add(wrapper.source)
     wrapper.pm(messages["hunter_pass"])

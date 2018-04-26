@@ -49,16 +49,18 @@ def vg_kill(var, wrapper, message):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, target, get_main_role(target)))
+    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(var, wrapper, message):
     """Removes a vengeful ghost's kill selection."""
     if wrapper.source not in GHOSTS:
         return
-    if wrapper.source in KILLS:
-        del KILLS[wrapper.source]
-        wrapper.pm(messages["retracted_kill"])
+
+    del KILLS[:wrapper.source:]
+
+    wrapper.pm(messages["retracted_kill"])
+    debuglog("{0} (vengeful ghost) RETRACT".format(wrapper.source))
 
 @event_listener("get_participants")
 def on_get_participants(evt, var):

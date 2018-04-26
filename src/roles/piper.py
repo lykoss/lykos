@@ -93,8 +93,8 @@ def pass_cmd(var, wrapper, message):
     del TOBECHARMED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
-    debuglog("{0} (piper) PASS".format(wrapper.source))
     wrapper.send(messages["piper_pass"])
+    debuglog("{0} (piper) PASS".format(wrapper.source))
 
 @command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
@@ -102,8 +102,8 @@ def retract(var, wrapper, message):
     del TOBECHARMED[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
-    debuglog("{0} (piper) RETRACT".format(wrapper.source))
     wrapper.send(messages["piper_retract"])
+    debuglog("{0} (piper) RETRACT".format(wrapper.source))
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -133,9 +133,7 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
     CHARMED.discard(player)
-    x = TOBECHARMED.pop(player, None)
-    if x is not None:
-        x.clear()
+    del TOBECHARMED[:player:]
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
