@@ -175,6 +175,7 @@ def on_transition_day_begin(evt, var):
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
+    PASSED.clear()
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -200,6 +201,9 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         CHARMED.discard(target)
     if target_role == "piper":
         CHARMED.discard(actor)
+
+    TOBECHARMED.clear()
+    PASSED.clear()
 
 @event_listener("get_special")
 def on_get_special(evt, var):
