@@ -57,10 +57,10 @@ def vg_retract(var, wrapper, message):
     if wrapper.source not in GHOSTS:
         return
 
-    del KILLS[:wrapper.source:]
-
-    wrapper.pm(messages["retracted_kill"])
-    debuglog("{0} (vengeful ghost) RETRACT".format(wrapper.source))
+    if wrapper.source in KILLS:
+        del KILLS[wrapper.source]
+        wrapper.pm(messages["retracted_kill"])
+        debuglog("{0} (vengeful ghost) RETRACT".format(wrapper.source))
 
 @event_listener("get_participants")
 def on_get_participants(evt, var):
