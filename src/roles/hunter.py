@@ -59,7 +59,8 @@ def hunter_pass(var, wrapper, message):
     if wrapper.source in HUNTERS and wrapper.source not in KILLS:
         wrapper.pm(messages["hunter_already_killed"])
         return
-    del KILLS[:wrapper.source:]
+
+    del KILLS[wrapper.source]
     HUNTERS.discard(wrapper.source)
     PASSED.add(wrapper.source)
     wrapper.pm(messages["hunter_pass"])
