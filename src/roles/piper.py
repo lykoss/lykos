@@ -201,12 +201,12 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role == "piper":
         CHARMED.discard(target)
         if target_role != "piper":
-            del TOBECHARMED[:target:]
-            PASSED.discard(target)
+            del TOBECHARMED[:actor:]
+            PASSED.discard(actor)
     if target_role == "piper":
         CHARMED.discard(actor)
         if actor_role != "piper":
-            del TOBECHARMED[:actor:]
+            del TOBECHARMED[:target:]
             PASSED.discard(target)
 
 @event_listener("get_special")
