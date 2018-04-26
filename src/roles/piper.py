@@ -90,7 +90,7 @@ def charm(var, wrapper, message):
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def pass_cmd(var, wrapper, message):
     """Do not charm anyone tonight."""
-    TOBECHARMED.pop(wrapper.source, None)
+    del TOBECHARMED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
     debuglog("{0} (piper) PASS".format(wrapper.source))
@@ -99,7 +99,7 @@ def pass_cmd(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
     """Remove your decision to charm people."""
-    TOBECHARMED.pop(wrapper.source, None)
+    del TOBECHARMED[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
     debuglog("{0} (piper) RETRACT".format(wrapper.source))
