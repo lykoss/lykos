@@ -10,7 +10,7 @@ from src.messages import messages
 from src.events import Event
 
 def setup_variables(rolename, *, send_role, types):
-    LAST_COUNT = UserDict() # type: Dict[users.User, int]
+    LAST_COUNT = UserDict() # type: Dict[users.User, Tuple[str, bool]]
 
     role = rolename.replace(" ", "_")
 
@@ -23,33 +23,44 @@ def setup_variables(rolename, *, send_role, types):
         special_evt = Event("get_special", {"villagers": villagers, "wolves": set(), "win_stealers": win_stealers, "neutrals": neutrals})
         special_evt.dispatch(var)
 
+        bold = "\u0002{0}\u0002".format
+
         targets = set()
+        values = []
+        plural = True
         for name in types:
             targets.update(special_evt.data[name])
+            l = len(special_evt.data[name])
+            if l:
+                if not values and l == 1:
+                    plural = False
+                values.append("{0} {1}{2}".format(bold(l), messages["mystic_{0}".format(name)], "" if l == 1 else "s"))
 
-        count = len(targets)
-        key = "{0}_info_{1}".format(role, ("singular" if count == 1 else "plural"))
+        value = " and ".join(", ".join(*values[:-1]), values[-1])
+        msg = messages["mystic_info"].format("are" if plural else "is", value, " still", "")
 
         for mystic in get_all_players((rolename,)):
-            LAST_COUNT[mystic] = count
+            LAST_COUNT[mystic] = (value, plural)
             if send_role:
                 to_send = "{0}_{1}".format(role, ("simple" if mystic.prefers_simple() else "notify"))
                 mystic.send(messages[to_send])
-            mystic.send(messages[key].format(count))
+            mystic.send(msg)
 
     @event_listener("exchange_roles")
     def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
         if actor_role == rolename and target_role != rolename:
-            count = LAST_COUNT.pop(actor)
-            LAST_COUNT[target] = count
-            key = "{0}_info_{1}_{2}".format(role, var.PHASE, ("singular" if count == 1 else "plural"))
-            evt.data["target_messages"].append(messages[key].format(count))
+            value, plural = LAST_COUNT.pop(actor)
+            LAST_COUNT[target] = (value, plural)
+            key = "were" if plural else "was"
+            msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
+            evt.data["target_messages"].append(msg)
 
         if target_role == rolename and actor_role != rolename:
-            count = LAST_COUNT.pop(target)
-            LAST_COUNT[actor] = count
-            key = "{0}_info_{1}_{2}".format(role, var.PHASE, ("singular" if count == 1 else "plural"))
-            evt.data["actor_messages"].append(messages[key].format(count))
+            value, plural = LAST_COUNT.pop(target)
+            LAST_COUNT[actor] = (value, plural)
+            key = "were" if plural else "was"
+            msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
+            evt.data["actor_messages"].append(msg)
 
     @event_listener("reset")
     def on_reset(evt, var):
@@ -58,8 +69,10 @@ def setup_variables(rolename, *, send_role, types):
     @event_listener("myrole")
     def on_myrole(evt, var, user):
         if user in get_all_players((rolename,)):
-            key = "{0}_info_{1}_{2}".format(role, var.PHASE, ("singular" if LAST_COUNT[user] == 1 else "plural"))
-            evt.data["messages"].append(messages[key].format(LAST_COUNT[user]))
+            value, plural = LAST_COUNT[user]
+            key = "were" if plural else "was"
+            msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
+            evt.data["messages"].append(mag)
 
     return LAST_COUNT
 
