@@ -38,7 +38,7 @@ def vigilante_retract(var, wrapper, message):
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
 
-    del KILLS[wrapper.source]
+    del KILLS[:wrapper.source:]
     PASSED.discard(wrapper.source)
 
     wrapper.send(messages["retracted_kill"])
