@@ -99,9 +99,6 @@ def pass_cmd(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
     """Remove your decision to charm people."""
-    if wrapper.source not in TOBECHARMED and wrapper.source not in PASSED:
-        return
-
     TOBECHARMED.pop(wrapper.source, None)
     PASSED.discard(wrapper.source)
 
