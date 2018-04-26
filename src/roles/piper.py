@@ -15,6 +15,7 @@ from src.events import Event
 
 TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
 CHARMED = UserSet() # type: Set[users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
@@ -75,6 +76,7 @@ def charm(var, wrapper, message):
         TOBECHARMED[wrapper.source] = UserSet()
 
     TOBECHARMED[wrapper.source].update({target1, target2} - {None})
+    PASSED.discard(wrapper.source)
 
     if orig2:
         debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,
@@ -89,13 +91,22 @@ def charm(var, wrapper, message):
 def pass_cmd(var, wrapper, message):
     """Do not charm anyone tonight."""
 
-    if wrapper.source in TOBECHARMED:
-        TOBECHARMED[wrapper.source].clear()
-    else:
-        TOBECHARMED[wrapper.source] = UserSet()
+    TOBECHARMED.pop(wrapper.source, None)
+    PASSED.add(wrapper.source)
 
     debuglog("{0} (piper) CHARM NOBODY".format(wrapper.source))
     wrapper.send(messages["piper_pass"])
+
+@command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+def retract(var, wrapper, message):
+    """Remove your decision to charm people."""
+
+    if wrapper.source not in TOBECHARMED and wrapper.source not in PASSED:
+        return
+
+    TOBECHARMED.pop(wrapper.source, None)
+    PASSED.discard(wrapper.source)
+    wrapper.send(messages["piper_retract"])
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -172,7 +183,7 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(TOBECHARMED.keys())
+    evt.data["actedcount"] += len(TOBECHARMED) + len(PASSED)
     evt.data["nightroles"].extend(get_all_players(("piper",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -208,6 +219,7 @@ def on_acted(evt, var, target, spy):
 def on_reset(evt, var):
     CHARMED.clear()
     TOBECHARMED.clear()
+    PASSED.clear()
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

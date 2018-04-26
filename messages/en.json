@@ -405,6 +405,7 @@
     "warlock_pass": "You have chosen not to curse anyone tonight.",
     "warlock_pass_wolfchat": "\u0002{0}\u0002 has chosen not to curse anyone tonight.",
     "piper_pass": "You have chosen not to charm anyone tonight.",
+    "piper_retract": "You have retracted your decision to charm.",
     "turncoat_already_turned": "You have changed sides yesterday night, and may not do so again tonight.",
     "turncoat_error": "Please specify which team you wish to side with, villagers or wolves.",
     "turncoat_success": "You are now siding with \u0002{0}\u0002.",
