@@ -43,6 +43,9 @@ def hunter_kill(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 def hunter_retract(var, wrapper, message):
     """Removes a hunter's kill selection."""
+    if wrapper.source not in KILLS and wrapper.source not in PASSED:
+        return
+
     del KILLS[:wrapper.source:]
     HUNTERS.discard(wrapper.source)
     PASSED.discard(wrapper.source)
