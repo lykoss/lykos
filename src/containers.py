@@ -314,6 +314,12 @@ class UserDict(dict):
                 value.dict_values.append(self)
 
     def __delitem__(self, item):
+        if isinstance(item, slice): # special-case: delete if it exists, otherwise don't
+            if item.start is item.step is None: # checks out
+                item = item.stop
+                if item not in self:
+                    return
+
         value = self[item]
         super().__delitem__(item)
         if isinstance(item, User):
