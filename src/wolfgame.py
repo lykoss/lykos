@@ -3516,6 +3516,7 @@ def transition_day(gameid=0):
                     else:
                         message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
+                    killers[deadwolf].append(victim)
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
     for victim in dead:
