@@ -185,7 +185,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("piper",)))
+    evt.data["win_stealers"].update(get_players(("piper",)))
 
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):

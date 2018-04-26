@@ -133,10 +133,6 @@ def setup_variables(rolename, *, knows_totem, get_tags):
         if user in SHAMANS:
             evt.data["acted"] = True
 
-    @event_listener("get_special")
-    def on_get_special(evt, var):
-        evt.data["special"].update(get_players((rolename,)))
-
     @event_listener("chk_nightdone")
     def on_chk_nightdone(evt, var):
         evt.data["actedcount"] += len(SHAMANS)

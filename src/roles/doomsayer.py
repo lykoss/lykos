@@ -82,10 +82,6 @@ def on_doctor_immunize(evt, var, doctor, target):
                 del SICK[n]
         evt.data["message"] = "not_sick"
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("doomsayer",)))
-
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)

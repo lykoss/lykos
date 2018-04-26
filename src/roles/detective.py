@@ -62,7 +62,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("detective",)))
+    evt.data["villagers"].update(get_players(("detective",)))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):

@@ -99,7 +99,7 @@ def on_acted(evt, var, user, actor):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("guardian angel", "bodyguard")))
+    evt.data["villagers"].update(get_players(("guardian angel", "bodyguard")))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):

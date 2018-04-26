@@ -98,4 +98,8 @@ def on_transition_night_end(evt, var):
             shaman.send(tmsg)
         shaman.send("Players: " + ", ".join(p.nick for p in pl))
 
+@event_listener("get_special")
+def on_get_special(evt, var):
+    evt.data["villagers"].update(get_players(("shaman",)))
+
 # vim: set sw=4 expandtab:

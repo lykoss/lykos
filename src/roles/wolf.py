@@ -150,7 +150,7 @@ def on_acted(evt, var, user, actor):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(CAN_KILL))
+    evt.data["wolves"].update(get_players(var.WOLFCHAT_ROLES))
 
 @event_listener("transition_day", priority=1)
 def on_transition_day(evt, var):
