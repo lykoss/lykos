@@ -200,10 +200,14 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     # if we're shifting piper around, ensure that the new piper isn't charmed
     if actor_role == "piper":
         CHARMED.discard(target)
-        TOBECHARMED.discard(target)
+        if target_role != "piper":
+            del TOBECHARMED[:target:]
+            PASSED.discard(target)
     if target_role == "piper":
         CHARMED.discard(actor)
-        TOBECHARMED.discard(actor)
+        if actor_role != "piper":
+            del TOBECHARMED[:actor:]
+            PASSED.discard(target)
 
 @event_listener("get_special")
 def on_get_special(evt, var):
