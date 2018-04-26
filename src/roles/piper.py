@@ -99,11 +99,12 @@ def pass_cmd(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
     """Remove your decision to charm people."""
-    del TOBECHARMED[:wrapper.source:]
-    PASSED.discard(wrapper.source)
+    if wrapper.source in TOBECHARMED or wrapper.source in PASSED:
+        del TOBECHARMED[:wrapper.source:]
+        PASSED.discard(wrapper.source)
 
-    wrapper.send(messages["piper_retract"])
-    debuglog("{0} (piper) RETRACT".format(wrapper.source))
+        wrapper.send(messages["piper_retract"])
+        debuglog("{0} (piper) RETRACT".format(wrapper.source))
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
