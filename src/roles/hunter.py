@@ -46,7 +46,7 @@ def hunter_retract(var, wrapper, message):
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
 
-    del KILLS[:wrapper.source:]
+    del KILLS[wrapper.source]
     HUNTERS.discard(wrapper.source)
     PASSED.discard(wrapper.source)
 
