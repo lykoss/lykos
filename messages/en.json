@@ -201,7 +201,7 @@
     "clone_success": "You will now be cloning \u0002{0}\u0002 if they die.",
     "clone_wolf": "\u0002{0}\u0002 cloned \u0002{1}\u0002 and has now become a wolf!",
     "no_other_wolves": "There are no other wolves.",
-    "has_minions": "You have \u0002{0}\u0002 minion{1} at your command!",
+    "has_minions": "You have \u0002{0}\u0002 {1} at your command!",
     "lover_suicide": "Saddened by the loss of their lover, \u0002{0}\u0002, a{1} \u0002{2}\u0002, commits suicide.",
     "lover_suicide_no_reveal": "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.",
     "assassin_fail_totem": "Before dying, \u0002{0}\u0002 quickly attempts to slit \u0002{1}\u0002's throat; however, {1}'s totem emits a brilliant flash of light, causing the attempt to miss.",
