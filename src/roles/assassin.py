@@ -76,11 +76,8 @@ def on_transition_night_end(evt, var):
             ass.send(message)
 
         else:
-            if ass.prefers_simple():
-                ass.send(messages["assassin_simple"])
-            else:
-                ass.send(messages["assassin_notify"])
-            ass.send("Players: " + ", ".join(p.nick for p in pl))
+            to_send = "assassin_simple" if ass.prefers_simple() else "assassin_notify"
+            ass.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):

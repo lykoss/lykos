@@ -102,10 +102,8 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)
-        to_send = "vigilante_notify"
-        if vigilante.prefers_simple():
-            to_send = "vigilante_simple"
-        vigilante.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+        to_send = "vigilante_simple" if vigilante.prefers_simple() else "vigilante_notify"
+        vigilante.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):

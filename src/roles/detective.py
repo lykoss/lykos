@@ -82,10 +82,9 @@ def on_transition_night_end(evt, var):
         warning = ""
         if chance > 0:
             warning = messages["detective_chance"].format(chance)
-        to_send = "detective_notify"
-        if dttv.prefers_simple():
-            to_send = "detective_simple"
-        dttv.send(messages[to_send].format(warning), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+
+        to_send = "detective_simple" if dttv.prefers_simple() else "detective_notify"
+        dttv.send(messages[to_send].format(warning), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

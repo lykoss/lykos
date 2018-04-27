@@ -273,16 +273,14 @@ def on_transition_night_end(evt, var):
         pl = get_players()
         random.shuffle(pl)
         pl.remove(succubus)
-        to_send = "succubus_notify"
-        if succubus.prefers_simple():
-            to_send = "succubus_simple"
+        to_send = "succubus_simple" if succubus.prefers_simple() else "succubus_notify"
         succ = []
         for p in pl:
             if p in succubi:
                 succ.append("{0} (succubus)".format(p))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send], "Players: " + ", ".join(succ), sep="\n")
+        succubus.send(messages[to_send], messages["players_list"].format(", ".join(succ)), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

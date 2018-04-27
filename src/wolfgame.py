@@ -774,7 +774,7 @@ def join_deadchat(var, *all_users):
         user.queue_message("[deadchat] " + msg)
     for user in to_join:
         user.queue_message(messages["joined_deadchat"])
-        user.queue_message(messages["list_deadchat"].format(", ".join([user.nick for user in people])))
+        user.queue_message(messages["players_list"].format(", ".join([user.nick for user in people])))
 
     var.DEADCHAT_PLAYERS.update(to_join)
     var.SPECTATING_DEADCHAT.difference_update(to_join)
@@ -3928,7 +3928,7 @@ def check_exchange(cli, actor, nick):
             for i, player in enumerate(pl):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
-            pm(cli, actor, "Players: " + ", ".join(pl))
+            pm(cli, actor, messages["players_list"].format(", ".join(pl)))
         elif nick_role == "minion":
             wolves = list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -3946,7 +3946,7 @@ def check_exchange(cli, actor, nick):
             for i, player in enumerate(pl):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
-            pm(cli, nick, "Players: " + ", ".join(pl))
+            pm(cli, nick, messages["players_list"].format(", ".join(pl)))
         elif actor_role == "minion":
             wolves = list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
@@ -4924,7 +4924,7 @@ def transition_night():
                 mm.send(messages["matchmaker_simple"])
             else:
                 mm.send(messages["matchmaker_notify"])
-            mm.send("Players: " + ", ".join(p.nick for p in pl))
+            mm.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
         for clone in get_all_players(("clone",)):
             pl = ps[:]
@@ -4934,7 +4934,7 @@ def transition_night():
                 clone.send(messages["clone_simple"])
             else:
                 clone.send(messages["clone_notify"])
-            clone.send("Players: "+", ".join(p.nick for p in pl))
+            clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
         for minion in get_all_players(("minion",)):
             wolves = get_players(var.WOLF_ROLES)
