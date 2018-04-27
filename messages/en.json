@@ -198,6 +198,7 @@
     "forever_aclone": "It appears that \u0002{0}\u0002 was cloning you, so you are now stuck as a clone forever. How sad.",
     "clone_success": "You will now be cloning \u0002{0}\u0002 if they die.",
     "clone_wolf": "\u0002{0}\u0002 cloned \u0002{1}\u0002 and has now become a wolf!",
+    "wolves_list": "Wolves: {0}",
     "no_other_wolves": "There are no other wolves.",
     "lover_suicide": "Saddened by the loss of their lover, \u0002{0}\u0002, a{1} \u0002{2}\u0002, commits suicide.",
     "lover_suicide_no_reveal": "Saddened by the loss of their lover, \u0002{0}\u0002 commits suicide.",
