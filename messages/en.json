@@ -790,7 +790,7 @@
     "assassin_role_info": "You are an \u0002assassin\u0002{0}.",
     "assassin_targeting": " and targeting {0}",
     "bitten_info": "You were bitten by an alpha wolf and have \u0002{0} night{1}\u0002 until your transformation.",
-    "matched_info": "You are \u0002in love\u0002 with ",
+    "matched_info": "You are \u0002in love\u0002 with",
     "no_command_in_channel": "You cannot use this command in channel right now",
     "no_such_role": "No such role: {0}",
     "ambiguous_role": "Ambiguous role. Possible matches are: {0}.",

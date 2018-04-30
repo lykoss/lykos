@@ -77,12 +77,10 @@ def investigate(var, wrapper, message):
     else:
         t2role = "blue"
 
-    same = t1role == t2role
-    # FIXME: split into matchmaker once that is split and make this an event
-    if target2.nick in var.LOVERS.get(target1.nick, set()):
-        same = True
+    evt = Event("get_team_affiliation", {"same": (t1role == t2role)})
+    evt.dispatch(evt, target1, target2)
 
-    if same:
+    if evt.data["same"]:
         wrapper.pm(messages["investigator_results_same"].format(target1, target2))
     else:
         wrapper.pm(messages["investigator_results_different"].format(target1, target2))
@@ -90,7 +88,7 @@ def investigate(var, wrapper, message):
     INVESTIGATED.add(wrapper.source)
     debuglog("{0} (investigator) ID: {1} ({2}) and {3} ({4}) as {5}".format(
         wrapper.source, target1, get_main_role(target1), target2, get_main_role(target2),
-        "same" if same else "different"))
+        "same" if evt.data["same"] else "different"))
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):

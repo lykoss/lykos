@@ -24,39 +24,6 @@ def game_mode(name, minp, maxp, likelihood = 0):
 
 reset_roles = lambda i: OrderedDict([(role, (0,) * len(i)) for role in var.ROLE_GUIDE])
 
-def get_lovers():
-    lovers = []
-    pl = list_players()
-    for lover in var.LOVERS:
-        done = None
-        for i, lset in enumerate(lovers):
-            if lover in pl and lover in lset:
-                if done is not None: # plot twist! two clusters turn out to be linked!
-                    done.update(lset)
-                    for lvr in var.LOVERS[lover]:
-                        if lvr in pl:
-                            done.add(lvr)
-
-                    lset.clear()
-                    continue
-
-                for lvr in var.LOVERS[lover]:
-                    if lvr in pl:
-                        lset.add(lvr)
-                done = lset
-
-        if done is None and lover in pl:
-            lovers.append(set())
-            lovers[-1].add(lover)
-            for lvr in var.LOVERS[lover]:
-                if lvr in pl:
-                    lovers[-1].add(lvr)
-
-    while set() in lovers:
-        lovers.remove(set())
-
-    return lovers
-
 class GameMode:
     def __init__(self, arg=""):
         if not arg:
@@ -111,6 +78,7 @@ class GameMode:
         winner = evt.data["winner"]
         if winner is not None and winner.startswith("@"):
             return # fool won, lovers can't win even if they would
+        from src.roles.matchmaker import get_lovers
         all_lovers = get_lovers()
         if len(all_lovers) != 1:
             return # we need exactly one cluster alive for this to trigger

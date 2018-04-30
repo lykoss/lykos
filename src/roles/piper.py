@@ -128,8 +128,6 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
 
     if mainrole == "piper":
         evt.data["won"] = True
-    # TODO: add code here (or maybe a sep event?) to let lovers win alongside piper
-    # Right now that's still in wolfgame.py, but should be moved here once mm is split
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):

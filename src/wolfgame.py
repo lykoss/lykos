@@ -322,7 +322,6 @@ def reset():
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES.clear() # list of players who have voted to !start
-    var.LOVERS = {} # need to be here for purposes of random
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
     var.ROLE_SETS = [] # type: List[Tuple[Counter[str], int]]
     var.VOTES.clear()
@@ -2041,22 +2040,8 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     message = ""
     count = 0
     if not abort:
-        done = {}
-        lovers = []
-        for lover1, llist in var.ORIGINAL_LOVERS.items():
-            for lover2 in llist:
-                # check if already said the pairing
-                if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                    continue
-                lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
-                if lover1 in done:
-                    done[lover1].append(lover2)
-                else:
-                    done[lover1] = [lover2]
-        if len(lovers) == 1 or len(lovers) == 2:
-            roles_msg.append("The lovers were {0}.".format(" and ".join(lovers)))
-        elif len(lovers) > 2:
-            roles_msg.append("The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+        evt = Event("game_end_messages", {"messages": roles_msg})
+        evt.dispatch(var)
 
         channels.Main.send(*roles_msg)
 
@@ -2091,8 +2076,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
             pentry["mainrole"] = rol
             pentry["allroles"] = allroles[plr]
-            if splr in var.LOVERS:
-                pentry["special"].append("lover")
 
             won = False
             iwon = False
@@ -2136,31 +2119,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 iwon = False
             elif rol == "fool" and "@" + splr == winner:
                 iwon = True
-            elif winner != "lovers" and splr in var.LOVERS and plr in survived and len([x for x in var.LOVERS[splr] if users._get(x) in survived]) > 0: # FIXME
-                for lvr in var.LOVERS[splr]:
-                    lvuser = users._get(lvr) # FIXME
-                    if lvuser not in survived:
-                        # cannot win with dead lover (if splr in survived and lvr is not, that means lvr idled out)
-                        continue
-
-                    lvrrol = mainroles[lvuser]
-
-                    if not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
-                        iwon = True
-                        break
-                    elif winner.startswith("@") and winner == "@" + lvr and var.LOVER_WINS_WITH_FOOL:
-                        iwon = True
-                        break
-                    elif winner == "monsters" and lvrrol == "monster":
-                        iwon = True
-                        break
-                    elif winner == "demoniacs" and lvrrol == "demoniac":
-                        iwon = True
-                        break
-                    # TODO: split this into piper.py once matchmaker is split
-                    elif winner == "pipers" and lvrrol == "piper":
-                        iwon = True
-                        break
             elif rol == "monster" and plr in survived and winner == "monsters":
                 iwon = True
             elif rol == "demoniac" and plr in survived and winner == "demoniacs":
@@ -2451,28 +2409,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 if mainrole == "clone" and player.nick in var.CLONED:
                     del var.CLONED[player.nick]
 
-            if death_triggers and var.PHASE in var.GAME_PHASES:
-                if player.nick in var.LOVERS:
-                    lovers = var.LOVERS[player.nick].copy()
-                    var.LOVERS[player.nick].clear()
-                    for lovernick in lovers:
-                        lover = users._get(lovernick) # FIXME
-                        if lover not in pl:
-                            continue # already died somehow
-                        if player.nick not in var.LOVERS[lover.nick]:
-                            continue
-                        var.LOVERS[lover.nick].remove(player.nick)
-                        if var.ROLE_REVEAL in ("on", "team"):
-                            role = get_reveal_role(lover)
-                            an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                            message = messages["lover_suicide"].format(lover, an, role)
-                        else:
-                            message = messages["lover_suicide_no_reveal"].format(lover)
-                        channels.Main.send(message)
-                        debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
-                        del_player(lover, end_game=False, killer_role=killer_role, deadlist=deadlist, original=original, ismain=False)
-                        pl = refresh_pl(pl)
-
             pl = refresh_pl(pl)
             # i herd u liek parameters
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
@@ -2566,7 +2502,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                 # remove players from night variables
                 # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
                 # if these aren't cleared properly night may end prematurely
-                for x in (var.PASSED, var.HEXED, var.MATCHMAKERS, var.CURSED):
+                for x in (var.PASSED, var.HEXED, var.CURSED):
                     x.discard(player.nick)
             if var.PHASE == "day" and ret:
                 if player in var.VOTES:
@@ -2893,21 +2829,6 @@ def rename_player(var, user, prefix):
             # defaultdict(list), where keys are nicks and items in list do not matter
             if prefix in var.ACTIVE_PROTECTIONS.keys():
                 var.ACTIVE_PROTECTIONS[nick] = var.ACTIVE_PROTECTIONS.pop(prefix)
-            # Looks like {'6': {'jacob3'}, 'jacob3': {'6'}}
-            for dictvar in (var.LOVERS, var.ORIGINAL_LOVERS):
-                kvp = []
-                for a,b in dictvar.items():
-                    nl = set()
-                    for n in b:
-                        if n == prefix:
-                            n = nick
-                        nl.add(n)
-                    if a == prefix:
-                        a = nick
-                    kvp.append((a,nl))
-                dictvar.update(kvp)
-                if prefix in dictvar.keys():
-                    del dictvar[prefix]
             for idx, tup in enumerate(var.EXCHANGED_ROLES):
                 a, b = tup
                 if a == prefix:
@@ -2915,7 +2836,7 @@ def rename_player(var, user, prefix):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.SILENCED, var.MATCHMAKERS, var.PASSED,
+            for setvar in (var.HEXED, var.SILENCED, var.PASSED,
                            var.JESTERS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
                            var.ALPHA_WOLVES, var.CURSED, var.PRIESTS):
@@ -3214,12 +3135,6 @@ def transition_day(gameid=0):
                         target = random.choice(ps)
                         var.CLONED[clone.nick] = target.nick
                         clone.send(messages["random_clone"].format(target))
-
-            for mm in get_all_players(("matchmaker",)):
-                if mm.nick not in var.MATCHMAKERS:
-                    lovers = random.sample(pl, 2)
-                    choose.func(mm.client, mm.nick, mm.nick, "{0[0]} {0[1]}".format(lovers), sendmsg=False) # XXX: Old API
-                    mm.send(messages["random_matchmaker"])
 
     # Reset daytime variables
     var.WOUNDED.clear()
@@ -3624,8 +3539,8 @@ def chk_nightdone():
             actedcount += 1
 
     if var.FIRST_NIGHT:
-        actedcount += len(var.MATCHMAKERS | var.CLONED.keys())
-        nightroles.extend(get_all_players(("matchmaker", "clone")))
+        actedcount += len(var.CLONED.keys())
+        nightroles.extend(get_all_players(("clone",)))
 
     if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
@@ -4419,69 +4334,6 @@ def change_sides(cli, nick, chan, rest, sendmsg=True):
     var.TURNCOATS[nick] = (team, var.NIGHT_COUNT)
     debuglog("{0} ({1}) SIDE {2}".format(nick, get_role(nick), team))
 
-@cmd("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-@cmd("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
-def choose(cli, nick, chan, rest, sendmsg=True): # XXX: transition_day also needs updating alongside this one
-    """Select two players to fall in love. You may select yourself as one of the lovers."""
-    if not var.FIRST_NIGHT:
-        return
-    if nick in var.MATCHMAKERS:
-        pm(cli, nick, messages["already_matched"])
-        return
-    # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
-    # but just in case, it also sucks if the one night you're allowed to act is when you are
-    # silenced, so we ignore it here anyway.
-    pieces = re.split(" +",rest)
-    victim = pieces[0]
-    if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            victim2 = pieces[2]
-        else:
-            victim2 = pieces[1]
-    else:
-        victim2 = None
-
-    victim = get_victim(cli, nick, victim, False, True)
-    if not victim:
-        return
-    victim2 = get_victim(cli, nick, victim2, False, True)
-    if not victim2:
-        return
-
-    if victim == victim2:
-        pm(cli, nick, messages["match_different_people"])
-        return
-
-    var.MATCHMAKERS.add(nick)
-    if victim in var.LOVERS:
-        var.LOVERS[victim].add(victim2)
-        var.ORIGINAL_LOVERS[victim].add(victim2)
-    else:
-        var.LOVERS[victim] = {victim2}
-        var.ORIGINAL_LOVERS[victim] = {victim2}
-
-    if victim2 in var.LOVERS:
-        var.LOVERS[victim2].add(victim)
-        var.ORIGINAL_LOVERS[victim2].add(victim)
-    else:
-        var.LOVERS[victim2] = {victim}
-        var.ORIGINAL_LOVERS[victim2] = {victim}
-
-    if sendmsg:
-        pm(cli, nick, messages["matchmaker_success"].format(victim, victim2))
-
-    if victim in var.PLAYERS and not is_user_simple(victim):
-        pm(cli, victim, messages["matchmaker_target_notify"].format(victim2))
-    else:
-        pm(cli, victim, messages["matchmaker_target_notify_simple"].format(victim2))
-
-    if victim2 in var.PLAYERS and not is_user_simple(victim2):
-        pm(cli, victim2, messages["matchmaker_target_notify"].format(victim))
-    else:
-        pm(cli, victim2, messages["matchmaker_target_notify_simple"].format(victim))
-
-    debuglog("{0} ({1}) MATCH: {2} ({3}) + {4} ({5})".format(nick, get_role(nick), victim, get_role(victim), victim2, get_role(victim2)))
-
 @cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
 def hex_target(cli, nick, chan, rest):
     """Hex someone, preventing them from acting the next day and night."""
@@ -4917,15 +4769,6 @@ def transition_night():
             priest.send(messages["priest_notify"])
 
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        for mm in get_all_players(("matchmaker",)):
-            pl = ps[:]
-            random.shuffle(pl)
-            if mm.prefers_simple():
-                mm.send(messages["matchmaker_simple"])
-            else:
-                mm.send(messages["matchmaker_notify"])
-            mm.send("Players: " + ", ".join(p.nick for p in pl))
-
         for clone in get_all_players(("clone",)):
             pl = ps[:]
             random.shuffle(pl)
@@ -5189,7 +5032,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.OBSERVED = {}
     var.CLONED = {}
     var.LASTHEXED = {}
-    var.MATCHMAKERS = set()
     var.SILENCED = set()
     var.TOBESILENCED = set()
     var.JESTERS = set()
@@ -5198,7 +5040,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
-    var.ORIGINAL_LOVERS = {}
     var.LYCANTHROPES = set()
     var.LUCKY = set()
     var.DISEASED = set()
@@ -6072,19 +5913,6 @@ def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets con
     if "prophet" in var.TEMPLATE_RESTRICTIONS and wrapper.source in var.ROLES["prophet"]:
         wrapper.pm(messages["prophet_simple"])
 
-    # Remind lovers of each other
-    if wrapper.source in ps and wrapper.source.nick in var.LOVERS:
-        message = messages["matched_info"]
-        lovers = sorted(list(set(var.LOVERS[wrapper.source.nick])))
-        if len(lovers) == 1:
-            message += lovers[0]
-        elif len(lovers) == 2:
-            message += lovers[0] + " and " + lovers[1]
-        else:
-            message += ", ".join(lovers[:-1]) + ", and " + lovers[-1]
-        message += "."
-        wrapper.pm(message)
-
 @command("aftergame", "faftergame", flag="D", pm=True)
 def aftergame(var, wrapper, message):
     """Schedule a command to be run after the current game."""
@@ -6569,24 +6397,6 @@ def revealroles(var, wrapper, message):
                     out.append(user.nick)
 
             output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(out)))
-
-    # print out lovers too
-    done = {}
-    lovers = []
-    for lover1, llist in var.LOVERS.items():
-        for lover2 in llist:
-            # check if already said the pairing
-            if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
-                continue
-            lovers.append("{0}/{1}".format(lover1, lover2))
-            if lover1 in done:
-                done[lover1].append(lover2)
-            else:
-                done[lover1] = [lover2]
-    if len(lovers) == 1 or len(lovers) == 2:
-        output.append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        output.append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
 
     #show who got immunized
     if var.IMMUNIZED:
