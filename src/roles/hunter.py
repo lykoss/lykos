@@ -71,7 +71,7 @@ def hunter_pass(var, wrapper, message):
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     HUNTERS.discard(user)
     PASSED.discard(user)
-    KILLS.pop(user, None)
+    del KILLS[:user:]
     for h, v in list(KILLS.items()):
         if v is user:
             HUNTERS.discard(h)
@@ -98,8 +98,8 @@ def on_transition_day(evt, var):
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
-    KILLS.pop(actor, None)
-    KILLS.pop(target, None)
+    del KILLS[:actor:]
+    del KILLS[:target:]
     HUNTERS.discard(actor)
     HUNTERS.discard(target)
     PASSED.discard(actor)

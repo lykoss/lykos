@@ -42,7 +42,8 @@ def dullahan_kill(var, wrapper, message):
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 def dullahan_retract(var, wrapper, message):
     """Removes a dullahan's kill selection."""
-    if KILLS.pop(wrapper.source, None):
+    if wrapper.source in KILLS:
+        del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
         debuglog("{0} (dullahan) RETRACT".format(wrapper.source))
 

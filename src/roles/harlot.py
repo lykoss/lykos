@@ -142,7 +142,7 @@ def on_get_special(evt, var):
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if "harlot" not in allroles:
         return
-    VISITED.pop(user, None)
+    del VISITED[:user:]
     PASSED.discard(user)
 
 @event_listener("reset")

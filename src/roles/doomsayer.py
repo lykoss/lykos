@@ -58,12 +58,12 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role == "doomsayer" and target_role != "doomsayer":
         SEEN.discard(actor)
         for name, mapping in _mappings:
-            mapping.pop(actor, None)
+            del mapping[:actor:]
 
     elif target_role == "doomsayer" and actor_role != "doomsayer":
         SEEN.discard(target)
         for name, mapping in _mappings:
-            mapping.pop(target, None)
+            del mapping[:target:]
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
