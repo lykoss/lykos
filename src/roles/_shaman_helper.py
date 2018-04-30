@@ -120,7 +120,7 @@ def setup_variables(rolename, *, knows_totem, get_tags):
                 shaman.send(messages["totem_retarget"].format(victim))
             LASTGIVEN[shaman] = victim
 
-        havetotem.extend(sorted(filter(None, LASTGIVEN.values())))
+        havetotem.extend(filter(None, LASTGIVEN.values()))
 
     @event_listener("del_player")
     def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
@@ -458,6 +458,7 @@ def on_transition_day_resolve6(evt, var, victim):
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt, var):
     message = []
+    havetotem.sort(key=lambda x: x.nick)
     for player, tlist in itertools.groupby(havetotem):
         ntotems = len(list(tlist))
         message.append(messages["totem_posession"].format(
