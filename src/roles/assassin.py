@@ -27,7 +27,7 @@ def target(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, "target", wrapper.source, target, frozenset({"detrimental"})):
+    if not evt.dispatch(var, wrapper.source, target):
         return
     target = evt.data["target"]
 
@@ -131,17 +131,6 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
                 evt.params.del_player(target, end_game=False, killer_role=mainrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(aevt.data["pl"])
-
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, actor, target):
-    if target in TARGETED and TARGETED[target] in get_all_players(("succubus",)):
-        msg = messages["no_target_succubus"].format(TARGETED[target])
-        del TARGETED[target]
-        if target in get_all_players(("village drunk",)):
-            victim = random.choice(list(get_all_players() - get_all_players(("succubus",)) - {target}))
-            msg += messages["drunk_target"].format(victim)
-            TARGETED[target] = victim
-        target.send(msg)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

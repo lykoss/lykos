@@ -40,7 +40,7 @@ def vg_kill(var, wrapper, message):
 
     orig = target
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": False})
-    evt.dispatch(var, "kill", wrapper.source, target, frozenset({"detrimental"}))
+    evt.dispatch(var, wrapper.source, target)
     if evt.prevent_default:
         return
     target = evt.data["target"]

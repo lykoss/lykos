@@ -43,14 +43,14 @@ def charm(var, wrapper, message):
     orig2 = target2
 
     evt1 = Event("targeted_command", {"target": target1, "misdirection": True, "exchange": True})
-    evt1.dispatch(var, "charm", wrapper.source, target1, frozenset({"detrimental"}))
+    evt1.dispatch(var, wrapper.source, target1)
     if evt1.prevent_default:
         return
     target1 = evt1.data["target"]
 
     if target2 is not None:
         evt2 = Event("targeted_command", {"target": target2, "misdirection": True, "exchange": True})
-        evt2.dispatch(var, "charm", wrapper.source, target2, frozenset({"detrimental"}))
+        evt2.dispatch(var, wrapper.source, target2)
         if evt2.prevent_default:
             return
         target2 = evt2.data["target"]

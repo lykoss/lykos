@@ -15,13 +15,7 @@ from src.events import Event
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
-def get_tags(var, totem):
-    tags = set()
-    if totem in var.BENEFICIAL_TOTEMS:
-        tags.add("beneficial")
-    return tags
-
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("shaman", knows_totem=True, get_tags=get_tags)
+TOTEMS, LASTGIVEN, SHAMANS = setup_variables("shaman", knows_totem=True)
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
 def shaman_totem(var, wrapper, message):
@@ -31,9 +25,7 @@ def shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    totem = TOTEMS[wrapper.source]
-
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", tags=get_tags(var, totem), role="shaman", msg=" of {0}".format(totem))
+    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
@@ -45,16 +37,11 @@ def on_transition_day_begin(evt, var):
             if shaman in LASTGIVEN:
                 if LASTGIVEN[shaman] in ps:
                     ps.remove(LASTGIVEN[shaman])
-            levt = Event("get_random_totem_targets", {"targets": ps})
-            levt.dispatch(var, shaman)
-            ps = levt.data["targets"]
             if ps:
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                tags = get_tags(var, TOTEMS[shaman])
-
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], tags=tags, role="shaman", msg=" of {0}".format(TOTEMS[shaman]))
+                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="shaman", msg=" of {0}".format(TOTEMS[shaman]))
             else:
                 LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:

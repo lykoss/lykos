@@ -28,7 +28,7 @@ def hvisit(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, "visit", wrapper.source, target, frozenset({"immediate"}))
+    evt.dispatch(var, wrapper.source, target)
     if evt.prevent_default:
         return
     target = evt.data["target"]

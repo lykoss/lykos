@@ -38,13 +38,13 @@ def investigate(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target1, "misdirection": True, "exchange": True})
-    evt.dispatch(var, "identify", wrapper.source, target1, frozenset({"info", "immediate"}))
+    evt.dispatch(var, wrapper.source, target1)
     if evt.prevent_default:
         return
     target1 = evt.data["target"]
 
     evt = Event("targeted_command", {"target": target2, "misdirection": True, "exchange": True})
-    evt.dispatch(var, "identify", wrapper.source, target2, frozenset({"info", "immediate"}))
+    evt.dispatch(var, wrapper.source, target2)
     if evt.prevent_default:
         return
     target2 = evt.data["target"]

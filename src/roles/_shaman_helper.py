@@ -48,14 +48,13 @@ brokentotem = set()         # type: Set[users.User]
 # 1. Expand var.TOTEM_ORDER and upate var.TOTEM_CHANCES to account for the new width
 # 2. Add the role to var.ROLE_GUIDE
 # 3. Add the role to whatever other holding vars are necessary based on what it does
-# 4. Setup initial variables and events with setup_variables(rolename, knows_totem, get_tags)
-#    knows_totem is a bool and keyword-only. get_tags is a function in the form get_tags(var, totem)
-#    and should return a set
+# 4. Setup initial variables and events with setup_variables(rolename, knows_totem)
+#    knows_totem is a bool and keyword-only
 # 5. Implement custom events if the role does anything else beyond giving totems.
 #
 # Modifying this file to add new totems or new shaman roles is generally never required
 
-def setup_variables(rolename, *, knows_totem, get_tags):
+def setup_variables(rolename, *, knows_totem):
     """Setup role variables and shared events."""
     TOTEMS = UserDict()     # type: Dict[users.User, str]
     LASTGIVEN = UserDict()  # type: Dict[users.User, users.User]
@@ -178,14 +177,6 @@ def setup_variables(rolename, *, knows_totem, get_tags):
                 evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
             TOTEMS[target] = actor_totem
 
-    @event_listener("succubus_visit")
-    def on_succubus_visit(evt, var, succubus, target):
-        if target in SHAMANS and SHAMANS[target][1] in get_all_players(("succubus",)):
-            tags = get_tags(var, TOTEMS[target])
-            if "beneficial" not in tags:
-                target.send(messages["retract_totem_succubus"].format(SHAMANS[target][1]))
-                del SHAMANS[target]
-
     if knows_totem:
         @event_listener("myrole")
         def on_myrole(evt, var, user):
@@ -206,16 +197,14 @@ def get_totem_target(var, wrapper, message, lastgiven):
 
     return target
 
-def give_totem(var, wrapper, target, prefix, tags, role, msg):
+def give_totem(var, wrapper, target, prefix, role, msg):
     """Give a totem to a player. Return the value of SHAMANS[user]."""
 
     orig_target = target
     orig_role = get_main_role(orig_target)
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True},
-                action="give a totem{0} to".format(msg))
-
-    if not evt.dispatch(var, "totem", wrapper.source, target, frozenset(tags)):
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    if not evt.dispatch(var, wrapper.source, target):
         return
 
     target = evt.data["target"]

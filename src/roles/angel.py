@@ -41,7 +41,7 @@ def guard(cli, nick, chan, rest):
 
     # self-guard ignores luck/misdirection/exchange totem
     evt = Event("targeted_command", {"target": target, "misdirection": (angel is not target), "exchange": (angel is not target)})
-    if not evt.dispatch(var, "guard", angel, target, frozenset({"beneficial"})):
+    if not evt.dispatch(var, angel, target):
         return
     victim = evt.data["target"].nick
     GUARDED[nick] = victim

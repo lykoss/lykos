@@ -31,7 +31,7 @@ def see(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, "see", wrapper.source, target, frozenset({"detrimental", "immediate"}))
+    evt.dispatch(var, wrapper.source, target)
     if evt.prevent_default:
         return
 

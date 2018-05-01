@@ -753,7 +753,6 @@
     "dullahan_die_success": "Before dying, \u0002{0}\u0002 snaps a whip made of a human spine at \u0002{1}\u0002, killing them. The village mourns the loss of a{2} \u0002{3}\u0002.",
     "dullahan_die_success_noreveal": "Before dying, \u0002{0}\u0002 snaps a whip made of a human spine at \u0002{1}\u0002, killing them.",
     "entranced_revert_win": "You are no longer entranced. \u0002Your win conditions have reset to normal.\u0002",
-    "succubus_die_kill": "As the last remaining succubus dies, a foul curse causes {0} to wither away and die in front of the astonished village.",
     "player_sick": "You woke up today not feeling very well, you think it best to stay home for the remainder of the day and night.",
     "consecrating_no_vote": "You are consecrating someone today and cannot participate in the vote.",
     "illness_no_vote": "You are staying home due to your illness and cannot participate in the vote.",
@@ -763,7 +762,6 @@
     "blessed_notify_target": "You suddenly feel very safe.",
     "consecrate_fail": "\u0002{0}\u0002 is not currently playing or is not dead.",
     "consecrate_success": "You have consecrated the body of \u0002{0}\u0002.",
-    "no_acting_on_succubus": "You may not {0} a succubus.",
     "coin_toss": "\u0002{0}\u0002 tosses a coin into the air...",
     "coin_land": "The coin lands on \u0002{0}\u0002.",
     "coin_choices": [

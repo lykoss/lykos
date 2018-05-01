@@ -3717,9 +3717,6 @@ def check_exchange(cli, actor, nick):
     user = users._get(actor) # FIXME
     target = users._get(nick) # FIXME
 
-    event = Event("can_exchange", {})
-    if not event.dispatch(var, user, target):
-        return False # some roles such as succubus cannot be affected by exchange totem
     if nick in var.EXCHANGED:
         var.EXCHANGED.remove(nick)
         actor_role = get_role(actor)
@@ -3926,7 +3923,7 @@ def shoot(var, wrapper, message):
 
     # get actual victim
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, "shoot", wrapper.source, target, frozenset({"detrimental"})):
+    if not evt.dispatch(var, wrapper.source, target):
         return
 
     target = evt.data["target"]
@@ -3994,12 +3991,6 @@ def shoot(var, wrapper, message):
         else:
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
         del_player(wrapper.source, killer_role="villager") # blame explosion on villager's shoddy gun construction or something
-
-def is_safe(nick, victim): # replace calls to this with targeted_command event when splitting roles
-    from src.roles import succubus
-    user = users._get(nick) # FIXME
-    target = users._get(victim) # FIXME
-    return user in succubus.ENTRANCED and target in get_all_players(("succubus",))
 
 @cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(cli, nick, chan, rest):
@@ -4082,9 +4073,6 @@ def observe(cli, nick, chan, rest):
             pm(cli, nick, messages["werecrow_no_target_wolf"])
         else:
             pm(cli, nick, messages["no_observe_wolf"])
-        return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("observe"))
         return
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
@@ -4263,9 +4251,6 @@ def bite_cmd(cli, nick, chan, rest):
     if not victim:
         pm(cli, nick, messages["bite_error"])
         return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("bite"))
-        return
 
     vrole = get_role(victim)
     actual = choose_target(nick, victim)
@@ -4351,10 +4336,6 @@ def hex_target(cli, nick, chan, rest):
         pm(cli, nick, messages["no_multiple_hex"].format(victim))
         return
 
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("hex"))
-        return
-
     victim = choose_target(nick, victim)
     if in_wolflist(nick, victim):
         pm(cli, nick, messages["no_hex_wolf"])
@@ -4386,10 +4367,6 @@ def curse(cli, nick, chan, rest):
     victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
     if not victim:
         return
-    if is_safe(nick, victim):
-        pm(cli, nick, messages["no_acting_on_succubus"].format("curse"))
-        return
-
     # There may actually be valid strategy in cursing other wolfteam members,
     # but for now it is not allowed. If someone seems suspicious and shows as
     # villager across multiple nights, safes can use that as a tell that the
@@ -4461,7 +4438,7 @@ def clone(cli, nick, chan, rest):
 var.ROLE_COMMAND_EXCEPTIONS.add("clone")
 
 @event_listener("targeted_command", priority=9)
-def on_targeted_command(evt, var, name, actor, orig_target, tags):
+def on_targeted_command(evt, var, actor, orig_target):
     if evt.data["misdirection"]:
         evt.data["target"] = users._get(choose_target(actor.nick, evt.data["target"].nick)) # FIXME
 
