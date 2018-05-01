@@ -115,7 +115,7 @@ def on_transition_night_end(evt, var):
         to_send = "investigator_notify"
         if inv.prefers_simple():
             to_send = "investigator_simple"
-        inv.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+        inv.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

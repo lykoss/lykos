@@ -1162,7 +1162,7 @@ class MaelstromMode(GameMode):
                     pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
                 elif player in var.ROLES["cursed villager"]:
                     pl[i] = player.nick + " (cursed)"
-            wrapper.pm("Players: " + ", ".join(pl))
+            wrapper.pm(messages["players_list"].format(", ".join(pl)))
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions

@@ -96,7 +96,7 @@ def on_transition_night_end(evt, var):
             tmsg = messages["shaman_totem"].format(totem)
             tmsg += messages[totem + "_totem"]
             shaman.send(tmsg)
-        shaman.send("Players: " + ", ".join(p.nick for p in pl))
+        shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
 @event_listener("get_special")
 def on_get_special(evt, var):

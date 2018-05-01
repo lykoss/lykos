@@ -54,7 +54,7 @@ def setup_variables(rolename):
             to_send = "seer_role_info"
             if seer.prefers_simple():
                 to_send = "seer_simple"
-            seer.send(messages[to_send].format(a, rolename, what), "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+            seer.send(messages[to_send].format(a, rolename, what), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
     @event_listener("begin_day")
     def on_begin_day(evt, var):
