@@ -9,6 +9,11 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
+# Generated message keys used in this file:
+# mystic_villagers, mystic_wolves, mystic_neutrals, mystic_win_stealers,
+# mystic_night_num, mystic_day_num, mystic_info,
+# mystic_simple, mystic_notify, wolf_mystic_simple, wolf_mystic_notify
+
 def setup_variables(rolename, *, send_role, types):
     LAST_COUNT = UserDict() # type: Dict[users.User, Tuple[str, bool]]
 

@@ -32,6 +32,12 @@ DECEIT = UserSet()          # type: Set[users.User]
 havetotem = []              # type: List[users.User]
 brokentotem = set()         # type: Set[users.User]
 
+# Generated message keys used across all shaman files:
+# death_totem, protection_totem, revealing_totem, narcolepsy_totem,
+# silence_totem, desperation_totem, impatience_totem, pacifism_totem,
+# influence_totem, exchange_totem, lycanthropy_totem, luck_totem,
+# pestilence_totem, retribution_totem, misdirection_totem, deceit_totem
+
 # To add new totem types in your custom roles/whatever.py file:
 # 1. Add a key to var.TOTEM_CHANCES with the totem name
 # 2. Add a message totemname_totem to your custom messages.json describing
