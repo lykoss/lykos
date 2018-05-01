@@ -398,6 +398,12 @@ def on_transition_night_end(evt, var):
                 an = "n"
             wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
 
+
+        if var.FIRST_NIGHT:
+            minions = len(get_all_players(("minion",)))
+            if minions > 0:
+                wolf.send(messages["has_minions"].format(minions, plural("minion", minions)))
+
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(wolf)  # remove self from list
