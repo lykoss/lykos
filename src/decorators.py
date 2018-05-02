@@ -121,9 +121,25 @@ class print_traceback:
 
         variables[1] = _local.handler.traceback
 
-        if not botconfig.PASTEBIN_ERRORS or channels.Main is not channels.Dev:
+        if var.REPORT_ERRORS:
+            api_url = "https://werewolf.chat/devsite/report.php"
+            api_body = logger.get_replay(source)
+            api_body["traceback"] = variables
+
+            data = None
+            with _local.handler:
+                req = urllib.request.Request(api_url, json.dumps(api_body), {
+                    "Content-type": "application/json",
+                    "Accept": "application/json"
+                    }, method="POST")
+                resp = urllib.request.urlopen(req)
+                data = json.loads(resp.read().decode("utf-8"))
+            if data is None:
+                variables[1] = _local.handler.traceback # error reporting our error, update traceback
+
+        if not var.PASTEBIN_ERRORS or channels.Main is not channels.Dev:
             channels.Main.send(messages["error_log"])
-        if botconfig.PASTEBIN_ERRORS and channels.Dev is not None:
+        if var.PASTEBIN_ERRORS and channels.Dev is not None:
             message = [messages["error_log"]]
 
             link_uuid = _tracebacks.get("\n".join(variables))

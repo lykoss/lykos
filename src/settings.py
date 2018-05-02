@@ -213,6 +213,7 @@ LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
 PASTEBIN_ERRORS = False
+REPORT_ERRORS = False # send error reports to the developers; will include traceback as well as IRC and debug logs for context
 
 TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
 
