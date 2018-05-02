@@ -41,7 +41,10 @@ def setup_variables(rolename, *, send_role, types):
                     plural = False
                 values.append("{0} {1}{2}".format(bold(l), messages["mystic_{0}".format(name)], "" if l == 1 else "s"))
 
-        value = " and ".join(", ".join(*values[:-1]), values[-1])
+        if len(values) > 2:
+            value = " and ".join(", ".join(*values[:-1]), values[-1])
+        else:
+            value = " and ".join(values)
         msg = messages["mystic_info"].format("are" if plural else "is", value, " still", "")
 
         for mystic in get_all_players((rolename,)):
