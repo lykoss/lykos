@@ -5,10 +5,10 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -22,14 +22,14 @@ def on_get_reveal_role(evt, var, user):
         evt.data["role"] = var.DEFAULT_ROLE
 
 @event_listener("get_final_role")
-def on_get_final_role(evt, cli, var, nick, role):
+def on_get_final_role(evt, var, user, role):
     # if a traitor turns we want to show them as traitor in the end game readout
     # instead of "wolf (was traitor)"
     if role == "traitor" and evt.data["role"] == "wolf":
         evt.data["role"] = "traitor"
 
 @event_listener("update_stats", priority=1)
-def on_update_stats1(evt, var, player, mainrole, revealroles, allroles):
+def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
     if mainrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
 

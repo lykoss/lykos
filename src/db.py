@@ -260,12 +260,15 @@ def add_game(mode, size, started, finished, winner, players, options):
 
     Players dict format:
     {
+        version: 2 (key is omitted for v1)
         nick: "Nickname"
         account: "Account name" (or None, "*" is converted to None)
         ident: "Ident"
         host: "Host"
-        role: "role name"
-        templates: ["template names", ...]
+        mainrole: "role name" (v2+)
+        allroles: {"role name", ...} (v2+)
+        role: "role name" (v1 only)
+        templates: ["template names", ...] (v1 only)
         special: ["special qualities", ... (lover, entranced, etc.)]
         won: True/False
         iwon: True/False
@@ -290,11 +293,9 @@ def add_game(mode, size, started, finished, winner, players, options):
             c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
                          VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["won"], p["iwon"], p["dced"]))
             gpid = c.lastrowid
-            c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                         VALUES (?, ?, 0)""", (gpid, p["role"]))
-            for tpl in p["templates"]:
+            for role in p["allroles"]:
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
-                             VALUES (?, ?, 0)""", (gpid, tpl))
+                             VALUES (?, ?, 0)""", (gpid, role))
             for sq in p["special"]:
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
                              VALUES (?, ?, 1)""", (gpid, sq))
@@ -409,7 +410,10 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
-        bits.append("{0} wins: {1} ({2}%)".format(singular(row[0]).title(), row[1], round(row[1]/total_games * 100)))
+        winner = singular(row[0]).title()
+        if not winner:
+            winner = botconfig.NICK.title()
+        bits.append("{0} wins: {1} ({2}%)".format(winner, row[1], round(row[1]/total_games * 100)))
     bits.append("Total games: {0}".format(total_games))
 
     return msg + ", ".join(bits)

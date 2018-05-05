@@ -6,7 +6,8 @@ from src import users
 __all__ = [
     "get_players", "get_all_players", "get_participants",
     "get_target",
-    "get_main_role", "get_all_roles", "get_reveal_role"
+    "get_main_role", "get_all_roles", "get_reveal_role",
+    "is_known_wolf_ally",
     ]
 
 def get_players(roles=None, *, mainroles=None):
@@ -82,13 +83,10 @@ def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
 
 def get_reveal_role(user):
-    # FIXME: when amnesiac and clone are split, move this into an event
-    if var.HIDDEN_AMNESIAC and user in var.ORIGINAL_ROLES["amnesiac"]:
-        role = "amnesiac"
-    elif var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
+    # FIXME: when clone is split, move this into an event
+    role = get_main_role(user)
+    if var.HIDDEN_CLONE and user in var.ORIGINAL_ROLES["clone"]:
         role = "clone"
-    else:
-        role = get_main_role(user)
 
     evt = Event("get_reveal_role", {"role": role})
     evt.dispatch(var, user)
@@ -104,5 +102,17 @@ def get_reveal_role(user):
     else:
         return "village member"
 
+def is_known_wolf_ally(actor, target):
+    actor_role = get_main_role(actor)
+    target_role = get_main_role(target)
+
+    wolves = var.WOLFCHAT_ROLES
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            wolves = var.WOLF_ROLES
+        else:
+            wolves = var.WOLF_ROLES | {"traitor"}
+
+    return actor_role in wolves and target_role in wolves
 
 # vim: set sw=4 expandtab:

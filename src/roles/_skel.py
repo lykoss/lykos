@@ -5,15 +5,18 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
+
+# Instead of using list, set or dict, please use UserList, UserSet or UserDict respectively
+# Please refer to the notes in src/containers.py for proper use
 
 # Add to evt.data["actedcount"] and evt.data["nightroles"] if this role can act during night
 # nightroles lists all Users who have this role and are capable of acting tonight
@@ -58,11 +61,6 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
 # Clear all game state. Called whenever the game ends.
 @event_listener("reset")
 def on_reset(evt, var):
-    pass
-
-# Swap out a user with a different one. Update all game state to use the new User.
-@event_listener("swap_player")
-def on_swap_player(evt, var, old, new):
     pass
 
 # Gets metadata about this role; kind will be a str with one of the following values:

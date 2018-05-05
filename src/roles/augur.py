@@ -12,9 +12,9 @@ from src.events import Event
 
 from src.roles._seer_helper import setup_variables
 
-SEEN = setup_variables("seer")
+SEEN = setup_variables("augur")
 
-@command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("seer",))
+@command("see", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("augur",))
 def see(var, wrapper, message):
     """Use your paranormal powers to determine the role or alignment of a player."""
     if wrapper.source in SEEN:
@@ -26,26 +26,24 @@ def see(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, "see", wrapper.source, target, frozenset({"info", "immediate"})):
+    if not evt.dispatch(var, "identify", wrapper.source, target, frozenset({"info", "immediate"})):
         return
 
     target = evt.data["target"]
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    if targrole in var.SEEN_WOLF and targrole not in var.SEEN_DEFAULT:
-        targrole = "wolf"
-    elif targrole in var.SEEN_DEFAULT:
-        targrole = var.DEFAULT_ROLE
-        if var.DEFAULT_SEEN_AS_VILL:
-            targrole = "villager"
-
-    evt = Event("see", {"role": targrole})
+    evt = Event("investigate", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
     targrole = evt.data["role"]
 
-    wrapper.send(messages["seer_success"].format(target, targrole))
-    debuglog("{0} (seer) SEE: {1} ({2}) as {3}".format(wrapper.source, target, trole, targrole))
+    aura = "blue"
+    if targrole in var.WOLFTEAM_ROLES:
+        aura = "red"
+    elif targrole in var.TRUE_NEUTRAL_ROLES:
+        aura = "grey"
+    wrapper.send(messages["augur_success"].format(target, aura))
+    debuglog("{0} (augur) SEE: {1} ({2}) as {3} ({4} aura)".format(wrapper.source, target, trole, targrole, aura))
 
     SEEN.add(wrapper.source)
 

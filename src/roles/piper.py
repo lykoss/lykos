@@ -5,20 +5,21 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src import channels, users, debuglog, errlog, plog
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-TOBECHARMED = {} # type: Dict[users.User, Set[users.User]]
-CHARMED = set() # type: Set[users.User]
+TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
+CHARMED = UserSet() # type: Set[users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
-    """Charm a player, slowly leading to your win!"""
+    """Charm a player or two, slowly leading to your win!"""
     pieces = re.split(" +", message)
     target1 = pieces[0]
     if len(pieces) > 1:
@@ -69,8 +70,13 @@ def charm(var, wrapper, message):
         wrapper.send(messages["target_already_charmed"].format(orig2))
         return
 
-    TOBECHARMED[wrapper.source] = {target1, target2}
-    TOBECHARMED[wrapper.source].discard(None)
+    if wrapper.source in TOBECHARMED:
+        TOBECHARMED[wrapper.source].clear()
+    else:
+        TOBECHARMED[wrapper.source] = UserSet()
+
+    TOBECHARMED[wrapper.source].update({target1, target2} - {None})
+    PASSED.discard(wrapper.source)
 
     if orig2:
         debuglog("{0} (piper) CHARM {1} ({2}) && {3} ({4})".format(wrapper.source,
@@ -80,6 +86,25 @@ def charm(var, wrapper, message):
     else:
         debuglog("{0} (piper) CHARM {1} ({2})".format(wrapper.source, target1, get_main_role(target1)))
         wrapper.send(messages["charm_success"].format(orig1))
+
+@command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+def pass_cmd(var, wrapper, message):
+    """Do not charm anyone tonight."""
+    del TOBECHARMED[:wrapper.source:]
+    PASSED.add(wrapper.source)
+
+    wrapper.send(messages["piper_pass"])
+    debuglog("{0} (piper) PASS".format(wrapper.source))
+
+@command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+def retract(var, wrapper, message):
+    """Remove your decision to charm people."""
+    if wrapper.source in TOBECHARMED or wrapper.source in PASSED:
+        del TOBECHARMED[:wrapper.source:]
+        PASSED.discard(wrapper.source)
+
+        wrapper.send(messages["piper_retract"])
+        debuglog("{0} (piper) RETRACT".format(wrapper.source))
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -103,13 +128,11 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
 
     if mainrole == "piper":
         evt.data["won"] = True
-    # TODO: add code here (or maybe a sep event?) to let lovers win alongside piper
-    # Right now that's still in wolfgame.py, but should be moved here once mm is split
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
     CHARMED.discard(player)
-    TOBECHARMED.pop(player, None)
+    del TOBECHARMED[:player:]
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -151,10 +174,11 @@ def on_transition_day_begin(evt, var):
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
+    PASSED.clear()
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(TOBECHARMED.keys())
+    evt.data["actedcount"] += len(TOBECHARMED) + len(PASSED)
     evt.data["nightroles"].extend(get_all_players(("piper",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -174,12 +198,18 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
     # if we're shifting piper around, ensure that the new piper isn't charmed
     if actor_role == "piper":
         CHARMED.discard(target)
+        if target_role != "piper":
+            del TOBECHARMED[:actor:]
+            PASSED.discard(actor)
     if target_role == "piper":
         CHARMED.discard(actor)
+        if actor_role != "piper":
+            del TOBECHARMED[:target:]
+            PASSED.discard(target)
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("piper",)))
+    evt.data["win_stealers"].update(get_players(("piper",)))
 
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):
@@ -190,24 +220,19 @@ def on_acted(evt, var, target, spy):
 def on_reset(evt, var):
     CHARMED.clear()
     TOBECHARMED.clear()
+    PASSED.clear()
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
-        evt.data["output"].append("\u0002charmed players\u0002: {0}".format(", ".join(p.nick for p in CHARMED)))
+        nicks = ", ".join(p.nick for p in CHARMED)
+        evt.data["output"].append(messages["piper_revealroles_charmed"].format(nicks))
 
-@event_listener("swap_player")
-def on_swap_player(evt, var, old, new):
-    if old in CHARMED:
-        CHARMED.remove(old)
-        CHARMED.add(new)
-
-    if old in TOBECHARMED:
-        TOBECHARMED[new] = TOBECHARMED.pop(old)
-
-    for s in TOBECHARMED.values():
-        if old in s:
-            s.remove(old)
-            s.add(new)
+@event_listener("revealroles_role")
+def on_revealroles_role(evt, var, user, role):
+    players = TOBECHARMED.get(user)
+    if players:
+        nicks = ", ".join(p.nick for p in players)
+        evt.data["special_case"].append(messages["piper_revealroles_charming"].format(nicks))
 
 # vim: set sw=4 expandtab:

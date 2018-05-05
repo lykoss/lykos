@@ -12,6 +12,7 @@ from src.utilities import *
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role
 from src.decorators import handle_error, command
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users
 
 def game_mode(name, minp, maxp, likelihood = 0):
@@ -22,39 +23,6 @@ def game_mode(name, minp, maxp, likelihood = 0):
     return decor
 
 reset_roles = lambda i: OrderedDict([(role, (0,) * len(i)) for role in var.ROLE_GUIDE])
-
-def get_lovers():
-    lovers = []
-    pl = list_players()
-    for lover in var.LOVERS:
-        done = None
-        for i, lset in enumerate(lovers):
-            if lover in pl and lover in lset:
-                if done is not None: # plot twist! two clusters turn out to be linked!
-                    done.update(lset)
-                    for lvr in var.LOVERS[lover]:
-                        if lvr in pl:
-                            done.add(lvr)
-
-                    lset.clear()
-                    continue
-
-                for lvr in var.LOVERS[lover]:
-                    if lvr in pl:
-                        lset.add(lvr)
-                done = lset
-
-        if done is None and lover in pl:
-            lovers.append(set())
-            lovers[-1].add(lover)
-            for lvr in var.LOVERS[lover]:
-                if lvr in pl:
-                    lovers[-1].add(lvr)
-
-    while set() in lovers:
-        lovers.remove(set())
-
-    return lovers
 
 class GameMode:
     def __init__(self, arg=""):
@@ -80,7 +48,7 @@ class GameMode:
                 elif val == "team" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "team"
             elif key in ("stats type", "stats"):
-                if val not in ("default", "accurate", "team", "disabled"):
+                if val not in ("default", "accurate", "team", "disabled", "experimental"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val
             elif key == "abstain":
@@ -110,6 +78,7 @@ class GameMode:
         winner = evt.data["winner"]
         if winner is not None and winner.startswith("@"):
             return # fool won, lovers can't win even if they would
+        from src.roles.matchmaker import get_lovers
         all_lovers = get_lovers()
         if len(all_lovers) != 1:
             return # we need exactly one cluster alive for this to trigger
@@ -171,6 +140,23 @@ class DefaultMode(GameMode):
         self.ROLE_INDEX = role_index
         self.ROLE_GUIDE = role_guide
 
+    def startup(self):
+        events.add_listener("chk_decision", self.chk_decision, priority=20)
+
+    def teardown(self):
+        events.remove_listener("chk_decision", self.chk_decision, priority=20)
+
+    def chk_decision(self, evt, var, force):
+        if len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
+            if users.Bot in evt.data["votelist"]:
+                if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
+                    channels.Main.send(messages["villagergame_nope"])
+                    from src.wolfgame import stop_game
+                    stop_game(var, "wolves")
+                    evt.prevent_default = True
+                else:
+                    del evt.data["votelist"][users.Bot]
+
 @game_mode("villagergame", minp = 4, maxp = 9, likelihood = 0)
 class VillagergameMode(GameMode):
     """This mode definitely does not exist, now please go away."""
@@ -193,12 +179,14 @@ class VillagergameMode(GameMode):
         events.add_listener("chk_nightdone", self.chk_nightdone)
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
+        events.add_listener("chk_decision", self.chk_decision, priority=20)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
         events.remove_listener("chk_nightdone", self.chk_nightdone)
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
+        events.remove_listener("chk_decision", self.chk_decision, priority=20)
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         # village can only win via unanimous vote on the bot nick
@@ -213,15 +201,15 @@ class VillagergameMode(GameMode):
 
     def chk_nightdone(self, evt, var):
         transition_day = evt.data["transition_day"]
-        evt.data["transition_day"] = lambda cli, gameid=0: self.prolong_night(cli, var, gameid, transition_day)
+        evt.data["transition_day"] = lambda gameid=0: self.prolong_night(var, gameid, transition_day)
 
-    def prolong_night(self, cli, var, gameid, transition_day):
+    def prolong_night(self, var, gameid, transition_day):
         nspecials = len(get_all_players(("seer", "harlot", "shaman", "crazed shaman")))
         rand = random.gauss(5, 1.5)
         if rand <= 0 and nspecials > 0:
-            transition_day(cli, gameid=gameid)
+            transition_day(gameid=gameid)
         else:
-            t = threading.Timer(abs(rand), transition_day, args=(cli,), kwargs={"gameid": gameid})
+            t = threading.Timer(abs(rand), transition_day, kwargs={"gameid": gameid})
             t.start()
 
     def transition_day(self, evt, var):
@@ -263,6 +251,16 @@ class VillagergameMode(GameMode):
         if orig_target == "@wolves":
             evt.data["target"] = None
             evt.stop_processing = True
+
+    def chk_decision(self, evt, var, force):
+        if users.Bot in evt.data["votelist"]:
+            if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
+                channels.Main.send(messages["villagergame_win"])
+                from src.wolfgame import stop_game
+                stop_game(var, "everyone")
+                evt.prevent_default = True
+            else:
+                del evt.data["votelist"][users.Bot]
 
 @game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
 class FoolishMode(GameMode):
@@ -601,7 +599,7 @@ class RandomMode(GameMode):
         events.remove_listener("role_attribution", self.role_attribution)
         events.remove_listener("chk_win", self.lovers_chk_win)
 
-    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
+    def role_attribution(self, evt, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
         for role in var.ROLE_GUIDE:
@@ -629,8 +627,8 @@ class RandomMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if chk_win_conditions(cli, rolemap, mainroles, end_game=False):
-            return self.role_attribution(evt, cli, var, chk_win_conditions, villagers)
+        if chk_win_conditions(rolemap, mainroles, end_game=False):
+            return self.role_attribution(evt, var, chk_win_conditions, villagers)
 
         evt.prevent_default = True
 
@@ -875,19 +873,18 @@ class SleepyMode(GameMode):
         # disable wolfchat
         #self.RESTRICT_WOLFCHAT = 0x0f
 
-        self.having_nightmare = None
-
     def startup(self):
         events.add_listener("dullahan_targets", self.dullahan_targets)
         events.add_listener("transition_night_begin", self.setup_nightmares)
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
-        events.add_listener("rename_player", self.rename_player)
         self.north_cmd = command("north", "n", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "n"))
         self.east_cmd = command("east", "e", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "e"))
         self.south_cmd = command("south", "s", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "s"))
         self.west_cmd = command("west", "w", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "w"))
+
+        self.having_nightmare = UserList()
 
     def teardown(self):
         from src import decorators
@@ -896,7 +893,6 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
-        events.remove_listener("rename_player", self.rename_player)
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:
                 decorators.COMMANDS[name].remove(command)
@@ -911,23 +907,18 @@ class SleepyMode(GameMode):
         remove_command("west", self.west_cmd)
         remove_command("w", self.west_cmd)
 
-    def dullahan_targets(self, evt, cli, var, dullahans, max_targets):
-        for dull in dullahans:
-            evt.data["targets"][dull] = set(var.ROLES["priest"])
+        self.having_nightmare.clear()
 
-    def setup_nightmares(self, evt, cli, var):
+    def dullahan_targets(self, evt, var, dullahans, max_targets):
+        for dull in dullahans:
+            evt.data["targets"][dull] = UserSet(var.ROLES["priest"])
+
+    def setup_nightmares(self, evt, var):
         if random.random() < 1/5:
-            self.having_nightmare = True
             with var.WARNING_LOCK:
                 t = threading.Timer(60, self.do_nightmare, (var, random.choice(get_players()), var.NIGHT_COUNT))
                 t.daemon = True
                 t.start()
-        else:
-            self.having_nightmare = None
-
-    def rename_player(self, evt, cli, var, prefix, nick):
-        if self.having_nightmare == prefix:
-            self.having_nightmare = nick
 
     @handle_error
     def do_nightmare(self, var, target, night):
@@ -935,7 +926,8 @@ class SleepyMode(GameMode):
             return
         if target not in get_players():
             return
-        self.having_nightmare = target
+        self.having_nightmare.clear()
+        self.having_nightmare.append(target)
         target.send(messages["sleepy_nightmare_begin"])
         target.send(messages["sleepy_nightmare_navigate"])
         self.correct = [None, None, None]
@@ -976,30 +968,30 @@ class SleepyMode(GameMode):
             directions = "north, south, and west"
 
         if self.step == 0:
-            self.having_nightmare.send(messages["sleepy_nightmare_0"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_0"].format(directions))
         elif self.step == 1:
-            self.having_nightmare.send(messages["sleepy_nightmare_1"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_1"].format(directions))
         elif self.step == 2:
-            self.having_nightmare.send(messages["sleepy_nightmare_2"].format(directions))
+            self.having_nightmare[0].send(messages["sleepy_nightmare_2"].format(directions))
         elif self.step == 3:
             if "correct" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_wake"])
-                self.having_nightmare = None
+                self.having_nightmare[0].send(messages["sleepy_nightmare_wake"])
+                del self.having_nightmare[0]
             elif "fake1" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_fake_1"])
+                self.having_nightmare[0].send(messages["sleepy_nightmare_fake_1"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step()
             elif "fake2" in self.on_path:
-                self.having_nightmare.send(messages["sleepy_nightmare_fake_2"])
+                self.having_nightmare[0].send(messages["sleepy_nightmare_fake_2"])
                 self.step = 0
                 self.on_path = set()
                 self.prev_direction = self.start_direction
                 self.nightmare_step()
 
     def move(self, direction, var, wrapper, message):
-        if self.having_nightmare is not wrapper.source:
+        if self.having_nightmare[0] is not wrapper.source:
             return
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         if self.prev_direction == opposite[direction]:
@@ -1032,14 +1024,14 @@ class SleepyMode(GameMode):
         self.nightmare_step()
 
     def prolong_night(self, evt, var):
-        if self.having_nightmare is not None:
+        if self.having_nightmare:
             evt.data["actedcount"] = -1
 
     def nightmare_kill(self, evt, var):
-        # if True, it means night ended before 1 minute
-        if self.having_nightmare is not None and self.having_nightmare in get_players():
-            var.DYING.add(self.having_nightmare)
-            self.having_nightmare.send(messages["sleepy_nightmare_death"])
+        if self.having_nightmare and self.having_nightmare[0] in get_players():
+            var.DYING.add(self.having_nightmare[0])
+            self.having_nightmare[0].send(messages["sleepy_nightmare_death"])
+            del self.having_nightmare[0]
 
     def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
         if death_triggers:
@@ -1099,7 +1091,7 @@ class MaelstromMode(GameMode):
         if user.is_fake:
             return
 
-        if not var.DISABLE_ACCOUNTS:
+        if user.account is not None:
             self.DEAD_ACCOUNTS.add(user.lower().account)
 
         if not var.ACCOUNTS_ONLY:
@@ -1125,13 +1117,12 @@ class MaelstromMode(GameMode):
     def _on_join(self, var, wrapper):
         from src import hooks, channels
         role = random.choice(self.roles)
-        rolemap = copy.deepcopy(var.ROLES)
-        rolemap[role].add(wrapper.source)
-        mainroles = copy.deepcopy(var.MAIN_ROLES)
-        mainroles[wrapper.source] = role
+        with copy.deepcopy(var.ROLES) as rolemap, copy.deepcopy(var.MAIN_ROLES) as mainroles:
+            rolemap[role].add(wrapper.source)
+            mainroles[wrapper.source] = role
 
-        if self.chk_win_conditions(wrapper.client, rolemap, mainroles, end_game=False):
-            return self._on_join(var, wrapper)
+            if self.chk_win_conditions(rolemap, mainroles, end_game=False):
+                return self._on_join(var, wrapper)
 
         if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
             cmodes = [("+v", wrapper.source)]
@@ -1173,22 +1164,23 @@ class MaelstromMode(GameMode):
                     pl[i] = player.nick + " (cursed)"
             wrapper.pm("Players: " + ", ".join(pl))
 
-    def role_attribution(self, evt, cli, var, chk_win_conditions, villagers):
+    def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
-        evt.data["addroles"] = self._role_attribution(cli, var, villagers, True)
+        evt.data["addroles"] = self._role_attribution(var, villagers, True)
 
-    def transition_night_begin(self, evt, cli, var):
+    def transition_night_begin(self, evt, var):
         # don't do this n1
         if var.FIRST_NIGHT:
             return
         villagers = get_players()
         lpl = len(villagers)
-        addroles = self._role_attribution(cli, var, villagers, False)
+        addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
-            var.ROLES[role] = set(selected)
+            var.ROLES[role].clear()
+            var.ROLES[role].update(selected)
             for x in selected:
                 villagers.remove(x)
 
@@ -1216,7 +1208,7 @@ class MaelstromMode(GameMode):
                 var.FINAL_ROLES[p.nick] = role # FIXME
                 var.MAIN_ROLES[p] = role
 
-    def _role_attribution(self, cli, var, villagers, do_templates):
+    def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
         addroles = {}
         for role in var.ROLE_GUIDE:
@@ -1255,8 +1247,8 @@ class MaelstromMode(GameMode):
                         mainroles[u] = role
                 i += count
 
-        if self.chk_win_conditions(cli, rolemap, mainroles, end_game=False):
-            return self._role_attribution(cli, var, villagers, do_templates)
+        if self.chk_win_conditions(rolemap, mainroles, end_game=False):
+            return self._role_attribution(var, villagers, do_templates)
 
         return addroles
 
@@ -1320,7 +1312,7 @@ class MudkipMode(GameMode):
         events.remove_listener("daylight_warning", self.daylight_warning)
         events.remove_listener("transition_night_begin", self.transition_night_begin)
 
-    def chk_decision(self, evt, cli, var, force):
+    def chk_decision(self, evt, var, force):
         # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
         # kill all tied players rather than hanging. The intent of this is to benefit village team in the event
         # of a stalemate, as they could use the extra help (especially in 5p).
@@ -1328,13 +1320,15 @@ class MudkipMode(GameMode):
             # in here, this means we're in a child chk_decision event called from this one
             # we need to ensure we don't turn into nighttime prematurely or try to vote
             # anyone other than the person we're forcing the lynch on
-            evt.data["transition_night"] = lambda cli: None
+            evt.data["transition_night"] = lambda: None
             if force:
-                evt.data["votelist"] = {force: set()}
-                evt.data["numvotes"] = {force: 0}
+                evt.data["votelist"].clear()
+                evt.data["votelist"][force] = set()
+                evt.data["numvotes"].clear()
+                evt.data["numvotes"][force] = 0
             else:
-                evt.data["votelist"] = {}
-                evt.data["numvotes"] = {}
+                evt.data["votelist"].clear()
+                evt.data["numvotes"].clear()
             return
 
         avail = len(evt.params.voters)
@@ -1362,12 +1356,12 @@ class MudkipMode(GameMode):
         for p in tovote:
             deadlist = tovote[:]
             deadlist.remove(p)
-            chk_decision(cli, force=p, deadlist=deadlist, end_game=p is last)
+            chk_decision(force=p, deadlist=deadlist, end_game=p is last)
 
         self.recursion_guard = False
         # gameid changes if game stops due to us voting someone
         if var.GAME_ID == gameid:
-            evt.data["transition_night"](cli)
+            evt.data["transition_night"]()
 
         # make original chk_decision that called us no-op
         evt.prevent_default = True
@@ -1375,7 +1369,7 @@ class MudkipMode(GameMode):
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"
 
-    def transition_night_begin(self, evt, cli, var):
+    def transition_night_begin(self, evt, var):
         if var.FIRST_NIGHT:
             # ensure shaman gets death totem on the first night
             var.TOTEM_CHANCES["pestilence"] = (0, 1, 0)

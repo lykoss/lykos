@@ -5,18 +5,18 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-ENTRANCED = set() # type: Set[users.User]
-ENTRANCED_DYING = set() # type: Set[users.User]
-VISITED = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+ENTRANCED = UserSet() # type: Set[users.User]
+ENTRANCED_DYING = UserSet() # type: Set[users.User]
+VISITED = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 ALL_SUCC_IDLE = True
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
@@ -55,16 +55,7 @@ def hvisit(var, wrapper, message):
         revt = Event("succubus_visit", {})
         revt.dispatch(var, wrapper.source, target)
 
-        # TODO: split these into assassin, hag, and alpha wolf when they are split off
-        if users._get(var.TARGETED.get(target.nick), allow_none=True) in get_all_players(("succubus",)): # FIXME
-            msg = messages["no_target_succubus"].format(var.TARGETED[target.nick])
-            del var.TARGETED[target.nick]
-            if target in get_all_players(("village drunk",)):
-                victim = random.choice(list(get_all_players() - get_all_players(("succubus",)) - {target}))
-                msg += messages["drunk_target"].format(victim)
-                var.TARGETED[target.nick] = victim.nick
-            target.send(msg)
-
+        # TODO: split these into hag and alpha wolf when they are split off
         if target.nick in var.HEXED and users._get(var.LASTHEXED[target.nick]) in get_all_players(("succubus",)): # FIXME
             target.send(messages["retract_hex_succubus"].format(var.LASTHEXED[target.nick]))
             var.TOBESILENCED.remove(wrapper.source.nick)
@@ -102,16 +93,17 @@ def on_get_random_totem_targets(evt, var, shaman):
                 evt.data["targets"].remove(succubus)
 
 @event_listener("chk_decision")
-def on_chk_decision(evt, cli, var, force):
+def on_chk_decision(evt, var, force):
     for votee, voters in evt.data["votelist"].items():
-        if users._get(votee) in get_all_players(("succubus",)): # FIXME
+        if votee in get_all_players(("succubus",)):
             for vtr in ENTRANCED:
-                if vtr.nick in voters:
-                    evt.data["numvotes"][votee] -= evt.data["weights"][votee][vtr.nick]
-                    evt.data["weights"][votee][vtr.nick] = 0
+                if vtr in voters:
+                    evt.data["numvotes"][votee] -= evt.data["weights"][votee][vtr]
+                    evt.data["weights"][votee][vtr] = 0
 
 def _kill_entranced_voters(var, votelist, not_lynching, votee):
-    if not {p.nick for p in get_all_players(("succubus",))} & (set(itertools.chain(*votelist.values())) | not_lynching): # FIXME
+    voters = set(itertools.chain(*votelist.values()))
+    if not get_all_players(("succubus",)) & (voters | not_lynching):
         # none of the succubi voted (or there aren't any succubi), so short-circuit
         return
     # kill off everyone entranced that did not follow one of the succubi's votes or abstain
@@ -121,32 +113,28 @@ def _kill_entranced_voters(var, votelist, not_lynching, votee):
             ENTRANCED_DYING.add(x)
 
     for other_votee, other_voters in votelist.items():
-        if {p.nick for p in get_all_players(("succubus",))} & set(other_voters): # FIXME
-            if votee == other_votee:
+        if get_all_players(("succubus",)) & set(other_voters):
+            if votee is other_votee:
                 ENTRANCED_DYING.clear()
                 return
 
-            for x in set(ENTRANCED_DYING):
-                if x.nick in other_voters:
-                    ENTRANCED_DYING.remove(x)
+            ENTRANCED_DYING.difference_update(other_voters)
 
-    if {p.nick for p in get_all_players(("succubus",))} & not_lynching: # FIXME
+    if get_all_players(("succubus",)) & not_lynching:
         if votee is None:
             ENTRANCED_DYING.clear()
             return
 
-        for x in set(ENTRANCED_DYING):
-            if x.nick in not_lynching:
-                ENTRANCED_DYING.remove(x)
+        ENTRANCED_DYING.difference_update(not_lynching)
 
 @event_listener("chk_decision_lynch", priority=5)
-def on_chk_decision_lynch(evt, cli, var, voters):
+def on_chk_decision_lynch(evt, var, voters):
     # a different event may override the original votee, but people voting along with succubus
     # won't necessarily know that, so base whether or not they risk death on the person originally voted
     _kill_entranced_voters(var, evt.params.votelist, evt.params.not_lynching, evt.params.original_votee)
 
 @event_listener("chk_decision_abstain")
-def on_chk_decision_abstain(evt, cli, var, not_lynching):
+def on_chk_decision_abstain(evt, var, not_lynching):
     _kill_entranced_voters(var, evt.params.votelist, not_lynching, None)
 
 # entranced logic should run after team wins have already been determined (aka run last)
@@ -312,31 +300,18 @@ def on_transition_day(evt, var):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("succubus",)))
+    evt.data["win_stealers"].update(get_players(("succubus",)))
 
 @event_listener("vg_kill")
 def on_vg_kill(evt, var, ghost, target):
     if ghost in ENTRANCED:
         evt.data["pl"] -= get_all_players(("succubus",))
 
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    if old_user in ENTRANCED:
-        ENTRANCED.remove(old_user)
-        ENTRANCED.add(user)
-    if old_user in ENTRANCED_DYING:
-        ENTRANCED_DYING.remove(old_user)
-        ENTRANCED_DYING.add(user)
-
-    for succubus, target in set(VISITED.items()):
-        if old_user is succubus:
-            VISITED[user] = VISITED.pop(succubus)
-        if old_user is target:
-            VISITED[succubus] = user
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
+@event_listener("new_role")
+def on_new_role(evt, var, user, role):
+    if role == "succubus" and user in ENTRANCED:
+        ENTRANCED.remove(user)
+        user.send(messages["no_longer_entranced"])
 
 @event_listener("reset")
 def on_reset(evt, var):

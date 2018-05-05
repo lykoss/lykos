@@ -9,7 +9,7 @@ search = os.path.join(path, "*.py")
 for f in glob.iglob(search):
     f = os.path.basename(f)
     n, _ = os.path.splitext(f)
-    if f == "__init__.py":
+    if f.startswith("_"):
         continue
     importlib.import_module("." + n, package="src.roles")
 

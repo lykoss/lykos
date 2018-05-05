@@ -5,11 +5,11 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -51,9 +51,9 @@ def on_transition_night_end(evt, var):
             blessed.send(messages[to_send])
 
 @event_listener("desperation_totem")
-def on_desperation(evt, cli, var, votee, target, prot):
+def on_desperation(evt, var, votee, target, prot):
     if prot == "blessing":
-        var.ACTIVE_PROTECTIONS[target].remove("blessing")
+        var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
         evt.prevent_default = True
         evt.stop_processing = True
 

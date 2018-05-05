@@ -118,30 +118,6 @@ def add(nick, **blah): # backwards-compatible API
     var.USERS[nick] = blah
     return _user(nick)
 
-def _exists(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_bot=False):
-    """Return True if a matching user exists.
-
-    Positional and keyword arguments are the same as get(), with the
-    exception of allow_none.
-
-    """
-
-    sentinel = object()
-
-    if ident is None and host is None and nick is not None:
-        nick, ident, host = parse_rawnick(nick)
-
-    cls = User
-    if predicate(nick):
-        cls = FakeUser
-
-    temp = cls(sentinel, nick, ident, host, realname, account)
-
-    if temp.client is sentinel: # doesn't exist; if it did, the client would be an actual client
-        return False
-
-    return temp is not Bot or allow_bot
-
 def exists(nick, *stuff, **morestuff): # backwards-compatible API
     return nick in var.USERS
 
@@ -194,17 +170,10 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
-def _swap_player(evt, var, old_user, user):
-    """Mark the user as no longer being a ghost, if they are one."""
-    _ghosts.discard(old_user)
-    if not old_user.channels:
-        _users.discard(old_user)
-
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 events.add_listener("cleanup_user", _cleanup_user)
 events.add_listener("reset", _reset)
-events.add_listener("swap_player", _swap_player, priority=1)
 
 class User(IRCContext):
 
@@ -220,6 +189,10 @@ class User(IRCContext):
         self.account = account
         self.channels = {}
         self.timestamp = time.time()
+        self.sets = []
+        self.lists = []
+        self.dict_keys = []
+        self.dict_values = []
 
         if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
             self = Bot
@@ -314,6 +287,35 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
+    def swap(self, new):
+        """Swap yourself out with the new user everywhere."""
+        if self is new:
+            return # as far as the caller is aware, we've swapped
+
+        _ghosts.discard(self)
+        if not self.channels:
+            _users.discard(self) # Goodbye, my old friend
+
+        for l in self.lists[:]:
+            while self in l:
+                l[l.index(self)] = new
+
+        for s in self.sets[:]:
+            s.remove(self)
+            s.add(new)
+
+        for dk in self.dict_keys[:]:
+            dk[new] = dk.pop(self)
+
+        for dv in self.dict_values[:]:
+            for key in dv:
+                if dv[key] is self:
+                    dv[key] = new
+
+        # It is the containers' reponsibility to properly remove themself from the users
+        # So if any list is non-empty, something went terribly wrong
+        assert not self.lists + self.sets + self.dict_keys + self.dict_values
+
     def lower(self):
         temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
@@ -328,7 +330,7 @@ class User(IRCContext):
         hosts = set(botconfig.OWNERS)
         accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-        if not var.DISABLE_ACCOUNTS and self.account is not None:
+        if self.account is not None:
             for pattern in accounts:
                 if fnmatch.fnmatch(lower(self.account), lower(pattern)):
                     return True
@@ -350,7 +352,7 @@ class User(IRCContext):
                 hosts = set(botconfig.ADMINS)
                 accounts = set(botconfig.ADMINS_ACCOUNTS)
 
-                if not var.DISABLE_ACCOUNTS and self.account is not None:
+                if self.account is not None:
                     for pattern in accounts:
                         if fnmatch.fnmatch(lower(self.account), lower(pattern)):
                             return True
@@ -415,11 +417,10 @@ class User(IRCContext):
     def get_pingif_count(self):
         temp = self.lower()
 
-        if not var.DISABLE_ACCOUNTS and temp.account is not None:
-            if temp.account in var.PING_IF_PREFS_ACCS:
-                return var.PING_IF_PREFS_ACCS[temp.account]
+        if temp.account in var.PING_IF_PREFS_ACCS:
+            return var.PING_IF_PREFS_ACCS[temp.account]
 
-        elif not var.ACCOUNTS_ONLY:
+        if not var.ACCOUNTS_ONLY:
             for hostmask, pref in var.PING_IF_PREFS.items():
                 if temp.match_hostmask(hostmask):
                     return pref
@@ -430,14 +431,13 @@ class User(IRCContext):
         temp = self.lower()
 
         if not value:
-            if not var.DISABLE_ACCOUNTS and temp.account:
-                if temp.account in var.PING_IF_PREFS_ACCS:
-                    del var.PING_IF_PREFS_ACCS[temp.account]
-                    db.set_pingif(0, temp.account, None)
-                    if old is not None:
-                        with var.WARNING_LOCK:
-                            if old in var.PING_IF_NUMS_ACCS:
-                                var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+            if temp.account in var.PING_IF_PREFS_ACCS:
+                del var.PING_IF_PREFS_ACCS[temp.account]
+                db.set_pingif(0, temp.account, None)
+                if old is not None:
+                    with var.WARNING_LOCK:
+                        if old in var.PING_IF_NUMS_ACCS:
+                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
 
             if not var.ACCOUNTS_ONLY:
                 for hostmask in list(var.PING_IF_PREFS):
@@ -451,7 +451,7 @@ class User(IRCContext):
                                     var.PING_IF_NUMS[old].discard(temp.host)
 
         else:
-            if not var.DISABLE_ACCOUNTS and temp.account:
+            if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
                 db.set_pingif(value, temp.account, None)
                 with var.WARNING_LOCK:
@@ -489,11 +489,7 @@ class User(IRCContext):
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
         temp = self.lower()
-        amount = 0
-
-        if not var.DISABLE_ACCOUNTS:
-            amount = var.STASISED_ACCS.get(temp.account, 0)
-
+        amount = var.STASISED_ACCS.get(temp.account, 0)
         amount = max(amount, var.STASISED.get(temp.userhost, 0))
 
         return amount
@@ -550,7 +546,7 @@ class User(IRCContext):
 
     @account.setter
     def account(self, account):
-        if account in ("0", "*"):
+        if account in ("0", "*") or var.DISABLE_ACCOUNTS:
             account = None
         self._account = account
 
@@ -613,7 +609,7 @@ class FakeUser(User):
 
     @rawnick.setter
     def rawnick(self, rawnick):
-        self.nick = parse_rawnick_as_dict(rawnick)["nick"]
+        raise ValueError("may not change the raw nick of a fake user")
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 

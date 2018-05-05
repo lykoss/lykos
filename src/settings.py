@@ -1,9 +1,7 @@
 import fnmatch
 import re
 import threading
-from collections import defaultdict, OrderedDict
-
-import botconfig
+from collections import OrderedDict
 
 LANGUAGE = 'en'
 

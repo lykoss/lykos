@@ -2,19 +2,19 @@ import re
 import random
 from collections import defaultdict
 
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_target, get_main_role
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[users.User, users.User]
-GHOSTS = {} # type: Dict[users.User, str]
+KILLS = UserDict() # type: Dict[users.User, users.User]
+GHOSTS = UserDict() # type: Dict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
-drivenoff = {} # type: Dict[users.User, str]
+drivenoff = UserDict() # type: Dict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(var, wrapper, message):
@@ -49,16 +49,18 @@ def vg_kill(var, wrapper, message):
 
     wrapper.pm(messages["player_kill"].format(orig))
 
-    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source.nick, target, get_main_role(target)))
+    debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(var, wrapper, message):
     """Removes a vengeful ghost's kill selection."""
     if wrapper.source not in GHOSTS:
         return
+
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
+        debuglog("{0} (vengeful ghost) RETRACT".format(wrapper.source))
 
 @event_listener("get_participants")
 def on_get_participants(evt, var):

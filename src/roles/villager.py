@@ -1,12 +1,18 @@
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
 # handles villager and cultist
+
+@event_listener("transition_day", priority=7)
+def on_transition_day(evt, var):
+    for player in var.DYING:
+        evt.data["victims"].append(player)
+        evt.data["onlybywolves"].discard(player)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -34,25 +40,6 @@ def on_transition_night_end(evt, var):
                     to_send = "cultist_simple"
                 cultist.queue_message(messages[to_send])
             cultist.send_messages()
-
-# No listeners should register before this one
-# This sets up the initial state, based on village/wolfteam/neutral affiliation
-@event_listener("player_win", priority=0)
-def on_player_win(evt, var, user, role, winner, survived):
-    # init won/iwon to False
-    evt.data["won"] = False
-    evt.data["iwon"] = False
-
-    if role in var.WOLFTEAM_ROLES or (var.DEFAULT_ROLE == "cultist" and role in var.HIDDEN_ROLES):
-        if winner == "wolves":
-            evt.data["won"] = True
-            evt.data["iwon"] = survived
-    elif role in var.TRUE_NEUTRAL_ROLES:
-        # handled in their individual files
-        pass
-    elif winner == "villagers":
-        evt.data["won"] = True
-        evt.data["iwon"] = survived
 
 @event_listener("chk_win", priority=3)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):

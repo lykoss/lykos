@@ -216,7 +216,7 @@ class Channel(IRCContext):
                 elif c in list_modes: # stuff like bans, quiets, and ban and invite exempts
                     if c not in self.modes:
                         self.modes[c] = {}
-                    self.modes[c][targets[i]] = (actor.rawnick, set_time)
+                    self.modes[c][targets[i]] = ((actor.rawnick if actor is not None else None), set_time)
                     i += 1
 
                 else:

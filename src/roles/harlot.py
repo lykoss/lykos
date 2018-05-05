@@ -5,16 +5,16 @@ import math
 from collections import defaultdict
 
 import botconfig
-import src.settings as var
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-VISITED = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+VISITED = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(var, wrapper, message):
@@ -134,27 +134,15 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    for harlot, target in set(VISITED.items()):
-        if target is old_user:
-            VISITED[harlot] = user
-        if harlot is old_user:
-            VISITED[user] = VISITED.pop(harlot)
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
-
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("harlot",)))
+    evt.data["villagers"].update(get_players(("harlot",)))
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if "harlot" not in allroles:
         return
-    VISITED.pop(user, None)
+    del VISITED[:user:]
     PASSED.discard(user)
 
 @event_listener("reset")

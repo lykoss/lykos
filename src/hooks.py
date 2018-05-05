@@ -320,7 +320,16 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         users.Bot.modes.update(mode)
         return
 
-    actor = users._add(cli, nick=rawnick) # FIXME
+    if "!" not in rawnick:
+        # Only sync modes if a server changed modes because
+        # 1) human ops probably know better
+        # 2) other bots might start a fight over modes
+        # 3) recursion; we see our own mode changes.
+        evt = Event("sync_modes", {})
+        evt.dispatch(var)
+        return
+
+    actor = users._get(rawnick, allow_none=True) # FIXME
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
@@ -519,7 +528,7 @@ def on_account_change(cli, rawnick, account):
 
     """
 
-    user = users._add(cli, nick=rawnick) # FIXME
+    user = users._get(rawnick) # FIXME
     user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
 
     Event("account_change", {}).dispatch(var, user)
@@ -586,7 +595,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users._add(cli, nick=rawnick) # FIXME
+    user = users._get(rawnick) # FIXME
     Event("chan_part", {}).dispatch(var, ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
@@ -611,8 +620,8 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users._add(cli, nick=rawnick) # FIXME
-    user = users._add(cli, nick=target) # FIXME
+    actor = users._get(rawnick, allow_none=True) # FIXME
+    user = users._get(target) # FIXME
     Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
     if user is users.Bot:
@@ -646,7 +655,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users._add(cli, nick=rawnick) # FIXME
+    user = users._get(rawnick) # FIXME
     Event("server_quit", {}).dispatch(var, user, reason)
 
     for chan in set(user.channels):
@@ -654,5 +663,31 @@ def on_quit(cli, rawnick, reason):
             chan._clear()
         else:
             chan.remove_user(user)
+
+### CHGHOST Handling
+
+@hook("chghost")
+def on_chghost(cli, rawnick, ident, host):
+    """Handle a user changing host without a quit.
+
+    Ordering and meaning of arguments for CHGHOST:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The raw nick (nick!ident@host) of the user switching
+    2 - The new ident for the user (or same if unchanged)
+    3 - The new host for the user (or same if unchanged)
+
+    """
+
+    user = users._get(rawnick) # FIXME
+    new = users._add(cli, nick=user.nick, ident=ident, host=host, realname=user.realname, account=user.account) # FIXME
+
+    if user is not new:
+        new.channels = user.channels.copy()
+        new.timestamp = user.timestamp # We lie, but it's ok
+        for chan in set(user.channels):
+            chan.remove_user(user)
+            chan.users.add(new)
+        user.swap(new)
 
 # vim: set sw=4 expandtab:

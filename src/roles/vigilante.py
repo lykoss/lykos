@@ -2,16 +2,16 @@ import re
 import random
 from collections import defaultdict
 
-import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-KILLS = {} # type: Dict[users.User, users.User]
-PASSED = set() # type: Set[users.User]
+KILLS = UserDict() # type: Dict[users.User, users.User]
+PASSED = UserSet() # type: Set[users.User]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_kill(var, wrapper, message):
@@ -30,7 +30,6 @@ def vigilante_kill(var, wrapper, message):
     PASSED.discard(wrapper.source)
 
     wrapper.send(messages["player_kill"].format(orig))
-
     debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
@@ -39,14 +38,16 @@ def vigilante_retract(var, wrapper, message):
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
         return
 
-    KILLS.pop(wrapper.source, None)
+    del KILLS[:wrapper.source:]
     PASSED.discard(wrapper.source)
+
     wrapper.send(messages["retracted_kill"])
+    debuglog("{0} (vigilante) RETRACT".format(wrapper.source))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_pass(var, wrapper, message):
     """Do not kill anyone tonight as a vigilante."""
-    KILLS.pop(wrapper.source, None)
+    del KILLS[:wrapper.source:]
     PASSED.add(wrapper.source)
     wrapper.send(messages["hunter_pass"])
 
@@ -55,23 +56,11 @@ def vigilante_pass(var, wrapper, message):
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     PASSED.discard(user)
-    KILLS.pop(user, None)
+    del KILLS[:user:]
     for vigilante, target in list(KILLS.items()):
         if target is user:
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
-
-@event_listener("swap_player")
-def on_swap(evt, var, old_user, user):
-    for vigilante, target in set(KILLS.items()):
-        if vigilante is old_user:
-            KILLS[user] = KILLS.pop(vigilante)
-        if target is old_user:
-            KILLS[vigilante] = user
-
-    if old_user in PASSED:
-        PASSED.remove(old_user)
-        PASSED.add(user)
 
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):
@@ -80,7 +69,7 @@ def on_acted(evt, var, target, spy):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(("vigilante",)))
+    evt.data["villagers"].update(get_players(("vigilante",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -96,8 +85,8 @@ def on_transition_day(evt, var):
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
-    KILLS.pop(actor, None)
-    KILLS.pop(target, None)
+    del KILLS[:actor:]
+    del KILLS[:target:]
     PASSED.discard(actor)
     PASSED.discard(target)
 

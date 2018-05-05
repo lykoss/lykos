@@ -7,6 +7,7 @@ from src.utilities import *
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles
 from src import debuglog, errlog, plog, users, channels
 from src.decorators import cmd, event_listener
+from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
@@ -61,7 +62,7 @@ def wolf_kill(cli, nick, chan, rest):
         victim = get_victim(cli, nick, victim, False)
         if not victim:
             return
-        
+
         if victim == nick:
             pm(cli, nick, messages["no_suicide"])
             return
@@ -127,7 +128,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             del KILLS[a]
 
 @event_listener("rename_player")
-def on_rename(evt, cli, var, prefix, nick):
+def on_rename(evt, var, prefix, nick):
     kvp = []
     for a,b in KILLS.items():
         nl = []
@@ -149,7 +150,7 @@ def on_acted(evt, var, user, actor):
 
 @event_listener("get_special")
 def on_get_special(evt, var):
-    evt.data["special"].update(get_players(CAN_KILL))
+    evt.data["wolves"].update(get_players(var.WOLFTEAM_ROLES))
 
 @event_listener("transition_day", priority=1)
 def on_transition_day(evt, var):
@@ -396,6 +397,12 @@ def on_transition_night_end(evt, var):
             elif role.startswith(("a", "e", "i", "o", "u")):
                 an = "n"
             wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
+
+
+        if var.FIRST_NIGHT:
+            minions = len(get_all_players(("minion",)))
+            if minions > 0:
+                wolf.send(messages["has_minions"].format(minions, plural("minion", minions)))
 
         pl = ps[:]
         random.shuffle(pl)

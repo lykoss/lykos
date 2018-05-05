@@ -21,9 +21,8 @@ def is_user_stasised(nick):
     else:
         return -1
     amount = 0
-    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-        if acc in var.STASISED_ACCS:
-            amount = var.STASISED_ACCS[acc]
+    if acc in var.STASISED_ACCS:
+        amount = var.STASISED_ACCS[acc]
     for hostmask in var.STASISED:
         if match_hostmask(hostmask, nick, ident, host):
            amount = max(amount, var.STASISED[hostmask])
@@ -57,8 +56,6 @@ def expire_tempbans():
 
 def parse_warning_target(target, lower=False):
     if target[0] == "=":
-        if var.DISABLE_ACCOUNTS:
-            return (None, None)
         tacc = target[1:]
         thm = None
         if lower:
@@ -79,13 +76,11 @@ def parse_warning_target(target, lower=False):
         if lower:
             hml, hmr = thm.split("@", 1)
             thm = irc_lower(hml) + "@" + hmr.lower()
-    elif not var.DISABLE_ACCOUNTS:
+    else:
         tacc = target
         thm = None
         if lower:
             tacc = irc_lower(tacc)
-    else:
-        return (None, None)
     return (tacc, thm)
 
 def _get_auto_sanctions(sanctions, prev, cur):
@@ -281,13 +276,9 @@ def fstasis(var, wrapper, message):
     elif var.STASISED or var.STASISED_ACCS:
         stasised = {}
         for hostmask in var.STASISED:
-            if var.DISABLE_ACCOUNTS:
-                stasised[hostmask] = var.STASISED[hostmask]
-            else:
-                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
-        if not var.DISABLE_ACCOUNTS:
-            for acc in var.STASISED_ACCS:
-                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
+            stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
+        for acc in var.STASISED_ACCS:
+            stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
         msg = messages["currently_stasised"].format(", ".join(
             "\u0002{0}\u0002 ({1})".format(usr, number)
             for usr, number in stasised.items()))
