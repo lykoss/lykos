@@ -26,13 +26,11 @@ def hvisit(var, wrapper, message):
         return
 
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="succubus_not_self")
-
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": False})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
+    if not evt.dispatch(var, wrapper.source, target):
         return
     target = evt.data["target"]
 
@@ -93,6 +91,9 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
+    elif not lsuccubi and lentranced and var.PHASE == "day" and lpl == lentranced:
+        evt.data["winner"] = "succubi"
+        evt.data["message"] = messages["entranced_win"]
 
 @event_listener("exchange_roles")
 def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
@@ -193,11 +194,6 @@ def on_begin_day(evt, var):
 @event_listener("get_special")
 def on_get_special(evt, var):
     evt.data["win_stealers"].update(get_players(("succubus",)))
-
-@event_listener("vg_kill")
-def on_vg_kill(evt, var, ghost, target):
-    if ghost in ENTRANCED:
-        evt.data["pl"] -= get_all_players(("succubus",))
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, role):

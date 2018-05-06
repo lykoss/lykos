@@ -120,9 +120,6 @@ def on_transition_day_begin(evt, var):
                 choice = wolves.copy()
             elif target == "villagers":
                 choice = villagers.copy()
-            evt = Event("vg_kill", {"pl": choice})
-            evt.dispatch(var, ghost, target)
-            choice = evt.data["pl"]
             if choice:
                 KILLS[ghost] = random.choice(list(choice))
 

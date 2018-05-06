@@ -746,6 +746,7 @@
     "join_swap_instead": " Please use '{0}swap' to join instead.",
     "demoniac_win": "Game over! All the wolves are dead! As the villagers start preparing the BBQ, a sudden flash illuminates the sky. Demonic spirits emerge around the sacrificed wolves and possess all villagers, causing the demoniac{0} to win.",
     "succubus_win": "Game over! The {0} {1} completely enthralled the village, making them officers in an ever-growing army set on spreading their {2} control and influence throughout the entire world.",
+    "entranced_win": "Game over! All of the succubi are dead, but their servants remain. They regroup and summon a new succubus to serve.",
     "dullahan_die_totem": "Before dying, \u0002{0}\u0002 snaps a whip made of a human spine at \u0002{1}\u0002; however, {1}'s totem emits a brilliant flash of light, causing the attempt to miss.",
     "dullahan_die_angel": "Before dying, \u0002{0}\u0002 snaps a whip made of a human spine at \u0002{1}\u0002; however, a guardian angel was on duty and able to foil the attempt.",
     "dullahan_die_bodyguard": "Sensing danger, \u0002{2}\u0002 shoves \u0002{1}\u0002 aside to save them from \u0002{0}\u0002.",
