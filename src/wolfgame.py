@@ -6220,7 +6220,7 @@ def update(var, wrapper, message):
             stop_game(var, log=False)
         else:
             wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
-                what="restart", cmd="update", prefix=botconfig.CMD_CHAR), private=True)
+                what="restart", cmd="update", prefix=botconfig.CMD_CHAR))
             return
 
     if update.aftergame:
