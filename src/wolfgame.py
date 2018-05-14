@@ -2086,7 +2086,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                     if winner == "wolves":
                         won = True
                         iwon = plr in survived
-                elif role not in var.TRUE_NEUTRAL_ROLES and winner == "villagers":
+                elif rol not in var.TRUE_NEUTRAL_ROLES and winner == "villagers":
                     won = True
                     iwon = plr in survived
                 # true neutral roles are handled via the event below
