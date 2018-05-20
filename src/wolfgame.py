@@ -3657,7 +3657,7 @@ def lynch(var, wrapper, message):
         var.VOTES[voted] = UserList()
     if wrapper.source not in var.VOTES[voted]:
         var.VOTES[voted].append(wrapper.source)
-        wrapper.send(messages["player_vote"].format(wrapper.source, voted))
+        channels.Main.send(messages["player_vote"].format(wrapper.source, voted))
 
     var.LAST_VOTES = None # reset
 
