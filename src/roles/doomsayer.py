@@ -123,9 +123,9 @@ def on_transition_day(evt, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
-    var.DISEASED.update(SICK.values())
-    var.SILENCED.update(SICK.values())
-    var.LYCANTHROPES.update(LYCANS.values())
+    var.DISEASED.update([p.nick for p in SICK.values()]) # FIXME
+    var.SILENCED.update([p.nick for p in SICK.values()]) # FIXME
+    var.LYCANTHROPES.update([p.nick for p in LYCANS.values()]) # FIXME
 
     SEEN.clear()
     KILLS.clear()
