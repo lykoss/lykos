@@ -3612,6 +3612,8 @@ def lynch(var, wrapper, message):
     if not message:
         show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
         return
+    if wrapper.private:
+        return
     if wrapper.source in var.WOUNDED:
         wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
         return
