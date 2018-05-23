@@ -215,13 +215,13 @@ def on_myrole(evt, var, user):
     # Remind lovers of each other
     if user in get_players() and user in LOVERS:
         msg = [messages["matched_info"]]
-        lovers = sorted(LOVERS[user])
+        lovers = sorted(LOVERS[user], key=lambda x: x.nick)
         if len(lovers) == 1:
-            message.append(lovers[0])
+            msg.append(lovers[0].nick)
         elif len(lovers) == 2:
-            message.extend((lovers[0], "and", lovers[1]))
+            msg.extend((lovers[0].nick, "and", lovers[1].nick))
         else:
-            message.extend((", ".join(lovers[:-1]) + ",", "and", lovers[-1]))
+            msg.extend((", ".join([l.nick for l in lovers[:-1]]) + ",", "and", lovers[-1].nick))
         evt.data["messages"].append(" ".join(msg) + ".")
 
 @event_listener("revealroles")
