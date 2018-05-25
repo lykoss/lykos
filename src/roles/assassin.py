@@ -14,11 +14,12 @@ from src.messages import messages
 from src.events import Event
 
 TARGETED = UserDict() # type: Dict[users.User, users.User]
+PREV_ACTED = UserSet()
 
 @command("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
 def target(var, wrapper, message):
     """Pick a player as your target, killing them if you die."""
-    if wrapper.source in TARGETED:
+    if wrapper.source in PREV_ACTED:
         wrapper.send(messages["assassin_already_targeted"])
         return
 
@@ -39,8 +40,8 @@ def target(var, wrapper, message):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["nightroles"].extend(get_all_players(("assassin",)))
-    evt.data["actedcount"] += len(TARGETED)
+    evt.data["nightroles"].extend(get_all_players(("assassin",)) - PREV_ACTED)
+    evt.data["actedcount"] += len(TARGETED) - len(PREV_ACTED)
 
 @event_listener("transition_day", priority=8)
 def on_transition_day_resolve(evt, var):
@@ -57,6 +58,7 @@ def on_transition_day_resolve(evt, var):
                 target = random.choice(ps)
                 TARGETED[ass] = target
                 ass.send(messages["assassin_random"].format(target))
+    PREV_ACTED.update(TARGETED.keys())
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
@@ -70,6 +72,7 @@ def on_transition_night_end(evt, var):
 
         if ass in get_all_players(("village drunk",)): # FIXME: Make into an event when village drunk is split
             TARGETED[ass] = random.choice(pl)
+            PREV_ACTED.add(ass)
             message = messages["drunken_assassin_notification"].format(TARGETED[ass])
             if not ass.prefers_simple():
                 message += messages["assassin_info"]
@@ -88,10 +91,12 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
         for x, y in list(TARGETED.items()):
             if y is player:
                 del TARGETED[x]
+                PREV_ACTED.discard(x)
 
     if death_triggers and "assassin" in allroles and player in TARGETED:
         target = TARGETED[player]
         del TARGETED[player]
+        PREV_ACTED.discard(player)
         if target in evt.data["pl"]:
             prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
             aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},

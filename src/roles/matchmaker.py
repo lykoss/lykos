@@ -195,8 +195,9 @@ def on_player_win(evt, var, player, role, winner, survived):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(MATCHMAKERS)
-    evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
+    if var.FIRST_NIGHT:
+        evt.data["actedcount"] += len(MATCHMAKERS)
+        evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
 
 @event_listener("get_special")
 def on_get_special(evt, var):
