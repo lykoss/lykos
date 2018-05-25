@@ -25,7 +25,7 @@ def investigate(var, wrapper, message):
         return
 
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, "identify", wrapper.source, target, frozenset({"info", "immediate"})):
+    if not evt.dispatch(var, wrapper.source, target):
         return
 
     target = evt.data["target"]

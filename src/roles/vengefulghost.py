@@ -40,7 +40,7 @@ def vg_kill(var, wrapper, message):
 
     orig = target
     evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": False})
-    evt.dispatch(var, "kill", wrapper.source, target, frozenset({"detrimental"}))
+    evt.dispatch(var, wrapper.source, target)
     if evt.prevent_default:
         return
     target = evt.data["target"]
@@ -120,9 +120,6 @@ def on_transition_day_begin(evt, var):
                 choice = wolves.copy()
             elif target == "villagers":
                 choice = villagers.copy()
-            evt = Event("vg_kill", {"pl": choice})
-            evt.dispatch(var, ghost, target)
-            choice = evt.data["pl"]
             if choice:
                 KILLS[ghost] = random.choice(list(choice))
 

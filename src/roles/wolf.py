@@ -74,7 +74,7 @@ def wolf_kill(cli, nick, chan, rest):
         target = users._get(victim) # FIXME
 
         evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-        evt.dispatch(var, "kill", wolf, target, frozenset({"detrimental"}))
+        evt.dispatch(var, wolf, target)
         if evt.prevent_default:
             return
         victim = evt.data["target"].nick
@@ -436,16 +436,6 @@ def on_transition_night_end(evt, var):
         # TODO: split the following out into their own files (alpha)
         if var.ALPHA_ENABLED and role == "alpha wolf" and wolf.nick not in var.ALPHA_WOLVES: # FIXME: Fix once var.ALPHA_WOLVES holds User instances
             wolf.send(messages["wolf_bite"])
-
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    if get_all_players(("succubus",)).intersection(users._get(x) for x in KILLS.get(target.nick, ())): # FIXME: once KILLS holds User instances
-        for s in get_all_players(("succubus",)):
-            if s.nick in KILLS[target.nick]:
-                target.send(messages["no_kill_succubus"].format(succubus))
-                KILLS[target.nick].remove(s.nick)
-        if not KILLS[target.nick]:
-            del KILLS[target.nick]
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
