@@ -16,7 +16,7 @@ from src.events import Event
 def wolf_list(var):
     wolves = [wolf.nick for wolf in get_all_players(var.WOLF_ROLES)]
     random.shuffle(wolves)
-    return "Wolves: {}".format(", ".join(wolves))
+    return messages["wolves_list"].format(", ".join(wolves))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
