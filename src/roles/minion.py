@@ -18,9 +18,6 @@ def wolf_list(var):
     random.shuffle(wolves)
     return "Wolves: {}".format(", ".join(wolves))
 
-# PM players who have this role with instructions
-# Set priority=2 if this is a main role, and priority=5 if this is a secondary role
-# (secondary roles are like gunner, assassin, etc. which by default stack on top of main roles)
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
