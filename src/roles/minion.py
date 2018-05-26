@@ -23,10 +23,11 @@ def on_transition_night_end(evt, var):
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
         for minion in get_all_players(("minion",)):
             if minion.prefers_simple():
-                minion.send(messages["minion_simple"])
+                to_send = "minion_simple"
             else:
-                minion.send(messages["minion_notify"])
-            minion.send(wolf_list(var))
+                to_send = "minion_notify"
+            evt.data["messages"].append(messages[to_send])
+            evt.data["messages"].append(wolf_list(var))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
