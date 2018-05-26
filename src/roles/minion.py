@@ -26,8 +26,8 @@ def on_transition_night_end(evt, var):
                 to_send = "minion_simple"
             else:
                 to_send = "minion_notify"
-            evt.data["messages"].append(messages[to_send])
-            evt.data["messages"].append(wolf_list(var))
+            minion.send(messages[to_send])
+            minion.send(wolf_list(var))
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -43,6 +43,6 @@ def on_myrole(evt, var, user):
         for wolfrole in var.WOLF_ROLES:
             for player in var.ORIGINAL_ROLES[wolfrole]:
                 wolves.append(player.nick)
-        user.send(messages["original_wolves"].format(", ".join(wolves)))
+        evt.data["messages"].append(messages["original_wolves"].format(", ".join(wolves)))
 
 # vim: set sw=4 expandtab:
