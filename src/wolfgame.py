@@ -3843,10 +3843,6 @@ def check_exchange(cli, actor, nick):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, actor, messages["players_list"].format(", ".join(pl)))
-        elif nick_role == "minion":
-            wolves = list_players(var.WOLF_ROLES)
-            random.shuffle(wolves)
-            pm(cli, actor, messages["wolves_list"].format(", ".join(wolves)))
         elif nick_role == "turncoat":
             var.TURNCOATS[actor] = ("none", -1)
 
@@ -3861,10 +3857,6 @@ def check_exchange(cli, actor, nick):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, nick, messages["players_list"].format(", ".join(pl)))
-        elif actor_role == "minion":
-            wolves = list_players(var.WOLF_ROLES)
-            random.shuffle(wolves)
-            pm(cli, nick, messages["wolves_list"].format(", ".join(wolves)))
         elif actor_role == "turncoat":
             var.TURNCOATS[nick] = ("none", -1)
 
@@ -4757,15 +4749,6 @@ def transition_night():
             else:
                 clone.send(messages["clone_notify"])
             clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
-
-        for minion in get_all_players(("minion",)):
-            wolves = get_players(var.WOLF_ROLES)
-            random.shuffle(wolves)
-            if minion.prefers_simple():
-                minion.send(messages["minion_simple"])
-            else:
-                minion.send(messages["minion_notify"])
-            minion.send(messages["wolves_list"].format(", ".join(p.nick for p in wolves)))
 
     for g in var.GUNNERS:
         if g not in ps:
@@ -5868,14 +5851,6 @@ def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets con
     # Remind clone who they have cloned
     if role == "clone" and wrapper.source.nick in var.CLONED:
         wrapper.pm(messages["clone_target"].format(var.CLONED[wrapper.source.nick]))
-
-    # Give minion the wolf list they would have recieved night one
-    if role == "minion":
-        wolves = []
-        for wolfrole in var.WOLF_ROLES:
-            for player in var.ORIGINAL_ROLES[wolfrole]:
-                wolves.append(player.nick)
-        wrapper.pm(messages["original_wolves"] + ", ".join(wolves))
 
     # Remind turncoats of their side
     if role == "turncoat":
