@@ -783,7 +783,7 @@
     "cat_land": "The cat lands on its \u0002feet\u0002.",
     "vengeful_role": "You are a \u0002vengeful ghost\u0002 who is against the \u0002{0}\u0002.",
     "show_role": "You are a{0} \u0002{1}\u0002.",
-    "original_wolves": "Original wolves: ",
+    "original_wolves": "Original wolves: {0}",
     "turncoat_side": "Current side: \u0002{0}\u0002.",
     "assassin_role_info": "You are an \u0002assassin\u0002{0}.",
     "assassin_targeting": " and targeting {0}",
