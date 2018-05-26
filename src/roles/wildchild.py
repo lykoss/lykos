@@ -117,7 +117,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 new.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, wolfroles))
 
             if new:
-                child.send("Wolves: " + ", ".join(new))
+                child.send(messages["wolves_list"].format(", ".join(new)))
             else:
                 child.send(messages["no_other_wolves"])
 

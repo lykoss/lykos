@@ -184,7 +184,7 @@ def on_transition_night_end(evt, var):
                 succ.append("{0} (succubus)".format(p))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send], "Players: " + ", ".join(succ), sep="\n")
+        succubus.send(messages[to_send], messages["players_list"].format(", ".join(succ)), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

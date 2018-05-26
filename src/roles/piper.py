@@ -191,7 +191,7 @@ def on_transition_night_end(evt, var):
         to_send = "piper_notify"
         if piper.prefers_simple():
             to_send = "piper_simple"
-        piper.send(messages[to_send], "Players: " + ", ".join(p.nick for p in pl), sep="\n")
+        piper.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):

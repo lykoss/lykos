@@ -773,7 +773,7 @@ def join_deadchat(var, *all_users):
         user.queue_message("[deadchat] " + msg)
     for user in to_join:
         user.queue_message(messages["joined_deadchat"])
-        user.queue_message(messages["list_deadchat"].format(", ".join([user.nick for user in people])))
+        user.queue_message(messages["players_list"].format(", ".join([user.nick for user in people])))
 
     var.DEADCHAT_PLAYERS.update(to_join)
     var.SPECTATING_DEADCHAT.difference_update(to_join)
@@ -2400,7 +2400,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                                         wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, tags, wolfrole)
 
                                     if wolves:
-                                        clone.send("Wolves: " + ", ".join(wolves))
+                                        clone.send(messages["wolves_list"].format(wolves))
                                     else:
                                         clone.send(messages["no_other_wolves"])
                             elif mainrole == "turncoat":
@@ -3368,7 +3368,7 @@ def transition_day(gameid=0):
                 if wolves:
                     wolf.send_messages()
 
-                victim.send("Wolves: " + ", ".join(to_send))
+                victim.send(messages["wolves_list"].format(", ".join(to_send)))
                 revt.data["novictmsg"] = False
         elif victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
@@ -3842,11 +3842,11 @@ def check_exchange(cli, actor, nick):
             for i, player in enumerate(pl):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
-            pm(cli, actor, "Players: " + ", ".join(pl))
+            pm(cli, actor, messages["players_list"].format(", ".join(pl)))
         elif nick_role == "minion":
             wolves = list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
-            pm(cli, actor, "Wolves: " + ", ".join(wolves))
+            pm(cli, actor, messages["wolves_list"].format(", ".join(wolves)))
         elif nick_role == "turncoat":
             var.TURNCOATS[actor] = ("none", -1)
 
@@ -3860,11 +3860,11 @@ def check_exchange(cli, actor, nick):
             for i, player in enumerate(pl):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
-            pm(cli, nick, "Players: " + ", ".join(pl))
+            pm(cli, nick, messages["players_list"].format(", ".join(pl)))
         elif actor_role == "minion":
             wolves = list_players(var.WOLF_ROLES)
             random.shuffle(wolves)
-            pm(cli, nick, "Wolves: " + ", ".join(wolves))
+            pm(cli, nick, messages["wolves_list"].format(", ".join(wolves)))
         elif actor_role == "turncoat":
             var.TURNCOATS[nick] = ("none", -1)
 
@@ -4756,7 +4756,7 @@ def transition_night():
                 clone.send(messages["clone_simple"])
             else:
                 clone.send(messages["clone_notify"])
-            clone.send("Players: "+", ".join(p.nick for p in pl))
+            clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
         for minion in get_all_players(("minion",)):
             wolves = get_players(var.WOLF_ROLES)
@@ -4765,7 +4765,7 @@ def transition_night():
                 minion.send(messages["minion_simple"])
             else:
                 minion.send(messages["minion_notify"])
-            minion.send("Wolves: " + ", ".join(p.nick for p in wolves))
+            minion.send(messages["wolves_list"].format(", ".join(p.nick for p in wolves)))
 
     for g in var.GUNNERS:
         if g not in ps:

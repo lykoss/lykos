@@ -263,7 +263,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         if notify:
             player.send_messages()
 
-        evt.data["actor_messages"].append("Players: " + ", ".join(to_send))
+        evt.data["actor_messages"].append(messages["players_list"].format(", ".join(to_send)))
         if target_role in CAN_KILL and var.DISEASED_WOLVES:
             evt.data["actor_messages"].append(messages["ill_wolves"])
         if var.ALPHA_ENABLED and target_role == "alpha wolf" and actor.nick not in var.ALPHA_WOLVES:
@@ -296,7 +296,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         if notify:
             player.send_messages()
 
-        evt.data["target_messages"].append("Players: " + ", ".join(to_send))
+        evt.data["target_messages"].append(messages["players_list"].format(", ".join(to_send)))
         if actor_role in CAN_KILL and var.DISEASED_WOLVES:
             evt.data["target_messages"].append(messages["ill_wolves"])
         if var.ALPHA_ENABLED and actor_role == "alpha wolf" and target.nick not in var.ALPHA_WOLVES:
@@ -430,7 +430,7 @@ def on_transition_night_end(evt, var):
                 else:
                     players.append(player.nick)
 
-        wolf.send("Players: " + ", ".join(players))
+        wolf.send(messages["players_list"].format(", ".join(players)))
         if role in CAN_KILL and var.DISEASED_WOLVES:
             wolf.send(messages["ill_wolves"])
         # TODO: split the following out into their own files (alpha)
