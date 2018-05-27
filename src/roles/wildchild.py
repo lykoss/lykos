@@ -16,7 +16,7 @@ from src.events import Event
 WILD_CHILDREN = UserSet()
 IDOLS = UserDict()
 
-@command("choose", chan=False, pm=True, playing=True, silenced=False, phases=("night",), roles=("wild child",))
+@command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(var, wrapper, message):
     """Pick your idol, if they die, you'll become a wolf!"""
     if not var.FIRST_NIGHT:
