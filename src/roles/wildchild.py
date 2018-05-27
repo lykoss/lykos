@@ -65,6 +65,9 @@ def on_myrole(evt, var, user):
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    if var.PHASE not in var.GAME_PHASES:
+        return
+
     for child in get_all_players(("wild child",)):
         if child in evt.params.deadlist or IDOLS.get(child) not in evt.params.deadlist:
             continue
@@ -97,7 +100,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                     cursed = "cursed " if wolf in cursed_list else ""
                     names.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role))
 
-                if players:
+                if names:
                     child.send(messages["wolves_list"].format(", ".join(names)))
                 else:
                     child.send(messages["no_other_wolves"])
