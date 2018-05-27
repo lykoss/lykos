@@ -34,12 +34,12 @@ def choose_idol(var, wrapper, message):
 
 @event_listener("see")
 def on_see(evt, var, seer, target):
-    if target.nick in WILD_CHILDREN:
+    if target in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "wolf" and actor.nick in WILD_CHILDREN and target.nick not in WILD_CHILDREN:
+    if actor_role == "wolf" and actor in WILD_CHILDREN and target not in WILD_CHILDREN:
         WILD_CHILDREN.discard(actor)
         WILD_CHILDREN.add(target)
     elif actor_role == "wild child":
@@ -60,8 +60,8 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
-    if user.nick in IDOLS:
-        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user.nick]))
+    if user in IDOLS:
+        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
@@ -144,7 +144,7 @@ def on_revealroles_role(evt, var, user, role):
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
-    if user.nick in WILD_CHILDREN:
+    if user in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
 @event_listener("reset")
