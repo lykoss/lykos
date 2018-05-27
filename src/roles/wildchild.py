@@ -82,7 +82,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
 
-            wolves = get_all_players(wcroles)
+            wolves = get_players(wcroles)
             if wolves:
                 for wolf in wolves:
                     wolf.queue_message(messages["wild_child_as_wolf"].format(child))
