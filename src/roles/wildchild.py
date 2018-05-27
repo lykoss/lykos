@@ -33,12 +33,6 @@ def choose_idol(var, wrapper, message):
     wrapper.send(messages["wild_child_success"].format(idol))
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(wrapper.source, idol, get_main_role(idol)))
 
-def random_idol(child, players):
-    idol = random.choice(players)
-    IDOLS[child] = idol
-    child.send(messages["wild_child_random_idol"].format(idol))
-    debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, get_main_role(idol)))
-
 @event_listener("see")
 def on_see(evt, var, seer, target):
     if target.nick in WILD_CHILDREN:
@@ -123,7 +117,11 @@ def on_transition_day_begin(evt, var):
                 players = get_players()
                 players.remove(child)
                 if players:
-                    random_idol(child, players)
+                    idol = random.choice(players)
+                    IDOLS[child] = idol
+                    child.send(messages["wild_child_random_idol"].format(idol))
+                    idol_role = get_main_role(idol)
+                    debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
