@@ -158,9 +158,6 @@ DETECTIVE_REVEALED_CHANCE = 2/5
 SHARPSHOOTER_CHANCE = 1/5 # if sharpshooter is enabled, chance that a gunner will become a sharpshooter instead
 FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE = 1/2
 
-                        #    HALF    FULL
-PROPHET_REVEALED_CHANCE = (  2/5  ,  4/5  )
-
 AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations

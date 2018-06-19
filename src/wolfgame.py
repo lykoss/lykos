@@ -614,7 +614,7 @@ def replace(var, wrapper, message):
             channels.Main.mode(("-v", target), ("+v", wrapper.source))
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
-        myrole.caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: Old API
+        myrole.func(var, wrapper, "")
 
 
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
@@ -2793,24 +2793,6 @@ def rename_player(var, user, prefix):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
 
-            kvp = []
-            # Looks like {'nick': [_, 'nick1', _, {'nick2': [_]}]}
-            for a,b in var.PRAYED.items():
-                kvp2 = []
-                if a == prefix:
-                    a = nick
-                if b[1] == prefix:
-                    b[1] = nick
-                for c,d in b[3].items():
-                    if c == prefix:
-                        c = nick
-                    kvp2.append((c,d))
-                b[3].update(kvp2)
-                kvp.append((a,b))
-            var.PRAYED.update(kvp)
-            if prefix in var.PRAYED.keys():
-                del var.PRAYED[prefix]
-
             for dictvar in (var.OBSERVED, var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
@@ -3147,8 +3129,7 @@ def transition_day(gameid=0):
         user = users._get(target) # FIXME
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(var, user, actor)
-        if ((target in var.PRAYED and var.PRAYED[target][0] > 0) or
-                target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]):
+        if target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]:
             actor.send(messages["werecrow_success"].format(user))
         else:
             actor.send(messages["werecrow_failure"].format(user))
@@ -3532,11 +3513,7 @@ def chk_nightdone():
     spl = set(pl)
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
 
-    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow", "prophet")))
-
-    for nick, info in var.PRAYED.items():
-        if info[0] > 0:
-            actedcount += 1
+    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow")))
 
     if var.FIRST_NIGHT:
         actedcount += len(var.CLONED.keys())
@@ -4090,109 +4067,6 @@ def observe(cli, nick, chan, rest):
 
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
 
-@cmd("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
-def pray(cli, nick, chan, rest):
-    """Receive divine visions of who has a role."""
-    # this command may be used multiple times in the course of the night, however it only needs
-    # to be used once to count towards ending night (additional uses don't count extra)
-    if nick in var.PRAYED and var.PRAYED[nick][0] == 2:
-        pm(cli, nick, messages["already_prayed"])
-        return
-    elif nick not in var.PRAYED:
-        # [number of times prayed tonight, current target, target role, {target: [roles]}]
-        var.PRAYED[nick] = [0, None, None, defaultdict(set)]
-
-    if var.PRAYED[nick][0] == 0:
-        what = re.split(" +", rest)[0]
-        if not what:
-            pm(cli, nick, messages["not_enough_parameters"])
-            return
-        # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-        role = complete_one_match(what.lower(), var.ROLE_GUIDE.keys())
-        if role is None:
-            if what.lower() in var.ROLE_ALIASES:
-                role = var.ROLE_ALIASES[what.lower()]
-            else:
-                # typo, let them fix it
-                pm(cli, nick, messages["specific_invalid_role"].format(what))
-                return
-
-        # get a list of all roles actually in the game, including roles that amnesiacs will be turning into
-        # (amnesiacs are special since they're also listed as amnesiac; that way a prophet can see both who the
-        # amnesiacs themselves are as well as what they'll become)
-        pl = list_players()
-        from src.roles.amnesiac import ROLES
-        valid_roles = {r for r, p in var.ROLES.items() if p} | {r for p, r in ROLES.items() if p.nick in pl} # FIXME
-
-        if role in valid_roles:
-            # this sees through amnesiac, so the amnesiac's final role counts as their role
-            # also, if we're the only person with that role, say so and don't allow a second vision
-            people = set(get_roles(role)) | {p.nick for p, r in ROLES.items() if p.nick in pl and r == role} # FIXME
-            if len(people) == 1 and nick in people:
-                pm(cli, nick, messages["vision_only_role_self"].format(role))
-                var.PRAYED[nick][0] = 2
-                debuglog("{0} ({1}) PRAY {2} - ONLY".format(nick, get_role(nick), role))
-                return
-            # select someone with the role that we haven't looked at before for this particular role
-            prevlist = (p for p, rl in var.PRAYED[nick][3].items() if role in rl)
-            for p in prevlist:
-                people.discard(p)
-            if len(people) == 0 or (len(people) == 1 and nick in people):
-                pm(cli, nick, messages["vision_no_more_role"].format(plural(role)))
-                var.PRAYED[nick][0] = 2
-                debuglog("{0} ({1}) PRAY {2} - NO OTHER".format(nick, get_role(nick), role))
-                return
-            target = random.choice(list(people))
-            var.PRAYED[nick][0] = 1
-            var.PRAYED[nick][1] = target
-            var.PRAYED[nick][2] = role
-            var.PRAYED[nick][3][target].add(role)
-            half = random.sample(pl, math.ceil(len(pl) / 2))
-            if target not in half:
-                half[0] = target
-            random.shuffle(half)
-            # if prophet never reveals, there is no point making them pray twice,
-            # so just give them the player the first time around
-            if len(half) > 1 and (var.PROPHET_REVEALED_CHANCE[0] > 0 or var.PROPHET_REVEALED_CHANCE[1] > 0):
-                msg = messages["vision_players"].format(role)
-                if len(half) > 2:
-                    msg += "{0}, and {1}.".format(", ".join(half[:-1]), half[-1])
-                else:
-                    msg += "{0} and {1}.".format(half[0], half[1])
-                pm(cli, nick, msg)
-                debuglog("{0} ({1}) PRAY {2} ({3}) - HALF".format(nick, get_role(nick), role, target))
-                if random.random() < var.PROPHET_REVEALED_CHANCE[0]:
-                    pm(cli, target, messages["vision_prophet"].format(nick))
-                    debuglog("{0} ({1}) PRAY REVEAL".format(nick, get_role(nick), role))
-                    var.PRAYED[nick][0] = 2
-            else:
-                # only one, go straight to second chance
-                var.PRAYED[nick][0] = 2
-                pm(cli, nick, messages["vision_role"].format(target, role))
-                debuglog("{0} ({1}) PRAY {2} ({3}) - FULL".format(nick, get_role(nick), role, target))
-                if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
-                    pm(cli, target, messages["vision_prophet"].format(nick))
-                    debuglog("{0} ({1}) PRAY REVEAL".format(nick, get_role(nick)))
-        else:
-            # role is not in this game, this still counts as a successful activation of the power!
-            pm(cli, nick, messages["vision_none"].format(plural(role)))
-            debuglog("{0} ({1}) PRAY {2} - NONE".format(nick, get_role(nick), role))
-            var.PRAYED[nick][0] = 2
-    elif var.PRAYED[nick][1] is None:
-        # the previous vision revealed the prophet, so they cannot receive any more visions tonight
-        pm(cli, nick, messages["vision_recovering"])
-        return
-    else:
-        # continuing a praying session from this night to obtain more information, give them the actual person
-        var.PRAYED[nick][0] = 2
-        target = var.PRAYED[nick][1]
-        role = var.PRAYED[nick][2]
-        pm(cli, nick, messages["vision_role"].format(target, role))
-        debuglog("{0} ({1}) PRAY {2} ({3}) - FULL".format(nick, get_role(nick), role, target))
-        if random.random() < var.PROPHET_REVEALED_CHANCE[1]:
-            pm(cli, target, messages["vision_prophet"].format(nick))
-            debuglog("{0} ({1}) PRAY REVEAL".format(nick, get_role(nick)))
-
 @cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 @cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(cli, nick, chan, rest):
@@ -4618,10 +4492,6 @@ def transition_night():
     var.OBSERVED = {}  # those whom werecrows have observed
     var.TOBESILENCED = set()
     var.CONSECRATING.clear()
-    for nick in var.PRAYED:
-        var.PRAYED[nick][0] = 0
-        var.PRAYED[nick][1] = None
-        var.PRAYED[nick][2] = None
 
     daydur_msg = ""
 
@@ -4655,21 +4525,6 @@ def transition_night():
 
     # send PMs
     ps = get_players()
-
-    for pht in get_all_players(("prophet",)):
-        chance1 = math.floor(var.PROPHET_REVEALED_CHANCE[0] * 100)
-        chance2 = math.floor(var.PROPHET_REVEALED_CHANCE[1] * 100)
-        an1 = "n" if chance1 >= 80 and chance1 < 90 else ""
-        an2 = "n" if chance2 >= 80 and chance2 < 90 else ""
-        if pht.prefers_simple():
-            pht.send(messages["prophet_simple"])
-        else:
-            if chance1 > 0:
-                pht.send(messages["prophet_notify_both"].format(an1, chance1, an2, chance2))
-            elif chance2 > 0:
-                pht.send(messages["prophet_notify_second"].format(an2, chance2))
-            else:
-                pht.send(messages["prophet_notify_none"])
 
     for drunk in get_all_players(("village drunk",)):
         if drunk.prefers_simple():
@@ -5024,7 +4879,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.PRIESTS = set()
     var.CONSECRATING.clear()
     var.DYING.clear()
-    var.PRAYED = {}
 
     var.DEADCHAT_PLAYERS.clear()
     var.SPECTATING_WOLFCHAT.clear()
@@ -5824,7 +5678,7 @@ def listroles(cli, nick, chan, rest):
     reply(cli, nick, chan, " ".join(msg))
 
 @command("myrole", pm=True, phases=("day", "night"))
-def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets converted
+def myrole(var, wrapper, message):
     """Reminds you of your current role."""
 
     ps = get_participants()
@@ -5862,10 +5716,6 @@ def myrole(var, wrapper, message): # FIXME: Need to fix !swap once this gets con
         if wrapper.source in var.ROLES["sharpshooter"]:
             role = "sharpshooter"
         wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source], "" if var.GUNNERS[wrapper.source] == 1 else "s"))
-
-    # Remind prophet of their role, in sleepy mode only where it is hacked into a template instead of a role
-    if "prophet" in var.TEMPLATE_RESTRICTIONS and wrapper.source in var.ROLES["prophet"]:
-        wrapper.pm(messages["prophet_simple"])
 
 @command("aftergame", "faftergame", flag="D", pm=True)
 def aftergame(var, wrapper, message):

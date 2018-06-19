@@ -21,7 +21,7 @@ def setup_variables(rolename, *, send_role, types):
 
     @event_listener("transition_night_end")
     def on_transition_night_end(evt, var):
-        villagers = set(get_players(("priest", "prophet", "doctor")))
+        villagers = set(get_players(("priest", "doctor")))
         win_stealers = set(get_players(("fool", "monster", "demoniac")))
         neutrals = set(get_players(("turncoat", "clone", "jester")))
 
