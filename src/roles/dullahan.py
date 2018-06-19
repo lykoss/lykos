@@ -10,7 +10,6 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-import botconfig
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]

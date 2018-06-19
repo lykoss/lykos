@@ -4,7 +4,6 @@ import itertools
 import math
 from collections import defaultdict
 
-import botconfig
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src import channels, users, debuglog, errlog, plog

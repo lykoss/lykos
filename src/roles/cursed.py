@@ -4,7 +4,6 @@ import itertools
 import math
 from collections import defaultdict
 
-import botconfig
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import cmd, event_listener
