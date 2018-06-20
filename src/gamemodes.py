@@ -134,7 +134,7 @@ class ChangedRolesMode(GameMode):
 @game_mode("default", minp = 4, maxp = 24, likelihood = 20)
 class DefaultMode(GameMode):
     """Default game mode."""
-    def __init__(self, arg="", role_index=var.ROLE_INDEX, role_guide=var.ROLE_GUIDE.copy()):
+    def __init__(self, arg="", role_index=var.ROLE_INDEX, role_guide=var.ROLE_GUIDE):
         # No extra settings, just an explicit way to revert to default settings
         super().__init__(arg)
         self.ROLE_INDEX = role_index
