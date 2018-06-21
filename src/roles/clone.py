@@ -75,11 +75,10 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 if mainrole == "amnesiac":
                     from src.roles.amnesiac import ROLES as amn_roles
                     # clone gets the amnesiac's real role
-                    sayrole = amn_roles[player]
-                else:
-                    sayrole = mainrole
-                change_role(clone, "clone", sayrole)
-                debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, sayrole))
+                    mainrole = amn_roles[player]
+                change_role(clone, "clone", mainrole)
+                debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
+                sayrole = mainrole
                 if sayrole in var.HIDDEN_VILLAGERS:
                     sayrole = "villager"
                 elif sayrole in var.HIDDEN_ROLES:
@@ -185,7 +184,7 @@ def first_death_occured(evt, var, player, mainrole, allroles, death_triggers):
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return
-    if CLONED and var.PHASE in var.GAME_PHASES and not var.FIRST_NIGHT:
+    if (CLONED or get_all_players(("clone",))) and var.PHASE in var.GAME_PHASES and not var.FIRST_NIGHT:
         CLONE_ENABLED = True
 
 @event_listener("update_stats")
