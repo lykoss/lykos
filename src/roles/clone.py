@@ -184,7 +184,7 @@ def first_death_occured(evt, var, player, mainrole, allroles, death_triggers):
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return
-    if (CLONED or get_all_players(("clone",))) and var.PHASE in var.GAME_PHASES and not var.FIRST_NIGHT:
+    if var.PHASE in var.GAME_PHASES and (CLONED or get_all_players(("clone",))) and not var.FIRST_NIGHT:
         CLONE_ENABLED = True
 
 @event_listener("update_stats")
