@@ -176,7 +176,7 @@ def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
     # this means they ended game while being clone and not some other role
-    if survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+    if role == "clone" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
         evt.data["iwon"] = True
 
 @event_listener("del_player")
