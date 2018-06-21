@@ -31,21 +31,18 @@ files to get an idea of how those containers should be used.
 
 """
 
-class UserList(list):
-    def __init__(self, iterable=()):
-        super().__init__()
-        try:
-            for item in iterable:
-                self.append(item)
-        except:
-            self.clear()
-            raise
+class Container:
+    """Base container class for all containers."""
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
         self.clear()
+
+    def __str__(self):
+        vars = [format(x) for x in self]
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
 
     def __eq__(self, other):
         return self is other
@@ -55,6 +52,18 @@ class UserList(list):
 
     def __deepcopy__(self, memo):
         return type(self)(copy.deepcopy(x, memo) for x in self)
+
+    copy = __copy__
+
+class UserList(Container, list):
+    def __init__(self, iterable=()):
+        super().__init__()
+        try:
+            for item in iterable:
+                self.append(item)
+        except:
+            self.clear()
+            raise
 
     def __add__(self, other):
         if not isinstance(other, list):
@@ -104,9 +113,6 @@ class UserList(list):
 
         super().clear()
 
-    def copy(self):
-        return type(self)(self)
-
     def extend(self, iterable):
         for item in iterable:
             self.append(item)
@@ -136,7 +142,7 @@ class UserList(list):
         if item not in self:
             item.lists.remove(self)
 
-class UserSet(set):
+class UserSet(Container, set):
     def __init__(self, iterable=()):
         super().__init__()
         try:
@@ -145,24 +151,6 @@ class UserSet(set):
         except:
             self.clear()
             raise
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.clear()
-
-    def __copy__(self):
-        return type(self)(self)
-
-    def __deepcopy__(self, memo):
-        return type(self)(copy.deepcopy(x, memo) for x in self)
-
-    # Comparing UserSet instances for equality doesn't make much sense in our context
-    # However, if there are identical instances in a list, we only want to remove ourselves
-
-    def __eq__(self, other):
-        return self is other
 
     # Operators are not overloaded - 'user_set & other_set' will return a regular set
     # This is a deliberate design decision. To get a UserSet out of them, use the named ones
@@ -211,9 +199,6 @@ class UserSet(set):
             item.sets.remove(self)
 
         super().clear()
-
-    def copy(self):
-        return type(self)(self)
 
     def difference(self, iterable):
         return type(self)(super().difference(iterable))
@@ -265,7 +250,7 @@ class UserSet(set):
             if item not in self:
                 self.add(item)
 
-class UserDict(dict):
+class UserDict(Container, dict):
     def __init__(_self, _it=(), **kwargs):
         super().__init__()
         if hasattr(_it, "items"):
@@ -280,17 +265,9 @@ class UserDict(dict):
                 self.popitem() # don't clear, as it's recursive (we might not want that)
             raise
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        self.clear()
-
-    def __eq__(self, other):
-        return self is other
-
-    def __copy__(self):
-        return type(self)(self)
+    def __str__(self):
+        vars = ["{0}: {1}".format(x, y) for x, y in self.items()]
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
 
     def __deepcopy__(self, memo):
         new = type(self)()
@@ -346,9 +323,6 @@ class UserDict(dict):
                 value.clear()
 
         super().clear()
-
-    def copy(self):
-        return type(self)(self.items())
 
     @classmethod
     def fromkeys(cls, iterable, value=None):
