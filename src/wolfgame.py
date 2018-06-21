@@ -2123,10 +2123,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 iwon = True
             elif rol == "demoniac" and plr in survived and winner == "demoniacs":
                 iwon = True
-            elif rol == "clone":
-                # this means they ended game while being clone and not some other role
-                if plr in survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
-                    iwon = True
             elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
             elif not iwon:
@@ -2344,72 +2340,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             if player.nick in var.BITTEN_ROLES:
                 del var.BITTEN_ROLES[player.nick] # FIXME
             pl.discard(player)
-            # handle roles that trigger on death
-            # clone happens regardless of death_triggers being true or not
-            if var.PHASE in var.GAME_PHASES:
-                clones = get_all_players(("clone",))
-                for clone in clones:
-                    # clone is a User, var.CLONED is a Dict[str,str]
-                    # dealist is a List[User]; ensure we add .nick appropriately
-                    # FIXME: someone should convert var.CLONED
-                    if clone.nick in var.CLONED and clone not in deadlist:
-                        target = var.CLONED[clone.nick]
-                        if player.nick == target and clone.nick in var.CLONED:
-                            # clone is cloning nick, so clone becomes nick's role
-                            # clone does NOT get any of nick's templates (gunner/assassin/etc.)
-                            del var.CLONED[clone.nick]
-                            if mainrole == "amnesiac":
-                                from src.roles.amnesiac import ROLES
-                                # clone gets the amnesiac's real role
-                                sayrole = ROLES[player]
-                            else:
-                                sayrole = mainrole
-                            change_role(clone, "clone", sayrole)
-                            debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, sayrole))
-                            if sayrole in var.HIDDEN_VILLAGERS:
-                                sayrole = "villager"
-                            elif sayrole in var.HIDDEN_ROLES:
-                                sayrole = var.DEFAULT_ROLE
-                            an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
-                            clone.send(messages["clone_turn"].format(an, sayrole))
-                            # if a clone is cloning a clone, clone who the old clone cloned
-                            if mainrole == "clone" and player.nick in var.CLONED:
-                                if var.CLONED[player.nick] == clone.nick:
-                                    clone.send(messages["forever_aclone"].format(player))
-                                else:
-                                    var.CLONED[clone.nick] = var.CLONED[player.nick]
-                                    clone.send(messages["clone_success"].format(var.CLONED[clone.nick]))
-                                    # FIXME: change below to get_main_role(var.CLONED[clone]) once var.CLONED is converted
-                                    debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, var.CLONED[clone.nick], get_role(var.CLONED[clone.nick])))
-                            elif mainrole in var.WOLFCHAT_ROLES:
-                                wolves = get_players(var.WOLFCHAT_ROLES)
-                                wolves.remove(clone) # remove self from list
-                                for wolf in wolves:
-                                    wolf.queue_message(messages["clone_wolf"].format(clone, player))
-                                if wolves:
-                                    wolf.send_messages()
-                                if var.PHASE == "day":
-                                    random.shuffle(wolves)
-                                    for i, wolf in enumerate(wolves):
-                                        wolfrole = get_main_role(wolf)
-                                        wevt = Event("wolflist", {"tags": set()})
-                                        wevt.dispatch(var, wolf, clone)
-                                        tags = " ".join(wevt.data["tags"])
-                                        if tags:
-                                            tags += " "
-                                        wolves[i] = "\u0002{0}\u0002 ({1}{2})".format(wolf, tags, wolfrole)
-
-                                    if wolves:
-                                        clone.send(messages["wolves_list"].format(wolves))
-                                    else:
-                                        clone.send(messages["no_other_wolves"])
-                            elif mainrole == "turncoat":
-                                var.TURNCOATS[clone.nick] = ("none", -1) # FIXME
-
-                if mainrole == "clone" and player.nick in var.CLONED:
-                    del var.CLONED[player.nick]
-
-            pl = refresh_pl(pl)
             # i herd u liek parameters
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
             event = Event("del_player", {"pl": pl},
@@ -2793,7 +2723,7 @@ def rename_player(var, user, prefix):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
 
-            for dictvar in (var.OBSERVED, var.CLONED, var.LASTHEXED, var.BITE_PREFERENCES):
+            for dictvar in (var.OBSERVED, var.LASTHEXED, var.BITE_PREFERENCES):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -3096,27 +3026,14 @@ def transition_day(gameid=0):
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
 
-    pl = get_players()
-
     if not var.START_WITH_DAY or not var.FIRST_DAY:
         if len(var.HEXED) < len(var.ROLES["hag"]):
             for hag in var.ROLES["hag"]:
                 if hag.nick not in var.HEXED: # FIXME
                     var.LASTHEXED[hag.nick] = None # FIXME
 
-        # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
-        # that isn't going to be dying today, meaning we need to know who is dying first :)
-
-        if var.FIRST_NIGHT:
-            # Select a random target for clone if they didn't choose someone
-            for clone in get_all_players(("clone",)):
-                if clone.nick not in var.CLONED:
-                    ps = pl[:]
-                    ps.remove(clone)
-                    if len(ps) > 0:
-                        target = random.choice(ps)
-                        var.CLONED[clone.nick] = target.nick
-                        clone.send(messages["random_clone"].format(target))
+    # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
+    # that isn't going to be dying today, meaning we need to know who is dying first :)
 
     # Reset daytime variables
     var.WOUNDED.clear()
@@ -3515,10 +3432,6 @@ def chk_nightdone():
 
     nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow")))
 
-    if var.FIRST_NIGHT:
-        actedcount += len(var.CLONED.keys())
-        nightroles.extend(get_all_players(("clone",)))
-
     if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
         nightroles.extend(get_all_players(("alpha wolf",)))
@@ -3704,10 +3617,7 @@ def check_exchange(cli, actor, nick):
         # var.PASSED is used by many roles
         var.PASSED.discard(actor)
 
-        if actor_role == "clone":
-            if actor in var.CLONED:
-                actor_target = var.CLONED.pop(actor)
-        elif actor_role in ("werecrow", "sorcerer"):
+        if actor_role in ("werecrow", "sorcerer"):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
         elif actor_role == "hag":
@@ -3732,10 +3642,7 @@ def check_exchange(cli, actor, nick):
         # var.PASSED is used by many roles
         var.PASSED.discard(nick)
 
-        if nick_role == "clone":
-            if nick in var.CLONED:
-                nick_target = var.CLONED.pop(nick)
-        elif nick_role in ("werecrow", "sorcerer"):
+        if nick_role in ("werecrow", "sorcerer"):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
         elif nick_role == "hag":
@@ -3809,9 +3716,7 @@ def check_exchange(cli, actor, nick):
             else:
                 wcroles = var.WOLF_ROLES | {"traitor"}
 
-        if nick_role == "clone":
-            pm(cli, actor, messages["clone_target"].format(nick_target))
-        elif nick_role not in wcroles and nick_role == "warlock":
+        if nick_role not in wcroles and nick_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
             random.shuffle(pl)
@@ -3823,9 +3728,7 @@ def check_exchange(cli, actor, nick):
         elif nick_role == "turncoat":
             var.TURNCOATS[actor] = ("none", -1)
 
-        if actor_role == "clone":
-            pm(cli, nick, messages["clone_target"].format(actor_target))
-        elif actor_role not in wcroles and actor_role == "warlock":
+        if actor_role not in wcroles and actor_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
             pl = list_players()
             random.shuffle(pl)
@@ -4265,46 +4168,6 @@ def curse(cli, nick, chan, rest):
 
     debuglog("{0} ({1}) CURSE: {2} ({3})".format(nick, get_role(nick), victim, vrole))
 
-@cmd("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
-def clone(cli, nick, chan, rest):
-    """Clone another player. You will turn into their role if they die."""
-    if not var.FIRST_NIGHT:
-        return
-    if nick in var.CLONED.keys():
-        pm(cli, nick, messages["already_cloned"])
-        return
-
-    params = re.split(" +", rest)
-    # allow for role-prefixed command such as !clone clone target
-    # if we get !clone clone (with no 3rd arg), we give preference to prefixed version;
-    # meaning if the person wants to clone someone named clone, they must type !clone clone clone
-    # (or just !clone clon, !clone clo, etc. assuming thos would be unambiguous matches)
-    if params[0] == "clone":
-        if len(params) > 1:
-           del params[0]
-        else:
-            pm(cli, nick, messages["clone_clone_clone"])
-            return
-
-    # no var.SILENCED check for night 1 only roles; silence should only apply for the night after
-    # but just in case, it also sucks if the one night you're allowed to act is when you are
-    # silenced, so we ignore it here anyway.
-
-    victim = get_victim(cli, nick, params[0], False)
-    if not victim:
-        return
-
-    if nick == victim:
-        pm(cli, nick, messages["no_target_self"])
-        return
-
-    var.CLONED[nick] = victim
-    pm(cli, nick, messages["clone_target_success"].format(victim))
-
-    debuglog("{0} ({1}) CLONE: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
-
-var.ROLE_COMMAND_EXCEPTIONS.add("clone")
-
 @event_listener("targeted_command", priority=9)
 def on_targeted_command(evt, var, actor, orig_target):
     if evt.data["misdirection"]:
@@ -4594,17 +4457,6 @@ def transition_night():
         else:
             priest.send(messages["priest_notify"])
 
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        for clone in get_all_players(("clone",)):
-            pl = ps[:]
-            random.shuffle(pl)
-            pl.remove(clone)
-            if clone.prefers_simple():
-                clone.send(messages["clone_simple"])
-            else:
-                clone.send(messages["clone_notify"])
-            clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
-
     for g in var.GUNNERS:
         if g not in ps:
             continue
@@ -4847,7 +4699,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.MAIN_ROLES.clear()
     var.GUNNERS.clear()
     var.OBSERVED = {}
-    var.CLONED = {}
     var.LASTHEXED = {}
     var.SILENCED = set()
     var.TOBESILENCED = set()
@@ -5702,10 +5553,6 @@ def myrole(var, wrapper, message):
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
 
-    # Remind clone who they have cloned
-    if role == "clone" and wrapper.source.nick in var.CLONED:
-        wrapper.pm(messages["clone_target"].format(var.CLONED[wrapper.source.nick]))
-
     # Remind turncoats of their side
     if role == "turncoat":
         wrapper.pm(messages["turncoat_side"].format(var.TURNCOATS.get(wrapper.source.nick, "none")[0]))
@@ -6177,10 +6024,8 @@ def revealroles(var, wrapper, message):
             # go through each nickname, adding extra info if necessary
             for user in users:
                 special_case = []
-                if role == "clone" and user.nick in var.CLONED:
-                    special_case.append("cloning {0}".format(var.CLONED[user.nick]))
                 # print how many bullets normal gunners have
-                elif (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
+                if (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
                     special_case.append("{0} bullet{1}".format(var.GUNNERS[user], "" if var.GUNNERS[user] == 1 else "s"))
                 elif role == "turncoat" and user.nick in var.TURNCOATS:
                     special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[user.nick][0])

@@ -23,7 +23,7 @@ def setup_variables(rolename, *, send_role, types):
     def on_transition_night_end(evt, var):
         villagers = set(get_players(("priest", "doctor")))
         win_stealers = set(get_players(("fool", "monster", "demoniac")))
-        neutrals = set(get_players(("turncoat", "clone", "jester")))
+        neutrals = set(get_players(("turncoat", "jester")))
 
         special_evt = Event("get_special", {"villagers": villagers, "wolves": set(), "win_stealers": win_stealers, "neutrals": neutrals})
         special_evt.dispatch(var)
