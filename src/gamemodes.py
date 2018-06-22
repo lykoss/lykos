@@ -1134,6 +1134,7 @@ class MaelstromMode(GameMode):
         var.ORIGINAL_ROLES[role].add(wrapper.source)
         var.FINAL_ROLES[wrapper.source.nick] = role # FIXME: once FINAL_ROLES stores users
         var.MAIN_ROLES[wrapper.source] = role
+        var.ORIGINAL_MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
         if wrapper.source.nick in var.USERS:
             var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
@@ -1207,6 +1208,7 @@ class MaelstromMode(GameMode):
                 var.ORIGINAL_ROLES[role].add(p)
                 var.FINAL_ROLES[p.nick] = role # FIXME
                 var.MAIN_ROLES[p] = role
+                var.ORIGINAL_MAIN_ROLES[p] = role
 
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
