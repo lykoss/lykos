@@ -348,6 +348,11 @@ def get_player_totals(acc, hostmask):
                    ON gpr.game_player = gp.id
                  WHERE pe.id = ?
                  GROUP BY role""", (peid,))
+    w = conn.cursor()
+    w.execute("""SELECT TOTAL(gp.team_win OR gp.indiv_win)/COUNT(1)
+                        FROM game_player gp
+                        WHERE gp.player = ?""", (peid,))
+    winrate = w.fetchone()[0]
     tmp = {}
     totals = []
     for row in c:
@@ -358,7 +363,7 @@ def get_player_totals(acc, hostmask):
     totals = ["\u0002{0}\u0002: {1}".format(r, tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
     totals += ["\u0002{0}\u0002: {1}".format(r, t) for r, t in tmp.items() if r not in order]
-    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | {2}".format(name, total_games, break_long_message(totals, ", "))
+    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | Winrate: \u0002{2:.0%}\u0002 | {3}".format(name, total_games, winrate, break_long_message(totals, ", "))
 
 def get_game_stats(mode, size):
     conn = _conn()
