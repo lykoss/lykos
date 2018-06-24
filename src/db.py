@@ -348,15 +348,14 @@ def get_player_totals(acc, hostmask):
                    ON gpr.game_player = gp.id
                  WHERE pe.id = ?
                  GROUP BY role""", (peid,))
-    w = conn.cursor()
-    w.execute("""SELECT TOTAL(gp.team_win OR gp.indiv_win)/COUNT(1)
-                        FROM game_player gp
-                        WHERE gp.player = ?""", (peid,))
-    winrate = w.fetchone()[0]
     tmp = {}
     totals = []
     for row in c:
         tmp[row[0]] = row[1]
+    c.execute("""SELECT TOTAL(gp.team_win OR gp.indiv_win)/COUNT(1)
+                        FROM game_player gp
+                        WHERE gp.player = ?""", (peid,))
+    winrate = c.fetchone()[0]
     order = role_order()
     name = _get_display_name(peid)
     #ordered role stats
