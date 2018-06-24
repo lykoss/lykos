@@ -113,3 +113,5 @@ def on_begin_day(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     PRAYED.clear()
+
+# vim: set sw=4 expandtab:

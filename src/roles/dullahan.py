@@ -120,25 +120,44 @@ def on_transition_day(evt, var):
         evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    for k in set(KILLS):
-        if k is actor or k is target:
-            del KILLS[k]
+@event_listener("new_role")
+def on_new_role(evt, var, user):
+    if user in TARGETS and evt.params.old_role == "dullahan" and evt.data["role"] != "dullahan":
+        del KILLS[:user:]
+        targets = TARGETS.pop(user)
+        if evt.params.old_player in targets:
+            targets.remove(evt.params.old_player)
+            targets.add(user)
+        TARGETS[evt.params.old_player] = targets
 
-    for k in set(TARGETS):
-        if actor_role == "dullahan" and target_role != "dullahan" and k is actor:
-            targets = TARGETS.pop(k)
-            if target in targets:
-                targets.remove(target)
-                targets.add(actor)
-            TARGETS[target] = targets
-        if target_role == "dullahan" and actor_role != "dullahan" and k is target:
-            targets = TARGETS.pop(k)
-            if actor in targets:
-                targets.remove(actor)
-                targets.add(target)
-            TARGETS[actor] = targets
+    if user not in TARGETS and evt.params.old_player is None and evt.data["role"] == "dullahan":
+        max_targets = math.ceil(8.1 * math.log(len(get_players()), 10) - 5)
+        TARGETS[user] = UserSet()
+
+        dull_targets = Event("dullahan_targets", {"targets": TARGETS[user]}) # support sleepy
+        dull_targets.dispatch(var, user, max_targets)
+
+        ps = get_players()
+        ps.remove(user)
+        while len(TARGETS[user]) < max_targets:
+            target = random.choice(ps)
+            ps.remove(target)
+            TARGETS[user].add(target)
+
+@event_listener("swap_role_state")
+def on_swap_role_state(evt, var, actor, target, role):
+    if role == "dullahan":
+        targ_targets = TARGETS.pop(target)
+        if actor in targ_targets:
+            targ_targets.remove(actor)
+            targ_targets.add(target)
+        act_targets = TARGETS.pop(actor)
+        if target in act_targets:
+            act_targets.remove(target)
+            act_targets.add(actor)
+
+        TARGETS[actor] = targ_targets
+        TARGETS[target] = act_targets
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -164,24 +183,6 @@ def on_transition_night_end(evt, var):
             to_send = "dullahan_simple"
         t = messages["dullahan_targets"] if var.FIRST_NIGHT else messages["dullahan_remaining_targets"]
         dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
-
-@event_listener("role_assignment")
-def on_role_assignment(evt, var, gamemode, pl):
-    # assign random targets to dullahan to kill
-    if var.ROLES["dullahan"]:
-        max_targets = math.ceil(8.1 * math.log(len(pl), 10) - 5)
-        for dull in var.ROLES["dullahan"]:
-            TARGETS[dull] = UserSet()
-        dull_targets = Event("dullahan_targets", {"targets": TARGETS}) # support sleepy
-        dull_targets.dispatch(var, var.ROLES["dullahan"], max_targets)
-
-        for dull, ts in TARGETS.items():
-            ps = pl[:]
-            ps.remove(dull)
-            while len(ts) < max_targets:
-                target = random.choice(ps)
-                ps.remove(target)
-                ts.add(target)
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):

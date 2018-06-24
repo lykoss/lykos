@@ -5,7 +5,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog
+from src import events, channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -45,13 +45,14 @@ def clone(var, wrapper, message):
 
     debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@event_listener("init")
-def on_init(evt):
+def setup_clone(evt):
     # We need to add "clone" to the role command exceptions so there's no error
     # This is done here so that var isn't imported at the global scope
     # (when we implement proper game state this will be in a different event)
     from src import settings as var
     var.ROLE_COMMAND_EXCEPTIONS.add("clone")
+
+events.add_listener("init", setup_clone) # no IRC connection, so no possible error handler yet
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
@@ -72,11 +73,10 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 # clone is cloning target, so clone becomes target's role
                 # clone does NOT get any of target's templates (gunner/assassin/etc.)
                 del CLONED[clone]
-                if mainrole == "amnesiac":
-                    from src.roles.amnesiac import ROLES as amn_roles
-                    # clone gets the amnesiac's real role
-                    mainrole = amn_roles[player]
-                change_role(clone, "clone", mainrole)
+                new_evt = Event("new_role", {"messages": [], "role": mainrole}, old_player=player, old_role="clone")
+                new_evt.dispatch(var, clone)
+
+                mainrole = new_evt.data["role"]
                 debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
                 sayrole = mainrole
                 if sayrole in var.HIDDEN_VILLAGERS:
@@ -85,15 +85,9 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                     sayrole = var.DEFAULT_ROLE
                 an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
                 clone.send(messages["clone_turn"].format(an, sayrole))
-                # if a clone is cloning a clone, clone who the old clone cloned
-                if mainrole == "clone" and player in CLONED:
-                    if CLONED[player] is clone:
-                        clone.send(messages["forever_aclone"].format(player))
-                    else:
-                        CLONED[clone] = CLONED[player]
-                        clone.send(messages["clone_success"].format(CLONED[clone]))
-                        debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, CLONED[clone], get_main_role(CLONED[clone])))
-                elif mainrole in var.WOLFCHAT_ROLES:
+                clone.send(*new_evt.data["messages"])
+                # FIXME: Move this block (and the block in the transition_night_begin listener in src/amnesiac.py) into wolf.py (needs some work)
+                if mainrole in var.WOLFCHAT_ROLES:
                     wolves = get_players(var.WOLFCHAT_ROLES)
                     wolves.remove(clone) # remove self from list
                     for wolf in wolves:
@@ -115,11 +109,20 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                             clone.send(messages["wolves_list"].format(wolves))
                         else:
                             clone.send(messages["no_other_wolves"])
-                elif mainrole == "turncoat":
-                    var.TURNCOATS[clone.nick] = ("none", -1) # FIXME
 
     if mainrole == "clone" and player in CLONED:
         del CLONED[player]
+
+@event_listener("new_role")
+def on_new_role(evt, var, user):
+    # if a clone is cloning a clone, clone who the old clone cloned
+    if evt.data["role"] == "clone" and evt.params.old_player in CLONED:
+        if CLONED[evt.params.old_player] is user:
+            user.send(messages["forever_aclone"].format(evt.params.old_player))
+        else:
+            CLONED[user] = CLONED[evt.params.old_player]
+            user.send(messages["clone_success"].format(CLONED[user]))
+            debuglog("{0} (clone) CLONE: {1} ({2})".format(user, CLONED[user], get_main_role(CLONED[user])))
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
@@ -179,17 +182,17 @@ def on_player_win(evt, var, player, role, winner, survived):
     if role == "clone" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
         evt.data["iwon"] = True
 
-@event_listener("del_player")
+@event_listener("del_player", priority=1)
 def first_death_occured(evt, var, player, mainrole, allroles, death_triggers):
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return
-    if var.PHASE in var.GAME_PHASES and (CLONED or get_all_players(("clone",))) and not var.FIRST_NIGHT:
+    if CLONED and var.PHASE in var.GAME_PHASES:
         CLONE_ENABLED = True
 
 @event_listener("update_stats")
 def on_update_stats(evt, var, player, mainrole, revealrole, allroles):
-    if CLONE_ENABLED:
+    if CLONE_ENABLED and not var.HIDDEN_CLONE:
         evt.data["possible"].add("clone")
 
 @event_listener("myrole")
@@ -212,3 +215,5 @@ def on_reset(evt, var):
     global CLONE_ENABLED
     CLONE_ENABLED = False
     CLONED.clear()
+
+# vim: set sw=4 expandtab:

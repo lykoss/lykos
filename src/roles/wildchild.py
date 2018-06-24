@@ -15,6 +15,19 @@ from src.events import Event
 WILD_CHILDREN = UserSet()
 IDOLS = UserDict()
 
+def _set_random_idol(child):
+    idol = None
+    if child not in IDOLS:
+        players = get_players()
+        players.remove(child)
+        if players:
+            idol = random.choice(players)
+            IDOLS[child] = idol
+            idol_role = get_main_role(idol)
+            debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
+
+    return idol
+
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(var, wrapper, message):
     """Pick your idol, if they die, you'll become a wolf!"""
@@ -37,30 +50,49 @@ def on_see(evt, var, seer, target):
     if target in WILD_CHILDREN:
         evt.data["role"] = "wild child"
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "wolf" and actor in WILD_CHILDREN and target not in WILD_CHILDREN:
-        WILD_CHILDREN.discard(actor)
-        WILD_CHILDREN.add(target)
-    elif actor_role == "wild child":
-        if target_role == "wild child":
-            IDOLS[actor], IDOLS[target] = IDOLS[target], IDOLS[actor]
-            evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
-            evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target]))
-        else:
-            IDOLS[target] = IDOLS.pop(actor)
-            evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target]))
-    if target_role == "wolf" and target in WILD_CHILDREN and actor not in WILD_CHILDREN:
-        WILD_CHILDREN.discard(target)
-        WILD_CHILDREN.add(actor)
-    elif target_role == "wild child" and actor_role != "wild child":
-        # if they're both wild children, already swapped idols above
-        IDOLS[actor] = IDOLS.pop(target)
+@event_listener("new_role")
+def on_new_role(evt, var, user):
+    if user in IDOLS and evt.params.old_player in IDOLS: # very special case: two wild children exchanging (one or both might be wolf)
+        if evt.params.old_role == "wolf" and user in WILD_CHILDREN or evt.data["role"] == "wolf" and evt.params.old_player in WILD_CHILDREN:
+            evt.data["role"] = "wild_child_event_handler" # special key so our swap_role_state listener can do stuff properly
+            return # FIXME: I do not like this hack even though I made it. Anyone's got a better idea how to do this? -Vgr
+
+    if evt.data["role"] == "wolf" and evt.params.old_player in WILD_CHILDREN and user not in WILD_CHILDREN:
+        WILD_CHILDREN.discard(evt.params.old_player)
+        WILD_CHILDREN.add(user)
+        IDOLS[user] = IDOLS.pop(evt.params.old_player)
+    elif evt.params.old_player is not None and evt.data["role"] == "wild child" and evt.params.old_role != "wild child":
+        if evt.params.old_player in IDOLS:
+            IDOLS[user] = IDOLS.pop(evt.params.old_player)
+        _set_random_idol(user) # No-op if user is already in IDOLS
+        evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
+
+@event_listener("swap_role_state")
+def on_swap_role_state(evt, var, actor, target, role):
+    if role == "wild child":
+        IDOLS[actor], IDOLS[target] = IDOLS.pop(target), IDOLS.pop(actor)
         evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
+        evt.data["target_messages"].append(messages["wild_child_idol"].format(IDOLS[target]))
+
+    elif role == "wild_child_event_handler": # special handling for two wild children who might have turned
+        if actor in WILD_CHILDREN:
+            WILD_CHILDREN.discard(actor)
+            WILD_CHILDREN.add(target)
+            evt.data["actor_role"] = "wolf"
+        else:
+            evt.data["actor_role"] = "wild child"
+        if target in WILD_CHILDREN:
+            WILD_CHILDREN.discard(target)
+            WILD_CHILDREN.add(actor)
+            evt.data["target_role"] = "wolf"
+        else:
+            evt.data["target_role"] = "wild child"
+
+        IDOLS[actor], IDOLS[target] = IDOLS.pop(target), IDOLS.pop(actor)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
-    if user in IDOLS:
+    if user in IDOLS and user not in WILD_CHILDREN:
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
@@ -75,7 +107,8 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         # Change their main role to wolf
         child.send(messages["wild_child_idol_died"])
         WILD_CHILDREN.add(child)
-        change_role(child, get_main_role(child), "wolf")
+        new_evt = Event("new_role", {"messages": [], "role": "wolf"}, old_player=None, old_role=get_main_role(child))
+        new_evt.dispatch(var, child)
         var.ROLES["wild child"].discard(child)
 
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -106,6 +139,8 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 else:
                     child.send(messages["no_other_wolves"])
 
+        child.send(*new_evt.data["messages"])
+
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     if var.FIRST_NIGHT:
@@ -116,15 +151,9 @@ def on_chk_nightdone(evt, var):
 def on_transition_day_begin(evt, var):
     if (not var.START_WITH_DAY or not var.FIRST_DAY) and var.FIRST_NIGHT:
         for child in get_all_players(("wild child",)):
-            if child not in IDOLS:
-                players = get_players()
-                players.remove(child)
-                if players:
-                    idol = random.choice(players)
-                    IDOLS[child] = idol
-                    child.send(messages["wild_child_random_idol"].format(idol))
-                    idol_role = get_main_role(idol)
-                    debuglog("{0} (wild child) IDOLIZE RANDOM: {1} ({2})".format(child, idol, idol_role))
+            idol = _set_random_idol(child)
+            if idol is not None:
+                child.send(messages["wild_child_random_idol"].format(idol))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

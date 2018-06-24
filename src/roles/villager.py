@@ -55,4 +55,9 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["winner"] = "wolves"
         evt.data["message"] = messages["wolf_win_greater"]
 
+@event_listener("new_role")
+def assign_new_role(evt, var, user):
+    if evt.params.old_role is not None:
+        change_role(user, evt.params.old_role, evt.data["role"])
+
 # vim: set sw=4 expandtab:
