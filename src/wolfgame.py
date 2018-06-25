@@ -3662,9 +3662,6 @@ def check_exchange(cli, actor, nick):
             evt_actor.data["messages"].extend(evt_same.data["actor_messages"])
             evt_target.data["messages"].extend(evt_same.data["target_messages"])
 
-            actor_role = evt_same.data["actor_role"]
-            nick_role = evt_same.data["target_role"]
-
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
                 var.BITTEN_ROLES[actor], var.BITTEN_ROLES[nick] = var.BITTEN_ROLES[nick], var.BITTEN_ROLES[actor]
