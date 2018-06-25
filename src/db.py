@@ -352,13 +352,13 @@ def get_player_totals(acc, hostmask):
     totals = []
     for row in c:
         tmp[row[0]] = row[1]
-    c.execute("""SELECT SUM(gp.team_win | gp.indiv_win)
-                        FROM game_player gp
-                        JOIN player pl
-                          ON gp.player = pl.id
-                        JOIN person pe
-                          ON pl.person = pe.id
-                        WHERE pe.id = ?""", (peid,))
+    c.execute("""SELECT SUM(gp.team_win OR gp.indiv_win)
+                 FROM game_player gp
+                 JOIN player pl
+                   ON pl.id = gp.player
+                 JOIN person pe
+                   ON pe.id = pl.person
+                 WHERE pe.id = ?""", (peid,))
     won_games = c.fetchone()[0]
     order = role_order()
     name = _get_display_name(peid)
