@@ -67,6 +67,11 @@ def on_get_participants(evt, var):
     evt.data["players"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
     evt.data["players"].extend(drivenoff)
 
+@event_listener("consecrate")
+def on_consecrate(evt, var, actor, target):
+    if target in GHOSTS:
+        var.SILENCED.add(target)
+
 @event_listener("player_win", priority=1)
 def on_player_win(evt, var, user, role, winner, survived):
     # alive VG winning is handled in villager.py

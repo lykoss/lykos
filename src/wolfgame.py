@@ -98,7 +98,6 @@ var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DYING = UserSet()
 var.WOUNDED = UserSet()
-var.CONSECRATING = UserSet()
 var.GUNNERS = UserDict()
 
 var.NO_LYNCH = UserSet()
@@ -1753,7 +1752,7 @@ def hurry_up(gameid, change):
 
     var.DAY_ID = 0
 
-    pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
+    pl = set(get_players()) - var.WOUNDED
     evt = Event("get_voters", {"voters": pl})
     evt.dispatch(var)
     pl = evt.data["voters"]
@@ -1818,7 +1817,7 @@ def chk_decision(force=None, end_game=True, deadlist=None):
             return
         # Even if the lynch fails, we want to go to night phase if we are forcing a lynch (day timeout)
         do_night_transision = True if force else False
-        pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
+        pl = set(get_players()) - var.WOUNDED
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(var)
         pl = evt.data["voters"]
@@ -1954,7 +1953,7 @@ def show_votes(cli, nick, chan, rest):
 
         reply(cli, nick, chan, msg)
 
-        pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
+        pl = set(get_players()) - var.WOUNDED
         evt = Event("get_voters", {"voters": pl})
         evt.dispatch(var)
         pl = evt.data["voters"]
@@ -2232,7 +2231,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            pl = set(get_players()) - (var.WOUNDED | var.CONSECRATING)
+            pl = set(get_players()) - var.WOUNDED
             evt = Event("get_voters", {"voters": pl})
             evt.dispatch(var)
             pl = evt.data["voters"]
@@ -2452,7 +2451,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
 
                 var.NO_LYNCH.discard(player)
                 var.WOUNDED.discard(player)
-                var.CONSECRATING.discard(player)
                 # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
                 # we only want to induce a lynch if it's actually day and we aren't in a chained death
                 if var.GAMEPHASE == "day" and ismain and not end_game:
@@ -2756,7 +2754,7 @@ def rename_player(var, user, prefix):
             for setvar in (var.HEXED, var.SILENCED, var.PASSED,
                            var.JESTERS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
-                           var.ALPHA_WOLVES, var.CURSED, var.PRIESTS):
+                           var.ALPHA_WOLVES, var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3452,9 +3450,6 @@ def no_lynch(var, wrapper, message):
     elif wrapper.source in var.WOUNDED:
         channels.Main.send(messages["wounded_no_vote"].format(wrapper.source))
         return
-    elif wrapper.source in var.CONSECRATING:
-        wrapper.pm(messages["consecrating_no_vote"])
-        return
     for voter in list(var.VOTES):
         if wrapper.source in var.VOTES[voter]:
             var.VOTES[voter].remove(wrapper.source)
@@ -3476,10 +3471,6 @@ def lynch(var, wrapper, message):
     if wrapper.source in var.WOUNDED:
         wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
         return
-    if wrapper.source in var.CONSECRATING:
-        wrapper.pm(messages["consecrating_no_vote"])
-        return
-
     msg = re.split(" +", message)[0].strip()
 
     troll = False
@@ -3817,62 +3808,6 @@ def shoot(var, wrapper, message):
         else:
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
         del_player(wrapper.source, killer_role="villager") # blame explosion on villager's shoddy gun construction or something
-
-@cmd("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def bless(cli, nick, chan, rest):
-    """Bless a player, preventing them from being killed for the remainder of the game."""
-    if nick in var.PRIESTS:
-        pm(cli, nick, messages["already_blessed"])
-        return
-
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-    if not victim:
-        return
-
-    if victim == nick:
-        pm(cli, nick, messages["no_bless_self"])
-        return
-
-    victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        return
-
-    var.PRIESTS.add(nick)
-    var.ROLES["blessed villager"].add(users._get(victim)) # FIXME
-    pm(cli, nick, messages["blessed_success"].format(victim))
-    pm(cli, victim, messages["blessed_notify_target"])
-    debuglog("{0} ({1}) BLESS: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
-
-@cmd("consecrate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
-def consecrate(cli, nick, chan, rest):
-    """Consecrates a corpse, putting its spirit to rest and preventing other unpleasant things from happening."""
-    alive = list_players()
-    victim = re.split(" +", rest)[0]
-    if not victim:
-        pm(cli, nick, messages["not_enough_parameters"])
-        return
-    dead = [x.nick for x in var.ALL_PLAYERS if x.nick not in alive]
-    deadl = [x.lower() for x in dead]
-
-    tempvictim = complete_one_match(victim.lower(), deadl)
-    if not tempvictim:
-        pm(cli, nick, messages["consecrate_fail"].format(victim))
-        return
-    victim = dead[deadl.index(tempvictim)] #convert back to normal casing
-
-    # we have a target, so mark them as consecrated, right now all this does is silence a VG for a night
-    # but other roles that do stuff after death or impact dead players should have functionality here as well
-    # (for example, if there was a role that could raise corpses as undead somethings, this would prevent that from working)
-    # regardless if this has any actual effect or not, it still removes the priest from being able to vote
-    from src.roles import vengefulghost
-    if users._get(victim) in vengefulghost.GHOSTS:
-        var.SILENCED.add(victim)
-
-    var.CONSECRATING.add(users._get(nick)) # FIXME
-    pm(cli, nick, messages["consecrate_success"].format(victim))
-    debuglog("{0} ({1}) CONSECRATE: {2}".format(nick, get_role(nick), victim))
-    # consecrating can possibly cause game to end, so check for that
-    chk_win()
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
 def observe(cli, nick, chan, rest):
@@ -4266,7 +4201,6 @@ def transition_night():
     var.PASSED = set()
     var.OBSERVED = {}  # those whom werecrows have observed
     var.TOBESILENCED = set()
-    var.CONSECRATING.clear()
 
     daydur_msg = ""
 
@@ -4636,8 +4570,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
-    var.PRIESTS = set()
-    var.CONSECRATING.clear()
     var.DYING.clear()
 
     var.DEADCHAT_PLAYERS.clear()
