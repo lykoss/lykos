@@ -976,7 +976,7 @@ class SleepyMode(GameMode):
         elif self.step == 3:
             if "correct" in self.on_path:
                 self.having_nightmare[0].send(messages["sleepy_nightmare_wake"])
-                del self.having_nightmare[0]
+                self.having_nightmare.clear()
             elif "fake1" in self.on_path:
                 self.having_nightmare[0].send(messages["sleepy_nightmare_fake_1"])
                 self.step = 0
@@ -991,7 +991,7 @@ class SleepyMode(GameMode):
                 self.nightmare_step()
 
     def move(self, direction, var, wrapper, message):
-        if self.having_nightmare[0] is not wrapper.source:
+        if not self.having_nightmare or self.having_nightmare[0] is not wrapper.source:
             return
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         if self.prev_direction == opposite[direction]:
