@@ -309,26 +309,25 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 
 @event_listener("chk_nightdone", priority=3)
 def on_chk_nightdone(evt, var):
-    if not var.DISEASED_WOLVES:
-        evt.data["actedcount"] += len(KILLS)
-        evt.data["nightroles"].extend(get_players(CAN_KILL))
+    nevt = Event("wolf_numkills", {"numkills": 1})
+    nevt.dispatch(var)
+    num_kills = nevt.data["numkills"]
+    wofls = [x for x in get_players(CAN_KILL) if x.nick not in var.SILENCED]
+    if var.DISEASED_WOLVES or num_kills == 0 or len(wofls) == 0:
+        return
 
-@event_listener("chk_nightdone", priority=20)
-def on_chk_nightdone2(evt, var):
-    if not evt.prevent_default:
-        nevt = Event("wolf_numkills", {"numkills": 1})
-        nevt.dispatch(var)
-        num_kills = nevt.data["numkills"]
-        wofls = [x for x in get_players(CAN_KILL) if x.nick not in var.SILENCED]
-        if num_kills == 0 or len(wofls) == 0:
-            return
-        # flatten KILLS
-        kills = set()
-        for ls in KILLS.values():
-            kills.update(ls)
-        # check if wolves are actually agreeing
-        if len(kills) != num_kills:
-            evt.data["actedcount"] -= 1
+    evt.data["nightroles"].extend(wofls)
+    evt.data["actedcount"] += len(KILLS)
+    evt.data["nightroles"].append(users.FakeUser.from_nick("@WolvesAgree@"))
+    # check if wolves are actually agreeing or not;
+    # only count agreement_user if they are
+    # (this is *slighty* less hacky than deducting 1 from actedcount as we did previously)
+    kills = set()
+    for ls in KILLS.values():
+        kills.update(ls)
+    # check if wolves are actually agreeing
+    if len(kills) == num_kills:
+        evt.data["actedcount"] += 1
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
