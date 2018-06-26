@@ -3656,7 +3656,7 @@ def check_exchange(cli, actor, nick):
         actor_role = evt_target.data["role"]
 
         if nick_role == actor_role: # make sure that two players with the same role exchange their role state properly (e.g. dullahan)
-            evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
+            evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
             evt_same.dispatch(var, user, target, actor_role)
 
             evt_actor.data["messages"].extend(evt_same.data["actor_messages"])
