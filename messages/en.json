@@ -114,7 +114,8 @@
         "\u0002{0}\u0002's horse died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002's donkey died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 wanted a new life, and decided this village would be a good place to live. They raised the number of players to \u0002{1}\u0002.",
-        "\u0002{0}\u0002 overcame their fear of wolves, and decided to join a village with them. They raised the number of players to \u0002{1}\u0002."
+        "\u0002{0}\u0002 overcame their fear of wolves, and decided to join a village with them. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 wandered into the village while looking for a signal. Luckily, the village has free wifi. They raised the number of players to \u0002{1}\u0002."
     ],
     "fool_win": "Game over! The fool has been lynched, causing them to win.",
     "no_win": "Game over! There are no players remaining.",
