@@ -614,7 +614,8 @@ def replace(var, wrapper, message):
             channels.Main.mode(("-v", target), ("+v", wrapper.source))
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
-        myrole.func(var, wrapper, "")
+        if var.PHASE in var.GAME_PHASES:
+            myrole.func(var, wrapper, "")
 
 
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
