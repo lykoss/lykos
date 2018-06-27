@@ -97,8 +97,8 @@ def on_transition_day(evt, var):
         del KILLS[k]
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
-    if evt.params.old_role == "hunter":
+def on_new_role(evt, var, user, old_role):
+    if old_role == "hunter":
         del KILLS[:user:]
         HUNTERS.discard(user)
         PASSED.discard(user)

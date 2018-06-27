@@ -121,8 +121,8 @@ def on_transition_day(evt, var):
         evt.data["killers"][d].append(k)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
-    if user in TARGETS and evt.params.old_role == "dullahan" and evt.data["role"] != "dullahan":
+def on_new_role(evt, var, user, old_role):
+    if user in TARGETS and old_role == "dullahan" and evt.data["role"] != "dullahan":
         del KILLS[:user:]
         targets = TARGETS.pop(user)
         if evt.params.old_player in targets:

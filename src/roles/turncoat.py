@@ -109,8 +109,8 @@ def on_get_special(evt, var):
     evt.data["neutrals"].update(get_players(("turncoat",)))
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
-    if evt.data["role"] == "turncoat" and evt.params.old_role != "turncoat":
+def on_new_role(evt, var, user, old_role):
+    if evt.data["role"] == "turncoat" and old_role != "turncoat":
         if evt.params.old_player is not None:
             # While a former turncoat should be guaranteed to be in TURNCOATS, amnesiac exists
             # (Amnesiac alters evt.data["role"] at priority 1, so we can't know what role they were)

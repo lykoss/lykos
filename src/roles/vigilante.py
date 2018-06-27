@@ -84,8 +84,8 @@ def on_transition_day(evt, var):
             var.DYING.add(vigilante)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
-    if evt.params.old_role == "vigilante":
+def on_new_role(evt, var, user, old_role):
+    if old_role == "vigilante":
         del KILLS[:user:]
         PASSED.discard(user)
 

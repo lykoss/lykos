@@ -98,8 +98,8 @@ def on_get_special(evt, var):
     evt.data["villagers"].update(get_players(("investigator",)))
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
-    if evt.params.old_role == "investigator" and evt.data["role"] != "investigator":
+def on_new_role(evt, var, user, old_role):
+    if old_role == "investigator" and evt.data["role"] != "investigator":
         INVESTIGATED.discard(user)
 
 @event_listener("transition_night_end", priority=2)

@@ -3646,11 +3646,11 @@ def check_exchange(cli, actor, nick):
         evt = Event("exchange_roles", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
         evt.dispatch(var, user, target, actor_role, nick_role) # FIXME: Deprecated, change in favor of new_role and swap_role_state
 
-        evt_actor = Event("new_role", {"messages": [], "role": nick_role}, old_player=target, old_role=actor_role)
-        evt_actor.dispatch(var, user)
+        evt_actor = Event("new_role", {"messages": [], "role": nick_role}, old_player=target)
+        evt_actor.dispatch(var, user, actor_role)
 
-        evt_target = Event("new_role", {"messages": [], "role": actor_role}, old_player=user, old_role=nick_role)
-        evt_target.dispatch(var, target)
+        evt_target = Event("new_role", {"messages": [], "role": actor_role}, old_player=user)
+        evt_target.dispatch(var, target, nick_role)
 
         nick_role = evt_actor.data["role"]
         actor_role = evt_target.data["role"]
@@ -3661,6 +3661,9 @@ def check_exchange(cli, actor, nick):
 
             evt_actor.data["messages"].extend(evt_same.data["actor_messages"])
             evt_target.data["messages"].extend(evt_same.data["target_messages"])
+
+        change_role(user, actor_role, nick_role)
+        change_role(target, nick_role, actor_role)
 
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
@@ -4791,8 +4794,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     for role, players in var.ROLES.items():
         for player in players:
-            evt = Event("new_role", {"messages": [], "role": role}, old_player=None, old_role=None)
-            evt.dispatch(var, player)
+            evt = Event("new_role", {"messages": [], "role": role}, old_player=None)
+            evt.dispatch(var, player, None)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name

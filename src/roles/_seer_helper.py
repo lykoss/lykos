@@ -27,8 +27,8 @@ def setup_variables(rolename):
         evt.data["villagers"].update(get_players((rolename,)))
 
     @event_listener("new_role")
-    def on_new_role(evt, var, user):
-        if evt.params.old_role == rolename and evt.data["role"] != rolename:
+    def on_new_role(evt, var, user, old_role):
+        if old_role == rolename and evt.data["role"] != rolename:
             SEEN.discard(user)
 
     @event_listener("chk_nightdone")

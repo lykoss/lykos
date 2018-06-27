@@ -73,10 +73,10 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 # clone is cloning target, so clone becomes target's role
                 # clone does NOT get any of target's templates (gunner/assassin/etc.)
                 del CLONED[clone]
-                new_evt = Event("new_role", {"messages": [], "role": mainrole}, old_player=player, old_role="clone")
-                new_evt.dispatch(var, clone)
-
+                new_evt = Event("new_role", {"messages": [], "role": mainrole}, old_player=player)
+                new_evt.dispatch(var, clone, "clone")
                 mainrole = new_evt.data["role"]
+                change_role(clone, "clone", mainrole)
                 debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
                 sayrole = mainrole
                 if sayrole in var.HIDDEN_VILLAGERS:
@@ -114,7 +114,7 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
         del CLONED[player]
 
 @event_listener("new_role")
-def on_new_role(evt, var, user):
+def on_new_role(evt, var, user, old_role):
     # if a clone is cloning a clone, clone who the old clone cloned
     if evt.data["role"] == "clone" and evt.params.old_player in CLONED:
         if CLONED[evt.params.old_player] is user:
