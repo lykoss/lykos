@@ -71,29 +71,6 @@ def on_investigate(evt, var, actor, target):
     if evt.data["role"] == "amnesiac":
         evt.data["role"] = ROLES[target]
 
-@event_listener("exchange_roles")
-def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
-    # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
-    if actor_role == "amnesiac":
-        actor_role = ROLES[actor]
-        if target in ROLES:
-            ROLES[actor] = ROLES[target]
-            ROLES[target] = actor_role
-        else:
-            del ROLES[actor]
-            ROLES[target] = actor_role
-
-    if target_role == "amnesiac":
-        if actor not in ROLES:
-            target_role = ROLES[target]
-            ROLES[actor] = target_role
-            del ROLES[target]
-        else: # we swapped amnesiac_roles earlier on, get our version back
-            target_role = ROLES[actor]
-
-    evt.data["actor_role"] = actor_role
-    evt.data["target_role"] = target_role
-
 @event_listener("new_role", priority=1) # Exchange, clone, etc. - assign the amnesiac's final role
 def update_amnesiac(evt, var, user):
     # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
