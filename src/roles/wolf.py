@@ -258,7 +258,8 @@ def on_new_role(evt, var, player, old_role):
         evt.data["in_wolfchat"] = True
         if wofls:
             random.shuffle(wofls)
-            for i, wofl in enumerate(wofls):
+            new_wolves = []
+            for wofl in wofls:
                 wofl.queue_message(messages["wolfchat_new_member"].format(an, sayrole))
                 wolfrole = get_main_role(wofl)
                 wevt = Event("wolflist", {"tags": set()})
@@ -266,9 +267,9 @@ def on_new_role(evt, var, player, old_role):
                 tags = " ".join(wevt.data["tags"])
                 if tags:
                     tags += " "
-                wofls[i] = "\u0002{0}\u0002 ({1}{2})".format(wofl, tags, wolfrole)
+                new_wolves.append("\u0002{0}\u0002 ({1}{2})".format(wofl, tags, wolfrole))
             wofl.send_messages()
-            evt.data["messages"].append(messages["wolves_list"].format(wofls))
+            evt.data["messages"].append(messages["wolves_list"].format(new_wolves))
         else:
             evt.data["messages"].append(messages["no_other_wolves"])
 

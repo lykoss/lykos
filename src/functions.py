@@ -66,7 +66,7 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
 
     return match
 
-def change_role(var, player, oldrole, newrole, inherit_from=None, message="new_role"):
+def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="new_role"):
     # in_wolfchat is filled as part of priority 4
     # if you wish to modify evt.data["role"], do so in priority 3 or sooner
     evt = Event("new_role",

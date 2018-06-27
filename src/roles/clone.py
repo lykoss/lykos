@@ -124,12 +124,10 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("swap_role_state")
 def on_swap_role_state(evt, var, actor, target, role):
-    if role != "clone":
-        return
-
-    CLONED[target], CLONED[actor] = CLONED[actor], CLONED[target]
-    evt.data["target_messages"].append(messages["clone_target"].format(CLONED[target]))
-    evt.data["actor_messages"].append(messages["clone_target"].format(CLONED[actor]))
+    if role == "clone":
+        CLONED[target], CLONED[actor] = CLONED.pop(actor), CLONED.pop(target)
+        evt.data["target_messages"].append(messages["clone_target"].format(CLONED[target]))
+        evt.data["actor_messages"].append(messages["clone_target"].format(CLONED[actor]))
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):

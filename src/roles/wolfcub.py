@@ -27,7 +27,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
-    if evt.data["in_wolfchat"] and wolf.wolf_can_kill(var, player):
+    if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf.wolf_can_kill(var, player):
         evt.data["messages"].append(messages["angry_wolves"])
 
 @event_listener("transition_night_end", priority=3)

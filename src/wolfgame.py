@@ -21,8 +21,9 @@
 
 import copy
 import fnmatch
-import itertools
 import functools
+import itertools
+import json
 import math
 import os
 import platform
@@ -37,8 +38,8 @@ import threading
 import time
 import traceback
 import urllib.request
+
 from collections import defaultdict, deque, Counter
-import json
 from datetime import datetime, timedelta
 
 from oyoyo.parse import parse_nick
@@ -48,12 +49,18 @@ import src
 import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
-from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
+
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role, get_target, change_role
+from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
+
+from src.functions import (
+    get_players, get_all_players, get_participants,
+    get_main_role, get_all_roles, get_reveal_role,
+    get_target, change_role,
+   )
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
@@ -3633,8 +3640,8 @@ def check_exchange(cli, actor, nick):
             evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
             evt_same.dispatch(var, user, target, actor_role)
 
-            evt_actor.send(*evt_same.data["actor_messages"])
-            evt_target.send(*evt_same.data["target_messages"])
+            user.send(*evt_same.data["actor_messages"])
+            target.send(*evt_same.data["target_messages"])
 
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
