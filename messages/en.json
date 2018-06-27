@@ -104,6 +104,18 @@
         "\u0002{0}\u0002 tried to smoke dynamite. The resulting explosion has left a crater in their place.",
         "\u0002{0}\u0002 went spelunking and never made it back."
     ],
+    "player_joined": [
+        "\u0002{0}\u0002 has wandered into the village. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was on a long journey and needed to give their animals a drink. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was on a long journey and needed a rest. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 has been persuaded into joining the village. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 has run out of food and smelled fresh bread in the village. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was led into the village while chasing a deer. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002's horse died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002's donkey died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 wanted a new life, and decided this village would be a good place to live. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was bored one day, and decided lynching werewolves sounded fun. They raised the number of players to \u0002{1}\u0002."
+    ],
     "fool_win": "Game over! The fool has been lynched, causing them to win.",
     "no_win": "Game over! There are no players remaining.",
     "piper_win": "Game over! Everyone has fallen victim to the charms of the piper{0}. The piper{0} lead{1} the villagers away from the village, never to return...",
@@ -145,7 +157,6 @@
     "too_many_players": "Too many players! Try again next time.",
     "game_already_running": "Sorry, but the game is already running. Try again next time.",
     "account_already_joined": "Sorry, but \u0002{0}\u0002 is already joined under {1} account.{2}",
-    "player_joined": "\u0002{0}\u0002 has joined the game and raised the number of players to \u0002{1}\u0002.",
     "game_idle_cancel": "The current game took too long to start and has been canceled. If you are still active, you can join again to start a new game.",
     "game_restart_cancel": "The bot has been restarted and the game has been canceled. If you are still active, you can join again to start a new game.",
     "too_many_players_to_join": "{0}: Too many players to join.",

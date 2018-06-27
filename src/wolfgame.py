@@ -932,7 +932,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
-            wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
+            wrapper.send(random.choice(messages["player_joined"]).format(wrapper.source, len(pl) + 1))
         if not sanity:
             # Abandon Hope All Ye Who Enter Here
             leave_deadchat(var, wrapper.source)
