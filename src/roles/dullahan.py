@@ -121,28 +121,24 @@ def on_transition_day(evt, var):
         evt.data["killers"][d].append(k)
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
-    if user in TARGETS and old_role == "dullahan" and evt.data["role"] != "dullahan":
-        del KILLS[:user:]
-        targets = TARGETS.pop(user)
-        if evt.params.old_player in targets:
-            targets.remove(evt.params.old_player)
-            targets.add(user)
-        TARGETS[evt.params.old_player] = targets
+def on_new_role(evt, var, player, old_role):
+    if player in TARGETS and old_role == "dullahan" and evt.data["role"] != "dullahan":
+        del KILLS[:player:]
+        del TARGETS[player]
 
-    if user not in TARGETS and evt.params.old_player is None and evt.data["role"] == "dullahan":
-        max_targets = math.ceil(8.1 * math.log(len(get_players()), 10) - 5)
-        TARGETS[user] = UserSet()
-
-        dull_targets = Event("dullahan_targets", {"targets": TARGETS[user]}) # support sleepy
-        dull_targets.dispatch(var, user, max_targets)
-
+    if player not in TARGETS and evt.data["role"] == "dullahan":
         ps = get_players()
-        ps.remove(user)
-        while len(TARGETS[user]) < max_targets:
+        max_targets = math.ceil(8.1 * math.log(len(ps), 10) - 5)
+        TARGETS[player] = UserSet()
+
+        dull_targets = Event("dullahan_targets", {"targets": TARGETS[player]}) # support sleepy
+        dull_targets.dispatch(var, player, max_targets)
+
+        ps.remove(player)
+        while len(TARGETS[player]) < max_targets:
             target = random.choice(ps)
             ps.remove(target)
-            TARGETS[user].add(target)
+            TARGETS[player].add(target)
 
 @event_listener("swap_role_state")
 def on_swap_role_state(evt, var, actor, target, role):

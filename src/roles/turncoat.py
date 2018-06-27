@@ -109,13 +109,11 @@ def on_get_special(evt, var):
     evt.data["neutrals"].update(get_players(("turncoat",)))
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "turncoat" and old_role != "turncoat":
-        if evt.params.old_player is not None:
-            # While a former turncoat should be guaranteed to be in TURNCOATS, amnesiac exists
-            # (Amnesiac alters evt.data["role"] at priority 1, so we can't know what role they were)
-            del TURNCOATS[:evt.params.old_player:]
-        TURNCOATS[user] = ("none", -1)
+def on_new_role(evt, var, player, old_role):
+    if old_role == "turncoat" and evt.data["role"] != "turncoat":
+        del TURNCOATS[player]
+    elif evt.data["role"] == "turncoat" and old_role != "turncoat":
+        TURNCOATS[player] = ("none", -1)
 
 @event_listener("swap_role_state")
 def on_swap_role_state(evt, var, actor, target, role):

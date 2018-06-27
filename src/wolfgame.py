@@ -50,7 +50,7 @@ from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role, get_target
+from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role, get_target, change_role
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -3243,28 +3243,9 @@ def transition_day(gameid=0):
             if vrole not in var.WOLFCHAT_ROLES:
                 revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
-                victim.send(messages["lycan_turn"])
                 var.LYCAN_ROLES[victim.nick] = vrole
-                change_role(victim, vrole, "wolf")
+                change_role(victim, vrole, "wolf", message="lycan_turn")
                 var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
-                wolves = get_players(var.WOLFCHAT_ROLES)
-                random.shuffle(wolves)
-                wolves.remove(victim)  # remove self from list
-                to_send = []
-                for wolf in wolves:
-                    wolf.queue_message(messages["lycan_wc_notification"].format(victim))
-                    role = get_main_role(wolf)
-                    wevt = Event("wolflist", {"tags": set()})
-                    wevt.dispatch(var, wolf, victim)
-                    tags = " ".join(wevt.data["tags"])
-                    if tags:
-                        tags += " "
-                    to_send.append("\u0002{0}\u0002 ({1}{2})".format(wolf, tags, role))
-
-                if wolves:
-                    wolf.send_messages()
-
-                victim.send(messages["wolves_list"].format(", ".join(to_send)))
                 revt.data["novictmsg"] = False
         elif victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
@@ -3365,29 +3346,28 @@ def transition_day(gameid=0):
             continue
 
         newrole = "wolf"
+        to_send = "bitten_turn"
         if chumprole == "guardian angel":
-            chump.send(messages["fallen_angel_turn"])
+            to_send = "fallen_angel_turn"
             # fallen angels also automatically gain the assassin template if they don't already have it
             newrole = "fallen angel"
             var.ROLES["assassin"].add(chump)
             debuglog("{0} (guardian angel) TURNED FALLEN ANGEL".format(chump))
         elif chumprole in ("seer", "oracle", "augur"):
-            chump.send(messages["seer_turn"])
+            to_send = "seer_turn"
             newrole = "doomsayer"
             debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
         elif chumprole in var.TOTEM_ORDER:
-            chump.send(messages["shaman_turn"])
+            to_send = "shaman_turn"
             newrole = "wolf shaman"
             debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
         elif chumprole == "harlot":
-            chump.send(messages["harlot_turn"])
+            to_send = "harlot_turn"
             debuglog("{0} (harlot) TURNED WOLF".format(chump))
         else:
-            chump.send(messages["bitten_turn"])
             debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
         var.BITTEN_ROLES[chump.nick] = chumprole
-        change_role(chump, chumprole, newrole)
-        relay_wolfchat_command(chump.client, chump.nick, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+        change_role(chump, chumprole, newrole, message=to_send)
 
     killer_role = {}
     for deadperson in dead:
@@ -3646,24 +3626,15 @@ def check_exchange(cli, actor, nick):
         evt = Event("exchange_roles", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
         evt.dispatch(var, user, target, actor_role, nick_role) # FIXME: Deprecated, change in favor of new_role and swap_role_state
 
-        evt_actor = Event("new_role", {"messages": [], "role": nick_role}, old_player=target)
-        evt_actor.dispatch(var, user, actor_role)
-
-        evt_target = Event("new_role", {"messages": [], "role": actor_role}, old_player=user)
-        evt_target.dispatch(var, target, nick_role)
-
-        nick_role = evt_actor.data["role"]
-        actor_role = evt_target.data["role"]
+        nick_role = change_role(user, actor_role, nick_role, inherit_from=target)
+        actor_role = change_role(target, nick_role, actor_role, inherit_from=user)
 
         if nick_role == actor_role: # make sure that two players with the same role exchange their role state properly (e.g. dullahan)
             evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
             evt_same.dispatch(var, user, target, actor_role)
 
-            evt_actor.data["messages"].extend(evt_same.data["actor_messages"])
-            evt_target.data["messages"].extend(evt_same.data["target_messages"])
-
-        change_role(user, actor_role, nick_role)
-        change_role(target, nick_role, actor_role)
+            evt_actor.send(*evt_same.data["actor_messages"])
+            evt_target.send(*evt_same.data["target_messages"])
 
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
@@ -3684,25 +3655,6 @@ def check_exchange(cli, actor, nick):
         elif nick in var.LYCAN_ROLES.keys():
             var.LYCAN_ROLES[actor] = var.LYCAN_ROLES[nick]
             del var.LYCAN_ROLES[nick]
-
-        actor_rev_role = actor_role
-        if actor_role in var.HIDDEN_ROLES:
-            actor_rev_role = var.DEFAULT_ROLE
-        elif actor_role in var.HIDDEN_VILLAGERS:
-            actor_rev_role = "villager"
-
-        nick_rev_role = nick_role
-        if nick_role in var.HIDDEN_ROLES:
-            nick_rev_role = var.DEFAULT_ROLE
-        elif actor_role in var.HIDDEN_VILLAGERS:
-            nick_rev_role = "villager"
-
-        # don't say who, since misdirection/luck totem may have switched it
-        # and this makes life far more interesting
-        user.send(messages["role_swap"].format(nick_rev_role))
-        target.send(messages["role_swap"].format(actor_rev_role))
-        user.send(*evt_actor.data["messages"])
-        target.send(*evt_target.data["messages"])
 
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -3984,15 +3936,14 @@ def immunize(cli, nick, chan, rest):
             var.DISEASED.remove(victim)
         if victim in get_roles("lycan"): # FIXME
             lycan = True
-            lycan_message = (messages["lycan_cured"])
             if get_role(victim) == "lycan":
-                change_role(users._get(victim), "lycan", "villager") # FIXME
+                change_role(users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
             else:
                 var.ROLES["lycan"].remove(users._get(victim)) # FIXME
             var.CURED_LYCANS.add(victim)
         else:
             lycan_message = messages[evt.data["message"]]
-        pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
+            pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
     if evt.data["success"]:
         var.IMMUNIZED.add(victim)
         var.DOCTORS[nick] -= 1
@@ -4794,7 +4745,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     for role, players in var.ROLES.items():
         for player in players:
-            evt = Event("new_role", {"messages": [], "role": role}, old_player=None)
+            evt = Event("new_role", {"messages": [], "role": role}, inherit_from=None)
             evt.dispatch(var, player, None)
 
     if not restart:

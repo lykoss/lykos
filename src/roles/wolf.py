@@ -226,8 +226,8 @@ def on_retribution_kill(evt, var, victim, orig_target):
         wolves = get_players(CAN_KILL)
         evt.data["target"] = random.choice(wolves)
 
-@event_listener("exchange_roles", priority=2)
-def on_exchange(evt, var, actor, target, actor_role, target_role):
+@event_listener("new_role", priority=4)
+def on_new_role(evt, var, player, old_role):
     wcroles = var.WOLFCHAT_ROLES
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
@@ -235,77 +235,50 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
         else:
             wcroles = var.WOLF_ROLES | {"traitor"}
 
-    if target_role in wcroles and actor_role not in wcroles:
-        pl = get_players()
-        random.shuffle(pl)
-        pl.remove(actor)  # remove self from list
-        notify = []
-        to_send = []
-        for player in pl:
-            prole = get_main_role(player)
-            if player is target:
-                prole = actor_role
-            wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(var, player, actor)
-            tags = " ".join(wevt.data["tags"])
-            if prole in wcroles:
+    if old_role is None:
+        # initial role assignment; don't do all the logic below about notifying other wolves and such
+        if evt.data["role"] in wcroles:
+            evt.data["in_wolfchat"] = True
+        return
+
+    sayrole = evt.data["role"]
+    if sayrole in var.HIDDEN_VILLAGERS:
+        sayrole = "villager"
+    elif sayrole in var.HIDDEN_ROLES:
+        sayrole = var.DEFAULT_ROLE
+    an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
+
+    if player.nick in KILLS: # FIXME
+        del KILLS[player.nick]
+
+    if old_role not in wcroles and evt.data["role"] in wcroles:
+        # a new wofl has joined the party, give them tummy rubs and the wolf list
+        # and let the other wolves know to break out the confetti and villager steaks
+        wofls = get_players(wcroles)
+        evt.data["in_wolfchat"] = True
+        if wofls:
+            random.shuffle(wofls)
+            for i, wofl in enumerate(wofls):
+                wofl.queue_message(messages["wolfchat_new_member"].format(an, sayrole))
+                wolfrole = get_main_role(wofl)
+                wevt = Event("wolflist", {"tags": set()})
+                wevt.dispatch(var, wolf, player)
+                tags = " ".join(wevt.data["tags"])
                 if tags:
                     tags += " "
-                to_send.append("\u0002{0}\u0002 ({1}{2})".format(player, tags, prole))
-                notify.append(player)
-            elif tags:
-                to_send.append("{0} ({1})".format(player, tags))
-            else:
-                to_send.append(player.nick)
+                wofls[i] = "\u0002{0}\u0002 ({1}{2})".format(wofl, tags, wolfrole)
+            wofl.send_messages()
+            evt.data["messages"].append(messages["wolves_list"].format(wofls))
+        else:
+            evt.data["messages"].append(messages["no_other_wolves"])
 
-        for player in notify:
-            player.queue_message(messages["players_exchanged_roles"].format(target, actor))
-        if notify:
-            player.send_messages()
-
-        evt.data["actor_messages"].append(messages["players_list"].format(", ".join(to_send)))
-        if target_role in CAN_KILL and var.DISEASED_WOLVES:
-            evt.data["actor_messages"].append(messages["ill_wolves"])
-        if var.ALPHA_ENABLED and target_role == "alpha wolf" and actor.nick not in var.ALPHA_WOLVES:
-            evt.data["actor_messages"].append(messages["wolf_bite"])
-    elif actor_role in wcroles and target_role not in wcroles:
-        pl = get_players()
-        random.shuffle(pl)
-        pl.remove(target)  # remove self from list
-        notify = []
-        to_send = []
-        for player in pl:
-            prole = get_main_role(player)
-            if player is actor:
-                prole = target_role
-            wevt = Event("wolflist", {"tags": set()})
-            wevt.dispatch(var, player, target)
-            tags = " ".join(wevt.data["tags"])
-            if prole in wcroles:
-                if tags:
-                    tags += " "
-                to_send.append("\u0002{0}\u0002 ({1}{2})".format(player, tags, prole))
-                notify.append(player)
-            elif tags:
-                to_send.append("{0} ({1})".format(player, tags))
-            else:
-                to_send.append(player.nick)
-
-        for player in notify:
-            player.queue_message(messages["players_exchanged_roles"].format(actor, target))
-        if notify:
-            player.send_messages()
-
-        evt.data["target_messages"].append(messages["players_list"].format(", ".join(to_send)))
-        if actor_role in CAN_KILL and var.DISEASED_WOLVES:
-            evt.data["target_messages"].append(messages["ill_wolves"])
-        if var.ALPHA_ENABLED and actor_role == "alpha wolf" and target.nick not in var.ALPHA_WOLVES:
-            evt.data["target_messages"].append(messages["wolf_bite"])
-
-    if actor.nick in KILLS:
-        del KILLS[actor.nick]
-    if target.nick in KILLS:
-        del KILLS[target.nick]
+        if var.PHASE == "night":
+            # inform the new wolf that they can kill and stuff
+            if evt.data["role"] in CAN_KILL and var.DISEASED_WOLVES:
+                evt.data["messages"].append(messages["ill_wolves"])
+            # FIXME: split when alpha wolf is split
+            if var.ALPHA_ENABLED and evt.data["role"] == "alpha wolf" and player.nick not in var.ALPHA_WOLVES:
+                evt.data["messages"].append(messages["wolf_bite"])
 
 @event_listener("chk_nightdone", priority=3)
 def on_chk_nightdone(evt, var):

@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, is_known_wolf_ally
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, is_known_wolf_ally, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -38,29 +38,8 @@ def on_transition_night_begin(evt, var):
             STATS_FLAG = True
 
         for amn in amnesiacs:
-            role = ROLES[amn]
-            evt = Event("new_role", {"messages": [], "role": role}, old_player=None)
-            evt.dispatch(var, amn, "amnesiac")
-            change_role(amn, "amnesiac", evt.data["role"])
-            if var.FIRST_NIGHT: # we don't need to tell them twice if they remember right away
-                continue
-            showrole = evt.data["role"]
-            if showrole in var.HIDDEN_VILLAGERS:
-                showrole = "villager"
-            elif showrole in var.HIDDEN_ROLES:
-                showrole = var.DEFAULT_ROLE
-            a = "a"
-            if showrole.startswith(("a", "e", "i", "o", "u")):
-                a = "an"
-            amn.send(messages["amnesia_clear"].format(a, showrole))
-            amn.send(*evt.data["messages"])
-            if is_known_wolf_ally(amn, amn):
-                if evt.data["role"] in var.WOLF_ROLES:
-                    relay_wolfchat_command(amn.client, amn.nick, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
-                else:
-                    relay_wolfchat_command(amn.client, amn.nick, messages["amnesia_wolfchat"].format(amn, showrole), var.WOLFCHAT_ROLES)
-
-            debuglog("{0} REMEMBER: {1} as {2}".format(amn, evt.data["role"], showrole))
+            role = change_role(amn, "amnesiac", ROLES[amn], message="amnesia_clear")
+            debuglog("{0} REMEMBER: {1}".format(amn, evt.data["role"]))
 
 @event_listener("new_role")
 def doctor_new_role(evt, var, user, old_role):
@@ -76,11 +55,11 @@ def on_investigate(evt, var, actor, target):
 def update_amnesiac(evt, var, user, old_role):
     # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
     if old_role is not None and evt.data["role"] == "amnesiac" and old_role != "amnesiac":
-        evt.data["role"] = ROLES[evt.params.old_player]
+        evt.data["role"] = ROLES[evt.params.inherit_from]
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
-    if evt.params.old_player is None and evt.data["role"] == "amnesiac":
+    if evt.params.inherit_from is None and evt.data["role"] == "amnesiac":
         roles = var.ROLE_GUIDE.keys() - _get_blacklist(var)
         ROLES[user] = random.choice(list(roles))
 
@@ -91,12 +70,7 @@ def on_revealing_totem(evt, var, votee):
         STATS_FLAG = True
     if evt.data["role"] == "amnesiac":
         votee.send(messages["totem_amnesia_clear"])
-        nevt = Event("new_role", {"messages": [], "role": ROLES[votee]}, old_player=None)
-        nevt.dispatch(var, votee, "amnesiac")
-        evt.data["role"] = nevt.data["role"]
-        change_role(votee, "amnesiac", evt.data["role"])
-        # If wolfteam, don't bother giving list of wolves since night is about to start anyway
-        # Existing wolves also know that someone just joined their team because revealing totem says what they are
+        change_role(votee, "amnesiac", ROLES[votee])
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt, var, user):

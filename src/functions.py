@@ -5,7 +5,7 @@ from src import users
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
-    "get_target",
+    "get_target", "change_role"
     "get_main_role", "get_all_roles", "get_reveal_role",
     "is_known_wolf_ally",
     ]
@@ -65,6 +65,34 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
         return
 
     return match
+
+def change_role(var, player, oldrole, newrole, inherit_from=None, message="new_role"):
+    # in_wolfchat is filled as part of priority 4
+    # if you wish to modify evt.data["role"], do so in priority 3 or sooner
+    evt = Event("new_role",
+            {"role": newrole, "messages": [], "in_wolfchat": False},
+            inherit_from=inherit_from)
+    evt.dispatch(var, user, oldrole)
+    newrole = evt.data["role"]
+
+    var.ROLES[oldrole].remove(user)
+    var.ROLES[newrole].add(user)
+    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the user's actual role
+    if var.MAIN_ROLES[user] == oldrole:
+        var.MAIN_ROLES[user] = newrole
+        var.FINAL_ROLES[user.nick] = newrole
+
+    sayrole = newrole
+    if sayrole in var.HIDDEN_VILLAGERS:
+        sayrole = "villager"
+    elif sayrole in var.HIDDEN_ROLES:
+        sayrole = var.DEFAULT_ROLE
+    an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
+
+    player.send(messages[message].format(an, sayrole))
+    player.send(*evt.data["messages"])
+
+    return newrole
 
 def get_main_role(user):
     role = var.MAIN_ROLES.get(user)

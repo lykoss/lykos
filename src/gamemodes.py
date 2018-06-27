@@ -10,7 +10,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src.messages import messages
-from src.functions import get_players, get_all_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users
@@ -1042,15 +1042,11 @@ class SleepyMode(GameMode):
                 cultists = [p for p in get_players(("cultist",)) if p in pl and random.random() < turn_chance]
                 channels.Main.send(messages["sleepy_priest_death"])
                 for seer in seers:
-                    change_role(seer, "seer", "doomsayer")
-                    seer.send(messages["sleepy_doomsayer_turn"])
-                    relay_wolfchat_command(seer.client, seer.nick, messages["sleepy_doomsayer_wolfchat"].format(seer), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+                    change_role(seer, "seer", "doomsayer", message="sleepy_doomsayer_turn")
                 for harlot in harlots:
-                    change_role(harlot, "harlot", "succubus")
-                    harlot.send(messages["sleepy_succubus_turn"])
+                    change_role(harlot, "harlot", "succubus", message="sleepy_succubus_turn")
                 for cultist in cultists:
-                    change_role(cultist, "cultist", "demoniac")
-                    cultist.send(messages["sleepy_demoniac_turn"])
+                    change_role(cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
