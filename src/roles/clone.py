@@ -73,10 +73,20 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 # clone is cloning target, so clone becomes target's role
                 # clone does NOT get any of target's templates (gunner/assassin/etc.)
                 del CLONED[clone]
-                new_evt = Event("new_role", {"messages": [], "role": mainrole}, old_player=player)
+                # We are not passing old_player because we don't want that person's state to be carried over
+                new_evt = Event("new_role", {"messages": [], "role": mainrole}, old_player=None)
                 new_evt.dispatch(var, clone, "clone")
                 mainrole = new_evt.data["role"]
                 change_role(clone, "clone", mainrole)
+                # if a clone is cloning a clone, clone who the old clone cloned
+                if mainrole == "clone" and player in CLONED:
+                    if CLONED[player] is clone:
+                        clone.send(messages["forever_aclone"].format(player))
+                    else:
+                        CLONED[clone] = CLONED[player]
+                        clone.send(messages["clone_success"].format(CLONED[clone]))
+                        debuglog("{0} (clone) CLONE: {1} ({2})".format(clone, CLONED[clone], get_main_role(CLONED[clone])))
+
                 debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
                 sayrole = mainrole
                 if sayrole in var.HIDDEN_VILLAGERS:
@@ -112,17 +122,6 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
 
     if mainrole == "clone" and player in CLONED:
         del CLONED[player]
-
-@event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
-    # if a clone is cloning a clone, clone who the old clone cloned
-    if evt.data["role"] == "clone" and evt.params.old_player in CLONED:
-        if CLONED[evt.params.old_player] is user:
-            user.send(messages["forever_aclone"].format(evt.params.old_player))
-        else:
-            CLONED[user] = CLONED[evt.params.old_player]
-            user.send(messages["clone_success"].format(CLONED[user]))
-            debuglog("{0} (clone) CLONE: {1} ({2})".format(user, CLONED[user], get_main_role(CLONED[user])))
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):

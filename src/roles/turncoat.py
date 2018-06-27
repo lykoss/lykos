@@ -120,7 +120,7 @@ def on_new_role(evt, var, user, old_role):
 @event_listener("swap_role_state")
 def on_swap_role_state(evt, var, actor, target, role):
     if role == "turncoat":
-        TURNCOATS[actor], TURNCOATS[target] = TURNCOATS[target], TURNCOATS[actor]
+        TURNCOATS[actor], TURNCOATS[target] = TURNCOATS.pop(target), TURNCOATS.pop(actor)
         evt.data["actor_messages"].append(messages["turncoat_side"].format(_get_side(actor)))
         evt.data["target_messages"].append(messages["turncoat_side"].format(_get_side(target)))
 
