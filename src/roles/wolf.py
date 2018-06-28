@@ -257,21 +257,30 @@ def on_new_role(evt, var, player, old_role):
         wofls = get_players(wcroles)
         evt.data["in_wolfchat"] = True
         if wofls:
-            random.shuffle(wofls)
             new_wolves = []
             for wofl in wofls:
                 wofl.queue_message(messages["wolfchat_new_member"].format(an, sayrole))
-                wolfrole = get_main_role(wofl)
-                wevt = Event("wolflist", {"tags": set()})
-                wevt.dispatch(var, wolf, player)
-                tags = " ".join(wevt.data["tags"])
+            wofl.send_messages()
+
+        pl = get_players()
+        pl.remove(player)
+        random.shuffle(pl)
+        pt = []
+        for p in pl:
+            prole = get_main_role(p)
+            wevt.data["tags"] = set()
+            wevt.dispatch(var, p, player)
+            tags = " ".join(wevt.data["tags"])
+            if prole in wcroles:
                 if tags:
                     tags += " "
-                new_wolves.append("\u0002{0}\u0002 ({1}{2})".format(wofl, tags, wolfrole))
-            wofl.send_messages()
-            evt.data["messages"].append(messages["wolves_list"].format(new_wolves))
-        else:
-            evt.data["messages"].append(messages["no_other_wolves"])
+                pt.append("\u0002{0}\u0002 ({1}{2})".format(p, tags, prole))
+            elif tags:
+                pt.append("{0} ({1})".format(p, tags))
+            else:
+                pt.append(p.nick)
+
+            evt.data["messages"].append(messages["players_list"].format(", ".join(pt)))
 
         if var.PHASE == "night":
             # inform the new wolf that they can kill and stuff
