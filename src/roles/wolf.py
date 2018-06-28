@@ -266,6 +266,7 @@ def on_new_role(evt, var, player, old_role):
         pl.remove(player)
         random.shuffle(pl)
         pt = []
+        wevt = Event("wolflist", {})
         for p in pl:
             prole = get_main_role(p)
             wevt.data["tags"] = set()
