@@ -266,10 +266,10 @@ def on_new_role(evt, var, player, old_role):
         pl.remove(player)
         random.shuffle(pl)
         pt = []
-        wevt = Event("wolflist", {})
+        wevt = Event("wolflist", {"tags": set()})
         for p in pl:
             prole = get_main_role(p)
-            wevt.data["tags"] = set()
+            wevt.data["tags"].clear()
             wevt.dispatch(var, p, player)
             tags = " ".join(wevt.data["tags"])
             if prole in wcroles:
