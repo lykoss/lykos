@@ -152,5 +152,6 @@ def on_revealroles_role(evt, var, user, role):
 @event_listener("reset")
 def on_reset(evt, var):
     TARGETED.clear()
+    PREV_ACTED.clear()
 
 # vim: set sw=4 expandtab:
