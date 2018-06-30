@@ -304,7 +304,7 @@ def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(KILLS)
     evt.data["nightroles"].append(users.FakeUser.from_nick("@WolvesAgree@"))
     # check if wolves are actually agreeing or not;
-    # only count agreement_user if they are
+    # only add to count if they actually agree
     # (this is *slighty* less hacky than deducting 1 from actedcount as we did previously)
     kills = set()
     for ls in KILLS.values():
