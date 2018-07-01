@@ -463,6 +463,72 @@ def get_game_totals(mode):
     else:
         return "Total games (\u0002{0}\u0002): {1} | {2}".format(mode, total_games, ", ".join(totals))
 
+def get_role_stats(role, mode=None):
+    conn = _conn()
+    c = conn.cursor()
+    
+    if mode is None:
+        c.execute("""SELECT
+                   gpr.role AS role,
+                   SUM(gp.team_win) AS team,
+                   SUM(gp.indiv_win) AS indiv,
+                   SUM(gp.team_win OR gp.indiv_win) AS overall,
+                   COUNT(1) AS total
+                 FROM game g
+                 JOIN game_player gp
+                   ON gp.game = g.id
+                 JOIN game_player_role gpr
+                   ON gpr.game_player = gp.id
+                 WHERE role = ?""", (role,))
+    else:
+        c.execute("""SELECT
+                   gpr.role AS role,
+                   g.gamemode,
+                   SUM(gp.team_win) AS team,
+                   SUM(gp.indiv_win) AS indiv,
+                   SUM(gp.team_win OR gp.indiv_win) AS overall,
+                   COUNT(1) AS total
+                 FROM game g
+                 JOIN game_player gp
+                   ON gp.game = g.id
+                 JOIN game_player_role gpr
+                   ON gpr.game_player = gp.id
+                 WHERE role = ?
+                   AND g.gamemode = ?""", (role, mode))
+
+    row = c.fetchone()
+    if row and row[2] is not None:
+        if mode is None:
+            return ("\u0002{0[0]}\u0002 | Team winners: {0[1]} ({1:.0%}), "
+                    "Individual winners: {0[2]} ({2:.0%}), Overall winners: {0[3]} ({3:.0%}), Total games: {0[4]}.").format(row, row[1]/row[4], row[2]/row[4], row[3]/row[4])
+        else:
+            return ("\u0002{0[0]}\u0002 in \u0002{0[1]}\u0002 | Team winners: {0[2]} ({1:.0%}), "
+                    "Individual winners: {0[3]} ({2:.0%}), Overall winners: {0[4]} ({3:.0%}), Total games: {0[5]}.").format(row, row[2]/row[5], row[3]/row[5], row[4]/row[5])
+    else:
+        if mode is None:
+            return "No stats for \u0002{0}\u0002.".format(role)
+        else:
+            return "No stats for \u0002{0}\u0002 in \u0002{1}\u0002.".format(role, mode)
+
+def get_role_totals():
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(1) FROM game")
+    total_games = c.fetchone()[0]
+    if not total_games:
+        return "No games played."
+    c.execute("""SELECT
+               gpr.role AS role,
+               COUNT(1) AS count
+                 FROM game_player_role gpr
+                 GROUP BY role
+                 ORDER BY count DESC""")
+    totals = []
+    for row in c:
+        totals.append("\u0002{0}\u0002: {1}".format(*row))
+    return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
+    
+
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     conn = _conn()
