@@ -15,7 +15,7 @@ from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users
 
-def game_mode(name, minp, maxp, likelihood = 0):
+def game_mode(name, minp, maxp, likelihood=0):
     def decor(c):
         c.name = name
         var.GAME_MODES[name] = (c, minp, maxp, likelihood)
@@ -95,7 +95,7 @@ class GameMode:
             evt.data["winner"] = "everyone"
             evt.data["message"] = messages["everyone_died_won"]
 
-@game_mode("roles", minp = 4, maxp = 35)
+@game_mode("roles", minp=4, maxp=35)
 class ChangedRolesMode(GameMode):
     """Example: !fgame roles=wolf:1,seer:0,guardian angel:1"""
 
@@ -131,7 +131,7 @@ class ChangedRolesMode(GameMode):
             except ValueError:
                 raise InvalidModeException(messages["bad_role_value"])
 
-@game_mode("default", minp = 4, maxp = 24, likelihood = 20)
+@game_mode("default", minp=4, maxp=24, likelihood=40)
 class DefaultMode(GameMode):
     """Default game mode."""
     def __init__(self, arg="", role_index=var.ROLE_INDEX, role_guide=var.ROLE_GUIDE):
@@ -157,7 +157,7 @@ class DefaultMode(GameMode):
                 else:
                     del evt.data["votelist"][users.Bot]
 
-@game_mode("villagergame", minp = 4, maxp = 9, likelihood = 0)
+@game_mode("villagergame", minp=4, maxp=9, likelihood=0)
 class VillagergameMode(GameMode):
     """This mode definitely does not exist, now please go away."""
     def __init__(self, arg=""):
@@ -262,7 +262,7 @@ class VillagergameMode(GameMode):
             else:
                 del evt.data["votelist"][users.Bot]
 
-@game_mode("foolish", minp = 8, maxp = 24, likelihood = 8)
+@game_mode("foolish", minp=8, maxp=24, likelihood=10)
 class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self, arg=""):
@@ -291,7 +291,7 @@ class FoolishMode(GameMode):
               "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("mad", minp = 7, maxp = 22, likelihood = 4)
+@game_mode("mad", minp=7, maxp=22, likelihood=5)
 class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""
     def __init__(self, arg=""):
@@ -325,7 +325,7 @@ class MadMode(GameMode):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("evilvillage", minp = 6, maxp = 18, likelihood = 1)
+@game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
     def __init__(self, arg=""):
@@ -384,7 +384,7 @@ class EvilVillageMode(GameMode):
                 evt.data["winner"] = None
 
 
-@game_mode("classic", minp = 4, maxp = 21, likelihood = 0)
+@game_mode("classic", minp=4, maxp=21, likelihood=0)
 class ClassicMode(GameMode):
     """Classic game mode from before all the changes."""
     def __init__(self, arg=""):
@@ -407,7 +407,7 @@ class ClassicMode(GameMode):
               "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
               })
 
-@game_mode("rapidfire", minp = 6, maxp = 24, likelihood = 0)
+@game_mode("rapidfire", minp=6, maxp=24, likelihood=0)
 class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self, arg=""):
@@ -447,7 +447,7 @@ class RapidFireMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.all_dead_chk_win)
 
-@game_mode("drunkfire", minp = 8, maxp = 17, likelihood = 0)
+@game_mode("drunkfire", minp=8, maxp=17, likelihood=0)
 class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self, arg=""):
@@ -485,7 +485,7 @@ class DrunkFireMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.all_dead_chk_win)
 
-@game_mode("noreveal", minp = 4, maxp = 21, likelihood = 2)
+@game_mode("noreveal", minp=4, maxp=21, likelihood=1)
 class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""
     def __init__(self, arg=""):
@@ -513,7 +513,7 @@ class NoRevealMode(GameMode):
             "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
             })
 
-@game_mode("lycan", minp = 7, maxp = 21, likelihood = 6)
+@game_mode("lycan", minp=7, maxp=21, likelihood=5)
 class LycanMode(GameMode):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self, arg=""):
@@ -539,7 +539,7 @@ class LycanMode(GameMode):
             "mayor"             : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
             })
 
-@game_mode("valentines", minp = 8, maxp = 24, likelihood = 0)
+@game_mode("valentines", minp=8, maxp=24, likelihood=0)
 class MatchmakerMode(GameMode):
     """Love is in the air!"""
     def __init__(self, arg=""):
@@ -561,7 +561,7 @@ class MatchmakerMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_win", self.lovers_chk_win)
 
-@game_mode("random", minp = 8, maxp = 24, likelihood = 0)
+@game_mode("random", minp=8, maxp=24, likelihood=0)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""
     def __init__(self, arg=""):
@@ -634,7 +634,7 @@ class RandomMode(GameMode):
 
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
-@game_mode("aleatoire", minp = 8, maxp = 24, likelihood = 4)
+@game_mode("aleatoire", minp=8, maxp=24, likelihood=10)
 class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self, arg=""):
@@ -723,7 +723,7 @@ class AlphaMode(GameMode):
             })
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
-@game_mode("guardian", minp = 8, maxp = 16, likelihood = 5)
+@game_mode("guardian", minp=8, maxp=16, likelihood=1)
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):
@@ -802,7 +802,7 @@ class GuardianMode(GameMode):
         else:
             evt.data["winner"] = None
 
-@game_mode("charming", minp = 6, maxp = 24, likelihood = 4)
+@game_mode("charming", minp=6, maxp=24, likelihood=10)
 class CharmingMode(GameMode):
     """Charmed players must band together to find the piper in this game mode."""
     def __init__(self, arg=""):
@@ -832,7 +832,7 @@ class CharmingMode(GameMode):
               "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
               })
 
-@game_mode("sleepy", minp=10, maxp=24, likelihood=5)
+@game_mode("sleepy", minp=10, maxp=24, likelihood=1)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
@@ -1054,7 +1054,7 @@ class SleepyMode(GameMode):
                     cultist.send(messages["sleepy_demoniac_turn"])
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
-@game_mode("maelstrom", minp = 8, maxp = 24, likelihood = 0)
+@game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):
@@ -1255,7 +1255,7 @@ class MaelstromMode(GameMode):
         return addroles
 
 # someone let woffle commit while drunk again... tsk tsk
-@game_mode("mudkip", minp=5, maxp=15, likelihood=1)
+@game_mode("mudkip", minp=5, maxp=15, likelihood=5)
 class MudkipMode(GameMode):
     """Why are all the professors named after trees?"""
     def __init__(self, arg=""):
