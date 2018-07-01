@@ -3251,7 +3251,7 @@ def transition_day(gameid=0):
                 revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
                 var.LYCAN_ROLES[victim.nick] = vrole
-                change_role(victim, vrole, "wolf", message="lycan_turn")
+                change_role(var, victim, vrole, "wolf", message="lycan_turn")
                 var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
                 revt.data["novictmsg"] = False
         elif victim not in revt.data["dead"]: # not already dead via some other means
@@ -3374,7 +3374,7 @@ def transition_day(gameid=0):
         else:
             debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
         var.BITTEN_ROLES[chump.nick] = chumprole
-        change_role(chump, chumprole, newrole, message=to_send)
+        change_role(var, chump, chumprole, newrole, message=to_send)
 
     killer_role = {}
     for deadperson in dead:
@@ -3411,8 +3411,6 @@ def chk_nightdone():
     if var.PHASE != "night":
         return
 
-    pl = get_players()
-    spl = set(pl)
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
 
     nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow")))
@@ -3633,8 +3631,8 @@ def check_exchange(cli, actor, nick):
         evt = Event("exchange_roles", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
         evt.dispatch(var, user, target, actor_role, nick_role) # FIXME: Deprecated, change in favor of new_role and swap_role_state
 
-        nick_role = change_role(user, actor_role, nick_role, inherit_from=target)
-        actor_role = change_role(target, nick_role, actor_role, inherit_from=user)
+        nick_role = change_role(var, user, actor_role, nick_role, inherit_from=target)
+        actor_role = change_role(var, target, nick_role, actor_role, inherit_from=user)
 
         if nick_role == actor_role: # make sure that two players with the same role exchange their role state properly (e.g. dullahan)
             evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
@@ -3944,7 +3942,7 @@ def immunize(cli, nick, chan, rest):
         if victim in get_roles("lycan"): # FIXME
             lycan = True
             if get_role(victim) == "lycan":
-                change_role(users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
+                change_role(var, users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
             else:
                 var.ROLES["lycan"].remove(users._get(victim)) # FIXME
             var.CURED_LYCANS.add(victim)

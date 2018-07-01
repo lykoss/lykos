@@ -73,7 +73,7 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 # clone is cloning target, so clone becomes target's role
                 # clone does NOT get any of target's templates (gunner/assassin/etc.)
                 del CLONED[clone]
-                mainrole = change_role(clone, "clone", mainrole)
+                mainrole = change_role(var, clone, "clone", mainrole)
                 # if a clone is cloning a clone, clone who the old clone cloned
                 if mainrole == "clone" and player in CLONED:
                     if CLONED[player] is clone:

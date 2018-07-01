@@ -72,15 +72,15 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
     evt = Event("new_role",
             {"role": newrole, "messages": [], "in_wolfchat": False},
             inherit_from=inherit_from)
-    evt.dispatch(var, user, oldrole)
+    evt.dispatch(var, player, oldrole)
     newrole = evt.data["role"]
 
-    var.ROLES[oldrole].remove(user)
-    var.ROLES[newrole].add(user)
-    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the user's actual role
-    if var.MAIN_ROLES[user] == oldrole:
-        var.MAIN_ROLES[user] = newrole
-        var.FINAL_ROLES[user.nick] = newrole
+    var.ROLES[oldrole].remove(player)
+    var.ROLES[newrole].add(player)
+    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the player's actual role
+    if var.MAIN_ROLES[player] == oldrole:
+        var.MAIN_ROLES[player] = newrole
+        var.FINAL_ROLES[player.nick] = newrole
 
     sayrole = newrole
     if sayrole in var.HIDDEN_VILLAGERS:

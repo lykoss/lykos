@@ -38,7 +38,7 @@ def on_transition_night_begin(evt, var):
             STATS_FLAG = True
 
         for amn in amnesiacs:
-            role = change_role(amn, "amnesiac", ROLES[amn], message="amnesia_clear")
+            role = change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
             debuglog("{0} REMEMBER: {1}".format(amn, evt.data["role"]))
 
 @event_listener("new_role")
@@ -70,7 +70,7 @@ def on_revealing_totem(evt, var, votee):
         STATS_FLAG = True
     if evt.data["role"] == "amnesiac":
         votee.send(messages["totem_amnesia_clear"])
-        change_role(votee, "amnesiac", ROLES[votee])
+        change_role(var, votee, "amnesiac", ROLES[votee])
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt, var, user):

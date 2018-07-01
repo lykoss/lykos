@@ -74,7 +74,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
         # Change their main role to wolf
         WILD_CHILDREN.add(child)
-        change_role(child, get_main_role(child), "wolf", message="wild_child_idol_died")
+        change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
         var.ROLES["wild child"].discard(child)
 
 @event_listener("chk_nightdone")

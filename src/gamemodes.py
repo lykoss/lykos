@@ -870,6 +870,7 @@ class SleepyMode(GameMode):
         self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
         # this ensures that village drunk will always receive the gunner template
         self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
+        self.cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",))
         # disable wolfchat
         #self.RESTRICT_WOLFCHAT = 0x0f
 
@@ -879,12 +880,16 @@ class SleepyMode(GameMode):
         events.add_listener("chk_nightdone", self.prolong_night)
         events.add_listener("transition_day_begin", self.nightmare_kill)
         events.add_listener("del_player", self.happy_fun_times)
-        self.north_cmd = command("north", "n", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "n"))
-        self.east_cmd = command("east", "e", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "e"))
-        self.south_cmd = command("south", "s", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "s"))
-        self.west_cmd = command("west", "w", chan=False, pm=True, playing=True, phases=("night",))(functools.partial(self.move, "w"))
+        events.add_listener("revealroles", self.on_revealroles)
 
         self.having_nightmare = UserList()
+
+        cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.having_nightmare)
+
+        self.north_cmd = command("north", "n", **cmd_params)(functools.partial(self.move, "n"))
+        self.east_cmd = command("east", "e", **cmd_params)(functools.partial(self.move, "e"))
+        self.south_cmd = command("south", "s", **cmd_params)(functools.partial(self.move, "s"))
+        self.west_cmd = command("west", "w", **cmd_params)(functools.partial(self.move, "w"))
 
     def teardown(self):
         from src import decorators
@@ -893,6 +898,8 @@ class SleepyMode(GameMode):
         events.remove_listener("chk_nightdone", self.prolong_night)
         events.remove_listener("transition_day_begin", self.nightmare_kill)
         events.remove_listener("del_player", self.happy_fun_times)
+        events.remove_listener("revealroles", self.on_revealroles)
+
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:
                 decorators.COMMANDS[name].remove(command)
@@ -990,8 +997,6 @@ class SleepyMode(GameMode):
                 self.nightmare_step()
 
     def move(self, direction, var, wrapper, message):
-        if not self.having_nightmare or self.having_nightmare[0] is not wrapper.source:
-            return
         opposite = {"n": "s", "e": "w", "s": "n", "w": "e"}
         if self.prev_direction == opposite[direction]:
             wrapper.pm(messages["sleepy_nightmare_invalid_direction"])
@@ -1042,12 +1047,16 @@ class SleepyMode(GameMode):
                 cultists = [p for p in get_players(("cultist",)) if p in pl and random.random() < turn_chance]
                 channels.Main.send(messages["sleepy_priest_death"])
                 for seer in seers:
-                    change_role(seer, "seer", "doomsayer", message="sleepy_doomsayer_turn")
+                    change_role(var, seer, "seer", "doomsayer", message="sleepy_doomsayer_turn")
                 for harlot in harlots:
-                    change_role(harlot, "harlot", "succubus", message="sleepy_succubus_turn")
+                    change_role(var, harlot, "harlot", "succubus", message="sleepy_succubus_turn")
                 for cultist in cultists:
-                    change_role(cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
+                    change_role(var, cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
                 # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
+
+    def on_revealroles(self, evt, var, wrapper):
+        if self.having_nightmare:
+            evt.data["output"].append("\u0002having nightmare\u0002: {0}".format(self.having_nightmare[0]))
 
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
