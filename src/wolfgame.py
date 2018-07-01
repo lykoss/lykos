@@ -4622,10 +4622,23 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 cgamemode(random.choice(voted))
             else:
                 possiblegamemodes = []
-                for gamemode in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-                    if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
-                        possiblegamemodes += [gamemode]*(var.GAME_MODES[gamemode][3]+votes.get(gamemode, 0)*15)
-                cgamemode(random.choice(possiblegamemodes))
+                numvotes = 0
+                for gamemode, num in votes.items():
+                    if len(villagers) < var.GAME_MODES[gamemode][1] or len(villagers) > var.GAME_MODES[gamemode][2] or var.GAME_MODES[gamemode][3] == 0:
+                        continue
+                    possiblegamemodes += [gamemode] * num
+                    numvotes += num
+                if len(villagers) - numvotes > 0:
+                    possiblegamemodes += [None] * (len(villagers) - numvotes)
+                # check if we go with a voted mode or a random mode
+                gamemode = random.choice(possiblegamemodes)
+                if gamemode is None:
+                    possiblegamemodes = []
+                    for gamemode in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
+                        if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
+                            possiblegamemodes += [gamemode] * var.GAME_MODES[gamemode][3]
+                    gamemode = random.choice(possiblegamemodes)
+                cgamemode(gamemode)
 
     else:
         cgamemode(restart)
