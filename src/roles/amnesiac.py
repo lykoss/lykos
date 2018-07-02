@@ -39,7 +39,7 @@ def on_transition_night_begin(evt, var):
 
         for amn in amnesiacs:
             role = change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
-            debuglog("{0} REMEMBER: {1}".format(amn, evt.data["role"]))
+            debuglog("{0} REMEMBER: {1}".format(amn, role))
 
 @event_listener("new_role")
 def doctor_new_role(evt, var, user, old_role):
@@ -54,7 +54,7 @@ def on_investigate(evt, var, actor, target):
 @event_listener("new_role", priority=1) # Exchange, clone, etc. - assign the amnesiac's final role
 def update_amnesiac(evt, var, user, old_role):
     # FIXME: exchange totem messes with var.HIDDEN_AMNESIAC (the new amnesiac is no longer hidden should they die)
-    if old_role is not None and evt.data["role"] == "amnesiac" and old_role != "amnesiac":
+    if evt.params.inherit_from is not None and evt.data["role"] == "amnesiac" and old_role != "amnesiac":
         evt.data["role"] = ROLES[evt.params.inherit_from]
 
 @event_listener("new_role")
