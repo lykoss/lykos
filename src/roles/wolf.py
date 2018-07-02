@@ -281,7 +281,7 @@ def on_new_role(evt, var, player, old_role):
             else:
                 pt.append(p.nick)
 
-            evt.data["messages"].append(messages["players_list"].format(", ".join(pt)))
+        evt.data["messages"].append(messages["players_list"].format(", ".join(pt)))
 
         if var.PHASE == "night":
             # inform the new wolf that they can kill and stuff
