@@ -3572,6 +3572,11 @@ def choose_target(actor, nick):
 # returns true if a swap happened
 # check for that to short-circuit the nightrole
 def check_exchange(cli, actor, nick):
+    # July 2nd, 2018 - The exchanging mechanic has been updated and no longer handles
+    # some forms of exchanging properly. As a result, we are disabling exchanging until
+    # role classes are implemented, which needs all roles to be fully split first.
+    # Until then, this function is a no-op. -Vgr & woffle
+    return False
     #some roles can act on themselves, ignore this
     if actor == nick:
         return False
