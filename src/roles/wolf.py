@@ -259,7 +259,7 @@ def on_new_role(evt, var, player, old_role):
         if wofls:
             new_wolves = []
             for wofl in wofls:
-                wofl.queue_message(messages["wolfchat_new_member"].format(an, sayrole))
+                wofl.queue_message(messages["wolfchat_new_member"].format(player, an, sayrole))
             wofl.send_messages()
 
         pl = get_players()

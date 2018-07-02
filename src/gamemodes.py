@@ -1152,7 +1152,7 @@ class MaelstromMode(GameMode):
         COMMANDS["myrole"][0].caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: New/old API
         # if they're a wolfchat role, alert the other wolves
         if role in var.WOLFCHAT_ROLES:
-            relay_wolfchat_command(wrapper.source.client, wrapper.source.nick, messages["wolfchat_new_member"].format(wrapper.source.nick, role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
+            relay_wolfchat_command(wrapper.source.client, wrapper.source.nick, messages["wolfchat_new_member"].format(wrapper.source.nick, "", role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
             # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
             wolves = list_players(var.WOLFCHAT_ROLES)
             pl = get_players()
