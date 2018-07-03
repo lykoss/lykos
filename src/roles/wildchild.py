@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -73,38 +73,9 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             continue
 
         # Change their main role to wolf
-        child.send(messages["wild_child_idol_died"])
         WILD_CHILDREN.add(child)
-        change_role(child, get_main_role(child), "wolf")
+        change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
         var.ROLES["wild child"].discard(child)
-
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = var.WOLF_ROLES
-            else:
-                wcroles = var.WOLF_ROLES | {"traitor"}
-
-            wolves = get_players(wcroles)
-            wolves.remove(child)
-            if wolves:
-                for wolf in wolves:
-                    wolf.queue_message(messages["wild_child_as_wolf"].format(child))
-                wolf.send_messages()
-
-            # Send wolf list
-            if var.PHASE == "day":
-                random.shuffle(wolves)
-                names = []
-                cursed_list = get_all_players(("cursed villager",))
-                for i, wolf in enumerate(wolves):
-                    role = get_main_role(wolf)
-                    cursed = "cursed " if wolf in cursed_list else ""
-                    names.append("\u0002{0}\u0002 ({1}{2})".format(wolf, cursed, role))
-
-                if names:
-                    child.send(messages["wolves_list"].format(", ".join(names)))
-                else:
-                    child.send(messages["no_other_wolves"])
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

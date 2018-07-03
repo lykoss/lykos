@@ -96,14 +96,12 @@ def on_transition_day(evt, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    del KILLS[:actor:]
-    del KILLS[:target:]
-    HUNTERS.discard(actor)
-    HUNTERS.discard(target)
-    PASSED.discard(actor)
-    PASSED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "hunter":
+        del KILLS[:user:]
+        HUNTERS.discard(user)
+        PASSED.discard(user)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

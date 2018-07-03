@@ -12,7 +12,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "get_role", "get_roles", "change_role", "role_order", "break_long_message",
+           "get_role", "get_roles", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
@@ -315,16 +315,6 @@ def get_roles(*roles, rolemap=None):
     for role in roles:
         all_roles.append(rolemap[role])
     return [u.nick for u in itertools.chain(*all_roles)]
-
-# TODO: move this to functions.py
-def change_role(user, oldrole, newrole, set_final=True):
-    var.ROLES[oldrole].remove(user)
-    var.ROLES[newrole].add(user)
-    # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the user's actual role
-    if var.MAIN_ROLES[user] == oldrole:
-        var.MAIN_ROLES[user] = newrole
-        if set_final:
-            var.FINAL_ROLES[user.nick] = newrole
 
 role_order = lambda: var.ROLE_GUIDE
 

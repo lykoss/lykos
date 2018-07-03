@@ -195,8 +195,8 @@ def on_get_special(evt, var):
     evt.data["win_stealers"].update(get_players(("succubus",)))
 
 @event_listener("new_role")
-def on_new_role(evt, var, user, role):
-    if role == "succubus" and user in ENTRANCED:
+def on_new_role(evt, var, user, old_role):
+    if evt.data["role"] == "succubus" and user in ENTRANCED:
         ENTRANCED.remove(user)
         user.send(messages["no_longer_entranced"])
 

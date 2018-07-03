@@ -26,12 +26,10 @@ def setup_variables(rolename):
     def on_get_special(evt, var):
         evt.data["villagers"].update(get_players((rolename,)))
 
-    @event_listener("exchange_roles")
-    def on_exchange(evt, var, actor, target, actor_role, target_role):
-        if actor_role == rolename and target_role != rolename:
-            SEEN.discard(actor)
-        elif target_role == rolename and actor_role != rolename:
-            SEEN.discard(target)
+    @event_listener("new_role")
+    def on_new_role(evt, var, user, old_role):
+        if old_role == rolename and evt.data["role"] != rolename:
+            SEEN.discard(user)
 
     @event_listener("chk_nightdone")
     def on_chk_nightdone(evt, var):

@@ -21,8 +21,9 @@
 
 import copy
 import fnmatch
-import itertools
 import functools
+import itertools
+import json
 import math
 import os
 import platform
@@ -37,8 +38,8 @@ import threading
 import time
 import traceback
 import urllib.request
+
 from collections import defaultdict, deque, Counter
-import json
 from datetime import datetime, timedelta
 
 from oyoyo.parse import parse_nick
@@ -48,12 +49,18 @@ import src
 import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
-from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
+
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.functions import get_players, get_all_players, get_participants, get_main_role, get_all_roles, get_reveal_role, get_target
+from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
+
+from src.functions import (
+    get_players, get_all_players, get_participants,
+    get_main_role, get_all_roles, get_reveal_role,
+    get_target, change_role,
+   )
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
@@ -2109,8 +2116,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 teams = {"monster":"monsters", "demoniac":"demoniacs"}
                 if rol in teams and winner == teams[rol]:
                     won = True
-                elif rol == "turncoat" and splr in var.TURNCOATS and var.TURNCOATS[splr][0] != "none":
-                    won = (winner == var.TURNCOATS[splr][0])
                 elif rol == "fool" and "@" + splr == winner:
                     won = True
 
@@ -2735,8 +2740,7 @@ def rename_player(var, user, prefix):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.FINAL_ROLES, var.TURNCOATS,
-                            var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES):
+            for dictvar in (var.FINAL_ROLES, var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
             # defaultdict(list), where keys are nicks and items in list do not matter
@@ -3246,28 +3250,9 @@ def transition_day(gameid=0):
             if vrole not in var.WOLFCHAT_ROLES:
                 revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
-                victim.send(messages["lycan_turn"])
                 var.LYCAN_ROLES[victim.nick] = vrole
-                change_role(victim, vrole, "wolf")
+                change_role(var, victim, vrole, "wolf", message="lycan_turn")
                 var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
-                wolves = get_players(var.WOLFCHAT_ROLES)
-                random.shuffle(wolves)
-                wolves.remove(victim)  # remove self from list
-                to_send = []
-                for wolf in wolves:
-                    wolf.queue_message(messages["lycan_wc_notification"].format(victim))
-                    role = get_main_role(wolf)
-                    wevt = Event("wolflist", {"tags": set()})
-                    wevt.dispatch(var, wolf, victim)
-                    tags = " ".join(wevt.data["tags"])
-                    if tags:
-                        tags += " "
-                    to_send.append("\u0002{0}\u0002 ({1}{2})".format(wolf, tags, role))
-
-                if wolves:
-                    wolf.send_messages()
-
-                victim.send(messages["wolves_list"].format(", ".join(to_send)))
                 revt.data["novictmsg"] = False
         elif victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
@@ -3368,29 +3353,28 @@ def transition_day(gameid=0):
             continue
 
         newrole = "wolf"
+        to_send = "bitten_turn"
         if chumprole == "guardian angel":
-            chump.send(messages["fallen_angel_turn"])
+            to_send = "fallen_angel_turn"
             # fallen angels also automatically gain the assassin template if they don't already have it
             newrole = "fallen angel"
             var.ROLES["assassin"].add(chump)
             debuglog("{0} (guardian angel) TURNED FALLEN ANGEL".format(chump))
         elif chumprole in ("seer", "oracle", "augur"):
-            chump.send(messages["seer_turn"])
+            to_send = "seer_turn"
             newrole = "doomsayer"
             debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
         elif chumprole in var.TOTEM_ORDER:
-            chump.send(messages["shaman_turn"])
+            to_send = "shaman_turn"
             newrole = "wolf shaman"
             debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
         elif chumprole == "harlot":
-            chump.send(messages["harlot_turn"])
+            to_send = "harlot_turn"
             debuglog("{0} (harlot) TURNED WOLF".format(chump))
         else:
-            chump.send(messages["bitten_turn"])
             debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
         var.BITTEN_ROLES[chump.nick] = chumprole
-        change_role(chump, chumprole, newrole)
-        relay_wolfchat_command(chump.client, chump.nick, messages["wolfchat_new_member"].format(chump, newrole), var.WOLF_ROLES, is_wolf_command=True, is_kill_command=True)
+        change_role(var, chump, chumprole, newrole, message=to_send)
 
     killer_role = {}
     for deadperson in dead:
@@ -3427,8 +3411,6 @@ def chk_nightdone():
     if var.PHASE != "night":
         return
 
-    pl = get_players()
-    spl = set(pl)
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
 
     nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow")))
@@ -3437,19 +3419,6 @@ def chk_nightdone():
         # alphas both kill and bite if they're activated at night, so add them into the counts
         nightroles.extend(get_all_players(("alpha wolf",)))
         actedcount += len([p for p in var.ALPHA_WOLVES if p in get_roles("alpha wolf")]) # FIXME
-
-    # add in turncoats who should be able to act -- if they passed they're already in var.PASSED
-    # but if they can act they're in var.TURNCOATS where the second tuple item is the current night
-    # (if said tuple item is the previous night, then they are not allowed to act tonight)
-    for tc, tu in var.TURNCOATS.items():
-        user = users._get(tc) # FIXME
-        if user not in pl:
-            continue
-        if tu[1] == var.NIGHT_COUNT:
-            nightroles.append(user)
-            actedcount += 1
-        elif tu[1] < var.NIGHT_COUNT - 1:
-            nightroles.append(user)
 
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(var)
@@ -3603,6 +3572,11 @@ def choose_target(actor, nick):
 # returns true if a swap happened
 # check for that to short-circuit the nightrole
 def check_exchange(cli, actor, nick):
+    # July 2nd, 2018 - The exchanging mechanic has been updated and no longer handles
+    # some forms of exchanging properly. As a result, we are disabling exchanging until
+    # role classes are implemented, which needs all roles to be fully split first.
+    # Until then, this function is a no-op. -Vgr & woffle
+    return False
     #some roles can act on themselves, ignore this
     if actor == nick:
         return False
@@ -3636,8 +3610,6 @@ def check_exchange(cli, actor, nick):
             var.ALPHA_WOLVES.discard(actor)
         elif actor_role == "warlock":
             var.CURSED.discard(actor)
-        elif actor_role == "turncoat":
-            del var.TURNCOATS[actor]
 
 
         # var.PASSED is used by many roles
@@ -3660,17 +3632,20 @@ def check_exchange(cli, actor, nick):
             var.ALPHA_WOLVES.discard(nick)
         elif nick_role == "warlock":
             var.CURSED.discard(nick)
-        elif nick_role == "turncoat":
-            del var.TURNCOATS[nick]
 
         evt = Event("exchange_roles", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
-        evt.dispatch(var, user, target, actor_role, nick_role)
+        evt.dispatch(var, user, target, actor_role, nick_role) # FIXME: Deprecated, change in favor of new_role and swap_role_state
 
-        actor_role = evt.data["actor_role"]
-        nick_role = evt.data["target_role"]
+        nick_role = change_role(var, user, actor_role, nick_role, inherit_from=target)
+        actor_role = change_role(var, target, nick_role, actor_role, inherit_from=user)
 
-        change_role(user, actor_role, nick_role)
-        change_role(target, nick_role, actor_role)
+        if nick_role == actor_role: # make sure that two players with the same role exchange their role state properly (e.g. dullahan)
+            evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
+            evt_same.dispatch(var, user, target, actor_role)
+
+            user.send(*evt_same.data["actor_messages"])
+            target.send(*evt_same.data["target_messages"])
+
         if actor in var.BITTEN_ROLES.keys():
             if nick in var.BITTEN_ROLES.keys():
                 var.BITTEN_ROLES[actor], var.BITTEN_ROLES[nick] = var.BITTEN_ROLES[nick], var.BITTEN_ROLES[actor]
@@ -3691,25 +3666,6 @@ def check_exchange(cli, actor, nick):
             var.LYCAN_ROLES[actor] = var.LYCAN_ROLES[nick]
             del var.LYCAN_ROLES[nick]
 
-        actor_rev_role = actor_role
-        if actor_role in var.HIDDEN_ROLES:
-            actor_rev_role = var.DEFAULT_ROLE
-        elif actor_role in var.HIDDEN_VILLAGERS:
-            actor_rev_role = "villager"
-
-        nick_rev_role = nick_role
-        if nick_role in var.HIDDEN_ROLES:
-            nick_rev_role = var.DEFAULT_ROLE
-        elif actor_role in var.HIDDEN_VILLAGERS:
-            nick_rev_role = "villager"
-
-        # don't say who, since misdirection/luck totem may have switched it
-        # and this makes life far more interesting
-        user.send(messages["role_swap"].format(nick_rev_role))
-        target.send(messages["role_swap"].format(actor_rev_role))
-        user.send(*evt.data["actor_messages"])
-        target.send(*evt.data["target_messages"])
-
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
@@ -3726,8 +3682,6 @@ def check_exchange(cli, actor, nick):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, actor, messages["players_list"].format(", ".join(pl)))
-        elif nick_role == "turncoat":
-            var.TURNCOATS[actor] = ("none", -1)
 
         if actor_role not in wcroles and actor_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
@@ -3738,8 +3692,6 @@ def check_exchange(cli, actor, nick):
                 if player in get_roles("cursed villager"): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, nick, messages["players_list"].format(", ".join(pl)))
-        elif actor_role == "turncoat":
-            var.TURNCOATS[nick] = ("none", -1)
 
         var.EXCHANGED_ROLES.append((actor, nick))
         return True
@@ -3994,15 +3946,14 @@ def immunize(cli, nick, chan, rest):
             var.DISEASED.remove(victim)
         if victim in get_roles("lycan"): # FIXME
             lycan = True
-            lycan_message = (messages["lycan_cured"])
             if get_role(victim) == "lycan":
-                change_role(users._get(victim), "lycan", "villager") # FIXME
+                change_role(var, users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
             else:
                 var.ROLES["lycan"].remove(users._get(victim)) # FIXME
             var.CURED_LYCANS.add(victim)
         else:
             lycan_message = messages[evt.data["message"]]
-        pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
+            pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
     if evt.data["success"]:
         var.IMMUNIZED.add(victim)
         var.DOCTORS[nick] -= 1
@@ -4040,56 +3991,17 @@ def bite_cmd(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["alpha_bite_wolfchat"].format(nick, victim), ("alpha wolf",), is_wolf_command=True)
     debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, get_role(nick), actual, get_role(actual)))
 
-@cmd("pass", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat", "warlock"))
+@cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(cli, nick, chan, rest):
     """Decline to use your special power for that night."""
-    nickrole = get_role(nick)
-
-    # turncoats can change roles and pass even if silenced
-    if nickrole != "turncoat" and nick in var.SILENCED:
-        if chan == nick:
-            pm(cli, nick, messages["silenced"])
-        else:
-            cli.notice(nick, messages["silenced"])
+    if nick in var.CURSED:
+        pm(cli, nick, messages["already_cursed"])
         return
-
-    if nickrole == "turncoat":
-        if var.TURNCOATS[nick][1] == var.NIGHT_COUNT:
-            # theoretically passing would revert them to how they were before, but
-            # we aren't tracking that, so just tell them to change it back themselves.
-            pm(cli, nick, messages["turncoat_fail"])
-            return
-        pm(cli, nick, messages["turncoat_pass"])
-        if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
-            # don't add to var.PASSED since we aren't counting them anyway for nightdone
-            # let them still use !pass though to make them feel better or something
-            return
-        var.PASSED.add(nick)
-    elif nickrole == "warlock":
-        if nick in var.CURSED:
-            pm(cli, nick, messages["already_cursed"])
-            return
-        pm(cli, nick, messages["warlock_pass"])
-        relay_wolfchat_command(cli, nick, messages["warlock_pass_wolfchat"].format(nick), ("warlock",))
-        var.PASSED.add(nick)
+    pm(cli, nick, messages["warlock_pass"])
+    relay_wolfchat_command(cli, nick, messages["warlock_pass_wolfchat"].format(nick), ("warlock",))
+    var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
-
-@cmd("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
-def change_sides(cli, nick, chan, rest, sendmsg=True):
-    if var.TURNCOATS[nick][1] == var.NIGHT_COUNT - 1:
-        pm(cli, nick, messages["turncoat_already_turned"])
-        return
-
-    team = re.split(" +", rest)[0]
-    team = complete_one_match(team, ("villagers", "wolves"))
-    if not team:
-        pm(cli, nick, messages["turncoat_error"])
-        return
-
-    pm(cli, nick, messages["turncoat_success"].format(team))
-    var.TURNCOATS[nick] = (team, var.NIGHT_COUNT)
-    debuglog("{0} ({1}) SIDE {2}".format(nick, get_role(nick), team))
 
 @cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
 def hex_target(cli, nick, chan, rest):
@@ -4437,21 +4349,6 @@ def transition_night():
         else:
             lycan.send(messages["lycan_notify"])
 
-    for turncoat in get_all_players(("turncoat",)):
-        # they start out as unsided, but can change n1
-        if turncoat.nick not in var.TURNCOATS:
-            var.TURNCOATS[turncoat.nick] = ("none", -1)
-
-        if turncoat.prefers_simple():
-            turncoat.send(messages["turncoat_simple"].format(var.TURNCOATS[turncoat.nick][0]))
-        else:
-            message = messages["turncoat_notify"]
-            if var.TURNCOATS[turncoat.nick][0] != "none":
-                message += messages["turncoat_current_team"].format(var.TURNCOATS[turncoat.nick][0])
-            else:
-                message += messages["turncoat_no_team"]
-            turncoat.send(message)
-
     for priest in get_all_players(("priest",)):
         if priest.prefers_simple():
             priest.send(messages["priest_simple"])
@@ -4738,7 +4635,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.BITTEN_ROLES = {}
     var.LYCAN_ROLES = {}
     var.ACTIVE_PROTECTIONS = defaultdict(list)
-    var.TURNCOATS = {}
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
     var.PRIESTS = set()
@@ -4857,8 +4753,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LAST_TIME = None
     var.LAST_VOTES = None
 
-    event = Event("role_assignment", {})
-    event.dispatch(var, var.CURRENT_GAMEMODE.name, get_players())
+    for role, players in var.ROLES.items():
+        for player in players:
+            evt = Event("new_role", {"messages": [], "role": role}, inherit_from=None)
+            evt.dispatch(var, player, None)
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
@@ -5567,10 +5465,6 @@ def myrole(var, wrapper, message):
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
 
-    # Remind turncoats of their side
-    if role == "turncoat":
-        wrapper.pm(messages["turncoat_side"].format(var.TURNCOATS.get(wrapper.source.nick, "none")[0]))
-
     # Check for gun/bullets
     if wrapper.source not in var.ROLES["amnesiac"] and wrapper.source in var.GUNNERS and var.GUNNERS[wrapper.source]:
         role = "gunner"
@@ -6041,9 +5935,6 @@ def revealroles(var, wrapper, message):
                 # print how many bullets normal gunners have
                 if (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
                     special_case.append("{0} bullet{1}".format(var.GUNNERS[user], "" if var.GUNNERS[user] == 1 else "s"))
-                elif role == "turncoat" and user.nick in var.TURNCOATS:
-                    special_case.append("currently with \u0002{0}\u0002".format(var.TURNCOATS[user.nick][0])
-                                        if var.TURNCOATS[user.nick][0] != "none" else "not currently on any side")
 
                 evt = Event("revealroles_role", {"special_case": special_case})
                 evt.dispatch(var, user, role)

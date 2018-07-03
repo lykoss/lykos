@@ -97,12 +97,10 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 def on_get_special(evt, var):
     evt.data["villagers"].update(get_players(("investigator",)))
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "investigator" and target_role != "investigator":
-        INVESTIGATED.discard(actor)
-    elif target_role == "investigator" and actor_role != "investigator":
-        INVESTIGATED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "investigator" and evt.data["role"] != "investigator":
+        INVESTIGATED.discard(user)
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

@@ -83,12 +83,11 @@ def on_transition_day(evt, var):
         if get_main_role(target) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
             var.DYING.add(vigilante)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    del KILLS[:actor:]
-    del KILLS[:target:]
-    PASSED.discard(actor)
-    PASSED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "vigilante":
+        del KILLS[:user:]
+        PASSED.discard(user)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
