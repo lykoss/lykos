@@ -1143,31 +1143,14 @@ class MaelstromMode(GameMode):
         if wrapper.source.nick in var.USERS:
             var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
-        # TODO: split this out with doctor
-        if role == "doctor":
-            lpl = len(list_players())
-            var.DOCTORS[wrapper.source.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
-        # let them know their role
+        evt = events.Event("new_role", {"messages": [], "role": role}, inherit_from=None)
+        # Use "player" as old role, to force wolf event to send "new wolf" messages
+        evt.dispatch(var, wrapper.source, "player")
+        for message in evt.data["messages"]:
+            wrapper.pm(message)
+
         from src.decorators import COMMANDS
         COMMANDS["myrole"][0].caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: New/old API
-        # if they're a wolfchat role, alert the other wolves
-        if role in var.WOLFCHAT_ROLES:
-            relay_wolfchat_command(wrapper.source.client, wrapper.source.nick, messages["wolfchat_new_member"].format(wrapper.source.nick, "", role), var.WOLFCHAT_ROLES, is_wolf_command=True, is_kill_command=True)
-            # TODO: make this part of !myrole instead, no reason we can't give out wofllist in that
-            wolves = list_players(var.WOLFCHAT_ROLES)
-            pl = get_players()
-            random.shuffle(pl)
-            pl.remove(wrapper.source)
-            for i, player in enumerate(pl):
-                prole = get_main_role(player)
-                if prole in var.WOLFCHAT_ROLES:
-                    cursed = ""
-                    if player in var.ROLES["cursed villager"]:
-                        cursed = "cursed "
-                    pl[i] = "\u0002{0}\u0002 ({1}{2})".format(player, cursed, prole)
-                elif player in var.ROLES["cursed villager"]:
-                    pl[i] = player.nick + " (cursed)"
-            wrapper.pm(messages["players_list"].format(", ".join(pl)))
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
