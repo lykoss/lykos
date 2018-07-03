@@ -4282,12 +4282,6 @@ def transition_night():
         else:
             lycan.send(messages["lycan_notify"])
 
-    for priest in get_all_players(("priest",)):
-        if priest.prefers_simple():
-            priest.send(messages["priest_simple"])
-        else:
-            priest.send(messages["priest_notify"])
-
     for g in var.GUNNERS:
         if g not in ps:
             continue

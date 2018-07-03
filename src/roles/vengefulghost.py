@@ -70,7 +70,7 @@ def on_get_participants(evt, var):
 @event_listener("consecrate")
 def on_consecrate(evt, var, actor, target):
     if target in GHOSTS:
-        var.SILENCED.add(target)
+        var.SILENCED.add(target.nick)
 
 @event_listener("player_win", priority=1)
 def on_player_win(evt, var, user, role, winner, survived):
