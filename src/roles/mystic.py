@@ -11,7 +11,7 @@ from src.events import Event
 
 from src.roles._mystic_helper import setup_variables
 
-LAST_COUNT = setup_variables("mystic", send_role=True, types=("wolves",))
+LAST_COUNT = setup_variables("mystic", send_role=True, types=("wolfteam",))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

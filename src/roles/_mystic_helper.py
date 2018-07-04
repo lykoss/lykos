@@ -1,5 +1,6 @@
 import re
 import random
+from collections import Counter
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
@@ -10,7 +11,7 @@ from src.messages import messages
 from src.events import Event
 
 # Generated message keys used in this file:
-# mystic_villagers, mystic_wolves, mystic_neutrals, mystic_win_stealers,
+# mystic_safe, mystic_wolfteam, mystic_win_stealer,
 # mystic_night_num, mystic_day_num, mystic_info,
 # mystic_simple, mystic_notify, wolf_mystic_simple, wolf_mystic_notify
 
@@ -21,25 +22,25 @@ def setup_variables(rolename, *, send_role, types):
 
     @event_listener("transition_night_end")
     def on_transition_night_end(evt, var):
-        villagers = set(get_players(("doctor",)))
-        win_stealers = set(get_players(("fool", "monster", "demoniac")))
-        neutrals = set(get_players(("jester",)))
+        role_cats_evt = Event("get_role_metadata", {})
+        role_cats_evt.dispatch(var, "cats")
+        pl = get_players()
+        ctr = Counter()
 
-        special_evt = Event("get_special", {"villagers": villagers, "wolves": set(), "win_stealers": win_stealers, "neutrals": neutrals})
-        special_evt.dispatch(var)
+        for p in pl:
+            role = get_main_role(p)
+            for t in role_cats_evt.data[role].intersection(types):
+                ctr[t] += 1
 
-        bold = "\u0002{0}\u0002".format
-
-        targets = set()
         values = []
         plural = True
         for name in types:
-            targets.update(special_evt.data[name])
-            l = len(special_evt.data[name])
+            keyname = "mystic_" + name.replace(" ", "_")
+            l = ctr[name]
             if l:
                 if not values and l == 1:
                     plural = False
-                values.append("{0} {1}{2}".format(bold(l), messages["mystic_{0}".format(name)], "" if l == 1 else "s"))
+                values.append("\u0002{0}\u0002 {1}{2}".format(l, messages[keyname], "" if l == 1 else "s"))
 
         if len(values) > 2:
             value = " and ".join((", ".join(values[:-1]), values[-1]))

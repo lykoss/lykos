@@ -325,10 +325,9 @@
     "shaman_totem": "You have a \u0002{0}\u0002 totem.",
     "players_exchanged_roles": "\u0002{0}\u0002 and \u0002{1}\u0002 have exchanged roles!",
 
-    "mystic_villagers": "special villager",
-    "mystic_wolves": "evil villager",
-    "mystic_neutrals": "neutral player",
-    "mystic_win_stealers": "win stealer",
+    "mystic_safe": "special villager",
+    "mystic_wolfteam": "evil villager",
+    "mystic_win_stealer": "win stealer",
     "mystic_night_num": " at the beginning of the night",
     "mystic_day_num": " at the beginning of last night",
     "mystic_info" : "There {0} {1}{2} alive{3}.",
