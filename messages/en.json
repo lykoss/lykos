@@ -182,17 +182,27 @@
         "\u0002{0}\u0002 went spelunking and never made it back."
     ],
     "player_joined": [
+        "\u0002{0}\u0002 has joined the game. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 has wandered into the village. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 woke up in the village after a ngiht of sleepwalking. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 was on a long journey and needed to give their animals a drink. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 was on a long journey and needed a rest. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was on a long journey and needed to resupply. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 has been persuaded into joining the village. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 saw a job listing for \"villager\", and so joined the village. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 has run out of food and smelled fresh bread in the village. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 was led into the village while chasing a deer. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002's horse died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002's donkey died near the village, so they had no choice but to join. They raised the number of players to \u0002{1}\u0002.",
+        "A witch hexed to \u0002{0}\u0002 play a game of werewolf. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 fell in love with one of the villages and so joined the village. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 wanted a new life and decided this village would be a good place to live. They raised the number of players to \u0002{1}\u0002.",
         "\u0002{0}\u0002 overcame their fear of wolves and decided to join a village with them. They raised the number of players to \u0002{1}\u0002.",
-        "\u0002{0}\u0002 wandered into the village while looking for a signal. Luckily, the village has free Wi-Fi. They raised the number of players to \u0002{1}\u0002."
+        "\u0002{0}\u0002 is a wolf enthusiast, so decided to join the village to study them. They raised the numbers of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 wandered into the village while looking for a signal. Luckily, the village has free Wi-Fi. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 heard on the internet that the village was a good vacation spot. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 decided to play a game of werewolf. They raised the number of players to \u0002{1}\u0002.",
+        "\u0002{0}\u0002 was forced to join by an admin. They raised the number of players to \u0002{1}\u0002."
     ],
     "fool_win": "Game over! The fool has been lynched, causing them to win.",
     "no_win": "Game over! There are no players remaining.",
