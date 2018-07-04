@@ -17,8 +17,8 @@ def on_transition_day(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        villroles = var.HIDDEN_VILLAGERS | {"villager"}
-        if var.DEFAULT_ROLE == "villager":
+        villroles = {"villager"}
+        if var.HIDDEN_ROLE == "villager":
             villroles |= var.HIDDEN_ROLES
         villagers = get_players(villroles)
         if villagers:
@@ -30,7 +30,7 @@ def on_transition_night_end(evt, var):
             villager.send_messages()
 
         cultroles = {"cultist"}
-        if var.DEFAULT_ROLE == "cultist":
+        if var.HIDDEN_ROLE == "cultist":
             cultroles |= var.HIDDEN_ROLES
         cultists = get_players(cultroles)
         if cultists:

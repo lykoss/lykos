@@ -24,7 +24,7 @@ def _get_blacklist(var):
     # nontrivial and will likely require a great deal of thought (and likely new tracking vars)
     # FIXME: once experimental stats become the new stats, clone and traitor will work properly
     # and we can remove those from hardcoded blacklist and remove this comment block.
-    blacklist = var.TEMPLATE_RESTRICTIONS.keys() | var.AMNESIAC_BLACKLIST | {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
+    blacklist = var.TEMPLATE_RESTRICTIONS.keys() | var.AMNESIAC_BLACKLIST | {"villager", "cultist", "amnesiac", "clone", "traitor"}
     if var.AMNESIAC_NIGHTS > 1:
         blacklist.add("matchmaker")
     return blacklist

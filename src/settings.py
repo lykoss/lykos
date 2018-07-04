@@ -125,7 +125,6 @@ WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullet
 ROLE_REVEAL = "on" # on/off/team - what role information is shown on death
 STATS_TYPE = "default" # default/accurate/team/disabled - what role information is shown when doing !stats
 LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
-DEFAULT_SEEN_AS_VILL = True # non-wolves are seen as villager regardless of the default role
 
 START_VOTES_SCALE = 0.3
 START_VOTES_MAX = 4
@@ -228,8 +227,11 @@ ROLE_ALIASES = {
         "ms": "mad scientist",
         }
 
-# TODO: move this to a game mode called "fixed" once we implement a way to randomize roles (and have that game mode be called "random")
+# The default role can be anything, but HIDDEN_ROLE must be either "villager" or "cultist";
+# hidden roles are informed they are HIDDEN_ROLE (ergo that role should not have any abilities),
+# and win with that role's team. Seer sees all non-safe and non-cursed roles as HIDDEN_ROLE.
 DEFAULT_ROLE = "villager"
+HIDDEN_ROLE = "villager"
 ROLE_INDEX =                       (  4  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 15  , 16  , 18  , 20  , 21  , 23  , 24  )
 ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code rely on this order!
              # wolf roles

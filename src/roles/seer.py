@@ -33,12 +33,15 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    if targrole in var.SEEN_WOLF and targrole not in var.SEEN_DEFAULT:
+    mevt = Event("get_role_metadata", {})
+    mevt.dispatch(var, "cats")
+
+    if "innocent" in mevt.data[targrole]:
+        targrole = var.HIDDEN_ROLE
+    elif "cursed" in mevt.data[targrole] or "wolf" in mevt.data[targrole]:
         targrole = "wolf"
-    elif targrole in var.SEEN_DEFAULT:
-        targrole = var.DEFAULT_ROLE
-        if var.DEFAULT_SEEN_AS_VILL:
-            targrole = "villager"
+    elif "safe" not in mevt.data[targrole]:
+        targrole = var.HIDDEN_ROLE
 
     evt = Event("see", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)

@@ -18,7 +18,7 @@ def on_get_reveal_role(evt, var, user):
     # the stats are wrong in that they'll report one less wolf than actually exists,
     # which can confuse a lot of people
     if evt.data["role"] == "traitor" and var.HIDDEN_TRAITOR and var.ROLE_REVEAL != "team":
-        evt.data["role"] = var.DEFAULT_ROLE
+        evt.data["role"] = var.HIDDEN_ROLE
 
 @event_listener("get_final_role")
 def on_get_final_role(evt, var, user, role):
@@ -29,7 +29,7 @@ def on_get_final_role(evt, var, user, role):
 
 @event_listener("update_stats", priority=1)
 def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
-    if mainrole == var.DEFAULT_ROLE and var.HIDDEN_TRAITOR:
+    if mainrole == var.HIDDEN_ROLE and var.HIDDEN_TRAITOR:
         evt.data["possible"].add("traitor")
 
 @event_listener("update_stats", priority=3)

@@ -2089,7 +2089,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             survived = get_players()
             if not pentry["dced"]:
                 # determine default win status (event can override)
-                if rol in var.WOLFTEAM_ROLES or (var.DEFAULT_ROLE == "cultist" and role in var.HIDDEN_ROLES):
+                if rol in var.WOLFTEAM_ROLES or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
                     if winner == "wolves":
                         won = True
                         iwon = plr in survived
@@ -5374,10 +5374,8 @@ def myrole(var, wrapper, message):
         return
 
     role = get_main_role(wrapper.source)
-    if role in var.HIDDEN_VILLAGERS:
-        role = "villager"
-    elif role in var.HIDDEN_ROLES:
-        role = var.DEFAULT_ROLE
+    if role in var.HIDDEN_ROLES:
+        role = var.HIDDEN_ROLE
 
     evt = Event("myrole", {"role": role, "messages": []})
     if not evt.dispatch(var, wrapper.source):

@@ -238,10 +238,8 @@ def on_new_role(evt, var, player, old_role):
         return
 
     sayrole = evt.data["role"]
-    if sayrole in var.HIDDEN_VILLAGERS:
-        sayrole = "villager"
-    elif sayrole in var.HIDDEN_ROLES:
-        sayrole = var.DEFAULT_ROLE
+    if sayrole in var.HIDDEN_ROLES:
+        sayrole = var.HIDDEN_ROLE
     an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 
     if player.nick in KILLS: # FIXME

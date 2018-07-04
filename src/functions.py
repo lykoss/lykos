@@ -83,10 +83,8 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
         var.FINAL_ROLES[player.nick] = newrole
 
     sayrole = newrole
-    if sayrole in var.HIDDEN_VILLAGERS:
-        sayrole = "villager"
-    elif sayrole in var.HIDDEN_ROLES:
-        sayrole = var.DEFAULT_ROLE
+    if sayrole in var.HIDDEN_ROLES:
+        sayrole = var.HIDDEN_ROLE
     an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 
     player.send(messages[message].format(an, sayrole))
