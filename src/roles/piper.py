@@ -206,10 +206,6 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             del TOBECHARMED[:target:]
             PASSED.discard(target)
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["win_stealers"].update(get_players(("piper",)))
-
 @event_listener("night_acted")
 def on_acted(evt, var, target, spy):
     if target in TOBECHARMED:
@@ -233,5 +229,10 @@ def on_revealroles_role(evt, var, user, role):
     if players:
         nicks = ", ".join(p.nick for p in players)
         evt.data["special_case"].append(messages["piper_revealroles_charming"].format(nicks))
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["piper"] = {"neutral", "win stealer"}
 
 # vim: set sw=4 expandtab:

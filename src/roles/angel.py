@@ -96,10 +96,6 @@ def on_acted(evt, var, user, actor):
     if user.nick in GUARDED:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("guardian angel", "bodyguard")))
-
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role in ("bodyguard", "guardian angel"):
@@ -298,5 +294,12 @@ def on_reset(evt, var):
     GUARDED.clear()
     LASTGUARDED.clear()
     PASSED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["bodyguard"] = {"village", "safe"}
+        evt.data["guardian angel"] = {"village", "safe"}
+
 
 # vim: set sw=4 expandtab:

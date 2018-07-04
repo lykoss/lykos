@@ -190,10 +190,6 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["win_stealers"].update(get_players(("succubus",)))
-
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.data["role"] == "succubus" and user in ENTRANCED:
@@ -212,5 +208,10 @@ def on_reset(evt, var):
 def on_revealroles(evt, var, wrapper):
     if ENTRANCED:
         evt.data["output"].append("\u0002entranced players\u0002: {0}".format(", ".join(p.nick for p in ENTRANCED)))
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["succubus"] = {"neutral", "win stealer", "cursed"}
 
 # vim: set sw=4 expandtab:

@@ -133,10 +133,6 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("harlot",)))
-
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if "harlot" not in allroles:
@@ -148,5 +144,10 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 def on_reset(evt, var):
     VISITED.clear()
     PASSED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["harlot"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

@@ -55,4 +55,20 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["winner"] = "wolves"
         evt.data["message"] = messages["wolf_win_greater"]
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["villager"] = {"village"}
+        # FIXME: split this into individual files once split from wolfgame.py
+        evt.data["fool"] = {"neutral", "win stealer", "innocent"}
+        evt.data["jester"] = {"neutral", "innocent"}
+        evt.data["monster"] = {"neutral", "win stealer", "cursed"}
+        evt.data["demoniac"] = {"neutral", "win stealer"}
+        evt.data["lycan"] = {"village"}
+        evt.data["doctor"] = {"village", "safe"}
+        evt.data["village drunk"] = {"village", "safe"}
+        evt.data["cursed villager"] = {"village", "cursed"}
+        evt.data["gunner"] = {"village", "safe"}
+        evt.data["sharpshooter"] = {"village", "safe"}
+
 # vim: set sw=4 expandtab:

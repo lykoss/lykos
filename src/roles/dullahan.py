@@ -108,10 +108,6 @@ def on_acted(evt, var, user, actor):
     if user in KILLS:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["neutrals"].update(get_players(("dullahan",)))
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     while KILLS:
@@ -233,5 +229,7 @@ def on_get_role_metadata(evt, var, kind):
                     num += 1
                     break
         evt.data["dullahan"] = num
+    elif kind == "cats":
+        evt.data["dullahan"] = {"neutral"}
 
 # vim: set sw=4 expandtab:

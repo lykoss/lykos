@@ -43,14 +43,6 @@ def on_transition_night_end(evt, var):
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     pass
 
-# Update evt.data["special"] with the Users who have this role as their main role,
-# assuming this is some sort of special role (can act). Do *not* update this if this is a wolfteam
-# special role, simply remove the event instead.
-# Used by wolf mystic to determine the number of special villagers still alive.
-@event_listener("get_special")
-def on_get_special(evt, var):
-    pass
-
 # Update any game state which happens when player dies. If this role does things upon death,
 # ensure that you check death_triggers (it's a bool) before firing it.
 @event_listener("del_player")
@@ -63,11 +55,21 @@ def on_reset(evt, var):
     pass
 
 # Gets metadata about this role; kind will be a str with one of the following values:
+# cats: Add metadata about which role categories this role belongs to. See src/settings.py ROLE_CATS
+#       for the full list and a description of what each category is for. Set the data as follows:
+#       evt.data["rolename"] = {"cat1", "cat2", ...} (the value is a set)
+#       All roles must implement this kind of metdata.
 # night_kills: Add metadata about any deaths this role can cause at night which use the standard
 #              death message (i.e. do not have a custom death message). Set the data as follows:
 #              evt.data["rolename"] = N (where N is the max # of deaths that this role can cause)
-# Used in !stats in order to handle interactions between roles in a generic fashion so that
-# more accurate results can be reported.
+#              If this role does not kill at night, you can ignore this kind of metadata.
+# special_keys: Add metadata about things related to this role that are recorded as stats in the db.
+#               For example, "lovers" is a special key for matchmaker so that we can track stats as a lover,
+#               and "vg activated" and "vg driven off" are special keys for vengeful ghost so we can
+#               track stats for those things as well. Anything added to evt.data["special"] in the player_win
+#               event should be present here in the metadata as well. Set the data as follows:
+#               evt.data["rolename"] = {"key1", "key2", ...} (the value is a set)
+#               If this role does not add special data in player_win, you can ignore this kind of metadata.
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     pass

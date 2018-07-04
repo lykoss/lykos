@@ -13,6 +13,9 @@ from src.roles._mystic_helper import setup_variables
 
 LAST_COUNT = setup_variables("wolf mystic", send_role=False, types=("villagers", "win_stealers"))
 
-# No need for get_special, as wolf.py does it for us (for now)
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["wolf mystic"] = {"wolf", "wolfchat", "wolfteam"}
 
 # vim: set sw=4 expandtab:

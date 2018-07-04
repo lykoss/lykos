@@ -84,4 +84,9 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.prevent_default = True
         evt.stop_processing = True
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["traitor"] = {"wolfchat", "wolfteam"}
+
 # vim: set sw=4 expandtab:

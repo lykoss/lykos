@@ -173,4 +173,9 @@ def on_revealroles(evt, var,  user, role):
         target1, target2 = _get_targets(var, pl, user)
         evt.data["special_case"].append(messages["mad_scientist_revealroles_targets"].format(target1, target2))
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["mad scientist"] = {"village", "cursed"}
+
 # vim: set sw=4 expandtab:

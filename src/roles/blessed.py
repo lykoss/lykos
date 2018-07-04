@@ -77,4 +77,9 @@ def on_myrole(evt, var, user):
     if user in var.ROLES["blessed villager"]:
         evt.data["messages"].append(messages["blessed_simple"])
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["blessed villager"] = {"village"}
+
 # vim: set sw=4 expandtab:

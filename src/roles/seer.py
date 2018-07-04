@@ -49,4 +49,9 @@ def see(var, wrapper, message):
 
     SEEN.add(wrapper.source)
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["seer"] = {"village", "safe"}
+
 # vim: set sw=4 expandtab:

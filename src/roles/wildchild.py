@@ -123,4 +123,9 @@ def on_reset(evt, var):
     WILD_CHILDREN.clear()
     IDOLS.clear()
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["wild child"] = {"village"}
+
 # vim: set sw=4 expandtab:

@@ -67,10 +67,6 @@ def on_acted(evt, var, target, spy):
     if target in KILLS:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("vigilante",)))
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     for vigilante, target in list(KILLS.items()):
@@ -120,5 +116,7 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
+    elif kind == "cats":
+        evt.data["vigilante"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

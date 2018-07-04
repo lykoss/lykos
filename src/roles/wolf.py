@@ -148,10 +148,6 @@ def on_acted(evt, var, user, actor):
     if user.nick in KILLS:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["wolves"].update(get_players(var.WOLFTEAM_ROLES))
-
 @event_listener("transition_day", priority=1)
 def on_transition_day(evt, var):
     # figure out wolf target
@@ -442,6 +438,16 @@ def on_get_role_metadata(evt, var, kind):
             # special logic for wolf kills vs non-wolf kills (as when alpha kills it is treated
             # as any other wolf kill).
             evt.data["wolf"] += 1
+    elif kind == "cats":
+        evt.data["wolf"] = {"wolf", "wolfchat", "wolfteam"}
+        # FIXME: split the following into their respective files
+        evt.data["alpha wolf"] = {"wolf", "wolfchat", "wolfteam"}
+        evt.data["werecrow"] = {"wolf", "wolfchat", "wolfteam"}
+        evt.data["werekitten"] = {"wolf", "wolfchat", "wolfteam", "innocent"}
+        evt.data["hag"] = {"wolfchat", "wolfteam"}
+        evt.data["sorcerer"] = {"wolfchat", "wolfteam"}
+        evt.data["warlock"] = {"wolfchat", "wolfteam"}
+        evt.data["cultist"] = {"wolfteam"}
 
 @event_listener("wolf_numkills", priority=10)
 def on_wolf_numkills(evt, var):

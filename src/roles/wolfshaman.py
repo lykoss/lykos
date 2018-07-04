@@ -85,4 +85,9 @@ def on_transition_night_end(evt, var):
             tmsg += messages[totem + "_totem"]
             shaman.send(tmsg)
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["wolf shaman"] = {"wolf", "wolfchat", "wolfteam"}
+
 # vim: set sw=4 expandtab:

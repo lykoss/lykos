@@ -83,10 +83,6 @@ def on_acted(evt, var, user, actor):
     if user in KILLS:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("hunter",)))
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):
@@ -141,5 +137,7 @@ def on_get_role_metadata(evt, var, kind):
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
         hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
+    elif kind == "cats":
+        evt.data["hunter"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

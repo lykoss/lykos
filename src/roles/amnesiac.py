@@ -99,4 +99,9 @@ def on_reset(evt, var):
     ROLES.clear()
     STATS_FLAG = False
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["amnesiac"] = {"hidden"}
+
 # vim: set sw=4 expandtab:

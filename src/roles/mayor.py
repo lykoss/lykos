@@ -27,4 +27,9 @@ def on_chk_decision_lynch(evt, var, voters):
 def on_reset(evt, var):
     REVEALED_MAYORS.clear()
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["mayor"] = {"village", "safe"}
+
 # vim: set sw=4 expandtab:

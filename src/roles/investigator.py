@@ -93,10 +93,6 @@ def investigate(var, wrapper, message):
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     INVESTIGATED.discard(user)
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("investigator",)))
-
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if old_role == "investigator" and evt.data["role"] != "investigator":
@@ -121,5 +117,10 @@ def on_transition_night_begin(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     INVESTIGATED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["investigator"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

@@ -104,10 +104,6 @@ def on_revealroles_role(evt, var, user, role):
     if role == "turncoat" and user in TURNCOATS:
         evt.data["special_case"].append(_get_side(user))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["neutrals"].update(get_players(("turncoat",)))
-
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
     if old_role == "turncoat" and evt.data["role"] != "turncoat":
@@ -130,5 +126,10 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     PASSED.clear()
     TURNCOATS.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["turncoat"] = {"neutral"}
 
 # vim: set sw=4 expandtab:

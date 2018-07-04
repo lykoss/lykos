@@ -84,4 +84,9 @@ def on_reset(evt, var):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["wolf cub"] = {"wolf", "wolfchat", "wolfteam"}
+
 # vim: set sw=4 expandtab:

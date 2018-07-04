@@ -22,10 +22,6 @@ def setup_variables(rolename):
         if user in SEEN:
             evt.data["acted"] = True
 
-    @event_listener("get_special")
-    def on_get_special(evt, var):
-        evt.data["villagers"].update(get_players((rolename,)))
-
     @event_listener("new_role")
     def on_new_role(evt, var, user, old_role):
         if old_role == rolename and evt.data["role"] != rolename:

@@ -102,10 +102,6 @@ def on_night_acted(evt, var, user, spy):
     if user in PRAYED:
         evt.data["acted"] = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("prophet",)))
-
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     PRAYED.clear()
@@ -113,5 +109,10 @@ def on_begin_day(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     PRAYED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["prophet"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

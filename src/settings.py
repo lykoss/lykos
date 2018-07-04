@@ -294,28 +294,27 @@ ROLE_GUIDE = OrderedDict([ # This is order-sensitive - many parts of the code re
              ("assassin"         , (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  )),
              ])
 
-# Harlot dies when visiting, seer sees as wolf, gunner kills when shooting, GA and bodyguard have a chance at dying when guarding
-# If every wolf role dies, and there are no remaining traitors, the game ends and villagers win (monster may steal win)
-WOLF_ROLES = frozenset({"wolf", "alpha wolf", "werecrow", "wolf cub", "werekitten", "wolf mystic", "wolf shaman", "fallen angel", "doomsayer"})
-# Access to wolfchat, and counted towards the # of wolves vs villagers when determining if a side has won
-WOLFCHAT_ROLES = WOLF_ROLES | {"traitor", "hag", "sorcerer", "warlock"}
-# Wins with the wolves, even if the roles are not necessarily wolves themselves
-WOLFTEAM_ROLES = WOLFCHAT_ROLES | {"minion", "cultist"}
-# These roles either steal away wins or can otherwise win with any team
-TRUE_NEUTRAL_ROLES = frozenset({"crazed shaman", "fool", "jester", "monster", "clone", "piper", "turncoat", "succubus", "demoniac", "dullahan"})
+# role categories; roles return a subset of these categories when fetching their metadata
+# wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
+#    The village needs to kill every true wolf role to win
+# wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
+#    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
+# wolfteam: Defines the role as wolfteam for determining winners
+# village: Defines the role as village for determining winners
+# neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team)
+# win stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.)
+# hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
+# safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
+# cursed: Seer sees these roles as wolf
+# innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
+ROLE_CATS = frozenset({"wolf", "wolfchat", "wolfteam", "village", "neutral", "win stealer", "hidden", "safe", "cursed", "innocent"})
+# the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
+# with exception that wolf is first in the wolf category and villager is last in the village category)
+# Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
+ROLE_ORDER = ["wolf", "wolfchat", "wolfteam", "village", "hidden", "neutral", "win stealer"]
+
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
-# These roles are seen as wolf by the seer/oracle
-SEEN_WOLF = WOLF_ROLES | {"monster", "mad scientist", "succubus"}
-# These are seen as the default role (or villager) when seen by seer (this overrides SEEN_WOLF)
-SEEN_DEFAULT = frozenset({"traitor", "hag", "sorcerer", "time lord", "villager", "cultist", "minion", "turncoat", "amnesiac",
-                          "vengeful ghost", "lycan", "clone", "fool", "jester", "werekitten", "warlock", "piper", "demoniac"})
-# These roles are notified that they are villager
-HIDDEN_VILLAGERS = frozenset({"time lord"})
-# These roles are notified that they are the default role. They also win alongside the default role barring other role-specific win conds.
-HIDDEN_ROLES = frozenset({"vengeful ghost", "amnesiac"})
-# These roles are win stealers, and are valid kills for vigilante
-WIN_STEALER_ROLES = frozenset({"monster", "succubus", "demoniac", "piper", "fool"})
 
 # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
 # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead

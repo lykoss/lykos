@@ -13,9 +13,9 @@ from src.roles._mystic_helper import setup_variables
 
 LAST_COUNT = setup_variables("mystic", send_role=True, types=("wolves",))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    # mystics count as special even though they don't have any commands
-    evt.data["villagers"].update(get_players(("mystic",)))
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["mystic"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

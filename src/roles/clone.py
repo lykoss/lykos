@@ -159,14 +159,15 @@ def on_revealroles_role(evt, var, user, role):
     if role == "clone" and user in CLONED:
         evt.data["special_case"].append("cloning {0}".format(CLONED[user]))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["neutrals"].update(get_players(("clone",)))
-
 @event_listener("reset")
 def on_reset(evt, var):
     global CLONE_ENABLED
     CLONE_ENABLED = False
     CLONED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["clone"] = {"neutral"}
 
 # vim: set sw=4 expandtab:

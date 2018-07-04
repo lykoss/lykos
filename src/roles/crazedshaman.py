@@ -84,8 +84,9 @@ def on_transition_night_end(evt, var):
             shaman.send(messages["shaman_notify"].format("crazed shaman", "random "))
         shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["neutrals"].update(get_players(("crazed shaman",)))
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["crazed shaman"] = {"neutral"}
 
 # vim: set sw=4 expandtab:

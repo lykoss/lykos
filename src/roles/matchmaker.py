@@ -198,10 +198,6 @@ def on_chk_nightdone(evt, var):
         evt.data["actedcount"] += len(MATCHMAKERS)
         evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_all_players(("matchmaker",)))
-
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt, var, target1, target2):
     if target1 in LOVERS and target2 in LOVERS:
@@ -253,5 +249,10 @@ def on_revealroles(evt, var, wrapper):
 def on_reset(evt, var):
     MATCHMAKERS.clear()
     LOVERS.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "cats":
+        evt.data["matchmaker"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:
