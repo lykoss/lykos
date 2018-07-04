@@ -329,7 +329,7 @@ def reset():
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES.clear() # list of players who have voted to !start
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
-    var.ROLE_SETS = [] # type: List[Tuple[Counter[str], int]]
+    var.ROLE_SETS = {} # type: Dict[str, Dict[str, int]]
     var.VOTES.clear()
 
     reset_settings()
@@ -2599,7 +2599,7 @@ def setup_role_commands(evt):
     aliases = defaultdict(set)
     for alias, role in var.ROLE_ALIASES.items():
         aliases[role].add(alias)
-    for role in var.ROLE_GUIDE.keys() - var.ROLE_COMMAND_EXCEPTIONS:
+    for role in set(role_order()) - var.ROLE_COMMAND_EXCEPTIONS:
         keys = ["".join(c for c in role if c.isalpha())]
         keys.extend(aliases[role])
         fn = functools.partial(dispatch_role_prefix, role=role)
@@ -4473,22 +4473,34 @@ def start(cli, nick, chan, forced = False, restart = ""):
     event = Event("role_attribution", {"addroles": addroles})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
-        for index in range(len(var.ROLE_INDEX) - 1, -1, -1):
-            if var.ROLE_INDEX[index] <= len(villagers):
-                for role, num in var.ROLE_GUIDE.items(): # allow event to override some roles
-                    addroles[role] = max(addroles.get(role, num[index]), len(var.FORCE_ROLES.get(role, ())))
-                break
-        else:
-            cli.msg(chan, messages["no_settings_defined"].format(nick, len(villagers)))
+        strip = lambda x: re.sub("\(.*\)", x, "")
+        lv = len(villagers)
+        defroles = Counter(itertools.chain(strip(var.ROLE_GUIDE[i]) for i in var.ROLE_GUIDE if i <= lv))
+        for role, count in list(defroles.items()):
+            if role[0] == "-":
+                srole = role[1:]
+                defroles[srole] -= count
+                del defroles[role]
+                if defroles[srole] == 0:
+                    del defroles[srole]
+        if not defroles:
+            cli.msg(chan, messages["no_settings_defined"].format(nick, lv))
             return
-
-        if sum([addroles[r] for r in addroles if r not in var.TEMPLATE_RESTRICTIONS]) > len(villagers):
+        for role, num in defroles.items():
+            addroles[role] = max(addroles.get(role, num), len(var.FORCE_ROLES.get(role, ())))
+        if sum([addroles[r] for r in addroles if r not in var.TEMPLATE_RESTRICTIONS]) > lv:
             channels.Main.send(messages["too_many_roles"])
             return
 
+    # convert roleset aliases into the appropriate roles
     possible_rolesets = []
     roleset_roles = defaultdict(int)
-    for rs, amt in var.ROLE_SETS:
+    for role, amt in list(addroles.items()):
+        if role not in var.ROLE_SETS:
+            continue
+
+        del addroles[role]
+        rs = Counter(var.ROLE_SETS[role])
         toadd = random.sample(list(rs.elements()), amt)
         for r in toadd:
             addroles[r] += 1
@@ -4517,7 +4529,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.msg(chan, messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
             cli.msg(chan, messages["too_many_wolves"])
-        elif set(addroles) != set(var.ROLE_GUIDE):
+        elif set(addroles) != set(defroles):
             cli.msg(chan, messages["error_role_players_count"])
         else:
             need_reset = False
@@ -4630,9 +4642,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
             ps = var.FORCE_ROLES[template]
             var.ROLES[template].update(ps)
             templ_count -= len(ps)
-        # sharpshooter gets applied specially
         # Don't do anything further if this template was forced on enough players already
-        if template == "sharpshooter" or templ_count <= 0:
+        if templ_count <= 0:
             continue
         possible = pl[:]
         for cannotbe in list_players(restrictions):
@@ -4654,19 +4665,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
         var.ROLES[template].update([users._get(x) for x in random.sample(possible, templ_count)]) # FIXME
 
     # Handle gunner
-    cannot_be_sharpshooter = get_players(var.TEMPLATE_RESTRICTIONS["sharpshooter"]) + list(var.FORCE_ROLES["gunner"])
-    gunner_list = set(var.ROLES["gunner"]) # make a copy since we mutate var.ROLES["gunner"]
-    num_sharpshooters = 0
-    for gunner in gunner_list:
+    for gunner in var.ROLES["gunner"]:
         if gunner in var.ROLES["village drunk"]:
             var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
-        elif num_sharpshooters < addroles["sharpshooter"] and gunner not in cannot_be_sharpshooter and random.random() <= var.SHARPSHOOTER_CHANCE:
-            var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
-            var.ROLES["gunner"].remove(gunner)
-            var.ROLES["sharpshooter"].add(gunner)
-            num_sharpshooters += 1
         else:
             var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
+    for gunner in var.ROLES["sharpshooter"]:
+        var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
@@ -5320,9 +5325,11 @@ def listroles(cli, nick, chan, rest):
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
                 roleguide = mode.ROLE_GUIDE
-            elif gamemode == "default" and "ROLE_INDEX" in var.ORIGINAL_SETTINGS and "ROLE_GUIDE" in var.ORIGINAL_SETTINGS:
+                rolesets = mode.ROLE_SETS if hasattr(mode, "ROLE_SETS") else {}
+            elif gamemode == "default":
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
+                rolesets = var.ORIGINAL_SETTINGS["ROLE_SETS"]
             rest.pop(0)
         else:
             msg.append("{0}: {1}roles is disabled for the {2} game mode.".format(nick, botconfig.CMD_CHAR, gamemode))
@@ -5547,7 +5554,8 @@ def player_stats(cli, nick, chan, rest):
         reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True)
     else:
         role = " ".join(params[1:])
-        if role not in var.ROLE_GUIDE.keys():
+        all_roles = set(role_order())
+        if role not in all_roles:
             special_keys = {"lover"}
             evt = Event("get_role_metadata", {})
             evt.dispatch(var, "special_keys")
@@ -5555,7 +5563,7 @@ def player_stats(cli, nick, chan, rest):
             if role.lower() in var.ROLE_ALIASES:
                 matches = (var.ROLE_ALIASES[role.lower()],)
             else:
-                matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
+                matches = complete_match(role, all_roles | special_keys)
             if not matches:
                 reply(cli, nick, chan, messages["no_such_role"].format(role))
                 return
@@ -5930,7 +5938,7 @@ def frole(var, wrapper, message):
         role = role.replace("_", " ")
         if role in var.ROLE_ALIASES:
             role = var.ROLE_ALIASES[role]
-        if user is None or role not in var.ROLE_GUIDE or role == var.DEFAULT_ROLE:
+        if user is None or role not in role_order() or role == var.DEFAULT_ROLE:
             wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
             return
         var.FORCE_ROLES[role].add(user)

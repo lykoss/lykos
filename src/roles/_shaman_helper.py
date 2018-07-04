@@ -46,11 +46,10 @@ brokentotem = set()         # type: Set[users.User]
 #
 # To add new shaman roles in your custom roles/whatever.py file:
 # 1. Expand var.TOTEM_ORDER and upate var.TOTEM_CHANCES to account for the new width
-# 2. Add the role to var.ROLE_GUIDE
-# 3. Add the role to whatever other holding vars are necessary based on what it does
-# 4. Setup initial variables and events with setup_variables(rolename, knows_totem)
+# 2. Add the role to whatever other holding vars are necessary based on what it does
+# 3. Setup initial variables and events with setup_variables(rolename, knows_totem)
 #    knows_totem is a bool and keyword-only
-# 5. Implement custom events if the role does anything else beyond giving totems.
+# 4. Implement custom events if the role does anything else beyond giving totems.
 #
 # Modifying this file to add new totems or new shaman roles is generally never required
 

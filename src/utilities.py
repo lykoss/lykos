@@ -1,6 +1,7 @@
 import itertools
 import fnmatch
 import re
+from collections import defaultdict
 
 import botconfig
 import src.settings as var
@@ -316,7 +317,23 @@ def get_roles(*roles, rolemap=None):
         all_roles.append(rolemap[role])
     return [u.nick for u in itertools.chain(*all_roles)]
 
-role_order = lambda: var.ROLE_GUIDE
+def role_order():
+    mevt = Event("get_role_metadata", {})
+    mevt.dispatch("cats")
+    buckets = defaultdict(list)
+    for role, tags in mevt.data.items():
+        for tag in var.ROLE_ORDER:
+            if tag in tags:
+                buckets[tag].append(role)
+                break
+    # handle fixed ordering for wolf and villager
+    buckets["wolf"].remove("wolf")
+    buckets["village"].remove("villager")
+    for tag in buckets:
+        buckets[tag] = sorted(buckets[tag])
+    buckets["wolf"].insert(0, "wolf")
+    buckets["village"].append("villager")
+    return itertools.chain(buckets[tag] for tag in var.ROLE_ORDER)
 
 def break_long_message(phrases, joinstr = " "):
     message = []

@@ -60,7 +60,7 @@ def update_amnesiac(evt, var, user, old_role):
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.params.inherit_from is None and evt.data["role"] == "amnesiac":
-        roles = var.ROLE_GUIDE.keys() - _get_blacklist(var)
+        roles = set(role_order()) - _get_blacklist(var)
         ROLES[user] = random.choice(list(roles))
 
 @event_listener("revealing_totem")

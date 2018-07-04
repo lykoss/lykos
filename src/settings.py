@@ -272,7 +272,7 @@ TEMPLATE_RESTRICTIONS["sharpshooter"] |= TEMPLATE_RESTRICTIONS["gunner"]
 # fallen angel can be assassin even though they are a wolf role
 TEMPLATE_RESTRICTIONS["assassin"] -= {"fallen angel"}
 
-# Roles listed here cannot be used in !fgame roles=blah. If they are defined in ROLE_GUIDE they may still be used.
+# Roles listed here cannot be used in !fgame roles=blah.
 DISABLED_ROLES = frozenset()
 
 # Game modes that cannot be randomly picked or voted for
