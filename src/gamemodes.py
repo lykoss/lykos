@@ -22,8 +22,6 @@ def game_mode(name, minp, maxp, likelihood=0):
         return c
     return decor
 
-reset_roles = lambda i: OrderedDict([(role, (0,) * len(i)) for role in var.ROLE_GUIDE])
-
 class GameMode:
     def __init__(self, arg=""):
         if not arg:
@@ -102,12 +100,10 @@ class ChangedRolesMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.MAX_PLAYERS = 35
-        self.ROLE_GUIDE = var.ROLE_GUIDE.copy()
-        self.ROLE_INDEX = (var.MIN_PLAYERS,)
+        self.ROLE_GUIDE = {1: []}
         arg = arg.replace("=", ":").replace(";", ",")
-
-        for role in self.ROLE_GUIDE.keys():
-            self.ROLE_GUIDE[role] = (0,)
+        mevt = Event("get_role_metadata", {})
+        mevt.dispatch(var, "cats")
 
         pairs = [arg]
         while pairs:
@@ -119,10 +115,12 @@ class ChangedRolesMode(GameMode):
             try:
                 if role.lower() in var.DISABLED_ROLES:
                     raise InvalidModeException(messages["role_disabled"].format(role))
-                elif role.lower() in self.ROLE_GUIDE:
-                    self.ROLE_GUIDE[role.lower()] = tuple([int(num)] * len(var.ROLE_INDEX))
-                elif role.lower() == "default" and num.lower() in self.ROLE_GUIDE:
+                elif role.lower() in mevt.data or role.lower() in var.ROLE_SETS:
+                    self.ROLE_GUIDE[1].extend((role.lower(),) * int(num))
+                elif role.lower() == "default" and num.lower() in mevt.data:
                     self.DEFAULT_ROLE = num.lower()
+                elif role.lower() == "hidden" and num.lower() in ("villager", "cultist"):
+                    self.HIDDEN_ROLE = num.lower()
                 elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain", "lover wins with fool"):
                     # handled in parent constructor
                     pass
@@ -134,11 +132,29 @@ class ChangedRolesMode(GameMode):
 @game_mode("default", minp=4, maxp=24, likelihood=40)
 class DefaultMode(GameMode):
     """Default game mode."""
-    def __init__(self, arg="", role_index=var.ROLE_INDEX, role_guide=var.ROLE_GUIDE):
-        # No extra settings, just an explicit way to revert to default settings
+    def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX = role_index
-        self.ROLE_GUIDE = role_guide
+        self.ROLE_GUIDE = {
+            4: ["wolf", "seer"],
+            6: ["cursed villager"],
+            7: ["cultist", "shaman"],
+            8: ["harlot", "traitor", "-cultist"],
+            9: ["crazed shaman"],
+            10: ["wolf cub", "gunner/sharpshooter"],
+            11: ["matchmaker"],
+            12: ["werecrow", "detective"],
+            13: ["assassin"],
+            15: ["wolf(2)", "hunter"],
+            16: ["monster"],
+            18: ["bodyguard"],
+            20: ["sorcerer", "augur", "cursed villager(2)"],
+            21: ["wolf(3)", "gunner/sharpshooter(2)"],
+            23: ["amnesiac", "mayor"],
+            24: ["hag"]
+            }
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
+            }
 
     def startup(self):
         events.add_listener("chk_decision", self.chk_decision, priority=20)
@@ -162,17 +178,13 @@ class VillagergameMode(GameMode):
     """This mode definitely does not exist, now please go away."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.fake_index = var.ROLE_INDEX
-        self.fake_guide = var.ROLE_GUIDE.copy()
-        self.ROLE_INDEX =       (  4  ,  6  ,  7  ,  8  ,  9  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ),
-            "harlot"          : (  0  ,  0  ,  0  ,  1  ,  1  ),
-            "crazed shaman"   : (  0  ,  0  ,  0  ,  0  ,  1  ),
-            "cursed villager" : (  0  ,  1  ,  1  ,  1  ,  1  ),
-            })
+        self.ROLE_GUIDE = {
+            4: ["seer"],
+            6: ["cursed villager"],
+            7: ["shaman"],
+            8: ["harlot"],
+            9: ["crazed shaman"]
+            }
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
@@ -267,29 +279,22 @@ class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =         (  8  ,  9  ,  10 , 11  , 12  , 15  , 17  , 20  , 21  , 22  , 24  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "oracle"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "harlot"          : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
-              "bodyguard"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
-              "augur"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "hunter"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "shaman"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # wolf roles
-              "wolf"            : (  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  3  ,  3  ,  3  ,  3  ,  4  ),
-              "traitor"         : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ),
-              "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # neutral roles
-              "clone"           : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "fool"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # templates
-              "cursed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "gunner"          : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ),
-              "sharpshooter"    : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              })
+        self.ROLE_GUIDE = {
+            8: ["wolf", "traitor", "oracle", "harlot", "fool", "cursed villager"],
+            9: ["hunter"],
+            10: ["wolf(2)"],
+            11: ["shaman", "clone"],
+            12: ["wolf cub", "gunner/sharpshooter"],
+            15: ["sorcerer", "augur", "mayor"],
+            17: ["wolf(3)", "harlot(2)"],
+            20: ["bodyguard"],
+            21: ["traitor(2)"],
+            22: ["gunner/sharpshooter(2)"],
+            24: ["wolf(4)"]
+            }
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
+            }
 
 @game_mode("mad", minp=7, maxp=22, likelihood=5)
 class MadMode(GameMode):
@@ -332,20 +337,14 @@ class EvilVillageMode(GameMode):
         self.ABSTAIN_ENABLED = False
         super().__init__(arg)
         self.DEFAULT_ROLE = "cultist"
-        self.DEFAULT_SEEN_AS_VILL = False
-        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "seer"            : (   0   ,   1   ,   1   ,   1   ,   1   ),
-              "guardian angel"  : (   0   ,   0   ,   1   ,   1   ,   1   ),
-              "shaman"          : (   0   ,   0   ,   0   ,   1   ,   1   ),
-              "hunter"          : (   1   ,   1   ,   1   ,   1   ,   2   ),
-              # wolf roles
-              "wolf"            : (   1   ,   1   ,   1   ,   1   ,   2   ),
-              "minion"          : (   0   ,   0   ,   1   ,   1   ,   1   ),
-              # neutral roles
-              "fool"            : (   0   ,   0   ,   1   ,   1   ,   1   ),
-              })
+        self.HIDDEN_ROLE = "cultist"
+        self.ROLE_GUIDE = {
+            6: ["wolf", "hunter"],
+            8: ["seer"],
+            10: ["minion", "guardian angel", "fool"],
+            12: ["shaman"],
+            15: ["wolf(2)", "hunter(2)"]
+            }
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
@@ -390,56 +389,37 @@ class ClassicMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
-        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  18   ,  20   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "seer"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              "village drunk"   : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              "harlot"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              "bodyguard"       : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-              "detective"       : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              # wolf roles
-              "wolf"            : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   3   ,   3   ,   4   ),
-              "traitor"         : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              "werecrow"        : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              # templates
-              "cursed villager" : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-              "gunner"          : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-              })
+        self.ROLE_GUIDE = {
+            4: ["wolf", "seer"],
+            6: ["cursed villager"],
+            8: ["traitor", "harlot", "village drunk"],
+            10: ["wolf(2)", "gunner"],
+            12: ["werecrow", "detective"],
+            15: ["wolf(3)"],
+            17: ["bodyguard"],
+            18: ["cursed villager(2)"],
+            20: ["wolf(4)"]
+            }
 
 @game_mode("rapidfire", minp=6, maxp=24, likelihood=0)
 class RapidFireMode(GameMode):
     """Many roles that lead to multiple chain deaths."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
         self.SHORT_DAY_LIMIT = 240
         self.SHORT_DAY_WARN = 180
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0
-        self.ROLE_INDEX =         (   6   ,   8   ,  10   ,  12   ,  15   ,  18   ,  22   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "mad scientist"     : (   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "matchmaker"        : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   2   ),
-            "hunter"            : (   0   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "augur"             : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "time lord"         : (   0   ,   0   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            # wolf roles
-            "wolf"              : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   4   ),
-            "wolf cub"          : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ),
-            "traitor"           : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "vengeful ghost"    : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   2   ),
-            "amnesiac"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            # templates
-            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "assassin"          : (   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ),
-            "gunner"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "sharpshooter"      : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            })
+        self.ROLE_GUIDE = {
+            6: ["wolf", "seer", "mad scientist", "cursed villager"],
+            8: ["wolf cub", "hunter", "assassin"],
+            10: ["traitor", "matchmaker", "time lord", "sharpshooter"],
+            12: ["wolf(2)", "vengeful ghost"],
+            15: ["wolf cub(2)", "augur", "amnesiac", "assassin(2)"],
+            18: ["wolf(3)", "hunter(2)", "mad scientist(2)", "time lord(2)", "cursed villager(2)"],
+            22: ["wolf(4)", "matchmaker(2)", "vengeful ghost(2)"]
+            }
 
     def startup(self):
         events.add_listener("chk_win", self.all_dead_chk_win)
@@ -452,7 +432,6 @@ class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.SHARPSHOOTER_CHANCE = 1
         self.DAY_TIME_LIMIT = 480
         self.DAY_TIME_WARN = 360
         self.SHORT_DAY_LIMIT = 240
@@ -461,23 +440,13 @@ class DrunkFireMode(GameMode):
         self.NIGHT_TIME_WARN = 40     #     HIT    MISS    SUICIDE   HEADSHOT
         self.GUN_CHANCES              = (   3/7  ,  3/7  ,   1/7   ,   4/5   )
         self.WOLF_GUN_CHANCES         = (   4/7  ,  3/7  ,   0/7   ,   1     )
-        self.ROLE_INDEX =         (   8   ,   10  ,  12   ,  14   ,  16   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-            "seer"              : (   1   ,   1   ,   1   ,   2   ,   2   ),
-            "village drunk"     : (   2   ,   3   ,   4   ,   4   ,   5   ),
-            # wolf roles
-            "wolf"              : (   1   ,   2   ,   2   ,   3   ,   3   ),
-            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   2   ),
-            "hag"               : (   0   ,   0   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "crazed shaman"     : (   0   ,   0   ,   1   ,   1   ,   1   ),
-            # templates
-            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   1   ),
-            "assassin"          : (   0   ,   0   ,   0   ,   1   ,   1   ),
-            "gunner"            : (   5   ,   6   ,   7   ,   8   ,   9   ),
-            "sharpshooter"      : (   2   ,   2   ,   3   ,   3   ,   4   ),
-            })
+        self.ROLE_GUIDE = {
+            8: ["wolf", "traitor", "seer", "village drunk", "village drunk(2)", "cursed villager", "gunner", "gunner(2)", "gunner(3)", "sharpshooter", "sharpshooter(2)"],
+            10: ["wolf(2)", "village drunk(3)", "gunner(4)"],
+            12: ["hag", "village drunk(4)", "crazed shaman", "sharpshooter(3)"],
+            14: ["wolf(3)", "seer(2)", "gunner(5)", "assassin"],
+            16: ["traitor(2)", "village drunk(5)", "sharpshooter(4)"]
+            }
 
     def startup(self):
         events.add_listener("chk_win", self.all_dead_chk_win)
@@ -492,52 +461,37 @@ class NoRevealMode(GameMode):
         self.ROLE_REVEAL = "off"
         self.STATS_TYPE = "disabled"
         super().__init__(arg)
-        self.ROLE_INDEX =         (   4   ,   6   ,   8   ,  10   ,  12   ,  15   ,  17   ,  19   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "guardian angel"    : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "mystic"            : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "detective"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "hunter"            : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # wolf roles
-            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   3   ),
-            "wolf mystic"       : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "traitor"           : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "clone"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "lycan"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
-            "amnesiac"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ),
-            # templates
-            "cursed villager"   : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            })
+        self.ROLE_GUIDE = {
+            4: ["wolf", "seer"],
+            6: ["cursed villager"],
+            8: ["wolf mystic", "mystic"],
+            10: ["traitor", "hunter"],
+            12: ["wolf(2)", "guardian angel"],
+            15: ["werecrow", "detective", "clone"],
+            17: ["amnesiac", "lycan", "cursed villager(2)"],
+            19: ["wolf(3)"]
+            }
 
 @game_mode("lycan", minp=7, maxp=21, likelihood=5)
 class LycanMode(GameMode):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =         (   7   ,   8  ,    9   ,   10  ,   11  ,   12  ,  15   ,  17   ,  19   ,  20   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "bodyguard"         : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "matchmaker"        : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "hunter"            : (   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            # wolf roles
-            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "wolf shaman"       : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "traitor"           : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "clone"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ),
-            "lycan"             : (   1   ,   1   ,   1   ,   2   ,   2   ,   3   ,   4   ,   4   ,   4   ,   5   ),
-            # templates
-            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            "gunner"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "sharpshooter"      : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "mayor"             : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            })
+        self.ROLE_GUIDE = {
+            7: ["wolf", "seer", "hunter", "lycan", "cursed villager"],
+            8: ["traitor"],
+            9: ["clone"],
+            10: ["wolf shaman", "hunter(2)", "lycan(2)"],
+            11: ["bodyguard", "mayor"],
+            12: ["lycan(3)", "cursed villager(2)"],
+            15: ["matchmaker", "lycan(4)"],
+            17: ["clone(2)", "gunner/sharpshooter"],
+            19: ["seer(2)"],
+            20: ["lycan(5)"]
+            }
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
+            }
 
 @game_mode("valentines", minp=8, maxp=24, likelihood=0)
 class MatchmakerMode(GameMode):
@@ -546,14 +500,16 @@ class MatchmakerMode(GameMode):
         super().__init__(arg)
         self.NIGHT_TIME_LIMIT = 150
         self.NIGHT_TIME_WARN = 105
-        self.ROLE_INDEX = range(8, 25)
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            "wolf"          : [math.ceil((i ** 1.4) * 0.06) for i in self.ROLE_INDEX],
-            "matchmaker"    : [i - math.ceil((i ** 1.4) * 0.06) - (i >= 12) - (i >= 18) for i in self.ROLE_INDEX],
-            "monster"       : [i >= 12 for i in self.ROLE_INDEX],
-            "mad scientist" : [i >= 18 for i in self.ROLE_INDEX],
-            })
+        self.DEFAULT_ROLE = "matchmaker"
+        self.ROLE_GUIDE = {
+            8: ["wolf", "wolf(2)"],
+            12: ["monster"],
+            13: ["wolf(3)"],
+            17: ["wolf(4)"],
+            18: ["mad scientist"],
+            21: ["wolf(5)"],
+            24: ["wolf(6)"]
+            }
 
     def startup(self):
         events.add_listener("chk_win", self.lovers_chk_win)
@@ -639,7 +595,6 @@ class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.SHARPSHOOTER_CHANCE = 1
                                               #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
         self.TOTEM_CHANCES = {       "death": (      4      ,       1       ,      0      ),
                                 "protection": (      8      ,       1       ,      0      ),
@@ -663,64 +618,37 @@ class AleatoireMode(GameMode):
         for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
             self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
 
-        self.ROLE_INDEX =         (   8   ,  10   ,  12   ,  13   ,  14   ,  15   ,  17   ,  18   ,  21   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({ # village roles
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "shaman"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "matchmaker"        : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "hunter"            : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            "augur"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "time lord"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
-            "guardian angel"    : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # wolf roles
-            "wolf"              : (   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   3   ,   3   ,   3   ),
-            "wolf cub"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ),
-            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "werecrow"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            "hag"               : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "vengeful ghost"    : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ,   2   ),
-            "amnesiac"          : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "turncoat"          : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # templates
-            "cursed villager"   : (   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            "assassin"          : (   0   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ),
-            "gunner"            : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "mayor"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            })
+        self.ROLE_GUIDE = {
+            8: ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
+            10: ["wolf(2)", "matchmaker", "vengeful ghost", "gunner", "assassin"],
+            12: ["hag", "guardian angel", "amnesiac"],
+            13: ["assassin(2)"],
+            14: ["turncoat"],
+            15: ["werecrow", "augur", "mayor"],
+            17: ["wolf(3)", "hunter"],
+            18: ["vengeful ghost(2)"],
+            21: ["wolf cub", "time lord"]
+            }
 
 @game_mode("alpha", minp=10, maxp=24, likelihood=5)
 class AlphaMode(GameMode):
     """Features the alpha wolf who can turn other people into wolves, be careful whom you trust!"""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =         (  10   ,  12   ,  13   ,  14   ,  16   ,  17   ,  18   ,  19   ,  20   ,  21   ,  22   ,  24   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            #village roles
-            "oracle"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "doctor"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "harlot"            : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "guardian angel"    : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   2   ),
-            "matchmaker"        : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "augur"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "vigilante"         : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ),
-            # wolf roles
-            "wolf"              : (   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   3   ,   4   ),
-            "alpha wolf"        : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "traitor"           : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "werecrow"          : (   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "amnesiac"          : (   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "lycan"             : (   2   ,   2   ,   2   ,   2   ,   3   ,   3   ,   3   ,   3   ,   4   ,   4   ,   4   ,   4   ),
-            "crazed shaman"     : (   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "clone"             : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ),
-            # templates
-            "cursed villager"   : (   1   ,   1   ,   1   ,   1   ,   2   ,   2   ,   2   ,   2   ,   2   ,   2   ,   3   ,   3   ),
-            "mayor"             : (   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            "assassin"          : (   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   0   ,   1   ,   1   ,   1   ,   1   ,   1   ),
-            })
+        self.ROLE_GUIDE = {
+            10: ["alpha wolf", "traitor", "oracle", "harlot", "doctor", "amnesiac", "lycan", "lycan(2)", "cursed villager"],
+            12: ["werecrow", "guardian angel"],
+            13: ["matchmaker", "mayor"],
+            14: ["wolf"],
+            16: ["crazed shaman", "lycan(3)", "cursed villager(2)"],
+            17: ["augur"],
+            18: ["wolf(2)"],
+            19: ["assassin"],
+            20: ["clone", "lycan(4)"],
+            21: ["vigilante"],
+            22: ["wolf(3)", "cursed villager(3)"],
+            24: ["wolf(4)", "guardian angel(2)"]
+            }
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
 @game_mode("guardian", minp=8, maxp=16, likelihood=1)
@@ -729,26 +657,13 @@ class GuardianMode(GameMode):
     def __init__(self, arg=""):
         self.LIMIT_ABSTAIN = False
         super().__init__(arg)
-        self.ROLE_INDEX =         (   8   ,   10   ,  12   ,  13   ,  15   )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            # village roles
-            "village drunk"     : (   1   ,   1   ,   1   ,   1   ,   1   ),
-            "bodyguard"         : (   0   ,   0   ,   0   ,   0   ,   1   ),
-            "guardian angel"    : (   1   ,   1   ,   2   ,   2   ,   2   ),
-            "shaman"            : (   0   ,   1   ,   1   ,   1   ,   1   ),
-            "seer"              : (   1   ,   1   ,   1   ,   1   ,   1   ),
-            # wolf roles
-            "wolf"              : (   1   ,   1   ,   1   ,   1   ,   2   ),
-            "werecrow"          : (   0   ,   1   ,   1   ,   1   ,   1   ),
-            "werekitten"        : (   1   ,   1   ,   1   ,   1   ,   1   ),
-            "alpha wolf"        : (   0   ,   0   ,   1   ,   1   ,   1   ),
-            # neutral roles
-            "jester"            : (   0   ,   0   ,   0   ,   1   ,   1   ),
-            # templates
-            "gunner"            : (   0   ,   0   ,   0   ,   1   ,   1   ),
-            "cursed villager"   : (   1   ,   1   ,   2   ,   2   ,   2   ),
-            })
+        self.ROLE_GUIDE = {
+            8: ["wolf", "werekitten", "seer", "guardian angel", "village drunk", "cursed villager"],
+            10: ["werecrow", "shaman"],
+            12: ["alpha wolf", "guardian angel(2)", "cursed villager(2)"],
+            13: ["jester", "gunner"],
+            15: ["wolf(2)", "bodyguard"]
+            }
 
         self.TOTEM_CHANCES = { #  shaman , crazed , wolf
                         "death": (   4   ,   1   ,   0   ),
@@ -807,61 +722,35 @@ class CharmingMode(GameMode):
     """Charmed players must band together to find the piper in this game mode."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =         (  6  ,  8 ,  10  , 11  , 12  , 14  , 16  , 18  , 19  , 22  , 24  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "harlot"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "shaman"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ),
-              "detective"       : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "bodyguard"       : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ),
-              # wolf roles
-              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  3  ,  3  ),
-              "traitor"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "werekitten"      : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "warlock"         : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "sorcerer"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              # neutral roles
-              "piper"           : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "vengeful ghost"  : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # templates
-              "cursed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "gunner"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ),
-              "sharpshooter"    : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ),
-              "mayor"           : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              })
+        self.ROLE_GUIDE = {
+            6: ["wolf", "seer", "piper", "cursed villager"],
+            8: ["traitor", "harlot"],
+            10: ["werekitten", "shaman", "gunner/sharpshooter"],
+            11: ["vengeful ghost"],
+            12: ["warlock", "detective"],
+            14: ["bodyguard", "mayor"],
+            16: ["wolf(2)", "assassin"],
+            18: ["bodyguard(2)"],
+            19: ["sorcerer"],
+            22: ["wolf(3)", "shaman(2)"],
+            24: ["gunner/sharpshooter(2)"]
+            }
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 8, "sharpshooter": 2}
+            }
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=1)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):
         super().__init__(arg)
-        self.ROLE_INDEX =        ( 10  , 12  , 15  , 18  , 21  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({
-            # village roles
-            "seer"             : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "priest"           : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "harlot"           : (  0  ,  0  ,  0  ,  1  ,  1  ),
-            "detective"        : (  0  ,  0  ,  1  ,  1  ,  1  ),
-            "vigilante"        : (  0  ,  1  ,  1  ,  1  ,  1  ),
-            "village drunk"    : (  0  ,  0  ,  0  ,  0  ,  1  ),
-            # wolf roles
-            "wolf"             : (  1  ,  2  ,  3  ,  4  ,  5  ),
-            "werecrow"         : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "traitor"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "cultist"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            # neutral roles
-            "dullahan"         : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "vengeful ghost"   : (  0  ,  0  ,  1  ,  1  ,  1  ),
-            "monster"          : (  0  ,  0  ,  0  ,  1  ,  2  ),
-            # templates
-            "cursed villager"  : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "blessed villager" : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "prophet"          : (  1  ,  1  ,  1  ,  1  ,  1  ),
-            "gunner"           : (  0  ,  0  ,  0  ,  0  ,  1  ),
-            })
+        self.ROLE_GUIDE = {
+            10: ["wolf", "werecrow", "traitor", "cultist", "seer", "prophet", "priest", "dullahan", "cursed villager", "blessed villager"],
+            12: ["wolf(2)", "vigilante"],
+            15: ["wolf(3)", "detective", "vengeful ghost"],
+            18: ["wolf(4)", "harlot", "monster"],
+            21: ["wolf(5)", "village drunk", "monster(2)", "gunner"]
+            }
         # this ensures that priest will always receive the blessed villager and prophet templates
         # prophet is normally a role by itself, but we're turning it into a template for this mode
         self.TEMPLATE_RESTRICTIONS = var.TEMPLATE_RESTRICTIONS.copy()
@@ -1268,27 +1157,20 @@ class MudkipMode(GameMode):
                               "misdirection": (      0      ,       1       ,      5      ),
                                     "deceit": (      0      ,       1       ,      0      ),
                              }
-        self.ROLE_INDEX =         (  5  ,  6  ,  7  ,  8  ,  9  , 10  , 11  , 12  , 13  , 14  , 15  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "investigator"    : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "guardian angel"  : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "shaman"          : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "priest"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
-              "amnesiac"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
-              # wolf roles
-              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
-              "doomsayer"       : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "wolf shaman"     : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              "minion"          : (  1  ,  1  ,  1  ,  1  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
-              # neutral roles
-              "jester"          : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "succubus"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ),
-              # templates
-              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              })
 
+        self.ROLE_GUIDE = {
+            5: ["wolf", "minion", "investigator"],
+            6: ["guardian angel"],
+            7: ["jester"],
+            8: ["shaman"],
+            9: ["doomsayer", "-minion"],
+            10: ["vengeful ghost", "assassin"],
+            11: ["wolf(2)"],
+            12: ["priest"],
+            13: ["wolf shaman"],
+            14: ["amnesiac"],
+            15: ["succubus"]
+            }
         self.recursion_guard = False
 
     def startup(self):
