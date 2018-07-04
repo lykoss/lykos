@@ -29,7 +29,7 @@ def wolf_can_kill(var, wolf):
     wolfroles = get_all_roles(wolf)
     return bool(CAN_KILL & wolfroles)
 
-@cmd("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
+@cmd("kill", "nom", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(cli, nick, chan, rest):
     """Kills one or more players as a wolf."""
     role = get_role(nick)
