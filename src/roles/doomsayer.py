@@ -3,11 +3,13 @@ import random
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_target, is_known_wolf_ally
+from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+
+from src.roles._wolf_helper import is_known_wolf_ally
 
 SEEN = UserSet()
 KILLS = UserDict()
@@ -26,7 +28,7 @@ def see(var, wrapper, message):
     if not target:
         return
 
-    if is_known_wolf_ally(wrapper.source, target):
+    if is_known_wolf_ally(var, wrapper.source, target):
         wrapper.send(messages["no_see_wolf"])
         return
 
