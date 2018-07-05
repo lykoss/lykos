@@ -479,11 +479,12 @@ def get_role_stats(role, mode=None):
                    ON gp.game = g.id
                  JOIN game_player_role gpr
                    ON gpr.game_player = gp.id
-                 WHERE role = ?""", (role,))
+                 WHERE role = ?
+                 GROUP BY role""", (role,))
     else:
         c.execute("""SELECT
                    gpr.role AS role,
-                   g.gamemode,
+                   g.gamemode AS gamemode,
                    SUM(gp.team_win) AS team,
                    SUM(gp.indiv_win) AS indiv,
                    SUM(gp.team_win OR gp.indiv_win) AS overall,
@@ -494,7 +495,8 @@ def get_role_stats(role, mode=None):
                  JOIN game_player_role gpr
                    ON gpr.game_player = gp.id
                  WHERE role = ?
-                   AND g.gamemode = ?""", (role, mode))
+                   AND gamemode = ?
+                 GROUP BY role, gamemode""", (role, mode))
 
     row = c.fetchone()
     if row and row[2] is not None:
