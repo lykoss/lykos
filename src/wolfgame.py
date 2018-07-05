@@ -5550,44 +5550,57 @@ def player_stats(cli, nick, chan, rest):
     if len(params) < 2:
         reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True)
     else:
-        role = complete_role(cli, nick, chan, " ".join(params[1:]))
+        role = " ".join(params[1:])
+        if role not in var.ROLE_GUIDE.keys():
+            special_keys = {"lover"}
+            evt = Event("get_role_metadata", {})
+            evt.dispatch(var, "special_keys")
+            special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+            if role.lower() in var.ROLE_ALIASES:
+                matches = (var.ROLE_ALIASES[role.lower()],)
+            else:
+                matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
+            if not matches:
+                reply(cli, nick, chan, messages["no_such_role"].format(role))
+                return
+            if len(matches) > 1:
+                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
+                return
+            role = matches[0]
         # Attempt to find the player's stats
-        if role:
-            reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
-        
+        reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
+
 @cmd("mystats", "m", pm=True)
 def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
     player_stats.func(cli, nick, chan, " ".join([nick] + rest))
 
-@cmd("rolestats", "rstats", pm=True)
-def role_stats(cli, nick, chan, rest):
+@command("rolestats", "rstats", pm=True)
+def role_stats(var, wrapper, rest):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
-    if (chan != nick and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
+    if (wrapper.target != users.Bot and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"])
+        wrapper.pm(messages["command_ratelimited"])
         return
 
-    if chan != nick:
+    if wrapper.target != users.Bot:
         var.LAST_RSTATS = datetime.now()
-        if var.PHASE not in ("none", "join") and chan == botconfig.CHANNEL:
-            cli.notice(nick, messages["stats_wait_for_game_end"])
+    
+    if var.PHASE not in ("none", "join") and wrapper.target is not channel.Main:
+            wrapper.pm(messages["stats_wait_for_game_end"])
             return
-
-    if chan != nick:
-        var.LAST_RSTATS = datetime.now()
 
     rest = rest.split()
     if len(rest) == 0:
         # this is a long message
-        reply(cli, nick, chan, db.get_role_totals(), private=True)
+        wrapper.pm(db.get_role_totals())
     elif len(rest) == 1 or (rest[-1] == "all" and rest.pop()):
-        role = complete_role(cli, nick, chan, " ".join(rest))
+        role = complete_role(var, wrapper, " ".join(rest))
         if role:
-            reply(cli, nick, chan, db.get_role_stats(role))
+            wrapper.reply(db.get_role_stats(role))
     else:
-        role = complete_role(cli, nick, chan, " ".join(rest[:-1]))
+        role = complete_role(var, wrapper, " ".join(rest[:-1]))
         if not role:
             return
         gamemode = rest[-1]
@@ -5596,12 +5609,12 @@ def role_stats(cli, nick, chan, rest):
             if len(matches) == 1:
                 gamemode = matches[0]
             if not matches:
-                cli.notice(nick, messages["invalid_mode"].format(rest[1]))
+                wrapper.pm(messages["invalid_mode"].format(rest[1]))
                 return
             if len(matches) > 1:
-                cli.notice(nick, messages["ambiguous_mode"].format(rest[1], ", ".join(matches)))
+                wrapper.pm(messages["ambiguous_mode"].format(rest[1], ", ".join(matches)))
                 return
-        reply(cli, nick, chan, db.get_role_stats(role, gamemode))
+        wrapper.reply(db.get_role_stats(role, gamemode))
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
