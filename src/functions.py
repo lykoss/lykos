@@ -7,7 +7,6 @@ __all__ = [
     "get_players", "get_all_players", "get_participants",
     "get_target", "change_role"
     "get_main_role", "get_all_roles", "get_reveal_role",
-    "is_known_wolf_ally",
     ]
 
 def get_players(roles=None, *, mainroles=None):
@@ -124,18 +123,5 @@ def get_reveal_role(user):
         return "neutral player"
     else:
         return "village member"
-
-def is_known_wolf_ally(actor, target):
-    actor_role = get_main_role(actor)
-    target_role = get_main_role(target)
-
-    wolves = var.WOLFCHAT_ROLES
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves = var.WOLF_ROLES
-        else:
-            wolves = var.WOLF_ROLES | {"traitor"}
-
-    return actor_role in wolves and target_role in wolves
 
 # vim: set sw=4 expandtab:

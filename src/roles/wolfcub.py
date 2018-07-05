@@ -9,9 +9,11 @@ from src.decorators import cmd, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.roles import wolf
 
-wolf.CAN_KILL.remove("wolf cub")
+from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
+from src.roles import wolf # ensure that CAN_KILL is populated before trying to remove from it ...
+
+CAN_KILL.remove("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
@@ -27,7 +29,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
-    if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf.wolf_can_kill(var, player):
+    if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf_can_kill(var, player):
         evt.data["messages"].append(messages["angry_wolves"])
 
 @event_listener("transition_night_end", priority=3)
@@ -35,8 +37,8 @@ def on_transition_night_end(evt, var):
     if not ANGRY_WOLVES:
         return
 
-    wolves = get_players(wolf.CAN_KILL)
-    if not wolves or not wolf.wolf_can_kill(var, wolves[0]):
+    wolves = get_players(CAN_KILL)
+    if not wolves or not wolf_can_kill(var, wolves[0]):
         return
 
     for wofl in wolves:
