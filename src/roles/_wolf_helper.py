@@ -5,7 +5,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src.functions import get_main_role, get_players
+from src.functions import get_main_role, get_players, get_all_roles
 from src.decorators import event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages

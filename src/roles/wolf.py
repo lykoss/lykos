@@ -42,8 +42,9 @@ def wolf_kill(var, wrapper, message):
         wrapper.pm(messages["wolf_must_target_multiple"])
         return
 
-    for targ in pieces:
-        target = get_target(var, wrapper, targ, not_self_message="no_suicide")
+    targs = iter(pieces) # allow random words to follow the initial line without issue
+    for i in range(num_kills):
+        target = get_target(var, wrapper, next(targs, None), not_self_message="no_suicide")
         if target is None:
             return
 
@@ -124,12 +125,7 @@ def on_transition_day(evt, var):
     num_kills = nevt.data["numkills"]
     for v in KILLS.values():
         for p in v:
-            if p:
-                # kill target starting with ! is invalid
-                # right now nothing does this, but monster eventually will
-                if p[0] == "!":
-                    continue
-                found[p] += 1
+            found[p] += 1
     for i in range(num_kills):
         maxc = 0
         dups = []
@@ -148,8 +144,8 @@ def on_transition_day(evt, var):
             evt.data["killers"][target].append("@wolves")
             del found[target]
 
-    # this should be moved to an event in kill, where monster prefixes their nick with !
-    # and fallen angel subsequently removes the ! prefix
+    # when monster is split, add protection to them if in onlybywolves
+    # fallen angel will then remove that protection
     # TODO: when monster is split off
     if var.ROLES["fallen angel"]:
         for monster in get_all_players(("monster",)):
