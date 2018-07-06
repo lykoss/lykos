@@ -4060,7 +4060,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         addroles = event.data["addroles"]
         strip = lambda x: re.sub("\(.*\)", x, "")
         lv = len(villagers)
-        defroles = Counter(itertools.chain(strip(var.ROLE_GUIDE[i]) for i in var.ROLE_GUIDE if i <= lv))
+        defroles = Counter(itertools.chain(strip(x) for i in var.ROLE_GUIDE for x in var.ROLE_GUIDE[i] if i <= lv))
         for role, count in list(defroles.items()):
             if role[0] == "-":
                 srole = role[1:]
