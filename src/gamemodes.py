@@ -150,11 +150,11 @@ class DefaultMode(GameMode):
             20: ["sorcerer", "augur", "cursed villager(2)"],
             21: ["wolf(3)", "gunner/sharpshooter(2)"],
             23: ["amnesiac", "mayor"],
-            24: ["hag"]
-            }
+            24: ["hag"],
+        }
         self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
-            }
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
 
     def startup(self):
         events.add_listener("chk_decision", self.chk_decision, priority=20)
@@ -183,8 +183,8 @@ class VillagergameMode(GameMode):
             6: ["cursed villager"],
             7: ["shaman"],
             8: ["harlot"],
-            9: ["crazed shaman"]
-            }
+            9: ["crazed shaman"],
+        }
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
@@ -290,11 +290,11 @@ class FoolishMode(GameMode):
             20: ["bodyguard"],
             21: ["traitor(2)"],
             22: ["gunner/sharpshooter(2)"],
-            24: ["wolf(4)"]
-            }
+            24: ["wolf(4)"],
+        }
         self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
-            }
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
 
 @game_mode("mad", minp=7, maxp=22, likelihood=5)
 class MadMode(GameMode):
@@ -313,11 +313,11 @@ class MadMode(GameMode):
             15: ["harlot"],
             17: ["wolf cub", "jester", "assassin"],
             18: ["hunter"],
-            20: ["wolf cub(2)"]
-            }
+            20: ["wolf cub(2)"],
+        }
         self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
-            }
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
 
 @game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
 class EvilVillageMode(GameMode):
@@ -332,8 +332,8 @@ class EvilVillageMode(GameMode):
             8: ["seer"],
             10: ["minion", "guardian angel", "fool"],
             12: ["shaman"],
-            15: ["wolf(2)", "hunter(2)"]
-            }
+            15: ["wolf(2)", "hunter(2)"],
+        }
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
@@ -387,8 +387,8 @@ class ClassicMode(GameMode):
             15: ["wolf(3)"],
             17: ["bodyguard"],
             18: ["cursed villager(2)"],
-            20: ["wolf(4)"]
-            }
+            20: ["wolf(4)"],
+        }
 
 @game_mode("rapidfire", minp=6, maxp=24, likelihood=0)
 class RapidFireMode(GameMode):
@@ -407,8 +407,8 @@ class RapidFireMode(GameMode):
             12: ["wolf(2)", "vengeful ghost"],
             15: ["wolf cub(2)", "augur", "amnesiac", "assassin(2)"],
             18: ["wolf(3)", "hunter(2)", "mad scientist(2)", "time lord(2)", "cursed villager(2)"],
-            22: ["wolf(4)", "matchmaker(2)", "vengeful ghost(2)"]
-            }
+            22: ["wolf(4)", "matchmaker(2)", "vengeful ghost(2)"],
+        }
 
     def startup(self):
         events.add_listener("chk_win", self.all_dead_chk_win)
@@ -434,8 +434,8 @@ class DrunkFireMode(GameMode):
             10: ["wolf(2)", "village drunk(3)", "gunner(4)"],
             12: ["hag", "village drunk(4)", "crazed shaman", "sharpshooter(3)"],
             14: ["wolf(3)", "seer(2)", "gunner(5)", "assassin"],
-            16: ["traitor(2)", "village drunk(5)", "sharpshooter(4)"]
-            }
+            16: ["traitor(2)", "village drunk(5)", "sharpshooter(4)"],
+        }
 
     def startup(self):
         events.add_listener("chk_win", self.all_dead_chk_win)
@@ -458,8 +458,8 @@ class NoRevealMode(GameMode):
             12: ["wolf(2)", "guardian angel"],
             15: ["werecrow", "detective", "clone"],
             17: ["amnesiac", "lycan", "cursed villager(2)"],
-            19: ["wolf(3)"]
-            }
+            19: ["wolf(3)"],
+        }
 
 @game_mode("lycan", minp=7, maxp=21, likelihood=5)
 class LycanMode(GameMode):
@@ -476,11 +476,11 @@ class LycanMode(GameMode):
             15: ["matchmaker", "lycan(4)"],
             17: ["clone(2)", "gunner/sharpshooter"],
             19: ["seer(2)"],
-            20: ["lycan(5)"]
-            }
+            20: ["lycan(5)"],
+        }
         self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
-            }
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
 
 @game_mode("valentines", minp=8, maxp=24, likelihood=0)
 class MatchmakerMode(GameMode):
@@ -497,8 +497,8 @@ class MatchmakerMode(GameMode):
             17: ["wolf(4)"],
             18: ["mad scientist"],
             21: ["wolf(5)"],
-            24: ["wolf(6)"]
-            }
+            24: ["wolf(6)"],
+        }
 
     def startup(self):
         events.add_listener("chk_win", self.lovers_chk_win)
@@ -534,7 +534,7 @@ class RandomMode(GameMode):
                   "retribution": (   5   ,   1    ,   6   ),
                  "misdirection": (   6   ,   1    ,   4   ),
                        "deceit": (   3   ,   1    ,   6   ),
-                            }
+        }
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
@@ -601,7 +601,7 @@ class AleatoireMode(GameMode):
                                "retribution": (      4      ,       1       ,      0      ),
                               "misdirection": (      0      ,       1       ,      0      ),
                                     "deceit": (      0      ,       1       ,      0      ),
-                             }
+        }
 
         # get default values for wolf shaman's chances
         for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
@@ -616,8 +616,8 @@ class AleatoireMode(GameMode):
             15: ["werecrow", "augur", "mayor"],
             17: ["wolf(3)", "hunter"],
             18: ["vengeful ghost(2)"],
-            21: ["wolf cub", "time lord"]
-            }
+            21: ["wolf cub", "time lord"],
+        }
 
 @game_mode("alpha", minp=10, maxp=24, likelihood=5)
 class AlphaMode(GameMode):
@@ -636,8 +636,8 @@ class AlphaMode(GameMode):
             20: ["clone", "lycan(4)"],
             21: ["vigilante"],
             22: ["wolf(3)", "cursed villager(3)"],
-            24: ["wolf(4)", "guardian angel(2)"]
-            }
+            24: ["wolf(4)", "guardian angel(2)"],
+        }
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
 @game_mode("guardian", minp=8, maxp=16, likelihood=1)
@@ -651,8 +651,8 @@ class GuardianMode(GameMode):
             10: ["werecrow", "shaman"],
             12: ["alpha wolf", "guardian angel(2)", "cursed villager(2)"],
             13: ["jester", "gunner"],
-            15: ["wolf(2)", "bodyguard"]
-            }
+            15: ["wolf(2)", "bodyguard"],
+        }
 
         self.TOTEM_CHANCES = { #  shaman , crazed , wolf
                         "death": (   4   ,   1   ,   0   ),
@@ -671,7 +671,7 @@ class GuardianMode(GameMode):
                   "retribution": (   6   ,   1   ,   0   ),
                  "misdirection": (   4   ,   1   ,   0   ),
                        "deceit": (   0   ,   1   ,   0   ),
-                                 }
+        }
 
         for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
             self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
@@ -722,11 +722,11 @@ class CharmingMode(GameMode):
             18: ["bodyguard(2)"],
             19: ["sorcerer"],
             22: ["wolf(3)", "shaman(2)"],
-            24: ["gunner/sharpshooter(2)"]
-            }
+            24: ["gunner/sharpshooter(2)"],
+        }
         self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 8, "sharpshooter": 2}
-            }
+            "gunner/sharpshooter": {"gunner": 8, "sharpshooter": 2},
+        }
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=1)
 class SleepyMode(GameMode):
@@ -738,8 +738,8 @@ class SleepyMode(GameMode):
             12: ["wolf(2)", "vigilante"],
             15: ["wolf(3)", "detective", "vengeful ghost"],
             18: ["wolf(4)", "harlot", "monster"],
-            21: ["wolf(5)", "village drunk", "monster(2)", "gunner"]
-            }
+            21: ["wolf(5)", "village drunk", "monster(2)", "gunner"],
+        }
         # this ensures that priest will always receive the blessed villager and prophet templates
         # prophet is normally a role by itself, but we're turning it into a template for this mode
         self.TEMPLATE_RESTRICTIONS = var.TEMPLATE_RESTRICTIONS.copy()
@@ -1145,7 +1145,7 @@ class MudkipMode(GameMode):
                                "retribution": (      0      ,       1       ,      0      ),
                               "misdirection": (      0      ,       1       ,      5      ),
                                     "deceit": (      0      ,       1       ,      0      ),
-                             }
+        }
 
         self.ROLE_GUIDE = {
             5: ["wolf", "minion", "investigator"],
@@ -1158,8 +1158,8 @@ class MudkipMode(GameMode):
             12: ["priest"],
             13: ["wolf shaman"],
             14: ["amnesiac"],
-            15: ["succubus"]
-            }
+            15: ["succubus"],
+        }
         self.recursion_guard = False
 
     def startup(self):
