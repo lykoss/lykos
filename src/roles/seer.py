@@ -34,7 +34,7 @@ def see(var, wrapper, message):
     trole = targrole # keep a copy for logging
 
     mevt = Event("get_role_metadata", {})
-    mevt.dispatch(var, "cats")
+    mevt.dispatch(var, "role_categories")
 
     if "innocent" in mevt.data[targrole]:
         targrole = var.HIDDEN_ROLE
@@ -54,7 +54,7 @@ def see(var, wrapper, message):
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
-    if kind == "cats":
+    if kind == "role_categories":
         evt.data["seer"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

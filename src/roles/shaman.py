@@ -86,7 +86,7 @@ def on_transition_night_end(evt, var):
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
-    if kind == "cats":
+    if kind == "role_categories":
         evt.data["shaman"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

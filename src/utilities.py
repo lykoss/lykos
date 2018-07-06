@@ -319,7 +319,7 @@ def get_roles(*roles, rolemap=None):
 
 def role_order():
     mevt = Event("get_role_metadata", {})
-    mevt.dispatch("cats")
+    mevt.dispatch(var, "role_categories")
     buckets = defaultdict(list)
     for role, tags in mevt.data.items():
         for tag in var.ROLE_ORDER:

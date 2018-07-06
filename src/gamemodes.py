@@ -103,7 +103,7 @@ class ChangedRolesMode(GameMode):
         self.ROLE_GUIDE = {1: []}
         arg = arg.replace("=", ":").replace(";", ",")
         mevt = Event("get_role_metadata", {})
-        mevt.dispatch(var, "cats")
+        mevt.dispatch(var, "role_categories")
 
         pairs = [arg]
         while pairs:

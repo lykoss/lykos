@@ -79,7 +79,7 @@ def on_myrole(evt, var, user):
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
-    if kind == "cats":
+    if kind == "role_categories":
         evt.data["blessed villager"] = {"village"}
 
 # vim: set sw=4 expandtab:

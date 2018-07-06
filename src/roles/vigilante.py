@@ -116,7 +116,7 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
-    elif kind == "cats":
+    elif kind == "role_categories":
         evt.data["vigilante"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

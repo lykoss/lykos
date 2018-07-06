@@ -57,7 +57,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
-    if kind == "cats":
+    if kind == "role_categories":
         evt.data["villager"] = {"village"}
         # FIXME: split this into individual files once split from wolfgame.py
         evt.data["fool"] = {"neutral", "win stealer", "innocent"}

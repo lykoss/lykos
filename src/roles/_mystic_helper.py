@@ -23,7 +23,7 @@ def setup_variables(rolename, *, send_role, types):
     @event_listener("transition_night_end")
     def on_transition_night_end(evt, var):
         role_cats_evt = Event("get_role_metadata", {})
-        role_cats_evt.dispatch(var, "cats")
+        role_cats_evt.dispatch(var, "role_categories")
         pl = get_players()
         ctr = Counter()
 

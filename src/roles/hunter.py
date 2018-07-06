@@ -137,7 +137,7 @@ def on_get_role_metadata(evt, var, kind):
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
         hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
-    elif kind == "cats":
+    elif kind == "role_categories":
         evt.data["hunter"] = {"village", "safe"}
 
 # vim: set sw=4 expandtab:

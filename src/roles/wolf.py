@@ -394,7 +394,7 @@ def on_get_role_metadata(evt, var, kind):
             # special logic for wolf kills vs non-wolf kills (as when alpha kills it is treated
             # as any other wolf kill).
             evt.data["wolf"] += 1
-    elif kind == "cats":
+    elif kind == "role_categories":
         evt.data["wolf"] = {"wolf", "wolfchat", "wolfteam"}
         # FIXME: split the following into their respective files
         evt.data["alpha wolf"] = {"wolf", "wolfchat", "wolfteam"}
