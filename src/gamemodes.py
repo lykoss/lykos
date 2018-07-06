@@ -304,31 +304,20 @@ class MadMode(GameMode):
         # gunner and sharpshooter always get 1 bullet
         self.SHOTS_MULTIPLIER = 0.0001
         self.SHARPSHOOTER_MULTIPLIER = 0.0001
-        self.ROLE_INDEX =         (  7  ,  8  ,  10 , 12  , 14  , 15  , 17  , 18  , 20  )
-        self.ROLE_GUIDE = reset_roles(self.ROLE_INDEX)
-        self.ROLE_GUIDE.update({# village roles
-              "seer"            : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "mad scientist"   : (  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "detective"       : (  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "guardian angel"  : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ),
-              "hunter"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ),
-              "harlot"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ),
-              "village drunk"   : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # wolf roles
-              "wolf"            : (  1  ,  1  ,  1  ,  1  ,  2  ,  2  ,  2  ,  2  ,  2  ),
-              "traitor"         : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "werecrow"        : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "wolf cub"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  2  ),
-              "cultist"         : (  1  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              # neutral roles
-              "vengeful ghost"  : (  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "jester"          : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              # templates
-              "cursed villager" : (  0  ,  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "gunner"          : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "sharpshooter"    : (  0  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ,  1  ),
-              "assassin"        : (  0  ,  0  ,  0  ,  0  ,  0  ,  0  ,  1  ,  1  ,  1  ),
-              })
+        self.ROLE_GUIDE = {
+            7: ["seer", "mad scientist", "wolf", "cultist"],
+            8: ["traitor", "-cultist", "gunner/sharpshooter"],
+            10: ["werecrow", "cursed villager"],
+            12: ["detective", "cultist"],
+            14: ["wolf(2)", "vengeful ghost"],
+            15: ["harlot"],
+            17: ["wolf cub", "jester", "assassin"],
+            18: ["hunter"],
+            20: ["wolf cub(2)"]
+            }
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1}
+            }
 
 @game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
 class EvilVillageMode(GameMode):
