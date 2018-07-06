@@ -333,7 +333,7 @@
     "mystic_info" : "There {0} {1}{2} alive{3}.",
 
     "ill_wolves": "You are feeling ill tonight, and are unable to kill anyone.",
-    "angry_wolves": "You are \u0002angry\u0002 tonight, and may kill two targets by using \"kill <nick1> and <nick2>\".",
+    "angry_wolves": "You are \u0002angry\u0002 tonight, and may kill two targets by using \"kill <nick1> <nick2>\".",
     "wolf_bite": "You may use \"bite <nick>\" tonight in order to turn that person into a wolf.",
     "werecrow_transformed": "You have already transformed into a crow, and cannot turn back until day.",
     "retracted_kill": "You have retracted your kill.",
@@ -368,7 +368,6 @@
     "player_kill_multiple": "You have selected \u0002{0}\u0002 and \u0002{1}\u0002 to be killed.",
     "wolfchat_kill": "\u0002{0}\u0002 has selected \u0002{1}\u0002 to be killed.",
     "wolfchat_kill_multiple": "\u0002{0}\u0002 has selected \u0002{1}\u0002 and \u0002{2}\u0002 to be killed.",
-    "wolf_target_second": "You are angry tonight and may kill a second target. Use \"kill <nick1> and <nick2>\" to select multiple targets.",
     "already_protecting": "You are already protecting someone tonight.",
     "guardian_target_another": "You protected \u0002{0}\u0002 last night. You cannot protect the same person two nights in a row.",
     "cannot_guard_self": "You cannot guard yourself. Use pass if you do not wish to guard anyone tonight.",

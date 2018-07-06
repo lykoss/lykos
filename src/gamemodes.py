@@ -256,7 +256,7 @@ class VillagergameMode(GameMode):
         if not tgt:
             tgt = random.choice(pl)
         from src.roles import wolf
-        wolf.KILLS[users.Bot.nick] = [tgt.nick]
+        wolf.KILLS[users.Bot] = [tgt]
 
     def on_retribution_kill(self, evt, var, victim, orig_target):
         # There are no wolves for this totem to kill

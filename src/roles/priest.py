@@ -32,7 +32,7 @@ def bless(var, wrapper, message):
 
     PRIESTS.add(wrapper.source)
     var.ROLES["blessed villager"].add(target)
-    wrapper.pm(messages["blessed_success"])
+    wrapper.pm(messages["blessed_success"].format(target))
     target.send(messages["blessed_notify_target"])
     debuglog("{0} (priest) BLESS: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
