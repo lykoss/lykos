@@ -62,8 +62,8 @@ def on_get_role_metadata(evt, var, kind):
         # FIXME: split this into individual files once split from wolfgame.py
         evt.data["fool"] = {"neutral", "win stealer", "innocent"}
         evt.data["jester"] = {"neutral", "innocent"}
-        evt.data["monster"] = {"neutral", "win stealer", "cursed"}
-        evt.data["demoniac"] = {"neutral", "win stealer"}
+        evt.data["monster"] = {"win stealer", "cursed"}
+        evt.data["demoniac"] = {"win stealer"}
         evt.data["lycan"] = {"village"}
         evt.data["doctor"] = {"village", "safe"}
         evt.data["village drunk"] = {"village", "safe"}

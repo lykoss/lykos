@@ -240,8 +240,9 @@ HIDDEN_ROLE = "villager"
 #    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
 # wolfteam: Defines the role as wolfteam for determining winners
 # village: Defines the role as village for determining winners
-# neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team)
-# win stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.)
+# neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team) and also for determining winner
+# win stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
+#    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
 # hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
 # safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
 # cursed: Seer sees these roles as wolf
