@@ -4860,7 +4860,65 @@ def timeleft(cli, nick, chan, rest):
 
     reply(cli, nick, chan, msg)
 
-@cmd("roles", pm=True)
+@command("roles", pm=True)
+def list_roles(var, wrapper, message):
+    """Display which roles are in play for a specific gamemode."""
+
+    lpl = len(var.ALL_PLAYERS)
+    specific = 0
+
+    pieces = re.split(" +", message.strip(), 1)
+    gamemode = var.CURRENT_GAMEMODE
+    if gamemode.name == "villagergame":
+        gamemode = var.GAME_MODES["default"][0]
+
+    if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
+        wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+        return
+
+    msg = []
+
+    if not pieces[0] and lpl:
+        msg.append("There {0} \u0002{1}\u0002 playing.".format("is" if lpl == 1 else "are", lpl))
+        if var.PHASE in var.GAME_PHASES:
+            msg.append("Using the {0} game mode.".format(gamemode.name))
+            pieces.append(str(lpl))
+
+    if pieces[0] and not pieces[0].isdigit():
+        valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles", "villagergame"}
+        mode = pieces[0]
+        if mode not in valid:
+            matches = complete_match(mode, valid)
+            if not matches:
+                wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
+                return
+            if len(matches) > 1:
+                wrapper.reply(messages["ambiguous_mode"].format(mode, ", ".join(matches)), prefix_nick=True)
+                return
+
+            mode = matches[0]
+
+        gamemode = var.GAME_MODES[mode][0]
+
+        try:
+            gamemode().ROLE_GUIDE
+        except AttributeError:
+            wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+            return
+
+    roles = list(gamemode().ROLE_GUIDE)
+    roles.sort(key=lambda x: x[0])
+
+    if pieces[0] and pieces[0].isdigit():
+        specific = int(pieces[0])
+
+        
+
+    for num, role in roles:
+        ...
+
+
+#@cmd("roles", pm=True)
 def listroles(cli, nick, chan, rest):
     """Displays which roles are enabled at a certain number of players."""
 
