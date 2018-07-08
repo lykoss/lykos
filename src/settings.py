@@ -255,22 +255,32 @@ ROLE_ORDER = ["wolf", "wolfchat", "wolfteam", "village", "hidden", "neutral", "w
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
 
-# The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
-# NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead
-TEMPLATE_RESTRICTIONS = OrderedDict([
-                        ("cursed villager"  , SEEN_WOLF | {"seer", "oracle", "fool", "jester", "priest"}),
-                        ("gunner"           , WOLFTEAM_ROLES | {"fool", "lycan", "jester", "priest", "wild child"}),
-                        ("sharpshooter"     , frozenset()), # the above gets automatically added to the set. this set is the list of roles that can be gunner but not sharpshooter
-                        ("mayor"            , frozenset({"fool", "jester", "monster"})),
-                        ("assassin"         , WOLF_ROLES | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest", "wild child"}),
-                        ("blessed villager" , frozenset(ROLE_GUIDE.keys()) - {"villager", "blessed villager", "mayor"}),
-                        ])
+from src.events import Event, add_listener
 
-# make sharpshooter restrictions at least the same as gunner
-TEMPLATE_RESTRICTIONS["sharpshooter"] |= TEMPLATE_RESTRICTIONS["gunner"]
+def make_evt(_):
+    global TEMPLATE_RESTRICTIONS, evt
+    evt = Event("get_role_metadata", {})
+    evt.dispatch(None, "role_categories")
 
-# fallen angel can be assassin even though they are a wolf role
-TEMPLATE_RESTRICTIONS["assassin"] -= {"fallen angel"}
+    seen_wolf = {x for x in evt.data if evt.data[x] & {"wolf", "cursed"}}
+    wolf_roles = {x for x in evt.data if "wolf" in evt.data[x]}
+    wolfteam = {x for x in evt.data if "wolfteam" in evt.data[x]}
+
+    # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
+    # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead
+    TEMPLATE_RESTRICTIONS = OrderedDict([
+                            ("cursed villager"  , seen_wolf | {"seer", "oracle", "fool", "jester", "priest"}),
+                            ("gunner"           , wolfteam | {"fool", "lycan", "jester", "priest", "wild child"}),
+                            ("sharpshooter"     , wolfteam | {"fool", "lycan", "jester", "priest", "wild child"}),
+                            ("mayor"            , frozenset({"fool", "jester", "monster"})),
+                            ("assassin"         , wolf_roles | {"traitor", "seer", "augur", "oracle", "harlot", "detective", "bodyguard", "guardian angel", "lycan", "priest", "wild child"}),
+                            ("blessed villager" , evt.data.keys() - {"villager", "blessed villager", "mayor"}),
+                            ])
+
+    # fallen angel can be assassin even though they are a wolf role
+    TEMPLATE_RESTRICTIONS["assassin"] -= {"fallen angel"}
+
+add_listener("init", make_evt)
 
 # Roles listed here cannot be used in !fgame roles=blah.
 DISABLED_ROLES = frozenset()

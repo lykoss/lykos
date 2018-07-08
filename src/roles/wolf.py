@@ -19,7 +19,7 @@ KILLS = UserDict() # type: Dict[users.User, List[users.User]]
 # wolf.CAN_KILL.add("wolf sphere") # or whatever the new wolf role is
 # simply modifying var.WOLF_ROLES will *not* update this!
 # TODO: Move this into something else
-CAN_KILL.update(var.WOLF_ROLES)
+#CAN_KILL.update(var.WOLF_ROLES)
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(var, wrapper, message):

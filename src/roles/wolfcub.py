@@ -13,7 +13,7 @@ from src.events import Event
 from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
 from src.roles import wolf # ensure that CAN_KILL is populated before trying to remove from it ...
 
-CAN_KILL.remove("wolf cub")
+#CAN_KILL.remove("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
