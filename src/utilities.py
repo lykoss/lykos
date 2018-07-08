@@ -333,7 +333,7 @@ def role_order():
         buckets[tag] = sorted(buckets[tag])
     buckets["wolf"].insert(0, "wolf")
     buckets["village"].append("villager")
-    return itertools.chain(buckets[tag] for tag in var.ROLE_ORDER)
+    return itertools.chain.from_iterable([buckets[tag] for tag in var.ROLE_ORDER])
 
 def break_long_message(phrases, joinstr = " "):
     message = []
