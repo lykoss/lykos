@@ -84,8 +84,8 @@ RESTRICT_FSTASIS = True
 AUTO_SANCTION = (
         #min max sanctions
         (4, 6, {"stasis": 1}),
-        (7, 19, {"scalestasis": (0, 1, -5)}),
-        (20, 20, {"tempban": 10})
+        (7, 11, {"scalestasis": (0, 1, -4)}),
+        (12, 12, {"tempban": 6})
         )
 
 # Send a message to deadchat or wolfchat when a user spectates them
