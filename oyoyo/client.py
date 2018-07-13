@@ -35,11 +35,14 @@ class TokenBucket(object):
     >>> bucket = TokenBucket(80, 0.5)
     >>> bucket.consume(1)
     """
-    def __init__(self, tokens, fill_rate):
+    def __init__(self, tokens, fill_rate, init=None):
         """tokens is the total tokens in the bucket. fill_rate is the
         rate in tokens/second that the bucket will be refilled."""
         self.capacity = float(tokens)
-        self._tokens = float(tokens)
+        if init is not None:
+            self._tokens = float(init)
+        else:
+            self._tokens = float(tokens)
         self.fill_rate = float(fill_rate)
         self.timestamp = time.time()
 

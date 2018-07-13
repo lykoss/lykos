@@ -7,6 +7,8 @@ import threading
 import time
 import traceback
 import functools
+import statistics
+import math
 
 import botconfig
 import src.settings as var
@@ -141,6 +143,98 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat, "" if lat == 1 else "s"))
         hook.unhook(300)
 
+def run_lagcheck(cli):
+    from oyoyo.client import TokenBucket
+    cli.tokenbucket = TokenBucket(100, 0.1)
+    print("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
+
+    # set up initial variables
+    timings = []
+
+    @command("", pm=True)
+    def on_pm(var, wrapper, message):
+        if wrapper.source is not users.Bot:
+            return
+
+        cur = time.perf_counter()
+        phase, clock = message.split(" ")
+        phase = int(phase)
+        clock = float(clock)
+        if phase > 0:
+            # timing data for current phase
+            timings.append((phase, cur - clock))
+        else:
+            # process data
+            _lagcheck_2(cli, timings)
+
+    # we still have startup lag at this point, so delay our check until we receive this message successfully
+    users.Bot.send("0 0")
+
+def _lagcheck_1(cli, phase=1):
+    # Burst some messages and time how long it takes for them to get back to us
+    # This is a bit conservative in order to establish a baseline (so that we don't flood ourselves out)
+    for i in range(1, 6 + (3 * phase)):
+        users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
+    # signal that we're done
+    users.Bot.send("0 0")
+
+def _lagcheck_2(cli, timings):
+    # Determine timing data from Phase 1 to see if we ran into any fakelag.
+    # If we didn't, repeat Phase 1 up to 5 times.
+
+    # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
+    # for the server. We use this to normalize all the other timings, as since we bursted N messages
+    # at once, message N will have around N*RTT of delay even if there is no throttling going on.
+    if timings:
+        rtt = timings[0][1]
+        fixed = [0] * len(timings)
+    else:
+        rtt = 0
+        fixed = []
+    counter = 0
+    prev_phase = 0
+    threshold = 0
+    tab = [6.313752, 2.919986, 2.353363, 2.131847, 2.015048, 1.943180, 1.894579, 1.859548, 1.833113,
+           1.812461, 1.795885, 1.782288, 1.770933, 1.761310, 1.753050, 1.745884, 1.739607, 1.734064,
+           1.729133, 1.724718, 1.720743, 1.717144, 1.713872, 1.710882, 1.708141, 1.705618, 1.703288,
+           1.701131, 1.699127, 1.697261, 1.644854]
+    for i, (phase, diff) in enumerate(timings):
+        if phase != prev_phase:
+            prev_phase = phase
+            counter = 0
+        counter += 1
+        fixed[i] = diff - (counter * rtt)
+
+        if i < 15: # wait for a handful of data points
+            continue
+        avg = statistics.mean(fixed[0:i+1])
+        stdev = statistics.pstdev(fixed[0:i+1], mu=avg)
+        if stdev == 0: # can't calculate t-value if s=0
+            continue
+        # we assume a null hypothesis mean of 0 (indicating that there is no fakelag and only RTT latency)
+        # if our p-value indicates otherwise to a confidence interval of p<0.5, we set i as the threshold
+        # of when fakelag kicks in. We perform a one-tailed test since we're only interested in cases
+        # where the average response time is significantly greater than our estimated RTT.
+        t = abs(avg) / (stdev / math.sqrt(i+1))
+        p = tab[i] if i < 30 else tab[30]
+        if t > p:
+            # we've detected that we've hit fakelag; set threshold to i (technically it happens a while
+            # before i, but i is a decent overestimate of when it happens)
+            threshold = i
+            break
+
+    if threshold == 0 and prev_phase < 5:
+        # keep going
+        _lagcheck_1(cli, prev_phase + 1)
+        return
+    print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
+    delay = max(fixed[threshold] + rtt, 0.01)
+    if threshold == 0:
+        print("IRC_TB_INIT = 100", "IRC_TB_BURST = 100", "IRC_TB_DELAY = {0:.2}".format(delay), sep="\n")
+    else:
+        print("IRC_TB_INIT = {0}".format(threshold), "IRC_TB_BURST = {0}".format(threshold), "IRC_TB_DELAY = {0:.2}".format(delay), sep="\n")
+    cli.quit()
+
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
@@ -148,6 +242,7 @@ def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
+        from src import lagcheck
         alog("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
@@ -160,18 +255,20 @@ def connect_callback(cli):
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
-        channels.Main = channels.add(botconfig.CHANNEL, cli)
-        channels.Dummy = channels.add("*", cli)
+        # don't join any channels if we're just doing a lag check
+        if not lagcheck:
+            channels.Main = channels.add(botconfig.CHANNEL, cli)
+            channels.Dummy = channels.add("*", cli)
 
-        if botconfig.ALT_CHANNELS:
-            for chan in botconfig.ALT_CHANNELS.split(","):
-                channels.add(chan, cli)
+            if botconfig.ALT_CHANNELS:
+                for chan in botconfig.ALT_CHANNELS.split(","):
+                    channels.add(chan, cli)
 
-        if botconfig.DEV_CHANNEL:
-            channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
+            if botconfig.DEV_CHANNEL:
+                channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
 
-        if var.LOG_CHANNEL:
-            channels.add(var.LOG_CHANNEL, cli)
+            if var.LOG_CHANNEL:
+                channels.add(var.LOG_CHANNEL, cli)
 
         #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
         #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
@@ -187,6 +284,10 @@ def connect_callback(cli):
                 t.start()
 
             ping_server_timer(cli)
+
+        if lagcheck:
+            cli.command_handler["privmsg"] = on_privmsg
+            run_lagcheck(cli)
 
     def setup_handler(evt, var, target):
         target.client.command_handler["privmsg"] = on_privmsg
