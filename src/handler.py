@@ -163,6 +163,9 @@ def run_lagcheck(cli):
         if phase > 0:
             # timing data for current phase
             timings.append((phase, cur - clock))
+        elif clock < 5:
+            # run another batch
+            _lagcheck_1(cli, int(clock) + 1)
         else:
             # process data
             _lagcheck_2(cli, timings)
@@ -173,15 +176,12 @@ def run_lagcheck(cli):
 def _lagcheck_1(cli, phase=1):
     # Burst some messages and time how long it takes for them to get back to us
     # This is a bit conservative in order to establish a baseline (so that we don't flood ourselves out)
-    for i in range(1, 6 + (3 * phase)):
+    for i in range(12):
         users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
     # signal that we're done
-    users.Bot.send("0 0")
+    users.Bot.send("0 {0}".format(phase))
 
 def _lagcheck_2(cli, timings):
-    # Determine timing data from Phase 1 to see if we ran into any fakelag.
-    # If we didn't, repeat Phase 1 up to 5 times.
-
     # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
     # for the server. We use this to normalize all the other timings, as since we bursted N messages
     # at once, message N will have around N*RTT of delay even if there is no throttling going on.
@@ -194,10 +194,6 @@ def _lagcheck_2(cli, timings):
     counter = 0
     prev_phase = 0
     threshold = 0
-    tab = [6.313752, 2.919986, 2.353363, 2.131847, 2.015048, 1.943180, 1.894579, 1.859548, 1.833113,
-           1.812461, 1.795885, 1.782288, 1.770933, 1.761310, 1.753050, 1.745884, 1.739607, 1.734064,
-           1.729133, 1.724718, 1.720743, 1.717144, 1.713872, 1.710882, 1.708141, 1.705618, 1.703288,
-           1.701131, 1.699127, 1.697261, 1.644854]
     for i, (phase, diff) in enumerate(timings):
         if phase != prev_phase:
             prev_phase = phase
@@ -205,34 +201,38 @@ def _lagcheck_2(cli, timings):
         counter += 1
         fixed[i] = diff - (counter * rtt)
 
-        if i < 15: # wait for a handful of data points
+        if i < 4: # wait for a handful of data points
             continue
-        avg = statistics.mean(fixed[0:i+1])
-        stdev = statistics.pstdev(fixed[0:i+1], mu=avg)
-        if stdev == 0: # can't calculate t-value if s=0
+        avg = statistics.mean(fixed[0:i])
+        stdev = statistics.pstdev(fixed[0:i], mu=avg)
+        if stdev == 0: # need a positive std dev
             continue
-        # we assume a null hypothesis mean of 0 (indicating that there is no fakelag and only RTT latency)
-        # if our p-value indicates otherwise to a confidence interval of p<0.5, we set i as the threshold
-        # of when fakelag kicks in. We perform a one-tailed test since we're only interested in cases
-        # where the average response time is significantly greater than our estimated RTT.
-        t = abs(avg) / (stdev / math.sqrt(i+1))
-        p = tab[i] if i < 30 else tab[30]
-        if t > p:
+        # if our current measurement varies more than 3 standard deviations from the mean,
+        # then we probably started getting fakelag
+        if threshold == 0 and fixed[i] > avg + 3 * stdev:
             # we've detected that we've hit fakelag; set threshold to i (technically it happens a while
             # before i, but i is a decent overestimate of when it happens)
             threshold = i
-            break
 
-    if threshold == 0 and prev_phase < 5:
-        # keep going
-        _lagcheck_1(cli, prev_phase + 1)
-        return
     print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
-    delay = max(fixed[threshold] + rtt, 0.01)
+    delay = max(0.8 * fixed[threshold], 0.01)
+    burst = int(4 * threshold)
+    if burst < 12: # we know we can successfully burst at least 12 messages at once
+        burst = 12
+
     if threshold == 0:
-        print("IRC_TB_INIT = 100", "IRC_TB_BURST = 100", "IRC_TB_DELAY = {0:.2}".format(delay), sep="\n")
+        print("IRC_TB_INIT = 30", "IRC_TB_BURST = 30", "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
     else:
-        print("IRC_TB_INIT = {0}".format(threshold), "IRC_TB_BURST = {0}".format(threshold), "IRC_TB_DELAY = {0:.2}".format(delay), sep="\n")
+        print("IRC_TB_INIT = {0}".format(burst), "IRC_TB_BURST = {0}".format(burst), "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
+
+    if burst < 20 and delay > 1.5:
+        # recommend turning off deadchat if we can't push out messages fast enough
+        print("ENABLE_DEADCHAT = False")
+
+    if burst == 12 and delay > 2:
+        # if things are really bad, recommend turning off wolfchat too
+        print("RESTRICT_WOLFCHAT = 0x0b")
+
     cli.quit()
 
 def connect_callback(cli):
