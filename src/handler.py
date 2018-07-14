@@ -215,7 +215,7 @@ def _lagcheck_2(cli, timings):
             threshold = i
 
     print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
-    delay = max(0.8 * fixed[threshold], 0.01)
+    delay = max(0.8 * fixed[threshold], 0.1)
     burst = int(4 * threshold)
     if burst < 12: # we know we can successfully burst at least 12 messages at once
         burst = 12
