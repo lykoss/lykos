@@ -376,7 +376,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
 
 class InvalidModeException(Exception): pass
 
-def complete_role(var, wrapper, role):
+def complete_role(var, role):
     if role not in var.ROLE_GUIDE.keys():
         special_keys = {"lover"}
         evt = Event("get_role_metadata", {})
@@ -387,11 +387,9 @@ def complete_role(var, wrapper, role):
         else:
             matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
         if not matches:
-            wrapper.reply(messages["no_such_role"].format(role))
-            return False
+            return None
         if len(matches) > 1:
-            wrapper.reply(messages["ambiguous_role"].format(", ".join(matches)))
-            return False
+            return matches
         return matches[0]
     return role
 
