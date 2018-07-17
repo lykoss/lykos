@@ -387,10 +387,10 @@ def complete_role(var, role):
         else:
             matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
         if not matches:
-            return None
+            return []
         if len(matches) > 1:
             return matches
-        return matches[0]
-    return role
+        return matches
+    return [role]
 
 # vim: set sw=4 expandtab:

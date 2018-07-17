@@ -5599,10 +5599,10 @@ def role_stats(var, wrapper, rest):
         return
 
     role = complete_role(var, rest)
-    if params[-1] == "all" and type(role) is not str:
+    if params[-1] == "all" and len(role) != 1:
         role = complete_role(var, " ".join(params[:-1]))
-    if type(role) is str:
-        wrapper.reply(db.get_role_stats(role))
+    if len(role) == 1:
+        wrapper.reply(db.get_role_stats(role[0]))
         return
 
     gamemode = params[-1]
@@ -5611,7 +5611,7 @@ def role_stats(var, wrapper, rest):
         if len(matches) == 1:
             gamemode = matches[0]
         else:
-            if role is not None:
+            if len(role) > 0:
                 wrapper.pm(messages["ambiguous_role"].format(", ".join(role)))
             elif len(matches) > 0:
                 wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
@@ -5624,13 +5624,13 @@ def role_stats(var, wrapper, rest):
         return
     
     role = complete_role(var, " ".join(params[:-1]))
-    if type(role) is not str:
-        if role is None:
+    if len(role) != 1:
+        if len(role) > 0:
             wrapper.pm(messages["no_such_role"].format(rest))
         else:
             wrapper.pm(messages["ambiguous_role"].format(", ".join(role)))
         return
-    wrapper.reply(db.get_role_stats(role, gamemode))
+    wrapper.reply(db.get_role_stats(role[0], gamemode))
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
