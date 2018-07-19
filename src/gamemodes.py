@@ -24,6 +24,40 @@ def game_mode(name, minp, maxp, likelihood=0):
 
 class GameMode:
     def __init__(self, arg=""):
+        # Default values for the role sets and secondary roles restrictions
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
+        self.SECONDARY_ROLES = {
+            "cursed villager"   : ["*", "-Cursed", "-Wolf", "-Innocent", "-seer", "-oracle"],
+            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
+            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
+            "mayor"             : ["*", "-Innocent", "-Win Stealer"],
+            "assassin"          : [...], # haven't quite figured that one out yet
+            "blessed villager"  : ["villager"],
+        }
+        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = { # XXX: Update everything in src/roles/_shaman_helper.py
+            "death"         : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
+            "protection"    : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
+            "silence"       : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
+            "revealing"     : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
+            "desperation"   : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
+            "impatience"    : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
+            "pacifism"      : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
+            "influence"     : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
+            "narcolepsy"    : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
+            "exchange"      : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
+            "lycanthropy"   : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
+            "luck"          : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
+            "pestilence"    : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
+            "retribution"   : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
+            "misdirection"  : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
+            "deceit"        : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
+        }
+
+        evt = Event("default_totems", {}) # Allow custom shamans to be part of the default totem chances
+        evt.dispatch(var, self.TOTEM_CHANCES)
+
         if not arg:
             return
 
@@ -65,24 +99,21 @@ class GameMode:
                     raise InvalidModeException(messages["invalid_lover_wins_with_fool"].format(val))
                 self.LOVER_WINS_WITH_FOOL = True if val == "true" else False
 
-        # Default values for the role sets and secondary roles restrictions
-        self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
-        }
-        self.SECONDARY_ROLES = {
-            "cursed villager"   : ["*", "-Cursed", "-Wolf", "-Innocent", "-seer", "-oracle"],
-            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
-            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
-            "mayor"             : ["*", "-Innocent", "-Win Stealer"],
-            "assassin"          : [...], # haven't quite figured that one out yet
-            "blessed villager"  : ["villager"],
-        }
-
     def startup(self):
         pass
 
     def teardown(self):
         pass
+
+    def set_default_totem_chances(self):
+        if self.TOTEM_CHANCES is self.DEFAULT_TOTEM_CHANCES:
+            return # nothing more we can do
+        for totem, chances in self.TOTEM_CHANCES.items():
+            if totem not in self.DEFAULT_TOTEM_CHANCES or self.DEFAULT_TOTEM_CHANCES[totem].keys() == chances.keys():
+                continue
+            for role, value in self.DEFAULT_TOTEM_CHANCES[totem].items():
+                if role not in chances:
+                    chances[role] = value
 
     # Here so any game mode can use it
     def lovers_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -518,26 +549,28 @@ class RandomMode(GameMode):
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.TEMPLATE_RESTRICTIONS = OrderedDict((template, frozenset()) for template in var.TEMPLATE_RESTRICTIONS)
 
-        self.TOTEM_CHANCES = { #  shaman , crazed , wolf
-                        "death": (   8   ,   1    ,   1   ),
-                   "protection": (   6   ,   1    ,   6   ),
-                      "silence": (   4   ,   1    ,   3   ),
-                    "revealing": (   2   ,   1    ,   5   ),
-                  "desperation": (   4   ,   1    ,   7   ),
-                   "impatience": (   7   ,   1    ,   2   ),
-                     "pacifism": (   7   ,   1    ,   2   ),
-                    "influence": (   7   ,   1    ,   2   ),
-                   "narcolepsy": (   4   ,   1    ,   3   ),
-                     "exchange": (   1   ,   1    ,   1   ),
-                  "lycanthropy": (   1   ,   1    ,   3   ),
-                         "luck": (   6   ,   1    ,   7   ),
-                   "pestilence": (   3   ,   1    ,   1   ),
-                  "retribution": (   5   ,   1    ,   6   ),
-                 "misdirection": (   6   ,   1    ,   4   ),
-                       "deceit": (   3   ,   1    ,   6   ),
+        self.TOTEM_CHANCES = {
+            "death"         : {"shaman": 8, "wolf shaman": 1},
+            "protection"    : {"shaman": 6, "wolf shaman": 6},
+            "silence"       : {"shaman": 4, "wolf shaman": 3},
+            "revealing"     : {"shaman": 2, "wolf shaman": 5},
+            "desperation"   : {"shaman": 4, "wolf shaman": 7},
+            "impatience"    : {"shaman": 7, "wolf shaman": 2},
+            "pacifism"      : {"shaman": 7, "wolf shaman": 2},
+            "influence"     : {"shaman": 7, "wolf shaman": 2},
+            "narcolepsy"    : {"shaman": 4, "wolf shaman": 3},
+            "exchange"      : {"shaman": 1, "wolf shaman": 1},
+            "lycanthropy"   : {"shaman": 1, "wolf shaman": 3},
+            "luck"          : {"shaman": 6, "wolf shaman": 7},
+            "pestilence"    : {"shaman": 3, "wolf shaman": 1},
+            "retribution"   : {"shaman": 5, "wolf shaman": 6},
+            "misdirection"  : {"shaman": 6, "wolf shaman": 4},
+            "deceit"        : {"shaman": 3, "wolf shaman": 6},
         }
 
         self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 8, "sharpshooter": 4}
+
+        self.set_default_totem_chances()
 
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
@@ -587,28 +620,26 @@ class AleatoireMode(GameMode):
     """Game mode created by Metacity and balanced by woffle."""
     def __init__(self, arg=""):
         super().__init__(arg)
-                                              #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
-        self.TOTEM_CHANCES = {       "death": (      4      ,       1       ,      0      ),
-                                "protection": (      8      ,       1       ,      0      ),
-                                   "silence": (      2      ,       1       ,      0      ),
-                                 "revealing": (      0      ,       1       ,      0      ),
-                               "desperation": (      1      ,       1       ,      0      ),
-                                "impatience": (      0      ,       1       ,      0      ),
-                                  "pacifism": (      0      ,       1       ,      0      ),
-                                 "influence": (      0      ,       1       ,      0      ),
-                                "narcolepsy": (      0      ,       1       ,      0      ),
-                                  "exchange": (      0      ,       1       ,      0      ),
-                               "lycanthropy": (      0      ,       1       ,      0      ),
-                                      "luck": (      0      ,       1       ,      0      ),
-                                "pestilence": (      1      ,       1       ,      0      ),
-                               "retribution": (      4      ,       1       ,      0      ),
-                              "misdirection": (      0      ,       1       ,      0      ),
-                                    "deceit": (      0      ,       1       ,      0      ),
+        self.TOTEM_CHANCES = {
+            "death"         : {"shaman": 4},
+            "protection"    : {"shaman": 8},
+            "silence"       : {"shaman": 2},
+            "revealing"     : {"shaman": 0},
+            "desperation"   : {"shaman": 1},
+            "impatience"    : {"shaman": 0},
+            "pacifism"      : {"shaman": 0},
+            "influence"     : {"shaman": 0},
+            "narcolepsy"    : {"shaman": 0},
+            "exchange"      : {"shaman": 0},
+            "lycanthropy"   : {"shaman": 0},
+            "luck"          : {"shaman": 0},
+            "pestilence"    : {"shaman": 1},
+            "retribution"   : {"shaman": 4},
+            "misdirection"  : {"shaman": 0},
+            "deceit"        : {"shaman": 0},
         }
 
-        # get default values for wolf shaman's chances
-        for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
-            self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
+        self.set_default_totem_chances()
 
         self.ROLE_GUIDE = {
             8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
@@ -656,28 +687,26 @@ class GuardianMode(GameMode):
             13: ["jester", "gunner"],
             15: ["wolf(2)", "bodyguard"],
         }
-
-        self.TOTEM_CHANCES = { #  shaman , crazed , wolf
-                        "death": (   4   ,   1   ,   0   ),
-                   "protection": (   8   ,   1   ,   0   ),
-                      "silence": (   2   ,   1   ,   0   ),
-                    "revealing": (   0   ,   1   ,   0   ),
-                  "desperation": (   0   ,   1   ,   0   ),
-                   "impatience": (   0   ,   1   ,   0   ),
-                     "pacifism": (   0   ,   1   ,   0   ),
-                    "influence": (   0   ,   1   ,   0   ),
-                   "narcolepsy": (   0   ,   1   ,   0   ),
-                     "exchange": (   0   ,   1   ,   0   ),
-                  "lycanthropy": (   0   ,   1   ,   0   ),
-                         "luck": (   3   ,   1   ,   0   ),
-                   "pestilence": (   0   ,   1   ,   0   ),
-                  "retribution": (   6   ,   1   ,   0   ),
-                 "misdirection": (   4   ,   1   ,   0   ),
-                       "deceit": (   0   ,   1   ,   0   ),
+        self.TOTEM_CHANCES = {
+            "death"         : {"shaman": 4},
+            "protection"    : {"shaman": 8},
+            "silence"       : {"shaman": 2},
+            "revealing"     : {"shaman": 0},
+            "desperation"   : {"shaman": 0},
+            "impatience"    : {"shaman": 0},
+            "pacifism"      : {"shaman": 0},
+            "influence"     : {"shaman": 0},
+            "narcolepsy"    : {"shaman": 0},
+            "exchange"      : {"shaman": 0},
+            "lycanthropy"   : {"shaman": 0},
+            "luck"          : {"shaman": 3},
+            "pestilence"    : {"shaman": 0},
+            "retribution"   : {"shaman": 6},
+            "misdirection"  : {"shaman": 4},
+            "deceit"        : {"shaman": 0},
         }
 
-        for totem, (s, cs, ws) in self.TOTEM_CHANCES.items():
-            self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
+        self.set_default_totem_chances()
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
@@ -1125,25 +1154,27 @@ class MudkipMode(GameMode):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
 
-        # If changing totem chances, pay attention to the transition_night_begin listener as well further down
-                                              #    SHAMAN   , CRAZED SHAMAN , WOLF SHAMAN
-        self.TOTEM_CHANCES = {       "death": (      5      ,       1       ,      0      ),
-                                "protection": (      0      ,       1       ,      5      ),
-                                   "silence": (      0      ,       1       ,      0      ),
-                                 "revealing": (      0      ,       1       ,      0      ),
-                               "desperation": (      0      ,       1       ,      0      ),
-                                "impatience": (      0      ,       1       ,      0      ),
-                                  "pacifism": (      0      ,       1       ,      0      ),
-                                 "influence": (      0      ,       1       ,      0      ),
-                                "narcolepsy": (      0      ,       1       ,      0      ),
-                                  "exchange": (      0      ,       1       ,      0      ),
-                               "lycanthropy": (      0      ,       1       ,      0      ),
-                                      "luck": (      0      ,       1       ,      0      ),
-                                "pestilence": (      5      ,       1       ,      0      ),
-                               "retribution": (      0      ,       1       ,      0      ),
-                              "misdirection": (      0      ,       1       ,      5      ),
-                                    "deceit": (      0      ,       1       ,      0      ),
+        # Actual shaman chances are handled in restore_totem_chances (n1 is a guaranteed death totem)
+        self.TOTEM_CHANCES = {
+            "death"         : {"shaman": 1, "wolf shaman": 0},
+            "protection"    : {"shaman": 0, "wolf shaman": 1},
+            "silence"       : {"shaman": 0, "wolf shaman": 0},
+            "revealing"     : {"shaman": 0, "wolf shaman": 0},
+            "desperation"   : {"shaman": 0, "wolf shaman": 0},
+            "impatience"    : {"shaman": 0, "wolf shaman": 0},
+            "pacifism"      : {"shaman": 0, "wolf shaman": 0},
+            "influence"     : {"shaman": 0, "wolf shaman": 0},
+            "narcolepsy"    : {"shaman": 0, "wolf shaman": 0},
+            "exchange"      : {"shaman": 0, "wolf shaman": 0},
+            "lycanthropy"   : {"shaman": 0, "wolf shaman": 0},
+            "luck"          : {"shaman": 0, "wolf shaman": 0},
+            "pestilence"    : {"shaman": 0, "wolf shaman": 0},
+            "retribution"   : {"shaman": 0, "wolf shaman": 0},
+            "misdirection"  : {"shaman": 0, "wolf shaman": 1},
+            "deceit"        : {"shaman": 0, "wolf shaman": 0},
         }
+
+        self.set_default_totem_chances()
 
         self.ROLE_GUIDE = {
             5:  ["wolf", "minion", "investigator"],
@@ -1163,12 +1194,16 @@ class MudkipMode(GameMode):
     def startup(self):
         events.add_listener("chk_decision", self.chk_decision)
         events.add_listener("daylight_warning", self.daylight_warning)
-        events.add_listener("transition_night_begin", self.transition_night_begin)
+        events.add_listener("transition_day_begin", self.restore_totem_chances)
 
     def teardown(self):
         events.remove_listener("chk_decision", self.chk_decision)
         events.remove_listener("daylight_warning", self.daylight_warning)
-        events.remove_listener("transition_night_begin", self.transition_night_begin)
+        events.remove_listener("transition_day_begin", self.restore_totem_chances)
+
+    def restore_totem_chances(self, var):
+        if var.FIRST_NIGHT: # don't fire unnecessarily every day
+            self.TOTEM_CHANCES["pestilence"]["shaman"] = 1
 
     def chk_decision(self, evt, var, force):
         # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
@@ -1226,12 +1261,5 @@ class MudkipMode(GameMode):
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"
-
-    def transition_night_begin(self, evt, var):
-        if var.FIRST_NIGHT:
-            # ensure shaman gets death totem on the first night
-            var.TOTEM_CHANCES["pestilence"] = (0, 1, 0)
-        else:
-            var.TOTEM_CHANCES["pestilence"] = (5, 1, 0)
 
 # vim: set sw=4 expandtab:

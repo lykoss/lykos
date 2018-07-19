@@ -161,25 +161,6 @@ AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
-TOTEM_ORDER   =                  (   "shaman"  , "crazed shaman" , "wolf shaman" )
-TOTEM_CHANCES = {       "death": (      1      ,        1        ,       0       ),
-                   "protection": (      1      ,        1        ,       1       ),
-                      "silence": (      1      ,        1        ,       1       ),
-                    "revealing": (      1      ,        1        ,       0       ),
-                  "desperation": (      1      ,        1        ,       0       ),
-                   "impatience": (      1      ,        1        ,       1       ),
-                     "pacifism": (      1      ,        1        ,       1       ),
-                    "influence": (      1      ,        1        ,       0       ),
-                   "narcolepsy": (      0      ,        1        ,       0       ),
-                     "exchange": (      0      ,        1        ,       0       ),
-                  "lycanthropy": (      0      ,        1        ,       1       ),
-                         "luck": (      0      ,        1        ,       1       ),
-                   "pestilence": (      0      ,        1        ,       0       ),
-                  "retribution": (      0      ,        1        ,       1       ),
-                 "misdirection": (      0      ,        1        ,       1       ),
-                       "deceit": (      0      ,        1        ,       1       ),
-                }
-
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 
