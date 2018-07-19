@@ -55,8 +55,18 @@ class GameMode:
             "deceit"        : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
         }
 
-        evt = Event("default_totems", {}) # Allow custom shamans to be part of the default totem chances
+        # Support custom shamans and totems
+        # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
+        # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
+        evt = Event("default_totems", {"shaman_roles": {"shaman", "crazed shaman", "wolf shaman"}})
         evt.dispatch(var, self.TOTEM_CHANCES)
+
+        shamans = evt.data["shaman_roles"]
+        for chances in self.TOTEM_CHANCES.values():
+            if chances.keys() != shamans:
+                for role in shamans:
+                    if role not in chances:
+                        chances[role] = 0 # default to 0 for new totems/shamans
 
         if not arg:
             return
