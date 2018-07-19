@@ -148,11 +148,11 @@ class DefaultMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            4: ["wolf", "seer"],
-            6: ["cursed villager"],
-            7: ["cultist", "shaman"],
-            8: ["harlot", "traitor", "-cultist"],
-            9: ["crazed shaman"],
+            4:  ["wolf", "seer"],
+            6:  ["cursed villager"],
+            7:  ["cultist", "shaman"],
+            8:  ["harlot", "traitor", "-cultist"],
+            9:  ["crazed shaman"],
             10: ["wolf cub", "gunner/sharpshooter"],
             11: ["matchmaker"],
             12: ["werecrow", "detective"],
@@ -290,8 +290,8 @@ class FoolishMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            8: ["wolf", "traitor", "oracle", "harlot", "fool", "cursed villager"],
-            9: ["hunter"],
+            8:  ["wolf", "traitor", "oracle", "harlot", "fool", "cursed villager"],
+            9:  ["hunter"],
             10: ["wolf(2)"],
             11: ["shaman", "clone"],
             12: ["wolf cub", "gunner/sharpshooter"],
@@ -312,8 +312,8 @@ class MadMode(GameMode):
         self.SHOTS_MULTIPLIER = 0.0001
         self.SHARPSHOOTER_MULTIPLIER = 0.0001
         self.ROLE_GUIDE = {
-            7: ["seer", "mad scientist", "wolf", "cultist"],
-            8: ["traitor", "-cultist", "gunner/sharpshooter"],
+            7:  ["seer", "mad scientist", "wolf", "cultist"],
+            8:  ["traitor", "-cultist", "gunner/sharpshooter"],
             10: ["werecrow", "cursed villager"],
             12: ["detective", "cultist"],
             14: ["wolf(2)", "vengeful ghost"],
@@ -332,8 +332,8 @@ class EvilVillageMode(GameMode):
         self.DEFAULT_ROLE = "cultist"
         self.HIDDEN_ROLE = "cultist"
         self.ROLE_GUIDE = {
-            6: ["wolf", "hunter"],
-            8: ["seer"],
+            6:  ["wolf", "hunter"],
+            8:  ["seer"],
             10: ["minion", "guardian angel", "fool"],
             12: ["shaman"],
             15: ["wolf(2)", "hunter(2)"],
@@ -383,9 +383,9 @@ class ClassicMode(GameMode):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
         self.ROLE_GUIDE = {
-            4: ["wolf", "seer"],
-            6: ["cursed villager"],
-            8: ["traitor", "harlot", "village drunk"],
+            4:  ["wolf", "seer"],
+            6:  ["cursed villager"],
+            8:  ["traitor", "harlot", "village drunk"],
             10: ["wolf(2)", "gunner"],
             12: ["werecrow", "detective"],
             15: ["wolf(3)"],
@@ -405,8 +405,8 @@ class RapidFireMode(GameMode):
         self.SHORT_DAY_WARN = 180
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0
         self.ROLE_GUIDE = {
-            6: ["wolf", "seer", "mad scientist", "cursed villager"],
-            8: ["wolf cub", "hunter", "assassin"],
+            6:  ["wolf", "seer", "mad scientist", "cursed villager"],
+            8:  ["wolf cub", "hunter", "assassin"],
             10: ["traitor", "matchmaker", "time lord", "sharpshooter"],
             12: ["wolf(2)", "vengeful ghost"],
             15: ["wolf cub(2)", "augur", "amnesiac", "assassin(2)"],
@@ -434,7 +434,7 @@ class DrunkFireMode(GameMode):
         self.GUN_CHANCES              = (   3/7  ,  3/7  ,   1/7   ,   4/5   )
         self.WOLF_GUN_CHANCES         = (   4/7  ,  3/7  ,   0/7   ,   1     )
         self.ROLE_GUIDE = {
-            8: ["wolf", "traitor", "seer", "village drunk", "village drunk(2)", "cursed villager", "gunner", "gunner(2)", "gunner(3)", "sharpshooter", "sharpshooter(2)"],
+            8:  ["wolf", "traitor", "seer", "village drunk", "village drunk(2)", "cursed villager", "gunner", "gunner(2)", "gunner(3)", "sharpshooter", "sharpshooter(2)"],
             10: ["wolf(2)", "village drunk(3)", "gunner(4)"],
             12: ["hag", "village drunk(4)", "crazed shaman", "sharpshooter(3)"],
             14: ["wolf(3)", "seer(2)", "gunner(5)", "assassin"],
@@ -455,9 +455,9 @@ class NoRevealMode(GameMode):
         self.STATS_TYPE = "disabled"
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            4: ["wolf", "seer"],
-            6: ["cursed villager"],
-            8: ["wolf mystic", "mystic"],
+            4:  ["wolf", "seer"],
+            6:  ["cursed villager"],
+            8:  ["wolf mystic", "mystic"],
             10: ["traitor", "hunter"],
             12: ["wolf(2)", "guardian angel"],
             15: ["werecrow", "detective", "clone"],
@@ -471,9 +471,9 @@ class LycanMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            7: ["wolf", "seer", "hunter", "lycan", "cursed villager"],
-            8: ["traitor"],
-            9: ["clone"],
+            7:  ["wolf", "seer", "hunter", "lycan", "cursed villager"],
+            8:  ["traitor"],
+            9:  ["clone"],
             10: ["wolf shaman", "hunter(2)", "lycan(2)"],
             11: ["bodyguard", "mayor"],
             12: ["lycan(3)", "cursed villager(2)"],
@@ -492,7 +492,7 @@ class MatchmakerMode(GameMode):
         self.NIGHT_TIME_WARN = 105
         self.DEFAULT_ROLE = "matchmaker"
         self.ROLE_GUIDE = {
-            8: ["wolf", "wolf(2)"],
+            8:  ["wolf", "wolf(2)"],
             12: ["monster"],
             13: ["wolf(3)"],
             17: ["wolf(4)"],
@@ -609,7 +609,7 @@ class AleatoireMode(GameMode):
             self.TOTEM_CHANCES[totem] = (s, cs, var.TOTEM_CHANCES[totem][2])
 
         self.ROLE_GUIDE = {
-            8: ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
+            8:  ["wolf", "traitor", "seer", "shaman", "cursed villager", "cursed villager(2)"],
             10: ["wolf(2)", "matchmaker", "vengeful ghost", "gunner", "assassin"],
             12: ["hag", "guardian angel", "amnesiac"],
             13: ["assassin(2)"],
@@ -648,7 +648,7 @@ class GuardianMode(GameMode):
         self.LIMIT_ABSTAIN = False
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            8: ["wolf", "werekitten", "seer", "guardian angel", "village drunk", "cursed villager"],
+            8:  ["wolf", "werekitten", "seer", "guardian angel", "village drunk", "cursed villager"],
             10: ["werecrow", "shaman"],
             12: ["alpha wolf", "guardian angel(2)", "cursed villager(2)"],
             13: ["jester", "gunner"],
@@ -713,8 +713,8 @@ class CharmingMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            6: ["wolf", "seer", "piper", "cursed villager"],
-            8: ["traitor", "harlot"],
+            6:  ["wolf", "seer", "piper", "cursed villager"],
+            8:  ["traitor", "harlot"],
             10: ["werekitten", "shaman", "gunner/sharpshooter"],
             11: ["vengeful ghost"],
             12: ["warlock", "detective"],
@@ -1144,11 +1144,11 @@ class MudkipMode(GameMode):
         }
 
         self.ROLE_GUIDE = {
-            5: ["wolf", "minion", "investigator"],
-            6: ["guardian angel"],
-            7: ["jester"],
-            8: ["shaman"],
-            9: ["doomsayer", "-minion"],
+            5:  ["wolf", "minion", "investigator"],
+            6:  ["guardian angel"],
+            7:  ["jester"],
+            8:  ["shaman"],
+            9:  ["doomsayer", "-minion"],
             10: ["vengeful ghost", "assassin"],
             11: ["wolf(2)"],
             12: ["priest"],
