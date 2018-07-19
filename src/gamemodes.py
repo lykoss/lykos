@@ -65,6 +65,19 @@ class GameMode:
                     raise InvalidModeException(messages["invalid_lover_wins_with_fool"].format(val))
                 self.LOVER_WINS_WITH_FOOL = True if val == "true" else False
 
+        # Default values for the role sets and secondary roles restrictions
+        self.ROLE_SETS = {
+            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
+        }
+        self.SECONDARY_ROLES = {
+            "cursed villager"   : ["*", "-Cursed", "-Wolf", "-Innocent", "-seer", "-oracle"],
+            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
+            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
+            "mayor"             : ["*", "-Innocent", "-Win Stealer"],
+            "assassin"          : [...], # haven't quite figured that one out yet
+            "blessed villager"  : ["villager"],
+        }
+
     def startup(self):
         pass
 
@@ -151,9 +164,6 @@ class DefaultMode(GameMode):
             21: ["wolf(3)", "gunner/sharpshooter(2)"],
             23: ["amnesiac", "mayor"],
             24: ["hag"],
-        }
-        self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
         }
 
     def startup(self):
@@ -292,9 +302,6 @@ class FoolishMode(GameMode):
             22: ["gunner/sharpshooter(2)"],
             24: ["wolf(4)"],
         }
-        self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
-        }
 
 @game_mode("mad", minp=7, maxp=22, likelihood=5)
 class MadMode(GameMode):
@@ -314,9 +321,6 @@ class MadMode(GameMode):
             17: ["wolf cub", "jester", "assassin"],
             18: ["hunter"],
             20: ["wolf cub(2)"],
-        }
-        self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
         }
 
 @game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
@@ -477,9 +481,6 @@ class LycanMode(GameMode):
             17: ["clone(2)", "gunner/sharpshooter"],
             19: ["seer(2)"],
             20: ["lycan(5)"],
-        }
-        self.ROLE_SETS = {
-            "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
         }
 
 @game_mode("valentines", minp=8, maxp=24, likelihood=0)
@@ -740,15 +741,10 @@ class SleepyMode(GameMode):
             18: ["wolf(4)", "harlot", "monster"],
             21: ["wolf(5)", "village drunk", "monster(2)", "gunner"],
         }
-        # this ensures that priest will always receive the blessed villager and prophet templates
-        # prophet is normally a role by itself, but we're turning it into a template for this mode
-        self.TEMPLATE_RESTRICTIONS = var.TEMPLATE_RESTRICTIONS.copy()
-        self.TEMPLATE_RESTRICTIONS["cursed villager"] |= {"priest"}
-        self.TEMPLATE_RESTRICTIONS["blessed villager"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
-        self.TEMPLATE_RESTRICTIONS["prophet"] = frozenset(self.ROLE_GUIDE.keys()) - {"priest", "blessed villager", "prophet"}
-        # this ensures that village drunk will always receive the gunner template
-        self.TEMPLATE_RESTRICTIONS["gunner"] = frozenset(self.ROLE_GUIDE.keys()) - {"village drunk", "cursed villager", "gunner"}
-        self.cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",))
+        # Make sure priest is always prophet AND blessed, and that drunk is always gunner
+        self.SECONDARY_ROLES["blessed villager"] = ["priest"]
+        self.SECONDARY_ROLES["prophet"] = ["priest"]
+        self.SECONDARY_ROLES["gunner"] = ["village drunk"]
         # disable wolfchat
         #self.RESTRICT_WOLFCHAT = 0x0f
 
@@ -952,7 +948,7 @@ class MaelstromMode(GameMode):
         # matchmaker is conditionally enabled during night 1 only
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
-        self.roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child", "succubus", "piper"})
+        self.roles = list(self.ROLE_GUIDE.keys() - self.SECONDARY_ROLES.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child", "succubus", "piper"})
 
         self.DEAD_ACCOUNTS = set()
         self.DEAD_HOSTS = set()
