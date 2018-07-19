@@ -36,11 +36,17 @@ def see(var, wrapper, message):
     mevt = Event("get_role_metadata", {})
     mevt.dispatch(var, "role_categories")
 
-    if "Innocent" in mevt.data[targrole] and "Safe" not in mevt.data[targrole]:
-        targrole = var.HIDDEN_ROLE
-    elif "Cursed" in mevt.data[targrole] or "Wolf" in mevt.data[targrole]:
+    tags = mevt.data[targrole]
+
+    if "Cursed" in tags:
         targrole = "wolf"
-    elif "Safe" no in mevt.data[targrole]:
+    elif "Safe" in tags:
+        pass # Keep the same role
+    elif "Innocent" in tags:
+        targrole = var.HIDDEN_ROLE
+    elif "Wolf" in tags:
+        targrole = "wolf"
+    else:
         targrole = var.HIDDEN_ROLE
 
     evt = Event("see", {"role": targrole})
