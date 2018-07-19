@@ -388,8 +388,6 @@ def complete_role(var, role):
             matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
         if not matches:
             return []
-        if len(matches) > 1:
-            return matches
         return matches
     return [role]
 
