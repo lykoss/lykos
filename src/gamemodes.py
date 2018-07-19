@@ -537,6 +537,8 @@ class RandomMode(GameMode):
                        "deceit": (   3   ,   1    ,   6   ),
         }
 
+        self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 8, "sharpshooter": 4}
+
     def startup(self):
         events.add_listener("role_attribution", self.role_attribution)
         events.add_listener("chk_win", self.lovers_chk_win)
@@ -548,17 +550,17 @@ class RandomMode(GameMode):
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
-        for role in var.ROLE_GUIDE:
+        for role in role_order():
             addroles[role] = 0
 
         wolves = var.WOLF_ROLES - {"wolf cub"}
         addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
-        roles = list(var.ROLE_GUIDE.keys() - var.TEMPLATE_RESTRICTIONS.keys() - {"villager", "cultist", "amnesiac"})
+        roles = list(set(role_order()) - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
 
-        addroles["gunner"] = random.randrange(int(len(villagers) ** 1.2 / 4))
+        addroles["gunner/sharpshooter"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 
         rolemap = defaultdict(set)
