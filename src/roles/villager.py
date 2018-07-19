@@ -58,17 +58,17 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["villager"] = {"village"}
+        evt.data["villager"] = {"Village"}
         # FIXME: split this into individual files once split from wolfgame.py
-        evt.data["fool"] = {"neutral", "win stealer", "innocent"}
-        evt.data["jester"] = {"neutral", "innocent"}
-        evt.data["monster"] = {"win stealer", "cursed"}
-        evt.data["demoniac"] = {"win stealer"}
-        evt.data["lycan"] = {"village"}
-        evt.data["doctor"] = {"village", "safe"}
-        evt.data["village drunk"] = {"village", "safe"}
-        evt.data["cursed villager"] = {"village", "cursed"}
-        evt.data["gunner"] = {"village", "safe"}
-        evt.data["sharpshooter"] = {"village", "safe"}
+        evt.data["fool"] = {"Neutral", "Win Stealer", "Innocent"}
+        evt.data["jester"] = {"Neutral", "Innocent"}
+        evt.data["monster"] = {"Neutral", "Win Stealer", "Cursed"}
+        evt.data["demoniac"] = {"Neutral", "Win Stealer"}
+        evt.data["lycan"] = {"Village", "Team-Switcher"}
+        evt.data["doctor"] = {"Village", "Safe", "doctor"}
+        evt.data["village drunk"] = {"Village", "Safe"}
+        evt.data["cursed villager"] = {"Village", "Cursed"}
+        evt.data["gunner"] = {"Village", "Safe"}
+        evt.data["sharpshooter"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

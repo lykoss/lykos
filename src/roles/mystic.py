@@ -11,11 +11,11 @@ from src.events import Event
 
 from src.roles._mystic_helper import setup_variables
 
-LAST_COUNT = setup_variables("mystic", send_role=True, types=("wolfteam",))
+LAST_COUNT = setup_variables("mystic", send_role=True, types=("Wolfteam",))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["mystic"] = {"village", "safe"}
+        evt.data["mystic"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

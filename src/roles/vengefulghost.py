@@ -233,6 +233,6 @@ def on_get_role_metadata(evt, var, kind):
     elif kind == "special_keys":
         evt.data["vengeful ghost"] = {"vg activated", "vg driven off"}
     elif kind == "role_categories":
-        evt.data["vengeful ghost"] = {"hidden"}
+        evt.data["vengeful ghost"] = {"Hidden"}
 
 # vim: set sw=4 expandtab:

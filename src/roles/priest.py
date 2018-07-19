@@ -94,9 +94,10 @@ def on_abstain(evt, var, user):
         user.send(messages["consecrating_no_vote"])
         evt.prevent_default = True
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("priest",)))
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["priest"] = {"Village", "Safe", "Innocent"}
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

@@ -240,24 +240,25 @@ DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
 # role categories; roles return a subset of these categories when fetching their metadata
-# wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
+# Wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
 #    The village needs to kill every true wolf role to win
-# wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
+# Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
 #    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
-# wolfteam: Defines the role as wolfteam for determining winners
-# village: Defines the role as village for determining winners
-# neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team) and also for determining winner
-# win stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
+# Wolfteam: Defines the role as wolfteam for determining winners
+# Village: Defines the role as village for determining winners
+# Neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team) and also for determining winner
+# Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
 #    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
-# hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
-# safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
-# cursed: Seer sees these roles as wolf
-# innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
-ROLE_CATS = frozenset({"wolf", "wolfchat", "wolfteam", "village", "neutral", "win stealer", "hidden", "safe", "cursed", "innocent"})
+# Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
+# Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
+# Cursed: Seer sees these roles as wolf
+# Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
+# Team-Switcher: Roles which may change teams during gameplay
+ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Village", "Neutral", "Win Stealer", "Hidden", "Safe", "Cursed", "Innocent", "Team-Switcher",})
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
 # Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
-ROLE_ORDER = ["wolf", "wolfchat", "wolfteam", "village", "hidden", "neutral", "win stealer"]
+ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Neutral", "Win Stealer"]
 
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
@@ -269,9 +270,9 @@ def make_evt(_):
     evt = Event("get_role_metadata", {})
     evt.dispatch(None, "role_categories")
 
-    seen_wolf = {x for x in evt.data if evt.data[x] & {"wolf", "cursed"}}
-    wolf_roles = {x for x in evt.data if "wolf" in evt.data[x]}
-    wolfteam = {x for x in evt.data if "wolfteam" in evt.data[x]}
+    seen_wolf = {x for x in evt.data if evt.data[x] & {"Wolf", "Cursed"}}
+    wolf_roles = {x for x in evt.data if "Wolf" in evt.data[x]}
+    wolfteam = {x for x in evt.data if "Wolfteam" in evt.data[x]}
 
     # The roles in here are considered templates and will be applied on TOP of other roles. The restrictions are a list of roles that they CANNOT be applied to
     # NB: if you want a template to apply to everyone, list it here but make the restrictions an empty set. Templates not listed here are considered full roles instead

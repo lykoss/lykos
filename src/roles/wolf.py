@@ -395,15 +395,15 @@ def on_get_role_metadata(evt, var, kind):
             # as any other wolf kill).
             evt.data["wolf"] += 1
     elif kind == "role_categories":
-        evt.data["wolf"] = {"wolf", "wolfchat", "wolfteam"}
+        evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam"}
         # FIXME: split the following into their respective files
-        evt.data["alpha wolf"] = {"wolf", "wolfchat", "wolfteam"}
-        evt.data["werecrow"] = {"wolf", "wolfchat", "wolfteam"}
-        evt.data["werekitten"] = {"wolf", "wolfchat", "wolfteam", "innocent"}
-        evt.data["hag"] = {"wolfchat", "wolfteam"}
-        evt.data["sorcerer"] = {"wolfchat", "wolfteam"}
-        evt.data["warlock"] = {"wolfchat", "wolfteam"}
-        evt.data["cultist"] = {"wolfteam"}
+        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam"}
+        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam"}
+        evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent"}
+        evt.data["hag"] = {"Wolfchat", "Wolfteam"}
+        evt.data["sorcerer"] = {"Wolfchat", "Wolfteam"}
+        evt.data["warlock"] = {"Wolfchat", "Wolfteam"}
+        evt.data["cultist"] = {"Wolfteam"}
 
 @event_listener("wolf_numkills", priority=10)
 def on_wolf_numkills(evt, var):

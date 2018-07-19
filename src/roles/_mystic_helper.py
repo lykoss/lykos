@@ -35,7 +35,7 @@ def setup_variables(rolename, *, send_role, types):
         values = []
         plural = True
         for name in types:
-            keyname = "mystic_" + name.replace(" ", "_")
+            keyname = "mystic_" + name.lower().replace(" ", "_")
             l = ctr[name]
             if l:
                 if not values and l == 1:

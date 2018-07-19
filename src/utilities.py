@@ -327,12 +327,12 @@ def role_order():
                 buckets[tag].append(role)
                 break
     # handle fixed ordering for wolf and villager
-    buckets["wolf"].remove("wolf")
-    buckets["village"].remove("villager")
+    buckets["Wolf"].remove("wolf")
+    buckets["Village"].remove("villager")
     for tag in buckets:
         buckets[tag] = sorted(buckets[tag])
-    buckets["wolf"].insert(0, "wolf")
-    buckets["village"].append("villager")
+    buckets["Wolf"].insert(0, "wolf")
+    buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in var.ROLE_ORDER])
 
 def break_long_message(phrases, joinstr = " "):

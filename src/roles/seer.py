@@ -36,11 +36,11 @@ def see(var, wrapper, message):
     mevt = Event("get_role_metadata", {})
     mevt.dispatch(var, "role_categories")
 
-    if "innocent" in mevt.data[targrole]:
+    if "Innocent" in mevt.data[targrole] and "Safe" not in mevt.data[targrole]:
         targrole = var.HIDDEN_ROLE
-    elif "cursed" in mevt.data[targrole] or "wolf" in mevt.data[targrole]:
+    elif "Cursed" in mevt.data[targrole] or "Wolf" in mevt.data[targrole]:
         targrole = "wolf"
-    elif "safe" not in mevt.data[targrole]:
+    elif "Safe" no in mevt.data[targrole]:
         targrole = var.HIDDEN_ROLE
 
     evt = Event("see", {"role": targrole})
@@ -55,6 +55,6 @@ def see(var, wrapper, message):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["seer"] = {"village", "safe"}
+        evt.data["seer"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

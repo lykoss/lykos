@@ -50,6 +50,6 @@ def see(var, wrapper, message):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["augur"] = {"village", "safe"}
+        evt.data["augur"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

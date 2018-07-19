@@ -71,6 +71,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["time lord"] = {"hidden"}
+        evt.data["time lord"] = {"Hidden"}
 
 # vim: set sw=4 expandtab:

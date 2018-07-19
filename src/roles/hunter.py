@@ -138,6 +138,6 @@ def on_get_role_metadata(evt, var, kind):
         hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
     elif kind == "role_categories":
-        evt.data["hunter"] = {"village", "safe"}
+        evt.data["hunter"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

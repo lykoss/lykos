@@ -24,6 +24,6 @@ def on_wolflist(evt, var, player, wolf):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["cursed villager"] = {"village", "cursed"}
+        evt.data["cursed villager"] = {"Village", "Cursed"}
 
 # vim: set sw=4 expandtab:

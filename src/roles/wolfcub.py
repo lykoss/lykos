@@ -89,6 +89,6 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["wolf cub"] = {"wolf", "wolfchat", "wolfteam"}
+        evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam"}
 
 # vim: set sw=4 expandtab:

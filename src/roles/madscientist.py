@@ -176,6 +176,6 @@ def on_revealroles(evt, var,  user, role):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["mad scientist"] = {"village", "cursed"}
+        evt.data["mad scientist"] = {"Village", "Cursed"}
 
 # vim: set sw=4 expandtab:

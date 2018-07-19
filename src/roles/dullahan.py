@@ -230,6 +230,6 @@ def on_get_role_metadata(evt, var, kind):
                     break
         evt.data["dullahan"] = num
     elif kind == "role_categories":
-        evt.data["dullahan"] = {"neutral"}
+        evt.data["dullahan"] = {"Neutral"}
 
 # vim: set sw=4 expandtab:
