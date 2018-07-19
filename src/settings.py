@@ -234,8 +234,8 @@ HIDDEN_ROLE = "villager"
 # Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
 # Cursed: Seer sees these roles as wolf
 # Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
-# Team-Switcher: Roles which may change teams during gameplay
-ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Village", "Neutral", "Win Stealer", "Hidden", "Safe", "Cursed", "Innocent", "Team-Switcher",})
+# Team Switcher: Roles which may change teams during gameplay
+ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Village", "Neutral", "Win Stealer", "Hidden", "Safe", "Cursed", "Innocent", "Team Switcher",})
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
 # Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)

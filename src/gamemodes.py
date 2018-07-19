@@ -30,8 +30,8 @@ class GameMode:
         }
         self.SECONDARY_ROLES = {
             "cursed villager"   : ["*", "-Cursed", "-Wolf", "-Innocent", "-seer", "-oracle"],
-            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
-            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team-Switcher"],
+            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
+            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
             "mayor"             : ["*", "-Innocent", "-Win Stealer"],
             "assassin"          : [...], # haven't quite figured that one out yet
             "blessed villager"  : ["villager"],
