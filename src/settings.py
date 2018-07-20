@@ -9,6 +9,11 @@ MINIMUM_WAIT = 60
 EXTRA_WAIT = 30
 EXTRA_WAIT_JOIN = 0 # Add this many seconds to the waiting time for each !join
 WAIT_AFTER_JOIN = 25 # Wait at least this many seconds after the last join
+# token bucket for the IRC client; 1 token = 1 message sent to IRC
+# Run the bot with --lagtest to receive settings recommendations for this
+IRC_TB_INIT = 23 # initial number of tokens
+IRC_TB_DELAY = 1.73 # wait time between adding tokens
+IRC_TB_BURST = 23 # maximum number of tokens that can be accumulated
 # !wait uses a token bucket
 WAIT_TB_INIT  = 2   # initial number of tokens
 WAIT_TB_DELAY = 240 # wait time between adding tokens
@@ -18,6 +23,7 @@ VOTES_RATE_LIMIT = 60
 ADMINS_RATE_LIMIT = 300
 GSTATS_RATE_LIMIT = 0
 PSTATS_RATE_LIMIT = 0
+RSTATS_RATE_LIMIT = 0
 TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
@@ -84,8 +90,8 @@ RESTRICT_FSTASIS = True
 AUTO_SANCTION = (
         #min max sanctions
         (4, 6, {"stasis": 1}),
-        (7, 19, {"scalestasis": (0, 1, -5)}),
-        (20, 20, {"tempban": 10})
+        (7, 11, {"scalestasis": (0, 1, -4)}),
+        (12, 12, {"tempban": 6})
         )
 
 # Send a message to deadchat or wolfchat when a user spectates them

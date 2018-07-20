@@ -69,11 +69,9 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    # only remove from SEEN; keep results of sees intact on death
+    # so that we can apply them in begin_day even if doomsayer dies.
     SEEN.discard(user)
-    for name, dictvar in _mappings:
-        for k, v in list(dictvar.items()):
-            if user in (k, v):
-                del dictvar[k]
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):

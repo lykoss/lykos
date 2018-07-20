@@ -72,6 +72,7 @@ var.LAST_VOTES = None
 var.LAST_ADMINS = None
 var.LAST_GSTATS = None
 var.LAST_PSTATS = None
+var.LAST_RSTATS = None
 var.LAST_TIME = None
 var.LAST_START = {}
 var.LAST_WAIT = {}
@@ -977,6 +978,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None
         var.LAST_PSTATS = None
+        var.LAST_RSTATS = None
         var.LAST_TIME = None
 
     with var.WARNING_LOCK:
@@ -4038,7 +4040,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                     possiblegamemodes += [gamemode] * num
                     numvotes += num
                 if len(villagers) - numvotes > 0:
-                    possiblegamemodes += [None] * (len(villagers) - numvotes)
+                    possiblegamemodes += [None] * ((len(villagers) - numvotes) // 2)
                 # check if we go with a voted mode or a random mode
                 gamemode = random.choice(possiblegamemodes)
                 if gamemode is None:
@@ -5222,6 +5224,46 @@ def my_stats(cli, nick, chan, rest):
     """Get your own stats."""
     rest = rest.split()
     player_stats.func(cli, nick, chan, " ".join([nick] + rest))
+
+@command("rolestats", "rstats", pm=True)
+def role_stats(var, wrapper, rest):
+    """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
+    if (wrapper.target != users.Bot and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
+            var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
+        wrapper.pm(messages["command_ratelimited"])
+        return
+
+    if wrapper.target != users.Bot:
+        var.LAST_RSTATS = datetime.now()
+    
+    if var.PHASE not in ("none", "join") and wrapper.target is not channel.Main:
+            wrapper.pm(messages["stats_wait_for_game_end"])
+            return
+
+    rest = rest.split()
+    if len(rest) == 0:
+        # this is a long message
+        wrapper.pm(db.get_role_totals())
+    elif len(rest) == 1 or (rest[-1] == "all" and rest.pop()):
+        role = complete_role(var, wrapper, " ".join(rest))
+        if role:
+            wrapper.reply(db.get_role_stats(role))
+    else:
+        role = complete_role(var, wrapper, " ".join(rest[:-1]))
+        if not role:
+            return
+        gamemode = rest[-1]
+        if gamemode not in var.GAME_MODES.keys():
+            matches = complete_match(gamemode, var.GAME_MODES.keys())
+            if len(matches) == 1:
+                gamemode = matches[0]
+            if not matches:
+                wrapper.pm(messages["invalid_mode"].format(rest[1]))
+                return
+            if len(matches) > 1:
+                wrapper.pm(messages["ambiguous_mode"].format(rest[1], ", ".join(matches)))
+                return
+        wrapper.reply(db.get_role_stats(role, gamemode))
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):

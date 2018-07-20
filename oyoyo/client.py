@@ -35,11 +35,14 @@ class TokenBucket(object):
     >>> bucket = TokenBucket(80, 0.5)
     >>> bucket.consume(1)
     """
-    def __init__(self, tokens, fill_rate):
+    def __init__(self, tokens, fill_rate, init=None):
         """tokens is the total tokens in the bucket. fill_rate is the
         rate in tokens/second that the bucket will be refilled."""
         self.capacity = float(tokens)
-        self._tokens = float(tokens)
+        if init is not None:
+            self._tokens = float(init)
+        else:
+            self._tokens = float(tokens)
         self.fill_rate = float(fill_rate)
         self.timestamp = time.time()
 
@@ -55,7 +58,7 @@ class TokenBucket(object):
     def tokens(self):
         now = time.time()
         if self._tokens < self.capacity:
-            delta = self.fill_rate * (now - self.timestamp)
+            delta = (now - self.timestamp) / self.fill_rate
             self._tokens = min(self.capacity, self._tokens + delta)
         self.timestamp = now
         return self._tokens
@@ -350,16 +353,28 @@ class IRCClient:
         self.send("WHO {0}".format(" ".join(args)))
     def ns_identify(self, account, passwd, nickserv, command):
         if command:
-            self.msg(nickserv, command.format(account=account, password=passwd))
+            cmdtext = command.format(account=account, password=passwd)
+            logtext = command.format(account=account, password="[redacted]")
+            msg = "PRIVMSG {0} :{1}"
+            self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_ghost(self, nick, password, nickserv, command):
         if command:
-            self.msg(nickserv, command.format(nick=nick, password=password))
+            cmdtext = command.format(nick=nick, password=passwd)
+            logtext = command.format(nick=nick, password="[redacted]")
+            msg = "PRIVMSG {0} :{1}"
+            self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_release(self, nick, password, nickserv="NickServ", command="RELEASE {nick}"):
         if command:
-            self.msg(nickserv, command.format(nick=nick, password=password))
+            cmdtext = command.format(nick=nick, password=passwd)
+            logtext = command.format(nick=nick, password="[redacted]")
+            msg = "PRIVMSG {0} :{1}"
+            self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_regain(self, nick, password, nickserv="NickServ", command="REGAIN {nick}"):
         if command:
-            self.msg(nickserv, command.format(nick=nick, password=password))
+            cmdtext = command.format(nick=nick, password=passwd)
+            logtext = command.format(nick=nick, password="[redacted]")
+            msg = "PRIVMSG {0} :{1}"
+            self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def user(self, ident, rname):
         self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
     def mainLoop(self):

@@ -1,4 +1,5 @@
 import itertools
+import functools
 import fnmatch
 import re
 from collections import defaultdict
@@ -10,7 +11,7 @@ from src.events import Event
 from src.messages import messages
 
 __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
-           "is_user_simple", "is_user_notice", "in_wolflist",
+           "is_user_simple", "is_user_notice", "in_wolflist", "complete_role",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "get_role", "get_roles", "role_order", "break_long_message",
@@ -391,5 +392,24 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
 class InvalidModeException(Exception): pass
+
+def complete_role(var, wrapper, role):
+    if role not in var.ROLE_GUIDE.keys():
+        special_keys = {"lover"}
+        evt = Event("get_role_metadata", {})
+        evt.dispatch(var, "special_keys")
+        special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+        if role.lower() in var.ROLE_ALIASES:
+            matches = (var.ROLE_ALIASES[role.lower()],)
+        else:
+            matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
+        if not matches:
+            wrapper.reply(messages["no_such_role"].format(role))
+            return False
+        if len(matches) > 1:
+            wrapper.reply(messages["ambiguous_role"].format(", ".join(matches)))
+            return False
+        return matches[0]
+    return role
 
 # vim: set sw=4 expandtab:

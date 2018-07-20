@@ -46,7 +46,7 @@ except ImportError:
           "- The lykos developers"]))
     sys.exit(1)
 
-from oyoyo.client import IRCClient
+from oyoyo.client import IRCClient, TokenBucket
 
 import src
 from src import handler
@@ -76,6 +76,7 @@ def main():
                      client_certfile=var.SSL_CERTFILE,
                      client_keyfile=var.SSL_KEYFILE,
                      cipher_list=var.SSL_CIPHERS,
+                     tokenbucket=TokenBucket(var.IRC_TB_BURST, var.IRC_TB_DELAY, init=var.IRC_TB_INIT),
                      connect_cb=handler.connect_callback,
                      stream_handler=src.stream,
     )
@@ -87,3 +88,5 @@ if __name__ == "__main__":
         main()
     except Exception:
         src.errlog(traceback.format_exc())
+
+# vim: set sw=4 expandtab:
