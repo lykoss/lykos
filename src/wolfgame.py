@@ -1175,7 +1175,7 @@ def stats(cli, nick, chan, rest):
     if nick == chan:
         _nick = ""
 
-    badguys = var.WOLFCHAT_ROLES
+    badguys = get_roles("Wolfchat")
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             badguys = get_roles("Wolf")
@@ -1304,7 +1304,7 @@ def stats(cli, nick, chan, rest):
         for role, players in var.ROLES.items():
             if role in var.SECONDARY_ROLES:
                 continue
-            if role in var.WOLFTEAM_ROLES:
+            if role in get_roles("Wolfteam"):
                 wolfteam += len(players)
             elif role in var.TRUE_NEUTRAL_ROLES:
                 neutral += len(players)
@@ -1675,7 +1675,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             survived = get_players()
             if not pentry["dced"]:
                 # determine default win status (event can override)
-                if rol in var.WOLFTEAM_ROLES or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
+                if rol in get_roles("Wolfteam") or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
                     if winner == "wolves":
                         won = True
                         iwon = plr in survived
@@ -1832,7 +1832,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
             else:
                 wcroles = get_roles("Wolf") | {"traitor"}
         else:
-            wcroles = var.WOLFCHAT_ROLES
+            wcroles = get_roles("Wolfchat")
 
         wolves = set(get_players(wcroles, mainroles=mainroles))
         lwolves = len(wolves & pl)
@@ -2831,7 +2831,7 @@ def transition_day(gameid=0):
             continue
         if (victim in var.ROLES["lycan"] or victim.nick in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
             vrole = get_main_role(victim)
-            if vrole not in var.WOLFCHAT_ROLES:
+            if vrole not in get_roles("Wolfchat"):
                 revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
                 var.LYCAN_ROLES[victim.nick] = vrole
@@ -2907,7 +2907,7 @@ def transition_day(gameid=0):
         if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
             # victim has bullets
             try:
-                looters = get_players(var.WOLFCHAT_ROLES)
+                looters = get_players(get_roles("Wolfchat"))
                 while len(looters) > 0:
                     guntaker = random.choice(looters)  # random looter
                     if guntaker not in dead:
@@ -3242,7 +3242,7 @@ def check_exchange(cli, actor, nick):
             var.LYCAN_ROLES[actor] = var.LYCAN_ROLES[nick]
             del var.LYCAN_ROLES[nick]
 
-        wcroles = var.WOLFCHAT_ROLES
+        wcroles = get_roles("Wolfchat")
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
                 wcroles = get_roles("Wolf")
@@ -3331,7 +3331,7 @@ def shoot(var, wrapper, message):
 
     target = evt.data["target"]
 
-    wolfshooter = wrapper.source in get_players(var.WOLFCHAT_ROLES)
+    wolfshooter = wrapper.source in get_players(get_roles("Wolfchat"))
     var.GUNNERS[wrapper.source] -= 1
 
     rand = random.random()
@@ -3706,7 +3706,7 @@ def relay(var, wrapper, message):
     if message.startswith(botconfig.CMD_CHAR):
         return
 
-    badguys = get_players(var.WOLFCHAT_ROLES)
+    badguys = get_players(get_roles("Wolfchat"))
     wolves = get_players(get_roles("Wolf"))
 
     if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
@@ -4108,7 +4108,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
-        wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
+        wvs = sum(addroles[r] for r in get_roles("Wolfchat"))
         if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.SECONDARY_ROLES)):
             cli.msg(chan, messages["too_few_players_custom"])
         elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":

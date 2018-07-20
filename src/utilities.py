@@ -133,47 +133,17 @@ def is_user_notice(nick):
                 return True
     return False
 
+# FIXME: Deprecated in favor of _wolf_helper method
 def in_wolflist(nick, who):
-    myrole = get_role(nick)
-    role = get_role(who)
-    wolves = var.WOLFCHAT_ROLES
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves = var.WOLF_ROLES
-        else:
-            wolves = var.WOLF_ROLES | {"traitor"}
-    return myrole in wolves and role in wolves
+    from src.roles._wolf_helper import is_known_wolf_ally
+    return is_known_wolf_ally(var, users._get(nick), users._get(who))
 
+# FIXME: Deprecated in favor of _wolf_helper method
 def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
-    if not is_wolf_command and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
-        return
-    if not is_kill_command and var.RESTRICT_WOLFCHAT & var.RW_ONLY_KILL_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-            return
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-            return
-    if not in_wolflist(nick, nick):
-        return
-
-    wcroles = var.WOLFCHAT_ROLES
-    if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
-        if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
-            wcroles = roles
-        if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-            wcroles = roles
-    elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = var.WOLF_ROLES
-        else:
-            wcroles = var.WOLF_ROLES | {"traitor"}
-
-    wcwolves = list_players(wcroles)
-    wcwolves.remove(nick)
-    mass_privmsg(cli, wcwolves, message)
-    for player in var.SPECTATING_WOLFCHAT:
-        player.queue_message("[wolfchat] " + message)
-    if var.SPECTATING_WOLFCHAT:
-        player.send_messages()
+    from src.roles._wolf_helper import send_wolfchat_message
+    role = "wolf" if is_wolf_command else None
+    command = "kill" if is_kill_command else None
+    send_wolfchat_message(var, users._get(nick), message, roles, role=role, command=command)
 
 def irc_lower(nick):
     if nick is None:

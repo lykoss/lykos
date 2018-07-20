@@ -196,7 +196,7 @@ def on_transition_day_resolve(evt, var, victim):
 @event_listener("transition_day_resolve_end")
 def on_transition_day_resolve_end(evt, var, victims):
     for bodyguard in get_all_players(("bodyguard",)):
-        if GUARDED.get(bodyguard.nick) in list_players(var.WOLF_ROLES) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
+        if GUARDED.get(bodyguard.nick) in list_players(get_roles("Wolf")) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 evt.data["bywolves"].add(bodyguard)
@@ -207,7 +207,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                     evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["dead"].append(bodyguard)
     for gangel in get_all_players(("guardian angel",)):
-        if GUARDED.get(gangel.nick) in list_players(var.WOLF_ROLES) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
+        if GUARDED.get(gangel.nick) in list_players(get_roles("Wolf")) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 evt.data["bywolves"].add(gangel)

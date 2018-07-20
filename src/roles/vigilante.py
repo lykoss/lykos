@@ -76,7 +76,7 @@ def on_transition_day(evt, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[vigilante]
 
-        if get_main_role(target) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
+        if get_main_role(target) not in get_roles("Wolf") | var.WIN_STEALER_ROLES:
             var.DYING.add(vigilante)
 
 @event_listener("new_role")

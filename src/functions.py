@@ -140,7 +140,7 @@ def get_reveal_role(user):
     if var.ROLE_REVEAL != "team":
         return role
 
-    if role in var.WOLFTEAM_ROLES:
+    if role in get_roles("Wolfteam"):
         return "wolfteam player"
     elif role in var.TRUE_NEUTRAL_ROLES:
         return "neutral player"

@@ -41,12 +41,12 @@ def investigate(var, wrapper, message):
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
-        wcroles = var.WOLFCHAT_ROLES
+        wcroles = get_roles("Wolfchat")
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = var.WOLF_ROLES
+                wcroles = get_roles("Wolf")
             else:
-                wcroles = var.WOLF_ROLES | {"traitor"}
+                wcroles = get_roles("Wolf") | {"traitor"}
 
         wolves = get_all_players(wcroles)
         if wolves:

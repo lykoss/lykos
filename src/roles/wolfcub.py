@@ -11,9 +11,7 @@ from src.messages import messages
 from src.events import Event
 
 from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
-from src.roles import wolf # ensure that CAN_KILL is populated before trying to remove from it ...
 
-#CAN_KILL.remove("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
@@ -69,7 +67,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_reconfigure_stats(evt, var, stats):
     if "wolf cub" not in stats or stats["wolf cub"] == 0:
         return
-    for role in var.WOLF_ROLES - {"wolf cub"}:
+    for role in get_roles("Wolf") - {"wolf cub"}:
         if role in stats and stats[role] > 0:
             break
     else:

@@ -14,7 +14,7 @@ from src.messages import messages
 from src.events import Event
 
 def wolf_list(var):
-    wolves = [wolf.nick for wolf in get_all_players(var.WOLF_ROLES)]
+    wolves = [wolf.nick for wolf in get_all_players(get_roles("Wolf"))]
     random.shuffle(wolves)
     return messages["wolves_list"].format(", ".join(wolves))
 
@@ -40,7 +40,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 def on_myrole(evt, var, user):
     if user in get_all_players(("minion",)):
         wolves = []
-        for wolfrole in var.WOLF_ROLES:
+        for wolfrole in get_roles("Wolf"):
             for player in var.ORIGINAL_ROLES[wolfrole]:
                 wolves.append(player.nick)
         evt.data["messages"].append(messages["original_wolves"].format(", ".join(wolves)))

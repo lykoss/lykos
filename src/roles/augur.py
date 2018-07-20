@@ -38,7 +38,7 @@ def see(var, wrapper, message):
     targrole = evt.data["role"]
 
     aura = "blue"
-    if targrole in var.WOLFTEAM_ROLES:
+    if targrole in get_roles("Wolfteam"):
         aura = "red"
     elif targrole in var.TRUE_NEUTRAL_ROLES:
         aura = "grey"

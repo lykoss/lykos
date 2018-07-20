@@ -62,14 +62,14 @@ def investigate(var, wrapper, message):
     # FIXME: make a standardized way of getting team affiliation, and make
     # augur and investigator both use it (and make it events-aware so other
     # teams can be added more easily)
-    if t1role in var.WOLFTEAM_ROLES:
+    if t1role in get_roles("Wolfteam"):
         t1role = "red"
     elif t1role in var.TRUE_NEUTRAL_ROLES:
         t1role = "grey"
     else:
         t1role = "blue"
 
-    if t2role in var.WOLFTEAM_ROLES:
+    if t2role in get_roles("Wolfteam"):
         t2role = "red"
     elif t2role in var.TRUE_NEUTRAL_ROLES:
         t2role = "grey"

@@ -30,7 +30,7 @@ def vg_kill(var, wrapper, message):
         wrapper.pm(messages["player_dead"])
         return
 
-    wolves = get_players(var.WOLFTEAM_ROLES)
+    wolves = get_players(get_roles("Wolfteam"))
     if GHOSTS[wrapper.source] == "wolves" and target not in wolves:
         wrapper.pm(messages["vengeful_ghost_wolf"])
         return
@@ -104,7 +104,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     # at priority < 6, importing src.roles.vengefulghost, and setting
     # GHOSTS[user] to something; if that is done then this logic is not run.
     if death_triggers and mainrole == "vengeful ghost" and user not in GHOSTS:
-        if evt.params.killer_role in var.WOLFTEAM_ROLES:
+        if evt.params.killer_role in get_roles("Wolfteam"):
             GHOSTS[user] = "wolves"
         else:
             GHOSTS[user] = "villagers"
@@ -114,7 +114,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):
     # select a random target for VG if they didn't kill
-    wolves = set(get_players(var.WOLFTEAM_ROLES))
+    wolves = set(get_players(get_roles("Wolfteam")))
     villagers = set(get_players()) - wolves
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or ghost.nick in var.SILENCED:
@@ -181,7 +181,7 @@ def on_chk_nightdone(evt, var):
 def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
     ps = get_players()
-    wolves = get_players(var.WOLFTEAM_ROLES)
+    wolves = get_players(get_roles("Wolfteam"))
     for v_ghost, who in GHOSTS.items():
         if who[0] == "!":
             continue

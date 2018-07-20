@@ -5,13 +5,13 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src.functions import get_main_role, get_players, get_all_roles
+from src.functions import get_main_role, get_players, get_all_roles, get_roles
 from src.decorators import event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-CAN_KILL = set() # type: Set[str]
+CAN_KILL = get_roles("Wolf") & get_roles("Killer") # type: Set[str]
 
 _kill_cmds = ("kill", "retract")
 
@@ -30,12 +30,12 @@ def is_known_wolf_ally(var, actor, target):
     actor_role = get_main_role(actor)
     target_role = get_main_role(target)
 
-    wolves = var.WOLFCHAT_ROLES
+    wolves = get_roles("Wolfchat")
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves = var.WOLF_ROLES
+            wolves = get_roles("Wolf")
         else:
-            wolves = var.WOLF_ROLES | {"traitor"}
+            wolves = get_roles("Wolf") | {"traitor"}
 
     return actor_role in wolves and target_role in wolves
 
@@ -50,7 +50,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
     if not is_known_wolf_ally(var, user, user):
         return
 
-    wcroles = var.WOLFCHAT_ROLES
+    wcroles = get_roles("Wolfchat")
     if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
         if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
             wcroles = roles
@@ -58,9 +58,9 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
             wcroles = roles
     elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = var.WOLF_ROLES
+            wcroles = get_roles("Wolf")
         else:
-            wcroles = var.WOLF_ROLES | {"traitor"}
+            wcroles = get_roles("Wolf") | {"traitor"}
 
     wcwolves = get_players(wcroles)
     wcwolves.remove(user)
@@ -72,3 +72,5 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
         player.queue_message("[wolfchat] " + message)
     if player is not None:
         player.send_messages()
+
+# vim: set sw=4 expandtab:
