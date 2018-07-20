@@ -1,3 +1,5 @@
+import copy
+
 from src.messages import messages
 from src.events import Event
 from src import settings as var
@@ -6,6 +8,7 @@ from src import users
 __all__ = [
     "get_players", "get_all_players", "get_participants",
     "get_target", "change_role", "get_role_categories",
+    "get_roles",
     "get_main_role", "get_all_roles", "get_reveal_role",
     ]
 
@@ -107,7 +110,12 @@ def get_main_role(user):
 def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
 
+_rolecats = None
 def get_role_categories(var):
+    global _rolecats
+    if _rolecats is not None:
+        return copy.deepcopy(_rolecats)
+
     evt = Event("get_role_metadata", {})
     evt.dispatch(var, "role_categories")
     cats = {k: set() for k in var.ROLE_CATS}
@@ -116,7 +124,13 @@ def get_role_categories(var):
         cats["*"].add(role)
         for cat in catset: # meow!
             cats[cat].add(role)
+    # save results for future calls since this never changes once the bot starts
+    _rolecats = copy.deepcopy(cats)
     return cats
+
+def get_roles(var, *cats):
+    catmap = get_role_categories(var)
+    return set(itertools.chain.from_iterable(v for k, v in catmap.items() if k in cats))
 
 def get_reveal_role(user):
     evt = Event("get_reveal_role", {"role": get_main_role(user)})
