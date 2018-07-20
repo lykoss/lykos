@@ -16,17 +16,7 @@ ROLES = UserDict()  # type: Dict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var):
-    # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1.
-
-    # clone and traitor are blacklisted due to assumptions made in default !stats computations.
-    # If you remove these from the blacklist you will need to modify the default !stats logic
-    # chains in order to correctly account for these. As a forewarning, such modifications are
-    # nontrivial and will likely require a great deal of thought (and likely new tracking vars)
-    # FIXME: once experimental stats become the new stats, clone and traitor will work properly
-    # and we can remove those from hardcoded blacklist and remove this comment block.
-    blacklist = var.TEMPLATE_RESTRICTIONS.keys() | var.AMNESIAC_BLACKLIST | {"villager", "cultist", "amnesiac", "clone", "traitor"}
-    if var.AMNESIAC_NIGHTS > 1:
-        blacklist.add("matchmaker")
+    blacklist = var.SECONDARY_ROLES.keys() | var.AMNESIAC_BLACKLIST | {"villager", "cultist", "amnesiac"}
     return blacklist
 
 @event_listener("transition_night_begin")

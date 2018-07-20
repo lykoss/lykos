@@ -59,7 +59,7 @@ from src.context import IRCContext
 from src.functions import (
     get_players, get_all_players, get_participants,
     get_main_role, get_all_roles, get_reveal_role,
-    get_target, change_role,
+    get_target, change_role, get_role_categories
    )
 
 # done this way so that events is accessible in !eval (useful for debugging)
@@ -330,7 +330,6 @@ def reset():
     var.GAMEMODE_VOTES = {} #list of players who have used !game
     var.START_VOTES.clear() # list of players who have voted to !start
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
-    var.ROLE_SETS = {} # type: Dict[str, Dict[str, int]]
     var.VOTES.clear()
 
     reset_settings()
@@ -1233,7 +1232,7 @@ def stats(cli, nick, chan, rest):
                     role_stats[r] = (min(mn, a), max(mx, a))
         start_roles = set()
         for r, v in var.ORIGINAL_ROLES.items():
-            if r in var.TEMPLATE_RESTRICTIONS or len(v) == 0:
+            if r in var.SECONDARY_ROLES or len(v) == 0:
                 continue
             start_roles.add(r)
         for r in start_roles:
@@ -1277,7 +1276,7 @@ def stats(cli, nick, chan, rest):
         for role in rs:
             count = len(var.ROLES[role])
             # only show actual roles
-            if role in var.TEMPLATE_RESTRICTIONS.keys():
+            if role in var.SECONDARY_ROLES:
                 continue
 
             if role == rs[0]:
@@ -1303,7 +1302,7 @@ def stats(cli, nick, chan, rest):
         neutral = 0
 
         for role, players in var.ROLES.items():
-            if role in var.TEMPLATE_RESTRICTIONS.keys():
+            if role in var.SECONDARY_ROLES:
                 continue
             if role in var.WOLFTEAM_ROLES:
                 wolfteam += len(players)
@@ -4062,7 +4061,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         addroles = event.data["addroles"]
         strip = lambda x: re.sub("\(.*\)", x, "")
         lv = len(villagers)
-        defroles = Counter(itertools.chain(strip(x) for i in var.ROLE_GUIDE for x in var.ROLE_GUIDE[i] if i <= lv))
+        defroles = Counter(strip(x) for x in itertools.chain.from_iterable(filter(var.ROLE_GUIDE, lambda i: i <= lv)))
         for role, count in list(defroles.items()):
             if role[0] == "-":
                 srole = role[1:]
@@ -4075,7 +4074,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
         for role, num in defroles.items():
             addroles[role] = max(addroles.get(role, num), len(var.FORCE_ROLES.get(role, ())))
-        if sum([addroles[r] for r in addroles if r not in var.TEMPLATE_RESTRICTIONS]) > lv:
+        if sum([addroles[r] for r in addroles if r not in var.SECONDARY_ROLES]) > lv:
             channels.Main.send(messages["too_many_roles"])
             return
 
@@ -4110,7 +4109,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
         wvs = sum(addroles[r] for r in var.WOLFCHAT_ROLES)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.TEMPLATE_RESTRICTIONS.keys())):
+        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.SECONDARY_ROLES)):
             cli.msg(chan, messages["too_few_players_custom"])
         elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
             cli.msg(chan, messages["need_one_wolf"])
@@ -4170,19 +4169,19 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_DEADCHAT.clear()
 
     for role, ps in var.FORCE_ROLES.items():
-        if role not in var.TEMPLATE_RESTRICTIONS.keys():
+        if role not in var.SECONDARY_ROLES.keys():
             vils.difference_update(ps)
 
     for role, count in addroles.items():
-        if role in var.TEMPLATE_RESTRICTIONS.keys():
+        if role in var.SECONDARY_ROLES:
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
 
         to_add = set()
 
         if role in var.FORCE_ROLES:
-            # Templates are handled later
-            if role in var.TEMPLATE_RESTRICTIONS:
+            # Secondary roles are handled later
+            if role in var.SECONDARY_ROLES:
                 continue
             if len(var.FORCE_ROLES[role]) > count:
                 channels.Main.send(messages["error_frole_too_many"].format(role))
@@ -4221,23 +4220,33 @@ def start(cli, nick, chan, forced = False, restart = ""):
         possible_rolesets_set.add(frozenset(pr.items()))
     var.ROLE_STATS = frozenset(possible_rolesets_set)
 
-    # Now for the templates
-    for template, restrictions in var.TEMPLATE_RESTRICTIONS.items():
-        templ_count = len(var.ROLES[template])
-        var.ROLES[template] = UserSet()
-        if template in var.FORCE_ROLES:
-            ps = var.FORCE_ROLES[template]
-            var.ROLES[template].update(ps)
-            templ_count -= len(ps)
-        # Don't do anything further if this template was forced on enough players already
-        if templ_count <= 0:
+    # Now for the secondary roles
+    for role, dfn in var.SECONDARY_ROLES:
+        # convert dfn into a set of roles that this role can be applied on top of
+        cats = get_role_categories()
+        whitelist = set()
+        for d in dfn:
+            fn = whitelist.update
+            if d[0] == "-": # removing?
+                fn = whitelist.difference_update
+            if d in cats:
+                fn(cats[d])
+            elif d in cats["*"]: # not a category, just a role name
+                fn({d})
+            else: # typo
+                raise KeyError("{0} is not a recognized role name or role category".format(d))
+        count = len(var.ROLES[role])
+        var.ROLES[role] = UserSet()
+        if role in var.FORCE_ROLES:
+            ps = var.FORCE_ROLES[role]
+            var.ROLES[role].update(ps)
+            count -= len(ps)
+        # Don't do anything further if this secondary role was forced on enough players already
+        if count <= 0:
             continue
-        possible = pl[:]
-        for cannotbe in list_players(restrictions):
-            if cannotbe in possible:
-                possible.remove(cannotbe)
-        if len(possible) < templ_count:
-            cli.msg(chan, messages["not_enough_targets"].format(template))
+        possible = get_players(whitelist)
+        if len(possible) < count:
+            cli.msg(chan, messages["not_enough_targets"].format(role))
             if var.ORIGINAL_SETTINGS:
                 var.ROLES.clear()
                 var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
@@ -4248,10 +4257,10 @@ def start(cli, nick, chan, forced = False, restart = ""):
             else:
                 cli.msg(chan, messages["role_skipped"])
                 continue
-
-        var.ROLES[template].update([users._get(x) for x in random.sample(possible, templ_count)]) # FIXME
+        var.ROLES[role].update(x for x in random.sample(possible, count))
 
     # Handle gunner
+    # TODO: split this into new_role listener
     for gunner in var.ROLES["gunner"]:
         if gunner in var.ROLES["village drunk"]:
             var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
@@ -4326,18 +4335,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = datetime.now()
     var.NIGHT_START_TIME = datetime.now()
-
     var.LAST_PING = None
 
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
-
-    debuglog("ROLES:", " | ".join("{0}: {1}".format(role, ", ".join(p.nick for p in players))
-        for role, players in sorted(var.ROLES.items()) if players and role not in var.TEMPLATE_RESTRICTIONS.keys()))
-    templates = " | ".join("{0}: {1}".format(tmplt, ", ".join(p.nick for p in players))
-        for tmplt, players in sorted(var.ROLES.items()) if players and tmplt in var.TEMPLATE_RESTRICTIONS.keys())
-    if not templates:
-        templates = "None"
-    debuglog("TEMPLATES:", templates)
 
     if restart:
         var.PHASE = None # allow transition_* to run properly if game was restarted on first night
@@ -4970,7 +4970,7 @@ def listroles(cli, nick, chan, rest):
             if hasattr(mode, "ROLE_INDEX") and hasattr(mode, "ROLE_GUIDE"):
                 roleindex = mode.ROLE_INDEX
                 roleguide = mode.ROLE_GUIDE
-                rolesets = mode.ROLE_SETS if hasattr(mode, "ROLE_SETS") else {}
+                rolesets = mode.ROLE_SETS
             elif gamemode == "default":
                 roleindex = var.ORIGINAL_SETTINGS["ROLE_INDEX"]
                 roleguide = var.ORIGINAL_SETTINGS["ROLE_GUIDE"]
@@ -5556,7 +5556,7 @@ def revealroles(var, wrapper, message):
                 evt.dispatch(var, user, role)
                 special_case = evt.data["special_case"]
 
-                if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.TEMPLATE_RESTRICTIONS:
+                if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
                         if user in var.ORIGINAL_ROLES[old_role] and user not in var.ROLES[old_role]:
                             special_case.append("was {0}".format(old_role))

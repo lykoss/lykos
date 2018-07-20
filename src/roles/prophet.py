@@ -27,10 +27,10 @@ def pray(var, wrapper, message):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    role = complete_one_match(what.lower(), {p for p in role_order() if p not in var.TEMPLATE_RESTRICTIONS})
+    role = complete_one_match(what.lower(), {p for p in role_order() if p not in var.SECONDARY_ROLES})
     if role is None and what.lower() in var.ROLE_ALIASES:
         role = var.ROLE_ALIASES[what.lower()]
-        if role in var.TEMPLATE_RESTRICTIONS: # allow only main roles
+        if role in var.SECONDARY_ROLES: # allow only main roles
             role = None
     if role is None:
         # typo, let them fix it

@@ -5,7 +5,7 @@ from src import users
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
-    "get_target", "change_role"
+    "get_target", "change_role", "get_role_categories",
     "get_main_role", "get_all_roles", "get_reveal_role",
     ]
 
@@ -106,6 +106,17 @@ def get_main_role(user):
 
 def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
+
+def get_role_categories(var):
+    evt = Event("get_role_metadata", {})
+    evt.dispatch(var, "role_categories")
+    cats = {k: set() for k in var.ROLE_CATS}
+    cats["*"] = set()
+    for role, catset in evt.data.items():
+        cats["*"].add(role)
+        for cat in catset: # meow!
+            cats[cat].add(role)
+    return cats
 
 def get_reveal_role(user):
     evt = Event("get_reveal_role", {"role": get_main_role(user)})
