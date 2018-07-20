@@ -1178,9 +1178,9 @@ def stats(cli, nick, chan, rest):
     badguys = var.WOLFCHAT_ROLES
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            badguys = var.WOLF_ROLES
+            badguys = get_roles("Wolf")
         else:
-            badguys = var.WOLF_ROLES | {"traitor"}
+            badguys = get_roles("Wolf") | {"traitor"}
 
     role = None
     if nick in pl:
@@ -1828,16 +1828,16 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
 
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = var.WOLF_ROLES
+                wcroles = get_roles("Wolf")
             else:
-                wcroles = var.WOLF_ROLES | {"traitor"}
+                wcroles = get_roles("Wolf") | {"traitor"}
         else:
             wcroles = var.WOLFCHAT_ROLES
 
         wolves = set(get_players(wcroles, mainroles=mainroles))
         lwolves = len(wolves & pl)
         lcubs = len(rolemap.get("wolf cub", ()))
-        lrealwolves = len(get_players(var.WOLF_ROLES - {"wolf cub"}, mainroles=mainroles))
+        lrealwolves = len(get_players(get_roles("Wolf") - {"wolf cub"}, mainroles=mainroles))
         lmonsters = len(rolemap.get("monster", ()))
         ldemoniacs = len(rolemap.get("demoniac", ()))
         ltraitors = len(rolemap.get("traitor", ()))
@@ -2885,7 +2885,7 @@ def transition_day(gameid=0):
         if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                 # pick a random wofl to be shot
-                woflset = {wolf for wolf in get_players(var.WOLF_ROLES) if wolf not in dead}
+                woflset = {wolf for wolf in get_players(get_roles("Wolf")) if wolf not in dead}
                 # TODO: split into werekitten.py
                 woflset.difference_update(get_all_players(("werekitten",)))
                 wolf_evt = Event("gunner_overnight_kill_wolflist", {"wolves": woflset})
@@ -2932,7 +2932,7 @@ def transition_day(gameid=0):
         # turn all bitten people into wolves
         # short-circuit if they are already a wolf or are dying
         chumprole = get_main_role(chump)
-        if chump in dead or chumprole in var.WOLF_ROLES:
+        if chump in dead or chumprole in get_roles("Wolf"):
             continue
 
         newrole = "wolf"
@@ -3245,9 +3245,9 @@ def check_exchange(cli, actor, nick):
         wcroles = var.WOLFCHAT_ROLES
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = var.WOLF_ROLES
+                wcroles = get_roles("Wolf")
             else:
-                wcroles = var.WOLF_ROLES | {"traitor"}
+                wcroles = get_roles("Wolf") | {"traitor"}
 
         if nick_role not in wcroles and nick_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
@@ -3346,7 +3346,7 @@ def shoot(var, wrapper, message):
     if target in get_all_players(("succubus",)):
         chances = chances[:3] + (0,)
 
-    wolfvictim = target in get_players(var.WOLF_ROLES)
+    wolfvictim = target in get_players(get_roles("Wolf"))
     realrole = get_main_role(target)
     targrole = get_reveal_role(target)
 
@@ -3357,7 +3357,7 @@ def shoot(var, wrapper, message):
 
         wrapper.send(messages["shoot_success"].format(wrapper.source, target))
         an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
-        if realrole in var.WOLF_ROLES:
+        if realrole in get_roles("Wolf"):
             if var.ROLE_REVEAL == "on":
                 wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
             else: # off and team
@@ -3550,9 +3550,9 @@ def hex_target(cli, nick, chan, rest):
     vrole = get_role(victim)
     var.HEXED.add(nick)
     var.LASTHEXED[nick] = victim
-    wroles = var.WOLF_ROLES
+    wroles = get_roles("Wolf")
     if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wroles = var.WOLF_ROLES | {"traitor"}
+        wroles = get_roles("Wolf") | {"traitor"}
     if vrole not in wroles:
         var.TOBESILENCED.add(victim)
 
@@ -3590,9 +3590,9 @@ def curse(cli, nick, chan, rest):
     var.CURSED.add(nick)
     var.PASSED.discard(nick)
     vrole = get_role(victim)
-    wroles = var.WOLF_ROLES
+    wroles = get_roles("Wolf")
     if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wroles = var.WOLF_ROLES | {"traitor"}
+        wroles = get_roles("Wolf") | {"traitor"}
     if vrole not in wroles:
         var.ROLES["cursed villager"].add(users._get(victim)) # FIXME
 
@@ -3707,7 +3707,7 @@ def relay(var, wrapper, message):
         return
 
     badguys = get_players(var.WOLFCHAT_ROLES)
-    wolves = get_players(var.WOLF_ROLES)
+    wolves = get_players(get_roles("Wolf"))
 
     if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}

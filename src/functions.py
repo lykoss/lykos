@@ -111,7 +111,7 @@ def get_all_roles(user):
     return {role for role, users in var.ROLES.items() if user in users}
 
 _rolecats = None
-def get_role_categories(var):
+def get_role_categories():
     global _rolecats
     if _rolecats is not None:
         return copy.deepcopy(_rolecats)
@@ -128,8 +128,8 @@ def get_role_categories(var):
     _rolecats = copy.deepcopy(cats)
     return cats
 
-def get_roles(var, *cats):
-    catmap = get_role_categories(var)
+def get_roles(*cats):
+    catmap = get_role_categories()
     return set(itertools.chain.from_iterable(v for k, v in catmap.items() if k in cats))
 
 def get_reveal_role(user):
