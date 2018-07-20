@@ -1202,7 +1202,7 @@ def stats(cli, nick, chan, rest):
         elif role == "warlock":
             # warlock not in wolfchat explicitly only sees cursed
             for i, player in enumerate(pl):
-                if player in get_roles("cursed villager"): # FIXME
+                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
                     ps[i] = player + " (cursed)"
         msg = "\u0002{0}\u0002 players: {1}".format(len(pl), ", ".join(ps))
     elif len(pl) > 1:
@@ -2629,9 +2629,9 @@ def transition_day(gameid=0):
     var.NO_LYNCH.clear()
 
     for crow, target in iter(var.OBSERVED.items()):
-        if crow not in get_roles("werecrow"): # FIXME
-            continue
         actor = users._get(crow) # FIXME
+        if actor not in get_all_players(("werecrow",)):
+            continue
         user = users._get(target) # FIXME
         evt = Event("night_acted", {"acted": False})
         evt.dispatch(var, user, actor)
@@ -3001,7 +3001,7 @@ def chk_nightdone():
     if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
         nightroles.extend(get_all_players(("alpha wolf",)))
-        actedcount += len([p for p in var.ALPHA_WOLVES if p in get_roles("alpha wolf")]) # FIXME
+        actedcount += len([p for p in var.ALPHA_WOLVES if users._get(p) in get_all_players(("alpha wolf",))]) # FIXME
 
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(var)
@@ -3255,7 +3255,7 @@ def check_exchange(cli, actor, nick):
             random.shuffle(pl)
             pl.remove(actor)  # remove self from list
             for i, player in enumerate(pl):
-                if player in get_roles("cursed villager"): # FIXME
+                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, actor, messages["players_list"].format(", ".join(pl)))
 
@@ -3265,7 +3265,7 @@ def check_exchange(cli, actor, nick):
             random.shuffle(pl)
             pl.remove(nick)  # remove self from list
             for i, player in enumerate(pl):
-                if player in get_roles("cursed villager"): # FIXME
+                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
                     pl[i] = player + " (cursed)"
             pm(cli, nick, messages["players_list"].format(", ".join(pl)))
 
@@ -3464,7 +3464,7 @@ def immunize(cli, nick, chan, rest):
         lycan = False
         if victim in var.DISEASED:
             var.DISEASED.remove(victim)
-        if victim in get_roles("lycan"): # FIXME
+        if users._get(victim) in get_all_players(("lycan",)): # FIXME
             lycan = True
             if get_role(victim) == "lycan":
                 change_role(var, users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
@@ -3575,7 +3575,7 @@ def curse(cli, nick, chan, rest):
     # but for now it is not allowed. If someone seems suspicious and shows as
     # villager across multiple nights, safes can use that as a tell that the
     # person is likely wolf-aligned.
-    if victim in get_roles("cursed villager"): # FIXME
+    if users._get(victim) in get_all_players(("cursed villager",)): # FIXME
         pm(cli, nick, messages["target_already_cursed"].format(victim))
         return
 

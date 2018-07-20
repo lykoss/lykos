@@ -14,7 +14,7 @@ __all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
            "is_user_simple", "is_user_notice", "in_wolflist", "complete_role",
            "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
            "is_owner", "is_admin", "plural", "singular", "list_players",
-           "get_role", "get_roles", "role_order", "break_long_message",
+           "get_role", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
 # message either privmsg or notice, depending on user settings
 def pm(cli, target, message):
@@ -309,14 +309,6 @@ def get_role(p):
     from src import users
     from src.functions import get_main_role
     return get_main_role(users._get(p))
-
-def get_roles(*roles, rolemap=None):
-    if rolemap is None:
-        rolemap = var.ROLES
-    all_roles = []
-    for role in roles:
-        all_roles.append(rolemap[role])
-    return [u.nick for u in itertools.chain(*all_roles)]
 
 def role_order():
     mevt = Event("get_role_metadata", {})
