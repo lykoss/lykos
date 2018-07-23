@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import register
 
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
 
@@ -55,10 +56,6 @@ def on_reset(evt, var):
     pass
 
 # Gets metadata about this role; kind will be a str with one of the following values:
-# cats: Add metadata about which role categories this role belongs to. See src/settings.py ROLE_CATS
-#       for the full list and a description of what each category is for. Set the data as follows:
-#       evt.data["rolename"] = {"cat1", "cat2", ...} (the value is a set)
-#       All roles must implement this kind of metdata.
 # night_kills: Add metadata about any deaths this role can cause at night which use the standard
 #              death message (i.e. do not have a custom death message). Set the data as follows:
 #              evt.data["rolename"] = N (where N is the max # of deaths that this role can cause)
@@ -73,6 +70,11 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     pass
+
+# Registers the role to the relevant role categories
+# See src/cats.py for more information
+
+# register("wolf", "Wolf", "Wolfchat", "Wolfteam")
 
 
 # vim: set sw=4 expandtab:
