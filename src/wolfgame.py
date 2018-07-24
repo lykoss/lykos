@@ -5586,8 +5586,8 @@ def role_stats(var, wrapper, rest):
 
     if wrapper.target != users.Bot:
         var.LAST_RSTATS = datetime.now()
-
-    if var.PHASE not in ("none", "join") and wrapper.target is not channel.Main:
+    
+    if var.PHASE not in ("none", "join") and wrapper.target is not channels.Main:
             wrapper.pm(messages["stats_wait_for_game_end"])
             return
 
