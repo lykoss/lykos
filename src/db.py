@@ -512,23 +512,47 @@ def get_role_stats(role, mode=None):
         else:
             return "No stats for \u0002{0}\u0002 in \u0002{1}\u0002.".format(role, mode)
 
-def get_role_totals():
+def get_role_totals(mode=None):
     conn = _conn()
     c = conn.cursor()
-    c.execute("SELECT COUNT(1) FROM game")
+    if mode is None:
+        c.execute("SELECT COUNT(1) FROM game")
+    else:
+        c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
     total_games = c.fetchone()[0]
     if not total_games:
-        return "No games played."
-    c.execute("""SELECT
-               gpr.role AS role,
-               COUNT(1) AS count
-                 FROM game_player_role gpr
-                 GROUP BY role
-                 ORDER BY count DESC""")
+        if mode is None:
+            return "No games played."
+        else:
+            return "No games played in the \u0002{0}\u0002 gamemode".format(mode)
+
+    if mode is None:
+        c.execute("""SELECT
+                   gpr.role AS role,
+                  COUNT(1) AS count
+                  FROM game_player_role gpr
+                  GROUP BY role
+                  ORDER BY count DESC""")
+    else:
+        c.execute("""SELECT
+                   gpr.role AS role,
+                  COUNT(1) AS count
+                  FROM game_player_role gpr
+                  JOIN game_player gp
+                    ON gp.id = gpr.game_player
+                  JOIN game g
+                    ON g.id = gp.game
+                  WHERE g.gamemode = ?
+                  GROUP BY role
+                  ORDER BY count DESC""", (mode,))
+
     totals = []
     for row in c:
         totals.append("\u0002{0}\u0002: {1}".format(*row))
-    return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
+    if mode is None:
+        return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
+    else:
+        return "\u0002{0}\u0002 games: {1} | {2}".format(mode, total_games, ", ".join(totals))
     
 
 def get_warning_points(acc, hostmask):
