@@ -1,3 +1,6 @@
+from collections import defaultdict
+import itertools
+
 from src import events
 
 ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Neutral", "Win Stealer", "Hidden", "Safe", "Cursed", "Innocent", "Team Switcher"})
@@ -11,42 +14,47 @@ def get(cat):
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
     if cat == "*":
-        return AllRoles
+        return All
     if cat not in ROLE_CATS:
         raise ValueError("{0!r} is not a valid role category".format(cat))
     return globals()[cat.replace(" ", "_")]
 
-def register(role, *cats):
-    if FROZEN:
-        raise RuntimeError("Fatal: May not register a role once role categories have been frozen")
-    if role in ROLES:
-        raise RuntimeError("Fatal: May not register a role more than once")
-    ROLES[role] = frozenset(cats)
-    for cat in cats:
-        if cat not in ROLE_CATS:
-            raise ValueError("{0!r} is not a valid role category".format(cat))
-        globals()[cat.replace(" ", "_")]._roles.add(role)
-        AllRoles._roles.add(role)
+def role_order():
+    buckets = defaultdict(list)
+    for role, tags in ROLES.items():
+        for tag in ROLE_ORDER:
+            if tag in tags:
+                buckets[tag].append(role)
+                break
+    # handle fixed ordering for wolf and villager
+    buckets["Wolf"].remove("wolf")
+    buckets["Village"].remove("villager")
+    for tag in buckets:
+        buckets[tag] = sorted(buckets[tag])
+    buckets["Wolf"].insert(0, "wolf")
+    buckets["Village"].append("villager")
+    return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
-def freeze(evt):
+def register_roles(evt):
     global FROZEN
+    mevt = events.Event("get_role_metadata", {})
+    mevt.dispatch(None, "role_categories")
+    for role, cats in mevt.data.items():
+        ROLES[role] = frozenset(cats)
+        for cat in cats:
+            if cat not in ROLE_CATS:
+                raise ValueError("{0!r} is not a valid role category".format(cat))
+            globals()[cat.replace(" ", "_")]._roles.add(role)
+        All._roles.add(role)
+
     for cat in ROLE_CATS:
         cls = globals()[cat.replace(" ", "_")]
         cls._roles = frozenset(cls._roles)
-    AllRoles._roles = frozenset(AllRoles._roles)
+    All._roles = frozenset(All._roles)
     FROZEN = True
-    events.remove_listener("init", freeze, 10)
+    events.remove_listener("init", register_roles, 10)
 
-events.add_listener("init", freeze, 10)
-
-def check_magic(func):
-    def chk(self, other):
-        if not FROZEN:
-            raise RuntimeError("Fatal: Role categories are not ready")
-        if not isinstance(other, Category):
-            return NotImplemented
-        return func(self, other)
-    return chk
+events.add_listener("init", register_roles, 10)
 
 class Category:
     """Base class for role categories."""
@@ -56,17 +64,24 @@ class Category:
         self._roles = set()
 
     def __iter__(self):
-        if FROZEN:
-            yield from self._roles
-        raise RuntimeError("Fatal: Role categories are not ready")
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        yield from self._roles
 
     @property
     def roles(self):
         return self._roles
 
-    @check_magic
     def __eq__(self, other):
-        return self._roles == other._roles
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        if isinstance(other, Category):
+            return self._roles == other._roles
+        if isinstance(other, (set, frozenset)):
+            return self._roles == other
+        if isinstance(other, str):
+            return self.name == other
+        return NotImplemented
 
     def __hash__(self):
         try:
@@ -74,53 +89,78 @@ class Category:
         except TypeError: # still a regular set; not yet frozen
             raise RuntimeError("Fatal: Role categories are not ready")
 
+    def __str__(self):
+        return self.name
+
     def __repr__(self):
         return "Role category: {0}".format(self.name)
 
-    @check_magic
     def __add__(self, other):
-        name = "{0} + {1}".format(self.name, other.name)
-        cls = __class__(name)
-        cls._roles.update(self)
-        cls._roles.update(other)
-        cls._roles = frozenset(cls._roles)
-        return cls
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        if isinstance(other, str):
+            other = {other}
+        if isinstance(other, (Category, set, frozenset)):
+            name = "{0} + {1}".format(self, other)
+            cls = __class__(name)
+            cls._roles.update(self)
+            cls._roles.update(other)
+            cls._roles = frozenset(cls._roles)
+            return cls
+        return NotImplemented
 
     __radd__ = __add__
 
-    @check_magic
     def __sub__(self, other):
-        name = "{0} - {1}".format(self.name, other.name)
-        cls = __class__(name)
-        cls._roles.update(self)
-        cls._roles.difference_update(other)
-        cls._roles = frozenset(cls._roles)
-        return cls
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        if isinstance(other, str):
+            other = {other}
+        if isinstance(other, (Category, set, frozenset)):
+            name = "{0} - {1}".format(self, other)
+            cls = __class__(name)
+            cls._roles.update(self)
+            cls._roles.difference_update(other)
+            cls._roles = frozenset(cls._roles)
+            return cls
+        return NotImplemented
 
-    @check_magic
     def __and__(self, other):
-        name = "{0} & {1}".format(self.name, other.name)
-        cls = __class__(name)
-        cls._roles.update(self)
-        cls._roles.intersection_update(other)
-        cls._roles = frozenset(cls._roles)
-        return cls
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        if isinstance(other, str):
+            other = {other}
+        if isinstance(other, (Category, set, frozenset)):
+            name = "{0} & {1}".format(self, other)
+            cls = __class__(name)
+            cls._roles.update(self)
+            cls._roles.intersection_update(other)
+            cls._roles = frozenset(cls._roles)
+            return cls
+        return NotImplemented
 
     __rand__ = __and__
 
-    @check_magic
     def __xor__(self, other):
-        name = "{0} ^ {1}".format(self.name, other.name)
-        cls = __class__(name)
-        cls._roles.update(self)
-        cls._roles.symmetric_difference_update(other)
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        if isinstance(other, str):
+            other = {other}
+        if isinstance(other, (Category, set, frozenset)):
+            name = "{0} ^ {1}".format(self, other)
+            cls = __class__(name)
+            cls._roles.update(self)
+            cls._roles.symmetric_difference_update(other)
+            cls._roles = frozenset(cls._roles)
+            return cls
+        return NotImplemented
 
     __rxor__ = __xor__
 
-AllRoles = Category("*")
+All = Category("*")
 for cat in ROLE_CATS:
     globals()[cat] = Category(cat)
 
-del check_magic, cat
+del cat
 
 # vim: set sw=4 expandtab:

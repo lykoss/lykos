@@ -13,7 +13,7 @@ from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role, change_role, get_roles
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src import events, channels, users
+from src import events, channels, users, cats
 
 def game_mode(name, minp, maxp, likelihood=0):
     def decor(c):
@@ -156,8 +156,6 @@ class ChangedRolesMode(GameMode):
         self.MAX_PLAYERS = 35
         self.ROLE_GUIDE = {1: []}
         arg = arg.replace("=", ":").replace(";", ",")
-        mevt = Event("get_role_metadata", {})
-        mevt.dispatch(var, "role_categories")
 
         pairs = [arg]
         while pairs:
@@ -169,9 +167,9 @@ class ChangedRolesMode(GameMode):
             try:
                 if role.lower() in var.DISABLED_ROLES:
                     raise InvalidModeException(messages["role_disabled"].format(role))
-                elif role.lower() in mevt.data or role.lower() in var.ROLE_SETS:
+                elif role.lower() in cats.ROLES or role.lower() in var.ROLE_SETS:
                     self.ROLE_GUIDE[1].extend((role.lower(),) * int(num))
-                elif role.lower() == "default" and num.lower() in mevt.data:
+                elif role.lower() == "default" and num.lower() in cats.ROLES:
                     self.DEFAULT_ROLE = num.lower()
                 elif role.lower() == "hidden" and num.lower() in ("villager", "cultist"):
                     self.HIDDEN_ROLE = num.lower()

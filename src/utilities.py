@@ -281,22 +281,9 @@ def get_role(p):
     return get_main_role(users._get(p))
 
 def role_order():
-    mevt = Event("get_role_metadata", {})
-    mevt.dispatch(var, "role_categories")
-    buckets = defaultdict(list)
-    for role, tags in mevt.data.items():
-        for tag in var.ROLE_ORDER:
-            if tag in tags:
-                buckets[tag].append(role)
-                break
-    # handle fixed ordering for wolf and villager
-    buckets["Wolf"].remove("wolf")
-    buckets["Village"].remove("villager")
-    for tag in buckets:
-        buckets[tag] = sorted(buckets[tag])
-    buckets["Wolf"].insert(0, "wolf")
-    buckets["Village"].append("villager")
-    return itertools.chain.from_iterable([buckets[tag] for tag in var.ROLE_ORDER])
+    # Deprecated in favour of cats.role_order()
+    from src import cats
+    return cats.role_order()
 
 def break_long_message(phrases, joinstr = " "):
     message = []
