@@ -89,73 +89,39 @@ class Category:
         except TypeError: # still a regular set; not yet frozen
             raise RuntimeError("Fatal: Role categories are not ready")
 
+    def __len__(self):
+        return len(self._roles)
+
     def __str__(self):
         return self.name
 
     def __repr__(self):
         return "Role category: {0}".format(self.name)
 
-    def __add__(self, other):
+    @classmethod
+    def from_combination(cls, first, second, op, func):
+        if not isinstance(first, Category):
+            raise ValueError("First argument to from_combination must be a Category")
         if not FROZEN:
             raise RuntimeError("Fatal: Role categories are not ready")
-        if isinstance(other, str):
-            other = {other}
-        if isinstance(other, (Category, set, frozenset)):
-            name = "{0} + {1}".format(self, other)
-            cls = __class__(name)
-            cls._roles.update(self)
-            cls._roles.update(other)
-            cls._roles = frozenset(cls._roles)
-            return cls
+        if isinstance(second, str):
+            if second not in ROLES:
+                raise ValueError("{0} is not a role".format(second))
+            second = {second}
+        if isinstance(second, (Category, set, frozenset)):
+            name = "{0} {1} {2}".format(first, op, second)
+            self = cls(name)
+            self._roles.update(first)
+            func(self._roles, second)
+            self._roles = frozenset(self._roles)
+            return self
         return NotImplemented
 
-    __radd__ = __add__
-
-    def __sub__(self, other):
-        if not FROZEN:
-            raise RuntimeError("Fatal: Role categories are not ready")
-        if isinstance(other, str):
-            other = {other}
-        if isinstance(other, (Category, set, frozenset)):
-            name = "{0} - {1}".format(self, other)
-            cls = __class__(name)
-            cls._roles.update(self)
-            cls._roles.difference_update(other)
-            cls._roles = frozenset(cls._roles)
-            return cls
-        return NotImplemented
-
-    def __and__(self, other):
-        if not FROZEN:
-            raise RuntimeError("Fatal: Role categories are not ready")
-        if isinstance(other, str):
-            other = {other}
-        if isinstance(other, (Category, set, frozenset)):
-            name = "{0} & {1}".format(self, other)
-            cls = __class__(name)
-            cls._roles.update(self)
-            cls._roles.intersection_update(other)
-            cls._roles = frozenset(cls._roles)
-            return cls
-        return NotImplemented
-
-    __rand__ = __and__
-
-    def __xor__(self, other):
-        if not FROZEN:
-            raise RuntimeError("Fatal: Role categories are not ready")
-        if isinstance(other, str):
-            other = {other}
-        if isinstance(other, (Category, set, frozenset)):
-            name = "{0} ^ {1}".format(self, other)
-            cls = __class__(name)
-            cls._roles.update(self)
-            cls._roles.symmetric_difference_update(other)
-            cls._roles = frozenset(cls._roles)
-            return cls
-        return NotImplemented
-
-    __rxor__ = __xor__
+    __add__ = __radd__  = lambda self, other: self.from_combination(self, other, "+", set.update)
+    __or__  = __ror__   = lambda self, other: self.from_combination(self, other, "|", set.update)
+    __and__ = __rand__  = lambda self, other: self.from_combination(self, other, "&", set.intersection_update)
+    __xor__ = __rxor__  = lambda self, other: self.from_combination(self, other, "^", set.symmetric_difference_update)
+    __sub__             = lambda self, other: self.from_combination(self, other, "-", set.difference_update)
 
 All = Category("*")
 for cat in ROLE_CATS:
