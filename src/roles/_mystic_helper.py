@@ -3,7 +3,7 @@ import random
 from collections import Counter
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog, cats
 from src.functions import get_players, get_all_players
 from src.decorators import cmd, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -22,15 +22,14 @@ def setup_variables(rolename, *, send_role, types):
 
     @event_listener("transition_night_end")
     def on_transition_night_end(evt, var):
-        role_cats_evt = Event("get_role_metadata", {})
-        role_cats_evt.dispatch(var, "role_categories")
-        pl = get_players()
+        pl = set()
         ctr = Counter()
 
-        for p in pl:
-            role = get_main_role(p)
-            for t in role_cats_evt.data[role].intersection(types):
-                ctr[t] += 1
+        for t in types:
+            cat = cats.get(t)
+            players = get_players(cat)
+            pl.update(players)
+            ctr[t] += len(players)
 
         values = []
         plural = True
