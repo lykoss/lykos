@@ -39,6 +39,8 @@ def get(cat):
     return globals()[cat.replace(" ", "_")]
 
 def role_order():
+    if not FROZEN:
+        raise RuntimeError("Fatal: Role categories are not ready")
     buckets = defaultdict(list)
     for role, tags in ROLES.items():
         for tag in ROLE_ORDER:
@@ -71,9 +73,8 @@ def register_roles(evt):
         cls._roles = frozenset(cls._roles)
     All._roles = frozenset(All._roles)
     FROZEN = True
-    events.remove_listener("init", register_roles, 10)
 
-events.add_listener("init", register_roles, 10)
+events.add_listener("init", register_roles, 1)
 
 class Category:
     """Base class for role categories."""
@@ -154,8 +155,9 @@ class Category:
 
 All = Category("*")
 for cat in ROLE_CATS:
-    globals()[cat] = Category(cat)
+    name = cat.replace(" ", "_")
+    globals()[name] = Category(cat)
 
-del cat
+del cat, register_roles
 
 # vim: set sw=4 expandtab:
