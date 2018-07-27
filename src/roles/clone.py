@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Win_Stealer
 
 CLONED = UserDict() # type: Dict[users.User, users.User]
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones
@@ -132,7 +133,7 @@ def on_swap_role_state(evt, var, actor, target, role):
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
     # this means they ended game while being clone and not some other role
-    if role == "clone" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+    if role == "clone" and survived and not winner.startswith("@") and singular(winner) not in Win_Stealer:
         evt.data["iwon"] = True
 
 @event_listener("del_player", priority=1)

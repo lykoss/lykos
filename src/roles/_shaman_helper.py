@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Cursed, Safe, Innocent, Wolf
 
 DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
 PROTECTION = UserList()     # type: List[users.User]
@@ -217,7 +218,17 @@ def give_totem(var, wrapper, target, prefix, role, msg):
 @event_listener("see", priority=10)
 def on_see(evt, var, seer, target):
     if (seer in DECEIT) ^ (target in DECEIT):
-        if evt.data["role"] in var.SEEN_WOLF and evt.data["role"] not in var.SEEN_DEFAULT:
+        role = evt.data["role"]
+        if role in Cursed:
+            role = "wolf"
+        elif role in Safe | Innocent:
+            role = "villager"
+        elif role in Wolf:
+            role = "wolf"
+        else:
+            role = "villager"
+
+        if role == "wolf":
             evt.data["role"] = "villager"
         else:
             evt.data["role"] = "wolf"

@@ -10,6 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Wolfchat
 
 INVESTIGATED = UserSet()
 
@@ -41,12 +42,12 @@ def investigate(var, wrapper, message):
 
     if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
         # The detective's identity is compromised!
-        wcroles = get_roles("Wolfchat")
+        wcroles = Wolfchat
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = get_roles("Wolf")
+                wcroles = Wolf
             else:
-                wcroles = get_roles("Wolf") | {"traitor"}
+                wcroles = Wolf | {"traitor"}
 
         wolves = get_all_players(wcroles)
         if wolves:
@@ -92,6 +93,6 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["detective"] = {"Village", "Safe"}
+        evt.data["detective"] = {"Village", "Spy", "Safe"}
 
 # vim: set sw=4 expandtab:

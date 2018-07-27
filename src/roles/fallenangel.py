@@ -52,6 +52,6 @@ def on_assassinate(evt, var, killer, target, prot):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["fallen angel"] = {"Wolf", "Wolfchat", "Wolfteam"}
+        evt.data["fallen angel"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
 
 # vim: set sw=4 expandtab:

@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Win_Stealer
 
 MATCHMAKERS = UserSet() # type: Set[users.User]
 LOVERS = UserDict() # type: Dict[users.User, Set[users.User]]
@@ -182,13 +183,13 @@ def on_player_win(evt, var, player, role, winner, survived):
 
             lover_role = get_main_role(lvr)
 
-            if not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+            if not winner.startswith("@") and singular(winner) not in Win_Stealer:
                 evt.data["iwon"] = True
                 break
             elif winner.startswith("@") and winner == "@" + lvr.nick and var.LOVER_WINS_WITH_FOOL:
                 evt.data["iwon"] = True
                 break
-            elif singular(winner) in var.WIN_STEALER_ROLES and lover_role == singular(winner):
+            elif singular(winner) in Win_Stealer and lover_role == singular(winner):
                 evt.data["iwon"] = True
                 break
 

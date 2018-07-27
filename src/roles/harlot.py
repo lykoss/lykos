@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Wolfchat
 
 VISITED = UserDict() # type: Dict[users.User, users.User]
 PASSED = UserSet() # type: Set[users.User]
@@ -59,7 +60,7 @@ def on_bite(evt, var, alpha, target):
     if target not in var.ROLES["harlot"] or target not in VISITED:
         return
     hvisit = VISITED[target]
-    if get_main_role(hvisit) not in get_roles("Wolfchat") and (hvisit not in evt.params.bywolves or hvisit in evt.params.protected):
+    if get_main_role(hvisit) not in Wolfchat and (hvisit not in evt.params.bywolves or hvisit in evt.params.protected):
         evt.data["can_bite"] = False
 
 @event_listener("transition_day_resolve", priority=1)
@@ -88,7 +89,7 @@ def on_transition_day_resolve_end(evt, var, victims):
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
     for harlot in get_all_players(("harlot",)):
-        if VISITED.get(harlot) in get_players(get_roles("Wolf")) and harlot not in evt.data["dead"] and harlot not in evt.data["bitten"]:
+        if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"] and harlot not in evt.data["bitten"]:
             evt.data["message"].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["bywolves"].add(harlot)
             evt.data["onlybywolves"].add(harlot)
@@ -148,6 +149,6 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["harlot"] = {"Village", "Safe"}
+        evt.data["harlot"] = {"Village", "Safe", "Nocturnal"}
 
 # vim: set sw=4 expandtab:

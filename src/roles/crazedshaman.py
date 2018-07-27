@@ -11,6 +11,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
+from src.cats import Win_Stealer
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
@@ -28,7 +29,7 @@ def crazed_shaman_totem(var, wrapper, message):
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
-    if role == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+    if role == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in Win_Stealer:
         evt.data["iwon"] = True
 
 @event_listener("transition_day_begin", priority=4)
@@ -87,6 +88,6 @@ def on_transition_night_end(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["crazed shaman"] = {"Neutral"}
+        evt.data["crazed shaman"] = {"Neutral", "Nocturnal"}
 
 # vim: set sw=4 expandtab:

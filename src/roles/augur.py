@@ -9,6 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.events import Event
+from src.cats import Neutral, Wolfteam
 
 from src.roles._seer_helper import setup_variables
 
@@ -38,9 +39,9 @@ def see(var, wrapper, message):
     targrole = evt.data["role"]
 
     aura = "blue"
-    if targrole in get_roles("Wolfteam"):
+    if targrole in Wolfteam:
         aura = "red"
-    elif targrole in var.TRUE_NEUTRAL_ROLES:
+    elif targrole in Neutral:
         aura = "grey"
     wrapper.send(messages["augur_success"].format(target, aura))
     debuglog("{0} (augur) SEE: {1} ({2}) as {3} ({4} aura)".format(wrapper.source, target, trole, targrole, aura))
@@ -50,6 +51,6 @@ def see(var, wrapper, message):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["augur"] = {"Village", "Safe"}
+        evt.data["augur"] = {"Village", "Nocturnal", "Spy", "Safe"}
 
 # vim: set sw=4 expandtab:

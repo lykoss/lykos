@@ -5,20 +5,26 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src.functions import get_main_role, get_players, get_all_roles, get_roles
+from src.functions import get_main_role, get_players, get_all_roles
 from src.decorators import event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src import events
+from src.cats import Wolf, Wolfchat, Killer
 
-CAN_KILL = get_roles("Wolf") & get_roles("Killer") # type: Set[str]
+CAN_KILL = set() # type: Set[str]
+
+def _set_wolf_killers(evt):
+    CAN_KILL.update(Wolf & Killer)
+
+events.add_listener("init", _set_wolf_killers)
 
 _kill_cmds = ("kill", "retract")
 
 def wolf_can_kill(var, wolf):
     # a wolf can kill if wolves in general can kill, and the wolf belongs to a role in CAN_KILL
     # this is a utility function meant to be used by other wolf role modules
-    nevt = Event("wolf_numkills", {"numkills": 1})
+    nevt = events.Event("wolf_numkills", {"numkills": 1})
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
     if num_kills == 0:
@@ -30,12 +36,12 @@ def is_known_wolf_ally(var, actor, target):
     actor_role = get_main_role(actor)
     target_role = get_main_role(target)
 
-    wolves = get_roles("Wolfchat")
+    wolves = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wolves = get_roles("Wolf")
+            wolves = Wolf
         else:
-            wolves = get_roles("Wolf") | {"traitor"}
+            wolves = Wolf | {"traitor"}
 
     return actor_role in wolves and target_role in wolves
 
@@ -50,7 +56,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
     if not is_known_wolf_ally(var, user, user):
         return
 
-    wcroles = get_roles("Wolfchat")
+    wcroles = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_ONLY_SAME_CMD:
         if var.PHASE == "night" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
             wcroles = roles
@@ -58,9 +64,9 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
             wcroles = roles
     elif var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = get_roles("Wolf")
+            wcroles = Wolf
         else:
-            wcroles = get_roles("Wolf") | {"traitor"}
+            wcroles = Wolf | {"traitor"}
 
     wcwolves = get_players(wcroles)
     wcwolves.remove(user)

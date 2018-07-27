@@ -9,6 +9,7 @@ from src.decorators import cmd, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Killer
 
 from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
 
@@ -67,7 +68,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_reconfigure_stats(evt, var, stats):
     if "wolf cub" not in stats or stats["wolf cub"] == 0:
         return
-    for role in get_roles("Wolf") - {"wolf cub"}:
+    for role in Wolf & Killer:
         if role in stats and stats[role] > 0:
             break
     else:

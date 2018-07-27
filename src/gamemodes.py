@@ -10,7 +10,7 @@ import botconfig
 import src.settings as var
 from src.utilities import *
 from src.messages import messages
-from src.functions import get_players, get_all_players, get_main_role, change_role, get_roles
+from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users, cats
@@ -595,8 +595,7 @@ class RandomMode(GameMode):
         for role in role_order():
             addroles[role] = 0
 
-        wolves = get_roles("Wolf") - {"wolf cub"}
-        addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
+        addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = list(set(role_order()) - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
         while lpl:
             addroles[random.choice(roles)] += 1
@@ -1119,8 +1118,7 @@ class MaelstromMode(GameMode):
                 continue
             addroles[role] = 0
 
-        wolves = get_roles("Wolf") - {"wolf cub"}
-        addroles[random.choice(list(wolves))] += 1 # make sure there's at least one wolf role
+        addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = self.roles[:]
         if do_templates:
             # mm only works night 1, do_templates is also only true n1

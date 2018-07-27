@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Win_Stealer
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 PASSED = UserSet() # type: Set[users.User]
@@ -76,7 +77,7 @@ def on_transition_day(evt, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[vigilante]
 
-        if get_main_role(target) not in get_roles("Wolf") | var.WIN_STEALER_ROLES:
+        if get_main_role(target) not in Wolf | Win_Stealer:
             var.DYING.add(vigilante)
 
 @event_listener("new_role")
@@ -117,6 +118,6 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
     elif kind == "role_categories":
-        evt.data["vigilante"] = {"Village", "Safe"}
+        evt.data["vigilante"] = {"Village", "Killer", "Nocturnal", "Safe"}
 
 # vim: set sw=4 expandtab:

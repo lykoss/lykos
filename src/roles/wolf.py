@@ -10,6 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Wolfchat, Wolfteam
 
 from src.roles._wolf_helper import CAN_KILL, is_known_wolf_ally, send_wolfchat_message
 
@@ -71,7 +72,7 @@ def wolf_kill(var, wrapper, message):
         msg = messages["wolfchat_kill"].format(wrapper.source, orig[0])
         debuglog("{0} ({1}) KILL: {2} ({3})".format(wrapper.source, role, targets[0], get_main_role(targets[0])))
 
-    send_wolfchat_message(var, wrapper.source, msg, get_roles("Wolf"), role=role, command="kill")
+    send_wolfchat_message(var, wrapper.source, msg, Wolf, role=role, command="kill")
 
 @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",))
 def wolf_retract(var, wrapper, message):
@@ -79,7 +80,7 @@ def wolf_retract(var, wrapper, message):
     if wrapper.source in KILLS:
         del KILLS[wrapper.source]
         wrapper.pm(messages["retracted_kill"])
-        send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), get_roles("Wolf"), role=get_main_role(wrapper.source), command="retract")
+        send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role=get_main_role(wrapper.source), command="retract")
 
     if wrapper.source in var.ROLES["alpha wolf"] and wrapper.source.nick in var.BITE_PREFERENCES: # FIXME: Split into alpha wolf and convert to users
         del var.BITE_PREFERENCES[wrapper.source.nick]
@@ -91,7 +92,7 @@ def wolf_retract(var, wrapper, message):
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     if death_triggers:
         # TODO: split into alpha
-        if allroles & get_roles("Wolf"):
+        if allroles & Wolf:
             var.ALPHA_ENABLED = True
 
     for killer, targets in list(KILLS.items()):
@@ -151,7 +152,7 @@ def on_transition_day3(evt, var):
 
 @event_listener("transition_day", priority=6)
 def on_transition_day6(evt, var):
-    wolfteam = get_players(get_roles("Wolfteam"))
+    wolfteam = get_players(Wolfteam)
     for victim, killers in list(evt.data["killers"].items()):
         k2 = []
         kappend = []
@@ -176,12 +177,12 @@ def on_retribution_kill(evt, var, victim, orig_target):
 
 @event_listener("new_role", priority=4)
 def on_new_role(evt, var, player, old_role):
-    wcroles = get_roles("Wolfchat")
+    wcroles = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = get_roles("Wolf")
+            wcroles = Wolf
         else:
-            wcroles = get_roles("Wolf") | {"traitor"}
+            wcroles = Wolf | {"traitor"}
 
     if old_role is None:
         # initial role assignment; don't do all the logic below about notifying other wolves and such
@@ -262,11 +263,11 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     ps = get_players()
-    wolves = get_players(get_roles("Wolfchat"))
+    wolves = get_players(Wolfchat)
     # roles in wolfchat (including those that can only listen in but not speak)
-    wcroles = get_roles("Wolfchat")
+    wcroles = Wolfchat
     # roles allowed to talk in wolfchat
-    talkroles = get_roles("Wolfchat")
+    talkroles = Wolfchat
     # condition imposed on talking in wolfchat (only during day/night, or None if talking is disabled)
     wccond = ""
 
@@ -280,16 +281,16 @@ def on_transition_night_end(evt, var):
 
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            wcroles = get_roles("Wolf")
-            talkroles = get_roles("Wolf")
+            wcroles = Wolf
+            talkroles = Wolf
         else:
-            wcroles = get_roles("Wolf") | {"traitor"}
-            talkroles = get_roles("Wolf") | {"traitor"}
+            wcroles = Wolf | {"traitor"}
+            talkroles = Wolf | {"traitor"}
     elif var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            talkroles = get_roles("Wolf")
+            talkroles = Wolf
         else:
-            talkroles = get_roles("Wolf") | {"traitor"}
+            talkroles = Wolf | {"traitor"}
 
     for wolf in wolves:
         normal_notify = not wolf.prefers_simple()
@@ -389,14 +390,14 @@ def on_get_role_metadata(evt, var, kind):
             # as any other wolf kill).
             evt.data["wolf"] += 1
     elif kind == "role_categories":
-        evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam"}
+        evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         # FIXME: split the following into their respective files
-        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam"}
-        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam"}
-        evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent"}
-        evt.data["hag"] = {"Wolfchat", "Wolfteam"}
-        evt.data["sorcerer"] = {"Wolfchat", "Wolfteam"}
-        evt.data["warlock"] = {"Wolfchat", "Wolfteam"}
+        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
+        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy"}
+        evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent", "Killer", "Nocturnal"}
+        evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
+        evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}
+        evt.data["warlock"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["cultist"] = {"Wolfteam"}
 
 @event_listener("wolf_numkills", priority=10)

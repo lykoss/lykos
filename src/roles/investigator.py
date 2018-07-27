@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Neutral, Wolfteam
 
 INVESTIGATED = UserSet()
 
@@ -62,16 +63,16 @@ def investigate(var, wrapper, message):
     # FIXME: make a standardized way of getting team affiliation, and make
     # augur and investigator both use it (and make it events-aware so other
     # teams can be added more easily)
-    if t1role in get_roles("Wolfteam"):
+    if t1role in Wolfteam:
         t1role = "red"
-    elif t1role in var.TRUE_NEUTRAL_ROLES:
+    elif t1role in Neutral:
         t1role = "grey"
     else:
         t1role = "blue"
 
-    if t2role in get_roles("Wolfteam"):
+    if t2role in Wolfteam:
         t2role = "red"
-    elif t2role in var.TRUE_NEUTRAL_ROLES:
+    elif t2role in Neutral:
         t2role = "grey"
     else:
         t2role = "blue"
@@ -121,6 +122,6 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["investigator"] = {"Village", "Safe"}
+        evt.data["investigator"] = {"Village", "Spy", "Safe"}
 
 # vim: set sw=4 expandtab:

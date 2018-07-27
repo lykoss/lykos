@@ -11,7 +11,6 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.cats import register
 
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
 
@@ -67,14 +66,12 @@ def on_reset(evt, var):
 #               event should be present here in the metadata as well. Set the data as follows:
 #               evt.data["rolename"] = {"key1", "key2", ...} (the value is a set)
 #               If this role does not add special data in player_win, you can ignore this kind of metadata.
+# role_categories: Add metadata about which role categories this role belongs to. See src/cats.py ROLE_CATS
+#                  for the full list and a description of what each category is for. Set the data as follows:
+#                  evt.data["rolename"] = {"cat1", "cat2", ...} (the value is a set)
+#                  All roles must implement this kind of metadata.
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     pass
-
-# Registers the role to the relevant role categories
-# See src/cats.py for more information
-
-# register("wolf", "Wolf", "Wolfchat", "Wolfteam")
-
 
 # vim: set sw=4 expandtab:

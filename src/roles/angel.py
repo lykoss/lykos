@@ -12,6 +12,7 @@ from src.decorators import cmd, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf
 
 GUARDED = {} # type: Dict[str, str]
 LASTGUARDED = {} # type: Dict[str, str]
@@ -196,7 +197,7 @@ def on_transition_day_resolve(evt, var, victim):
 @event_listener("transition_day_resolve_end")
 def on_transition_day_resolve_end(evt, var, victims):
     for bodyguard in get_all_players(("bodyguard",)):
-        if GUARDED.get(bodyguard.nick) in list_players(get_roles("Wolf")) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
+        if GUARDED.get(bodyguard.nick) in list_players(Wolf) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 evt.data["bywolves"].add(bodyguard)
@@ -207,7 +208,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                     evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["dead"].append(bodyguard)
     for gangel in get_all_players(("guardian angel",)):
-        if GUARDED.get(gangel.nick) in list_players(get_roles("Wolf")) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
+        if GUARDED.get(gangel.nick) in list_players(Wolf) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 evt.data["bywolves"].add(gangel)
@@ -298,8 +299,8 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["bodyguard"] = {"Village", "Safe"}
-        evt.data["guardian angel"] = {"Village", "Safe"}
+        evt.data["bodyguard"] = {"Village", "Safe", "Nocturnal"}
+        evt.data["guardian angel"] = {"Village", "Safe", "Nocturnal"}
 
 
 # vim: set sw=4 expandtab:

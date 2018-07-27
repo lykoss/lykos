@@ -55,11 +55,12 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Neutral
 
 from src.functions import (
     get_players, get_all_players, get_participants,
     get_main_role, get_all_roles, get_reveal_role,
-    get_target, change_role, get_role_categories
+    get_target, change_role
    )
 
 # done this way so that events is accessible in !eval (useful for debugging)
@@ -1175,12 +1176,12 @@ def stats(cli, nick, chan, rest):
     if nick == chan:
         _nick = ""
 
-    badguys = get_roles("Wolfchat")
+    badguys = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            badguys = get_roles("Wolf")
+            badguys = Wolf
         else:
-            badguys = get_roles("Wolf") | {"traitor"}
+            badguys = Wolf | {"traitor"}
 
     role = None
     if nick in pl:
@@ -1304,9 +1305,9 @@ def stats(cli, nick, chan, rest):
         for role, players in var.ROLES.items():
             if role in var.SECONDARY_ROLES:
                 continue
-            if role in get_roles("Wolfteam"):
+            if role in Wolfteam:
                 wolfteam += len(players)
-            elif role in var.TRUE_NEUTRAL_ROLES:
+            elif role in Neutral:
                 neutral += len(players)
             else:
                 villagers += len(players)
@@ -1675,11 +1676,11 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             survived = get_players()
             if not pentry["dced"]:
                 # determine default win status (event can override)
-                if rol in get_roles("Wolfteam") or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
+                if rol in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
                     if winner == "wolves":
                         won = True
                         iwon = plr in survived
-                elif rol not in var.TRUE_NEUTRAL_ROLES and winner == "villagers":
+                elif rol not in Neutral and winner == "villagers":
                     won = True
                     iwon = plr in survived
                 # true neutral roles are handled via the event below
@@ -1696,7 +1697,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                     iwon = True
 
             # determine if this player's team won
-            if rol in var.TRUE_NEUTRAL_ROLES:
+            if rol in Neutral:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
                 teams = {"monster":"monsters", "demoniac":"demoniacs"}
                 if rol in teams and winner == teams[rol]:
@@ -1790,7 +1791,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
 def chk_win(*, end_game=True, winner=None):
     """ Returns True if someone won """
-    lpl = len(list_players())
+    lpl = len(get_players())
 
     if var.PHASE == "join":
         if lpl == 0:
@@ -1828,16 +1829,16 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
 
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = get_roles("Wolf")
+                wcroles = Wolf
             else:
-                wcroles = get_roles("Wolf") | {"traitor"}
+                wcroles = Wolf| {"traitor"}
         else:
-            wcroles = get_roles("Wolfchat")
+            wcroles = Wolfchat
 
         wolves = set(get_players(wcroles, mainroles=mainroles))
         lwolves = len(wolves & pl)
         lcubs = len(rolemap.get("wolf cub", ()))
-        lrealwolves = len(get_players(get_roles("Wolf") - {"wolf cub"}, mainroles=mainroles))
+        lrealwolves = len(get_players(Wolf & Killer, mainroles=mainroles))
         lmonsters = len(rolemap.get("monster", ()))
         ldemoniacs = len(rolemap.get("demoniac", ()))
         ltraitors = len(rolemap.get("traitor", ()))
@@ -2831,7 +2832,7 @@ def transition_day(gameid=0):
             continue
         if (victim in var.ROLES["lycan"] or victim.nick in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
             vrole = get_main_role(victim)
-            if vrole not in get_roles("Wolfchat"):
+            if vrole not in Wolfchat:
                 revt.data["message"].append(messages["new_wolf"])
                 var.EXTRA_WOLVES += 1
                 var.LYCAN_ROLES[victim.nick] = vrole
@@ -2885,7 +2886,7 @@ def transition_day(gameid=0):
         if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
             if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                 # pick a random wofl to be shot
-                woflset = {wolf for wolf in get_players(get_roles("Wolf")) if wolf not in dead}
+                woflset = {wolf for wolf in get_players(Wolf) if wolf not in dead}
                 # TODO: split into werekitten.py
                 woflset.difference_update(get_all_players(("werekitten",)))
                 wolf_evt = Event("gunner_overnight_kill_wolflist", {"wolves": woflset})
@@ -2907,7 +2908,7 @@ def transition_day(gameid=0):
         if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
             # victim has bullets
             try:
-                looters = get_players(get_roles("Wolfchat"))
+                looters = get_players(Wolfchat)
                 while len(looters) > 0:
                     guntaker = random.choice(looters)  # random looter
                     if guntaker not in dead:
@@ -2932,7 +2933,7 @@ def transition_day(gameid=0):
         # turn all bitten people into wolves
         # short-circuit if they are already a wolf or are dying
         chumprole = get_main_role(chump)
-        if chump in dead or chumprole in get_roles("Wolf"):
+        if chump in dead or chumprole in Wolf:
             continue
 
         newrole = "wolf"
@@ -3242,12 +3243,12 @@ def check_exchange(cli, actor, nick):
             var.LYCAN_ROLES[actor] = var.LYCAN_ROLES[nick]
             del var.LYCAN_ROLES[nick]
 
-        wcroles = get_roles("Wolfchat")
+        wcroles = Wolfchat
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = get_roles("Wolf")
+                wcroles = Wolf
             else:
-                wcroles = get_roles("Wolf") | {"traitor"}
+                wcroles = Wolf | {"traitor"}
 
         if nick_role not in wcroles and nick_role == "warlock":
             # this means warlock isn't in wolfchat, so only give cursed list
@@ -3331,7 +3332,7 @@ def shoot(var, wrapper, message):
 
     target = evt.data["target"]
 
-    wolfshooter = wrapper.source in get_players(get_roles("Wolfchat"))
+    wolfshooter = wrapper.source in get_players(Wolfchat)
     var.GUNNERS[wrapper.source] -= 1
 
     rand = random.random()
@@ -3346,7 +3347,7 @@ def shoot(var, wrapper, message):
     if target in get_all_players(("succubus",)):
         chances = chances[:3] + (0,)
 
-    wolfvictim = target in get_players(get_roles("Wolf"))
+    wolfvictim = target in get_players(Wolf)
     realrole = get_main_role(target)
     targrole = get_reveal_role(target)
 
@@ -3357,7 +3358,7 @@ def shoot(var, wrapper, message):
 
         wrapper.send(messages["shoot_success"].format(wrapper.source, target))
         an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
-        if realrole in get_roles("Wolf"):
+        if realrole in Wolf:
             if var.ROLE_REVEAL == "on":
                 wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
             else: # off and team
@@ -3550,9 +3551,9 @@ def hex_target(cli, nick, chan, rest):
     vrole = get_role(victim)
     var.HEXED.add(nick)
     var.LASTHEXED[nick] = victim
-    wroles = get_roles("Wolf")
+    wroles = Wolf
     if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wroles = get_roles("Wolf") | {"traitor"}
+        wroles = Wolf | {"traitor"}
     if vrole not in wroles:
         var.TOBESILENCED.add(victim)
 
@@ -3590,9 +3591,9 @@ def curse(cli, nick, chan, rest):
     var.CURSED.add(nick)
     var.PASSED.discard(nick)
     vrole = get_role(victim)
-    wroles = get_roles("Wolf")
+    wroles = Wolf
     if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wroles = get_roles("Wolf") | {"traitor"}
+        wroles = Wolf | {"traitor"}
     if vrole not in wroles:
         var.ROLES["cursed villager"].add(users._get(victim)) # FIXME
 
@@ -3706,8 +3707,8 @@ def relay(var, wrapper, message):
     if message.startswith(botconfig.CMD_CHAR):
         return
 
-    badguys = get_players(get_roles("Wolfchat"))
-    wolves = get_players(get_roles("Wolf"))
+    badguys = get_players(Wolfchat)
+    wolves = get_players(Wolf)
 
     if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
@@ -4108,7 +4109,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
-        wvs = sum(addroles[r] for r in get_roles("Wolfchat"))
+        wvs = sum(addroles[r] for r in Wolfchat)
         if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.SECONDARY_ROLES)):
             cli.msg(chan, messages["too_few_players_custom"])
         elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
@@ -4223,15 +4224,15 @@ def start(cli, nick, chan, forced = False, restart = ""):
     # Now for the secondary roles
     for role, dfn in var.SECONDARY_ROLES:
         # convert dfn into a set of roles that this role can be applied on top of
-        cats = get_role_categories()
         whitelist = set()
         for d in dfn:
             fn = whitelist.update
             if d[0] == "-": # removing?
                 fn = whitelist.difference_update
-            if d in cats:
-                fn(cats[d])
-            elif d in cats["*"]: # not a category, just a role name
+                d = d[1:]
+            if d in cats.ROLE_CATS:
+                fn(cats.get(d))
+            elif d in cats.ROLES: # not a category, just a role name
                 fn({d})
             else: # typo
                 raise KeyError("{0} is not a recognized role name or role category".format(d))

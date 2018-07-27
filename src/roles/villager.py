@@ -68,7 +68,7 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["doctor"] = {"Village", "Safe"}
         evt.data["village drunk"] = {"Village", "Safe"}
         evt.data["cursed villager"] = {"Village", "Cursed"}
-        evt.data["gunner"] = {"Village", "Safe"}
-        evt.data["sharpshooter"] = {"Village", "Safe"}
+        evt.data["gunner"] = {"Village", "Safe", "Killer"}
+        evt.data["sharpshooter"] = {"Village", "Safe", "Killer"}
 
 # vim: set sw=4 expandtab:

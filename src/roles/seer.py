@@ -9,6 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.events import Event
+from src.cats import Cursed, Safe, Innocent, Wolf
 
 from src.roles._seer_helper import setup_variables
 
@@ -33,18 +34,13 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    mevt = Event("get_role_metadata", {})
-    mevt.dispatch(var, "role_categories")
-
-    tags = mevt.data[targrole]
-
-    if "Cursed" in tags:
+    if targrole in Cursed:
         targrole = "wolf"
-    elif "Safe" in tags:
+    elif targrole in Safe:
         pass # Keep the same role
-    elif "Innocent" in tags:
+    elif targrole in Innocent:
         targrole = var.HIDDEN_ROLE
-    elif "Wolf" in tags:
+    elif targrole in Wolf:
         targrole = "wolf"
     else:
         targrole = var.HIDDEN_ROLE
@@ -61,6 +57,6 @@ def see(var, wrapper, message):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["seer"] = {"Village", "Safe"}
+        evt.data["seer"] = {"Village", "Nocturnal", "Spy", "Safe"}
 
 # vim: set sw=4 expandtab:

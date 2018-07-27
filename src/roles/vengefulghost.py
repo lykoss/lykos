@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import All, Wolfteam
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 GHOSTS = UserDict() # type: Dict[users.User, str]
@@ -30,7 +31,7 @@ def vg_kill(var, wrapper, message):
         wrapper.pm(messages["player_dead"])
         return
 
-    wolves = get_players(get_roles("Wolfteam"))
+    wolves = get_players(Wolfteam)
     if GHOSTS[wrapper.source] == "wolves" and target not in wolves:
         wrapper.pm(messages["vengeful_ghost_wolf"])
         return
@@ -104,7 +105,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     # at priority < 6, importing src.roles.vengefulghost, and setting
     # GHOSTS[user] to something; if that is done then this logic is not run.
     if death_triggers and mainrole == "vengeful ghost" and user not in GHOSTS:
-        if evt.params.killer_role in get_roles("Wolfteam"):
+        if evt.params.killer_role in Wolfteam:
             GHOSTS[user] = "wolves"
         else:
             GHOSTS[user] = "villagers"
@@ -114,19 +115,19 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):
     # select a random target for VG if they didn't kill
-    wolves = set(get_players(get_roles("Wolfteam")))
-    villagers = set(get_players()) - wolves
+    wolves = get_players(Wolfteam)
+    villagers = get_players(All - Wolfteam)
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or ghost.nick in var.SILENCED:
             continue
         if ghost not in KILLS:
-            choice = set()
+            choice = None
             if target == "wolves":
                 choice = wolves.copy()
             elif target == "villagers":
                 choice = villagers.copy()
             if choice:
-                KILLS[ghost] = random.choice(list(choice))
+                KILLS[ghost] = random.choice(choice)
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -180,17 +181,15 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
-    ps = get_players()
-    wolves = get_players(get_roles("Wolfteam"))
+    villagers = get_players(All - Wolfteam)
+    wolves = get_players(Wolfteam)
     for v_ghost, who in GHOSTS.items():
         if who[0] == "!":
             continue
         if who == "wolves":
             pl = wolves[:]
         else:
-            pl = ps[:]
-            for wolf in wolves:
-                pl.remove(wolf)
+            pl = villagers[:]
 
         random.shuffle(pl)
 
