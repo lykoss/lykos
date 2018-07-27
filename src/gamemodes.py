@@ -14,6 +14,9 @@ from src.functions import get_players, get_all_players, get_main_role, change_ro
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users, cats
+from src.cats import Wolf, Killer
+
+class InvalidModeException(Exception): pass
 
 def game_mode(name, minp, maxp, likelihood=0):
     def decor(c):
@@ -58,7 +61,7 @@ class GameMode:
         # Support custom shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
         # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
-        evt = Event("default_totems", {"shaman_roles": {"shaman", "crazed shaman", "wolf shaman"}})
+        evt = events.Event("default_totems", {"shaman_roles": {"shaman", "crazed shaman", "wolf shaman"}})
         evt.dispatch(var, self.TOTEM_CHANCES)
 
         shamans = evt.data["shaman_roles"]

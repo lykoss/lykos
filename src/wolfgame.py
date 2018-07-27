@@ -874,7 +874,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
     if stasis > 0:
         if forced and stasis == 1:
-            decrement_stasis(wrapper.source.nick)
+            decrement_stasis(wrapper.source)
         else:
             who.send(messages["stasis"].format(
                 "you are" if wrapper.source is who else wrapper.source.nick + " is", stasis,
@@ -3909,6 +3909,7 @@ def cgamemode(arg):
 
     modeargs = [a.strip() for a in modeargs]
     if modeargs[0] in var.GAME_MODES.keys():
+        from src.gamemodes import InvalidModeException
         md = modeargs.pop(0)
         try:
             if md == "default" and len(var.ALL_PLAYERS) <= 9 and random.random() < var.VILLAGERGAME_CHANCE:

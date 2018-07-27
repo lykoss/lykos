@@ -9,35 +9,15 @@ from src.decorators import command, COMMANDS
 from src.events import Event
 from src.messages import messages
 
-__all__ = ["is_user_stasised", "decrement_stasis", "parse_warning_target", "add_warning", "expire_tempbans"]
+__all__ = ["decrement_stasis", "parse_warning_target", "add_warning", "expire_tempbans"]
 
-def is_user_stasised(nick):
-    """Checks if a user is in stasis. Returns a number of games in stasis."""
-
-    if nick in var.USERS:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
-    else:
-        return -1
-    amount = 0
-    if acc in var.STASISED_ACCS:
-        amount = var.STASISED_ACCS[acc]
-    for hostmask in var.STASISED:
-        if match_hostmask(hostmask, nick, ident, host):
-           amount = max(amount, var.STASISED[hostmask])
-    return amount
-
-def decrement_stasis(nick=None):
-    if nick and nick in var.USERS:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
+def decrement_stasis(user=None):
+    if user is not None:
         # decrement account stasis even if accounts are disabled
-        if acc in var.STASISED_ACCS:
-            db.decrement_stasis(acc=acc)
+        if user.account in var.STASISED_ACCS:
+            db.decrement_stasis(acc=user.account)
         for hostmask in var.STASISED:
-            if match_hostmask(hostmask, nick, ident, host):
+            if user.match_hostmask(hostmask):
                 db.decrement_stasis(hostmask=hostmask)
     else:
         db.decrement_stasis()
@@ -195,12 +175,12 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
             cmodes.append(("+b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
         for hm in hmlist:
             cmodes.append(("+b", "*!*@{0}".format(hm.split("@")[1])))
-        mass_mode(cli, cmodes, [])
-        for (nick, user) in var.USERS.items():
-            if user["account"] in acclist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
-            elif user["host"] in hmlist:
-                cli.kick(botconfig.CHANNEL, nick, messages["tempban_kick"].format(nick=nick, botnick=users.Bot.nick, reason=reason))
+        channels.Main.mode(*cmodes)
+        for user in channels.Main.users:
+            if user.account in acclist:
+                channels.Main.kick(user, messages["tempban_kick"].format(nick=user, botnick=users.Bot.nick, reason=reason))
+            elif user.host in hmlist:
+                channels.Main.kick(user, messages["tempban_kick"].format(nick=user, botnick=users.Bot.nick, reason=reason))
 
     # Update any tracking vars that may have changed due to this
     db.init_vars()
@@ -209,7 +189,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
 
 @command("stasis", chan=True, pm=True)
 def stasis(var, wrapper, message):
-    st = is_user_stasised(wrapper.source.nick) # FIXME
+    st = wrapper.source.stasis_count()
     if st:
         msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
     else:

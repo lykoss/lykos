@@ -10,85 +10,29 @@ from src import debuglog
 from src.events import Event
 from src.messages import messages
 
-__all__ = ["pm", "is_fake_nick", "mass_mode", "mass_privmsg", "reply",
-           "is_user_simple", "is_user_notice", "in_wolflist", "complete_role",
-           "relay_wolfchat_command", "irc_lower", "irc_equals", "match_hostmask",
+__all__ = ["pm", "is_fake_nick", "mass_privmsg", "reply",
+           "in_wolflist", "complete_role",
+           "relay_wolfchat_command", "irc_lower",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "get_role", "role_order", "break_long_message",
-           "complete_match", "complete_one_match", "get_victim", "InvalidModeException"]
-# message either privmsg or notice, depending on user settings
+           "complete_match", "complete_one_match", "get_victim"]
+
+# XXX: Replace with wrapper.pm instead
 def pm(cli, target, message):
-    if is_fake_nick(target) and botconfig.DEBUG_MODE:
-        debuglog("Would message fake nick {0}: {1!r}".format(target, message))
-        return
-
-    if is_user_notice(target):
-        cli.notice(target, message)
-        return
-
-    cli.msg(target, message)
+    from src.users import _get
+    user = _get(target)
+    user.send(message)
 
 is_fake_nick = re.compile(r"^[0-9]+$").search
 
-def mass_mode(cli, md_param, md_plain):
-    """ Example: mass_mode(cli, [('+v', 'asdf'), ('-v','wobosd')], ['-m']) """
-    lmd = len(md_param)  # store how many mode changes to do
-    if md_param:
-        for start_i in range(0, lmd, var.MODELIMIT):  # 4 mode-changes at a time
-            if start_i + var.MODELIMIT > lmd:  # If this is a remainder (mode-changes < 4)
-                z = list(zip(*md_param[start_i:]))  # zip this remainder
-                ei = lmd % var.MODELIMIT  # len(z)
-            else:
-                z = list(zip(*md_param[start_i:start_i+var.MODELIMIT])) # zip four
-                ei = var.MODELIMIT # len(z)
-            # Now z equal something like [('+v', '-v'), ('asdf', 'wobosd')]
-            arg1 = "".join(md_plain) + "".join(z[0])
-            arg2 = " ".join(z[1])  # + " " + " ".join([x+"!*@*" for x in z[1]])
-            cli.mode(botconfig.CHANNEL, arg1, arg2)
-    elif md_plain:
-            cli.mode(botconfig.CHANNEL, "".join(md_plain))
-
+# XXX: Replace with the queue_message and send_messages methods
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
-    if not targets:
-        return
-    if not notice and not privmsg:
-        msg_targs = []
-        not_targs = []
-        for target in targets:
-            if is_fake_nick(target):
-                debuglog("Would message fake nick {0}: {1!r}".format(target, msg))
-            elif is_user_notice(target):
-                not_targs.append(target)
-            else:
-                msg_targs.append(target)
-        while msg_targs:
-            if len(msg_targs) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(msg_targs)
-                msg_targs = None
-            else:
-                bgs = ",".join(msg_targs[:var.MAX_PRIVMSG_TARGETS])
-                msg_targs = msg_targs[var.MAX_PRIVMSG_TARGETS:]
-            cli.msg(bgs, msg)
-        while not_targs:
-            if len(not_targs) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(not_targs)
-                not_targs = None
-            else:
-                bgs = ",".join(not_targs[:var.MAX_PRIVMSG_TARGETS])
-                not_targs = not_targs[var.MAX_PRIVMSG_TARGETS:]
-            cli.notice(bgs, msg)
-    else:
-        while targets:
-            if len(targets) <= var.MAX_PRIVMSG_TARGETS:
-                bgs = ",".join(targets)
-                targets = None
-            else:
-                bgs = ",".join(targets[:var.MAX_PRIVMSG_TARGETS])
-                target = targets[var.MAX_PRIVMSG_TARGETS:]
-            if notice:
-                cli.notice(bgs, msg)
-            else:
-                cli.msg(bgs, msg)
+    from src.users import _get
+    targs = [_get(t) for t in targets]
+    for user in targs:
+        user.queue_message(msg)
+    if targs:
+        user.send_messages()
 
 # Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
@@ -104,35 +48,6 @@ def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
         else:
             cli.msg(chan, msg)
 
-def is_user_simple(nick):
-    if nick in var.USERS:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        acc = irc_lower(var.USERS[nick]["account"])
-    else:
-        return False
-    if acc and acc != "*" and not var.DISABLE_ACCOUNTS:
-        if acc in var.SIMPLE_NOTIFY_ACCS:
-            return True
-        return False
-    elif not var.ACCOUNTS_ONLY:
-        for hostmask in var.SIMPLE_NOTIFY:
-            if match_hostmask(hostmask, nick, ident, host):
-                return True
-    return False
-
-def is_user_notice(nick):
-    if nick in var.USERS and var.USERS[nick]["account"] and var.USERS[nick]["account"] != "*" and not var.DISABLE_ACCOUNTS:
-        if irc_lower(var.USERS[nick]["account"]) in var.PREFER_NOTICE_ACCS:
-            return True
-    if nick in var.USERS and not var.ACCOUNTS_ONLY:
-        ident = irc_lower(var.USERS[nick]["ident"])
-        host = var.USERS[nick]["host"].lower()
-        for hostmask in var.PREFER_NOTICE:
-            if match_hostmask(hostmask, nick, ident, host):
-                return True
-    return False
-
 # FIXME: Deprecated in favor of _wolf_helper method
 def in_wolflist(nick, who):
     from src.roles._wolf_helper import is_known_wolf_ally
@@ -146,95 +61,18 @@ def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_
     send_wolfchat_message(var, users._get(nick), message, roles, role=role, command=command)
 
 def irc_lower(nick):
-    if nick is None:
-        return None
-
-    mapping = {
-        "[": "{",
-        "]": "}",
-        "\\": "|",
-        "^": "~",
-    }
-
-    # var.CASEMAPPING may not be defined yet in some circumstances (like database upgrades)
-    # if so, default to rfc1459
-    if hasattr(var, "CASEMAPPING"):
-        if var.CASEMAPPING == "strict-rfc1459":
-            mapping.pop("^")
-        elif var.CASEMAPPING == "ascii":
-            mapping = {}
-
-    return nick.lower().translate(str.maketrans(mapping))
-
-def irc_equals(nick1, nick2):
-    return irc_lower(nick1) == irc_lower(nick2)
-
-def match_hostmask(hostmask, nick, ident, host):
-    # support n!u@h, u@h, or just h by itself
-    matches = re.match('(?:(?:(.*?)!)?(.*?)@)?(.*)', hostmask)
-
-    if ((not matches.group(1) or fnmatch.fnmatch(irc_lower(nick), irc_lower(matches.group(1)))) and
-            (not matches.group(2) or fnmatch.fnmatch(irc_lower(ident), irc_lower(matches.group(2)))) and
-            fnmatch.fnmatch(host.lower(), matches.group(3).lower())):
-        return True
-
-    return False
+    from src.context import lower
+    return lower(nick)
 
 def is_owner(nick, ident=None, host=None, acc=None):
-    hosts = set(botconfig.OWNERS)
-    accounts = set(botconfig.OWNERS_ACCOUNTS)
-    if nick in var.USERS:
-        if not ident:
-            ident = var.USERS[nick]["ident"]
-        if not host:
-            host = var.USERS[nick]["host"]
-        if not acc:
-            acc = var.USERS[nick]["account"]
-
-    if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-        for pattern in accounts:
-            if fnmatch.fnmatch(irc_lower(acc), irc_lower(pattern)):
-                return True
-
-    if host:
-        for hostmask in hosts:
-            if match_hostmask(hostmask, nick, ident, host):
-                return True
-
-    return False
+    from src.users import _get
+    user = _get(nick=nick, ident=ident, host=host, account=acc)
+    return user.is_owner()
 
 def is_admin(nick, ident=None, host=None, acc=None):
-    if nick in var.USERS:
-        if not ident:
-            ident = var.USERS[nick]["ident"]
-        if not host:
-            host = var.USERS[nick]["host"]
-        if not acc:
-            acc = var.USERS[nick]["account"]
-    acc = irc_lower(acc)
-    hostmask = irc_lower(nick) + "!" + irc_lower(ident) + "@" + host.lower()
-    flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-
-    if not "F" in flags:
-        try:
-            hosts = set(botconfig.ADMINS)
-            accounts = set(botconfig.ADMINS_ACCOUNTS)
-
-            if not var.DISABLE_ACCOUNTS and acc and acc != "*":
-                for pattern in accounts:
-                    if fnmatch.fnmatch(irc_lower(acc), irc_lower(pattern)):
-                        return True
-
-            if host:
-                for hostmask in hosts:
-                    if match_hostmask(hostmask, nick, ident, host):
-                        return True
-        except AttributeError:
-            pass
-
-        return is_owner(nick, ident, host, acc)
-
-    return True
+    from src.users import _get
+    user = _get(nick=nick, ident=ident, host=host, account=acc)
+    return user.is_admin()
 
 def plural(role, count=2):
     if count == 1:
@@ -339,8 +177,6 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         reply(cli, nick, chan, messages["not_playing"].format(victim), private=True)
         return
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
-
-class InvalidModeException(Exception): pass
 
 def complete_role(var, wrapper, role):
     if role not in var.ROLE_GUIDE.keys():
