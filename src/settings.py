@@ -226,27 +226,6 @@ ROLE_ALIASES = {
 DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
-# role categories; roles return a subset of these categories when fetching their metadata
-# Wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
-#    The village needs to kill every true wolf role to win
-# Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
-#    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
-# Wolfteam: Defines the role as wolfteam for determining winners
-# Village: Defines the role as village for determining winners
-# Neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team) and also for determining winner
-# Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
-#    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
-# Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
-# Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
-# Cursed: Seer sees these roles as wolf
-# Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
-# Team Switcher: Roles which may change teams during gameplay
-ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Village", "Neutral", "Win Stealer", "Hidden", "Safe", "Cursed", "Innocent", "Team Switcher",})
-# the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
-# with exception that wolf is first in the wolf category and villager is last in the village category)
-# Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
-ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Neutral", "Win Stealer"]
-
 # These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
 AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
 
