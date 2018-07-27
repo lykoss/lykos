@@ -82,10 +82,20 @@ class Category:
         self.name = name
         self._roles = set()
 
+    def __len__(self):
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        return len(self._roles)
+
     def __iter__(self):
         if not FROZEN:
             raise RuntimeError("Fatal: Role categories are not ready")
         yield from self._roles
+
+    def __contains__(self, item):
+        if not FROZEN:
+            raise RuntimeError("Fatal: Role categories are not ready")
+        return item in self._roles
 
     @property
     def roles(self):
