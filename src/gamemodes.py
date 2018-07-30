@@ -1059,7 +1059,7 @@ class MaelstromMode(GameMode):
 
     def transition_night_begin(self, evt, var):
         # don't do this n1
-        if var.FIRST_NIGHT:
+        if var.NIGHT_COUNT == 1:
             return
         villagers = get_players()
         lpl = len(villagers)
@@ -1197,7 +1197,7 @@ class MudkipMode(GameMode):
         events.remove_listener("transition_day_begin", self.restore_totem_chances)
 
     def restore_totem_chances(self, var):
-        if var.FIRST_NIGHT: # don't fire unnecessarily every day
+        if var.NIGHT_COUNT == 1: # don't fire unnecessarily every day
             self.TOTEM_CHANCES["pestilence"]["shaman"] = 1
 
     def chk_decision(self, evt, var, force):

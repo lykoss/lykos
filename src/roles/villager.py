@@ -16,7 +16,7 @@ def on_transition_day(evt, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
+    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
         villroles = {"villager"}
         if var.HIDDEN_ROLE == "villager":
             villroles |= var.HIDDEN_ROLES

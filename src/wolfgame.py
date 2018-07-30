@@ -3768,7 +3768,6 @@ def transition_night():
 
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
-    var.FIRST_NIGHT = (var.NIGHT_COUNT == 1)
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
@@ -3814,7 +3813,7 @@ def transition_night():
         t2.daemon = True
         t2.start()
 
-    if var.FIRST_NIGHT and chk_win(end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
+    if var.NIGHT_COUNT == 1 and chk_win(end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
         start(channels.Main.client, users.Bot.nick, channels.Main.name, restart=var.CURRENT_GAMEMODE.name)
         return
 
@@ -3897,7 +3896,7 @@ def transition_night():
 
     dmsg = (daydur_msg + messages["night_begin"])
 
-    if not var.FIRST_NIGHT:
+    if var.NIGHT_COUNT > 1:
         dmsg = (dmsg + messages["first_night_begin"])
     channels.Main.send(dmsg)
     debuglog("BEGIN NIGHT")
@@ -4343,7 +4342,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     if restart:
         var.PHASE = None # allow transition_* to run properly if game was restarted on first night
-    var.FIRST_NIGHT = True
     if not var.START_WITH_DAY:
         var.GAMEPHASE = "night"
         transition_night()

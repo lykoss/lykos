@@ -18,8 +18,6 @@ IDOLS = UserDict()
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(var, wrapper, message):
     """Pick your idol, if they die, you'll become a wolf!"""
-    if not var.FIRST_NIGHT:
-        return
     if wrapper.source in IDOLS:
         wrapper.pm(messages["wild_child_already_picked"])
         return
@@ -79,13 +77,14 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    if var.FIRST_NIGHT:
-        evt.data["actedcount"] += len(IDOLS.keys())
-        evt.data["nightroles"].extend(get_all_players(("wild child",)))
+    # FIXME
+    raise Exception("Wild child isn't ready")
+    evt.data["actedcount"] += len(IDOLS.keys())
+    evt.data["nightroles"].extend(get_all_players(("wild child",)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
-    if (not var.START_WITH_DAY or not var.FIRST_DAY) and var.FIRST_NIGHT:
+    if not var.START_WITH_DAY or not var.FIRST_DAY:
         for child in get_all_players(("wild child",)):
             if child not in IDOLS:
                 players = get_players()

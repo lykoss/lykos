@@ -329,7 +329,7 @@ def on_transition_night_end(evt, var):
             wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
 
 
-        if var.FIRST_NIGHT:
+        if var.NIGHT_COUNT == 1:
             minions = len(get_all_players(("minion",)))
             if minions > 0:
                 wolf.send(messages["has_minions"].format(minions, plural("minion", minions)))
