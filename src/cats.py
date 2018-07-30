@@ -3,6 +3,8 @@ import itertools
 
 from src import events
 
+_dict_keys = type(dict().keys())
+
 # role categories; roles return a subset of these categories when fetching their metadata
 # Wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
 #    The village needs to kill every true wolf role to win
@@ -130,15 +132,13 @@ class Category:
 
     @classmethod
     def from_combination(cls, first, second, op, func):
-        if not isinstance(first, Category):
-            raise ValueError("First argument to from_combination must be a Category")
         if not FROZEN:
             raise RuntimeError("Fatal: Role categories are not ready")
         if isinstance(second, str):
             if second not in ROLES:
                 raise ValueError("{0} is not a role".format(second))
             second = {second}
-        if isinstance(second, (Category, set, frozenset)):
+        if isinstance(second, (Category, set, frozenset, _dict_keys)):
             name = "{0} {1} {2}".format(first, op, second)
             self = cls(name)
             self._roles.update(first)
@@ -152,6 +152,7 @@ class Category:
     __and__ = __rand__  = lambda self, other: self.from_combination(self, other, "&", set.intersection_update)
     __xor__ = __rxor__  = lambda self, other: self.from_combination(self, other, "^", set.symmetric_difference_update)
     __sub__             = lambda self, other: self.from_combination(self, other, "-", set.difference_update)
+    __rsub__            = lambda self, other: self.from_combination(other, self, "-", set.difference_update)
 
 All = Category("*")
 for cat in ROLE_CATS:
