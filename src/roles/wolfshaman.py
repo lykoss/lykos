@@ -51,13 +51,10 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, var):
-    max_totems = 0
+    chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
+    max_totems = sum(x["wolf shaman"] for x in chances.values())
     ps = get_players()
     shamans = get_players(("wolf shaman",))
-    index = var.TOTEM_ORDER.index("wolf shaman")
-    for c in var.TOTEM_CHANCES.values():
-        max_totems += c[index]
-
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]
@@ -71,8 +68,8 @@ def on_transition_night_end(evt, var):
 
         target = 0
         rand = random.random() * max_totems
-        for t in var.TOTEM_CHANCES.keys():
-            target += var.TOTEM_CHANCES[t][index]
+        for t in chances:
+            target += chances[t]["wolf shaman"]
             if rand <= target:
                 TOTEMS[shaman] = t
                 break
@@ -89,5 +86,17 @@ def on_transition_night_end(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wolf shaman"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
+
+@event_listener("default_totems")
+def set_wolf_totems(evt, var, chances):
+    chances["protection"]   ["wolf shaman"] = 1
+    chances["silence"]      ["wolf shaman"] = 1
+    chances["impatience"]   ["wolf shaman"] = 1
+    chances["pacifism"]     ["wolf shaman"] = 1
+    chances["lycanthropy"]  ["wolf shaman"] = 1
+    chances["luck"]         ["wolf shaman"] = 1
+    chances["retribution"]  ["wolf shaman"] = 1
+    chances["misdirection"] ["wolf shaman"] = 1
+    chances["deceit"]       ["wolf shaman"] = 1
 
 # vim: set sw=4 expandtab:

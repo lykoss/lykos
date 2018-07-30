@@ -39,29 +39,14 @@ class GameMode:
             "assassin"          : [...], # haven't quite figured that one out yet
             "blessed villager"  : ["villager"],
         }
-        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = { # XXX: Update everything in src/roles/_shaman_helper.py
-            "death"         : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
-            "protection"    : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
-            "silence"       : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
-            "revealing"     : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
-            "desperation"   : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
-            "impatience"    : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
-            "pacifism"      : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 1},
-            "influence"     : {"shaman": 1, "crazed shaman": 1, "wolf shaman": 0},
-            "narcolepsy"    : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
-            "exchange"      : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
-            "lycanthropy"   : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
-            "luck"          : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
-            "pestilence"    : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 0},
-            "retribution"   : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
-            "misdirection"  : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
-            "deceit"        : {"shaman": 0, "crazed shaman": 1, "wolf shaman": 1},
-        }
+        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {} # XXX: Update everything in src/roles/_shaman_helper.py
 
-        # Support custom shamans and totems
+        # Support all shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
         # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
-        evt = events.Event("default_totems", {"shaman_roles": {"shaman", "crazed shaman", "wolf shaman"}})
+        # Add totems with a priority of 1 and shamans with a priority of 3
+        # Listeners at priority 5 can make use of this information freely
+        evt = events.Event("default_totems", {"shaman_roles": set()})
         evt.dispatch(var, self.TOTEM_CHANCES)
 
         shamans = evt.data["shaman_roles"]

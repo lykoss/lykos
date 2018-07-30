@@ -39,6 +39,7 @@ brokentotem = set()         # type: Set[users.User]
 # influence_totem, exchange_totem, lycanthropy_totem, luck_totem,
 # pestilence_totem, retribution_totem, misdirection_totem, deceit_totem
 
+# XXX this whole comment block is wrong, redo
 # To add new totem types in your custom roles/whatever.py file:
 # 1. Add a key to var.TOTEM_CHANCES with the totem name
 # 2. Add a message totemname_totem to your custom messages.json describing
@@ -176,6 +177,10 @@ def setup_variables(rolename, *, knows_totem):
             if knows_totem:
                 evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
             TOTEMS[target] = actor_totem
+
+    @event_listener("default_totems", priority=3)
+    def add_shaman(evt, var, chances):
+        evt.data["shaman_roles"].add(rolename)
 
     if knows_totem:
         @event_listener("myrole")
@@ -524,5 +529,26 @@ def on_reset(evt, var):
 
     brokentotem.clear()
     havetotem.clear()
+
+@event_listener("default_totems", priority=1)
+def set_all_totems(evt, var, chances):
+    chances.update({
+        "death"         : {},
+        "protection"    : {},
+        "silence"       : {},
+        "revealing"     : {},
+        "desperation"   : {},
+        "impatience"    : {},
+        "pacifism"      : {},
+        "influence"     : {},
+        "narcolepsy"    : {},
+        "exchange"      : {},
+        "lycanthropy"   : {},
+        "luck"          : {},
+        "pestilence"    : {},
+        "retribution"   : {},
+        "misdirection"  : {},
+        "deceit"        : {},
+    })
 
 # vim: set sw=4 expandtab:

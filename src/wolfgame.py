@@ -2938,6 +2938,9 @@ def transition_day(gameid=0):
 
         newrole = "wolf"
         to_send = "bitten_turn"
+        # account for shamans
+        sham_evt = Event("default_totems", {"shaman_roles": set()})
+        sham_evt.dispatch(var, {})
         if chumprole == "guardian angel":
             to_send = "fallen_angel_turn"
             # fallen angels also automatically gain the assassin template if they don't already have it
@@ -2948,7 +2951,7 @@ def transition_day(gameid=0):
             to_send = "seer_turn"
             newrole = "doomsayer"
             debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
-        elif chumprole in var.TOTEM_ORDER:
+        elif chumprole in sham_evt.data["shaman_roles"]:
             to_send = "shaman_turn"
             newrole = "wolf shaman"
             debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
