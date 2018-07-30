@@ -11,12 +11,13 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Win_Stealer
 
 ROLES = UserDict()  # type: Dict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var):
-    blacklist = var.SECONDARY_ROLES.keys() | var.AMNESIAC_BLACKLIST | {"villager", "cultist", "amnesiac"}
+    blacklist = var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac", var.DEFAULT_ROLE}
     return blacklist
 
 @event_listener("transition_night_begin")
