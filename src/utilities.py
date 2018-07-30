@@ -179,7 +179,8 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
 def complete_role(var, wrapper, role):
-    if role not in var.ROLE_GUIDE.keys():
+    from src.cats import ROLES
+    if role not in ROLES:
         special_keys = {"lover"}
         evt = Event("get_role_metadata", {})
         evt.dispatch(var, "special_keys")
@@ -187,7 +188,7 @@ def complete_role(var, wrapper, role):
         if role.lower() in var.ROLE_ALIASES:
             matches = (var.ROLE_ALIASES[role.lower()],)
         else:
-            matches = complete_match(role, var.ROLE_GUIDE.keys() | special_keys)
+            matches = complete_match(role, ROLES.keys() | special_keys)
         if not matches:
             wrapper.reply(messages["no_such_role"].format(role))
             return False
