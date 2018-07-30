@@ -48,7 +48,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog
+from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats
 
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
@@ -1233,7 +1233,7 @@ def stats(cli, nick, chan, rest):
                     role_stats[r] = (min(mn, a), max(mx, a))
         start_roles = set()
         for r, v in var.ORIGINAL_ROLES.items():
-            if r in var.SECONDARY_ROLES or len(v) == 0:
+            if r in var.CURRENT_GAMEMODE.SECONDARY_ROLES or len(v) == 0:
                 continue
             start_roles.add(r)
         for r in start_roles:
@@ -1277,7 +1277,7 @@ def stats(cli, nick, chan, rest):
         for role in rs:
             count = len(var.ROLES[role])
             # only show actual roles
-            if role in var.SECONDARY_ROLES:
+            if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
                 continue
 
             if role == rs[0]:
@@ -1303,7 +1303,7 @@ def stats(cli, nick, chan, rest):
         neutral = 0
 
         for role, players in var.ROLES.items():
-            if role in var.SECONDARY_ROLES:
+            if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
                 continue
             if role in Wolfteam:
                 wolfteam += len(players)
@@ -4079,7 +4079,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
         for role, num in defroles.items():
             addroles[role] = max(addroles.get(role, num), len(var.FORCE_ROLES.get(role, ())))
-        if sum([addroles[r] for r in addroles if r not in var.SECONDARY_ROLES]) > lv:
+        if sum([addroles[r] for r in addroles if r not in var.CURRENT_GAMEMODE.SECONDARY_ROLES]) > lv:
             channels.Main.send(messages["too_many_roles"])
             return
 
@@ -4087,11 +4087,11 @@ def start(cli, nick, chan, forced = False, restart = ""):
     possible_rolesets = []
     roleset_roles = defaultdict(int)
     for role, amt in list(addroles.items()):
-        if role not in var.ROLE_SETS:
+        if role not in var.CURRENT_GAMEMODE.ROLE_SETS:
             continue
 
         del addroles[role]
-        rs = Counter(var.ROLE_SETS[role])
+        rs = Counter(var.CURRENT_GAMEMODE.ROLE_SETS[role])
         toadd = random.sample(list(rs.elements()), amt)
         for r in toadd:
             addroles[r] += 1
@@ -4114,7 +4114,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
         wvs = sum(addroles[r] for r in Wolfchat)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.SECONDARY_ROLES)):
+        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.CURRENT_GAMEMODE.SECONDARY_ROLES)):
             cli.msg(chan, messages["too_few_players_custom"])
         elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
             cli.msg(chan, messages["need_one_wolf"])
@@ -4174,20 +4174,17 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_DEADCHAT.clear()
 
     for role, ps in var.FORCE_ROLES.items():
-        if role not in var.SECONDARY_ROLES.keys():
+        if role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys():
             vils.difference_update(ps)
 
     for role, count in addroles.items():
-        if role in var.SECONDARY_ROLES:
+        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
             var.ROLES[role] = [None] * count
             continue # We deal with those later, see below
 
         to_add = set()
 
         if role in var.FORCE_ROLES:
-            # Secondary roles are handled later
-            if role in var.SECONDARY_ROLES:
-                continue
             if len(var.FORCE_ROLES[role]) > count:
                 channels.Main.send(messages["error_frole_too_many"].format(role))
                 return
@@ -4226,7 +4223,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLE_STATS = frozenset(possible_rolesets_set)
 
     # Now for the secondary roles
-    for role, dfn in var.SECONDARY_ROLES:
+    for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
         # convert dfn into a set of roles that this role can be applied on top of
         whitelist = set()
         for d in dfn:
@@ -4234,7 +4231,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             if d[0] == "-": # removing?
                 fn = whitelist.difference_update
                 d = d[1:]
-            if d in cats.ROLE_CATS:
+            if d in cats.ROLE_CATS | {"*"}:
                 fn(cats.get(d))
             elif d in cats.ROLES: # not a category, just a role name
                 fn({d})
@@ -5561,7 +5558,7 @@ def revealroles(var, wrapper, message):
                 evt.dispatch(var, user, role)
                 special_case = evt.data["special_case"]
 
-                if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.SECONDARY_ROLES:
+                if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
                         if user in var.ORIGINAL_ROLES[old_role] and user not in var.ROLES[old_role]:
                             special_case.append("was {0}".format(old_role))

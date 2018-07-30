@@ -1083,14 +1083,14 @@ class MaelstromMode(GameMode):
 
         # for end of game stats to show what everyone ended up as on game end
         for role, pl in var.ROLES.items():
-            if role in var.SECONDARY_ROLES:
+            if role in self.SECONDARY_ROLES:
                 continue
             for p in pl:
                 # discard them from all non-secondary roles, we don't have a reliable
                 # means of tracking their previous role (due to traitor turning, exchange
                 # totem, etc.), so we need to iterate through everything.
                 for r in var.ORIGINAL_ROLES.keys():
-                    if r in var.SECONDARY_ROLES:
+                    if r in self.SECONDARY_ROLES:
                         continue
                     var.ORIGINAL_ROLES[r].discard(p)
                 var.ORIGINAL_ROLES[role].add(p)
@@ -1101,7 +1101,7 @@ class MaelstromMode(GameMode):
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
         addroles = {}
-        for role in var.ROLE_GUIDE:
+        for role in self.ROLE_GUIDE:
             if role in var.SECONDARY_ROLES and not do_templates:
                 continue
             addroles[role] = 0
