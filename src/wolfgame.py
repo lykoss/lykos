@@ -4063,9 +4063,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
     event = Event("role_attribution", {"addroles": addroles})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
-        strip = lambda x: re.sub("\(.*\)", x, "")
+        strip = lambda x: re.sub("\(.*\)", "", x)
         lv = len(villagers)
-        defroles = Counter(strip(x) for x in itertools.chain.from_iterable(filter(var.ROLE_GUIDE, lambda i: i <= lv)))
+        roles = []
+        for num, rolelist in var.CURRENT_GAMEMODE.ROLE_GUIDE.items():
+            if num <= lv:
+                roles.extend(rolelist)
+        defroles = Counter(strip(x) for x in roles)
         for role, count in list(defroles.items()):
             if role[0] == "-":
                 srole = role[1:]
@@ -4327,10 +4331,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ORIGINAL_ROLES.clear()
     for role, players in var.ROLES.items():
         var.ORIGINAL_ROLES[role] = players.copy()
-
-    # Handle doctor
-    for doctor in var.ROLES["doctor"]:
-        var.DOCTORS[doctor.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(pl)) # FIXME
 
     var.DAY_TIMEDELTA = timedelta(0)
     var.NIGHT_TIMEDELTA = timedelta(0)
@@ -4908,17 +4908,29 @@ def list_roles(var, wrapper, message):
             wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
             return
 
-    roles = list(gamemode().ROLE_GUIDE)
+    roles = list(gamemode().ROLE_GUIDE.items())
     roles.sort(key=lambda x: x[0])
 
     if pieces[0] and pieces[0].isdigit():
         specific = int(pieces[0])
+        s = itertools.chain.from_iterable([y for x, y in roles if x <= specific])
+        msg.append(sorted(s))
 
-        
+    else:
+        final = []
 
-    for num, role in roles:
-        ...
+        for num, role in roles:
+            snum = "[{0}]".format(num)
+            if num <= lpl:
+                snum = "\u0002{0}\u0002".format(snum)
+            final.append("{0} {1}".format(snum, ", ".join(role)))
 
+        msg.append(" ".join(final))
+
+    if not msg:
+        msg.append("No roles are defined for {0}p games.".format(specific or lpl))
+
+    wrapper.send(*msg)
 
 #@cmd("roles", pm=True)
 def listroles(cli, nick, chan, rest):
