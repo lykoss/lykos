@@ -15,6 +15,7 @@ from src.cats import Wolf, Wolfchat, Wolfteam
 from src.roles._wolf_helper import CAN_KILL, is_known_wolf_ally, send_wolfchat_message
 
 KILLS = UserDict() # type: Dict[users.User, List[users.User]]
+KNOWS_MINIONS = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=CAN_KILL)
 def wolf_kill(var, wrapper, message):
@@ -329,10 +330,11 @@ def on_transition_night_end(evt, var):
             wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
 
 
-        if var.NIGHT_COUNT == 1:
+        if wolf not in KNOWS_MINIONS:
             minions = len(get_all_players(("minion",)))
             if minions > 0:
                 wolf.send(messages["has_minions"].format(minions, plural("minion", minions)))
+            KNOWS_MINIONS.add(wolf)
 
         pl = ps[:]
         random.shuffle(pl)
@@ -374,6 +376,7 @@ def on_begin_day(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     KILLS.clear()
+    KNOWS_MINIONS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

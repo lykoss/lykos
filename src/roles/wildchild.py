@@ -63,6 +63,7 @@ def on_myrole(evt, var, user):
 
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    del IDOLS[:user:]
     if var.PHASE not in var.GAME_PHASES:
         return
 
@@ -77,9 +78,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    # FIXME
-    raise Exception("Wild child isn't ready")
-    evt.data["actedcount"] += len(IDOLS.keys())
+    evt.data["actedcount"] += len(IDOLS)
     evt.data["nightroles"].extend(get_all_players(("wild child",)))
 
 @event_listener("transition_day_begin")

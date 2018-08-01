@@ -173,7 +173,7 @@ def on_transition_night_end(evt, var):
         to_send = "dullahan_notify"
         if dullahan.prefers_simple():
             to_send = "dullahan_simple"
-        t = messages["dullahan_targets"] if var.NIGHT_COUNT == 1 else messages["dullahan_remaining_targets"]
+        t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
         dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
 
 @event_listener("succubus_visit")
@@ -193,7 +193,7 @@ def on_myrole(evt, var, user):
                 targets.remove(target)
         random.shuffle(targets)
         if targets:
-            t = messages["dullahan_targets"] if var.NIGHT_COUNT == 1 else messages["dullahan_remaining_targets"]
+            t = messages["dullahan_targets"] if targets == list(TARGETS[user]) else messages["dullahan_remaining_targets"]
             evt.data["messages"].append(t + ", ".join(t.nick for t in targets))
         else:
             evt.data["messages"].append(messages["dullahan_targets_dead"])

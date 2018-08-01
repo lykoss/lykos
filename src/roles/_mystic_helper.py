@@ -27,7 +27,7 @@ def setup_variables(rolename, *, send_role, types):
 
         for t in types:
             cat = cats.get(t)
-            players = get_players(cat)
+            players = get_players((cat,))
             pl.update(players)
             ctr[t] += len(players)
 

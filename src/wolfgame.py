@@ -3813,10 +3813,6 @@ def transition_night():
         t2.daemon = True
         t2.start()
 
-    if var.NIGHT_COUNT == 1 and chk_win(end_game=False): # prevent game from ending as soon as it begins (useful for the random game mode)
-        start(channels.Main.client, users.Bot.nick, channels.Main.name, restart=var.CURRENT_GAMEMODE.name)
-        return
-
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
     if chk_win():
         return

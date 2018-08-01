@@ -600,7 +600,7 @@ class RandomMode(GameMode):
                 for j in range(count):
                     u = users.FakeUser.from_nick(str(i + j))
                     rolemap[role].add(u.nick)
-                    if role not in var.SECONDARY_ROLES:
+                    if role not in self.SECONDARY_ROLES:
                         mainroles[u] = role
                 i += count
 
@@ -969,13 +969,10 @@ class MaelstromMode(GameMode):
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALWAYS_PM_ROLE = True
-        # clone is pointless in this mode
-        # dullahan doesn't really work in this mode either, if enabling anyway special logic to determine kill list
-        # needs to be added above for when dulls are added during the game
-        # matchmaker is conditionally enabled during night 1 only
+        # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
-        self.roles = list(self.ROLE_GUIDE.keys() - self.SECONDARY_ROLES.keys() - {"amnesiac", "clone", "dullahan", "matchmaker", "monster", "demoniac", "wild child", "succubus", "piper"})
+        self.roles = list(self.ROLE_GUIDE.keys() - self.SECONDARY_ROLES.keys() - {"amnesiac", "clone", "monster", "demoniac", "wild child", "succubus", "piper"})
 
         self.DEAD_ACCOUNTS = set()
         self.DEAD_HOSTS = set()
@@ -1035,6 +1032,11 @@ class MaelstromMode(GameMode):
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
             channels.Main.mode(*cmodes)
+        evt = events.Event("new_role", {"messages": [], "role": role}, inherit_from=None)
+        # Use "player" as old role, to force wolf event to send "new wolf" messages
+        evt.dispatch(var, wrapper.source, "player")
+        role = evt.data["role"]
+
         var.ROLES[role].add(wrapper.source)
         var.ORIGINAL_ROLES[role].add(wrapper.source)
         var.FINAL_ROLES[wrapper.source.nick] = role # FIXME: once FINAL_ROLES stores users
@@ -1044,9 +1046,6 @@ class MaelstromMode(GameMode):
         if wrapper.source.nick in var.USERS:
             var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
-        evt = events.Event("new_role", {"messages": [], "role": role}, inherit_from=None)
-        # Use "player" as old role, to force wolf event to send "new wolf" messages
-        evt.dispatch(var, wrapper.source, "player")
         for message in evt.data["messages"]:
             wrapper.pm(message)
 
@@ -1066,20 +1065,16 @@ class MaelstromMode(GameMode):
         addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
+        for rs in var.ROLES.values():
+            rs.clear()
+        new_evt = events.Event("new_role", {"messages": [], "role": None}, inherit_from=None)
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
-            var.ROLES[role].clear()
-            var.ROLES[role].update(selected)
             for x in selected:
                 villagers.remove(x)
-
-        # Handle roles that need extra help
-        for doctor in var.ROLES["doctor"]:
-            var.DOCTORS[doctor.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * lpl)
-
-        # Clear totem tracking; this would let someone that gets shaman twice in a row to give
-        # out a totem to the same person twice in a row, but oh well
-        var.LASTGIVEN = {}
+                new_evt.data["role"] = role
+                new_evt.dispatch(var, x, get_main_role(x))
+                var.ROLES[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
         for role, pl in var.ROLES.items():
@@ -1102,15 +1097,12 @@ class MaelstromMode(GameMode):
         lpl = len(villagers) - 1
         addroles = {}
         for role in self.ROLE_GUIDE:
-            if role in var.SECONDARY_ROLES and not do_templates:
+            if role in self.SECONDARY_ROLES and not do_templates:
                 continue
             addroles[role] = 0
 
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = self.roles[:]
-        if do_templates:
-            # mm only works night 1, do_templates is also only true n1
-            roles.append("matchmaker")
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
@@ -1132,7 +1124,7 @@ class MaelstromMode(GameMode):
                 for j in range(count):
                     u = users.FakeUser.from_nick(str(i + j))
                     rolemap[role].add(u)
-                    if role not in var.SECONDARY_ROLES:
+                    if role not in self.SECONDARY_ROLES:
                         mainroles[u] = role
                 i += count
 

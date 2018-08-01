@@ -42,7 +42,7 @@ def on_transition_day_resolve(evt, var, victim):
 
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
+    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
         for blessed in get_all_players(("blessed villager",)):
             to_send = "blessed_notify"
             if blessed.prefers_simple():

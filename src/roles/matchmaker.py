@@ -74,8 +74,6 @@ def get_lovers():
 @command("match", "choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(var, wrapper, message):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
-    if not var.FIRST_NIGHT:
-        return
     if wrapper.source in MATCHMAKERS:
         wrapper.send(messages["already_matched"])
         return
@@ -119,19 +117,21 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        ps = get_players()
-        for mm in get_all_players(("matchmaker",)):
-            pl = ps[:]
-            random.shuffle(pl)
-            if mm.prefers_simple():
-                mm.send(messages["matchmaker_simple"])
-            else:
-                mm.send(messages["matchmaker_notify"])
-            mm.send("Players: " + ", ".join(p.nick for p in pl))
+    ps = get_players()
+    for mm in get_all_players(("matchmaker",)):
+        if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
+            continue
+        pl = ps[:]
+        random.shuffle(pl)
+        if mm.prefers_simple():
+            mm.send(messages["matchmaker_simple"])
+        else:
+            mm.send(messages["matchmaker_notify"])
+        mm.send("Players: " + ", ".join(p.nick for p in pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+    MATCHMAKERS.discard(player)
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
         for lover in lovers:
@@ -195,9 +195,8 @@ def on_player_win(evt, var, player, role, winner, survived):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    if var.FIRST_NIGHT:
-        evt.data["actedcount"] += len(MATCHMAKERS)
-        evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
+    evt.data["actedcount"] += len(MATCHMAKERS)
+    evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
 
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt, var, target1, target2):
