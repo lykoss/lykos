@@ -47,15 +47,17 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
     user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
-    ch = channels.add(chan, cli)
+    ch = None
+    if not channels.predicate(chan): # returns True if it's not a channel
+        ch = channels.add(chan, cli)
 
-    if ch not in user.channels:
-        user.channels[ch] = modes
-        ch.users.add(user)
-        for mode in modes:
-            if mode not in ch.modes:
-                ch.modes[mode] = set()
-            ch.modes[mode].add(user)
+        if ch not in user.channels:
+            user.channels[ch] = modes
+            ch.users.add(user)
+            for mode in modes:
+                if mode not in ch.modes:
+                    ch.modes[mode] = set()
+                ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
     event.dispatch(var, ch, user)
@@ -110,15 +112,17 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
     user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account) # FIXME
-    ch = channels.add(chan, cli)
 
-    if ch not in user.channels:
-        user.channels[ch] = modes
-        ch.users.add(user)
-        for mode in modes:
-            if mode not in ch.modes:
-                ch.modes[mode] = set()
-            ch.modes[mode].add(user)
+    ch = None
+    if not channels.predicate(chan):
+        ch = channels.add(chan, cli)
+        if ch not in user.channels:
+            user.channels[ch] = modes
+            ch.users.add(user)
+            for mode in modes:
+                if mode not in ch.modes:
+                    ch.modes[mode] = set()
+                ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
     event.dispatch(var, ch, user)
