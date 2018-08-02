@@ -36,10 +36,10 @@ class GameMode:
             "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
             "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
             "mayor"             : ["*", "-Innocent", "-Win Stealer"],
-            "assassin"          : [...], # haven't quite figured that one out yet
+            "assassin"          : ["*", "-Nocturnal", "Killer", "-Wolf", "-Innocent", "-Spy", "-Team Switcher", "-traitor"], # inaccurate, but best bet for now
             "blessed villager"  : ["villager"],
         }
-        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {} # XXX: Update everything in src/roles/_shaman_helper.py
+        self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
 
         # Support all shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
