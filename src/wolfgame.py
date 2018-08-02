@@ -4865,10 +4865,10 @@ def list_roles(var, wrapper, message):
     lpl = len(var.ALL_PLAYERS)
     specific = 0
 
-    pieces = re.split(" +", message.strip(), 1)
+    pieces = re.split(" +", message.strip())
     gamemode = var.CURRENT_GAMEMODE
     if gamemode.name == "villagergame":
-        gamemode = var.GAME_MODES["default"][0]
+        gamemode = var.GAME_MODES["default"][0]()
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
         wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
@@ -4880,11 +4880,11 @@ def list_roles(var, wrapper, message):
         msg.append("There {0} \u0002{1}\u0002 playing.".format("is" if lpl == 1 else "are", lpl))
         if var.PHASE in var.GAME_PHASES:
             msg.append("Using the {0} game mode.".format(gamemode.name))
-            pieces.append(str(lpl))
+            pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
         valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles", "villagergame"}
-        mode = pieces[0]
+        mode = pieces.pop(0)
         if mode not in valid:
             matches = complete_match(mode, valid)
             if not matches:
@@ -4896,21 +4896,28 @@ def list_roles(var, wrapper, message):
 
             mode = matches[0]
 
-        gamemode = var.GAME_MODES[mode][0]
+        gamemode = var.GAME_MODES[mode][0]()
 
         try:
-            gamemode().ROLE_GUIDE
+            gamemode.ROLE_GUIDE
         except AttributeError:
             wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
             return
 
-    roles = list(gamemode().ROLE_GUIDE.items())
+    roles = list(gamemode.ROLE_GUIDE.items())
     roles.sort(key=lambda x: x[0])
 
-    if pieces[0] and pieces[0].isdigit():
+    if pieces and pieces[0].isdigit():
         specific = int(pieces[0])
-        s = itertools.chain.from_iterable([y for x, y in roles if x <= specific])
-        msg.append(sorted(s))
+        new = []
+        for role in itertools.chain.from_iterable([y for x, y in roles if x <= specific]):
+            if role.startswith("-"):
+                new.remove(role[1:])
+            else:
+                new.append(role)
+
+        msg.append("[{0}]".format(specific))
+        msg.append(", ".join(new))
 
     else:
         final = []
