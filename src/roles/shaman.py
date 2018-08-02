@@ -66,7 +66,7 @@ def on_transition_night_end(evt, var):
         target = 0
         rand = random.random() * max_totems
         for t in chances:
-            target += chances[t][index]
+            target += chances[t]["shaman"]
             if rand <= target:
                 TOTEMS[shaman] = t
                 break

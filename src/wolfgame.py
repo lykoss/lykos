@@ -55,7 +55,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
+from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -4081,6 +4081,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
         if sum([addroles[r] for r in addroles if r not in var.CURRENT_GAMEMODE.SECONDARY_ROLES]) > lv:
             channels.Main.send(messages["too_many_roles"])
             return
+        for role in All:
+            addroles.setdefault(role, 0)
 
     # convert roleset aliases into the appropriate roles
     possible_rolesets = []
@@ -4119,7 +4121,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.msg(chan, messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
             cli.msg(chan, messages["too_many_wolves"])
-        elif set(addroles) != set(defroles):
+        elif not event.prevent_default and set(addroles) != set(defroles): # defroles only gets defined if prevent_default == False
             cli.msg(chan, messages["error_role_players_count"])
         else:
             need_reset = False
