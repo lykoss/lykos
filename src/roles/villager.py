@@ -5,6 +5,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Hidden
 
 # handles villager and cultist
 
@@ -19,7 +20,7 @@ def on_transition_night_end(evt, var):
     if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
         villroles = {"villager"}
         if var.HIDDEN_ROLE == "villager":
-            villroles |= var.HIDDEN_ROLES
+            villroles |= Hidden
         villagers = get_players(villroles)
         if villagers:
             for villager in villagers:
@@ -31,7 +32,7 @@ def on_transition_night_end(evt, var):
 
         cultroles = {"cultist"}
         if var.HIDDEN_ROLE == "cultist":
-            cultroles |= var.HIDDEN_ROLES
+            cultroles |= Hidden
         cultists = get_players(cultroles)
         if cultists:
             for cultist in cultists:

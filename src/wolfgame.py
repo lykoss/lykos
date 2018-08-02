@@ -55,7 +55,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Neutral
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -1676,7 +1676,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             survived = get_players()
             if not pentry["dced"]:
                 # determine default win status (event can override)
-                if rol in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in var.HIDDEN_ROLES):
+                if rol in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
                     if winner == "wolves":
                         won = True
                         iwon = plr in survived
@@ -4937,7 +4937,7 @@ def myrole(var, wrapper, message):
         return
 
     role = get_main_role(wrapper.source)
-    if role in var.HIDDEN_ROLES:
+    if role in Hidden:
         role = var.HIDDEN_ROLE
 
     evt = Event("myrole", {"role": role, "messages": []})

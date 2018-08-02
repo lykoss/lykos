@@ -1,6 +1,6 @@
 from src.messages import messages
 from src.events import Event
-from src.cats import Wolfteam, Neutral
+from src.cats import Wolfteam, Neutral, Hidden
 from src import settings as var
 from src import users
 
@@ -83,7 +83,7 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
         var.FINAL_ROLES[player.nick] = newrole
 
     sayrole = newrole
-    if sayrole in var.HIDDEN_ROLES:
+    if sayrole in Hidden:
         sayrole = var.HIDDEN_ROLE
     an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 

@@ -10,7 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.cats import Wolf, Wolfchat, Wolfteam
+from src.cats import Wolf, Wolfchat, Wolfteam, Hidden
 
 from src.roles._wolf_helper import CAN_KILL, is_known_wolf_ally, send_wolfchat_message
 
@@ -192,7 +192,7 @@ def on_new_role(evt, var, player, old_role):
         return
 
     sayrole = evt.data["role"]
-    if sayrole in var.HIDDEN_ROLES:
+    if sayrole in Hidden:
         sayrole = var.HIDDEN_ROLE
     an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 
