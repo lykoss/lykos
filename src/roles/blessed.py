@@ -7,7 +7,7 @@ from collections import defaultdict
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
-from src.decorators import cmd, event_listener
+from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
