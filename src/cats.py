@@ -52,8 +52,8 @@ def role_order():
     # handle fixed ordering for wolf and villager
     buckets["Wolf"].remove("wolf")
     buckets["Village"].remove("villager")
-    for tag in buckets:
-        buckets[tag] = sorted(buckets[tag])
+    for tags in buckets.values():
+        tags.sort()
     buckets["Wolf"].insert(0, "wolf")
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
@@ -120,9 +120,6 @@ class Category:
             return hash(self._roles)
         except TypeError: # still a regular set; not yet frozen
             raise RuntimeError("Fatal: Role categories are not ready")
-
-    def __len__(self):
-        return len(self._roles)
 
     def __str__(self):
         return self.name
