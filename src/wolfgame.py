@@ -123,8 +123,6 @@ var.DISCONNECTED = {}  # players who are still alive but disconnected
 
 var.RESTARTING = False
 
-var.BITTEN_ROLES = {}
-var.LYCAN_ROLES = {}
 var.START_VOTES = UserSet()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
@@ -1929,8 +1927,6 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             del var.MAIN_ROLES[player]
             for r in allroles:
                 var.ROLES[r].remove(player)
-            if player.nick in var.BITTEN_ROLES:
-                del var.BITTEN_ROLES[player.nick] # FIXME
             pl.discard(player)
             # i herd u liek parameters
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
@@ -1962,15 +1958,17 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
             # that set is not added to newstats to indicate that set is no longer possible
             # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
-            event = Event("reconfigure_stats", {})
+            event = Event("reconfigure_stats", {"new": set()})
             for p in possible:
                 for rs in var.ROLE_STATS:
                     d = dict(rs)
                     if p in d and d[p] >= 1:
                         d[p] -= 1
-                        event.dispatch(var, d)
-                        if min(d.values()) >= 0:
-                            newstats.add(frozenset(d.items()))
+                        event.data["new"] = {d}
+                        event.dispatch(var, d, "del_player")
+                        for v in event.data["new"]:
+                            if min(v.values()) >= 0:
+                                newstats.add(frozenset(v.items()))
             var.ROLE_STATS = frozenset(newstats)
 
             if not player.is_fake:
@@ -2314,7 +2312,7 @@ def rename_player(var, user, prefix):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
 
-            for dictvar in (var.OBSERVED, var.LASTHEXED, var.BITE_PREFERENCES):
+            for dictvar in (var.OBSERVED, var.LASTHEXED):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -2325,7 +2323,7 @@ def rename_player(var, user, prefix):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.FINAL_ROLES, var.DOCTORS, var.BITTEN_ROLES, var.LYCAN_ROLES):
+            for dictvar in (var.FINAL_ROLES, var.DOCTORS):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
             # defaultdict(list), where keys are nicks and items in list do not matter
@@ -2341,7 +2339,7 @@ def rename_player(var, user, prefix):
             for setvar in (var.HEXED, var.SILENCED, var.PASSED,
                            var.JESTERS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
-                           var.ALPHA_WOLVES, var.CURSED):
+                           var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -2663,7 +2661,6 @@ def transition_day(gameid=0):
     bywolves = set()
     onlybywolves = set()
     protected = {}
-    bitten = []
     numkills = {}
 
     evt = Event("transition_day", {
@@ -2672,7 +2669,6 @@ def transition_day(gameid=0):
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
         "protected": protected,
-        "bitten": bitten,
         "numkills": numkills, # populated at priority 3
         })
     evt.dispatch(var)
@@ -2680,74 +2676,6 @@ def transition_day(gameid=0):
     # remove duplicates
     victims_set = set(victims)
     vappend = []
-
-    # set to True if we play chilling howl message due to a bitten person turning
-    new_wolf = False
-    if var.ALPHA_ENABLED: # check for bites
-        for (alpha, target) in var.BITE_PREFERENCES.items():
-            actor = users._get(alpha) # FIXME
-            user = users._get(target) # FIXME
-            # bite is now separate but some people may try to double up still, if bitten person is
-            # also being killed by wolves, make the kill not apply
-            # note that we cannot bite visiting harlots unless they are visiting a wolf,
-            # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
-            got_bit = False
-            bite_evt = Event("bite", {
-                "can_bite": True,
-                "kill": user in var.ROLES["lycan"] or target in var.LYCANTHROPES or target in var.IMMUNIZED
-                },
-                victims=victims,
-                killers=killers,
-                bywolves=bywolves,
-                onlybywolves=onlybywolves,
-                protected=protected,
-                bitten=bitten,
-                numkills=numkills)
-            bite_evt.dispatch(var, actor, user)
-            if bite_evt.data["can_bite"] and not bite_evt.data["kill"]:
-                # mark them as bitten
-                got_bit = True
-                # if they were also being killed by wolves, undo that
-                if user in bywolves:
-                    victims.remove(user)
-                    bywolves.discard(user)
-                    onlybywolves.discard(user)
-                    killers[user].remove("@wolves")
-                    if user not in victims:
-                        victims_set.discard(user)
-
-            if user in victims_set:
-                # bite was unsuccessful due to someone else killing them
-                var.ALPHA_WOLVES.remove(actor.nick)
-            elif bite_evt.data["kill"]:
-                # target immunized or a lycan, kill them instead and refund the bite
-                var.ALPHA_WOLVES.remove(actor.nick)
-                if var.ACTIVE_PROTECTIONS[user.nick]:
-                    # target was protected
-                    protected[user] = var.ACTIVE_PROTECTIONS[user.nick].pop(0)
-                elif user in protected:
-                    del protected[user]
-                # add them as a kill even if protected so that protection message plays
-                if user not in victims:
-                    onlybywolves.add(user)
-                killers[user].append(actor)
-                victims.append(user)
-                victims_set.add(user)
-                bywolves.add(user)
-            elif got_bit:
-                new_wolf = True
-                bitten.append(user)
-            else:
-                # bite failed due to some other reason (namely harlot)
-                var.ALPHA_WOLVES.remove(actor.nick)
-
-            to_send = "alpha_bite_failure"
-            if actor.nick in var.ALPHA_WOLVES:
-                to_send = "alpha_bite_success"
-            actor.send(messages[to_send].format(user))
-
-
-    var.BITE_PREFERENCES = {}
     victims.clear()
     # Ensures that special events play for bodyguard and harlot-visiting-victim so that kill can
     # be correctly attributed to wolves (for vengeful ghost lover), and that any gunner events
@@ -2784,91 +2712,60 @@ def transition_day(gameid=0):
                 vappend.remove(v)
                 victims.append(v)
 
-    message = [messages["sunrise"].format(min, sec)]
+    message = defaultdict(list)
+    message["*"].append(messages["sunrise"].format(min, sec)])
 
     # This needs to go down here since having them be their night value matters above
     var.DISEASED_WOLVES = False
-    var.ALPHA_ENABLED = False
 
     dead = []
     vlist = victims[:]
-    novictmsg = True
-    if new_wolf:
-        message.append(messages["new_wolf"])
-        var.EXTRA_WOLVES += 1
-        novictmsg = False
-
     revt = Event("transition_day_resolve", {
         "message": message,
-        "novictmsg": novictmsg,
+        "novictmsg": True,
         "dead": dead,
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
         "killers": killers,
         "protected": protected,
-        "bitten": bitten
         })
     # transition_day_resolve priorities:
     # 1: target not home
     # 2: protection
-    # 3: lycans
     # 6: riders on default logic
     # In general, an event listener < 6 should both stop propagation and prevent default
     # Priority 6 listeners add additional stuff to the default action and should not prevent default
     for victim in vlist:
         if not revt.dispatch(var, victim):
             continue
-        if (victim in var.ROLES["lycan"] or victim.nick in var.LYCANTHROPES) and victim in revt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
-            vrole = get_main_role(victim)
-            if vrole not in Wolfchat:
-                revt.data["message"].append(messages["new_wolf"])
-                var.EXTRA_WOLVES += 1
-                var.LYCAN_ROLES[victim.nick] = vrole
-                change_role(var, victim, vrole, "wolf", message="lycan_turn")
-                var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
-                revt.data["novictmsg"] = False
-        elif victim not in revt.data["dead"]: # not already dead via some other means
+        if victim not in revt.data["dead"]: # not already dead via some other means
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                revt.data["message"].append(messages["death"].format(victim, an, role))
+                revt.data["message"][victim].append(messages["death"].format(victim, an, role))
             else:
-                revt.data["message"].append(messages["death_no_reveal"].format(victim))
+                revt.data["message"][victim].append(messages["death_no_reveal"].format(victim))
             revt.data["dead"].append(victim)
-            if random.random() < var.GIF_CHANCE:
-                revt.data["message"].append(random.choice(
-                    ["https://i.imgur.com/nO8rZ.gifv",
-                    "https://i.imgur.com/uGVfZ.gifv",
-                    "https://i.imgur.com/mUcM09n.gifv",
-                    "https://i.imgur.com/b8HAvjL.gifv",
-                    "https://i.imgur.com/PIIfL15.gifv",
-                    "https://i.imgur.com/eJiMG5z.gifv"]
-                    ))
 
     # Priorities:
-    # 1 = harlot/succubus visiting victim
-    # 2 = determining whether or not we should print the "no victims" message
-    # 3 = harlot visiting wolf
-    # 4 = gunner shooting wolf
-    # 5 = wolves killing diseased, wolves stealing gun
-    # 10 = alpha wolf bite
-    # Note that changing the "novictmsg" data item only makes sense for priority 1 events,
-    # as after that point the message was already added. Events that could kill more people
-    # should do so before priority 10. Events that require everyone that can be killed to
-    # be listed as dead should be priority 10 or later.
+    # 1 = harlot/succubus visiting victim (things that kill the role itself)
+    # 2 = howl/novictmsg processing, alpha wolf bite/lycan turning (roleswaps)
+    # 3 = harlot visiting wolf, bodyguard/GA guarding wolf (things that kill the role itself -- should move to pri 1)
+    # 4 = gunner shooting wolf, retribution totem (things that kill the victim's killers)
+    # 5 = wolves killing diseased, wolves stealing gun (all deaths must be finalized before pri 5)
+    # Note that changing the "novictmsg" data item only makes sense for priority 2 events,
+    # as after that point the message was already added (at priority 2.9).
     revt2 = Event("transition_day_resolve_end", {
-        "message": revt.data["message"],
+        "message": message,
         "novictmsg": revt.data["novictmsg"],
+        "howl": 0,
         "dead": dead,
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
         "killers": killers,
         "protected": protected,
-        "bitten": bitten
         })
     revt2.dispatch(var, victims)
-    message = revt2.data["message"]
-    novictmsg = revt2.data["novictmsg"]
 
     for victim in list(dead):
         if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
@@ -2883,9 +2780,9 @@ def transition_day(gameid=0):
                 if woflset:
                     deadwolf = random.choice(tuple(woflset))
                     if var.ROLE_REVEAL in ("on", "team"):
-                        message.append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
+                        message[victim].append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
                     else:
-                        message.append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
+                        message[victim].append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
                     dead.append(deadwolf)
                     killers[deadwolf].append(victim)
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
@@ -2915,41 +2812,36 @@ def transition_day(gameid=0):
                 pass # no wolves to give gun to (they were all killed during night or something)
             var.GUNNERS[victim] = 0  # just in case
 
-    channels.Main.send("\n".join(message))
+    # flatten message, * goes first then everyone else
+    to_send = message["*"]
+    del message["*"]
+    for msg in message.values():
+        to_send.extend(msg)
 
-    for chump in bitten:
-        # turn all bitten people into wolves
-        # short-circuit if they are already a wolf or are dying
-        chumprole = get_main_role(chump)
-        if chump in dead or chumprole in Wolf:
-            continue
+    if random.random() < var.GIF_CHANCE:
+        to_send.append(random.choice(
+            ["https://i.imgur.com/nO8rZ.gifv",
+            "https://i.imgur.com/uGVfZ.gifv",
+            "https://i.imgur.com/mUcM09n.gifv",
+            "https://i.imgur.com/b8HAvjL.gifv",
+            "https://i.imgur.com/PIIfL15.gifv",
+            "https://i.imgur.com/eJiMG5z.gifv"]
+            ))
+    channels.Main.send("\n".join(to_send))
 
-        newrole = "wolf"
-        to_send = "bitten_turn"
-        # account for shamans
-        sham_evt = Event("default_totems", {"shaman_roles": set()})
-        sham_evt.dispatch(var, {})
-        if chumprole == "guardian angel":
-            to_send = "fallen_angel_turn"
-            # fallen angels also automatically gain the assassin template if they don't already have it
-            newrole = "fallen angel"
-            var.ROLES["assassin"].add(chump)
-            debuglog("{0} (guardian angel) TURNED FALLEN ANGEL".format(chump))
-        elif chumprole in ("seer", "oracle", "augur"):
-            to_send = "seer_turn"
-            newrole = "doomsayer"
-            debuglog("{0} ({1}) TURNED DOOMSAYER".format(chump, chumprole))
-        elif chumprole in sham_evt.data["shaman_roles"]:
-            to_send = "shaman_turn"
-            newrole = "wolf shaman"
-            debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(chump, chumprole))
-        elif chumprole == "harlot":
-            to_send = "harlot_turn"
-            debuglog("{0} (harlot) TURNED WOLF".format(chump))
-        else:
-            debuglog("{0} ({1}) TURNED WOLF".format(chump, chumprole))
-        var.BITTEN_ROLES[chump.nick] = chumprole
-        change_role(var, chump, chumprole, newrole, message=to_send)
+    # chilling howl message was played, give roles the opportunity to update !stats
+    # to account for this
+    event = Event("reconfigure_stats", {"new": set()})
+    for i in range(revt2.data["howl"]):
+        newstats = set()
+        for rs in var.ROLE_STATS:
+            d = dict(rs)
+            event.data["new"] = {d}
+            event.dispatch(var, d, "howl")
+            for v in event.data["new"]:
+                if min(v.values()) >= 0:
+                    newstats.add(frozenset(v.items()))
+        var.ROLE_STATS = frozenset(newstats)
 
     killer_role = {}
     for deadperson in dead:
@@ -2977,24 +2869,19 @@ def transition_day(gameid=0):
 
     event_end.data["begin_day"]()
 
-@event_listener("transition_day_resolve_end", priority=2)
+@event_listener("transition_day_resolve_end", priority=2.9)
 def on_transition_day_resolve_end(evt, var, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
-        evt.data["message"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
+        evt.data["message"]["*"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
+    if evt.data["howl"]:
+        evt.data["message"]["*"].append(messages["new_wolf"])
 
 def chk_nightdone():
     if var.PHASE != "night":
         return
 
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
-
     nightroles = list(get_all_players(("sorcerer", "hag", "warlock")))
-
-    if var.ALPHA_ENABLED:
-        # alphas both kill and bite if they're activated at night, so add them into the counts
-        nightroles.extend(get_all_players(("alpha wolf",)))
-        actedcount += len([p for p in var.ALPHA_WOLVES if users._get(p) in get_all_players(("alpha wolf",))]) # FIXME
-
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(var)
     actedcount = event.data["actedcount"]
@@ -3174,8 +3061,6 @@ def check_exchange(cli, actor, nick):
                 var.DOCTORS[actor], var.DOCTORS[nick] = var.DOCTORS[nick], var.DOCTORS[actor]
             else:
                 var.DOCTORS[nick] = var.DOCTORS.pop(actor)
-        elif actor_role == "alpha wolf":
-            var.ALPHA_WOLVES.discard(actor)
         elif actor_role == "warlock":
             var.CURSED.discard(actor)
 
@@ -3196,8 +3081,6 @@ def check_exchange(cli, actor, nick):
             # Both being doctors is handled above
             if actor_role != "doctor":
                 var.DOCTORS[actor] = var.DOCTORS.pop(nick)
-        elif nick_role == "alpha wolf":
-            var.ALPHA_WOLVES.discard(nick)
         elif nick_role == "warlock":
             var.CURSED.discard(nick)
 
@@ -3213,26 +3096,6 @@ def check_exchange(cli, actor, nick):
 
             user.send(*evt_same.data["actor_messages"])
             target.send(*evt_same.data["target_messages"])
-
-        if actor in var.BITTEN_ROLES.keys():
-            if nick in var.BITTEN_ROLES.keys():
-                var.BITTEN_ROLES[actor], var.BITTEN_ROLES[nick] = var.BITTEN_ROLES[nick], var.BITTEN_ROLES[actor]
-            else:
-                var.BITTEN_ROLES[nick] = var.BITTEN_ROLES[actor]
-                del var.BITTEN_ROLES[actor]
-        elif nick in var.BITTEN_ROLES.keys():
-            var.BITTEN_ROLES[actor] = var.BITTEN_ROLES[nick]
-            del var.BITTEN_ROLES[nick]
-
-        if actor in var.LYCAN_ROLES.keys():
-            if nick in var.LYCAN_ROLES.keys():
-                var.LYCAN_ROLES[actor], var.LYCAN_ROLES[nick] = var.LYCAN_ROLES[nick], var.LYCAN_ROLES[actor]
-            else:
-                var.LYCAN_ROLES[nick] = var.LYCAN_ROLES[actor]
-                del var.LYCAN_ROLES[actor]
-        elif nick in var.LYCAN_ROLES.keys():
-            var.LYCAN_ROLES[actor] = var.LYCAN_ROLES[nick]
-            del var.LYCAN_ROLES[nick]
 
         wcroles = Wolfchat
         if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -3456,38 +3319,6 @@ def immunize(cli, nick, chan, rest):
         var.IMMUNIZED.add(victim)
         var.DOCTORS[nick] -= 1
     debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(nick, victim, "lycan" if lycan else get_role(victim)))
-
-@cmd("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
-def bite_cmd(cli, nick, chan, rest):
-    """Bite a player, turning them into a wolf."""
-    if nick in var.ALPHA_WOLVES and nick not in var.BITE_PREFERENCES:
-        pm(cli, nick, messages["alpha_already_bit"])
-        return
-    if not var.ALPHA_ENABLED:
-        pm(cli, nick, messages["alpha_no_bite"])
-        return
-
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, False)
-
-    if not victim:
-        pm(cli, nick, messages["bite_error"])
-        return
-
-    vrole = get_role(victim)
-    actual = choose_target(nick, victim)
-
-    if in_wolflist(nick, victim):
-        pm(cli, nick,  messages["alpha_no_bite_wolf"])
-        return
-    if check_exchange(cli, nick, actual):
-        return
-
-    var.ALPHA_WOLVES.add(nick)
-    var.BITE_PREFERENCES[nick] = actual
-
-    pm(cli, nick, messages["alpha_bite_target"].format(victim))
-    relay_wolfchat_command(cli, nick, messages["alpha_bite_wolfchat"].format(nick, victim), ("alpha wolf",), is_wolf_command=True)
-    debuglog("{0} ({1}) BITE: {2} ({3})".format(nick, get_role(nick), actual, get_role(actual)))
 
 @cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(cli, nick, chan, rest):
@@ -4134,11 +3965,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DOCTORS = {}
     var.IMMUNIZED = set()
     var.CURED_LYCANS = set()
-    var.ALPHA_WOLVES = set()
-    var.ALPHA_ENABLED = False
-    var.BITE_PREFERENCES = {}
-    var.BITTEN_ROLES = {}
-    var.LYCAN_ROLES = {}
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0

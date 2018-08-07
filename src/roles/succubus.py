@@ -135,24 +135,21 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
     if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        # TODO: check if this is necessary for succubus, it's to prevent a message playing if alpha bites
-        # a harlot that is visiting a wolf, since the bite succeeds in that case.
-        if victim not in evt.data["bitten"]:
-            evt.data["message"].append(messages["target_not_home"])
-            evt.data["novictmsg"] = False
+        evt.data["message"][victim].append(messages["target_not_home"])
+        evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims + evt.data["bitten"]:
-        if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
+        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
             for succubus in VISITED:
-                if VISITED[succubus] is victim and succubus not in evt.data["bitten"] and succubus not in evt.data["dead"]:
+                if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
+                        evt.data["message"][succubus].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
                     else:
-                        evt.data["message"].append(messages["visited_victim_noreveal"].format(succubus))
+                        evt.data["message"][succubus].append(messages["visited_victim_noreveal"].format(succubus))
                     evt.data["bywolves"].add(succubus)
                     evt.data["onlybywolves"].add(succubus)
                     evt.data["dead"].append(succubus)

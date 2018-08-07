@@ -408,57 +408,49 @@ def on_transition_day_begin(evt, var):
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve2(evt, var, victim):
     if evt.data["protected"].get(victim) == "totem":
-        evt.data["message"].append(messages["totem_protection"].format(victim))
+        evt.data["message"][victim].append(messages["totem_protection"].format(victim))
         evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
 
-@event_listener("transition_day_resolve", priority=6)
-def on_transition_day_resolve6(evt, var, victim):
-    # TODO: remove these checks once everything is split
-    # right now they're needed because otherwise retribution may fire off when the target isn't actually dying
-    # that will not be an issue once everything is using the event
-    if evt.data["protected"].get(victim):
-        return
-    if victim in var.ROLES["lycan"] and victim in evt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
-        return
-    # END checks to remove
-
-    if victim in RETRIBUTION:
-        killers = list(evt.data["killers"].get(victim, []))
-        loser = None
-        while killers:
-            loser = random.choice(killers)
+@event_listener("transition_day_resolve_end", priority=4)
+def on_transition_day_resolve6(evt, var, victims):
+    for victim in victims:
+        if victim in RETRIBUTION:
+            killers = list(evt.data["killers"].get(victim, []))
+            loser = None
+            while killers:
+                loser = random.choice(killers)
+                if loser in evt.data["dead"] or victim is loser:
+                    killers.remove(loser)
+                    continue
+                break
             if loser in evt.data["dead"] or victim is loser:
-                killers.remove(loser)
-                continue
-            break
-        if loser in evt.data["dead"] or victim is loser:
-            loser = None
-        ret_evt = Event("retribution_kill", {"target": loser, "message": []})
-        ret_evt.dispatch(var, victim, loser)
-        loser = ret_evt.data["target"]
-        evt.data["message"].extend(ret_evt.data["message"])
-        if loser in evt.data["dead"] or victim is loser:
-            loser = None
-        if loser is not None:
-            prots = deque(var.ACTIVE_PROTECTIONS[loser.nick])
-            while len(prots) > 0:
-                # an event can read the current active protection and cancel the totem
-                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                # so that it cannot be used again (if the protection is meant to be usable once-only)
-                ret_evt = Event("retribution_totem", {"message": []})
-                if not ret_evt.dispatch(var, victim, loser, prots[0]):
-                    evt.data["message"].extend(ret_evt.data["message"])
-                    return
-                prots.popleft()
-            evt.data["dead"].append(loser)
-            if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(loser)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                evt.data["message"].append(messages["totem_death"].format(victim, loser, an, role))
-            else:
-                evt.data["message"].append(messages["totem_death_no_reveal"].format(victim, loser))
+                loser = None
+            ret_evt = Event("retribution_kill", {"target": loser, "message": []})
+            ret_evt.dispatch(var, victim, loser)
+            loser = ret_evt.data["target"]
+            evt.data["message"][loser].extend(ret_evt.data["message"])
+            if loser in evt.data["dead"] or victim is loser:
+                loser = None
+            if loser is not None:
+                prots = deque(var.ACTIVE_PROTECTIONS[loser.nick])
+                while len(prots) > 0:
+                    # an event can read the current active protection and cancel the totem
+                    # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
+                    # so that it cannot be used again (if the protection is meant to be usable once-only)
+                    ret_evt = Event("retribution_totem", {"message": []})
+                    if not ret_evt.dispatch(var, victim, loser, prots[0]):
+                        evt.data["message"][loser].extend(ret_evt.data["message"])
+                        return
+                    prots.popleft()
+                evt.data["dead"].append(loser)
+                if var.ROLE_REVEAL in ("on", "team"):
+                    role = get_reveal_role(loser)
+                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                    evt.data["message"][loser].append(messages["totem_death"].format(victim, loser, an, role))
+                else:
+                    evt.data["message"][loser].append(messages["totem_death_no_reveal"].format(victim, loser))
 
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt, var):

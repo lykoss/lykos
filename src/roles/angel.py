@@ -175,7 +175,7 @@ def on_fagb(evt, var, user, killer):
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, var, victim):
     if evt.data["protected"].get(victim) == "angel":
-        evt.data["message"].append(messages["angel_protection"].format(victim))
+        evt.data["message"][victim].append(messages["angel_protection"].format(victim))
         evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
@@ -183,35 +183,35 @@ def on_transition_day_resolve(evt, var, victim):
         for bodyguard in get_all_players(("bodyguard",)):
             if GUARDED.get(bodyguard.nick) == victim.nick:
                 evt.data["dead"].append(bodyguard)
-                evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
+                evt.data["message"][victim].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["novictmsg"] = False
                 evt.stop_processing = True
                 evt.prevent_default = True
                 break
 
-@event_listener("transition_day_resolve_end")
+@event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
     for bodyguard in get_all_players(("bodyguard",)):
-        if GUARDED.get(bodyguard.nick) in list_players(Wolf) and bodyguard not in evt.data["dead"] and bodyguard not in evt.data["bitten"]:
+        if GUARDED.get(bodyguard.nick) in list_players(Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
                 evt.data["bywolves"].add(bodyguard)
                 evt.data["onlybywolves"].add(bodyguard)
                 if var.ROLE_REVEAL == "on":
-                    evt.data["message"].append(messages["bodyguard_protected_wolf"].format(bodyguard))
+                    evt.data["message"][bodyguard].append(messages["bodyguard_protected_wolf"].format(bodyguard))
                 else: # off and team
-                    evt.data["message"].append(messages["bodyguard_protection"].format(bodyguard))
+                    evt.data["message"][bodyguard].append(messages["bodyguard_protection"].format(bodyguard))
                 evt.data["dead"].append(bodyguard)
     for gangel in get_all_players(("guardian angel",)):
-        if GUARDED.get(gangel.nick) in list_players(Wolf) and gangel not in evt.data["dead"] and gangel not in evt.data["bitten"]:
+        if GUARDED.get(gangel.nick) in list_players(Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
                 evt.data["bywolves"].add(gangel)
                 evt.data["onlybywolves"].add(gangel)
                 if var.ROLE_REVEAL == "on":
-                    evt.data["message"].append(messages["guardian_angel_protected_wolf"].format(gangel))
+                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf"].format(gangel))
                 else: # off and team
-                    evt.data["message"].append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
+                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")

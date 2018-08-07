@@ -66,22 +66,21 @@ def on_bite(evt, var, alpha, target):
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
     if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        if victim not in evt.data["bitten"]:
-            evt.data["message"].append(messages["target_not_home"])
-            evt.data["novictmsg"] = False
+        evt.data["message"][victim].append(messages["target_not_home"])
+        evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
-    for victim in victims + evt.data["bitten"]:
-        if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
+    for victim in victims:
+        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
             for hlt in VISITED:
-                if VISITED[hlt] is victim and hlt not in evt.data["bitten"] and hlt not in evt.data["dead"]:
+                if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
+                        evt.data["message"][hlt].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
                     else:
-                        evt.data["message"].append(messages["visited_victim_noreveal"].format(hlt))
+                        evt.data["message"][hlt].append(messages["visited_victim_noreveal"].format(hlt))
                     evt.data["bywolves"].add(hlt)
                     evt.data["onlybywolves"].add(hlt)
                     evt.data["dead"].append(hlt)
@@ -89,8 +88,8 @@ def on_transition_day_resolve_end(evt, var, victims):
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
     for harlot in get_all_players(("harlot",)):
-        if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"] and harlot not in evt.data["bitten"]:
-            evt.data["message"].append(messages["harlot_visited_wolf"].format(harlot))
+        if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"]:
+            evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["bywolves"].add(harlot)
             evt.data["onlybywolves"].add(harlot)
             evt.data["dead"].append(harlot)

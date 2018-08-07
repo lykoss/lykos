@@ -32,17 +32,19 @@ def wolf_can_kill(var, wolf):
     wolfroles = get_all_roles(wolf)
     return bool(CAN_KILL & wolfroles)
 
-def is_known_wolf_ally(var, actor, target):
-    actor_role = get_main_role(actor)
-    target_role = get_main_role(target)
-
+def get_wolfchat_roles(var):
     wolves = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             wolves = Wolf
         else:
             wolves = Wolf | {"traitor"}
+    return wolves
 
+def is_known_wolf_ally(var, actor, target):
+    actor_role = get_main_role(actor)
+    target_role = get_main_role(target)
+    wolves = get_wolfchat_roles(var)
     return actor_role in wolves and target_role in wolves
 
 def send_wolfchat_message(var, user, message, roles, *, role=None, command=None):

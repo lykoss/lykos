@@ -83,19 +83,8 @@ def wolf_retract(var, wrapper, message):
         wrapper.pm(messages["retracted_kill"])
         send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role=get_main_role(wrapper.source), command="retract")
 
-    if wrapper.source in var.ROLES["alpha wolf"] and wrapper.source.nick in var.BITE_PREFERENCES: # FIXME: Split into alpha wolf and convert to users
-        del var.BITE_PREFERENCES[wrapper.source.nick]
-        var.ALPHA_WOLVES.remove(wrapper.source.nick)
-        wrapper.pm(messages["no_bite"])
-        send_wolfchat_message(var, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), ("alpha wolf",), role="alpha wolf", command="retract")
-
 @event_listener("del_player")
 def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if death_triggers:
-        # TODO: split into alpha
-        if allroles & Wolf:
-            var.ALPHA_ENABLED = True
-
     for killer, targets in list(KILLS.items()):
         for target in targets:
             if user is target:
@@ -230,9 +219,6 @@ def on_new_role(evt, var, player, old_role):
             # inform the new wolf that they can kill and stuff
             if evt.data["role"] in CAN_KILL and var.DISEASED_WOLVES:
                 evt.data["messages"].append(messages["ill_wolves"])
-            # FIXME: split when alpha wolf is split
-            if var.ALPHA_ENABLED and evt.data["role"] == "alpha wolf" and player.nick not in var.ALPHA_WOLVES:
-                evt.data["messages"].append(messages["wolf_bite"])
 
 @event_listener("chk_nightdone", priority=3)
 def on_chk_nightdone(evt, var):
@@ -360,9 +346,6 @@ def on_transition_night_end(evt, var):
         wolf.send(messages["players_list"].format(", ".join(players)))
         if role in CAN_KILL and var.DISEASED_WOLVES:
             wolf.send(messages["ill_wolves"])
-        # TODO: split the following out into their own files (alpha)
-        if var.ALPHA_ENABLED and role == "alpha wolf" and wolf.nick not in var.ALPHA_WOLVES: # FIXME: Fix once var.ALPHA_WOLVES holds User instances
-            wolf.send(messages["wolf_bite"])
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
@@ -379,18 +362,9 @@ def on_get_role_metadata(evt, var, kind):
         nevt = Event("wolf_numkills", {"numkills": 1})
         nevt.dispatch(var)
         evt.data["wolf"] = nevt.data["numkills"]
-        # TODO: split into alpha
-        if var.ALPHA_ENABLED:
-            # alpha wolf gives an extra kill; note that we consider someone being
-            # bitten a "kill" for this metadata kind as well
-            # rolled into wolf instead of as a separate alpha wolf key for ease of implementing
-            # special logic for wolf kills vs non-wolf kills (as when alpha kills it is treated
-            # as any other wolf kill).
-            evt.data["wolf"] += 1
     elif kind == "role_categories":
         evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         # FIXME: split the following into their respective files
-        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent", "Killer", "Nocturnal"}
         evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}

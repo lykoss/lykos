@@ -65,18 +65,19 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.stop_processing = True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, var, stats):
-    if "wolf cub" not in stats or stats["wolf cub"] == 0:
+def on_reconfigure_stats(evt, var, roleset, reason):
+    # if we're making new wolves or there aren't cubs, nothing to do here
+    if reason == "howl" or roleset.get("wolf cub", 0) == 0:
         return
     for role in Wolf & Killer:
-        if role in stats and stats[role] > 0:
+        if role in roleset and roleset[role] > 0:
             break
     else:
-        stats["wolf"] = stats["wolf cub"]
-        stats["wolf cub"] = 0
+        roleset["wolf"] = roleset["wolf cub"]
+        roleset["wolf cub"] = 0
 
 @event_listener("transition_day_resolve_end")
-def on_begin_day(evt, var, victims):
+def on_transition_day_resolve_end(evt, var, victims):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
