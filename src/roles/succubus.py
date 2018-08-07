@@ -157,11 +157,6 @@ def on_transition_day_resolve_end(evt, var, victims):
                     evt.data["onlybywolves"].add(succubus)
                     evt.data["dead"].append(succubus)
 
-@event_listener("night_acted")
-def on_night_acted(evt, var, target, spy):
-    if VISITED.get(target):
-        evt.data["acted"] = True
-
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(VISITED) + len(PASSED)

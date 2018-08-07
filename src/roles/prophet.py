@@ -97,11 +97,6 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("prophet",)))
     evt.data["actedcount"] += len(PRAYED)
 
-@event_listener("night_acted")
-def on_night_acted(evt, var, user, spy):
-    if user in PRAYED:
-        evt.data["acted"] = True
-
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     PRAYED.clear()

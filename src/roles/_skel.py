@@ -25,12 +25,6 @@ from src.events import Event
 def on_chk_nightdone(evt, var):
     pass
 
-# Set evt.data["acted"] = True if target acted during night and spy is able to know that info
-# Used for werecrow and insomniac
-@event_listener("night_acted")
-def on_night_acted(evt, var, target, spy):
-    pass
-
 # PM players who have this role with instructions
 # Set priority=2 if this is a main role, and priority=5 if this is a secondary role
 # (secondary roles are like gunner, assassin, etc. which by default stack on top of main roles)

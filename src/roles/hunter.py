@@ -78,11 +78,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             h.send(messages["hunter_discard"])
             del KILLS[h]
 
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in KILLS:
-        evt.data["acted"] = True
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):

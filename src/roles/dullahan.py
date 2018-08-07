@@ -103,11 +103,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
                 evt.data["pl"] = evt.params.refresh_pl(pl)
 
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in KILLS:
-        evt.data["acted"] = True
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     while KILLS:

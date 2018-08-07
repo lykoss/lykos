@@ -50,11 +50,6 @@ def see(var, wrapper, message):
 
     SEEN.add(wrapper.source)
 
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in SEEN:
-        evt.data["acted"] = True
-
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role == "doomsayer" and target_role != "doomsayer":

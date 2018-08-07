@@ -2538,7 +2538,7 @@ def begin_day():
     var.GAMEPHASE = "day"
     var.KILLER = ""  # nickname of who chose the victim
     var.HEXED = set() # set of hags that have silenced others
-    var.OBSERVED = {}  # those whom werecrows/sorcerers have observed
+    var.OBSERVED = {}  # those whom sorcerers have observed
     var.PASSED = set() # set of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
@@ -2628,18 +2628,6 @@ def transition_day(gameid=0):
     # Reset daytime variables
     var.WOUNDED.clear()
     var.NO_LYNCH.clear()
-
-    for crow, target in iter(var.OBSERVED.items()):
-        actor = users._get(crow) # FIXME
-        if actor not in get_all_players(("werecrow",)):
-            continue
-        user = users._get(target) # FIXME
-        evt = Event("night_acted", {"acted": False})
-        evt.dispatch(var, user, actor)
-        if target in var.OBSERVED or target in var.HEXED or target in var.CURSED or evt.data["acted"]:
-            actor.send(messages["werecrow_success"].format(user))
-        else:
-            actor.send(messages["werecrow_failure"].format(user))
 
     if var.START_WITH_DAY and var.FIRST_DAY:
         # TODO: need to message everyone their roles and give a short thing saying "it's daytime"
@@ -3000,7 +2988,7 @@ def chk_nightdone():
 
     actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
 
-    nightroles = list(get_all_players(("sorcerer", "hag", "warlock", "werecrow")))
+    nightroles = list(get_all_players(("sorcerer", "hag", "warlock")))
 
     if var.ALPHA_ENABLED:
         # alphas both kill and bite if they're activated at night, so add them into the counts
@@ -3172,7 +3160,7 @@ def check_exchange(cli, actor, nick):
         # var.PASSED is used by many roles
         var.PASSED.discard(actor)
 
-        if actor_role in ("werecrow", "sorcerer"):
+        if actor_role in ("sorcerer",):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
         elif actor_role == "hag":
@@ -3195,7 +3183,7 @@ def check_exchange(cli, actor, nick):
         # var.PASSED is used by many roles
         var.PASSED.discard(nick)
 
-        if nick_role in ("werecrow", "sorcerer"):
+        if nick_role in ("sorcerer",):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
         elif nick_role == "hag":
@@ -3399,7 +3387,7 @@ def shoot(var, wrapper, message):
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
         del_player(wrapper.source, killer_role="villager") # blame explosion on villager's shoddy gun construction or something
 
-@cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("werecrow", "sorcerer"))
+@cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("sorcerer",))
 def observe(cli, nick, chan, rest):
     """Observe a player to obtain various information."""
     role = get_role(nick)
@@ -3408,42 +3396,28 @@ def observe(cli, nick, chan, rest):
         return
 
     if victim == nick:
-        if role == "werecrow":
-            pm(cli, nick, messages["werecrow_no_observe_self"])
-        else:
-            pm(cli, nick, messages["no_observe_self"])
+        pm(cli, nick, messages["no_observe_self"])
         return
     if nick in var.OBSERVED.keys():
-        if role == "werecrow":
-            pm(cli, nick, messages["werecrow_already_observing"].format(var.OBSERVED[nick]))
-        else:
-            pm(cli, nick, messages["already_observed"])
+        pm(cli, nick, messages["already_observed"])
         return
     if in_wolflist(nick, victim):
-        if role == "werecrow":
-            pm(cli, nick, messages["werecrow_no_target_wolf"])
-        else:
-            pm(cli, nick, messages["no_observe_wolf"])
+        pm(cli, nick, messages["no_observe_wolf"])
         return
     victim = choose_target(nick, victim)
     if check_exchange(cli, nick, victim):
         return
     var.OBSERVED[nick] = victim
-    if role == "werecrow":
-        pm(cli, nick, messages["werecrow_observe_success"].format(victim))
-        relay_wolfchat_command(cli, nick, messages["wolfchat_observe"].format(nick, victim), ("werecrow",), is_wolf_command=True)
-
-    elif role == "sorcerer":
-        vrole = get_role(victim)
-        if vrole == "amnesiac":
-            from src.roles.amnesiac import ROLES
-            vrole = ROLES[users._get(victim)] # FIXME
-        if vrole in ("seer", "oracle", "augur", "sorcerer"):
-            an = "n" if vrole.startswith(("a", "e", "i", "o", "u")) else ""
-            pm(cli, nick, (messages["sorcerer_success"]).format(victim, an, vrole))
-        else:
-            pm(cli, nick, messages["sorcerer_fail"].format(victim))
-        relay_wolfchat_command(cli, nick, messages["sorcerer_success_wolfchat"].format(nick, victim), ("sorcerer"))
+    vrole = get_role(victim)
+    if vrole == "amnesiac":
+        from src.roles.amnesiac import ROLES
+        vrole = ROLES[users._get(victim)] # FIXME
+    if vrole in ("seer", "oracle", "augur", "sorcerer"):
+        an = "n" if vrole.startswith(("a", "e", "i", "o", "u")) else ""
+        pm(cli, nick, (messages["sorcerer_success"]).format(victim, an, vrole))
+    else:
+        pm(cli, nick, messages["sorcerer_fail"].format(victim))
+    relay_wolfchat_command(cli, nick, messages["sorcerer_success_wolfchat"].format(nick, victim), ("sorcerer"))
 
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
 
@@ -3788,7 +3762,7 @@ def transition_night():
     var.HEXED = set() # set of hags that have hexed
     var.CURSED = set() # set of warlocks that have cursed
     var.PASSED = set()
-    var.OBSERVED = {}  # those whom werecrows have observed
+    var.OBSERVED = {}  # those whom sorcerers have observed
     var.TOBESILENCED = set()
 
     daydur_msg = ""

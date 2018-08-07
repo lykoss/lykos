@@ -92,11 +92,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                 del dictvar[k]
     PASSED.discard(user.nick)
 
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user.nick in GUARDED:
-        evt.data["acted"] = True
-
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
     if actor_role in ("bodyguard", "guardian angel"):

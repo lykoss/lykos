@@ -206,11 +206,6 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             del TOBECHARMED[:target:]
             PASSED.discard(target)
 
-@event_listener("night_acted")
-def on_acted(evt, var, target, spy):
-    if target in TOBECHARMED:
-        evt.data["acted"] = True
-
 @event_listener("reset")
 def on_reset(evt, var):
     CHARMED.clear()

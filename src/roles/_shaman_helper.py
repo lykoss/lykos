@@ -134,11 +134,6 @@ def setup_variables(rolename, *, knows_totem):
             if user in (a, b, c):
                 del SHAMANS[a]
 
-    @event_listener("night_acted")
-    def on_acted(evt, var, user, actor):
-        if user in SHAMANS:
-            evt.data["acted"] = True
-
     @event_listener("chk_nightdone")
     def on_chk_nightdone(evt, var):
         evt.data["actedcount"] += len(SHAMANS)

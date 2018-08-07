@@ -17,11 +17,6 @@ def setup_variables(rolename):
     def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         SEEN.discard(user)
 
-    @event_listener("night_acted")
-    def on_acted(evt, var, user, actor):
-        if user in SEEN:
-            evt.data["acted"] = True
-
     @event_listener("new_role")
     def on_new_role(evt, var, user, old_role):
         if old_role == rolename and evt.data["role"] != rolename:

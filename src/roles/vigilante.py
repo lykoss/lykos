@@ -63,11 +63,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
 
-@event_listener("night_acted")
-def on_acted(evt, var, target, spy):
-    if target in KILLS:
-        evt.data["acted"] = True
-
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
     for vigilante, target in list(KILLS.items()):

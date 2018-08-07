@@ -103,11 +103,6 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         if user is killer or not targets:
             del KILLS[killer]
 
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in KILLS:
-        evt.data["acted"] = True
-
 @event_listener("transition_day", priority=1)
 def on_transition_day(evt, var):
     # figure out wolf target
@@ -396,7 +391,6 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         # FIXME: split the following into their respective files
         evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
-        evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy"}
         evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent", "Killer", "Nocturnal"}
         evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}
