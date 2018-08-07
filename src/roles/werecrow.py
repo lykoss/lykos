@@ -9,7 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 from src.cats import Nocturnal
-from src._wolf_helper import is_known_wolf_ally, send_wolfchat_message
+from src.roles._wolf_helper import is_known_wolf_ally, send_wolfchat_message
 
 OBSERVED = UserDict() # type: UserDict[users.User, users.User]
 

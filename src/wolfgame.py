@@ -2713,7 +2713,7 @@ def transition_day(gameid=0):
                 victims.append(v)
 
     message = defaultdict(list)
-    message["*"].append(messages["sunrise"].format(min, sec)])
+    message["*"].append(messages["sunrise"].format(min, sec))
 
     # This needs to go down here since having them be their night value matters above
     var.DISEASED_WOLVES = False
@@ -2873,7 +2873,7 @@ def transition_day(gameid=0):
 def on_transition_day_resolve_end(evt, var, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
         evt.data["message"]["*"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
-    if evt.data["howl"]:
+    for i in range(evt.data["howl"]):
         evt.data["message"]["*"].append(messages["new_wolf"])
 
 def chk_nightdone():

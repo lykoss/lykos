@@ -9,7 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolf
-from src._wolf_helper import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
+from src.roles._wolf_helper import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
 
 ENABLED = False
 ALPHAS = UserSet() # type: UserSet[users.User]
@@ -257,9 +257,10 @@ def on_transition_night_end(evt, var):
     if not ENABLED:
         return
     can_bite = get_all_players(("alpha wolf",)) - ALPHAS
-    for alpha in can_bite:
-        alpha.queue_message(messages["wolf_bite"])
-    alpha.send_messages()
+    if can_bite:
+        for alpha in can_bite:
+            alpha.queue_message(messages["wolf_bite"])
+        alpha.send_messages()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
