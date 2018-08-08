@@ -18,14 +18,16 @@ _dict_keys = type(dict().keys())
 #    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
 # Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
 # Safe: Seer sees these roles as they are, instead of as the default role; usually reserved for village-side special roles
+# Spy: Actively gets information about other players or teams
+# Intuitive: Passively gets information about other players or teams
 # Cursed: Seer sees these roles as wolf
 # Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
 # Team Switcher: Roles which may change teams during gameplay
-ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win Stealer", "Hidden", "Safe", "Spy", "Cursed", "Innocent", "Team Switcher"})
+ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win Stealer", "Hidden", "Safe", "Spy", "Intuitive", "Cursed", "Innocent", "Team Switcher"})
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
 # Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
-ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Neutral", "Win Stealer"]
+ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Win Stealer", "Neutral"]
 
 FROZEN = False
 

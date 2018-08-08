@@ -16,6 +16,6 @@ LAST_COUNT = setup_variables("mystic", send_role=True, types=("Wolfteam",))
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["mystic"] = {"Village", "Safe", "Spy"}
+        evt.data["mystic"] = {"Village", "Safe", "Intuitive"}
 
 # vim: set sw=4 expandtab:
