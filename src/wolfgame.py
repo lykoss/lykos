@@ -111,7 +111,6 @@ var.SPECTATING_WOLFCHAT = UserSet()
 var.SPECTATING_DEADCHAT = UserSet()
 
 var.ORIGINAL_SETTINGS = {}
-var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
 
 var.LAST_SAID_TIME = {}
 
@@ -204,6 +203,9 @@ def connect_callback():
             if players:
                 channels.Main.send(*players, first="PING! ")
                 channels.Main.send(messages["game_restart_cancel"])
+
+            var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
+            reset()
 
             events.remove_listener("who_end", who_end)
 
@@ -350,8 +352,6 @@ def reset():
 
     evt = Event("reset", {})
     evt.dispatch(var)
-
-reset()
 
 @command("sync", "fsync", flag="m", pm=True)
 def fsync(var, wrapper, message):
@@ -4025,19 +4025,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     # Now for the secondary roles
     for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
-        # convert dfn into a set of roles that this role can be applied on top of
-        whitelist = set()
-        for d in dfn:
-            fn = whitelist.update
-            if d[0] == "-": # removing?
-                fn = whitelist.difference_update
-                d = d[1:]
-            if d in cats.ROLE_CATS | {"*"}:
-                fn(cats.get(d))
-            elif d in cats.ROLES: # not a category, just a role name
-                fn({d})
-            else: # typo
-                raise KeyError("{0} is not a recognized role name or role category".format(d))
         count = len(var.ROLES[role])
         var.ROLES[role] = UserSet()
         if role in var.FORCE_ROLES:
@@ -4047,7 +4034,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         # Don't do anything further if this secondary role was forced on enough players already
         if count <= 0:
             continue
-        possible = get_players(whitelist)
+        possible = get_players(dfn)
         if len(possible) < count:
             cli.msg(chan, messages["not_enough_targets"].format(role))
             if var.ORIGINAL_SETTINGS:

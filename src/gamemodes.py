@@ -14,7 +14,7 @@ from src.functions import get_players, get_all_players, get_main_role, change_ro
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src import events, channels, users, cats
-from src.cats import Wolf, Killer
+from src.cats import All, Wolf, Cursed, Innocent, Killer, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Spy, Nocturnal
 
 class InvalidModeException(Exception): pass
 
@@ -32,11 +32,11 @@ class GameMode:
             "gunner/sharpshooter": {"gunner": 4, "sharpshooter": 1},
         }
         self.SECONDARY_ROLES = {
-            "cursed villager"   : ["*", "-Cursed", "-Wolf", "-Innocent", "-seer", "-oracle"],
-            "gunner"            : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
-            "sharpshooter"      : ["Village", "Neutral", "Hidden", "-Innocent", "-Team Switcher"],
-            "mayor"             : ["*", "-Innocent", "-Win Stealer"],
-            "assassin"          : ["*", "-Nocturnal", "Killer", "-Wolf", "-Innocent", "-Spy", "-Team Switcher", "-traitor"], # inaccurate, but best bet for now
+            "cursed villager"   : All - Cursed - Wolf - Innocent - {"seer", "oracle"},
+            "gunner"            : Village + Neutral + Hidden - Innocent - Team_Switcher,
+            "sharpshooter"      : Village + Neutral + Hidden - Innocent - Team_Switcher,
+            "mayor"             : All - Innocent - Win_Stealer,
+            "assassin"          : All - Nocturnal + Killer - Wolf - Innocent - Spy - Team_Switcher - {"traitor"}, # inaccurate, but best bet for now
             "blessed villager"  : ["villager"],
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
