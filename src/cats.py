@@ -127,6 +127,15 @@ class Category:
     def __repr__(self):
         return "Role category: {0}".format(self.name)
 
+    def __invert__(self):
+        new = self.from_combination(All, self, "", set.difference_update)
+        if self.name in ROLE_CATS:
+            name = "~{0}".format(self.name)
+        else:
+            name = "~({0})".format(self.name)
+        new.name = name
+        return new
+
     @classmethod
     def from_combination(cls, first, second, op, func):
         if not FROZEN:
