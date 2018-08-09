@@ -142,7 +142,7 @@ def on_transition_day_resolve(evt, var, victim):
 
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
-    for victim in victims + evt.data["bitten"]:
+    for victim in victims:
         if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["dead"]:

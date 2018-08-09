@@ -3,7 +3,7 @@ import random
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_all_roles
+from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -59,7 +59,7 @@ def on_reset(evt, var):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(OBSERVED)
-    evt.data["nightroles"].update(get_all_players(("werecrow",)))
+    evt.data["nightroles"].extend(get_all_players(("werecrow",)))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, oldrole):

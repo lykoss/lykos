@@ -51,11 +51,13 @@ def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
 # FIXME: Deprecated in favor of _wolf_helper method
 def in_wolflist(nick, who):
     from src.roles._wolf_helper import is_known_wolf_ally
+    from src import users
     return is_known_wolf_ally(var, users._get(nick), users._get(who))
 
 # FIXME: Deprecated in favor of _wolf_helper method
 def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
     from src.roles._wolf_helper import send_wolfchat_message
+    from src import users
     role = "wolf" if is_wolf_command else None
     command = "kill" if is_kill_command else None
     send_wolfchat_message(var, users._get(nick), message, roles, role=role, command=command)

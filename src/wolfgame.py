@@ -1964,7 +1964,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
                     d = dict(rs)
                     if p in d and d[p] >= 1:
                         d[p] -= 1
-                        event.data["new"] = {d}
+                        event.data["new"] = [d]
                         event.dispatch(var, d, "del_player")
                         for v in event.data["new"]:
                             if min(v.values()) >= 0:
@@ -2836,7 +2836,7 @@ def transition_day(gameid=0):
         newstats = set()
         for rs in var.ROLE_STATS:
             d = dict(rs)
-            event.data["new"] = {d}
+            event.data["new"] = [d]
             event.dispatch(var, d, "howl")
             for v in event.data["new"]:
                 if min(v.values()) >= 0:
