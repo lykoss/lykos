@@ -2636,7 +2636,7 @@ def transition_day(gameid=0):
     td = var.DAY_START_TIME - var.NIGHT_START_TIME
     var.NIGHT_START_TIME = None
     var.NIGHT_TIMEDELTA += td
-    min, sec = td.seconds // 60, td.seconds % 60
+    minimum, sec = td.seconds // 60, td.seconds % 60
 
     # this keeps track of the protections active on each nick, stored in var since del_player needs to access it for sake of assassin
     var.ACTIVE_PROTECTIONS = defaultdict(list)
@@ -2713,7 +2713,7 @@ def transition_day(gameid=0):
                 victims.append(v)
 
     message = defaultdict(list)
-    message["*"].append(messages["sunrise"].format(min, sec))
+    message["*"].append(messages["sunrise"].format(minimum, sec))
 
     # This needs to go down here since having them be their night value matters above
     var.DISEASED_WOLVES = False

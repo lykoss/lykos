@@ -9,6 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.events import Event
+from src.cats import Cursed, Safe, Innocent, Wolf
 
 from src.roles._seer_helper import setup_variables
 
@@ -33,21 +34,25 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    iswolf = False
-    if targrole in Cursed:
-        targrole = "wolf"
-        iswolf = True
-    elif targrole in Safe | Innocent:
-        targrole = var.HIDDEN_ROLE
-    elif targrole in Wolf:
-        targrole = "wolf"
-        iswolf = True
-    else:
-        targrole = var.HIDDEN_ROLE
+    for i in range(2): # need to go through loop twice
+        iswolf = False
+        if targrole in Cursed:
+            targrole = "wolf"
+            iswolf = True
+        elif targrole in Safe | Innocent:
+            targrole = var.HIDDEN_ROLE
+        elif targrole in Wolf:
+            targrole = "wolf"
+            iswolf = True
+        else:
+            targrole = var.HIDDEN_ROLE
 
-    evt = Event("see", {"role": targrole})
-    evt.dispatch(var, wrapper.source, target)
-    targrole = evt.data["role"]
+        if i:
+            break
+
+        evt = Event("see", {"role": targrole})
+        evt.dispatch(var, wrapper.source, target)
+        targrole = evt.data["role"]
 
     wrapper.send(messages["oracle_success"].format(target, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
     debuglog("{0} (oracle) SEE: {1} ({2}) (Wolf: {3})".format(wrapper.source, target, trole, str(iswolf)))

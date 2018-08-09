@@ -3,7 +3,7 @@ import random
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role
+from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -74,12 +74,12 @@ def on_transition_day(evt, var):
             "can_bite": True,
             "kill": target in get_all_players(("lycan",)) or target.nick in var.LYCANTHROPES or target.nick in var.IMMUNIZED
             },
-            victims=victims,
-            killers=killers,
-            bywolves=bywolves,
-            onlybywolves=onlybywolves,
-            protected=protected,
-            numkills=numkills)
+            victims=evt.data["victims"],
+            killers=evt.data["killers"],
+            bywolves=evt.data["bywolves"],
+            onlybywolves=evt.data["onlybywolves"],
+            protected=evt.data["protected"],
+            numkills=evt.data["numkills"])
         bite_evt.dispatch(var, alpha, target)
         if bite_evt.data["kill"]:
             # target immunized or a lycan, kill them instead and refund the bite
