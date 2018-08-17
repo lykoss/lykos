@@ -1231,12 +1231,9 @@ def stats(cli, nick, chan, rest):
                     role_stats[r] = (min(mn, a), max(mx, a))
         start_roles = set()
         for r, v in var.ORIGINAL_ROLES.items():
-            if r in var.CURRENT_GAMEMODE.SECONDARY_ROLES or len(v) == 0:
+            if len(v) == 0:
                 continue
             start_roles.add(r)
-        for r in start_roles:
-            if r not in role_stats:
-                role_stats[r] = (0, 0)
         order = [r for r in role_order() if r in role_stats]
         if var.DEFAULT_ROLE in order:
             order.remove(var.DEFAULT_ROLE)
@@ -1248,7 +1245,9 @@ def stats(cli, nick, chan, rest):
             vb = "are"
 
         for role in order:
-            count = role_stats[role]
+            if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
+                continue
+            count = role_stats.get(role, (0, 0))
             if count[0] == count[1]:
                 if count[0] != 1:
                     if count[0] == 0 and role not in start_roles:
@@ -3859,7 +3858,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cgamemode(restart)
         var.GAME_ID = time.time() # restart reaper timer
 
-    addroles = {}
+    addroles = Counter()
 
     event = Event("role_attribution", {"addroles": addroles})
     if event.dispatch(var, chk_win_conditions, villagers):
@@ -3920,7 +3919,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 temp.update(ar)
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
-        print(role, amt, possible_rolesets)
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
@@ -3945,7 +3943,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
             decor(_command_disabled)
 
     var.ROLES.clear()
-    var.ROLES[var.DEFAULT_ROLE] = UserSet()
     var.MAIN_ROLES.clear()
     var.GUNNERS.clear()
     var.OBSERVED = {}
@@ -3977,13 +3974,16 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
+    for role in All:
+        var.ROLES[role] = UserSet()
+    var.ROLES[var.DEFAULT_ROLE] = UserSet()
     for role, ps in var.FORCE_ROLES.items():
         if role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys():
             vils.difference_update(ps)
 
     for role, count in addroles.items():
         if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
-            var.ROLES[role] = [None] * count
+            var.ROLES[role] = (None,) * count
             continue # We deal with those later, see below
 
         to_add = set()
@@ -4005,7 +4005,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
             var.MAIN_ROLES[x] = role
             var.ORIGINAL_MAIN_ROLES[x] = role
             vils.remove(x)
-        var.ROLES[role] = UserSet(selected)
+        var.ROLES[role].update(selected)
         var.ROLES[role].update(to_add)
     var.ROLES[var.DEFAULT_ROLE].update(vils)
     for x in vils:

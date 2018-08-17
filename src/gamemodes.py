@@ -555,7 +555,7 @@ class RandomMode(GameMode):
         self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         for role in self.SECONDARY_ROLES:
-            self.SECONDARY_ROLES[role] = ["*"]
+            self.SECONDARY_ROLES[role] = All
 
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 8, "wolf shaman": 1},
@@ -591,9 +591,6 @@ class RandomMode(GameMode):
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
-        for role in role_order():
-            addroles[role] = 0
-
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = list(set(role_order()) - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
         while lpl:
