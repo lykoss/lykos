@@ -17,7 +17,7 @@ ROLES = UserDict()  # type: Dict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var):
-    blacklist = var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac", var.DEFAULT_ROLE}
+    blacklist = var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
     return blacklist
 
 @event_listener("transition_night_begin")

@@ -1958,7 +1958,7 @@ def del_player(player, *, devoice=True, end_game=True, death_triggers=True, kill
             # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
             # that set is not added to newstats to indicate that set is no longer possible
             # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
-            event = Event("reconfigure_stats", {"new": set()})
+            event = Event("reconfigure_stats", {"new": []})
             for p in possible:
                 for rs in var.ROLE_STATS:
                     d = dict(rs)
@@ -2831,7 +2831,7 @@ def transition_day(gameid=0):
 
     # chilling howl message was played, give roles the opportunity to update !stats
     # to account for this
-    event = Event("reconfigure_stats", {"new": set()})
+    event = Event("reconfigure_stats", {"new": []})
     for i in range(revt2.data["howl"]):
         newstats = set()
         for rs in var.ROLE_STATS:
