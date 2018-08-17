@@ -580,7 +580,6 @@
     "too_few_players_custom": "There are too few players in the game to use the custom roles.",
     "need_one_wolf": "There has to be at least one wolf!",
     "too_many_wolves": "Too many wolves.",
-    "error_role_players_count": "Error: Not all roles have defined player counts.",
     "error_frole_too_many": "There are too many users assigned to role {0}. Please try again.",
     "too_many_roles": "There are not enough players for the number of preset roles. Please try again.",
     "default_reset": "The default settings have been restored. Please {0}start again.",

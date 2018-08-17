@@ -3926,8 +3926,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
             cli.msg(chan, messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
             cli.msg(chan, messages["too_many_wolves"])
-        elif not event.prevent_default and set(addroles) != set(defroles): # defroles only gets defined if prevent_default == False
-            cli.msg(chan, messages["error_role_players_count"])
         else:
             need_reset = False
 
