@@ -118,16 +118,22 @@ def on_transition_day_resolve_end(evt, var, victims):
                 var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
                 evt.data["howl"] += 1
                 evt.data["novictmsg"] = False
+                evt.data["dead"].remove(victim)
+                evt.data["bywolves"].discard(victim)
+                evt.data["onlybywolves"].discard(victim)
+                evt.data["killers"][victim].remove("@wolves")
+                del evt.data["message"][victim]
 
     # turn all bitten people into wolves
     for target in list(BITTEN.values()):
         if target in evt.data["bywolves"]:
-            evt.data["victims"].remove(target)
+            evt.data["dead"].remove(target)
             evt.data["bywolves"].discard(target)
             evt.data["onlybywolves"].discard(target)
             evt.data["killers"][target].remove("@wolves")
+            del evt.data["message"][target]
 
-        if target in evt.data["victims"]:
+        if target in evt.data["dead"]:
             # bite was unsuccessful due to someone else killing them
             ALPHAS.remove(alpha)
             del BITTEN[alpha]
@@ -203,28 +209,37 @@ def on_reconfigure_stats(evt, var, roleset, reason):
     # only run the below logic once as opposed to 3 times)
     # (test case 2: in a game with lycan + alpha, if lycan turns and alpha bites the same night,
     # we still only run the below logic once as opposed to twice)
-    if not ENABLED or not BITTEN or evt.data["alphawolf-counter"] == len(BITTEN):
+    # note: ENABLED is always False by this point in time, as we have to set it to false before
+    # calling del_player for night kills
+    if not BITTEN or evt.data["alphawolf-counter"] == len(BITTEN):
         return
 
     sham_evt = Event("default_totems", {"shaman_roles": set()})
     sham_evt.dispatch(var, {})
     evt.data["alphawolf-counter"] += 1
-    evt.data["new"].discard(roleset)
+    if roleset in evt.data["new"]:
+        evt.data["new"].remove(roleset)
     wolfchat = get_wolfchat_roles(var)
     for role in roleset:
         if role in wolfchat or roleset[role] == 0:
             continue
         newset = dict(roleset)
         newset[role] -= 1
+        # ensure all the appropriate keys exist so they do 0-1 or 1-2 or whatever
+        # if it's purely 0, our !stats code removes the role entirely
+        newset["fallen angel"] = newset.get("fallen angel", 0)
+        newset["doomsayer"] = newset.get("doomsayer", 0)
+        newset["wolf shaman"] = newset.get("wolf shaman", 0)
+        newset["wolf"] = newset.get("wolf", 0)
         if role == "guardian angel":
-            newset["fallen angel"] = newset.get("fallen angel", 0) + 1
+            newset["fallen angel"] += 1
         elif role in ("seer", "augur", "oracle"):
-            newset["doomsayer"] = newset.get("doomsayer", 0) + 1
+            newset["doomsayer"] += 1
         elif role in sham_evt.data["shaman_roles"]:
-            newset["wolf shaman"] = newset.get("wolf shaman", 0) + 1
+            newset["wolf shaman"] += 1
         else:
-            newset["wolf"] = newset.get("wolf", 0) + 1
-        evt.data["new"].add(newset)
+            newset["wolf"] += 1
+        evt.data["new"].append(newset)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
