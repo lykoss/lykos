@@ -3890,14 +3890,22 @@ def start(cli, nick, chan, forced = False, restart = ""):
             addroles.setdefault(role, 0)
 
     # convert roleset aliases into the appropriate roles
-    possible_rolesets = []
+    possible_rolesets = [Counter()]
     roleset_roles = defaultdict(int)
     for role, amt in list(addroles.items()):
+        # not a roleset? add a fixed amount of them
         if role not in var.CURRENT_GAMEMODE.ROLE_SETS:
+            for pr in possible_rolesets:
+                pr[role] += amt
             continue
-
+        # if a roleset, ensure we don't try to expose the roleset name in !stats or future attribution
         del addroles[role]
+        # init !stats with all 0s so that it can number things properly; the keys need to exist in the Counter
+        # across every possible roleset so that !stats works right
         rs = Counter(var.CURRENT_GAMEMODE.ROLE_SETS[role])
+        for r in rs:
+            for pr in possible_rolesets:
+                pr[r] += 0
         toadd = random.sample(list(rs.elements()), amt)
         for r in toadd:
             addroles[r] += 1
@@ -3912,10 +3920,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 temp.update(ar)
                 temp_rolesets.append(temp)
         possible_rolesets = temp_rolesets
-    if not possible_rolesets:
-        # if there are no randomized roles, ensure that we have 1 element
-        # to account for the only possibility (all role counts known)
-        possible_rolesets.append(Counter())
+        print(role, amt, possible_rolesets)
 
     if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
         need_reset = True
@@ -4002,10 +4007,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
             vils.remove(x)
         var.ROLES[role] = UserSet(selected)
         var.ROLES[role].update(to_add)
-        fixed_count = count - roleset_roles[role]
-        if fixed_count > 0:
-            for pr in possible_rolesets:
-                pr[role] += fixed_count
     var.ROLES[var.DEFAULT_ROLE].update(vils)
     for x in vils:
         var.MAIN_ROLES[x] = var.DEFAULT_ROLE

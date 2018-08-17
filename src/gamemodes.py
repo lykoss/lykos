@@ -4,7 +4,7 @@ import threading
 import copy
 import functools
 from datetime import datetime
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, Counter
 
 import botconfig
 import src.settings as var
@@ -152,15 +152,26 @@ class ChangedRolesMode(GameMode):
             if len(change) != 2:
                 raise InvalidModeException(messages["invalid_mode_roles"].format(arg))
             role, num = change
+            role = role.lower()
+            num = num.lower()
             try:
-                if role.lower() in var.DISABLED_ROLES:
+                if role in var.DISABLED_ROLES:
                     raise InvalidModeException(messages["role_disabled"].format(role))
-                elif role.lower() in cats.ROLES or role.lower() in var.ROLE_SETS:
-                    self.ROLE_GUIDE[1].extend((role.lower(),) * int(num))
-                elif role.lower() == "default" and num.lower() in cats.ROLES:
-                    self.DEFAULT_ROLE = num.lower()
-                elif role.lower() == "hidden" and num.lower() in ("villager", "cultist"):
-                    self.HIDDEN_ROLE = num.lower()
+                elif role in cats.ROLES:
+                    self.ROLE_GUIDE[1].extend((role,) * int(num))
+                elif "/" in role:
+                    choose = role.split("/")
+                    for c in choose:
+                        if c not in cats.ROLES:
+                            raise InvalidModeException(messages["specific_invalid_role"].format(c))
+                        elif c in var.DISABLED_ROLES:
+                            raise InvalidModeException(messages["role_disabled"].format(c))
+                    self.ROLE_SETS[role] = Counter(choose)
+                    self.ROLE_GUIDE[1].extend((role,) * int(num))
+                elif role == "default" and num in cats.ROLES:
+                    self.DEFAULT_ROLE = num
+                elif role.lower() == "hidden" and num in ("villager", "cultist"):
+                    self.HIDDEN_ROLE = num
                 elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain", "lover wins with fool"):
                     # handled in parent constructor
                     pass
