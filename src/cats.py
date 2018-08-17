@@ -142,11 +142,11 @@ class Category:
     def from_combination(cls, first, second, op, func):
         if not FROZEN:
             raise RuntimeError("Fatal: Role categories are not ready")
-        if isinstance(second, str):
-            if second not in ROLES:
-                raise ValueError("{0} is not a role".format(second))
-            second = {second}
         if isinstance(second, (Category, set, frozenset, _dict_keys)):
+            for cont in (first, second):
+                for role in cont:
+                    if role not in ROLES:
+                        raise ValueError("{0!r} is not a role".format(role))
             name = "{0} {1} {2}".format(first, op, second)
             self = cls(name)
             self._roles.update(first)
@@ -167,6 +167,6 @@ for cat in ROLE_CATS:
     name = cat.replace(" ", "_")
     globals()[name] = Category(cat)
 
-del cat, register_roles
+del cat, name, register_roles
 
 # vim: set sw=4 expandtab:
