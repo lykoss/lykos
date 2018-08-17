@@ -972,7 +972,7 @@ class MaelstromMode(GameMode):
         # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
-        self.roles = list(self.ROLE_GUIDE.keys() - self.SECONDARY_ROLES.keys() - {"amnesiac", "clone", "monster", "demoniac", "wild child", "succubus", "piper"})
+        self.roles = list(All - Team_Switcher - Win_Stealer + {"fool", "lycan", "turncoat"} - self.SECONDARY_ROLES.keys())
 
         self.DEAD_ACCOUNTS = set()
         self.DEAD_HOSTS = set()
@@ -1018,7 +1018,7 @@ class MaelstromMode(GameMode):
 
     def _on_join(self, var, wrapper):
         from src import hooks, channels
-        role = random.choice(self.roles)
+        role = random.choice(list(self.roles))
         with copy.deepcopy(var.ROLES) as rolemap, copy.deepcopy(var.MAIN_ROLES) as mainroles:
             rolemap[role].add(wrapper.source)
             mainroles[wrapper.source] = role
@@ -1055,6 +1055,7 @@ class MaelstromMode(GameMode):
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
         evt.data["addroles"] = self._role_attribution(var, villagers, True)
+        evt.prevent_default = True
 
     def transition_night_begin(self, evt, var):
         # don't do this n1
@@ -1096,13 +1097,13 @@ class MaelstromMode(GameMode):
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
         addroles = {}
-        for role in self.ROLE_GUIDE:
-            if role in self.SECONDARY_ROLES and not do_templates:
+        for role in All:
+            if role in self.SECONDARY_ROLES:
                 continue
             addroles[role] = 0
 
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
-        roles = self.roles[:]
+        roles = list(self.roles)
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
