@@ -592,7 +592,7 @@ class RandomMode(GameMode):
         lpl = len(villagers) - 1
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
-        roles = list(set(role_order()) - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
+        roles = list(All - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
         while lpl:
             addroles[random.choice(roles)] += 1
             lpl -= 1
@@ -1104,11 +1104,7 @@ class MaelstromMode(GameMode):
 
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
-        addroles = {}
-        for role in All:
-            if role in self.SECONDARY_ROLES:
-                continue
-            addroles[role] = 0
+        addroles = Counter()
 
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = list(self.roles)
@@ -1197,7 +1193,7 @@ class MudkipMode(GameMode):
         events.remove_listener("daylight_warning", self.daylight_warning)
         events.remove_listener("transition_day_begin", self.restore_totem_chances)
 
-    def restore_totem_chances(self, var):
+    def restore_totem_chances(self, evt, var):
         if var.NIGHT_COUNT == 1: # don't fire unnecessarily every day
             self.TOTEM_CHANCES["pestilence"]["shaman"] = 1
 

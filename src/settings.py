@@ -226,9 +226,6 @@ ROLE_ALIASES = {
 DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
-# These are the roles that will NOT be used for when amnesiac turns, everything else is fair game! (var.DEFAULT_ROLE is also added if not in this set)
-AMNESIAC_BLACKLIST = frozenset({"monster", "demoniac", "minion", "matchmaker", "clone", "doctor", "villager", "cultist", "piper", "dullahan", "wild child"})
-
 # Roles listed here cannot be used in !fgame roles=blah.
 DISABLED_ROLES = frozenset()
 
