@@ -967,7 +967,8 @@ class SleepyMode(GameMode):
         if self.having_nightmare:
             evt.data["output"].append("\u0002having nightmare\u0002: {0}".format(self.having_nightmare[0]))
 
-@game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
+# Maelstrom is temporarily disabled until it is properly fixed (2018-08-20)
+# @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):
@@ -980,7 +981,7 @@ class MaelstromMode(GameMode):
         # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
-        self.roles = list(All - Team_Switcher - Win_Stealer + {"fool", "lycan", "turncoat"} - self.SECONDARY_ROLES.keys())
+        self.roles = All - Team_Switcher - Win_Stealer + {"fool", "lycan", "turncoat"} - self.SECONDARY_ROLES.keys()
 
         self.DEAD_ACCOUNTS = set()
         self.DEAD_HOSTS = set()
@@ -1105,7 +1106,6 @@ class MaelstromMode(GameMode):
     def _role_attribution(self, var, villagers, do_templates):
         lpl = len(villagers) - 1
         addroles = Counter()
-
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
         roles = list(self.roles)
         while lpl:
