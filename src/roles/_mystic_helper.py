@@ -27,7 +27,7 @@ def setup_variables(rolename, *, send_role, types):
 
         for t in types:
             cat = cats.get(t)
-            players = get_players((cat,))
+            players = get_players(cat)
             pl.update(players)
             ctr[t] += len(players)
 
@@ -39,7 +39,9 @@ def setup_variables(rolename, *, send_role, types):
             if l:
                 if not values and l == 1:
                     plural = False
-                values.append("\u0002{0}\u0002 {1}{2}".format(l, messages[keyname], "" if l == 1 else "s"))
+            else:
+                l = "no"
+            values.append("\u0002{0}\u0002 {1}{2}".format(l, messages[keyname], "" if l == 1 else "s"))
 
         if len(values) > 2:
             value = " and ".join((", ".join(values[:-1]), values[-1]))
@@ -80,7 +82,7 @@ def setup_variables(rolename, *, send_role, types):
             value, plural = LAST_COUNT[user]
             key = "were" if plural else "was"
             msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
-            evt.data["messages"].append(mag)
+            evt.data["messages"].append(msg)
 
     return LAST_COUNT
 

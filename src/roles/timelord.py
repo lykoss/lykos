@@ -51,6 +51,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         time_left = int((var.TIMERS[var.GAMEPHASE][1] + var.TIMERS[var.GAMEPHASE][2]) - time.time())
 
         if time_left > time_limit > 0:
+            from src.wolfgame import hurry_up
             t = threading.Timer(time_limit, hurry_up, [phase_id, True])
             var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
             t.daemon = True
