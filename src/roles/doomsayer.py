@@ -2,12 +2,11 @@ import re
 import random
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import lycanthropy
 from src.events import Event
 
 from src.roles._wolf_helper import is_known_wolf_ally
@@ -121,7 +120,7 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     var.DISEASED.update([p.nick for p in SICK.values()]) # FIXME
     var.SILENCED.update([p.nick for p in SICK.values()]) # FIXME
-    lycanthropy.LYCANTHROPES.update(LYCANS.values())
+    status.LYCANTHROPES.update(LYCANS.values())
 
     SEEN.clear()
     KILLS.clear()
