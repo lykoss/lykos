@@ -175,7 +175,7 @@ def setup_variables(rolename, *, knows_totem):
             TOTEMS[target] = actor_totem
 
     @event_listener("default_totems", priority=3)
-    def add_shaman(evt, var, chances):
+    def add_shaman(evt, chances):
         evt.data["shaman_roles"].add(rolename)
 
     if knows_totem:
@@ -519,7 +519,7 @@ def on_reset(evt, var):
     havetotem.clear()
 
 @event_listener("default_totems", priority=1)
-def set_all_totems(evt, var, chances):
+def set_all_totems(evt, chances):
     chances.update({
         "death"         : {},
         "protection"    : {},

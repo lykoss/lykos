@@ -88,7 +88,7 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["wolf shaman"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
 
 @event_listener("default_totems")
-def set_wolf_totems(evt, var, chances):
+def set_wolf_totems(evt, chances):
     chances["protection"]   ["wolf shaman"] = 1
     chances["silence"]      ["wolf shaman"] = 1
     chances["impatience"]   ["wolf shaman"] = 1

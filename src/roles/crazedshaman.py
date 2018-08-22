@@ -90,7 +90,7 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["crazed shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
-def set_crazed_totems(evt, var, chances):
+def set_crazed_totems(evt, chances):
     for chance in chances.values():
         chance["crazed shaman"] = 1
 

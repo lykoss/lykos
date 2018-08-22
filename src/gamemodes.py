@@ -47,7 +47,7 @@ class GameMode:
         # Add totems with a priority of 1 and shamans with a priority of 3
         # Listeners at priority 5 can make use of this information freely
         evt = events.Event("default_totems", {"shaman_roles": set()})
-        evt.dispatch(var, self.TOTEM_CHANCES)
+        evt.dispatch(self.TOTEM_CHANCES)
 
         shamans = evt.data["shaman_roles"]
         for chances in self.TOTEM_CHANCES.values():
