@@ -85,6 +85,8 @@ def on_transition_night_end(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["shaman"] = {"Village", "Safe", "Nocturnal"}
+    elif kind == "lycanthropy_role":
+        evt.data["shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
 
 @event_listener("default_totems")
 def set_shaman_totems(evt, var, chances):

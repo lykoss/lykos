@@ -8,6 +8,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import lycanthropy
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf
 
@@ -469,7 +470,7 @@ def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
-    var.LYCANTHROPES.update(p.nick for p in LYCANTHROPY)
+    lycanthropy.LYCANTHROPES.update(LYCANTHROPY)
     # pestilence doesn't take effect on immunized players
     var.DISEASED.update({p.nick for p in PESTILENCE} - var.IMMUNIZED)
     var.LUCKY.update(p.nick for p in LUCK)

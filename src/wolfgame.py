@@ -2336,7 +2336,7 @@ def rename_player(var, user, prefix):
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
             for setvar in (var.HEXED, var.SILENCED, var.PASSED,
-                           var.JESTERS, var.LYCANTHROPES, var.LUCKY, var.DISEASED,
+                           var.JESTERS, var.LUCKY, var.DISEASED,
                            var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
                            var.CURSED):
                 if prefix in setvar:
@@ -2540,7 +2540,6 @@ def begin_day():
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = copy.copy(var.TOBESILENCED)
     var.EXCHANGED = set()
-    var.LYCANTHROPES = set()
     var.LUCKY = set()
     var.DISEASED = set()
     var.MISDIRECTED = set()
@@ -3955,7 +3954,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
-    var.LYCANTHROPES = set()
     var.LUCKY = set()
     var.DISEASED = set()
     var.MISDIRECTED = set()

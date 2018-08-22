@@ -70,10 +70,7 @@ def on_transition_day(evt, var):
         # also being killed by wolves, make the kill not apply
         # note that we cannot bite visiting harlots unless they are visiting a wolf,
         # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
-        bite_evt = Event("bite", {
-            "can_bite": True,
-            "kill": target in get_all_players(("lycan",)) or target.nick in var.LYCANTHROPES or target.nick in var.IMMUNIZED
-            },
+        bite_evt = Event("bite", {"can_bite": True, "kill": False},
             victims=evt.data["victims"],
             killers=evt.data["killers"],
             bywolves=evt.data["bywolves"],
@@ -109,21 +106,6 @@ def on_transition_day(evt, var):
 @event_listener("transition_day_resolve_end", priority=2)
 def on_transition_day_resolve_end(evt, var, victims):
     global ENABLED
-    # FIXME: split into lycan (moved here because it needs to be priority 2)
-    for victim in victims:
-        if (victim in var.ROLES["lycan"] or victim.nick in var.LYCANTHROPES) and victim in evt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
-            vrole = get_main_role(victim)
-            if vrole not in Wolf:
-                change_role(var, victim, vrole, "wolf", message="lycan_turn")
-                var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
-                evt.data["howl"] += 1
-                evt.data["novictmsg"] = False
-                evt.data["dead"].remove(victim)
-                evt.data["bywolves"].discard(victim)
-                evt.data["onlybywolves"].discard(victim)
-                evt.data["killers"][victim].remove("@wolves")
-                del evt.data["message"][victim]
-
     # turn all bitten people into wolves
     for target in list(BITTEN.values()):
         if target in evt.data["bywolves"]:
@@ -147,33 +129,21 @@ def on_transition_day_resolve_end(evt, var, victims):
         # get rid of extraneous messages (i.e. harlot visiting wolf)
         evt.data["message"].pop(target, None)
 
-        newrole = "wolf"
-        to_send = "bitten_turn"
-        # FIXME: move this into a config maybe so that other things that cause people to turn wolfteam
-        # can make use of it?
-        # account for shamans
-        sham_evt = Event("default_totems", {"shaman_roles": set()})
-        sham_evt.dispatch(var, {})
-        if targetrole == "guardian angel":
-            to_send = "fallen_angel_turn"
-            # fallen angels also automatically gain the assassin template if they don't already have it
-            newrole = "fallen angel"
-            var.ROLES["assassin"].add(target)
-            debuglog("{0} (guardian angel) TURNED FALLEN ANGEL".format(target))
-        elif targetrole in ("seer", "oracle", "augur"):
-            to_send = "seer_turn"
-            newrole = "doomsayer"
-            debuglog("{0} ({1}) TURNED DOOMSAYER".format(target, targetrole))
-        elif targetrole in sham_evt.data["shaman_roles"]:
-            to_send = "shaman_turn"
-            newrole = "wolf shaman"
-            debuglog("{0} ({1}) TURNED WOLF SHAMAN".format(target, targetrole))
-        elif targetrole == "harlot":
-            to_send = "harlot_turn"
-            debuglog("{0} (harlot) TURNED WOLF".format(target))
+        newrole_evt = Event("get_role_metadata", {})
+        newrole_evt.dispatch(var, "lycanthropy_role")
+        for role, data in newrole_evt.data.items():
+            if role == targetrole:
+                for sec_role in data.get("secondary_roles", ()):
+                    var.ROLES[sec_role].add(target)
+                newrole = data.get("role", "wolf")
+                prefix = data.get("prefix", "bitten")
+                break
         else:
-            debuglog("{0} ({1}) TURNED WOLF".format(target, targetrole))
-        change_role(var, target, targetrole, newrole, message=to_send)
+            newrole = "wolf"
+            prefix = "bitten"
+        change_role(var, target, targetrole, newrole, message=prefix + "_turn")
+        debuglog("{0} ({1}) TURN {2}".format(target, targetrole, newrole))
+
         evt.data["howl"] += 1
         evt.data["novictmsg"] = False
 
@@ -214,8 +184,6 @@ def on_reconfigure_stats(evt, var, roleset, reason):
     if not BITTEN or evt.data["alphawolf-counter"] == len(BITTEN):
         return
 
-    sham_evt = Event("default_totems", {"shaman_roles": set()})
-    sham_evt.dispatch(var, {})
     evt.data["alphawolf-counter"] += 1
     if roleset in evt.data["new"]:
         evt.data["new"].remove(roleset)
@@ -227,18 +195,17 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         newset[role] -= 1
         # ensure all the appropriate keys exist so they do 0-1 or 1-2 or whatever
         # if it's purely 0, our !stats code removes the role entirely
-        newset["fallen angel"] = newset.get("fallen angel", 0)
-        newset["doomsayer"] = newset.get("doomsayer", 0)
-        newset["wolf shaman"] = newset.get("wolf shaman", 0)
         newset["wolf"] = newset.get("wolf", 0)
-        if role == "guardian angel":
-            newset["fallen angel"] += 1
-        elif role in ("seer", "augur", "oracle"):
-            newset["doomsayer"] += 1
-        elif role in sham_evt.data["shaman_roles"]:
-            newset["wolf shaman"] += 1
-        else:
-            newset["wolf"] += 1
+        lycan_evt = Event("get_role_metadata", {})
+        lycan_evt.dispatch(var, "lycanthropy_role")
+        newrole = "wolf"
+        for oldrole, data in lycan_evt.data.items():
+            if "role" in data:
+                newset[data["role"]] = newset.get(data["role"], 0)
+                if role == oldrole:
+                    newrole = data["role"]
+
+        newset[newrole] += 1
         evt.data["new"].append(newset)
 
 @event_listener("begin_day")

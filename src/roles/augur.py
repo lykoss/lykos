@@ -52,5 +52,7 @@ def see(var, wrapper, message):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["augur"] = {"Village", "Nocturnal", "Spy", "Safe"}
+    elif kind == "lycanthropy_role":
+        evt.data["augur"] = {"role": "doomsayer", "prefix": "seer"}
 
 # vim: set sw=4 expandtab:

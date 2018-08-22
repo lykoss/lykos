@@ -144,5 +144,7 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["harlot"] = {"Village", "Safe", "Nocturnal"}
+    elif kind == "lycanthropy_role":
+        evt.data["harlot"] = {"prefix": "harlot"}
 
 # vim: set sw=4 expandtab:

@@ -296,6 +296,7 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["bodyguard"] = {"Village", "Safe", "Nocturnal"}
         evt.data["guardian angel"] = {"Village", "Safe", "Nocturnal"}
-
+    elif kind == "lycanthropy_role":
+        evt.data["guardian angel"] = {"role": "fallen angel", "prefix": "fallen_angel", "secondary_roles": {"assassin"}}
 
 # vim: set sw=4 expandtab:
