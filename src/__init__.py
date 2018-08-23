@@ -16,13 +16,13 @@ from src import db
 
 try:
     import gamemodes # type: ignore
-except ImportError:
+except ModuleNotFoundError:
     import src.gamemodes
 
 try:
     import roles # type: ignore
     roles.CUSTOM_ROLES_DEFINED
-except (ImportError, AttributeError):
+except (ModuleNotFoundError, AttributeError):
     import src.roles
 
 # Handle launch parameters
