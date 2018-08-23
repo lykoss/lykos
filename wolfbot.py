@@ -24,14 +24,13 @@ import os
 import botconfig
 
 ver = sys.version_info
-if ver < (3, 3):
-    print("Python 3.3 or newer is required to run the bot.")
+if ver < (3, 5):
+    print("Python 3.5 or newer is required to run the bot.")
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]))
     sys.exit(1)
 
 try: # need to manually add dependencies here
-    import typing # Python >= 3.5
-    import enum # Python >= 3.4
+    pass
 except ImportError:
     command = "python3"
     if os.name == "nt":
