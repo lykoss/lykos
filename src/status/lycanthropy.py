@@ -1,14 +1,31 @@
 from src.decorators import event_listener
 from src.containers import UserSet
 from src.functions import get_all_players, get_main_role, change_role
+from src.events import Event
 from src.cats import Wolf
 from src._wolf_helper import get_wolfchat_roles
 
+__all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
+
 LYCANTHROPES = UserSet()
+SCOPE = set()
+
+def add_lycanthropy(var, target):
+    if target in LYCANTHROPES:
+        return
+
+    if Event("add_lycanthropy", {}).dispatch(var, target):
+        LYCANTHROPES.add(target)
+
+def remove_lycanthropy(var, target):
+    LYCANTHROPES.discard(target)
+
+def add_lycanthropy_scope(var, scope):
+    SCOPE.update(scope)
 
 @event_listener("reconfigure_stats")
 def on_reconfigure_stats(evt, var, roleset, reason):
-    if reason != "howl":
+    if reason != "howl" or not LYCANTHROPES or not SCOPE:
         return
 
     evt2 = Event("get_role_metadata", {})
@@ -18,7 +35,7 @@ def on_reconfigure_stats(evt, var, roleset, reason):
 
     wolfchat = get_wolfchat_roles(var)
     for role, count in roleset.items():
-        if role in wolfchat or count == 0:
+        if role in wolfchat or count == 0 or role not in SCOPE:
             continue
         if role in evt2.data and "role" in evt2.data[role]:
             roles[role] = evt2.data[role]["role"]
@@ -39,6 +56,11 @@ def on_bite(evt, var, biter, target):
     if target in get_all_players(("lycan",)) or target in LYCANTHROPES or target.nick in var.IMMUNIZED: # FIXME: Split into lycan/doctor (?)
         evt.data["kill"] = True
 
+@event_listener("transition_night_begin")
+def on_transition_night_begin(evt, var): # FIXME: Split into lycan
+    if get_all_players(("lycan",)):
+        add_lycanthropy_scope(var, {"lycan"})
+
 @event_listener("transition_day_resolve_end", priority=2)
 def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims:
@@ -55,10 +77,12 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
-@event_listener("begin_day") # XXX This is wrong
+@event_listener("begin_day")
 def on_begin_day(evt, var):
     LYCANTHROPES.clear()
+    SCOPE.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):
     LYCANTHROPES.clear()
+    SCOPE.clear()

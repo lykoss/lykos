@@ -120,7 +120,8 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     var.DISEASED.update([p.nick for p in SICK.values()]) # FIXME
     var.SILENCED.update([p.nick for p in SICK.values()]) # FIXME
-    status.LYCANTHROPES.update(LYCANS.values())
+    for lycan in LYCANS.values():
+        status.add_lycanthropy(var, lycan)
 
     SEEN.clear()
     KILLS.clear()

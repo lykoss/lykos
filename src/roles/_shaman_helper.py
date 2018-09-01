@@ -9,7 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.cats import Cursed, Safe, Innocent, Wolf
+from src.cats import Cursed, Safe, Innocent, Wolf, All
 
 DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
 PROTECTION = UserList()     # type: List[users.User]
@@ -176,6 +176,11 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("default_totems", priority=3)
     def add_shaman(evt, chances):
         evt.data["shaman_roles"].add(rolename)
+
+    @event_listener("transition_night_begin")
+    def on_transition_night_begin(evt, var):
+        if get_all_players((rolename,)) and var.TOTEM_CHANCES[rolename]["lycanthropy"] > 0:
+            status.add_lycanthropy_scope(var, All)
 
     if knows_totem:
         @event_listener("myrole")
@@ -469,7 +474,8 @@ def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
-    status.LYCANTHROPES.update(LYCANTHROPY)
+    for lycan in LYCANTHROPY:
+        status.add_lycanthropy(var, lycan)
     # pestilence doesn't take effect on immunized players
     var.DISEASED.update({p.nick for p in PESTILENCE} - var.IMMUNIZED)
     var.LUCKY.update(p.nick for p in LUCK)
