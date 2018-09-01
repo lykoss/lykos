@@ -2,8 +2,37 @@ from src.decorators import event_listener
 from src.containers import UserSet
 from src.functions import get_all_players, get_main_role, change_role
 from src.cats import Wolf
+from src._wolf_helper import get_wolfchat_roles
 
 LYCANTHROPES = UserSet()
+
+@event_listener("reconfigure_stats")
+def on_reconfigure_stats(evt, var, roleset, reason):
+    if reason != "howl":
+        return
+
+    evt2 = Event("get_role_metadata", {})
+    evt2.dispatch("lycanthropy_role")
+
+    roles = {}
+
+    wolfchat = get_wolfchat_roles(var)
+    for role, count in roleset.items():
+        if role in wolfchat or count == 0:
+            continue
+        if role in evt2.data and "role" in evt2.data[role]:
+            roles[role] = evt2.data[role]["role"]
+        else:
+            roles[role] = "wolf"
+
+    if roles and roleset in evt.data["new"]:
+        evt.data["new"].remove(roleset)
+
+    for role, new_role in roles.items():
+        rs = roleset.copy()
+        rs[role] -= 1
+        rs[new_role] = rs.get(new_role, 0) + 1
+        evt.data["new"].append(rs)
 
 @event_listener("bite", priority=1)
 def on_bite(evt, var, biter, target):
@@ -26,7 +55,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
-@event_listener("begin_day")
+@event_listener("begin_day") # XXX This is wrong
 def on_begin_day(evt, var):
     LYCANTHROPES.clear()
 
