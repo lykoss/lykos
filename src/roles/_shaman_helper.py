@@ -11,6 +11,8 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf, All
 
+from src.roles import doctor
+
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
 #####################################################################################
@@ -206,9 +208,9 @@ def setup_variables(rolename, *, knows_totem):
     def add_shaman(evt, chances):
         evt.data["shaman_roles"].add(rolename)
 
-    @event_listener("transition_night_begin")
+    @event_listener("transition_night_end")
     def on_transition_night_begin(evt, var):
-        if get_all_players((rolename,)) and var.TOTEM_CHANCES[rolename]["lycanthropy"] > 0:
+        if get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES[rolename]["lycanthropy"] > 0:
             status.add_lycanthropy_scope(var, All)
 
     if knows_totem:
@@ -506,7 +508,7 @@ def on_begin_day(evt, var):
     for lycan in LYCANTHROPY:
         status.add_lycanthropy(var, lycan)
     # pestilence doesn't take effect on immunized players
-    var.DISEASED.update({p.nick for p in PESTILENCE} - var.IMMUNIZED)
+    var.DISEASED.update(p.nick for p in (PESTILENCE - doctor.IMMUNIZED))
     var.LUCKY.update(p.nick for p in LUCK)
     var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
 

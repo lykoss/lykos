@@ -2322,7 +2322,7 @@ def rename_player(var, user, prefix):
                 dictvar.update(kvp)
                 if prefix in dictvar.keys():
                     del dictvar[prefix]
-            for dictvar in (var.FINAL_ROLES, var.DOCTORS):
+            for dictvar in (var.FINAL_ROLES,):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
             # defaultdict(list), where keys are nicks and items in list do not matter
@@ -2337,8 +2337,7 @@ def rename_player(var, user, prefix):
                 var.EXCHANGED_ROLES[idx] = (a, b)
             for setvar in (var.HEXED, var.SILENCED, var.PASSED,
                            var.JESTERS, var.LUCKY, var.DISEASED,
-                           var.MISDIRECTED, var.EXCHANGED, var.IMMUNIZED, var.CURED_LYCANS,
-                           var.CURSED):
+                           var.MISDIRECTED, var.EXCHANGED, var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -3054,11 +3053,6 @@ def check_exchange(cli, actor, nick):
                     var.TOBESILENCED.remove(var.LASTHEXED[actor])
                 del var.LASTHEXED[actor]
             var.HEXED.discard(actor)
-        elif actor_role == "doctor":
-            if nick_role == "doctor":
-                var.DOCTORS[actor], var.DOCTORS[nick] = var.DOCTORS[nick], var.DOCTORS[actor]
-            else:
-                var.DOCTORS[nick] = var.DOCTORS.pop(actor)
         elif actor_role == "warlock":
             var.CURSED.discard(actor)
 
@@ -3075,10 +3069,6 @@ def check_exchange(cli, actor, nick):
                     var.TOBESILENCED.remove(var.LASTHEXED[nick])
                 del var.LASTHEXED[nick]
             var.HEXED.discard(nick)
-        elif nick_role == "doctor":
-            # Both being doctors is handled above
-            if actor_role != "doctor":
-                var.DOCTORS[actor] = var.DOCTORS.pop(nick)
         elif nick_role == "warlock":
             var.CURSED.discard(nick)
 
@@ -3281,42 +3271,6 @@ def observe(cli, nick, chan, rest):
     relay_wolfchat_command(cli, nick, messages["sorcerer_success_wolfchat"].format(nick, victim), ("sorcerer"))
 
     debuglog("{0} ({1}) OBSERVE: {2} ({3})".format(nick, role, victim, get_role(victim)))
-
-@cmd("give", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
-@cmd("immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
-def immunize(cli, nick, chan, rest):
-    """Immunize a player, preventing them from turning into a wolf."""
-    if nick not in var.DOCTORS: # something with amnesiac or clone or exchange totem
-        var.DOCTORS[nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(var.ALL_PLAYERS))
-    if not var.DOCTORS.get(nick):
-        pm(cli, nick, messages["doctor_fail"])
-        return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False, True)
-    if not victim:
-        return
-    victim = choose_target(nick, victim)
-    if check_exchange(cli, nick, victim):
-        return
-    evt = Event("doctor_immunize", {"success": True, "message": "villager_immunized"})
-    if evt.dispatch(var, nick, victim):
-        pm(cli, nick, messages["doctor_success"].format(victim))
-        lycan = False
-        if victim in var.DISEASED:
-            var.DISEASED.remove(victim)
-        if users._get(victim) in get_all_players(("lycan",)): # FIXME
-            lycan = True
-            if get_role(victim) == "lycan":
-                change_role(var, users._get(victim), "lycan", "villager", message="lycan_cured") # FIXME
-            else:
-                var.ROLES["lycan"].remove(users._get(victim)) # FIXME
-            var.CURED_LYCANS.add(victim)
-        else:
-            lycan_message = messages[evt.data["message"]]
-            pm(cli, victim, (messages["immunization_success"]).format(lycan_message))
-    if evt.data["success"]:
-        var.IMMUNIZED.add(victim)
-        var.DOCTORS[nick] -= 1
-    debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(nick, victim, "lycan" if lycan else get_role(victim)))
 
 @cmd("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(cli, nick, chan, rest):
@@ -3628,16 +3582,6 @@ def transition_night():
             drunk.send(messages["drunk_simple"])
         else:
             drunk.send(messages["drunk_notification"])
-
-    for doctor in get_all_players(("doctor",)):
-        if doctor.nick in var.DOCTORS and var.DOCTORS[doctor.nick] > 0: # has immunizations remaining
-            pl = ps[:]
-            random.shuffle(pl)
-            if doctor.prefers_simple():
-                doctor.send(messages["doctor_simple"])
-            else:
-                doctor.send(messages["doctor_notify"])
-            doctor.send(messages["doctor_immunizations"].format(var.DOCTORS[doctor.nick], 's' if var.DOCTORS[doctor.nick] > 1 else ''))
 
     for fool in get_all_players(("fool",)):
         if fool.prefers_simple():
@@ -3960,9 +3904,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXCHANGED = set()
     var.HEXED = set()
     var.ABSTAINED = False
-    var.DOCTORS = {}
-    var.IMMUNIZED = set()
-    var.CURED_LYCANS = set()
     var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
@@ -5271,10 +5212,6 @@ def revealroles(var, wrapper, message):
                     out.append(user.nick)
 
             output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(out)))
-
-    #show who got immunized
-    if var.IMMUNIZED:
-        output.append("\u0002immunized\u0002: {0}".format(", ".join(var.IMMUNIZED)))
 
     evt = Event("revealroles", {"output": output})
     evt.dispatch(var, wrapper)

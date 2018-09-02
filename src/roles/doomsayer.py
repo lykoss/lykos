@@ -10,6 +10,7 @@ from src.messages import messages
 from src.events import Event
 
 from src.roles._wolf_helper import is_known_wolf_ally
+from src.roles import doctor
 
 SEEN = UserSet()
 KILLS = UserDict()
@@ -42,7 +43,7 @@ def see(var, wrapper, message):
 
     mode, mapping = random.choice(_mappings)
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
-    if mode != "sick" or wrapper.source.nick not in var.IMMUNIZED:
+    if mode != "sick" or wrapper.source not in doctor.IMMUNIZED:
         mapping[wrapper.source] = target
 
     debuglog("{0} (doomsayer) SEE: {1} ({2}) - {3}".format(wrapper.source, target, targrole, mode.upper()))
@@ -70,10 +71,9 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):
-    user = users._get(target) # FIXME
-    if user in SICK.values():
+    if target in SICK.values():
         for n, v in list(SICK.items()):
-            if v is user:
+            if v is target:
                 del SICK[n]
         evt.data["message"] = "not_sick"
 

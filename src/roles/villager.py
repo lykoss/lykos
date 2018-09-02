@@ -66,7 +66,6 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["monster"] = {"Neutral", "Win Stealer", "Cursed"}
         evt.data["demoniac"] = {"Neutral", "Win Stealer"}
         evt.data["lycan"] = {"Village", "Team Switcher"}
-        evt.data["doctor"] = {"Village", "Safe"}
         evt.data["village drunk"] = {"Village", "Safe"}
         evt.data["cursed villager"] = {"Village", "Cursed"}
         evt.data["gunner"] = {"Village", "Safe", "Killer"}

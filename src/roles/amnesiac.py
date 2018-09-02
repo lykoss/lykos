@@ -32,11 +32,6 @@ def on_transition_night_begin(evt, var):
             role = change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
             debuglog("{0} REMEMBER: {1}".format(amn, role))
 
-@event_listener("new_role")
-def doctor_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "doctor": # FIXME: Need to split into doctor.py when split
-        var.DOCTORS[user.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players()))
-
 @event_listener("investigate")
 def on_investigate(evt, var, actor, target):
     if evt.data["role"] == "amnesiac":
