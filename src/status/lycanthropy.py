@@ -3,7 +3,7 @@ from src.containers import UserSet
 from src.functions import get_all_players, get_main_role, change_role
 from src.events import Event
 from src.cats import Wolf
-from src._wolf_helper import get_wolfchat_roles
+from src.roles._wolf_helper import get_wolfchat_roles
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
@@ -53,22 +53,20 @@ def on_reconfigure_stats(evt, var, roleset, reason):
 
 @event_listener("bite", priority=1)
 def on_bite(evt, var, biter, target):
-    if target in get_all_players(("lycan",)) or target in LYCANTHROPES or target.nick in var.IMMUNIZED: # FIXME: Split into lycan/doctor (?)
+    if target in LYCANTHROPES:
         evt.data["kill"] = True
 
-@event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var): # FIXME: Split into lycan
-    if get_all_players(("lycan",)):
-        add_lycanthropy_scope(var, {"lycan"})
+@event_listener("del_player")
+def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+    remove_lycanthropy(var, player)
 
 @event_listener("transition_day_resolve_end", priority=2)
 def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims:
-        if (victim in get_all_players(("lycan",)) or victim in LYCANTHROPES) and victim in evt.data["onlybywolves"] and victim.nick not in var.IMMUNIZED:
+        if victim in LYCANTHROPES and victim in evt.data["onlybywolves"]:
             vrole = get_main_role(victim)
             if vrole not in Wolf:
                 change_role(var, victim, vrole, "wolf", message="lycan_turn")
-                var.ROLES["lycan"].discard(victim) # in the event lycan was a template, we want to ensure it gets purged
                 evt.data["howl"] += 1
                 evt.data["novictmsg"] = False
                 evt.data["dead"].remove(victim)
@@ -77,7 +75,12 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
-@event_listener("begin_day")
+@event_listener("revealroles")
+def on_revealroles(evt, var, wrapper):
+    if LYCANTHROPES:
+        evt.data["output"].append("\u0002lycanthropes\u0002: {0}".format(", ".join(p.nick for p in LYCANTHROPES)))
+
+@event_listener("transition_night_begin")
 def on_begin_day(evt, var):
     LYCANTHROPES.clear()
     SCOPE.clear()

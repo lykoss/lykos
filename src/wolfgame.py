@@ -3607,13 +3607,6 @@ def transition_night():
         else:
             demoniac.send(messages["demoniac_notify"])
 
-
-    for lycan in get_all_players(("lycan",)):
-        if lycan.prefers_simple():
-            lycan.send(messages["lycan_simple"])
-        else:
-            lycan.send(messages["lycan_notify"])
-
     for g in var.GUNNERS:
         if g not in ps:
             continue

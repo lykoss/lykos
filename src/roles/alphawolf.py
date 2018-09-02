@@ -156,15 +156,6 @@ def on_reconfigure_stats(evt, var, roleset, reason):
     if reason != "howl":
         return
 
-    # FIXME: split into lycan
-    if roleset.get("lycan", 0) > 0:
-        if roleset in evt.data["new"]:
-            evt.data["new"].remove(roleset)
-        newset = dict(roleset)
-        newset["lycan"] -= 1
-        newset["wolf"] = newset.get("wolf", 0) + 1
-        evt.data["new"].append(newset)
-
     # ensure that in the case of multiple howls in one night, that we don't adjust stats
     # more times than there are alpha wolves; make use of a private dict key in this case
     # as the data dict is preserved across multiple disparate howl events
