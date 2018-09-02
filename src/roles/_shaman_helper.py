@@ -11,6 +11,51 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf, All
 
+#####################################################################################
+########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
+#####################################################################################
+# Before you can add custom totems or shamans, you need to have a basic knowledge   #
+# of how the event system works in this bot. If you already know how events in this #
+# bot work, you may skip this.                                                      #
+#                                                                                   #
+# To allow maximum flexibility and allow for customization, lykos makes use of an   #
+# event system. The core system will fire events (also referred to as dispatching   #
+# an event), which can be listened to by code elsewhere. For example, every role    #
+# listens on the "transition_night_end" event, which is where role messages are     #
+# sent out to the players. There are several of these kinds of events everywhere,   #
+# and roles are expected to make use of the relevant events. For a more in-depth    #
+# look at the event system, please check our wiki at https://werewolf.chat/Events   #
+#                                                                                   #
+# To add new totem types in your custom files:                                      #
+# 1. Listen to the "default_totems" event at priority 1 and update                  #
+#    chances with (totem name, empty dict) as the (key, value) pair                 #
+# 2. Listen to the "default_totems" event at priority 5 (the default)               #
+#    and set chances[totem][shaman_role] = 1 for relevant roles                     #
+# 3. Add a message key totemname_totem in your custom messages.json file            #
+#    describing the totem (this is displayed at night if !simple is off)            #
+# 4. Add event listeners as necessary to implement the totem's functionality        #
+#                                                                                   #
+# To add new shaman roles in your custom files:                                     #
+# 1. Listen to the "default_totems" event at priority 3 and add your shaman         #
+#    role in evt.data["shaman_roles"]                                               #
+# 2. Listen to the "default_totems" event at priority 5 (the default)               #
+#    and set chances[totem][shaman_role] = 1 for the totems you wish to have        #
+# 3. Setup variables and events with setup_variables(rolename, knows_totem)         #
+#    filling in the role name and knows_totem depending on whether or not the       #
+#    role knows about the totems they receive. This parameter is keyword-only       #
+# 4. Implement the "transition_day_begin" and "transition_night_end" events to give #
+#    out totems if the shaman didn't act, and send night messages, respectively.    #
+#    Implementation of the "get_role_metadata" event with the "role_categories"     #
+#    kind is also necessary for the bot to know that the role exists at all. You    #
+#    may look at existing shamans for reference. If your shaman isn't a wolf role,  #
+#    the "lycanthropy_role" kind should also be implemented as follows:             #
+#    evt.data[role] = {"role": "wolf shaman", "prefix": "shaman"}                   #
+#    You will also need to implement your own "give" command; see existing          #
+#    shamans for reference, or ask for help in our development channel.             #
+#                                                                                   #
+# It is generally unneeded to modify this file to add new totems or shaman roles    #
+#####################################################################################
+
 DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
 PROTECTION = UserList()     # type: List[users.User]
 REVEALING = UserSet()       # type: Set[users.User]
@@ -38,22 +83,6 @@ brokentotem = set()         # type: Set[users.User]
 # silence_totem, desperation_totem, impatience_totem, pacifism_totem,
 # influence_totem, exchange_totem, lycanthropy_totem, luck_totem,
 # pestilence_totem, retribution_totem, misdirection_totem, deceit_totem
-
-# XXX this whole comment block is wrong, redo
-# To add new totem types in your custom roles/whatever.py file:
-# 1. Add a key to var.TOTEM_CHANCES with the totem name
-# 2. Add a message totemname_totem to your custom messages.json describing
-#    the totem (this is displayed at night if !simple is off)
-# 3. Add events as necessary to implement the totem's functionality
-#
-# To add new shaman roles in your custom roles/whatever.py file:
-# 1. Expand var.TOTEM_ORDER and upate var.TOTEM_CHANCES to account for the new width
-# 2. Add the role to whatever other holding vars are necessary based on what it does
-# 3. Setup initial variables and events with setup_variables(rolename, knows_totem)
-#    knows_totem is a bool and keyword-only
-# 4. Implement custom events if the role does anything else beyond giving totems.
-#
-# Modifying this file to add new totems or new shaman roles is generally never required
 
 def setup_variables(rolename, *, knows_totem):
     """Setup role variables and shared events."""
