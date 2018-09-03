@@ -507,8 +507,8 @@ def on_begin_day(evt, var):
     var.SILENCED.update(p.nick for p in SILENCE)
     for lycan in LYCANTHROPY:
         status.add_lycanthropy(var, lycan)
-    # pestilence doesn't take effect on immunized players
-    var.DISEASED.update(p.nick for p in (PESTILENCE - doctor.IMMUNIZED))
+    for pestilent in PESTILENCE:
+        status.make_diseased(var, pestilent)
     var.LUCKY.update(p.nick for p in LUCK)
     var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
 

@@ -51,7 +51,7 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         rs[new_role] = rs.get(new_role, 0) + 1
         evt.data["new"].append(rs)
 
-@event_listener("bite", priority=1)
+@event_listener("bite")
 def on_bite(evt, var, biter, target):
     if target in LYCANTHROPES:
         evt.data["kill"] = True

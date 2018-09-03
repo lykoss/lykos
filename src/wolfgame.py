@@ -2336,7 +2336,7 @@ def rename_player(var, user, prefix):
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
             for setvar in (var.HEXED, var.SILENCED, var.PASSED,
-                           var.JESTERS, var.LUCKY, var.DISEASED,
+                           var.JESTERS, var.LUCKY,
                            var.MISDIRECTED, var.EXCHANGED, var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
@@ -2540,7 +2540,6 @@ def begin_day():
     var.SILENCED = copy.copy(var.TOBESILENCED)
     var.EXCHANGED = set()
     var.LUCKY = set()
-    var.DISEASED = set()
     var.MISDIRECTED = set()
     var.DYING.clear()
     var.LAST_GOAT.clear()
@@ -2712,9 +2711,6 @@ def transition_day(gameid=0):
     message = defaultdict(list)
     message["*"].append(messages["sunrise"].format(minimum, sec))
 
-    # This needs to go down here since having them be their night value matters above
-    var.DISEASED_WOLVES = False
-
     dead = []
     vlist = victims[:]
     revt = Event("transition_day_resolve", {
@@ -2785,8 +2781,6 @@ def transition_day(gameid=0):
                     var.GUNNERS[victim] -= 1 # deduct the used bullet
 
     for victim in dead:
-        if victim in bywolves and victim in var.DISEASED:
-            var.DISEASED_WOLVES = True
         if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
             # victim has bullets
             try:
@@ -3888,11 +3882,9 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.JESTERS = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.DISEASED_WOLVES = False
     var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
     var.LUCKY = set()
-    var.DISEASED = set()
     var.MISDIRECTED = set()
     var.EXCHANGED = set()
     var.HEXED = set()

@@ -43,8 +43,7 @@ def see(var, wrapper, message):
 
     mode, mapping = random.choice(_mappings)
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
-    if mode != "sick" or wrapper.source not in doctor.IMMUNIZED:
-        mapping[wrapper.source] = target
+    mapping[wrapper.source] = target
 
     debuglog("{0} (doomsayer) SEE: {1} ({2}) - {3}".format(wrapper.source, target, targrole, mode.upper()))
     relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), is_wolf_command=True)
@@ -118,8 +117,9 @@ def on_transition_day(evt, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
-    var.DISEASED.update([p.nick for p in SICK.values()]) # FIXME
-    var.SILENCED.update([p.nick for p in SICK.values()]) # FIXME
+    for sick in SICK.values():
+        status.make_diseased(var, sick)
+        var.SILENCED.add(sick.nick) # FIXME
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
 

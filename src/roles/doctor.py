@@ -37,13 +37,12 @@ def immunize(var, wrapper, message):
 
     wrapper.pm(messages["doctor_success"].format(target))
 
-    if target.nick in var.DISEASED: # FIXME: For the love of god please fix me
-        var.DISEASED.remove(target.nick)
     target.send(messages["immunization_success"].format(messages[evt.data["message"]]))
 
     IMMUNIZED.add(target)
     DOCTORS[wrapper.source] -= 1
     status.remove_lycanthropy(var, target)
+    status.cure_disease(var, target)
 
     debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 

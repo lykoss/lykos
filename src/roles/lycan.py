@@ -25,6 +25,11 @@ def on_transition_night_end(evt, var):
         else:
             lycan.send(messages["lycan_notify"])
 
+@event_listener("doctor_immunize")
+def on_doctor_immunize(evt, var, doctor, target):
+    if target in get_all_players(("lycan",)):
+        evt.data["message"] = "lycan_cured"
+
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
     if evt.data["role"] in Wolf and old_role is not None:

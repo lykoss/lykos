@@ -5,7 +5,7 @@ from collections import defaultdict
 import src.settings as var
 from src.utilities import *
 from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_target
-from src import debuglog, errlog, plog, users, channels
+from src import debuglog, errlog, plog, users, channels, status
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -22,7 +22,7 @@ def wolf_kill(var, wrapper, message):
     """Kills one or more players as a wolf."""
     role = get_main_role(wrapper.source)
     # eventually cub will listen on targeted_command and block kills that way
-    if var.DISEASED_WOLVES:
+    if status.wolves_diseased(var):
         wrapper.pm(messages["ill_wolves"])
         return
 
@@ -217,7 +217,7 @@ def on_new_role(evt, var, player, old_role):
 
         if var.PHASE == "night":
             # inform the new wolf that they can kill and stuff
-            if evt.data["role"] in CAN_KILL and var.DISEASED_WOLVES:
+            if evt.data["role"] in CAN_KILL and status.wolves_diseased(var):
                 evt.data["messages"].append(messages["ill_wolves"])
 
 @event_listener("chk_nightdone", priority=3)
@@ -226,7 +226,7 @@ def on_chk_nightdone(evt, var):
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
     wofls = [x for x in get_players(CAN_KILL) if x.nick not in var.SILENCED]
-    if var.DISEASED_WOLVES or num_kills == 0 or len(wofls) == 0:
+    if status.wolves_diseased(var) or num_kills == 0 or len(wofls) == 0:
         return
 
     evt.data["nightroles"].extend(wofls)
@@ -344,7 +344,7 @@ def on_transition_night_end(evt, var):
                     players.append(player.nick)
 
         wolf.send(messages["players_list"].format(", ".join(players)))
-        if role in CAN_KILL and var.DISEASED_WOLVES:
+        if role in CAN_KILL and status.wolves_diseased(var):
             wolf.send(messages["ill_wolves"])
 
 @event_listener("begin_day")
@@ -373,7 +373,7 @@ def on_get_role_metadata(evt, var, kind):
 
 @event_listener("wolf_numkills", priority=10)
 def on_wolf_numkills(evt, var):
-    if var.DISEASED_WOLVES:
+    if status.wolves_diseased(var):
         evt.data["numkills"] = 0
         evt.stop_processing = True
 
