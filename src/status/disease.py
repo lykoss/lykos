@@ -2,19 +2,19 @@ from src.decorators import event_listener
 from src.containers import UserSet
 from src.events import Event
 
-__all__ = ["make_diseased", "cure_disease", "wolves_diseased"]
+__all__ = ["add_disease", "remove_disease", "wolves_diseased"]
 
 DISEASED = UserSet() # type: Set[users.User]
 DISEASED_WOLVES = False
 
-def make_diseased(var, target):
+def add_disease(var, target):
     if target in DISEASED:
         return
 
-    if Event("make_diseased", {}).dispatch(var, target):
+    if Event("add_disease", {}).dispatch(var, target):
         DISEASED.add(target)
 
-def cure_disease(var, target):
+def remove_disease(var, target):
     DISEASED.discard(target)
 
 def wolves_diseased(var):
