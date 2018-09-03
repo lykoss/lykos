@@ -42,7 +42,7 @@ def immunize(var, wrapper, message):
     IMMUNIZED.add(target)
     DOCTORS[wrapper.source] -= 1
     status.remove_lycanthropy(var, target)
-    status.cure_disease(var, target)
+    status.remove_disease(var, target)
 
     debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 

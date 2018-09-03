@@ -118,7 +118,7 @@ def on_transition_day(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     for sick in SICK.values():
-        status.make_diseased(var, sick)
+        status.add_disease(var, sick)
         var.SILENCED.add(sick.nick) # FIXME
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
