@@ -11,6 +11,7 @@ LYCANTHROPES = UserSet()
 SCOPE = set()
 
 def add_lycanthropy(var, target):
+    """Effect the target with lycanthropy. Fire the add_lycanthropy event."""
     if target in LYCANTHROPES:
         return
 
@@ -18,9 +19,11 @@ def add_lycanthropy(var, target):
         LYCANTHROPES.add(target)
 
 def remove_lycanthropy(var, target):
+    """Remove the lycanthropy effect from the target."""
     LYCANTHROPES.discard(target)
 
 def add_lycanthropy_scope(var, scope):
+    """Add a scope for roles that can effect lycanthropy, for stats."""
     SCOPE.update(scope)
 
 @event_listener("reconfigure_stats")

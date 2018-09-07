@@ -8,6 +8,7 @@ DISEASED = UserSet() # type: Set[users.User]
 DISEASED_WOLVES = False
 
 def add_disease(var, target):
+    """Effect the target with disease. Fire the add_disease event."""
     if target in DISEASED:
         return
 
@@ -15,9 +16,11 @@ def add_disease(var, target):
         DISEASED.add(target)
 
 def remove_disease(var, target):
+    """Remove the disease effect from the player."""
     DISEASED.discard(target)
 
 def wolves_diseased(var):
+    """Return whether or not wolves are currently diseased."""
     return DISEASED_WOLVES
 
 @event_listener("transition_day_resolve_end")

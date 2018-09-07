@@ -51,6 +51,11 @@ def on_add_lycanthropy(evt, var, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
+@event_listener("add_disease")
+def on_add_disease(evt, var, target):
+    if target in IMMUNIZED:
+        evt.prevent_default = True
+
 @event_listener("bite")
 def on_bite(evt, var, actor, target):
     if target in IMMUNIZED:

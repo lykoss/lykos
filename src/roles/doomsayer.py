@@ -10,7 +10,6 @@ from src.messages import messages
 from src.events import Event
 
 from src.roles._wolf_helper import is_known_wolf_ally
-from src.roles import doctor
 
 SEEN = UserSet()
 KILLS = UserDict()

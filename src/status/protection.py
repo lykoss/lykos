@@ -1,12 +1,14 @@
 from src.containers import UserDict, DefaultUserDict
+from src.decorators import event_listener
 from src.events import Event
 from src.cats import All
 
 __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 
-PROTECTIONS = UserDict() # type: UserDict[User, UserDict[Optional[User], List[Tuple[Category, Optional[str]]]]]
+PROTECTIONS = UserDict() # type: UserDict[User, UserDict[Optional[User], List[Tuple[Category, str]]]]
 
 def add_protection(var, target, protector, protector_role, scope=All):
+    """Add a protection to the target affecting the relevant scope."""
     if target not in PROTECTIONS:
         PROTECTIONS[target] = DefaultUserDict(list)
 
@@ -14,11 +16,9 @@ def add_protection(var, target, protector, protector_role, scope=All):
     PROTECTIONS[target][protector].append(prot_entry)
 
 def try_protection(var, target, attacker, attacker_role):
-    if target not in PROTECTIONS:
-        return None
-
+    """Attempt to protect the player, and return a list of messages or None."""
     prots = []
-    for protector, entries in PROTECTIONS[target].items():
+    for protector, entries in PROTECTIONS.get(target, {}).items():
         for scope, protector_role in entries:
             if attacker_role in scope:
                 entry = (protector, protector_role, scope)
@@ -38,6 +38,7 @@ def try_protection(var, target, attacker, attacker_role):
     return prot_evt.data["messages"]
 
 def remove_all_protections(var, target, attacker, attacker_role, scope=All):
+    """Remove all protections from a player."""
     if target not in PROTECTIONS:
         return
 
@@ -50,8 +51,10 @@ def remove_all_protections(var, target, attacker, attacker_role, scope=All):
                     PROTECTIONS[target][protector].remove((cat, protector_role))
                     target.send(*evt.data["messages"])
 
-        if not entries:
-            del PROTECTIONS[target][protector]
+@event_listener("transition_night_begin")
+def on_transition_night_begin(evt, var):
+    PROTECTIONS.clear()
 
-    if not PROTECTIONS[target]:
-        del PROTECTIONS[target]
+@event_listener("reset")
+def on_reset(evt, var):
+    PROTECTIONS.clear()

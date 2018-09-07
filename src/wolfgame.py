@@ -2325,9 +2325,6 @@ def rename_player(var, user, prefix):
             for dictvar in (var.FINAL_ROLES,):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
-            # defaultdict(list), where keys are nicks and items in list do not matter
-            if prefix in var.ACTIVE_PROTECTIONS.keys():
-                var.ACTIVE_PROTECTIONS[nick] = var.ACTIVE_PROTECTIONS.pop(prefix)
             for idx, tup in enumerate(var.EXCHANGED_ROLES):
                 a, b = tup
                 if a == prefix:
@@ -2633,9 +2630,6 @@ def transition_day(gameid=0):
     var.NIGHT_START_TIME = None
     var.NIGHT_TIMEDELTA += td
     minimum, sec = td.seconds // 60, td.seconds % 60
-
-    # this keeps track of the protections active on each nick, stored in var since del_player needs to access it for sake of assassin
-    var.ACTIVE_PROTECTIONS = defaultdict(list)
 
     # built-in logic runs at the following priorities:
     # 1 = wolf kills
@@ -3889,7 +3883,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.EXCHANGED = set()
     var.HEXED = set()
     var.ABSTAINED = False
-    var.ACTIVE_PROTECTIONS = defaultdict(list)
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
     var.DYING.clear()
