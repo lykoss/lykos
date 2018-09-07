@@ -1,22 +1,25 @@
 """Core game status are exposed here."""
 
-# Define __all__ in each module and concatenate them together here (also star-import everything)
-# This allows minimal modification of this file even when the API changes
-
-from src.status.lycanthropy import __all__ as lycanthropy_all
-from src.status.protection import __all__ as protection_all
-from src.status.disease import __all__ as disease_all
+import os.path
+import glob
+import importlib
 
 __all__ = []
 
-for all_list in (lycanthropy_all, protection_all, disease_all):
-    if set(all_list) & set(__all__):
-        raise TypeError("Error: duplicate names {0}".format(set(all_list) & set(__all__)))
-    __all__.extend(all_list)
+path = os.path.dirname(os.path.abspath(__file__))
+search = os.path.join(path, "*.py")
 
-# clear whole module before importing in case names conflict
-del all_list, lycanthropy_all, protection_all, disease_all
+for f in glob.iglob(search):
+    f = os.path.basename(f)
+    n, _ = os.path.splitext(f)
+    if f.startswith("_"):
+        continue
+    mod = importlib.import_module("." + n, package="src.status")
 
-from src.status.lycanthropy import *
-from src.status.protection import *
-from src.status.disease import *
+    all = mod.__all__
+    if set(__all__) & set(all):
+        raise TypeError("Error: duplicate names {0}".format(set(__all__) & set(all)))
+    __all__.extend(all)
+
+    for name in all:
+        globals()[name] = getattr(mod, name)
