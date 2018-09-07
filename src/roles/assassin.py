@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import try_protection
 
 TARGETED = UserDict() # type: Dict[users.User, users.User]
 PREV_ACTED = UserSet()
@@ -97,44 +98,20 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
         del TARGETED[player]
         PREV_ACTED.discard(player)
         if target in evt.data["pl"]:
-            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-            aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
-                del_player=evt.params.del_player,
-                deadlist=evt.params.deadlist,
-                original=evt.params.original,
-                refresh_pl=evt.params.refresh_pl,
-                message_prefix="assassin_fail_",
-                source="assassin",
-                killer=player,
-                killer_mainrole=mainrole,
-                killer_allroles=allroles,
-                prots=prots)
-
-            while len(prots) > 0:
-                # an event can read the current active protection and cancel the assassination
-                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                # so that it cannot be used again (if the protection is meant to be usable once-only)
-                if not aevt.dispatch(var, player, target, prots[0]):
-                    pl = aevt.data["pl"]
-                    if target is not aevt.data["target"]:
-                        target = aevt.data["target"]
-                        prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                        aevt.params.prots = prots
-                        continue
-                    break
-                prots.popleft()
-
-            if not prots:
-                if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(target)
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    message = messages["assassin_success"].format(player, target, an, role)
-                else:
-                    message = messages["assassin_success_no_reveal"].format(player, target)
-                channels.Main.send(message)
-                debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
-                evt.params.del_player(target, end_game=False, killer_role=mainrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-                evt.data["pl"] = evt.params.refresh_pl(aevt.data["pl"])
+            protected = try_protection(var, target, player, "assassin", "assassin")
+            if protected:
+                channels.Main.send(protected)
+                return
+            if var.ROLE_REVEAL in ("on", "team"):
+                role = get_reveal_role(target)
+                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                message = messages["assassin_success"].format(player, target, an, role)
+            else:
+                message = messages["assassin_success_no_reveal"].format(player, target)
+            channels.Main.send(message)
+            debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
+            evt.params.del_player(target, end_game=False, killer_role=mainrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
+            evt.data["pl"] = evt.params.refresh_pl(aevt.data["pl"])
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

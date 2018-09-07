@@ -15,7 +15,7 @@ def add_protection(var, target, protector, protector_role, scope=All):
     prot_entry = (scope, protector_role)
     PROTECTIONS[target][protector].append(prot_entry)
 
-def try_protection(var, target, attacker, attacker_role):
+def try_protection(var, target, attacker, attacker_role, reason):
     """Attempt to protect the player, and return a list of messages or None."""
     prots = []
     for protector, entries in PROTECTIONS.get(target, {}).items():
@@ -25,7 +25,7 @@ def try_protection(var, target, attacker, attacker_role):
                 prots.append(entry)
 
     try_evt = Event("try_protection", {"protections": prots, "messages": []})
-    if not try_evt.dispatch(var, target, attacker, attacker_role) or not try_evt.data["protections"]:
+    if not try_evt.dispatch(var, target, attacker, attacker_role, reason) or not try_evt.data["protections"]:
         return None
 
     protector, protector_role, scope = try_evt.data["protections"].pop(0)
@@ -33,11 +33,11 @@ def try_protection(var, target, attacker, attacker_role):
     PROTECTIONS[target][protector].remove((scope, protector_role))
 
     prot_evt = Event("player_protected", {"messages": try_evt.data["messages"]})
-    prot_evt.dispatch(var, target, attacker, attacker_role, protector, protector_role)
+    prot_evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
 
     return prot_evt.data["messages"]
 
-def remove_all_protections(var, target, attacker, attacker_role, scope=All):
+def remove_all_protections(var, target, attacker, attacker_role, reason, scope=All):
     """Remove all protections from a player."""
     if target not in PROTECTIONS:
         return
@@ -46,7 +46,7 @@ def remove_all_protections(var, target, attacker, attacker_role, scope=All):
         for cat, protector_role in list(entries):
             if scope & cat:
                 evt = Event("remove_protection", {"remove": False, "messages": []})
-                evt.dispatch(var, target, attacker, attacker_role, protector, protector_role)
+                evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
                 if evt.data["remove"]:
                     PROTECTIONS[target][protector].remove((cat, protector_role))
                     target.send(*evt.data["messages"])

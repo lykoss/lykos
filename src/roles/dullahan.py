@@ -10,6 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import try_protection
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]
@@ -67,32 +68,10 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         with TARGETS[user].intersection(pl) as targets:
             if targets:
                 target = random.choice(list(targets))
-                prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                aevt = Event("assassinate", {"pl": evt.data["pl"], "target": target},
-                        del_player=evt.params.del_player,
-                        deadlist=evt.params.deadlist,
-                        original=evt.params.original,
-                        refresh_pl=evt.params.refresh_pl,
-                        message_prefix="dullahan_die_",
-                        source="dullahan",
-                        killer=user,
-                        killer_mainrole=mainrole,
-                        killer_allroles=allroles,
-                        prots=prots)
-                while len(prots) > 0:
-                    # an event can read the current active protection and cancel or redirect the assassination
-                    # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                    # so that it cannot be used again (if the protection is meant to be usable once-only)
-                    if not aevt.dispatch(var, user, target, prots[0]):
-                        evt.data["pl"] = aevt.data["pl"]
-                        if target is not aevt.data["target"]:
-                            target = aevt.data["target"]
-                            prots = deque(var.ACTIVE_PROTECTIONS[target.nick])
-                            aevt.params.prots = prots
-                            continue
-                        return
-                    prots.popleft()
-
+                protected = try_protection(var, target, user, "dullahan", "dullahan_die")
+                if protected:
+                    channels.Main.send(protected)
+                    return
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(target)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""

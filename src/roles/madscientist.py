@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import try_protection
 
 def _get_targets(var, pl, user):
     """Gets the mad scientist's targets.
@@ -53,50 +54,15 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
     pl = evt.data["pl"]
     target1, target2 = _get_targets(var, pl, user)
 
-    # apply protections (if applicable)
-    prots1 = deque(var.ACTIVE_PROTECTIONS[target1.nick])
-    prots2 = deque(var.ACTIVE_PROTECTIONS[target2.nick])
-    # for this event, we don't tell the event that the other side is dying
-    # this allows, e.g. a bodyguard and the person they are guarding to get splashed,
-    # and the bodyguard to still sacrifice themselves to guard the other person
-    aevt = Event("assassinate", {"pl": pl, "target": target1},
-        del_player=evt.params.del_player,
-        deadlist=evt.params.deadlist,
-        original=evt.params.original,
-        refresh_pl=evt.params.refresh_pl,
-        message_prefix="mad_scientist_fail_",
-        source="mad scientist",
-        killer=user,
-        killer_mainrole=mainrole,
-        killer_allroles=allroles,
-        prots=prots1)
-    while len(prots1) > 0:
-        # events may be able to cancel this kill
-        if not aevt.dispatch(var, user, target1, prots1[0]):
-            pl = aevt.data["pl"]
-            if target1 is not aevt.data["target"]:
-                target1 = aevt.data["target"]
-                prots1 = deque(var.ACTIVE_PROTECTIONS[target1.nick])
-                aevt.params.prots = prots1
-                continue
-            break
-        prots1.popleft()
-    aevt.data["target"] = target2
-    aevt.params.prots = prots2
-    while len(prots2) > 0:
-        # events may be able to cancel this kill
-        if not aevt.dispatch(var, user, target2, prots2[0]):
-            pl = aevt.data["pl"]
-            if target2 is not aevt.data["target"]:
-                target2 = aevt.data["target"]
-                prots2 = deque(var.ACTIVE_PROTECTIONS[target2.nick])
-                aevt.params.prots = prots2
-                continue
-            break
-        prots2.popleft()
+    prots1 = try_protection(var, target1, user, "mad scientist", "mad_scientist")
+    prots2 = try_protection(var, target2, user, "mad scientist", "mad_scientist")
+    if prots1:
+        channels.Main.send(prots1)
+    if prots2:
+        channels.Main.send(prots2)
 
-    kill1 = target1 in pl and len(prots1) == 0
-    kill2 = target2 in pl and len(prots2) == 0 and target1 is not target2
+    kill1 = target1 in pl and prots1 is None
+    kill2 = target2 in pl and prots2 is None and target1 is not target2
 
     if kill1:
         if kill2:
