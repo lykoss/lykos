@@ -42,3 +42,5 @@ def on_reset(evt, var):
     global DISEASED_WOLVES
     DISEASED.clear()
     DISEASED_WOLVES = False
+
+# vim: set sw=4 expandtab:

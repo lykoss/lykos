@@ -58,3 +58,5 @@ def on_transition_night_begin(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     PROTECTIONS.clear()
+
+# vim: set sw=4 expandtab:

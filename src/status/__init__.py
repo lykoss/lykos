@@ -23,3 +23,5 @@ for f in glob.iglob(search):
 
     for name in all:
         globals()[name] = getattr(mod, name)
+
+# vim: set sw=4 expandtab:

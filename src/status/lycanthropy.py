@@ -92,3 +92,5 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     LYCANTHROPES.clear()
     SCOPE.clear()
+
+# vim: set sw=4 expandtab:
