@@ -60,7 +60,7 @@ def on_bite(evt, var, biter, target):
         evt.data["kill"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     remove_lycanthropy(var, player)
 
 @event_listener("transition_day_resolve_end", priority=2)

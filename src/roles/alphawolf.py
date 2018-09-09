@@ -55,9 +55,9 @@ def retract(var, wrapper, message):
         debuglog("{0} (alpha wolf) RETRACT BITE".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     global ENABLED
-    if death_triggers and mainrole in Wolf:
+    if death_triggers and evt.params.main_role in Wolf:
         ENABLED = True
 
 @event_listener("transition_day", priority=5)
@@ -171,7 +171,7 @@ def on_reconfigure_stats(evt, var, roleset, reason):
     # (test case 2: in a game with lycan + alpha, if lycan turns and alpha bites the same night,
     # we still only run the below logic once as opposed to twice)
     # note: ENABLED is always False by this point in time, as we have to set it to false before
-    # calling del_player for night kills
+    # calling kill_players for night kills
     if not BITTEN or evt.data["alphawolf-counter"] == len(BITTEN):
         return
 

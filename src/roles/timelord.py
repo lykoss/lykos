@@ -24,8 +24,8 @@ TIME_ATTRIBUTES = (
 )
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if not death_triggers or "time lord" not in allroles:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if not death_triggers or "time lord" not in all_roles:
         return
 
     for attr, new_attr in TIME_ATTRIBUTES:
@@ -67,7 +67,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                     t.daemon = True
                     t.start()
 
-    debuglog("{0} (time lord) TRIGGER".format(user))
+    debuglog("{0} (time lord) TRIGGER".format(player))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

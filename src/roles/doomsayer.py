@@ -62,10 +62,10 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             del mapping[:target:]
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     # only remove from SEEN; keep results of sees intact on death
     # so that we can apply them in begin_day even if doomsayer dies.
-    SEEN.discard(user)
+    SEEN.discard(player)
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):

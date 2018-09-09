@@ -40,7 +40,7 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 # Update any game state which happens when player dies. If this role does things upon death,
 # ensure that you check death_triggers (it's a bool) before firing it.
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     pass
 
 # Clear all game state. Called whenever the game ends.

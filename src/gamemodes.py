@@ -946,14 +946,13 @@ class SleepyMode(GameMode):
             self.having_nightmare[0].send(messages["sleepy_nightmare_death"])
             del self.having_nightmare[0]
 
-    def happy_fun_times(self, evt, var, user, mainrole, allroles, death_triggers):
+    def happy_fun_times(self, evt, var, player, all_roles, death_triggers):
         if death_triggers:
-            if mainrole == "priest":
-                pl = evt.data["pl"]
+            if evt.data.main_role == "priest":
                 turn_chance = 3/4
-                seers = [p for p in get_players(("seer",)) if p in pl and random.random() < turn_chance]
-                harlots = [p for p in get_players(("harlot",)) if p in pl and random.random() < turn_chance]
-                cultists = [p for p in get_players(("cultist",)) if p in pl and random.random() < turn_chance]
+                seers = [p for p in get_players(("seer",)) if random.random() < turn_chance]
+                harlots = [p for p in get_players(("harlot",)) if random.random() < turn_chance]
+                cultists = [p for p in get_players(("cultist",)) if random.random() < turn_chance]
                 channels.Main.send(messages["sleepy_priest_death"])
                 for seer in seers:
                     change_role(var, seer, "seer", "doomsayer", message="sleepy_doomsayer_turn")
@@ -961,7 +960,6 @@ class SleepyMode(GameMode):
                     change_role(var, harlot, "harlot", "succubus", message="sleepy_succubus_turn")
                 for cultist in cultists:
                     change_role(var, cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
-                # NOTE: chk_win is called by del_player, don't need to call it here even though this has a chance of ending game
 
     def on_revealroles(self, evt, var, wrapper):
         if self.having_nightmare:
@@ -998,15 +996,15 @@ class MaelstromMode(GameMode):
         events.remove_listener("del_player", self.on_del_player)
         events.remove_listener("join", self.on_join)
 
-    def on_del_player(self, evt, var, user, mainrole, allroles, death_triggers):
-        if user.is_fake:
+    def on_del_player(self, evt, var, player, all_roles, death_triggers):
+        if player.is_fake:
             return
 
-        if user.account is not None:
-            self.DEAD_ACCOUNTS.add(user.lower().account)
+        if player.account is not None:
+            self.DEAD_ACCOUNTS.add(player.lower().account)
 
         if not var.ACCOUNTS_ONLY:
-            self.DEAD_HOSTS.add(user.lower().host)
+            self.DEAD_HOSTS.add(player.lower().host)
 
     def on_join(self, evt, var, wrapper, message, forced=False):
         if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):

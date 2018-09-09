@@ -10,6 +10,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf, All
+from src.status import add_dying, try_protection
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -158,9 +159,9 @@ def setup_variables(rolename, *, knows_totem):
         havetotem.extend(filter(None, LASTGIVEN.values()))
 
     @event_listener("del_player")
-    def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+    def on_del_player(evt, var, player, all_roles, death_triggers):
         for a,(b,c) in list(SHAMANS.items()):
-            if user in (a, b, c):
+            if player in (a, b, c):
                 del SHAMANS[a]
 
     @event_listener("chk_nightdone")
@@ -351,15 +352,10 @@ def on_chk_decision_lynch5(evt, var, voters):
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
         if target is not votee:
-            prots = deque(var.ACTIVE_PROTECTIONS[target])
-            while len(prots) > 0:
-                # an event can read the current active protection and cancel the totem
-                # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                # so that it cannot be used again (if the protection is meant to be usable once-only)
-                desp_evt = Event("desperation_totem", {})
-                if not desp_evt.dispatch(var, votee, target, prots[0]):
-                    return
-                prots.popleft()
+            protected = try_protection(var, target, attacker=None, attacker_role="shaman", reason="totem_desperation")
+            if protected:
+                channels.Main.send(*protected)
+                return
             if var.ROLE_REVEAL in ("on", "team"):
                 r1 = get_reveal_role(target)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
@@ -367,9 +363,8 @@ def on_chk_decision_lynch5(evt, var, voters):
             else:
                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
             channels.Main.send(tmsg)
-            # we lie to this function so it doesn't devoice the player yet. instead, we'll let the call further down do it
-            evt.data["deadlist"].append(target)
-            evt.params.del_player(target, end_game=False, killer_role="shaman", deadlist=evt.data["deadlist"], ismain=False)
+            add_dying(var, target, killer_role="shaman", reason="totem_desperation")
+            # no kill_players() call here; let overall chk_decision() call that for us
 
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):

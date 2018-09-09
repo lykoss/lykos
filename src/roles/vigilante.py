@@ -55,11 +55,11 @@ def vigilante_pass(var, wrapper, message):
     debuglog("{0} (vigilante) PASS".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    PASSED.discard(user)
-    del KILLS[:user:]
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    PASSED.discard(player)
+    del KILLS[:player:]
     for vigilante, target in list(KILLS.items()):
-        if target is user:
+        if target is player:
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
 

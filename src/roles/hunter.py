@@ -68,12 +68,12 @@ def hunter_pass(var, wrapper, message):
     debuglog("{0} (hunter) PASS".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    HUNTERS.discard(user)
-    PASSED.discard(user)
-    del KILLS[:user:]
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    HUNTERS.discard(player)
+    PASSED.discard(player)
+    del KILLS[:player:]
     for h, v in list(KILLS.items()):
-        if v is user:
+        if v is player:
             HUNTERS.discard(h)
             h.send(messages["hunter_discard"])
             del KILLS[h]

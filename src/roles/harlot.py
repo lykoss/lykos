@@ -129,11 +129,11 @@ def on_begin_day(evt, var):
     PASSED.clear()
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if "harlot" not in allroles:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if "harlot" not in all_roles:
         return
-    del VISITED[:user:]
-    PASSED.discard(user)
+    del VISITED[:player:]
+    PASSED.discard(player)
 
 @event_listener("reset")
 def on_reset(evt, var):

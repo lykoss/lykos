@@ -41,6 +41,7 @@ import urllib.request
 
 from collections import defaultdict, deque, Counter
 from datetime import datetime, timedelta
+from typing import Set
 
 from oyoyo.parse import parse_nick
 
@@ -49,6 +50,7 @@ import src
 import src.settings as var
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats
+from src.users import User
 
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
@@ -56,6 +58,7 @@ from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
+from src.status import add_dying, kill_players
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -98,6 +101,7 @@ var.ORIGINAL_MAIN_ROLES = UserDict() # type: Dict[users.User, str]
 var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
 
+var.DEAD = UserSet()
 var.DYING = UserSet()
 var.WOUNDED = UserSet()
 var.GUNNERS = UserDict()
@@ -312,8 +316,8 @@ def reset_modes_timers(var):
     var.OLD_MODES.clear()
     if var.QUIET_DEAD_PLAYERS:
         for deadguy in var.DEAD:
-            if not is_fake_nick(deadguy):
-                cmodes.append(("-{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+deadguy+"!*@*"))
+            if not deadguy.is_fake:
+                cmodes.append(("-{0}".format(var.QUIET_MODE), var.QUIET_PREFIX + deadguy.nick + "!*@*"))
     channels.Main.mode("-m", *cmodes)
 
 def reset():
@@ -321,7 +325,7 @@ def reset():
     var.GAME_ID = 0
     var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
-    var.DEAD = set()
+    var.DEAD.clear()
     var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
     var.PINGED_ALREADY = set()
@@ -602,7 +606,7 @@ def replace(var, wrapper, message):
             return
 
         if target not in pl:
-            wrapper.pm(messages["target_no_longer_playing" if target.nick in var.DEAD else "target_not_playing"]) # FIXME: Need to fix once var.DEAD holds User instances
+            wrapper.pm(messages["target_no_longer_playing" if target in var.DEAD else "target_not_playing"])
             return
 
         if target.account is None:
@@ -1126,7 +1130,8 @@ def fleave(var, wrapper, message):
                 if target.nick in var.PLAYERS:
                     var.DCED_PLAYERS[target.nick] = var.PLAYERS.pop(target.nick)
 
-            del_player(target, death_triggers=False)
+            add_dying(var, target, "bot", "fquit", death_triggers=False)
+            kill_players(var)
 
         elif dead_target is not None:
             leave_deadchat(var, dead_target, force=wrapper.source)
@@ -1393,9 +1398,7 @@ def fday(cli, nick, chan, rest):
         transition_day()
 
 # Specify force = user to force user to be lynched
-def chk_decision(force=None, end_game=True, deadlist=None):
-    if deadlist is None:
-        deadlist = []
+def chk_decision(force=None, end_game=True):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
@@ -1440,8 +1443,7 @@ def chk_decision(force=None, end_game=True, deadlist=None):
                     # 3 = mayor/revealing totem
                     # 4 = fool
                     # 5 = desperation totem, other things that happen on generic lynch
-                    vote_evt = Event("chk_decision_lynch", {"votee": votee, "deadlist": deadlist},
-                        del_player=del_player,
+                    vote_evt = Event("chk_decision_lynch", {"votee": votee},
                         original_votee=votee,
                         force=(votee is force),
                         votelist=votelist,
@@ -1457,7 +1459,6 @@ def chk_decision(force=None, end_game=True, deadlist=None):
                             channels.Main.send(lmsg)
                             if chk_win(winner="@" + votee.nick):
                                 return
-                        deadlist.append(votee)
                         # Other
                         if votee in get_all_players(("jester",)):
                             var.JESTERS.add(votee.nick)
@@ -1469,7 +1470,8 @@ def chk_decision(force=None, end_game=True, deadlist=None):
                         else:
                             lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                         channels.Main.send(lmsg)
-                        if not del_player(votee, killer_role="villager", deadlist=deadlist, end_game=end_game):
+                        add_dying(var, votee, "villager", "lynch")
+                        if not kill_players(var, end_game=end_game):
                             return
                     do_night_transision = True
                     break
@@ -1896,153 +1898,130 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
             stop_game(var, winner, additional_winners=event.data["additional_winners"])
         return True
 
-@handle_error
-def del_player(player, *, devoice=True, end_game=True, death_triggers=True, killer_role="", deadlist=[], original=None, cmode=[], deadchat=[], ismain=True):
-    """
-    Returns: False if one side won.
-    """
+@event_listener("del_player")
+def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_triggers: bool):
+    # update var.ROLE_STATS
+    # Event priorities:
+    # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
+    # 3 = Removing from the possible set (e.g. can't be traitor if was a night kill and only wolves could kill at night),
+    # 5 = Setting known_role to True if the role is actually known for sure publically (e.g. revealing totem)
+    # 2 and 4 are not used by included roles, but may be useful expansion points for custom roles to modify stats
+    event = Event("update_stats", {"possible": {evt.params.main_role, evt.params.reveal_role}, "known_role": False},
+            killer_role=evt.params.killer_role,
+            reason=evt.params.reason)
+    event.dispatch(var, player, evt.params.main_role, evt.params.reveal_role, all_roles)
+    # Given the set of possible roles this nick could be (or its actual role if known_role is True),
+    # figure out the set of roles that need deducting from their counts in var.ROLE_STATS
+    if event.data["known_role"]:
+        # we somehow know the exact role that died (for example, we know traitor died even though they revealed as villager)
+        # as a result, deduct only them
+        possible = {evt.params.main_role}
+    else:
+        possible = set(event.data["possible"])
+    newstats = set()
+    # For every possible role this person is, try to deduct 1 from that role's count in our stat sets
+    # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
+    # that set is not added to newstats to indicate that set is no longer possible
+    # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
+    event = Event("reconfigure_stats", {"new": []})
+    for p in possible:
+        for rs in var.ROLE_STATS:
+            d = dict(rs)
+            if p in d and d[p] >= 1:
+                d[p] -= 1
+                event.data["new"] = [d]
+                event.dispatch(var, d, "del_player")
+                for v in event.data["new"]:
+                    if min(v.values()) >= 0:
+                        newstats.add(frozenset(v.items()))
+    var.ROLE_STATS = frozenset(newstats)
 
-    def refresh_pl(old_pl):
-        return set(p for p in get_players() if p in old_pl)
+    if var.PHASE == "join":
+        if player.nick in var.GAMEMODE_VOTES:
+            del var.GAMEMODE_VOTES[player.nick]
 
-    t = time.time()  #  time
+        with var.WARNING_LOCK:
+            var.START_VOTES.discard(player)
 
-    var.LAST_STATS = None # reset
-    var.LAST_VOTES = None
+            # Cancel the start vote timer if there are no votes left
+            if not var.START_VOTES and "start_votes" in var.TIMERS:
+                var.TIMERS["start_votes"][0].cancel()
+                del var.TIMERS["start_votes"]
 
-    if original is None:
-        original = player
+        # Died during the joining process as a person
+        var.ALL_PLAYERS.remove(player)
+    if var.PHASE in var.GAME_PHASES:
+        # remove the player from variables if they're in there
+        for x in (var.OBSERVED, var.LASTHEXED):
+            for k in list(x):
+                if player.nick in (k, x[k]):
+                    del x[k]
+        var.DISCONNECTED.pop(player, None)
+    if var.PHASE == "night":
+        # remove players from night variables
+        # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
+        # if these aren't cleared properly night may end prematurely
+        for x in (var.PASSED, var.HEXED, var.CURSED):
+            x.discard(player.nick)
+    if var.PHASE == "day":
+        if player in var.VOTES:
+            del var.VOTES[player] # Delete other people's votes on the player
+        for k in list(var.VOTES.keys()):
+            if player in var.VOTES[k]:
+                var.VOTES[k].remove(player)
+                if not var.VOTES[k]:  # no more votes on that person
+                    del var.VOTES[k]
+                break # can only vote once
 
-    with var.GRAVEYARD_LOCK:
-        if not var.GAME_ID or var.GAME_ID > t:
-            #  either game ended, or a new game has started.
-            return False
-        ret = True
-        pl = set(get_players()).difference(deadlist)
-        if player is not None and (player is original or player in pl):
-            mainrole = get_main_role(player)
-            revealrole = get_reveal_role(player)
-            allroles = get_all_roles(player)
-            del var.MAIN_ROLES[player]
-            for r in allroles:
-                var.ROLES[r].remove(player)
-            pl.discard(player)
-            # i herd u liek parameters
-            evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
-            event = Event("del_player", {"pl": pl},
-                    end_game=end_game,
-                    deadlist=deadlist, original=original, killer_role=killer_role,
-                    ismain=ismain, refresh_pl=refresh_pl, del_player=del_player)
-            event.dispatch(var, player, mainrole, allroles, evt_death_triggers)
+        var.NO_LYNCH.discard(player)
+        var.WOUNDED.discard(player)
 
-            # update var.ROLE_STATS
-            # Event priorities:
-            # 1 = Expanding the possible set (e.g. traitor would add themselves if nickrole is villager)
-            # 3 = Removing from the possible set (e.g. can't be traitor if was a night kill and only wolves could kill at night),
-            # 5 = Setting known_role to True if the role is actually known for sure publically (e.g. revealing totem)
-            # 2 and 4 are not used by included roles, but may be useful expansion points for custom roles to modify stats
-            event = Event("update_stats", {"possible": {mainrole, revealrole}, "known_role": False},
-                    killer_role=killer_role, ismain=ismain)
-            event.dispatch(var, player, mainrole, revealrole, allroles)
-            # Given the set of possible roles this nick could be (or its actual role if known_role is True),
-            # figure out the set of roles that need deducting from their counts in var.ROLE_STATS
-            if event.data["known_role"]:
-                # we somehow know the exact role that died (for example, we know traitor died even though they revealed as villager)
-                # as a result, deduct only them
-                possible = {mainrole}
-            else:
-                possible = set(event.data["possible"])
-            newstats = set()
-            # For every possible role this person is, try to deduct 1 from that role's count in our stat sets
-            # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
-            # that set is not added to newstats to indicate that set is no longer possible
-            # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
-            event = Event("reconfigure_stats", {"new": []})
-            for p in possible:
-                for rs in var.ROLE_STATS:
-                    d = dict(rs)
-                    if p in d and d[p] >= 1:
-                        d[p] -= 1
-                        event.data["new"] = [d]
-                        event.dispatch(var, d, "del_player")
-                        for v in event.data["new"]:
-                            if min(v.values()) >= 0:
-                                newstats.add(frozenset(v.items()))
-            var.ROLE_STATS = frozenset(newstats)
+# FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
+@event_listener("kill_players", priority=10)
+def on_kill_players(evt: Event, var, players: Set[User]):
+    cmode = []
+    deadchat = []
+    game_ending = False
 
-            if not player.is_fake:
-                if devoice and (var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT):
-                    cmode.append(("-v", player.nick))
-                lplayer = player.lower()
-                if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
-                    deadchat.append(player)
-            # devoice all players that died as a result, if we are in the original del_player
-            if ismain:
-                channels.Main.mode(*cmode)
-                del cmode[:]
+    for player in players:
+        if not player.is_fake:
+            if var.PHASE != "night" or not var.DEVOICE_DURING_NIGHT:
+                cmode.append(("-v", player.nick))
+            if var.PHASE in var.GAME_PHASES and var.QUIET_DEAD_PLAYERS:
+                # Died during the game, so quiet!
+                cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX + player.nick + "!*@*"))
             if var.PHASE == "join":
-                if player.nick in var.GAMEMODE_VOTES:
-                    del var.GAMEMODE_VOTES[player.nick]
-
-                with var.WARNING_LOCK:
-                    var.START_VOTES.discard(player)
-
-                    # Cancel the start vote timer if there are no votes left
-                    if not var.START_VOTES and "start_votes" in var.TIMERS:
-                        var.TIMERS["start_votes"][0].cancel()
-                        del var.TIMERS["start_votes"]
-
-                # Died during the joining process as a person
                 for mode in var.OLD_MODES[player]:
                     cmode.append(("+" + mode, player.nick))
                 del var.OLD_MODES[player]
-                var.ALL_PLAYERS.remove(player)
-                ret = not chk_win()
-            else:
-                # Died during the game, so quiet!
-                if var.QUIET_DEAD_PLAYERS and not player.is_fake:
-                    cmode.append(("+{0}".format(var.QUIET_MODE), var.QUIET_PREFIX+player.nick+"!*@*"))
-                var.DEAD.add(player.nick)
-                ret = not chk_win(end_game=end_game)
-            # only join to deadchat if the game isn't about to end
-            if ismain:
-                if ret:
-                    join_deadchat(var, *deadchat)
-                del deadchat[:]
-            if var.PHASE in var.GAME_PHASES:
-                # remove the player from variables if they're in there
-                if ret:
-                    for x in (var.OBSERVED, var.LASTHEXED):
-                        for k in list(x):
-                            if player.nick in (k, x[k]):
-                                del x[k]
-                    var.DISCONNECTED.pop(player, None)
-            if var.PHASE == "night":
-                # remove players from night variables
-                # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
-                # if these aren't cleared properly night may end prematurely
-                for x in (var.PASSED, var.HEXED, var.CURSED):
-                    x.discard(player.nick)
-            if var.PHASE == "day" and ret:
-                if player in var.VOTES:
-                    del var.VOTES[player] # Delete other people's votes on the player
-                for k in list(var.VOTES.keys()):
-                    if player in var.VOTES[k]:
-                        var.VOTES[k].remove(player)
-                        if not var.VOTES[k]:  # no more votes on that person
-                            del var.VOTES[k]
-                        break # can only vote once
+            lplayer = player.lower()
+            if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
+                deadchat.append(player)
 
-                var.NO_LYNCH.discard(player)
-                var.WOUNDED.discard(player)
-                # note: PHASE = "day" and GAMEPHASE = "night" during transition_day;
-                # we only want to induce a lynch if it's actually day and we aren't in a chained death
-                if var.GAMEPHASE == "day" and ismain and not end_game:
-                    chk_decision()
-            elif var.PHASE == "night" and ret and ismain:
-                chk_nightdone()
+    # attempt to devoice all dead players
+    channels.Main.mode(*cmode)
 
-        return ret
+    if not evt.params.end_game:
+        join_deadchat(var, *deadchat)
+        return
+
+    # see if we need to end the game or transition phases
+    # FIXME: make state transitions part of the overall event loop
+    game_ending = chk_win()
+
+    if not game_ending:
+        # if game isn't about to end, join people to deadchat
+        join_deadchat(var, *deadchat)
+
+        if var.PHASE == "day" and var.GAMEPHASE == "day":
+            # PHASE is day but GAMEPHASE is night during transition_day; ensure we only induce lynch during actual daytime
+            chk_decision()
+        elif var.PHASE == "night" and var.GAMEPHASE == "night":
+            # PHASE is night but GAMEPHASE is day during transition_night; ensure we only try to end night during actual nighttime
+            chk_nightdone()
+    else:
+        # HACK: notify kill_players that game is ending so it can pass it to its caller
+        evt.prevent_default = True
 
 @handle_error
 def reaper(cli, gameid):
@@ -2116,10 +2095,7 @@ def reaper(cli, gameid):
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
                         add_warning(cli, nck, var.IDLE_PENALTY, users.Bot.nick, messages["idle_warning"], expires=var.IDLE_EXPIRY)
-                    del_player(user, end_game=False, death_triggers=False)
-                win = chk_win()
-                if not win and var.PHASE == "day" and var.GAMEPHASE == "day":
-                    chk_decision()
+                    add_dying(var, user, "bot", "idle", death_triggers=False)
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
@@ -2138,8 +2114,7 @@ def reaper(cli, gameid):
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
-                    if not del_player(dcedplayer, devoice=False, death_triggers=False):
-                        return
+                    add_dying(var, dcedplayer, "bot", "quit", death_triggers=False)
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
@@ -2149,8 +2124,7 @@ def reaper(cli, gameid):
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
-                    if not del_player(dcedplayer, devoice=False, death_triggers=False):
-                        return
+                    add_dying(var, dcedplayer, "bot", "part", death_triggers=False)
                 elif what == "account" and (datetime.now() - timeofdc) > timedelta(seconds=var.ACC_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["account_death"].format(dcedplayer, revealrole))
@@ -2160,8 +2134,8 @@ def reaper(cli, gameid):
                         add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
-                    if not del_player(dcedplayer, devoice=False, death_triggers=False):
-                        return
+                    add_dying(var, dcedplayer, "bot", "account", death_triggers=False)
+            kill_players(var)
         time.sleep(10)
 
 @cmd("")  # update last said
@@ -2473,7 +2447,8 @@ def leave(var, what, user, why=None):
         var.USERS[user.nick]["moded"] = set()
 
     if killplayer:
-        del_player(user, death_triggers=False)
+        add_dying(var, user, "bot", what, death_triggers=False)
+        kill_players(var)
     else:
         temp = user.lower()
         var.DISCONNECTED[user] = (datetime.now(), what)
@@ -2524,7 +2499,8 @@ def leave_game(var, wrapper, message):
         if wrapper.source.nick in var.PLAYERS:
             var.DCED_PLAYERS[wrapper.source.nick] = var.PLAYERS.pop(wrapper.source.nick)
 
-    del_player(wrapper.source, death_triggers=False)
+    add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
+    kill_players(var)
 
 def begin_day():
     # Reset nighttime variables
@@ -2840,18 +2816,13 @@ def transition_day(gameid=0):
             # no killers, so assume suicide
             killer_role[deadperson] = get_main_role(deadperson)
 
-    for deadperson in dead[:]:
-        # check if they have already been killed since del_player could do chain reactions and we want
-        # to avoid sending duplicate messages.
-        if deadperson in get_players():
-            del_player(deadperson, end_game=False, killer_role=killer_role[deadperson], deadlist=dead)
+    for deadperson in dead:
+        add_dying(var, deadperson, killer_role[deadperson], "night_kill")
+    if kill_players(var): # indicates end of game
+        return
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(var)
-
-    if chk_win():  # if after the last person is killed, one side wins, then actually end the game here
-        return
-
     event_end.data["begin_day"]()
 
 @event_listener("transition_day_resolve_end", priority=2.9)
@@ -3193,7 +3164,8 @@ def shoot(var, wrapper, message):
                 wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
             else: # off and team
                 wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(target))
-            if not del_player(target, killer_role=get_main_role(wrapper.source)):
+            add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
+            if kill_players(var):
                 return
         elif random.random() <= chances[3]:
             accident = "accidentally "
@@ -3202,7 +3174,8 @@ def shoot(var, wrapper, message):
             wrapper.send(messages["gunner_victim_villager_death"].format(target, accident))
             if var.ROLE_REVEAL in ("on", "team"):
                 wrapper.send(messages["gunner_victim_role"].format(an, targrole))
-            if not del_player(target, killer_role=get_main_role(wrapper.source)):
+            add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
+            if kill_players(var):
                 return
         else:
             wrapper.send(messages["gunner_victim_injured"].format(target))
@@ -3224,7 +3197,8 @@ def shoot(var, wrapper, message):
             wrapper.send(messages["gunner_suicide"].format(wrapper.source, get_reveal_role(wrapper.source)))
         else:
             wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
-        del_player(wrapper.source, killer_role="villager") # blame explosion on villager's shoddy gun construction or something
+        add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
+        kill_players(var)
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("sorcerer",))
 def observe(cli, nick, chan, rest):

@@ -86,7 +86,7 @@ def on_player_win(evt, var, user, role, winner, survived):
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lsuccubi = len(rolemap.get("succubus", ()))
-    lentranced = len([x for x in ENTRANCED if x.nick not in var.DEAD])
+    lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
@@ -109,28 +109,26 @@ def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
         target.send(messages["no_longer_entranced"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     global ALL_SUCC_IDLE
-    if "succubus" not in allroles:
+    if "succubus" not in all_roles:
         return
-    if user in VISITED:
+    if player in VISITED:
         # if it's night, also unentrance the person they visited
         if var.PHASE == "night" and var.GAMEPHASE == "night":
-            if VISITED[user] in ENTRANCED:
-                ENTRANCED.discard(VISITED[user])
-                VISITED[user].send(messages["entranced_revert_win"])
-        del VISITED[user]
+            if VISITED[player] in ENTRANCED:
+                ENTRANCED.discard(VISITED[player])
+                VISITED[player].send(messages["entranced_revert_win"])
+        del VISITED[player]
 
     # if all succubi idled out (every last one of them), un-entrance people
     # death_triggers is False for an idle-out, so we use that to determine which it is
     if death_triggers:
         ALL_SUCC_IDLE = False
-    if not get_all_players(("succubus",)):
-        entranced_alive = ENTRANCED.difference(evt.params.deadlist).intersection(evt.data["pl"])
-        if ALL_SUCC_IDLE:
-            while ENTRANCED:
-                e = ENTRANCED.pop()
-                e.send(messages["entranced_revert_win"])
+    if ALL_SUCC_IDLE and not get_all_players(("succubus",)):
+        while ENTRANCED:
+            e = ENTRANCED.pop()
+            e.send(messages["entranced_revert_win"])
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):

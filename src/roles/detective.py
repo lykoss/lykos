@@ -58,8 +58,8 @@ def investigate(var, wrapper, message):
         debuglog("{0} (detective) PAPER DROP".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    INVESTIGATED.discard(user)
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    INVESTIGATED.discard(player)
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):

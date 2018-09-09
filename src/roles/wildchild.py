@@ -62,19 +62,15 @@ def on_myrole(evt, var, user):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    del IDOLS[:user:]
-    if var.PHASE not in var.GAME_PHASES:
-        return
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    del IDOLS[:player:]
 
     for child in get_all_players(("wild child",)):
-        if child in evt.params.deadlist or IDOLS.get(child) not in evt.params.deadlist:
-            continue
-
-        # Change their main role to wolf
-        WILD_CHILDREN.add(child)
-        change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
-        var.ROLES["wild child"].discard(child)
+        if IDOLS.get(child) is player:
+            # Change their main role to wolf
+            WILD_CHILDREN.add(child)
+            change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
+            var.ROLES["wild child"].discard(child)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

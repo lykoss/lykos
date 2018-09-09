@@ -129,7 +129,7 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
         evt.data["won"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     CHARMED.discard(player)
     del TOBECHARMED[:player:]
 

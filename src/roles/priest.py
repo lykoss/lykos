@@ -75,7 +75,7 @@ def on_transition_night_end(evt, var):
             priest.send(messages["priest_notify"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     CONSECRATING.discard(player)
 
 @event_listener("get_voters")

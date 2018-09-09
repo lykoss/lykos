@@ -10,7 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import try_protection
+from src.status import try_protection, add_dying
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]
@@ -56,31 +56,30 @@ def on_player_win(evt, var, user, role, winner, survived):
         evt.data["iwon"] = True
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     for h, v in list(KILLS.items()):
-        if v is user:
+        if v is player:
             h.send(messages["hunter_discard"])
             del KILLS[h]
-        elif h is user:
+        elif h is player:
             del KILLS[h]
-    if death_triggers and "dullahan" in allroles:
-        pl = evt.data["pl"]
-        with TARGETS[user].intersection(pl) as targets:
+    if death_triggers and "dullahan" in all_roles:
+        pl = get_players()
+        with TARGETS[player].intersection(pl) as targets:
             if targets:
                 target = random.choice(list(targets))
-                protected = try_protection(var, target, user, "dullahan", "dullahan_die")
+                protected = try_protection(var, target, player, "dullahan", "dullahan_die")
                 if protected:
-                    channels.Main.send(protected)
+                    channels.Main.send(*protected)
                     return
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(target)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    channels.Main.send(messages["dullahan_die_success"].format(user, target, an, role))
+                    channels.Main.send(messages["dullahan_die_success"].format(player, target, an, role))
                 else:
-                    channels.Main.send(messages["dullahan_die_success_noreveal"].format(user, target))
-                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(user, target, get_main_role(target)))
-                evt.params.del_player(target, end_game=False, killer_role="dullahan", deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-                evt.data["pl"] = evt.params.refresh_pl(pl)
+                    channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
+                debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
+                add_dying(var, target, "dullahan", "dullahan_die")
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -138,8 +137,8 @@ def on_transition_night_end(evt, var):
     for dullahan in get_all_players(("dullahan",)):
         targets = list(TARGETS[dullahan])
         for target in targets[:]:
-            if target.nick in var.DEAD:
-                targets.remove(target) # FIXME: Update when var.DEAD holds User instances
+            if target in var.DEAD:
+                targets.remove(target)
         if not targets: # already all dead
             dullahan.send("{0} {1}".format(messages["dullahan_simple"], messages["dullahan_targets_dead"]))
             continue
@@ -163,7 +162,7 @@ def on_myrole(evt, var, user):
     if user in var.ROLES["dullahan"]:
         targets = list(TARGETS[user])
         for target in list(targets):
-            if target.nick in var.DEAD:
+            if target in var.DEAD:
                 targets.remove(target)
         random.shuffle(targets)
         if targets:
@@ -177,7 +176,7 @@ def on_revealroles_role(evt, var, user, role):
     if role == "dullahan" and user in TARGETS:
         targets = set(TARGETS[user])
         for target in TARGETS[user]:
-            if target.nick in var.DEAD:
+            if target in var.DEAD:
                 targets.remove(target)
         if targets:
             evt.data["special_case"].append(messages["dullahan_to_kill"].format(", ".join(t.nick for t in targets)))
@@ -199,7 +198,7 @@ def on_get_role_metadata(evt, var, kind):
         num = 0
         for dull in var.ROLES["dullahan"]:
             for target in TARGETS[dull]:
-                if target.nick not in var.DEAD:
+                if target not in var.DEAD:
                     num += 1
                     break
         evt.data["dullahan"] = num

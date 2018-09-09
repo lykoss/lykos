@@ -83,14 +83,14 @@ def on_rename(evt, var, prefix, nick):
         PASSED.add(nick)
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if var.PHASE == "night" and user.nick in GUARDED:
-        pm(user.client, GUARDED[user.nick], messages["protector_disappeared"])
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if var.PHASE == "night" and player.nick in GUARDED:
+        pm(player.client, GUARDED[player.nick], messages["protector_disappeared"])
     for dictvar in (GUARDED, LASTGUARDED):
         for k,v in list(dictvar.items()):
-            if user.nick in (k, v):
+            if player.nick in (k, v):
                 del dictvar[k]
-    PASSED.discard(user.nick)
+    PASSED.discard(player.nick)
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):

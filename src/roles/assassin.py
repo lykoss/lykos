@@ -86,21 +86,21 @@ def on_transition_night_end(evt, var):
             ass.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     if player in TARGETED.values():
         for x, y in list(TARGETED.items()):
             if y is player:
                 del TARGETED[x]
                 PREV_ACTED.discard(x)
 
-    if death_triggers and "assassin" in allroles and player in TARGETED:
+    if death_triggers and "assassin" in all_roles and player in TARGETED:
         target = TARGETED[player]
         del TARGETED[player]
         PREV_ACTED.discard(player)
         if target in evt.data["pl"]:
             protected = try_protection(var, target, player, "assassin", "assassin")
             if protected:
-                channels.Main.send(protected)
+                channels.Main.send(*protected)
                 return
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(target)
@@ -110,8 +110,7 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
                 message = messages["assassin_success_no_reveal"].format(player, target)
             channels.Main.send(message)
             debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
-            evt.params.del_player(target, end_game=False, killer_role=mainrole, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-            evt.data["pl"] = evt.params.refresh_pl(aevt.data["pl"])
+            add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

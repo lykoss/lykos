@@ -59,14 +59,15 @@ def on_get_reveal_role(evt, var, user):
         evt.data["role"] = "clone"
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     # clone happens regardless of death_triggers being true or not
     if var.PHASE not in var.GAME_PHASES:
         return
 
     clones = get_all_players(("clone",))
+    mainrole = evt.params.main_role
     for clone in clones:
-        if clone in CLONED and clone not in evt.params.deadlist:
+        if clone in CLONED:
             target = CLONED[clone]
             if player is target:
                 # clone is cloning target, so clone becomes target's role
@@ -133,7 +134,7 @@ def on_player_win(evt, var, player, role, winner, survived):
         evt.data["iwon"] = True
 
 @event_listener("del_player", priority=1)
-def first_death_occured(evt, var, player, mainrole, allroles, death_triggers):
+def first_death_occured(evt, var, player, all_roles, death_triggers):
     global CLONE_ENABLED
     if CLONE_ENABLED:
         return

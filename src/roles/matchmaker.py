@@ -130,7 +130,7 @@ def on_transition_night_end(evt, var):
         mm.send("Players: " + ", ".join(p.nick for p in pl))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     MATCHMAKERS.discard(player)
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
@@ -144,9 +144,8 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
             else:
                 message = messages["lover_suicide_no_reveal"].format(lover)
             channels.Main.send(message)
-            debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
-            evt.params.del_player(lover, end_game=False, killer_role=evt.params.killer_role, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-            evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
+            debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, evt.params.main_role))
+            add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
 
 @event_listener("game_end_messages")
 def on_game_end_messages(evt, var):

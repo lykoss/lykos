@@ -96,21 +96,21 @@ def on_player_win(evt, var, user, role, winner, survived):
             evt.data["iwon"] = False
 
 @event_listener("del_player", priority=6)
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     for h, v in list(KILLS.items()):
-        if user is v:
+        if player is v:
             h.send(messages["hunter_discard"])
             del KILLS[h]
     # extending VG to work with new teams can be done by registering a listener
     # at priority < 6, importing src.roles.vengefulghost, and setting
     # GHOSTS[user] to something; if that is done then this logic is not run.
-    if death_triggers and mainrole == "vengeful ghost" and user not in GHOSTS:
+    if death_triggers and "vengeful ghost" in all_roles and player not in GHOSTS:
         if evt.params.killer_role in Wolfteam:
-            GHOSTS[user] = "wolves"
+            GHOSTS[player] = "wolves"
         else:
-            GHOSTS[user] = "villagers"
-        user.send(messages["vengeful_turn"].format(GHOSTS[user]))
-        debuglog(user.nick, "(vengeful ghost) TRIGGER", GHOSTS[user])
+            GHOSTS[player] = "villagers"
+        player.send(messages["vengeful_turn"].format(GHOSTS[player]))
+        debuglog(player.nick, "(vengeful ghost) TRIGGER", GHOSTS[player])
 
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):

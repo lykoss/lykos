@@ -84,7 +84,7 @@ def wolf_retract(var, wrapper, message):
         send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role=get_main_role(wrapper.source), command="retract")
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     for killer, targets in list(KILLS.items()):
         for target in targets:
             if user is target:
