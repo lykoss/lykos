@@ -12,25 +12,6 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-@event_listener("transition_day", priority=4.3)
-def on_transition_day(evt, var):
-    pl = get_players()
-    vs = set(evt.data["victims"])
-    for v in pl:
-        if v in vs:
-            if v in var.DYING:
-                continue
-            if v in get_all_players(("blessed villager",)):
-                evt.data["numkills"][v] -= 1
-                if evt.data["numkills"][v] >= 0:
-                    evt.data["killers"][v].pop(0)
-                if evt.data["numkills"][v] <= 0 and v not in evt.data["protected"]:
-                    evt.data["protected"][v] = "blessing"
-                elif evt.data["numkills"][v] <= 0:
-                    var.ACTIVE_PROTECTIONS[v.nick].append("blessing")
-        elif v in get_all_players(("blessed villager",)):
-            var.ACTIVE_PROTECTIONS[v.nick].append("blessing")
-
 @event_listener("transition_day_resolve", priority=2)
 def on_transition_day_resolve(evt, var, victim):
     if evt.data["protected"].get(victim) == "blessing":
@@ -49,15 +30,6 @@ def on_transition_night_end(evt, var):
             if blessed.prefers_simple():
                 to_send = "blessed_simple"
             blessed.send(messages[to_send])
-
-@event_listener("assassinate")
-def on_assassinate(evt, var, killer, target, prot):
-    if prot == "blessing":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
-        evt.prevent_default = True
-        evt.stop_processing = True
-        # don't message the channel whenever a blessing blocks a kill, but *do* let the killer know so they don't try to report it as a bug
-        killer.send(messages["assassin_fail_blessed"].format(target))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

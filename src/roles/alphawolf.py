@@ -81,6 +81,10 @@ def on_transition_day(evt, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
+    # Refund failed bites
+    for alpha, target in BITTEN.items():
+        if alpha in get_players() and target not in get_players():
+            ALPHAS.remove(alpha)
     BITTEN.clear()
 
 @event_listener("reset")

@@ -25,9 +25,10 @@ def get_players(roles=None, *, mainroles=None):
         # we weren't given an actual player list (possibly),
         # so the elements of pl are not necessarily in var.ALL_PLAYERS
         return list(pl)
-    return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(p)]
+    return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
 
 def get_all_players(roles=None, *, rolemap=None):
+    from src.status import is_dying
     if rolemap is None:
         rolemap = var.ROLES
     if roles is None:
@@ -40,7 +41,7 @@ def get_all_players(roles=None, *, rolemap=None):
     if rolemap is not var.ROLES:
         return pl
 
-    return {p for p in pl if not is_dying(p)}
+    return {p for p in pl if not is_dying(var, p)}
 
 def get_participants():
     """List all players who are still able to participate in the game."""

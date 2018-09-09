@@ -54,8 +54,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     pl = get_players()
     target1, target2 = _get_targets(var, pl, player)
 
-    prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist")
-    prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist")
+    prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
+    prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
     if prots1:
         channels.Main.send(*prots1)
     if prots2:

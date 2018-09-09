@@ -43,13 +43,27 @@ def remove_all_protections(var, target, attacker, attacker_role, reason, scope=A
         return
 
     for protector, entries in list(PROTECTIONS[target].items()):
-        for cat, protector_role in list(entries):
+        for cat, protector_role in entries:
             if scope & cat:
                 evt = Event("remove_protection", {"remove": False, "messages": []})
                 evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
                 if evt.data["remove"]:
                     PROTECTIONS[target][protector].remove((cat, protector_role))
                     target.send(*evt.data["messages"])
+
+@event_listener("del_player")
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if player in PROTECTIONS:
+        del PROTECTIONS[player]
+
+    for protected, entries in PROTECTIONS.items():
+        if player in entries:
+            del entries[player]
+
+@event_listener("revealroles")
+def on_revealroles(evt, var, wrapper):
+    if PROTECTIONS:
+        evt.data["output"].append("\u0002protected\u0002: {0}".format(", ".join(x.nick for x in PROTECTIONS)))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

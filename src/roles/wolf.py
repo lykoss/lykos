@@ -87,9 +87,9 @@ def wolf_retract(var, wrapper, message):
 def on_del_player(evt, var, player, all_roles, death_triggers):
     for killer, targets in list(KILLS.items()):
         for target in targets:
-            if user is target:
+            if player is target:
                 targets.remove(target)
-        if user is killer or not targets:
+        if player is killer or not targets:
             del KILLS[killer]
 
 @event_listener("transition_day", priority=1)

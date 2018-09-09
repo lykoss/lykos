@@ -9,9 +9,8 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import try_protection
-from src.cats import Cursed, Safe, Innocent, Wolf, All
 from src.status import add_dying, try_protection
+from src.cats import Cursed, Safe, Innocent, Wolf, All
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -381,26 +380,8 @@ def on_transition_day3(evt, var):
     # protection totems are applied first in default logic, however
     # we set priority=4.1 to allow other modes of protection
     # to pre-empt us if desired
-    pl = get_players()
-    vs = set(evt.data["victims"])
-    for v in pl:
-        numtotems = PROTECTION.count(v)
-        if v in vs:
-            if v in var.DYING:
-                continue
-            numkills = evt.data["numkills"][v]
-            for i in range(0, numtotems):
-                numkills -= 1
-                if numkills >= 0:
-                    evt.data["killers"][v].pop(0)
-                if numkills <= 0 and v not in evt.data["protected"]:
-                    evt.data["protected"][v] = "totem"
-                elif numkills <= 0:
-                    var.ACTIVE_PROTECTIONS[v.nick].append("totem")
-            evt.data["numkills"][v] = numkills
-        else:
-            for i in range(0, numtotems):
-                var.ACTIVE_PROTECTIONS[v.nick].append("totem")
+    for player in PROTECTION:
+        status.add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("fallen_angel_guard_break")
 def on_fagb(evt, var, victim, killer):
@@ -520,13 +501,10 @@ def on_lynch(evt, var, user):
         user.send(messages["totem_narcolepsy"])
         evt.prevent_default = True
 
-@event_listener("assassinate")
-def on_assassinate(evt, var, killer, target, prot):
-    if prot == "totem":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("totem")
-        evt.prevent_default = True
-        evt.stop_processing = True
-        channels.Main.send(messages[evt.params.message_prefix + "totem"].format(killer, target))
+@event_listener("player_protected")
+def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if protector_role == "shaman":
+        evt.data["messages"].append(messages[reason + "_totem"].format(attacker, target))
 
 @event_listener("reset")
 def on_reset(evt, var):
