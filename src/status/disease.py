@@ -33,7 +33,7 @@ def on_transition_day_resolve(evt, var, victims):
     else:
         DISEASED_WOLVES = False
 
-@event_listener("begin_day")
+@event_listener("transition_day_begin")
 def on_begin_day(evt, var):
     DISEASED.clear()
 

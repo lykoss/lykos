@@ -99,7 +99,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         PREV_ACTED.discard(player)
         if target in evt.data["pl"]:
             protected = try_protection(var, target, player, "assassin", "assassin")
-            if protected:
+            if protected is not None:
                 channels.Main.send(*protected)
                 return
             if var.ROLE_REVEAL in ("on", "team"):

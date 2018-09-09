@@ -32,7 +32,7 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         return
 
     evt2 = Event("get_role_metadata", {})
-    evt2.dispatch("lycanthropy_role")
+    evt2.dispatch(var, "lycanthropy_role")
 
     roles = {}
 

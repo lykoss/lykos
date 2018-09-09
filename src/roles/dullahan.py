@@ -69,9 +69,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if targets:
                 target = random.choice(list(targets))
                 protected = try_protection(var, target, player, "dullahan", "dullahan_die")
-                if protected:
+                if protected is not None:
                     channels.Main.send(*protected)
                     return
+
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(target)
                     an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""

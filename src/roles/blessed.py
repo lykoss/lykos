@@ -5,7 +5,7 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -42,26 +42,13 @@ def on_transition_day_resolve(evt, var, victim):
 
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):
-    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
-        for blessed in get_all_players(("blessed villager",)):
+    for blessed in get_all_players(("blessed villager",)):
+        status.add_protection(var, blessed, blessed, "blessed villager")
+        if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
             to_send = "blessed_notify"
             if blessed.prefers_simple():
                 to_send = "blessed_simple"
             blessed.send(messages[to_send])
-
-@event_listener("desperation_totem")
-def on_desperation(evt, var, votee, target, prot):
-    if prot == "blessing":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
-        evt.prevent_default = True
-        evt.stop_processing = True
-
-@event_listener("retribution_totem")
-def on_retribution(evt, var, victim, target, prot):
-    if prot == "blessing":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("blessing")
-        evt.prevent_default = True
-        evt.stop_processing = True
 
 @event_listener("assassinate")
 def on_assassinate(evt, var, killer, target, prot):

@@ -37,7 +37,7 @@ def immunize(var, wrapper, message):
 
     wrapper.pm(messages["doctor_success"].format(target))
 
-    target.send(messages["immunization_success"].format(messages[evt.data["message"]]))
+    target.send(messages["immunization_success"].format(messages[doctor_evt.data["message"]]))
 
     IMMUNIZED.add(target)
     DOCTORS[wrapper.source] -= 1

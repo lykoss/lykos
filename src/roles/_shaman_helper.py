@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import try_protection
 from src.cats import Cursed, Safe, Innocent, Wolf, All
 from src.status import add_dying, try_protection
 
@@ -353,9 +354,10 @@ def on_chk_decision_lynch5(evt, var, voters):
         target = voters[-1]
         if target is not votee:
             protected = try_protection(var, target, attacker=None, attacker_role="shaman", reason="totem_desperation")
-            if protected:
+            if protected is not None:
                 channels.Main.send(*protected)
                 return
+
             if var.ROLE_REVEAL in ("on", "team"):
                 r1 = get_reveal_role(target)
                 an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
@@ -463,16 +465,11 @@ def on_transition_day_resolve6(evt, var, victims):
             if loser in evt.data["dead"] or victim is loser:
                 loser = None
             if loser is not None:
-                prots = deque(var.ACTIVE_PROTECTIONS[loser.nick])
-                while len(prots) > 0:
-                    # an event can read the current active protection and cancel the totem
-                    # if it cancels, it is responsible for removing the protection from var.ACTIVE_PROTECTIONS
-                    # so that it cannot be used again (if the protection is meant to be usable once-only)
-                    ret_evt = Event("retribution_totem", {"message": []})
-                    if not ret_evt.dispatch(var, victim, loser, prots[0]):
-                        evt.data["message"][loser].extend(ret_evt.data["message"])
-                        return
-                    prots.popleft()
+                protected = try_protection(var, loser, victim, get_main_role(victim), "retribution_totem")
+                if protected is not None:
+                    channels.Main.send(*protected)
+                    return
+
                 evt.data["dead"].append(loser)
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(loser)
@@ -493,15 +490,21 @@ def on_transition_day_end(evt, var):
         message.append(messages["totem_broken"].format(player))
     channels.Main.send("\n".join(message))
 
+@event_listener("transition_night_end")
+def on_transition_night_end(evt, var):
+    # These are the totems of the *previous* nights
+    # We need to add them here otherwise transition_night_begin
+    # will remove them before they even get used
+    for lycan in LYCANTHROPY:
+        status.add_lycanthropy(var, lycan)
+    for pestilent in PESTILENCE:
+        status.add_disease(var, pestilent)
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
-    for lycan in LYCANTHROPY:
-        status.add_lycanthropy(var, lycan)
-    for pestilent in PESTILENCE:
-        status.add_disease(var, pestilent)
     var.LUCKY.update(p.nick for p in LUCK)
     var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
 
