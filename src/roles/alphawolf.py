@@ -2,13 +2,13 @@ import re
 import random
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.cats import Wolf
+from src.cats import Wolf, All
 from src.roles._wolf_helper import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
 
 ENABLED = False
@@ -62,142 +62,22 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("transition_day", priority=5)
 def on_transition_day(evt, var):
-    if not ENABLED:
-        return
-
-    for alpha, target in list(BITTEN.items()):
+    global ENABLED
+    for alpha, target in BITTEN.items():
         # bite is now separate but some people may try to double up still, if bitten person is
         # also being killed by wolves, make the kill not apply
-        # note that we cannot bite visiting harlots unless they are visiting a wolf,
-        # and lycans/immunized people turn/die instead of being bitten, so keep the kills valid on those
-        bite_evt = Event("bite", {"can_bite": True, "kill": False},
-            victims=evt.data["victims"],
-            killers=evt.data["killers"],
-            bywolves=evt.data["bywolves"],
-            onlybywolves=evt.data["onlybywolves"],
-            protected=evt.data["protected"],
-            numkills=evt.data["numkills"])
-        bite_evt.dispatch(var, alpha, target)
-        if bite_evt.data["kill"]:
-            # target immunized or a lycan, kill them instead and refund the bite
-            ALPHAS.remove(alpha)
-            del BITTEN[alpha]
-            if var.ACTIVE_PROTECTIONS[target.nick]:
-                # target was protected
-                evt.data["protected"][target] = var.ACTIVE_PROTECTIONS[target.nick].pop(0)
-            elif target in evt.data["protected"]:
-                del evt.data["protected"][target]
-            # add them as a kill even if protected so that protection message plays
-            if target not in evt.data["victims"]:
-                evt.data["onlybywolves"].add(target)
-            evt.data["killers"][target].append(alpha)
-            evt.data["victims"].append(target)
-            evt.data["bywolves"].add(target)
-        elif not bite_evt.data["can_bite"]:
-            # bite failed due to some other reason (namely harlot)
-            ALPHAS.remove(alpha)
-            del BITTEN[alpha]
-
-        to_send = "alpha_bite_failure"
-        if alpha in ALPHAS:
-            to_send = "alpha_bite_success"
-        alpha.send(messages[to_send].format(target))
-
-@event_listener("transition_day_resolve_end", priority=2)
-def on_transition_day_resolve_end(evt, var, victims):
-    global ENABLED
-    # turn all bitten people into wolves
-    for target in list(BITTEN.values()):
-        if target in evt.data["bywolves"]:
-            evt.data["dead"].remove(target)
-            evt.data["bywolves"].discard(target)
-            evt.data["onlybywolves"].discard(target)
-            evt.data["killers"][target].remove("@wolves")
-            del evt.data["message"][target]
-
-        if target in evt.data["dead"]:
-            # bite was unsuccessful due to someone else killing them
-            ALPHAS.remove(alpha)
-            del BITTEN[alpha]
-            continue
-
-        # short-circuit if they are already a wolf or are dying
-        targetrole = get_main_role(target)
-        if target in evt.data["dead"] or targetrole in Wolf:
-            continue
-
-        # get rid of extraneous messages (i.e. harlot visiting wolf)
-        evt.data["message"].pop(target, None)
-
-        newrole_evt = Event("get_role_metadata", {})
-        newrole_evt.dispatch(var, "lycanthropy_role")
-        for role, data in newrole_evt.data.items():
-            if role == targetrole:
-                for sec_role in data.get("secondary_roles", ()):
-                    var.ROLES[sec_role].add(target)
-                newrole = data.get("role", "wolf")
-                prefix = data.get("prefix", "bitten")
-                break
-        else:
-            newrole = "wolf"
-            prefix = "bitten"
-        change_role(var, target, targetrole, newrole, message=prefix + "_turn")
-        debuglog("{0} ({1}) TURN {2}".format(target, targetrole, newrole))
-
-        evt.data["howl"] += 1
-        evt.data["novictmsg"] = False
+        # The implementation of bite is merely lycanthropy + kill, which lets us
+        # simplify a lot of the code by offloading it to relevant pieces
+        status.add_lycanthropy(var, target, "bitten")
+        status.add_lycanthropy_scope(var, All)
+        if target not in evt.data["victims"]:
+            evt.data["onlybywolves"].add(target)
+        evt.data["killers"][target].append(alpha)
+        evt.data["victims"].append(target)
+        evt.data["bywolves"].add(target)
 
     # reset ENABLED here instead of begin_day so that night deaths can enable alpha wolf the next night
     ENABLED = False
-
-@event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, var, roleset, reason):
-    # only reconfigure in response to a chilling howl message
-    if reason != "howl":
-        return
-
-    # ensure that in the case of multiple howls in one night, that we don't adjust stats
-    # more times than there are alpha wolves; make use of a private dict key in this case
-    # as the data dict is preserved across multiple disparate howl events
-    if "alphawolf-counter" not in evt.data:
-        evt.data["alphawolf-counter"] = 0
-
-    # "or not BITTEN" is technically revealing info that alpha wolf did successfully bite
-    # as opposed to some other role that did it, but given how messy it makes !stats this is
-    # probably fine? Can revisit in the future and try a better way to figure out whether
-    # or not it was possible that an alpha wolf was able to bite or not
-    # (test case 1: in a game with 2 lycans + alpha, if alpha is enabled every night, we still
-    # only run the below logic once as opposed to 3 times)
-    # (test case 2: in a game with lycan + alpha, if lycan turns and alpha bites the same night,
-    # we still only run the below logic once as opposed to twice)
-    # note: ENABLED is always False by this point in time, as we have to set it to false before
-    # calling kill_players for night kills
-    if not BITTEN or evt.data["alphawolf-counter"] == len(BITTEN):
-        return
-
-    evt.data["alphawolf-counter"] += 1
-    if roleset in evt.data["new"]:
-        evt.data["new"].remove(roleset)
-    wolfchat = get_wolfchat_roles(var)
-    for role in roleset:
-        if role in wolfchat or roleset[role] == 0:
-            continue
-        newset = dict(roleset)
-        newset[role] -= 1
-        # ensure all the appropriate keys exist so they do 0-1 or 1-2 or whatever
-        # if it's purely 0, our !stats code removes the role entirely
-        newset["wolf"] = newset.get("wolf", 0)
-        lycan_evt = Event("get_role_metadata", {})
-        lycan_evt.dispatch(var, "lycanthropy_role")
-        newrole = "wolf"
-        for oldrole, data in lycan_evt.data.items():
-            if "role" in data:
-                newset[data["role"]] = newset.get(data["role"], 0)
-                if role == oldrole:
-                    newrole = data["role"]
-
-        newset[newrole] += 1
-        evt.data["new"].append(newset)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

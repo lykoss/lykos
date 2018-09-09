@@ -56,11 +56,6 @@ def on_add_disease(evt, var, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
-@event_listener("bite")
-def on_bite(evt, var, actor, target):
-    if target in IMMUNIZED:
-        evt.data["kill"] = True
-
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     ps = get_players()

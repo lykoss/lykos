@@ -1,5 +1,5 @@
 from src.decorators import event_listener
-from src.containers import UserSet
+from src.containers import UserDict
 from src.functions import get_all_players, get_main_role, change_role
 from src.events import Event
 from src.cats import Wolf
@@ -7,20 +7,20 @@ from src.roles._wolf_helper import get_wolfchat_roles
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
-LYCANTHROPES = UserSet()
+LYCANTHROPES = UserDict()
 SCOPE = set()
 
-def add_lycanthropy(var, target):
+def add_lycanthropy(var, target, prefix="lycan"):
     """Effect the target with lycanthropy. Fire the add_lycanthropy event."""
     if target in LYCANTHROPES:
         return
 
     if Event("add_lycanthropy", {}).dispatch(var, target):
-        LYCANTHROPES.add(target)
+        LYCANTHROPES[target] = prefix
 
 def remove_lycanthropy(var, target):
     """Remove the lycanthropy effect from the target."""
-    LYCANTHROPES.discard(target)
+    del LYCANTHROPES[:target:]
 
 def add_lycanthropy_scope(var, scope):
     """Add a scope for roles that can effect lycanthropy, for stats."""
@@ -54,22 +54,29 @@ def on_reconfigure_stats(evt, var, roleset, reason):
         rs[new_role] = rs.get(new_role, 0) + 1
         evt.data["new"].append(rs)
 
-@event_listener("bite")
-def on_bite(evt, var, biter, target):
-    if target in LYCANTHROPES:
-        evt.data["kill"] = True
-
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
     remove_lycanthropy(var, player)
 
 @event_listener("transition_day_resolve_end", priority=2)
 def on_transition_day_resolve_end(evt, var, victims):
+    evt2 = Event("get_role_metadata", {})
+    evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:
         if victim in LYCANTHROPES and victim in evt.data["onlybywolves"]:
             vrole = get_main_role(victim)
             if vrole not in Wolf:
-                change_role(var, victim, vrole, "wolf", message="lycan_turn")
+                new_role = "wolf"
+                prefix = LYCANTHROPES[victim]
+                if vrole in evt2.data:
+                    if "role" in evt2.data[vrole]:
+                        new_role = evt2.data[vrole]["role"]
+                    if "prefix" in evt2.data[vrole]:
+                        prefix = evt2.data[vrole]["prefix"]
+                    for sec_role in evt2.data[vrole].get("secondary_roles", ()):
+                        var.ROLES[sec_role].add(victim)
+
+                change_role(var, victim, vrole, new_role, message=prefix + "_turn")
                 evt.data["howl"] += 1
                 evt.data["novictmsg"] = False
                 evt.data["dead"].remove(victim)
@@ -77,6 +84,8 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["onlybywolves"].discard(victim)
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
+
+                debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

@@ -55,14 +55,6 @@ def pass_cmd(var, wrapper, message):
     wrapper.pm(messages["no_visit"])
     debuglog("{0} (harlot) PASS".format(wrapper.source))
 
-@event_listener("bite")
-def on_bite(evt, var, alpha, target):
-    if target not in var.ROLES["harlot"] or target not in VISITED:
-        return
-    hvisit = VISITED[target]
-    if get_main_role(hvisit) not in Wolfchat and (hvisit not in evt.params.bywolves or hvisit in evt.params.protected):
-        evt.data["can_bite"] = False
-
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
     if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
