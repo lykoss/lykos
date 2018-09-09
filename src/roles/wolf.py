@@ -120,16 +120,6 @@ def on_transition_day(evt, var):
             evt.data["killers"][target].append("@wolves")
             del found[target]
 
-    # when monster is split, add protection to them if in onlybywolves
-    # fallen angel will then remove that protection
-    # TODO: when monster is split off
-    if var.ROLES["fallen angel"]:
-        for monster in get_all_players(("monster",)):
-            if monster in evt.data["victims"]:
-                evt.data["victims"].remove(monster)
-                evt.data["bywolves"].discard(monster)
-                evt.data["onlybywolves"].discard(monster)
-
 @event_listener("transition_day", priority=3)
 def on_transition_day3(evt, var):
     evt.data["numkills"] = {v: evt.data["victims"].count(v) for v in set(evt.data["victims"])}

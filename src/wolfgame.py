@@ -1698,8 +1698,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             # determine if this player's team won
             if rol in Neutral:
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
-                teams = {"monster":"monsters", "demoniac":"demoniacs"}
-                if rol in teams and winner == teams[rol]:
+                if rol == "demoniac" and winner == "demoniacs":
                     won = True
                 elif rol == "fool" and "@" + splr == winner:
                     won = True
@@ -1709,8 +1708,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 won = False
                 iwon = False
             elif rol == "fool" and "@" + splr == winner:
-                iwon = True
-            elif rol == "monster" and plr in survived and winner == "monsters":
                 iwon = True
             elif rol == "demoniac" and plr in survived and winner == "demoniacs":
                 iwon = True
@@ -1838,7 +1835,6 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
         lwolves = len(wolves & pl)
         lcubs = len(rolemap.get("wolf cub", ()))
         lrealwolves = len(get_players(Wolf & Killer, mainroles=mainroles))
-        lmonsters = len(rolemap.get("monster", ()))
         ldemoniacs = len(rolemap.get("demoniac", ()))
         ltraitors = len(rolemap.get("traitor", ()))
 
@@ -1855,20 +1851,6 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
                 s = "s" if ldemoniacs > 1 else ""
                 message = (messages["demoniac_win"]).format(s)
                 winner = "demoniacs"
-            elif lmonsters > 0:
-                s = "s" if lmonsters > 1 else ""
-                message = messages["monster_win"].format(s, "" if s else "s")
-                winner = "monsters"
-        elif lwolves == lpl / 2:
-            if lmonsters > 0:
-                s = "s" if lmonsters > 1 else ""
-                message = messages["monster_wolf_win"].format(s)
-                winner = "monsters"
-        elif lwolves > lpl / 2:
-            if lmonsters > 0:
-                s = "s" if lmonsters > 1 else ""
-                message = messages["monster_wolf_win"].format(s)
-                winner = "monsters"
 
         # TODO: flip priority order (so that things like fool run last, and therefore override previous win conds)
         # Priorities:
@@ -3556,12 +3538,6 @@ def transition_night():
             jester.send(messages["jester_simple"])
         else:
             jester.send(messages["jester_notify"])
-
-    for monster in get_all_players(("monster",)):
-        if monster.prefers_simple():
-            monster.send(messages["monster_simple"])
-        else:
-            monster.send(messages["monster_notify"])
 
     for demoniac in get_all_players(("demoniac",)):
         if demoniac.prefers_simple():
