@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import add_dying
 from src.cats import Wolf, Win_Stealer
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
@@ -73,7 +74,7 @@ def on_transition_day(evt, var):
         del KILLS[vigilante]
 
         if get_main_role(target) not in Wolf | Win_Stealer:
-            var.DYING.add(vigilante)
+            add_dying(var, vigilante, "vigilante", "night_kill")
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):

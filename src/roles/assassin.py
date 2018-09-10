@@ -43,7 +43,7 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("assassin",)) - PREV_ACTED)
     evt.data["actedcount"] += len(TARGETED) - len(PREV_ACTED)
 
-@event_listener("transition_day", priority=8)
+@event_listener("transition_day", priority=7)
 def on_transition_day(evt, var):
     # Select a random target for assassin that isn't already going to die if they didn't target
     pl = get_players()

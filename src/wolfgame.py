@@ -57,7 +57,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.status import try_protection, add_dying, kill_players
+from src.status import try_protection, add_dying, is_dying, kill_players
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
 from src.functions import (
@@ -102,7 +102,6 @@ var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DEAD = UserSet()
-var.DYING = UserSet()
 var.WOUNDED = UserSet()
 var.GUNNERS = UserDict()
 
@@ -2496,7 +2495,6 @@ def begin_day():
     var.EXCHANGED = set()
     var.LUCKY = set()
     var.MISDIRECTED = set()
-    var.DYING.clear()
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     channels.Main.send(msg)
@@ -2598,8 +2596,7 @@ def transition_day(gameid=0):
     # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
     # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
     #     fixing killers dict priority again (in case step 4 or 5 added to it)
-    # 7 = killer-less deaths (i.e. var.DYING)
-    # 8 = read-only operations
+    # 7 = read-only operations
     # Actually killing off the victims happens in transition_day_resolve
     # We set the variables here first; listeners should mutate, not replace
     # We don't need to use User containers here, as these don't persist long enough
@@ -2630,7 +2627,7 @@ def transition_day(gameid=0):
     # TODO: this needs to be split off into bodyguard.py and harlot.py
     from src.roles import bodyguard, harlot
     for v in victims_set:
-        if v in var.DYING:
+        if is_dying(var, v):
             victims.append(v)
         elif v in var.ROLES["bodyguard"] and v in bodyguard.GUARDED and bodyguard.GUARDED[v] in victims_set:
             vappend.append(v)
@@ -3844,7 +3841,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ABSTAINED = False
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
-    var.DYING.clear()
 
     var.DEADCHAT_PLAYERS.clear()
     var.SPECTATING_WOLFCHAT.clear()

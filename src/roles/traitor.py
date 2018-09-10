@@ -36,7 +36,7 @@ def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
 def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
-    # ismain True = night death, False = chain death; chain deaths can be traitors
+    # check if the reason == "night_death", otherwise it's probably a chained death
     # even if only wolves killed, so we short-circuit there as well
     # TODO: luck/misdirection totem can leak info due to our short-circuit below this comment.
     # If traitor dies due to one of these totems, both traitor count and villager count is reduced by
@@ -45,7 +45,7 @@ def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
     # luck/misdirection are potentially in play.
     # FIXME: this doesn't check RESTRICT_WOLFCHAT to see if traitor was removed from wolfchat. If
     # they've been removed, they can be killed like normal so all this logic is meaningless.
-    if "traitor" not in evt.data["possible"] or not evt.params.ismain or mainrole == "traitor":
+    if "traitor" not in evt.data["possible"] or not evt.params.reason == "night_death" or mainrole == "traitor":
         return
     if var.PHASE == "day" and var.GAMEPHASE == "night":
         mevt = Event("get_role_metadata", {})

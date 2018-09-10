@@ -13,6 +13,7 @@ from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.decorators import handle_error, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.status import add_dying
 from src import events, channels, users, cats
 from src.cats import All, Wolf, Cursed, Innocent, Killer, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Spy, Nocturnal
 
@@ -942,7 +943,7 @@ class SleepyMode(GameMode):
 
     def nightmare_kill(self, evt, var):
         if self.having_nightmare and self.having_nightmare[0] in get_players():
-            var.DYING.add(self.having_nightmare[0])
+            add_dying(var, self.having_nightmare[0], "bot", "night_kill")
             self.having_nightmare[0].send(messages["sleepy_nightmare_death"])
             del self.having_nightmare[0]
 

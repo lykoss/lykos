@@ -9,12 +9,6 @@ from src.cats import Hidden
 
 # handles villager and cultist
 
-@event_listener("transition_day", priority=7)
-def on_transition_day(evt, var):
-    for player in var.DYING:
-        evt.data["victims"].append(player)
-        evt.data["onlybywolves"].discard(player)
-
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
