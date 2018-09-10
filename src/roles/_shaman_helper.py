@@ -383,13 +383,14 @@ def on_transition_day3(evt, var):
     for player in PROTECTION:
         status.add_protection(var, player, protector=None, protector_role="shaman")
 
-@event_listener("fallen_angel_guard_break")
-def on_fagb(evt, var, victim, killer):
-    # we'll never end up killing a shaman who gave out protection, but delete the totem since
-    # story-wise it gets demolished at night by the FA
-    while victim in havetotem:
-        havetotem.remove(victim)
-        brokentotem.add(victim)
+@event_listener("remove_protection")
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if attacker_role == "fallen angel" and protector_role == "shaman":
+        # we'll never end up killing a shaman who gave out protection, but delete the totem since
+        # story-wise it gets demolished at night by the FA
+        while target in havetotem:
+            havetotem.remove(target)
+            brokentotem.add(target)
 
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):
@@ -416,14 +417,6 @@ def on_transition_day_begin(evt, var):
     # and calculated here (updated in the separate role files)
     brokentotem.clear()
     havetotem.clear()
-
-@event_listener("transition_day_resolve", priority=2)
-def on_transition_day_resolve2(evt, var, victim):
-    if evt.data["protected"].get(victim) == "totem":
-        evt.data["message"][victim].append(messages["totem_protection"].format(victim))
-        evt.data["novictmsg"] = False
-        evt.stop_processing = True
-        evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=4)
 def on_transition_day_resolve6(evt, var, victims):

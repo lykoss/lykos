@@ -57,8 +57,8 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
+from src.status import try_protection, add_dying, kill_players
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
-from src.status import add_dying, kill_players
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -2608,7 +2608,6 @@ def transition_day(gameid=0):
     killers = defaultdict(list)
     bywolves = set()
     onlybywolves = set()
-    protected = {}
     numkills = {}
 
     evt = Event("transition_day", {
@@ -2616,7 +2615,6 @@ def transition_day(gameid=0):
         "killers": killers,
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
-        "protected": protected,
         "numkills": numkills, # populated at priority 3
         })
     evt.dispatch(var)
@@ -2629,14 +2627,12 @@ def transition_day(gameid=0):
     # be correctly attributed to wolves (for vengeful ghost lover), and that any gunner events
     # can play. Harlot visiting wolf doesn't play special events if they die via other means since
     # that assumes they die en route to the wolves (and thus don't shoot/give out gun/etc.)
-    # TODO: this needs to be split off into angel.py, but all the stuff above it needs to be split off first
-    # so even though angel.py exists we can't exactly do this now
-    # TODO: also needs to be split off into harlot.py
-    from src.roles import angel, harlot
+    # TODO: this needs to be split off into bodyguard.py and harlot.py
+    from src.roles import bodyguard, harlot
     for v in victims_set:
         if v in var.DYING:
             victims.append(v)
-        elif v in var.ROLES["bodyguard"] and v.nick in angel.GUARDED and users._get(angel.GUARDED[v.nick]) in victims_set: # FIXME
+        elif v in var.ROLES["bodyguard"] and v in bodyguard.GUARDED and bodyguard.GUARDED[v] in victims_set:
             vappend.append(v)
         elif harlot.VISITED.get(v) in victims_set:
             vappend.append(v)
@@ -2653,7 +2649,7 @@ def transition_day(gameid=0):
 
         prevlen = len(vappend)
         for v in vappend[:]:
-            if v in var.ROLES["bodyguard"] and users._get(angel.GUARDED.get(v.nick)) not in vappend: # FIXME
+            if v in var.ROLES["bodyguard"] and bodyguard.GUARDED.get(v) not in vappend:
                 vappend.remove(v)
                 victims.append(v)
             elif harlot.VISITED.get(v) not in vappend:
@@ -2672,7 +2668,6 @@ def transition_day(gameid=0):
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
         "killers": killers,
-        "protected": protected,
         })
     # transition_day_resolve priorities:
     # 1: target not home
@@ -2684,6 +2679,21 @@ def transition_day(gameid=0):
         if not revt.dispatch(var, victim):
             continue
         if victim not in revt.data["dead"]: # not already dead via some other means
+            for killer in list(killers[victim]):
+                if killer == "@wolves":
+                    attacker = None
+                    role = "wolf"
+                else:
+                    attacker = killer
+                    role = get_main_role(killer)
+                protected = try_protection(var, victim, attacker, role, reason="night_death")
+                if protected is not None:
+                    revt.data["message"][victim].extend(protected)
+                    killers[victim].remove(killer)
+
+            if not killers[victim]:
+                continue
+
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(victim)
                 an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
@@ -2708,7 +2718,6 @@ def transition_day(gameid=0):
         "bywolves": bywolves,
         "onlybywolves": onlybywolves,
         "killers": killers,
-        "protected": protected,
         })
     revt2.dispatch(var, victims)
 

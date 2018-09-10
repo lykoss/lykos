@@ -93,32 +93,6 @@ def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(GUARDED) + len(PASSED)
     evt.data["nightroles"].extend(get_players(("guardian angel",)))
 
-# FIXME: All of this needs changing because it's incorrect
-# Also let's kill the "protected" key
-
-@event_listener("fallen_angel_guard_break")
-def on_fagb(evt, var, user, killer):
-    for g in get_all_players(("guardian angel",)):
-        if GUARDED.get(g) is user:
-            if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
-                if g in evt.data["protected"]:
-                    del evt.data["protected"][g]
-                evt.data["bywolves"].add(g)
-                if g not in evt.data["victims"]:
-                    evt.data["onlybywolves"].add(g)
-                evt.data["victims"].append(g)
-                evt.data["killers"][g].append(killer)
-            if g is not user:
-                g.send(messages["fallen_angel_success"].format(user))
-
-@event_listener("transition_day_resolve", priority=2)
-def on_transition_day_resolve(evt, var, victim):
-    if evt.data["protected"].get(victim) == "angel":
-        evt.data["message"][victim].append(messages["angel_protection"].format(victim))
-        evt.data["novictmsg"] = False
-        evt.stop_processing = True
-        evt.prevent_default = True
-
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
     for gangel in get_all_players(("guardian angel",)):
@@ -162,13 +136,18 @@ def on_transition_night_end(evt, var):
             to_send = "guardian_simple"
         gangel.send(messages[to_send].format(warning, gself), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
-@event_listener("assassinate")
-def on_assassinate(evt, var, killer, target, prot):
-    if prot == "angel" and var.GAMEPHASE == "night":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("angel")
-        evt.prevent_default = True
-        evt.stop_processing = True
-        channels.Main.send(messages[evt.params.message_prefix + "angel"].format(killer, target))
+@event_listener("player_protected")
+def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if protector_role == "guardian angel":
+        evt.data["messages"].append(messages[reason + "_angel"].format(attacker, target))
+
+@event_listener("remove_protection")
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if attacker_role == "fallen angel" and protector_role == "guardian angel":
+        if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
+            status.add_dying(var, protector, killer_role="fallen angel", reason=reason)
+            protector.send(messages[reason + "_success"].format(target))
+            target.send(messages[reason + "_deprotect"])
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

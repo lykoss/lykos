@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -55,7 +55,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if var.PHASE == "night" and player in GUARDED:
         GUARDED[player].send(messages["protector_disappeared"])
     for k,v in list(GUARDED.items()):
-        if player.nick in (k, v):
+        if player in (k, v):
             del GUARDED[k]
     PASSED.discard(player)
 
@@ -74,32 +74,6 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(GUARDED) + len(PASSED)
     evt.data["nightroles"].extend(get_players(("bodyguard",)))
-
-@event_listener("fallen_angel_guard_break")
-def on_fagb(evt, var, user, killer):
-    for g in get_all_players(("bodyguard",)):
-        if GUARDED.get(g) is user:
-            if g in evt.data["protected"]:
-                del evt.data["protected"][g]
-            evt.data["bywolves"].add(g)
-            if g not in evt.data["victims"]:
-                evt.data["onlybywolves"].add(g)
-            evt.data["victims"].append(g)
-            evt.data["killers"][g].append(killer)
-            if g is not user:
-                g.send(messages["fallen_angel_success"].format(user))
-
-@event_listener("transition_day_resolve", priority=2)
-def on_transition_day_resolve(evt, var, victim):
-    if evt.data["protected"].get(victim) == "bodyguard":
-        for bodyguard in get_all_players(("bodyguard",)):
-            if GUARDED.get(bodyguard) is victim:
-                evt.data["dead"].append(bodyguard)
-                evt.data["message"][victim].append(messages["bodyguard_protection"].format(bodyguard))
-                evt.data["novictmsg"] = False
-                evt.stop_processing = True
-                evt.prevent_default = True
-                break
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
@@ -139,18 +113,29 @@ def on_transition_night_end(evt, var):
             to_send = "bodyguard_simple"
         bg.send(messages[to_send].format(warning), messages["players_list"].format(", ".join(p.nick for p in pl), sep="\n"))
 
-@event_listener("assassinate")
-def on_assassinate(evt, var, killer, target, prot):
-    if prot == "bodyguard":
-        var.ACTIVE_PROTECTIONS[target.nick].remove("bodyguard")
-        evt.prevent_default = True
-        evt.stop_processing = True
-        for bg in var.ROLES["bodyguard"]:
-            if GUARDED.get(bg.nick) == target.nick:
-                channels.Main.send(messages[evt.params.message_prefix + "bodyguard"].format(killer, target, bg))
-                # redirect the assassination to the bodyguard
-                evt.data["target"] = bg
-                break
+@event_listener("try_protection")
+def on_try_protection(evt, var, target, attacker, attacker_role, reason):
+    if len(evt.data["protections"]) <= 1: # We only care if there's 2+ protections
+        return
+    for (protector, protector_role, scope) in list(evt.data["protections"]):
+        if protector_role == "bodyguard":
+            evt.data["protections"].remove((protector, protector_role, scope))
+            evt.data["protections"].append((protector, protector_role, scope))
+
+@event_listener("player_protected")
+def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if protector_role == "bodyguard":
+        for bodyguard in get_all_players(("bodyguard",)):
+            if GUARDED.get(bodyguard) is target:
+                evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, bodyguard))
+                status.add_dying(var, bodyguard, killer_role=attacker_role, reason="bodyguard")
+
+@event_listener("remove_protection")
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
+    if attacker_role == "fallen angel" and protector_role == "bodyguard":
+        status.add_dying(var, protector, killer_role="fallen angel", reason=reason)
+        protector.send(messages[reason + "_success"].format(target))
+        target.send(messages[reason + "_deprotect"])
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

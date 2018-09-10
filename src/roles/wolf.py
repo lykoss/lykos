@@ -125,6 +125,15 @@ def on_transition_day3(evt, var):
     evt.data["numkills"] = {v: evt.data["victims"].count(v) for v in set(evt.data["victims"])}
     on_transition_day6(evt, var)
 
+@event_listener("transition_day", priority=4.8)
+def on_transition_day4(evt, var):
+    # now that all protections are finished, add people back to onlybywolves
+    # if they're down to 1 active kill and wolves were a valid killer
+    victims = set(get_players()) & set(evt.data["victims"]) - var.DYING
+    for v in victims:
+        if evt.data["numkills"][v] == 1 and v in evt.data["bywolves"]:
+            evt.data["onlybywolves"].add(v)
+
 @event_listener("transition_day", priority=6)
 def on_transition_day6(evt, var):
     wolfteam = get_players(Wolfteam)

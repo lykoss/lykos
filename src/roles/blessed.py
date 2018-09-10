@@ -12,15 +12,6 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-@event_listener("transition_day_resolve", priority=2)
-def on_transition_day_resolve(evt, var, victim):
-    if evt.data["protected"].get(victim) == "blessing":
-        # don't play any special message for a blessed target, this means in a game with priest and monster it's not really possible
-        # for wolves to tell which is which. May want to change that in the future to be more obvious to wolves since there's not really
-        # any good reason to hide that info from them. In any case, we don't want to say the blessed person was attacked to the channel
-        evt.stop_processing = True
-        evt.prevent_default = True
-
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):
     for blessed in get_all_players(("blessed villager",)):

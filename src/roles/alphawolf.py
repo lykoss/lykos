@@ -64,8 +64,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 def on_transition_day(evt, var):
     global ENABLED
     for alpha, target in BITTEN.items():
-        # bite is now separate but some people may try to double up still, if bitten person is
-        # also being killed by wolves, make the kill not apply
+        # bite is now separate but some people may try to double up still
         # The implementation of bite is merely lycanthropy + kill, which lets us
         # simplify a lot of the code by offloading it to relevant pieces
         status.add_lycanthropy(var, target, "bitten")
@@ -83,7 +82,7 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     # Refund failed bites
     for alpha, target in BITTEN.items():
-        if alpha in get_players() and target not in get_players():
+        if alpha in get_players() and target not in get_players(Wolf):
             ALPHAS.remove(alpha)
     BITTEN.clear()
 
