@@ -376,7 +376,7 @@ class IRCClient:
             msg = "PRIVMSG {0} :{1}"
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def user(self, ident, rname):
-        self.send("USER", ident, self.host, self.host, ":{0}".format(rname or ident))
+        self.send("USER", ident, "0", "*", ":{0}".format(rname or ident))
     def mainLoop(self):
         conn = self.connect()
         while True:

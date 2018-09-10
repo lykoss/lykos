@@ -4814,34 +4814,51 @@ def role_stats(var, wrapper, rest):
     if wrapper.target != users.Bot:
         var.LAST_RSTATS = datetime.now()
     
-    if var.PHASE not in ("none", "join") and wrapper.target is not channel.Main:
+    if var.PHASE not in ("none", "join") and wrapper.target is not channels.Main:
             wrapper.pm(messages["stats_wait_for_game_end"])
             return
 
-    rest = rest.split()
-    if len(rest) == 0:
+    params = rest.split()
+    
+    if len(params) == 0:
         # this is a long message
         wrapper.pm(db.get_role_totals())
-    elif len(rest) == 1 or (rest[-1] == "all" and rest.pop()):
-        role = complete_role(var, wrapper, " ".join(rest))
-        if role:
-            wrapper.reply(db.get_role_stats(role))
-    else:
-        role = complete_role(var, wrapper, " ".join(rest[:-1]))
-        if not role:
+        return
+
+    roles = complete_role(var, rest)
+    if params[-1] == "all" and len(roles) != 1:
+        roles = complete_role(var, " ".join(params[:-1]))
+    if len(roles) == 1:
+        wrapper.reply(db.get_role_stats(roles[0]))
+        return
+
+    gamemode = params[-1]
+    if gamemode not in var.GAME_MODES.keys():
+        matches = complete_match(gamemode, var.GAME_MODES.keys())
+        if len(matches) == 1:
+            gamemode = matches[0]
+        else:
+            if len(roles) > 0:
+                wrapper.pm(messages["ambiguous_role"].format(", ".join(roles)))
+            elif len(matches) > 0:
+                wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
+            else:
+                wrapper.pm(messages["no_such_role"].format(rest))
             return
-        gamemode = rest[-1]
-        if gamemode not in var.GAME_MODES.keys():
-            matches = complete_match(gamemode, var.GAME_MODES.keys())
-            if len(matches) == 1:
-                gamemode = matches[0]
-            if not matches:
-                wrapper.pm(messages["invalid_mode"].format(rest[1]))
-                return
-            if len(matches) > 1:
-                wrapper.pm(messages["ambiguous_mode"].format(rest[1], ", ".join(matches)))
-                return
-        wrapper.reply(db.get_role_stats(role, gamemode))
+
+    if len(params) == 1:
+        wrapper.pm(db.get_role_totals(gamemode))
+        return
+
+    role = " ".join(params[:-1])
+    roles = complete_role(var, role)
+    if len(roles) != 1:
+        if len(roles) == 0:
+            wrapper.pm(messages["no_such_role"].format(role))
+        else:
+            wrapper.pm(messages["ambiguous_role"].format(", ".join(roles)))
+        return
+    wrapper.reply(db.get_role_stats(roles[0], gamemode))
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):

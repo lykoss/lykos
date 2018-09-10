@@ -180,7 +180,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         return
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
-def complete_role(var, wrapper, role):
+def complete_role(var, role):
     from src.cats import ROLES
     if role not in ROLES:
         special_keys = {"lover"}
@@ -192,12 +192,8 @@ def complete_role(var, wrapper, role):
         else:
             matches = complete_match(role, ROLES.keys() | special_keys)
         if not matches:
-            wrapper.reply(messages["no_such_role"].format(role))
-            return False
-        if len(matches) > 1:
-            wrapper.reply(messages["ambiguous_role"].format(", ".join(matches)))
-            return False
-        return matches[0]
-    return role
+            return []
+        return matches
+    return [role]
 
 # vim: set sw=4 expandtab:
