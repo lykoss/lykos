@@ -41,6 +41,11 @@ def on_transition_night_end(evt, var):
         else:
             monster.send(messages["monster_notify"])
 
+@event_listener("remove_protection")
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role):
+    if attacker_role == "fallen angel" and protector_role == "monster":
+        evt.data["remove"] = True
+
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":

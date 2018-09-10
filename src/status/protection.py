@@ -1,5 +1,6 @@
 from src.containers import UserDict, DefaultUserDict
 from src.decorators import event_listener
+from src.messages import messages
 from src.events import Event
 from src.cats import All
 
@@ -59,6 +60,12 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     for protected, entries in PROTECTIONS.items():
         if player in entries:
             del entries[player]
+
+@event_listener("remove_protection")
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role):
+    if attacker is protector:
+        evt.data["remove"] = True
+        evt.data["messages"].append(messages["protector_disappeared"])
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

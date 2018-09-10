@@ -133,6 +133,7 @@ def on_player_protected(evt, var, target, attacker, attacker_role, protector, pr
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if attacker_role == "fallen angel" and protector_role == "bodyguard":
+        evt.data["remove"] = True
         status.add_dying(var, protector, killer_role="fallen angel", reason=reason)
         protector.send(messages[reason + "_success"].format(target))
         target.send(messages[reason + "_deprotect"])

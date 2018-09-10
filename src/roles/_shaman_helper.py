@@ -388,6 +388,7 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
     if attacker_role == "fallen angel" and protector_role == "shaman":
         # we'll never end up killing a shaman who gave out protection, but delete the totem since
         # story-wise it gets demolished at night by the FA
+        evt.data["remove"] = True
         while target in havetotem:
             havetotem.remove(target)
             brokentotem.add(target)
