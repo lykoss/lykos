@@ -3,7 +3,6 @@ from src.containers import UserDict
 from src.functions import get_all_players, get_main_role, change_role
 from src.events import Event
 from src.cats import Wolf
-from src.roles._wolf_helper import get_wolfchat_roles
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
@@ -28,6 +27,7 @@ def add_lycanthropy_scope(var, scope):
 
 @event_listener("reconfigure_stats")
 def on_reconfigure_stats(evt, var, roleset, reason):
+    from src.roles._wolf_helper import get_wolfchat_roles
     if reason != "howl" or not LYCANTHROPES or not SCOPE:
         return
 

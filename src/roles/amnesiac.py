@@ -11,7 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.cats import Win_Stealer
+from src.cats import role_order, Win_Stealer
 
 ROLES = UserDict()  # type: Dict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats

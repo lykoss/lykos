@@ -3,6 +3,8 @@ import itertools
 
 from src import events
 
+__all__ = ["get", "role_order"]
+
 _dict_keys = type(dict().keys())
 
 # role categories; roles return a subset of these categories when fetching their metadata
@@ -65,6 +67,8 @@ def register_roles(evt):
     mevt = events.Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")
     for role, cats in mevt.data.items():
+        if len(cats & {"Wolfteam", "Village", "Neutral", "Hidden"}) != 1:
+            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {Wolfteam, Village, Neutral, Hidden}, got {1}".format(role, cats))
         ROLES[role] = frozenset(cats)
         for cat in cats:
             if cat not in ROLE_CATS:
@@ -166,6 +170,7 @@ All = Category("*")
 for cat in ROLE_CATS:
     name = cat.replace(" ", "_")
     globals()[name] = Category(cat)
+    __all__.append(name)
 
 del cat, name, register_roles
 

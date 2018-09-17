@@ -84,6 +84,9 @@ def on_begin_day(evt, var):
     for alpha, target in BITTEN.items():
         if alpha in get_players() and target not in get_players(Wolf):
             ALPHAS.remove(alpha)
+            alpha.send(messages["alpha_bite_failure"].format(target))
+        else:
+            alpha.send(messages["alpha_bite_success"].format(target))
     BITTEN.clear()
 
 @event_listener("reset")

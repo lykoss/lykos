@@ -352,7 +352,7 @@ def on_chk_decision_lynch5(evt, var, voters):
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
         if target is not votee:
-            protected = try_protection(var, target, attacker=None, attacker_role="shaman", reason="totem_desperation")
+            protected = try_protection(var, target, attacker=votee, attacker_role="shaman", reason="totem_desperation")
             if protected is not None:
                 channels.Main.send(*protected)
                 return
