@@ -1559,6 +1559,8 @@ def show_votes(cli, nick, chan, rest):
 def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     if abort:
         channels.Main.send(messages["role_attribution_failed"])
+    elif not var.ORIGINAL_ROLES: # game already ended
+        return
     if var.DAY_START_TIME:
         now = datetime.now()
         td = now - var.DAY_START_TIME
