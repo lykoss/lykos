@@ -1470,7 +1470,8 @@ def chk_decision(force=None, end_game=True):
                             lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                         channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "lynch")
-                        if not kill_players(var, end_game=end_game):
+                        kill_players(var, end_game=False) # temporary hack; end_game=True calls chk_decision and we don't want that
+                        if end_game and chk_win():
                             return
                     do_night_transision = True
                     break
@@ -1783,8 +1784,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     if var.ADMIN_TO_PING is not None:  # It was an flastgame
         channels.Main.send("PING! {0}".format(var.ADMIN_TO_PING))
         var.ADMIN_TO_PING = None
-
-    return True
 
 def chk_win(*, end_game=True, winner=None):
     """ Returns True if someone won """

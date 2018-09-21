@@ -3,6 +3,7 @@ from src.containers import UserDict
 from src.functions import get_all_players, get_main_role, change_role
 from src.events import Event
 from src.cats import Wolf
+from src import debuglog
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
