@@ -51,8 +51,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if not death_triggers or "mad scientist" not in all_roles:
         return
 
-    pl = get_players()
-    target1, target2 = _get_targets(var, pl, player)
+    target1, target2 = _get_targets(var, get_players(), player)
 
     prots1 = try_protection(var, target1, player, "mad scientist", "mad_scientist_fail")
     prots2 = try_protection(var, target2, player, "mad scientist", "mad_scientist_fail")
@@ -99,8 +98,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             tmsg = messages["mad_scientist_fail"].format(player)
             channels.Main.send(tmsg)
             debuglog(player.nick, "(mad scientist) KILL FAIL")
-
-    evt.data["pl"] = pl
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):

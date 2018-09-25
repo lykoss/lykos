@@ -11,7 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import try_protection
+from src.status import try_protection, add_dying
 
 TARGETED = UserDict() # type: Dict[users.User, users.User]
 PREV_ACTED = UserSet()
@@ -97,7 +97,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         target = TARGETED[player]
         del TARGETED[player]
         PREV_ACTED.discard(player)
-        if target in evt.data["pl"]:
+        if target in get_players():
             protected = try_protection(var, target, player, "assassin", "assassin_fail")
             if protected is not None:
                 channels.Main.send(*protected)

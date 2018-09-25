@@ -10,6 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import add_dying
 from src.events import Event
 from src.cats import Win_Stealer
 
@@ -135,7 +136,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
         for lover in lovers:
-            if lover not in evt.data["pl"]:
+            if lover not in get_players():
                 continue # already died somehow
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(lover)

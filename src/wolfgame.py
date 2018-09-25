@@ -2808,11 +2808,14 @@ def transition_day(gameid=0):
     for deadperson in dead:
         add_dying(var, deadperson, killer_role[deadperson], "night_kill")
     kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
-    if chk_win(): # game ending
-        return
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
     event_end.dispatch(var)
+
+    # make sure that we process ALL of the transition_day events before checking for game end
+    if chk_win(): # game ending
+        return
+
     event_end.data["begin_day"]()
 
 @event_listener("transition_day_resolve_end", priority=2.9)
