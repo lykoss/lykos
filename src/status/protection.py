@@ -46,11 +46,10 @@ def remove_all_protections(var, target, attacker, attacker_role, reason, scope=A
     for protector, entries in list(PROTECTIONS[target].items()):
         for cat, protector_role in entries:
             if scope & cat:
-                evt = Event("remove_protection", {"remove": False, "messages": []})
+                evt = Event("remove_protection", {"remove": False})
                 evt.dispatch(var, target, attacker, attacker_role, protector, protector_role, reason)
                 if evt.data["remove"]:
                     PROTECTIONS[target][protector].remove((cat, protector_role))
-                    target.send(*evt.data["messages"])
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -62,7 +61,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             del entries[player]
 
 @event_listener("remove_protection")
-def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role):
+def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if attacker is protector:
         evt.data["remove"] = True
         evt.data["messages"].append(messages["protector_disappeared"])

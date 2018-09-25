@@ -16,7 +16,7 @@ from src.cats import Wolf
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):
     if attacker_role == "wolf" and get_all_players(("fallen angel",)):
-        status.remove_all_protections(var, target, attacker=None, attacker_role="fallen angel", prefix="fallen_angel")
+        status.remove_all_protections(var, target, attacker=None, attacker_role="fallen angel", reason="fallen_angel")
         evt.prevent_default = True
 
 @event_listener("get_role_metadata")
