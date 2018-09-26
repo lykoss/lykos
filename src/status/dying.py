@@ -2,9 +2,11 @@ import time
 from typing import Tuple
 
 from src.containers import UserDict
+from src.decorators import event_listener
+from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
+from src.messages import messages
 from src.events import Event
 from src.users import User
-from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
 
 __all__ = ["add_dying", "is_dying", "kill_players"]
 
@@ -94,3 +96,17 @@ def kill_players(var, *, end_game: bool = True) -> bool:
         # Once hacks are removed, this function will not have any return value and the end_game kwarg will go away
         evt = Event("kill_players", {}, end_game=end_game)
         return not evt.dispatch(var, dead)
+
+@event_listener("transition_day_resolve_end", priority=1)
+def kill_off_dying_players(evt, var, victims):
+    for victim in DYING:
+        if victim not in evt.data["dead"]:
+            evt.data["novictmsg"] = False
+            evt.data["dead"].append(victim)
+
+            if var.ROLE_REVEAL in ("on", "team"):
+                role = get_reveal_role(victim)
+                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                evt.data["message"][victim].append(messages["death"].format(victim, an, role))
+            else:
+                evt.data["message"][victim].append(messages["death_no_reveal"].format(victim))
