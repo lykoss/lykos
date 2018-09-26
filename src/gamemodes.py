@@ -949,7 +949,7 @@ class SleepyMode(GameMode):
 
     def happy_fun_times(self, evt, var, player, all_roles, death_triggers):
         if death_triggers:
-            if evt.data.main_role == "priest":
+            if evt.params.main_role == "priest":
                 turn_chance = 3/4
                 seers = [p for p in get_players(("seer",)) if random.random() < turn_chance]
                 harlots = [p for p in get_players(("harlot",)) if random.random() < turn_chance]

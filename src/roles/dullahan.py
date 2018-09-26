@@ -130,7 +130,7 @@ def on_chk_nightdone(evt, var):
     spl = set(get_players())
     evt.data["actedcount"] += len(KILLS)
     for dullahan, targets in TARGETS.items():
-        if targets & spl:
+        if targets & spl and dullahan in spl:
             evt.data["nightroles"].append(dullahan)
 
 @event_listener("transition_night_end", priority=2)
