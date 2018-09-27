@@ -64,7 +64,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if attacker is protector:
         evt.data["remove"] = True
-        evt.data["messages"].append(messages["protector_disappeared"])
+        target.send(messages["protector_disappeared"])
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
