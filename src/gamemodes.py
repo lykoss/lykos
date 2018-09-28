@@ -967,7 +967,7 @@ class SleepyMode(GameMode):
             evt.data["output"].append("\u0002having nightmare\u0002: {0}".format(self.having_nightmare[0]))
 
 # Maelstrom is temporarily disabled until it is properly fixed (2018-08-20)
-# @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
+@game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
     def __init__(self, arg=""):

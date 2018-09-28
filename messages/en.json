@@ -284,7 +284,7 @@
     "players_charmed_two": "\u0002{0}\u0002 and \u0002{1}\u0002 are now charmed!",
     "players_charmed_many": "\u0002{0}\u0002, and \u0002{1}\u0002 are also charmed!",
     "previously_charmed": " Previously charmed players: {0}",
-    "alpha_bite_success": "You have bitten \u0002{0}\u0002.",	
+    "alpha_bite_success": "You have bitten \u0002{0}\u0002.",
     "alpha_bite_failure": "You tried to bite \u0002{0}\u0002, but it didn't work. Better luck next time!",
     "fallen_angel_success": "A fell wind starts blowing through the village and you catch the flurry of blackened wings out of the corner of your eye. No longer caring for \u0002{0}\u0002's safety, you attempt to get away before your own life is taken...",
     "fallen_angel_deprotect": "A fell wind blows through you and chills you to the bone. You no longer feel safe or protected...",
