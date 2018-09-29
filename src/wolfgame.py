@@ -2688,6 +2688,7 @@ def transition_day(gameid=0):
                 if protected is not None:
                     revt.data["message"][victim].extend(protected)
                     killers[victim].remove(killer)
+                    revt.data["novictmsg"] = False
 
             if not killers[victim]:
                 continue
@@ -3534,9 +3535,9 @@ def transition_night():
 
     for drunk in get_all_players(("village drunk",)):
         if drunk.prefers_simple():
-            drunk.send(messages["drunk_simple"])
+            drunk.send(messages["village_drunk_simple"])
         else:
-            drunk.send(messages["drunk_notification"])
+            drunk.send(messages["village_drunk_notify"])
 
     for fool in get_all_players(("fool",)):
         if fool.prefers_simple():

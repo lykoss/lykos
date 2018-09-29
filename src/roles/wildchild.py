@@ -95,9 +95,9 @@ def on_transition_day_begin(evt, var):
 def on_transition_night_end(evt, var):
     for child in get_all_players(("wild child",)):
         if child.prefers_simple():
-            child.send(messages["child_simple"])
+            child.send(messages["wild_child_simple"])
         else:
-            child.send(messages["child_notify"])
+            child.send(messages["wild_child_notify"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):

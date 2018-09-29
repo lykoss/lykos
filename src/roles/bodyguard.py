@@ -33,6 +33,7 @@ def guard(var, wrapper, message):
         return
 
     target = evt.data["target"]
+    status.add_protection(var, target, wrapper.source, "bodyguard")
     GUARDED[wrapper.source] = target
 
     wrapper.pm(messages["protecting_target"].format(target))
@@ -125,10 +126,8 @@ def on_try_protection(evt, var, target, attacker, attacker_role, reason):
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if protector_role == "bodyguard":
-        for bodyguard in get_all_players(("bodyguard",)):
-            if GUARDED.get(bodyguard) is target:
-                evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, bodyguard))
-                status.add_dying(var, bodyguard, killer_role=attacker_role, reason="bodyguard")
+        evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
+        status.add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

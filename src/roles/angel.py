@@ -131,9 +131,9 @@ def on_transition_night_end(evt, var):
         if chance > 0:
             warning = messages["bodyguard_death_chance"].format(chance)
 
-        to_send = "guardian_notify"
+        to_send = "guardian_angel_notify"
         if gangel.prefers_simple():
-            to_send = "guardian_simple"
+            to_send = "guardian_angel_simple"
         gangel.send(messages[to_send].format(warning, gself), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
 @event_listener("player_protected")

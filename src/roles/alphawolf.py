@@ -21,7 +21,7 @@ def observe(var, wrapper, message):
     if not ENABLED:
         wrapper.pm(messages["alpha_no_bite"])
         return
-    if wrapper.source in ALPHAS and wrapper.source not in BITTEN:
+    if wrapper.source in ALPHAS:
         wrapper.pm(messages["alpha_already_bit"])
         return
     target = get_target(var, wrapper, re.split(" +", message)[0])
@@ -39,7 +39,6 @@ def observe(var, wrapper, message):
 
     target = evt.data["target"]
     BITTEN[wrapper.source] = target
-    ALPHAS.add(wrapper.source)
     wrapper.pm(messages["alpha_bite_target"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
     debuglog("{0} (alpha wolf) BITE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
@@ -49,7 +48,6 @@ def retract(var, wrapper, message):
     """Retract your bite."""
     if wrapper.source in BITTEN:
         del BITTEN[wrapper.source]
-        ALPHAS.remove(wrapper.source)
         wrapper.pm(messages["no_bite"])
         send_wolfchat_message(var, wrapper.source, messages["wolfchat_no_bite"].format(wrapper.source), {"alpha wolf"}, role="alpha wolf", command="retract")
         debuglog("{0} (alpha wolf) RETRACT BITE".format(wrapper.source))
@@ -83,10 +81,10 @@ def on_begin_day(evt, var):
     # Refund failed bites
     for alpha, target in BITTEN.items():
         if alpha in get_players() and target not in get_players(Wolf):
-            ALPHAS.remove(alpha)
             alpha.send(messages["alpha_bite_failure"].format(target))
         else:
             alpha.send(messages["alpha_bite_success"].format(target))
+            ALPHAS.add(alpha)
     BITTEN.clear()
 
 @event_listener("reset")

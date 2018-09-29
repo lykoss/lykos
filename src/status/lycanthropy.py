@@ -1,6 +1,7 @@
 from src.decorators import event_listener
 from src.containers import UserDict
 from src.functions import get_all_players, get_main_role, change_role
+from src.messages import messages
 from src.events import Event
 from src.cats import Wolf
 from src import debuglog
@@ -64,7 +65,7 @@ def on_transition_day_resolve_end(evt, var, victims):
     evt2 = Event("get_role_metadata", {})
     evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:
-        if victim in LYCANTHROPES and victim in evt.data["onlybywolves"]:
+        if victim in LYCANTHROPES and victim in evt.data["onlybywolves"] and victim in evt.data["dead"]:
             vrole = get_main_role(victim)
             if vrole not in Wolf:
                 new_role = "wolf"
@@ -76,6 +77,9 @@ def on_transition_day_resolve_end(evt, var, victims):
                         prefix = evt2.data[vrole]["prefix"]
                     for sec_role in evt2.data[vrole].get("secondary_roles", ()):
                         var.ROLES[sec_role].add(victim)
+                        to_send = "{0}_{1}".format(sec_role.replace(" ", "_"), "simple" if victim.prefers_simple() else "notify")
+                        victim.send(messages[to_send])
+                        # FIXME: Not every role has proper message keys, such as shamans
 
                 change_role(var, victim, vrole, new_role, message=prefix + "_turn")
                 evt.data["howl"] += 1
@@ -83,7 +87,8 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["dead"].remove(victim)
                 evt.data["bywolves"].discard(victim)
                 evt.data["onlybywolves"].discard(victim)
-                evt.data["killers"][victim].remove("@wolves")
+                if "@wolves" in evt.data["killers"][victim]:
+                    evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
                 debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))
