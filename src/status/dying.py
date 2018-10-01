@@ -10,11 +10,11 @@ from src.users import User
 
 __all__ = ["add_dying", "is_dying", "kill_players"]
 
-DyingEntry = Tuple[str, str, bool]
+DyingEntry = Tuple[str, str, bool, bool]
 
 DYING = UserDict() # type: UserDict[User, DyingEntry]
 
-def add_dying(var, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
+def add_dying(var, player: User, killer_role: str, reason: str, *, output_message: bool = True, death_triggers: bool = True) -> bool:
     """
     Mark a player as dying.
     
@@ -22,6 +22,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
     :param player: The player to kill off
     :param killer_role: The role which is responsible for killing player; must be an actual role
     :param reason: The reason the player is being killed off, for stats tracking purposes
+    :param output_message: Whether or not to output a death message during the day transition. Has no effect if the death is not during the night
     :param death_triggers: Whether or not to run role logic that triggers on death; players who die due to quitting or idling out have this set to False
     :returns: True if the player was successfully marked as dying, or False if they are already dying or dead
     """
@@ -37,7 +38,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
         if player in DYING or player not in get_players():
             return False
 
-        DYING[player] = (killer_role, reason, death_triggers)
+        DYING[player] = (killer_role, reason, output_message, death_triggers)
         return True
 
 def is_dying(var, player: User) -> bool:
@@ -71,7 +72,7 @@ def kill_players(var, *, end_game: bool = True) -> bool:
         dead = set()
 
         while DYING:
-            player, (killer_role, reason, death_triggers) = DYING.popitem()
+            player, (killer_role, reason, output_message, death_triggers) = DYING.popitem()
             main_role = get_main_role(player)
             reveal_role = get_reveal_role(player)
             all_roles = get_all_roles(player)
@@ -103,10 +104,10 @@ def kill_off_dying_players(evt, var, victims):
         if victim not in evt.data["dead"]:
             evt.data["novictmsg"] = False
             evt.data["dead"].append(victim)
-
-            if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(victim)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                evt.data["message"][victim].append(messages["death"].format(victim, an, role))
-            else:
-                evt.data["message"][victim].append(messages["death_no_reveal"].format(victim))
+            if DYING[victim][2]: # tells us whether or not we should output a death message
+                if var.ROLE_REVEAL in ("on", "team"):
+                    role = get_reveal_role(victim)
+                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
+                    evt.data["message"][victim].append(messages["death"].format(victim, an, role))
+                else:
+                    evt.data["message"][victim].append(messages["death_no_reveal"].format(victim))

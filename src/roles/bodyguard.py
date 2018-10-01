@@ -127,7 +127,7 @@ def on_try_protection(evt, var, target, attacker, attacker_role, reason):
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
-        status.add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
+        status.add_dying(var, protector, killer_role=attacker_role, reason="bodyguard", output_message=False)
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
