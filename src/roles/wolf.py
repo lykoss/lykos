@@ -192,9 +192,12 @@ def on_new_role(evt, var, player, old_role):
             for wofl in wofls:
                 wofl.queue_message(messages["wolfchat_new_member"].format(player, an, sayrole))
             wofl.send_messages()
+        else:
+            return # no other wolves, nothing else to do
 
         pl = get_players()
-        pl.remove(player)
+        if player in pl:
+            pl.remove(player)
         random.shuffle(pl)
         pt = []
         wevt = Event("wolflist", {"tags": set()})

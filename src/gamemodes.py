@@ -1075,13 +1075,17 @@ class MaelstromMode(GameMode):
         # shameless copy/paste of regular role attribution
         for rs in var.ROLES.values():
             rs.clear()
+        # prevent wolf.py from sending messages about a new wolf to soon-to-be former wolves
+        # (note that None doesn't work, so "player" works fine)
+        for player in var.MAIN_ROLES:
+            var.MAIN_ROLES[player] = "player"
         new_evt = events.Event("new_role", {"messages": [], "role": None}, inherit_from=None)
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
             for x in selected:
                 villagers.remove(x)
                 new_evt.data["role"] = role
-                new_evt.dispatch(var, x, get_main_role(x))
+                new_evt.dispatch(var, x, var.ORIGINAL_MAIN_ROLES[x])
                 var.ROLES[new_evt.data["role"]].add(x)
 
         # for end of game stats to show what everyone ended up as on game end
