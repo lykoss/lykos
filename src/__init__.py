@@ -15,6 +15,11 @@ from src import db
 # Do the same with roles
 
 try:
+    ModuleNotFoundError # 3.6+
+except NameError:
+    ModuleNotFoundError = ImportError # generic fallback
+
+try:
     import gamemodes # type: ignore
 except ModuleNotFoundError:
     import src.gamemodes
