@@ -966,7 +966,6 @@ class SleepyMode(GameMode):
         if self.having_nightmare:
             evt.data["output"].append("\u0002having nightmare\u0002: {0}".format(self.having_nightmare[0]))
 
-# Maelstrom is temporarily disabled until it is properly fixed (2018-08-20)
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
     """Some people just want to watch the world burn."""
@@ -1062,7 +1061,7 @@ class MaelstromMode(GameMode):
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
-        evt.data["addroles"] = self._role_attribution(var, villagers, True)
+        evt.data["addroles"].update(self._role_attribution(var, villagers, True))
         evt.prevent_default = True
 
     def transition_night_begin(self, evt, var):
@@ -1112,8 +1111,7 @@ class MaelstromMode(GameMode):
             lpl -= 1
 
         if do_templates:
-            addroles["gunner"] = random.randrange(4)
-            addroles["sharpshooter"] = random.randrange(2)
+            addroles["gunner/sharpshooter"] = random.randrange(6)
             addroles["assassin"] = random.randrange(3)
             addroles["cursed villager"] = random.randrange(3)
             addroles["mayor"] = random.randrange(2)

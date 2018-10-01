@@ -3744,9 +3744,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
         cgamemode(restart)
         var.GAME_ID = time.time() # restart reaper timer
 
-    addroles = Counter()
-
-    event = Event("role_attribution", {"addroles": addroles})
+    event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
         strip = lambda x: re.sub("\(.*\)", "", x)
@@ -3773,6 +3771,8 @@ def start(cli, nick, chan, forced = False, restart = ""):
             return
         for role in All:
             addroles.setdefault(role, 0)
+    else:
+        addroles = event.data["addroles"]
 
     # convert roleset aliases into the appropriate roles
     possible_rolesets = [Counter()]
