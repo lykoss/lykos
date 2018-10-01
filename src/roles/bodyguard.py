@@ -16,6 +16,7 @@ from src.cats import Wolf
 
 GUARDED = UserDict() # type: Dict[User, User]
 PASSED = UserSet() # type: Set[User]
+DYING = set()
 
 @command("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard",))
 def guard(var, wrapper, message):
@@ -78,6 +79,9 @@ def on_chk_nightdone(evt, var):
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end(evt, var, victims):
+    for bodyguard in DYING:
+        evt.data["message"][bodyguard].clear()
+    DYING.clear()
     for bodyguard in get_all_players(("bodyguard",)):
         if GUARDED.get(bodyguard) in get_players(Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
@@ -128,6 +132,7 @@ def on_player_protected(evt, var, target, attacker, attacker_role, protector, pr
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
         status.add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
+        DYING.add(protector)
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
