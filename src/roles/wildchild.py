@@ -64,6 +64,8 @@ def on_myrole(evt, var, user):
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
     del IDOLS[:player:]
+    if not death_triggers:
+        return
 
     for child in get_all_players(("wild child",)):
         if IDOLS.get(child) is player:
