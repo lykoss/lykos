@@ -4,7 +4,7 @@ import random
 import src.settings as var
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
-from src.decorators import cmd, event_listener
+from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role
 from src.messages import messages
@@ -14,17 +14,8 @@ def setup_variables(rolename):
     SEEN = UserSet()
 
     @event_listener("del_player")
-    def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-        SEEN.discard(user)
-
-    @event_listener("night_acted")
-    def on_acted(evt, var, user, actor):
-        if user in SEEN:
-            evt.data["acted"] = True
-
-    @event_listener("get_special")
-    def on_get_special(evt, var):
-        evt.data["villagers"].update(get_players((rolename,)))
+    def on_del_player(evt, var, player, all_roles, death_triggers):
+        SEEN.discard(player)
 
     @event_listener("new_role")
     def on_new_role(evt, var, user, old_role):

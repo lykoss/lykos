@@ -9,6 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.messages import messages
 from src.events import Event
+from src.cats import Cursed, Safe, Innocent, Wolf
 
 from src.roles._seer_helper import setup_variables
 
@@ -33,12 +34,16 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    if targrole in var.SEEN_WOLF and targrole not in var.SEEN_DEFAULT:
+    if targrole in Cursed:
         targrole = "wolf"
-    elif targrole in var.SEEN_DEFAULT:
-        targrole = var.DEFAULT_ROLE
-        if var.DEFAULT_SEEN_AS_VILL:
-            targrole = "villager"
+    elif targrole in Safe:
+        pass # Keep the same role
+    elif targrole in Innocent:
+        targrole = var.HIDDEN_ROLE
+    elif targrole in Wolf:
+        targrole = "wolf"
+    else:
+        targrole = var.HIDDEN_ROLE
 
     evt = Event("see", {"role": targrole})
     evt.dispatch(var, wrapper.source, target)
@@ -48,5 +53,12 @@ def see(var, wrapper, message):
     debuglog("{0} (seer) SEE: {1} ({2}) as {3}".format(wrapper.source, target, trole, targrole))
 
     SEEN.add(wrapper.source)
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["seer"] = {"Village", "Nocturnal", "Spy", "Safe"}
+    elif kind == "lycanthropy_role":
+        evt.data["seer"] = {"role": "doomsayer", "prefix": "seer"}
 
 # vim: set sw=4 expandtab:

@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Wolfchat
 
 VISITED = UserDict() # type: Dict[users.User, users.User]
 PASSED = UserSet() # type: Set[users.User]
@@ -54,33 +55,24 @@ def pass_cmd(var, wrapper, message):
     wrapper.pm(messages["no_visit"])
     debuglog("{0} (harlot) PASS".format(wrapper.source))
 
-@event_listener("bite")
-def on_bite(evt, var, alpha, target):
-    if target not in var.ROLES["harlot"] or target not in VISITED:
-        return
-    hvisit = VISITED[target]
-    if get_main_role(hvisit) not in var.WOLFCHAT_ROLES and (hvisit not in evt.params.bywolves or hvisit in evt.params.protected):
-        evt.data["can_bite"] = False
-
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
     if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        if victim not in evt.data["bitten"]:
-            evt.data["message"].append(messages["target_not_home"])
-            evt.data["novictmsg"] = False
+        evt.data["message"][victim].append(messages["target_not_home"])
+        evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
-    for victim in victims + evt.data["bitten"]:
-        if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
+    for victim in victims:
+        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
             for hlt in VISITED:
-                if VISITED[hlt] is victim and hlt not in evt.data["bitten"] and hlt not in evt.data["dead"]:
+                if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
+                        evt.data["message"][hlt].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
                     else:
-                        evt.data["message"].append(messages["visited_victim_noreveal"].format(hlt))
+                        evt.data["message"][hlt].append(messages["visited_victim_noreveal"].format(hlt))
                     evt.data["bywolves"].add(hlt)
                     evt.data["onlybywolves"].add(hlt)
                     evt.data["dead"].append(hlt)
@@ -88,16 +80,11 @@ def on_transition_day_resolve_end(evt, var, victims):
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
     for harlot in get_all_players(("harlot",)):
-        if VISITED.get(harlot) in get_players(var.WOLF_ROLES) and harlot not in evt.data["dead"] and harlot not in evt.data["bitten"]:
-            evt.data["message"].append(messages["harlot_visited_wolf"].format(harlot))
+        if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"]:
+            evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["bywolves"].add(harlot)
             evt.data["onlybywolves"].add(harlot)
             evt.data["dead"].append(harlot)
-
-@event_listener("night_acted")
-def on_night_acted(evt, var, target, spy):
-    if VISITED.get(target):
-        evt.data["acted"] = True
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -133,20 +120,23 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("harlot",)))
-
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if "harlot" not in allroles:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if "harlot" not in all_roles:
         return
-    del VISITED[:user:]
-    PASSED.discard(user)
+    del VISITED[:player:]
+    PASSED.discard(player)
 
 @event_listener("reset")
 def on_reset(evt, var):
     VISITED.clear()
     PASSED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["harlot"] = {"Village", "Safe", "Nocturnal"}
+    elif kind == "lycanthropy_role":
+        evt.data["harlot"] = {"prefix": "harlot"}
 
 # vim: set sw=4 expandtab:

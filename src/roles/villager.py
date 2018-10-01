@@ -1,25 +1,20 @@
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players
-from src.decorators import cmd, event_listener
+from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Hidden
 
 # handles villager and cultist
 
-@event_listener("transition_day", priority=7)
-def on_transition_day(evt, var):
-    for player in var.DYING:
-        evt.data["victims"].append(player)
-        evt.data["onlybywolves"].discard(player)
-
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        villroles = var.HIDDEN_VILLAGERS | {"villager"}
-        if var.DEFAULT_ROLE == "villager":
-            villroles |= var.HIDDEN_ROLES
+    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
+        villroles = {"villager"}
+        if var.HIDDEN_ROLE == "villager":
+            villroles |= Hidden
         villagers = get_players(villroles)
         if villagers:
             for villager in villagers:
@@ -30,8 +25,8 @@ def on_transition_night_end(evt, var):
             villager.send_messages()
 
         cultroles = {"cultist"}
-        if var.DEFAULT_ROLE == "cultist":
-            cultroles |= var.HIDDEN_ROLES
+        if var.HIDDEN_ROLE == "cultist":
+            cultroles |= Hidden
         cultists = get_players(cultroles)
         if cultists:
             for cultist in cultists:
@@ -54,5 +49,17 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     elif lwolves > lpl / 2:
         evt.data["winner"] = "wolves"
         evt.data["message"] = messages["wolf_win_greater"]
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["villager"] = {"Village"}
+        # FIXME: split this into individual files once split from wolfgame.py
+        evt.data["fool"] = {"Neutral", "Win Stealer", "Innocent"}
+        evt.data["jester"] = {"Neutral", "Innocent"}
+        evt.data["demoniac"] = {"Neutral", "Win Stealer"}
+        evt.data["village drunk"] = {"Village", "Safe"}
+        evt.data["gunner"] = {"Village", "Safe", "Killer"}
+        evt.data["sharpshooter"] = {"Village", "Safe", "Killer"}
 
 # vim: set sw=4 expandtab:

@@ -170,7 +170,6 @@ class print_traceback:
 
         _local.level -= 1
         if not _local.level: # outermost caller; we're done here
-            _local.frame_locals = None
             _local.handler = None
 
         return True # a true return value tells the interpreter to swallow the exception
@@ -475,7 +474,7 @@ class cmd:
                     forced_owner_only = True
                     break
 
-        owner = is_owner(nick, ident, host)
+        owner = is_owner(rawnick)
         if self.owner_only or forced_owner_only:
             if owner:
                 adminlog(chan, rawnick, self.name, rest)
@@ -489,7 +488,7 @@ class cmd:
             return
 
         flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-        admin = is_admin(nick, ident, host)
+        admin = is_admin(rawnick)
         if self.flag and (admin or owner):
             adminlog(chan, rawnick, self.name, rest)
             self.func(*largs)

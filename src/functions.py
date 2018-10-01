@@ -1,15 +1,17 @@
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolfteam, Neutral, Hidden
 from src import settings as var
 from src import users
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
-    "get_target", "change_role"
+    "get_target", "change_role",
     "get_main_role", "get_all_roles", "get_reveal_role",
     ]
 
 def get_players(roles=None, *, mainroles=None):
+    from src.status import is_dying
     if mainroles is None:
         mainroles = var.MAIN_ROLES
     if roles is None:
@@ -23,9 +25,10 @@ def get_players(roles=None, *, mainroles=None):
         # we weren't given an actual player list (possibly),
         # so the elements of pl are not necessarily in var.ALL_PLAYERS
         return list(pl)
-    return [p for p in var.ALL_PLAYERS if p in pl]
+    return [p for p in var.ALL_PLAYERS if p in pl and not is_dying(var, p)]
 
 def get_all_players(roles=None, *, rolemap=None):
+    from src.status import is_dying
     if rolemap is None:
         rolemap = var.ROLES
     if roles is None:
@@ -35,7 +38,10 @@ def get_all_players(roles=None, *, rolemap=None):
         for user in rolemap[role]:
             pl.add(user)
 
-    return pl
+    if rolemap is not var.ROLES:
+        return pl
+
+    return {p for p in pl if not is_dying(var, p)}
 
 def get_participants():
     """List all players who are still able to participate in the game."""
@@ -82,10 +88,8 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
         var.FINAL_ROLES[player.nick] = newrole
 
     sayrole = newrole
-    if sayrole in var.HIDDEN_VILLAGERS:
-        sayrole = "villager"
-    elif sayrole in var.HIDDEN_ROLES:
-        sayrole = var.DEFAULT_ROLE
+    if sayrole in Hidden:
+        sayrole = var.HIDDEN_ROLE
     an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 
     player.send(messages[message].format(an, sayrole))
@@ -117,9 +121,9 @@ def get_reveal_role(user):
     if var.ROLE_REVEAL != "team":
         return role
 
-    if role in var.WOLFTEAM_ROLES:
+    if role in Wolfteam:
         return "wolfteam player"
-    elif role in var.TRUE_NEUTRAL_ROLES:
+    elif role in Neutral:
         return "neutral player"
     else:
         return "village member"

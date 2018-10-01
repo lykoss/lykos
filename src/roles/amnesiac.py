@@ -11,22 +11,13 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import role_order, Win_Stealer
 
 ROLES = UserDict()  # type: Dict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var):
-    # matchmaker is blacklisted if AMNESIAC_NIGHTS > 1 due to only being able to act night 1.
-
-    # clone and traitor are blacklisted due to assumptions made in default !stats computations.
-    # If you remove these from the blacklist you will need to modify the default !stats logic
-    # chains in order to correctly account for these. As a forewarning, such modifications are
-    # nontrivial and will likely require a great deal of thought (and likely new tracking vars)
-    # FIXME: once experimental stats become the new stats, clone and traitor will work properly
-    # and we can remove those from hardcoded blacklist and remove this comment block.
-    blacklist = var.TEMPLATE_RESTRICTIONS.keys() | var.AMNESIAC_BLACKLIST | {var.DEFAULT_ROLE, "amnesiac", "clone", "traitor"}
-    if var.AMNESIAC_NIGHTS > 1:
-        blacklist.add("matchmaker")
+    blacklist = var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys() | Win_Stealer | {"villager", "cultist", "amnesiac"}
     return blacklist
 
 @event_listener("transition_night_begin")
@@ -40,11 +31,6 @@ def on_transition_night_begin(evt, var):
         for amn in amnesiacs:
             role = change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
             debuglog("{0} REMEMBER: {1}".format(amn, role))
-
-@event_listener("new_role")
-def doctor_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "doctor": # FIXME: Need to split into doctor.py when split
-        var.DOCTORS[user.nick] = math.ceil(var.DOCTOR_IMMUNIZATION_MULTIPLIER * len(get_players()))
 
 @event_listener("investigate")
 def on_investigate(evt, var, actor, target):
@@ -60,7 +46,7 @@ def update_amnesiac(evt, var, user, old_role):
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.params.inherit_from is None and evt.data["role"] == "amnesiac":
-        roles = var.ROLE_GUIDE.keys() - _get_blacklist(var)
+        roles = set(role_order()) - _get_blacklist(var)
         ROLES[user] = random.choice(list(roles))
 
 @event_listener("revealing_totem")
@@ -98,5 +84,10 @@ def on_reset(evt, var):
     global STATS_FLAG
     ROLES.clear()
     STATS_FLAG = False
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["amnesiac"] = {"Hidden", "Team Switcher"}
 
 # vim: set sw=4 expandtab:

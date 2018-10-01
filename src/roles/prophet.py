@@ -27,10 +27,10 @@ def pray(var, wrapper, message):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    role = complete_one_match(what.lower(), {p for p in var.ROLE_GUIDE if p not in var.TEMPLATE_RESTRICTIONS})
+    role = complete_one_match(what.lower(), {p for p in role_order() if p not in var.CURRENT_GAMEMODE.SECONDARY_ROLES})
     if role is None and what.lower() in var.ROLE_ALIASES:
         role = var.ROLE_ALIASES[what.lower()]
-        if role in var.TEMPLATE_RESTRICTIONS: # allow only main roles
+        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES: # allow only main roles
             role = None
     if role is None:
         # typo, let them fix it
@@ -97,15 +97,6 @@ def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("prophet",)))
     evt.data["actedcount"] += len(PRAYED)
 
-@event_listener("night_acted")
-def on_night_acted(evt, var, user, spy):
-    if user in PRAYED:
-        evt.data["acted"] = True
-
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("prophet",)))
-
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     PRAYED.clear()
@@ -113,5 +104,10 @@ def on_begin_day(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     PRAYED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["prophet"] = {"Village", "Safe", "Nocturnal", "Spy"}
 
 # vim: set sw=4 expandtab:

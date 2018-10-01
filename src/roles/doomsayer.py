@@ -2,7 +2,7 @@ import re
 import random
 
 from src.utilities import *
-from src import users, channels, debuglog, errlog, plog
+from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -42,18 +42,12 @@ def see(var, wrapper, message):
 
     mode, mapping = random.choice(_mappings)
     wrapper.send(messages["doomsayer_{0}".format(mode)].format(target))
-    if mode != "sick" or wrapper.source.nick not in var.IMMUNIZED:
-        mapping[wrapper.source] = target
+    mapping[wrapper.source] = target
 
     debuglog("{0} (doomsayer) SEE: {1} ({2}) - {3}".format(wrapper.source, target, targrole, mode.upper()))
     relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), is_wolf_command=True)
 
     SEEN.add(wrapper.source)
-
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in SEEN:
-        evt.data["acted"] = True
 
 @event_listener("exchange_roles")
 def on_exchange(evt, var, actor, target, actor_role, target_role):
@@ -68,17 +62,16 @@ def on_exchange(evt, var, actor, target, actor_role, target_role):
             del mapping[:target:]
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     # only remove from SEEN; keep results of sees intact on death
     # so that we can apply them in begin_day even if doomsayer dies.
-    SEEN.discard(user)
+    SEEN.discard(player)
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):
-    user = users._get(target) # FIXME
-    if user in SICK.values():
+    if target in SICK.values():
         for n, v in list(SICK.items()):
-            if v is user:
+            if v is target:
                 del SICK[n]
         evt.data["message"] = "not_sick"
 
@@ -123,9 +116,11 @@ def on_transition_day(evt, var):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
-    var.DISEASED.update([p.nick for p in SICK.values()]) # FIXME
-    var.SILENCED.update([p.nick for p in SICK.values()]) # FIXME
-    var.LYCANTHROPES.update([p.nick for p in LYCANS.values()]) # FIXME
+    for sick in SICK.values():
+        status.add_disease(var, sick)
+        var.SILENCED.add(sick.nick) # FIXME
+    for lycan in LYCANS.values():
+        status.add_lycanthropy(var, lycan)
 
     SEEN.clear()
     KILLS.clear()
@@ -141,5 +136,10 @@ def on_reset(evt, var):
     KILLS.clear()
     SICK.clear()
     LYCANS.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["doomsayer"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
 
 # vim: set sw=4 expandtab:

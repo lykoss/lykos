@@ -11,6 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Neutral, Wolfteam
 
 INVESTIGATED = UserSet()
 
@@ -62,16 +63,16 @@ def investigate(var, wrapper, message):
     # FIXME: make a standardized way of getting team affiliation, and make
     # augur and investigator both use it (and make it events-aware so other
     # teams can be added more easily)
-    if t1role in var.WOLFTEAM_ROLES:
+    if t1role in Wolfteam:
         t1role = "red"
-    elif t1role in var.TRUE_NEUTRAL_ROLES:
+    elif t1role in Neutral:
         t1role = "grey"
     else:
         t1role = "blue"
 
-    if t2role in var.WOLFTEAM_ROLES:
+    if t2role in Wolfteam:
         t2role = "red"
-    elif t2role in var.TRUE_NEUTRAL_ROLES:
+    elif t2role in Neutral:
         t2role = "grey"
     else:
         t2role = "blue"
@@ -90,12 +91,8 @@ def investigate(var, wrapper, message):
         "same" if evt.data["same"] else "different"))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    INVESTIGATED.discard(user)
-
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("investigator",)))
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    INVESTIGATED.discard(player)
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
@@ -121,5 +118,10 @@ def on_transition_night_begin(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     INVESTIGATED.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["investigator"] = {"Village", "Spy", "Safe"}
 
 # vim: set sw=4 expandtab:

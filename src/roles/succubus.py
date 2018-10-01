@@ -86,7 +86,7 @@ def on_player_win(evt, var, user, role, winner, survived):
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lsuccubi = len(rolemap.get("succubus", ()))
-    lentranced = len([x for x in ENTRANCED if x.nick not in var.DEAD])
+    lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
@@ -109,58 +109,48 @@ def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
         target.send(messages["no_longer_entranced"])
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     global ALL_SUCC_IDLE
-    if "succubus" not in allroles:
+    if "succubus" not in all_roles:
         return
-    if user in VISITED:
+    if player in VISITED:
         # if it's night, also unentrance the person they visited
         if var.PHASE == "night" and var.GAMEPHASE == "night":
-            if VISITED[user] in ENTRANCED:
-                ENTRANCED.discard(VISITED[user])
-                VISITED[user].send(messages["entranced_revert_win"])
-        del VISITED[user]
+            if VISITED[player] in ENTRANCED:
+                ENTRANCED.discard(VISITED[player])
+                VISITED[player].send(messages["entranced_revert_win"])
+        del VISITED[player]
 
     # if all succubi idled out (every last one of them), un-entrance people
     # death_triggers is False for an idle-out, so we use that to determine which it is
     if death_triggers:
         ALL_SUCC_IDLE = False
-    if not get_all_players(("succubus",)):
-        entranced_alive = ENTRANCED.difference(evt.params.deadlist).intersection(evt.data["pl"])
-        if ALL_SUCC_IDLE:
-            while ENTRANCED:
-                e = ENTRANCED.pop()
-                e.send(messages["entranced_revert_win"])
+    if ALL_SUCC_IDLE and not get_all_players(("succubus",)):
+        while ENTRANCED:
+            e = ENTRANCED.pop()
+            e.send(messages["entranced_revert_win"])
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
     if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
-        # TODO: check if this is necessary for succubus, it's to prevent a message playing if alpha bites
-        # a harlot that is visiting a wolf, since the bite succeeds in that case.
-        if victim not in evt.data["bitten"]:
-            evt.data["message"].append(messages["target_not_home"])
-            evt.data["novictmsg"] = False
+        evt.data["message"][victim].append(messages["target_not_home"])
+        evt.data["novictmsg"] = False
         evt.stop_processing = True
         evt.prevent_default = True
 
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
-    for victim in victims + evt.data["bitten"]:
-        if victim in evt.data["dead"] and victim in VISITED.values() and (victim in evt.data["bywolves"] or victim in evt.data["bitten"]):
+    for victim in victims:
+        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
             for succubus in VISITED:
-                if VISITED[succubus] is victim and succubus not in evt.data["bitten"] and succubus not in evt.data["dead"]:
+                if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
+                        evt.data["message"][succubus].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
                     else:
-                        evt.data["message"].append(messages["visited_victim_noreveal"].format(succubus))
+                        evt.data["message"][succubus].append(messages["visited_victim_noreveal"].format(succubus))
                     evt.data["bywolves"].add(succubus)
                     evt.data["onlybywolves"].add(succubus)
                     evt.data["dead"].append(succubus)
-
-@event_listener("night_acted")
-def on_night_acted(evt, var, target, spy):
-    if VISITED.get(target):
-        evt.data["acted"] = True
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -190,10 +180,6 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["win_stealers"].update(get_players(("succubus",)))
-
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if evt.data["role"] == "succubus" and user in ENTRANCED:
@@ -212,5 +198,10 @@ def on_reset(evt, var):
 def on_revealroles(evt, var, wrapper):
     if ENTRANCED:
         evt.data["output"].append("\u0002entranced players\u0002: {0}".format(", ".join(p.nick for p in ENTRANCED)))
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["succubus"] = {"Neutral", "Win Stealer", "Cursed", "Nocturnal"}
 
 # vim: set sw=4 expandtab:

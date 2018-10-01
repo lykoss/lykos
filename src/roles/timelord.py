@@ -24,8 +24,8 @@ TIME_ATTRIBUTES = (
 )
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if not death_triggers or "time lord" not in allroles:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if not death_triggers or "time lord" not in all_roles:
         return
 
     for attr, new_attr in TIME_ATTRIBUTES:
@@ -51,6 +51,7 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
         time_left = int((var.TIMERS[var.GAMEPHASE][1] + var.TIMERS[var.GAMEPHASE][2]) - time.time())
 
         if time_left > time_limit > 0:
+            from src.wolfgame import hurry_up
             t = threading.Timer(time_limit, hurry_up, [phase_id, True])
             var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
             t.daemon = True
@@ -66,6 +67,11 @@ def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
                     t.daemon = True
                     t.start()
 
-    debuglog("{0} (time lord) TRIGGER".format(user))
+    debuglog("{0} (time lord) TRIGGER".format(player))
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["time lord"] = {"Hidden"}
 
 # vim: set sw=4 expandtab:

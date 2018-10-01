@@ -9,6 +9,8 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import add_dying
+from src.cats import Wolf, Win_Stealer
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 PASSED = UserSet() # type: Set[users.User]
@@ -54,22 +56,13 @@ def vigilante_pass(var, wrapper, message):
     debuglog("{0} (vigilante) PASS".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    PASSED.discard(user)
-    del KILLS[:user:]
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    PASSED.discard(player)
+    del KILLS[:player:]
     for vigilante, target in list(KILLS.items()):
-        if target is user:
+        if target is player:
             vigilante.send(messages["hunter_discard"])
             del KILLS[vigilante]
-
-@event_listener("night_acted")
-def on_acted(evt, var, target, spy):
-    if target in KILLS:
-        evt.data["acted"] = True
-
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("vigilante",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -80,8 +73,8 @@ def on_transition_day(evt, var):
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[vigilante]
 
-        if get_main_role(target) not in var.WOLF_ROLES | var.WIN_STEALER_ROLES:
-            var.DYING.add(vigilante)
+        if get_main_role(target) not in Wolf | Win_Stealer:
+            add_dying(var, vigilante, "vigilante", "night_kill")
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
@@ -120,5 +113,7 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
+    elif kind == "role_categories":
+        evt.data["vigilante"] = {"Village", "Killer", "Nocturnal", "Safe"}
 
 # vim: set sw=4 expandtab:

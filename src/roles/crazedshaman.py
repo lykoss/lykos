@@ -11,6 +11,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
+from src.cats import Win_Stealer
 
 from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
 
@@ -28,7 +29,7 @@ def crazed_shaman_totem(var, wrapper, message):
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
-    if role == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+    if role == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in Win_Stealer:
         evt.data["iwon"] = True
 
 @event_listener("transition_day_begin", priority=4)
@@ -53,13 +54,10 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, var):
-    max_totems = 0
+    chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
+    max_totems = sum(x["crazed shaman"] for x in chances.values())
     ps = get_players()
     shamans = get_players(("crazed shaman",))
-    index = var.TOTEM_ORDER.index("crazed shaman")
-    for c in var.TOTEM_CHANCES.values():
-        max_totems += c[index]
-
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]
@@ -73,8 +71,8 @@ def on_transition_night_end(evt, var):
 
         target = 0
         rand = random.random() * max_totems
-        for t in var.TOTEM_CHANCES.keys():
-            target += var.TOTEM_CHANCES[t][index]
+        for t in chances:
+            target += chances[t]["crazed shaman"]
             if rand <= target:
                 TOTEMS[shaman] = t
                 break
@@ -84,8 +82,16 @@ def on_transition_night_end(evt, var):
             shaman.send(messages["shaman_notify"].format("crazed shaman", "random "))
         shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["neutrals"].update(get_players(("crazed shaman",)))
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["crazed shaman"] = {"Neutral", "Nocturnal"}
+    elif kind == "lycanthropy_role":
+        evt.data["crazed shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
+
+@event_listener("default_totems")
+def set_crazed_totems(evt, chances):
+    for chance in chances.values():
+        chance["crazed shaman"] = 1
 
 # vim: set sw=4 expandtab:

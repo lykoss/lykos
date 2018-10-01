@@ -68,24 +68,15 @@ def hunter_pass(var, wrapper, message):
     debuglog("{0} (hunter) PASS".format(wrapper.source))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    HUNTERS.discard(user)
-    PASSED.discard(user)
-    del KILLS[:user:]
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    HUNTERS.discard(player)
+    PASSED.discard(player)
+    del KILLS[:player:]
     for h, v in list(KILLS.items()):
-        if v is user:
+        if v is player:
             HUNTERS.discard(h)
             h.send(messages["hunter_discard"])
             del KILLS[h]
-
-@event_listener("night_acted")
-def on_acted(evt, var, user, actor):
-    if user in KILLS:
-        evt.data["acted"] = True
-
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("hunter",)))
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -141,5 +132,7 @@ def on_get_role_metadata(evt, var, kind):
         # (if they're in both HUNTERS and KILLS, then they killed tonight and should be counted)
         hunters = (var.ROLES["hunter"] - HUNTERS) | set(KILLS.keys())
         evt.data["hunter"] = len(hunters)
+    elif kind == "role_categories":
+        evt.data["hunter"] = {"Village", "Killer", "Safe"}
 
 # vim: set sw=4 expandtab:

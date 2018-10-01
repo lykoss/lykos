@@ -48,13 +48,10 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, var):
-    max_totems = 0
+    chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
+    max_totems = sum(x["shaman"] for x in chances.values())
     ps = get_players()
     shamans = get_players(("shaman",))
-    index = var.TOTEM_ORDER.index("shaman")
-    for c in var.TOTEM_CHANCES.values():
-        max_totems += c[index]
-
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]
@@ -68,8 +65,8 @@ def on_transition_night_end(evt, var):
 
         target = 0
         rand = random.random() * max_totems
-        for t in var.TOTEM_CHANCES.keys():
-            target += var.TOTEM_CHANCES[t][index]
+        for t in chances:
+            target += chances[t]["shaman"]
             if rand <= target:
                 TOTEMS[shaman] = t
                 break
@@ -84,8 +81,22 @@ def on_transition_night_end(evt, var):
             shaman.send(tmsg)
         shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_players(("shaman",)))
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["shaman"] = {"Village", "Safe", "Nocturnal"}
+    elif kind == "lycanthropy_role":
+        evt.data["shaman"] = {"role": "wolf shaman", "prefix": "shaman"}
+
+@event_listener("default_totems")
+def set_shaman_totems(evt, chances):
+    chances["death"]        ["shaman"] = 1
+    chances["protection"]   ["shaman"] = 1
+    chances["silence"]      ["shaman"] = 1
+    chances["revealing"]    ["shaman"] = 1
+    chances["desperation"]  ["shaman"] = 1
+    chances["impatience"]   ["shaman"] = 1
+    chances["pacifism"]     ["shaman"] = 1
+    chances["influence"]    ["shaman"] = 1
 
 # vim: set sw=4 expandtab:

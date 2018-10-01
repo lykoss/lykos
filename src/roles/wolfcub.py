@@ -5,15 +5,14 @@ from collections import defaultdict
 from src.utilities import *
 from src.functions import get_players
 from src import debuglog, errlog, plog, users, channels
-from src.decorators import cmd, event_listener
+from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import Wolf, Killer
 
 from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
-from src.roles import wolf # ensure that CAN_KILL is populated before trying to remove from it ...
 
-CAN_KILL.remove("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
@@ -22,8 +21,8 @@ def on_wolf_numkills(evt, var):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if death_triggers and "wolf cub" in allroles:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    if death_triggers and "wolf cub" in all_roles:
         global ANGRY_WOLVES
         ANGRY_WOLVES = True
 
@@ -66,18 +65,19 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.stop_processing = True
 
 @event_listener("reconfigure_stats")
-def on_reconfigure_stats(evt, var, stats):
-    if "wolf cub" not in stats or stats["wolf cub"] == 0:
+def on_reconfigure_stats(evt, var, roleset, reason):
+    # if we're making new wolves or there aren't cubs, nothing to do here
+    if reason == "howl" or roleset.get("wolf cub", 0) == 0:
         return
-    for role in var.WOLF_ROLES - {"wolf cub"}:
-        if role in stats and stats[role] > 0:
+    for role in Wolf & Killer:
+        if role in roleset and roleset[role] > 0:
             break
     else:
-        stats["wolf"] = stats["wolf cub"]
-        stats["wolf cub"] = 0
+        roleset["wolf"] = roleset["wolf cub"]
+        roleset["wolf cub"] = 0
 
 @event_listener("transition_day_resolve_end")
-def on_begin_day(evt, var, victims):
+def on_transition_day_resolve_end(evt, var, victims):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
 
@@ -85,5 +85,10 @@ def on_begin_day(evt, var, victims):
 def on_reset(evt, var):
     global ANGRY_WOLVES
     ANGRY_WOLVES = False
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam"}
 
 # vim: set sw=4 expandtab:

@@ -9,6 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import All, Wolfteam
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 GHOSTS = UserDict() # type: Dict[users.User, str]
@@ -30,7 +31,7 @@ def vg_kill(var, wrapper, message):
         wrapper.pm(messages["player_dead"])
         return
 
-    wolves = get_players(var.WOLFTEAM_ROLES)
+    wolves = get_players(Wolfteam)
     if GHOSTS[wrapper.source] == "wolves" and target not in wolves:
         wrapper.pm(messages["vengeful_ghost_wolf"])
         return
@@ -95,38 +96,38 @@ def on_player_win(evt, var, user, role, winner, survived):
             evt.data["iwon"] = False
 
 @event_listener("del_player", priority=6)
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
     for h, v in list(KILLS.items()):
-        if user is v:
+        if player is v:
             h.send(messages["hunter_discard"])
             del KILLS[h]
     # extending VG to work with new teams can be done by registering a listener
     # at priority < 6, importing src.roles.vengefulghost, and setting
     # GHOSTS[user] to something; if that is done then this logic is not run.
-    if death_triggers and mainrole == "vengeful ghost" and user not in GHOSTS:
-        if evt.params.killer_role in var.WOLFTEAM_ROLES:
-            GHOSTS[user] = "wolves"
+    if death_triggers and "vengeful ghost" in all_roles and player not in GHOSTS:
+        if evt.params.killer_role in Wolfteam:
+            GHOSTS[player] = "wolves"
         else:
-            GHOSTS[user] = "villagers"
-        user.send(messages["vengeful_turn"].format(GHOSTS[user]))
-        debuglog(user.nick, "(vengeful ghost) TRIGGER", GHOSTS[user])
+            GHOSTS[player] = "villagers"
+        player.send(messages["vengeful_turn"].format(GHOSTS[player]))
+        debuglog(player.nick, "(vengeful ghost) TRIGGER", GHOSTS[player])
 
 @event_listener("transition_day_begin", priority=6)
 def on_transition_day_begin(evt, var):
     # select a random target for VG if they didn't kill
-    wolves = set(get_players(var.WOLFTEAM_ROLES))
-    villagers = set(get_players()) - wolves
+    wolves = get_players(Wolfteam)
+    villagers = get_players(All - Wolfteam)
     for ghost, target in GHOSTS.items():
         if target[0] == "!" or ghost.nick in var.SILENCED:
             continue
         if ghost not in KILLS:
-            choice = set()
+            choice = None
             if target == "wolves":
                 choice = wolves.copy()
             elif target == "villagers":
                 choice = villagers.copy()
             if choice:
-                KILLS[ghost] = random.choice(list(choice))
+                KILLS[ghost] = random.choice(choice)
 
 @event_listener("transition_day", priority=2)
 def on_transition_day(evt, var):
@@ -180,17 +181,15 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
-    ps = get_players()
-    wolves = get_players(var.WOLFTEAM_ROLES)
+    villagers = get_players(All - Wolfteam)
+    wolves = get_players(Wolfteam)
     for v_ghost, who in GHOSTS.items():
         if who[0] == "!":
             continue
         if who == "wolves":
             pl = wolves[:]
         else:
-            pl = ps[:]
-            for wolf in wolves:
-                pl.remove(wolf)
+            pl = villagers[:]
 
         random.shuffle(pl)
 
@@ -232,5 +231,7 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["vengeful ghost"] = sum(1 for against in GHOSTS.values() if against[0] != "!")
     elif kind == "special_keys":
         evt.data["vengeful ghost"] = {"vg activated", "vg driven off"}
+    elif kind == "role_categories":
+        evt.data["vengeful ghost"] = {"Hidden"}
 
 # vim: set sw=4 expandtab:

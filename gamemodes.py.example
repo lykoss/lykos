@@ -1,7 +1,6 @@
-# To add new game modes, rename this file to 'gamemodes.py' then add them in
+# To add new game modes, copy this file to 'gamemodes.py' then add them in
 
-from src.gamemodes import (GameMode, game_mode, reset_roles)
-import src.settings as var
+from src.gamemodes import (GameMode, game_mode)
 from src.utilities import *
 from src.messages import messages
 from src import events

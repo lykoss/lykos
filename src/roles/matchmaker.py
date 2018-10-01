@@ -10,7 +10,9 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import add_dying
 from src.events import Event
+from src.cats import Win_Stealer
 
 MATCHMAKERS = UserSet() # type: Set[users.User]
 LOVERS = UserDict() # type: Dict[users.User, Set[users.User]]
@@ -73,8 +75,6 @@ def get_lovers():
 @command("match", "choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(var, wrapper, message):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
-    if not var.FIRST_NIGHT:
-        return
     if wrapper.source in MATCHMAKERS:
         wrapper.send(messages["already_matched"])
         return
@@ -118,23 +118,25 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
-    if var.FIRST_NIGHT or var.ALWAYS_PM_ROLE:
-        ps = get_players()
-        for mm in get_all_players(("matchmaker",)):
-            pl = ps[:]
-            random.shuffle(pl)
-            if mm.prefers_simple():
-                mm.send(messages["matchmaker_simple"])
-            else:
-                mm.send(messages["matchmaker_notify"])
-            mm.send("Players: " + ", ".join(p.nick for p in pl))
+    ps = get_players()
+    for mm in get_all_players(("matchmaker",)):
+        if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
+            continue
+        pl = ps[:]
+        random.shuffle(pl)
+        if mm.prefers_simple():
+            mm.send(messages["matchmaker_simple"])
+        else:
+            mm.send(messages["matchmaker_notify"])
+        mm.send("Players: " + ", ".join(p.nick for p in pl))
 
 @event_listener("del_player")
-def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    MATCHMAKERS.discard(player)
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
         for lover in lovers:
-            if lover not in evt.data["pl"]:
+            if lover not in get_players():
                 continue # already died somehow
             if var.ROLE_REVEAL in ("on", "team"):
                 role = get_reveal_role(lover)
@@ -143,9 +145,8 @@ def on_del_player(evt, var, player, mainrole, allroles, death_triggers):
             else:
                 message = messages["lover_suicide_no_reveal"].format(lover)
             channels.Main.send(message)
-            debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, mainrole))
-            evt.params.del_player(lover, end_game=False, killer_role=evt.params.killer_role, deadlist=evt.params.deadlist, original=evt.params.original, ismain=False)
-            evt.data["pl"] = evt.params.refresh_pl(evt.data["pl"])
+            debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, evt.params.main_role))
+            add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
 
 @event_listener("game_end_messages")
 def on_game_end_messages(evt, var):
@@ -182,25 +183,20 @@ def on_player_win(evt, var, player, role, winner, survived):
 
             lover_role = get_main_role(lvr)
 
-            if not winner.startswith("@") and singular(winner) not in var.WIN_STEALER_ROLES:
+            if not winner.startswith("@") and singular(winner) not in Win_Stealer:
                 evt.data["iwon"] = True
                 break
             elif winner.startswith("@") and winner == "@" + lvr.nick and var.LOVER_WINS_WITH_FOOL:
                 evt.data["iwon"] = True
                 break
-            elif singular(winner) in var.WIN_STEALER_ROLES and lover_role == singular(winner):
+            elif singular(winner) in Win_Stealer and lover_role == singular(winner):
                 evt.data["iwon"] = True
                 break
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    if var.FIRST_NIGHT:
-        evt.data["actedcount"] += len(MATCHMAKERS)
-        evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
-
-@event_listener("get_special")
-def on_get_special(evt, var):
-    evt.data["villagers"].update(get_all_players(("matchmaker",)))
+    evt.data["actedcount"] += len(MATCHMAKERS)
+    evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
 
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt, var, target1, target2):
@@ -253,5 +249,10 @@ def on_revealroles(evt, var, wrapper):
 def on_reset(evt, var):
     MATCHMAKERS.clear()
     LOVERS.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["matchmaker"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

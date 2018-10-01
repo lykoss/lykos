@@ -18,8 +18,6 @@ IDOLS = UserDict()
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(var, wrapper, message):
     """Pick your idol, if they die, you'll become a wolf!"""
-    if not var.FIRST_NIGHT:
-        return
     if wrapper.source in IDOLS:
         wrapper.pm(messages["wild_child_already_picked"])
         return
@@ -64,28 +62,26 @@ def on_myrole(evt, var, user):
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("del_player")
-def on_del_player(evt, var, user, mainrole, allroles, death_triggers):
-    if var.PHASE not in var.GAME_PHASES:
+def on_del_player(evt, var, player, all_roles, death_triggers):
+    del IDOLS[:player:]
+    if not death_triggers:
         return
 
     for child in get_all_players(("wild child",)):
-        if child in evt.params.deadlist or IDOLS.get(child) not in evt.params.deadlist:
-            continue
-
-        # Change their main role to wolf
-        WILD_CHILDREN.add(child)
-        change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
-        var.ROLES["wild child"].discard(child)
+        if IDOLS.get(child) is player:
+            # Change their main role to wolf
+            WILD_CHILDREN.add(child)
+            change_role(var, child, get_main_role(child), "wolf", message="wild_child_idol_died")
+            var.ROLES["wild child"].discard(child)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    if var.FIRST_NIGHT:
-        evt.data["actedcount"] += len(IDOLS.keys())
-        evt.data["nightroles"].extend(get_all_players(("wild child",)))
+    evt.data["actedcount"] += len(IDOLS)
+    evt.data["nightroles"].extend(get_all_players(("wild child",)))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
-    if (not var.START_WITH_DAY or not var.FIRST_DAY) and var.FIRST_NIGHT:
+    if not var.START_WITH_DAY or not var.FIRST_DAY:
         for child in get_all_players(("wild child",)):
             if child not in IDOLS:
                 players = get_players()
@@ -101,9 +97,9 @@ def on_transition_day_begin(evt, var):
 def on_transition_night_end(evt, var):
     for child in get_all_players(("wild child",)):
         if child.prefers_simple():
-            child.send(messages["child_simple"])
+            child.send(messages["wild_child_simple"])
         else:
-            child.send(messages["child_notify"])
+            child.send(messages["wild_child_notify"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
@@ -122,5 +118,10 @@ def on_get_reveal_role(evt, var, user):
 def on_reset(evt, var):
     WILD_CHILDREN.clear()
     IDOLS.clear()
+
+@event_listener("get_role_metadata")
+def on_get_role_metadata(evt, var, kind):
+    if kind == "role_categories":
+        evt.data["wild child"] = {"Village", "Team Switcher"}
 
 # vim: set sw=4 expandtab:
