@@ -1241,7 +1241,7 @@ def stats(cli, nick, chan, rest):
         order = [r for r in role_order() if r in role_stats]
         if var.DEFAULT_ROLE in order:
             order.remove(var.DEFAULT_ROLE)
-        order.append(var.DEFAULT_ROLE)
+            order.append(var.DEFAULT_ROLE)
         first = role_stats[order[0]]
         if first[0] == first[1] == 1:
             vb = "is"
