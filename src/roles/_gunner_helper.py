@@ -1,7 +1,15 @@
-from src.decorators import event_listener
+import random
+import re
+
+from src.decorators import command, event_listener
+from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
+from src.status import add_dying, kill_players
 from src.events import Event
+from src.cats import Wolf, Wolfchat
+
+import botconfig
 
 def setup_variables(rolename):
     GUNNERS = UserDict()
@@ -46,8 +54,8 @@ def setup_variables(rolename):
                     return
             elif random.random() <= gun_evt.data["headshot"]:
                 accident = "accidentally "
-                if rolename == "sharpshooter":
-                    accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
+                if gun_evt.data["headshot"] == 1: # would always headshot
+                    accident = ""
                 wrapper.send(messages["gunner_victim_villager_death"].format(target, accident))
                 if var.ROLE_REVEAL in ("on", "team"):
                     wrapper.send(messages["gunner_victim_role"].format(an, targrole))
@@ -64,6 +72,7 @@ def setup_variables(rolename):
                         if not var.VOTES.get(cand):
                             del var.VOTES[cand]
                         break
+                from src.wolfgame import chk_decision, chk_win
                 chk_decision()
                 chk_win()
 
@@ -86,6 +95,37 @@ def setup_variables(rolename):
                 else:
                     gunner.send(messages["{0}_notify".format(rolename)].format(botconfig.CMD_CHAR, GUNNERS[gunner], "s" if GUNNERS[gunner] > 1 else ""))
 
+    @event_listener("transition_day_resolve_end", priority=4)
+    def on_transition_day_resolve_end(evt, var, victims):
+        for victim in list(evt.data["dead"]):
+            if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
+                if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
+                    # pick a random wolf to be shot
+                    wolfset = [wolf for wolf in get_players(Wolf) if wolf not in evt.data["dead"]]
+                    if wolfset:
+                        deadwolf = random.choice(wolfset)
+                        if var.ROLE_REVEAL in ("on", "team"):
+                            evt.data["message"][victim].append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
+                        else:
+                            evt.data["message"][victim].append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
+                        evt.data["dead"].append(deadwolf)
+                        evt.data["killers"][deadwolf].append(victim)
+                        GUNNERS[victim] -= 1 # deduct the used bullet
+
+                if var.WOLF_STEALS_GUN and GUNNERS[victim]: # might have used up the last bullet or something
+                    possible = get_players(Wolfchat)
+                    random.shuffle(possible)
+                    for looter in possible:
+                        if looter not in evt.data["dead"]:
+                            break
+                    else:
+                        return # no live wolf, nothing to do here
+
+                    GUNNERS[looter] = GUNNERS.get(looter, 0) + 1
+                    del GUNNERS[victim]
+                    var.ROLES[rolename].add(looter)
+                    looter.send(messages["wolf_gunner"].format(victim))
+
     @event_listener("myrole")
     def on_myrole(evt, var, user):
         if GUNNERS.get(user):
@@ -99,6 +139,8 @@ def setup_variables(rolename):
     @event_listener("reset")
     def on_reset(evt, var):
         GUNNERS.clear()
+
+    return GUNNERS
 
 # TODO: Split into drunk
 @event_listener("gun_chances", priority=7)

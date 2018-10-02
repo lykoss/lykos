@@ -16,7 +16,7 @@ from src.roles._gunner_helper import setup_variables
 
 GUNNERS = setup_variables("sharpshooter")
 
-@event_listener("gun_chances")
+@event_listener("gun_chances", priority=1)
 def on_gun_chances(evt, var, user, target, role):
     if role == "sharpshooter":
         hit, miss, suicide, headshot = var.SHARPSHOOTER_GUN_CHANCES
@@ -36,5 +36,5 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
-    if kind == "role_categoriers":
+    if kind == "role_categories":
         evt.data["sharpshooter"] = {"Village", "Safe", "Killer"}

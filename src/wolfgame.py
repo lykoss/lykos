@@ -103,7 +103,6 @@ var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DEAD = UserSet()
 var.WOUNDED = UserSet()
-var.GUNNERS = UserDict()
 
 var.NO_LYNCH = UserSet()
 var.VOTES = UserDict()
@@ -2720,49 +2719,6 @@ def transition_day(gameid=0):
         })
     revt2.dispatch(var, victims)
 
-    for victim in list(dead):
-        if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
-            if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-                # pick a random wofl to be shot
-                woflset = {wolf for wolf in get_players(Wolf) if wolf not in dead}
-                # TODO: split into werekitten.py
-                woflset.difference_update(get_all_players(("werekitten",)))
-                wolf_evt = Event("gunner_overnight_kill_wolflist", {"wolves": woflset})
-                wolf_evt.dispatch(var)
-                woflset = wolf_evt.data["wolves"]
-                if woflset:
-                    deadwolf = random.choice(tuple(woflset))
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        message[victim].append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
-                    else:
-                        message[victim].append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
-                    dead.append(deadwolf)
-                    killers[deadwolf].append(victim)
-                    var.GUNNERS[victim] -= 1 # deduct the used bullet
-
-    for victim in dead:
-        if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
-            # victim has bullets
-            try:
-                looters = get_players(Wolfchat)
-                while len(looters) > 0:
-                    guntaker = random.choice(looters)  # random looter
-                    if guntaker not in dead:
-                        break
-                    else:
-                        looters.remove(guntaker)
-                if guntaker not in dead:
-                    numbullets = var.GUNNERS[victim]
-                    if guntaker.nick not in var.GUNNERS:
-                        var.GUNNERS[guntaker] = 0
-                    if guntaker not in get_all_players(("gunner", "sharpshooter")):
-                        var.ROLES["gunner"].add(guntaker)
-                    var.GUNNERS[guntaker] += 1  # only transfer one bullet
-                    guntaker.send(messages["wolf_gunner"].format(victim))
-            except IndexError:
-                pass # no wolves to give gun to (they were all killed during night or something)
-            var.GUNNERS[victim] = 0  # just in case
-
     # flatten message, * goes first then everyone else
     to_send = message["*"]
     del message["*"]
@@ -5183,12 +5139,9 @@ if botconfig.DEBUG_MODE:
 
         if who == "*": # wildcard match
             tgt = get_players()
-        elif (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
-            or var.PHASE in ("none", "join")):
+        elif (who not in var.ROLES or not var.ROLES[who]) and var.PHASE in ("none", "join"):
             cli.msg(chan, nick+": invalid role")
             return
-        elif who == "gunner":
-            tgt = set(var.GUNNERS)
         else:
             tgt = set(var.ROLES[who])
 
