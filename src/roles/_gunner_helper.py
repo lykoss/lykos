@@ -145,7 +145,7 @@ def setup_variables(rolename):
 # TODO: Split into drunk
 @event_listener("gun_chances", priority=7)
 def on_gun_chances(evt, var, user, target, role):
-    if user in get_all_players(("village drunk",)):
+    if rolename != "sharpshooter" and user in get_all_players(("village drunk",)):
         hit, miss, suicide, headshot = var.DRUNK_GUN_CHANCES
         evt.data["hit"] = hit
         evt.data["miss"] = miss
