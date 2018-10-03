@@ -350,7 +350,6 @@
     "kill_pending": "You have not chosen to kill anyone yet.",
     "retracted_vote": "\u0002{0}\u0002's vote was retracted.",
     "pending_vote": "You haven't voted yet.",
-    "no_gun": "You don't have a gun.",
     "no_bullets": "You don't have any more bullets.",
     "gunner_target_self": "You are holding it the wrong way.",
     "shoot_success": "\u0002{0}\u0002 shoots \u0002{1}\u0002 with a silver bullet!",

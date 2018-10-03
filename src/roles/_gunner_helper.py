@@ -12,12 +12,12 @@ from src.cats import Wolf, Wolfchat
 import botconfig
 
 def setup_variables(rolename):
-    GUNNERS = UserDict()
+    GUNNERS = UserDict() # type: UserDict[users.User, int]
 
     @command("shoot", playing=True, silenced=True, phases=("day",), roles=(rolename,))
     def shoot(var, wrapper, message):
         """Use this to fire off a bullet at someone in the day if you have bullets."""
-        if not GUNNERS.get(wrapper.source):
+        if not GUNNERS[wrapper.source]:
             wrapper.pm(messages["no_bullets"])
             return
 
