@@ -1457,9 +1457,6 @@ def chk_decision(force=None, end_game=True):
                             channels.Main.send(lmsg)
                             if chk_win(winner="@" + votee.nick):
                                 return
-                        # Other
-                        if votee in get_all_players(("jester",)):
-                            var.JESTERS.add(votee.nick)
 
                         if var.ROLE_REVEAL in ("on", "team"):
                             rrole = get_reveal_role(votee)
@@ -1711,8 +1708,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
             elif rol == "fool" and "@" + splr == winner:
                 iwon = True
             elif rol == "demoniac" and plr in survived and winner == "demoniacs":
-                iwon = True
-            elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
             elif not iwon:
                 iwon = won and plr in survived  # survived, team won = individual win
@@ -2287,8 +2282,7 @@ def rename_player(var, user, prefix):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.SILENCED, var.PASSED,
-                           var.JESTERS, var.LUCKY,
+            for setvar in (var.HEXED, var.SILENCED, var.PASSED, var.LUCKY,
                            var.MISDIRECTED, var.EXCHANGED, var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
@@ -2839,11 +2833,7 @@ def lynch(var, wrapper, message):
             and var.VILLAGERGAME_CHANCE > 0 and len(var.ALL_PLAYERS) <= 9):
         troll = True
 
-    no_vote_self = "save_self"
-    if wrapper.source in get_all_players(("fool", "jester")):
-        no_vote_self = "no_self_lynch"
-
-    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=troll, not_self_message=no_vote_self)
+    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=troll, not_self_message="no_self_lynch")
     if not voted:
         return
 
@@ -3403,12 +3393,6 @@ def transition_night():
         else:
             fool.send(messages["fool_notify"])
 
-    for jester in get_all_players(("jester",)):
-        if jester.prefers_simple():
-            jester.send(messages["jester_simple"])
-        else:
-            jester.send(messages["jester_notify"])
-
     for demoniac in get_all_players(("demoniac",)):
         if demoniac.prefers_simple():
             demoniac.send(messages["demoniac_simple"])
@@ -3672,7 +3656,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LASTHEXED = {}
     var.SILENCED = set()
     var.TOBESILENCED = set()
-    var.JESTERS = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.TRAITOR_TURNED = False

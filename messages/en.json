@@ -322,7 +322,6 @@
     "player_abstain": "\u0002{0}\u0002 votes not to lynch anyone today.",
     "totem_narcolepsy": "As you place your vote, your totem emits a brilliant flash of light. After recovering, you notice that you are still in your bed. That entire sequence of events must have just been a dream...",
     "no_self_lynch": "You may not vote yourself.",
-    "save_self": "Please try to save yourself.",
     "player_vote": "\u0002{0}\u0002 votes for \u0002{1}\u0002.",
     "protector_disappeared": "Your protector seems to have disappeared...",
     "harlot_disappeared": "\u0002{0}\u0002 seems to have disappeared...",
