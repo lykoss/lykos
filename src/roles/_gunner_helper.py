@@ -34,14 +34,18 @@ def setup_variables(rolename):
 
         GUNNERS[wrapper.source] -= 1
 
-        gun_evt = Event("gun_chances", {"hit": 0, "miss": 0, "suicide": 0, "headshot": 0})
-        gun_evt.dispatch(var, wrapper.source, target, rolename)
+        gun_evt = Event("gun_chances", {"hit": 0, "miss": 0, "headshot": 0})
+        gun_evt.dispatch(var, wrapper.source, rolename)
+
+        rand = random.random() # need to save it
+
+        shoot_evt = Event("gun_shoot", {"hit": rand <= gun_evt.data["hit"], "kill": random.random() <= gun_evt.data["headshot"]})
+        shoot_evt.dispatch(var, wrapper.source, target)
 
         realrole = get_main_role(target)
         targrole = get_reveal_role(target)
 
-        rand = random.random()
-        if rand <= gun_evt.data["hit"]:
+        if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
             if realrole in Wolf:
@@ -52,7 +56,7 @@ def setup_variables(rolename):
                 add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
                 if kill_players(var):
                     return
-            elif random.random() <= gun_evt.data["headshot"]:
+            elif shoot_evt.data["kill"]:
                 accident = "accidentally "
                 if gun_evt.data["headshot"] == 1: # would always headshot
                     accident = ""
@@ -78,7 +82,7 @@ def setup_variables(rolename):
 
         elif rand <= gun_evt.data["hit"] + gun_evt.data["miss"]:
             wrapper.send(messages["gunner_miss"].format(wrapper.source))
-        else:
+        else: # BOOM! your gun explodes, you're dead
             if var.ROLE_REVEAL in ("on", "team"):
                 wrapper.send(messages["gunner_suicide"].format(wrapper.source, get_reveal_role(wrapper.source)))
             else:
@@ -143,11 +147,11 @@ def setup_variables(rolename):
     return GUNNERS
 
 # TODO: Split into drunk
-@event_listener("gun_chances", priority=7)
-def on_gun_chances(evt, var, user, target, role):
-    if rolename != "sharpshooter" and user in get_all_players(("village drunk",)):
-        hit, miss, suicide, headshot = var.DRUNK_GUN_CHANCES
+@event_listener("gun_shoot")
+def on_gun_chances(evt, var, user, role):
+    if role != "sharpshooter" and user in get_all_players(("village drunk",)):
+        hit, miss, headshot = var.DRUNK_GUN_CHANCES
         evt.data["hit"] = hit
         evt.data["miss"] = miss
-        evt.data["suicide"] = suicide
         evt.data["headshot"] = headshot
+        evt.stop_processing = True

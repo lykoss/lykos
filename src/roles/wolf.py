@@ -350,20 +350,19 @@ def on_transition_night_end(evt, var):
             wolf.send(messages["ill_wolves"])
 
 @event_listener("gun_chances")
-def on_gun_chances(evt, var, user, target, role):
+def on_gun_chances(evt, var, user, role):
     if user in get_players(Wolfchat):
-        hit, miss, suicide, headshot = var.WOLF_GUN_CHANCES
+        hit, miss, headshot = var.WOLF_GUN_CHANCES
         evt.data["hit"] = hit
         evt.data["miss"] = miss
-        evt.data["suicide"] = suicide
         evt.data["headshot"] = headshot
+        evt.stop_processing = True
 
-@event_listener("gun_chances", priority=10)
-def on_gun_chances10(evt, var, user, target, role):
+@event_listener("gun_shoot")
+def on_gun_shoot(evt, var, user, target):
     wolves = get_players(Wolfchat)
     if (user in wolves and target in wolves) or get_main_role(target) == "werekitten":
-        evt.data["hit"] = 0
-        evt.data["miss"] = 1 - evt.data["suicide"]
+        evt.data["hit"] = False
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

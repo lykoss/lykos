@@ -16,13 +16,12 @@ from src.roles._gunner_helper import setup_variables
 
 GUNNERS = setup_variables("gunner")
 
-@event_listener("gun_chances", priority=1)
-def on_gun_chances(evt, var, user, target, role):
+@event_listener("gun_chances")
+def on_gun_chances(evt, var, user, role):
     if role == "gunner":
-        hit, miss, suicide, headshot = var.GUN_CHANCES
+        hit, miss, headshot = var.GUN_CHANCES
         evt.data["hit"] = hit
         evt.data["miss"] = miss
-        evt.data["suicide"] = suicide
         evt.data["headshot"] = headshot
 
 @event_listener("new_role")
