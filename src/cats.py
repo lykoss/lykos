@@ -68,7 +68,7 @@ def register_roles(evt):
     mevt.dispatch(None, "role_categories")
     for role, cats in mevt.data.items():
         if len(cats & {"Wolfteam", "Village", "Neutral", "Hidden"}) != 1:
-            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {Wolfteam, Village, Neutral, Hidden}, got {1}".format(role, cats))
+            raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Village, Neutral, Hidden}}, got {1}".format(role, cats))
         ROLES[role] = frozenset(cats)
         for cat in cats:
             if cat not in ROLE_CATS:
