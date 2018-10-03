@@ -175,6 +175,11 @@ def on_transition_night_end(evt, var):
                 succ.append(p.nick)
         succubus.send(messages[to_send], messages["players_list"].format(", ".join(succ)), sep="\n")
 
+@event_listener("gun_shoot")
+def on_gun_shoot(evt, var, user, target):
+    if target in get_all_players(("succubus",)):
+        evt.data["kill"] = False
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     VISITED.clear()

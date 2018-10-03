@@ -349,6 +349,21 @@ def on_transition_night_end(evt, var):
         if role in CAN_KILL and status.wolves_diseased(var):
             wolf.send(messages["ill_wolves"])
 
+@event_listener("gun_chances")
+def on_gun_chances(evt, var, user, role):
+    if user in get_players(Wolfchat):
+        hit, miss, headshot = var.WOLF_GUN_CHANCES
+        evt.data["hit"] = hit
+        evt.data["miss"] = miss
+        evt.data["headshot"] = headshot
+        evt.stop_processing = True
+
+@event_listener("gun_shoot")
+def on_gun_shoot(evt, var, user, target):
+    wolves = get_players(Wolfchat)
+    if (user in wolves and target in wolves) or get_main_role(target) == "werekitten":
+        evt.data["hit"] = False
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     KILLS.clear()

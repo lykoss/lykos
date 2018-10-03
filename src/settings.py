@@ -150,11 +150,11 @@ MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 16
 # village wins if and only if they can unanimously !vote the bot during the day
 VILLAGERGAME_CHANCE = 0
 
-                         #       HIT    MISS    SUICIDE   HEADSHOT
-GUN_CHANCES              =   (   5/7  ,  1/7  ,   1/7   ,   2/5   )
-WOLF_GUN_CHANCES         =   (   5/7  ,  1/7  ,   1/7   ,   2/5   )
-DRUNK_GUN_CHANCES        =   (   2/7  ,  3/7  ,   2/7   ,   2/5   )
-SHARPSHOOTER_GUN_CHANCES =   (    1   ,   0   ,    0    ,    1    )
+                         #       HIT    MISS    HEADSHOT
+GUN_CHANCES              =   (   5/7  ,  1/7  ,   2/5   )
+WOLF_GUN_CHANCES         =   (   5/7  ,  1/7  ,   2/5   )
+DRUNK_GUN_CHANCES        =   (   2/7  ,  3/7  ,   2/5   )
+SHARPSHOOTER_GUN_CHANCES =   (    1   ,   0   ,    1    )
 
 GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/4
 GUARDIAN_ANGEL_DIES_CHANCE = 0

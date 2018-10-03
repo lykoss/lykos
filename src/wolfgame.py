@@ -103,7 +103,6 @@ var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DEAD = UserSet()
 var.WOUNDED = UserSet()
-var.GUNNERS = UserDict()
 
 var.NO_LYNCH = UserSet()
 var.VOTES = UserDict()
@@ -2720,49 +2719,6 @@ def transition_day(gameid=0):
         })
     revt2.dispatch(var, victims)
 
-    for victim in list(dead):
-        if victim in var.GUNNERS and var.GUNNERS[victim] > 0 and victim in bywolves:
-            if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
-                # pick a random wofl to be shot
-                woflset = {wolf for wolf in get_players(Wolf) if wolf not in dead}
-                # TODO: split into werekitten.py
-                woflset.difference_update(get_all_players(("werekitten",)))
-                wolf_evt = Event("gunner_overnight_kill_wolflist", {"wolves": woflset})
-                wolf_evt.dispatch(var)
-                woflset = wolf_evt.data["wolves"]
-                if woflset:
-                    deadwolf = random.choice(tuple(woflset))
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        message[victim].append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
-                    else:
-                        message[victim].append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
-                    dead.append(deadwolf)
-                    killers[deadwolf].append(victim)
-                    var.GUNNERS[victim] -= 1 # deduct the used bullet
-
-    for victim in dead:
-        if var.WOLF_STEALS_GUN and victim in bywolves and victim in var.GUNNERS and var.GUNNERS[victim] > 0:
-            # victim has bullets
-            try:
-                looters = get_players(Wolfchat)
-                while len(looters) > 0:
-                    guntaker = random.choice(looters)  # random looter
-                    if guntaker not in dead:
-                        break
-                    else:
-                        looters.remove(guntaker)
-                if guntaker not in dead:
-                    numbullets = var.GUNNERS[victim]
-                    if guntaker.nick not in var.GUNNERS:
-                        var.GUNNERS[guntaker] = 0
-                    if guntaker not in get_all_players(("gunner", "sharpshooter")):
-                        var.ROLES["gunner"].add(guntaker)
-                    var.GUNNERS[guntaker] += 1  # only transfer one bullet
-                    guntaker.send(messages["wolf_gunner"].format(victim))
-            except IndexError:
-                pass # no wolves to give gun to (they were all killed during night or something)
-            var.GUNNERS[victim] = 0  # just in case
-
     # flatten message, * goes first then everyone else
     to_send = message["*"]
     del message["*"]
@@ -3105,94 +3061,6 @@ def retract(var, wrapper, message):
             break
     else:
         wrapper.pm(messages["pending_vote"])
-
-@command("shoot", playing=True, silenced=True, phases=("day",))
-def shoot(var, wrapper, message):
-    """Use this to fire off a bullet at someone in the day if you have bullets."""
-    if wrapper.source not in var.GUNNERS.keys():
-        wrapper.pm(messages["no_gun"])
-        return
-    elif not var.GUNNERS.get(wrapper.source):
-        wrapper.pm(messages["no_bullets"])
-        return
-
-    target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="gunner_target_self")
-    if not target:
-        return
-
-    # get actual victim
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
-        return
-
-    target = evt.data["target"]
-
-    wolfshooter = wrapper.source in get_players(Wolfchat)
-    var.GUNNERS[wrapper.source] -= 1
-
-    rand = random.random()
-    if wrapper.source in var.ROLES["village drunk"]:
-        chances = var.DRUNK_GUN_CHANCES
-    elif wrapper.source in var.ROLES["sharpshooter"]:
-        chances = var.SHARPSHOOTER_GUN_CHANCES
-    else:
-        chances = var.GUN_CHANCES
-
-    # TODO: make this into an event once we split off gunner
-    if target in get_all_players(("succubus",)):
-        chances = chances[:3] + (0,)
-
-    wolfvictim = target in get_players(Wolf)
-    realrole = get_main_role(target)
-    targrole = get_reveal_role(target)
-
-    alwaysmiss = (realrole == "werekitten")
-
-    if rand <= chances[0] and not (wolfshooter and wolfvictim) and not alwaysmiss:
-        # didn't miss or suicide and it's not a wolf shooting another wolf
-
-        wrapper.send(messages["shoot_success"].format(wrapper.source, target))
-        an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
-        if realrole in Wolf:
-            if var.ROLE_REVEAL == "on":
-                wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
-            else: # off and team
-                wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(target))
-            add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
-            if kill_players(var):
-                return
-        elif random.random() <= chances[3]:
-            accident = "accidentally "
-            if wrapper.source in var.ROLES["sharpshooter"]:
-                accident = "" # it's an accident if the sharpshooter DOESN'T headshot :P
-            wrapper.send(messages["gunner_victim_villager_death"].format(target, accident))
-            if var.ROLE_REVEAL in ("on", "team"):
-                wrapper.send(messages["gunner_victim_role"].format(an, targrole))
-            add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
-            if kill_players(var):
-                return
-        else:
-            wrapper.send(messages["gunner_victim_injured"].format(target))
-            var.WOUNDED.add(target)
-            lcandidates = list(var.VOTES.keys())
-            for cand in lcandidates:  # remove previous vote
-                if target in var.VOTES[cand]:
-                    var.VOTES[cand].remove(target)
-                    if not var.VOTES.get(cand):
-                        del var.VOTES[cand]
-                    break
-            chk_decision()
-            chk_win()
-
-    elif rand <= chances[0] + chances[1]:
-        wrapper.send(messages["gunner_miss"].format(wrapper.source))
-    else:
-        if var.ROLE_REVEAL in ("on", "team"):
-            wrapper.send(messages["gunner_suicide"].format(wrapper.source, get_reveal_role(wrapper.source)))
-        else:
-            wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
-        add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
-        kill_players(var)
 
 @cmd("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("sorcerer",))
 def observe(cli, nick, chan, rest):
@@ -3557,26 +3425,6 @@ def transition_night():
         else:
             demoniac.send(messages["demoniac_notify"])
 
-    for g in var.GUNNERS:
-        if g not in ps:
-            continue
-        elif not var.GUNNERS[g]:
-            continue
-        elif var.GUNNERS[g] == 0:
-            continue
-        role = "gunner"
-        if g in get_all_players(("sharpshooter",)):
-            role = "sharpshooter"
-        if g.prefers_simple():
-            gun_msg = messages["gunner_simple"].format(role, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
-        else:
-            if role == "gunner":
-                gun_msg = messages["gunner_notify"].format(role, botconfig.CMD_CHAR, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
-            elif role == "sharpshooter":
-                gun_msg = messages["sharpshooter_notify"].format(role, botconfig.CMD_CHAR, str(var.GUNNERS[g]), "s" if var.GUNNERS[g] > 1 else "")
-
-        g.send(gun_msg)
-
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
 
@@ -3830,7 +3678,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     var.ROLES.clear()
     var.MAIN_ROLES.clear()
-    var.GUNNERS.clear()
     var.OBSERVED = {}
     var.LASTHEXED = {}
     var.SILENCED = set()
@@ -3925,16 +3772,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
                 cli.msg(chan, messages["role_skipped"])
                 continue
         var.ROLES[role].update(x for x in random.sample(possible, count))
-
-    # Handle gunner
-    # TODO: split this into new_role listener
-    for gunner in var.ROLES["gunner"]:
-        if gunner in var.ROLES["village drunk"]:
-            var.GUNNERS[gunner] = (var.DRUNK_SHOTS_MULTIPLIER * math.ceil(var.SHOTS_MULTIPLIER * len(pl)))
-        else:
-            var.GUNNERS[gunner] = math.ceil(var.SHOTS_MULTIPLIER * len(pl))
-    for gunner in var.ROLES["sharpshooter"]:
-        var.GUNNERS[gunner] = math.ceil(var.SHARPSHOOTER_MULTIPLIER * len(pl))
 
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
@@ -4624,13 +4461,6 @@ def myrole(var, wrapper, message):
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
 
-    # Check for gun/bullets
-    if wrapper.source not in var.ROLES["amnesiac"] and wrapper.source in var.GUNNERS and var.GUNNERS[wrapper.source]:
-        role = "gunner"
-        if wrapper.source in var.ROLES["sharpshooter"]:
-            role = "sharpshooter"
-        wrapper.pm(messages["gunner_simple"].format(role, var.GUNNERS[wrapper.source], "" if var.GUNNERS[wrapper.source] == 1 else "s"))
-
 @command("aftergame", "faftergame", flag="D", pm=True)
 def aftergame(var, wrapper, message):
     """Schedule a command to be run after the current game."""
@@ -5148,12 +4978,7 @@ def revealroles(var, wrapper, message):
             out = []
             # go through each nickname, adding extra info if necessary
             for user in users:
-                special_case = []
-                # print how many bullets normal gunners have
-                if (role == "gunner" or role == "sharpshooter") and user in var.GUNNERS:
-                    special_case.append("{0} bullet{1}".format(var.GUNNERS[user], "" if var.GUNNERS[user] == 1 else "s"))
-
-                evt = Event("revealroles_role", {"special_case": special_case})
+                evt = Event("revealroles_role", {"special_case": []})
                 evt.dispatch(var, user, role)
                 special_case = evt.data["special_case"]
 
@@ -5314,12 +5139,9 @@ if botconfig.DEBUG_MODE:
 
         if who == "*": # wildcard match
             tgt = get_players()
-        elif (who not in var.ROLES or not var.ROLES[who]) and (who != "gunner"
-            or var.PHASE in ("none", "join")):
+        elif (who not in var.ROLES or not var.ROLES[who]) and var.PHASE in ("none", "join"):
             cli.msg(chan, nick+": invalid role")
             return
-        elif who == "gunner":
-            tgt = set(var.GUNNERS)
         else:
             tgt = set(var.ROLES[who])
 
