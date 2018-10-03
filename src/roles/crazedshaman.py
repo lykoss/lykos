@@ -13,7 +13,7 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Win_Stealer
 
-from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
+from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
 
 TOTEMS, LASTGIVEN, SHAMANS = setup_variables("crazed shaman", knows_totem=False)
 

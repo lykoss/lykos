@@ -29,7 +29,7 @@ def add_lycanthropy_scope(var, scope):
 
 @event_listener("reconfigure_stats")
 def on_reconfigure_stats(evt, var, roleset, reason):
-    from src.roles._wolf_helper import get_wolfchat_roles
+    from src.roles.helper.wolves import get_wolfchat_roles
     if reason != "howl" or not LYCANTHROPES or not SCOPE:
         return
 

@@ -9,7 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 
-from src.roles._mystic_helper import setup_variables
+from src.roles.helper.mystics import setup_variables
 
 LAST_COUNT = setup_variables("wolf mystic", send_role=False, types=("Safe", "Win Stealer"))
 

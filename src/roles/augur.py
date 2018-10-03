@@ -11,7 +11,7 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Neutral, Wolfteam
 
-from src.roles._seer_helper import setup_variables
+from src.roles.helper.seers import setup_variables
 
 SEEN = setup_variables("augur")
 

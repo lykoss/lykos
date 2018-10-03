@@ -11,7 +11,7 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Wolf, Killer
 
-from src.roles._wolf_helper import wolf_can_kill, CAN_KILL
+from src.roles.helper.wolves import wolf_can_kill, CAN_KILL
 
 ANGRY_WOLVES = False
 

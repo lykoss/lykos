@@ -12,7 +12,7 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Hidden
 
-from src.roles._wolf_helper import CAN_KILL, is_known_wolf_ally, send_wolfchat_message
+from src.roles.helper.wolves import CAN_KILL, is_known_wolf_ally, send_wolfchat_message
 
 KILLS = UserDict() # type: Dict[users.User, List[users.User]]
 KNOWS_MINIONS = UserSet()

@@ -12,7 +12,7 @@ from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
 
-from src.roles._shaman_helper import setup_variables, get_totem_target, give_totem
+from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
 
 TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True)
 

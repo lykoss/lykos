@@ -9,7 +9,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolf, All
-from src.roles._wolf_helper import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
 
 ENABLED = False
 ALPHAS = UserSet() # type: UserSet[users.User]
