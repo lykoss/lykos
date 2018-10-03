@@ -29,7 +29,7 @@ def crazed_shaman_totem(var, wrapper, message):
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
-    if role == "crazed shaman" and survived and not winner.startswith("@") and singular(winner) not in Win_Stealer:
+    if role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
         evt.data["iwon"] = True
 
 @event_listener("transition_day_begin", priority=4)

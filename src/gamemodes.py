@@ -117,7 +117,7 @@ class GameMode:
     # Here so any game mode can use it
     def lovers_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         winner = evt.data["winner"]
-        if winner is not None and winner.startswith("@"):
+        if winner in Win_Stealer:
             return # fool won, lovers can't win even if they would
         from src.roles.matchmaker import get_lovers
         all_lovers = get_lovers()

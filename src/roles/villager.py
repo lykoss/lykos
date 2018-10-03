@@ -55,7 +55,6 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["villager"] = {"Village"}
         # FIXME: split this into individual files once split from wolfgame.py
-        evt.data["fool"] = {"Neutral", "Win Stealer", "Innocent"}
         evt.data["demoniac"] = {"Neutral", "Win Stealer"}
         evt.data["village drunk"] = {"Village", "Safe"}
 
