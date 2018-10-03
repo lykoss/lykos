@@ -82,7 +82,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 def on_transition_day(evt, var):
     for k, d in list(KILLS.items()):
         evt.data["victims"].append(d)
-        evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[k]

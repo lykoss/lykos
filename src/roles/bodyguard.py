@@ -86,8 +86,6 @@ def on_transition_day_resolve_end(evt, var, victims):
         if GUARDED.get(bodyguard) in get_players(Wolf) and bodyguard not in evt.data["dead"]:
             r = random.random()
             if r < var.BODYGUARD_DIES_CHANCE:
-                evt.data["bywolves"].add(bodyguard)
-                evt.data["onlybywolves"].add(bodyguard)
                 if var.ROLE_REVEAL == "on":
                     evt.data["message"][bodyguard].append(messages["bodyguard_protected_wolf"].format(bodyguard))
                 else: # off and team

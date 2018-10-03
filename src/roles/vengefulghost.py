@@ -133,7 +133,6 @@ def on_transition_day_begin(evt, var):
 def on_transition_day(evt, var):
     for k, d in KILLS.items():
         evt.data["victims"].append(d)
-        evt.data["onlybywolves"].discard(d)
         evt.data["killers"][d].append(k)
 
 @event_listener("transition_day", priority=3.01)

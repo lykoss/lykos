@@ -67,11 +67,8 @@ def on_transition_day(evt, var):
         # simplify a lot of the code by offloading it to relevant pieces
         status.add_lycanthropy(var, target, "bitten")
         status.add_lycanthropy_scope(var, All)
-        if target not in evt.data["victims"]:
-            evt.data["onlybywolves"].add(target)
         evt.data["killers"][target].append(alpha)
         evt.data["victims"].append(target)
-        evt.data["bywolves"].add(target)
 
     # reset ENABLED here instead of begin_day so that night deaths can enable alpha wolf the next night
     ENABLED = False

@@ -65,7 +65,7 @@ def on_transition_day_resolve_end(evt, var, victims):
     evt2 = Event("get_role_metadata", {})
     evt2.dispatch(var, "lycanthropy_role")
     for victim in victims:
-        if victim in LYCANTHROPES and victim in evt.data["onlybywolves"] and victim in evt.data["dead"]:
+        if victim in LYCANTHROPES and evt.data["killers"][victim] == ["@wolves"] and victim in evt.data["dead"]:
             vrole = get_main_role(victim)
             if vrole not in Wolf:
                 new_role = "wolf"
@@ -85,10 +85,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["howl"] += 1
                 evt.data["novictmsg"] = False
                 evt.data["dead"].remove(victim)
-                evt.data["bywolves"].discard(victim)
-                evt.data["onlybywolves"].discard(victim)
-                if "@wolves" in evt.data["killers"][victim]:
-                    evt.data["killers"][victim].remove("@wolves")
+                evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
                 debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))

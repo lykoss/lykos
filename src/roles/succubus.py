@@ -132,7 +132,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
-    if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in get_all_players(("succubus",)) and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
         evt.data["message"][victim].append(messages["target_not_home"])
         evt.data["novictmsg"] = False
         evt.stop_processing = True
@@ -141,15 +141,13 @@ def on_transition_day_resolve(evt, var, victim):
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims:
-        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
+        if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
                         evt.data["message"][succubus].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
                     else:
                         evt.data["message"][succubus].append(messages["visited_victim_noreveal"].format(succubus))
-                    evt.data["bywolves"].add(succubus)
-                    evt.data["onlybywolves"].add(succubus)
                     evt.data["dead"].append(succubus)
 
 @event_listener("chk_nightdone")

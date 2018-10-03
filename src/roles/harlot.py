@@ -57,7 +57,7 @@ def pass_cmd(var, wrapper, message):
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
-    if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and victim in evt.data["onlybywolves"]:
+    if victim in var.ROLES["harlot"] and VISITED.get(victim) and victim not in evt.data["dead"] and evt.data["killers"][victim] == ["@wolves"]:
         evt.data["message"][victim].append(messages["target_not_home"])
         evt.data["novictmsg"] = False
         evt.stop_processing = True
@@ -66,15 +66,13 @@ def on_transition_day_resolve(evt, var, victim):
 @event_listener("transition_day_resolve_end", priority=1)
 def on_transition_day_resolve_end(evt, var, victims):
     for victim in victims:
-        if victim in evt.data["dead"] and victim in VISITED.values() and victim in evt.data["bywolves"]:
+        if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for hlt in VISITED:
                 if VISITED[hlt] is victim and hlt not in evt.data["dead"]:
                     if var.ROLE_REVEAL in ("on", "team"):
                         evt.data["message"][hlt].append(messages["visited_victim"].format(hlt, get_reveal_role(hlt)))
                     else:
                         evt.data["message"][hlt].append(messages["visited_victim_noreveal"].format(hlt))
-                    evt.data["bywolves"].add(hlt)
-                    evt.data["onlybywolves"].add(hlt)
                     evt.data["dead"].append(hlt)
 
 @event_listener("transition_day_resolve_end", priority=3)
@@ -82,8 +80,6 @@ def on_transition_day_resolve_end3(evt, var, victims):
     for harlot in get_all_players(("harlot",)):
         if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
-            evt.data["bywolves"].add(harlot)
-            evt.data["onlybywolves"].add(harlot)
             evt.data["dead"].append(harlot)
 
 @event_listener("chk_nightdone")

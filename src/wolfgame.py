@@ -2592,7 +2592,7 @@ def transition_day(gameid=0):
     # 2 = non-wolf kills
     # 3 = fixing killers dict to have correct priority (wolf-side VG kills -> non-wolf kills -> wolf kills)
     # 4 = protections/fallen angel
-    #     4.1 = shaman, 4.2 = bodyguard/GA, 4.3 = blessed villager, 4.8 = fallen angel
+    #     4.1 = shaman, 4.2 = bodyguard/GA, 4.3 = blessed villager
     # 5 = alpha wolf bite, other custom events that trigger after all protection stuff is resolved
     # 6 = rearranging victim list (ensure bodyguard/harlot messages plays),
     #     fixing killers dict priority again (in case step 4 or 5 added to it)
@@ -2603,16 +2603,10 @@ def transition_day(gameid=0):
     # This removes the burden of having to clear them at the end or should an error happen
     victims = []
     killers = defaultdict(list)
-    bywolves = set()
-    onlybywolves = set()
-    numkills = {}
 
     evt = Event("transition_day", {
         "victims": victims,
         "killers": killers,
-        "bywolves": bywolves,
-        "onlybywolves": onlybywolves,
-        "numkills": numkills, # populated at priority 3
         })
     evt.dispatch(var)
 
@@ -2662,8 +2656,6 @@ def transition_day(gameid=0):
         "message": message,
         "novictmsg": True,
         "dead": dead,
-        "bywolves": bywolves,
-        "onlybywolves": onlybywolves,
         "killers": killers,
         })
     # transition_day_resolve priorities:
@@ -2713,8 +2705,6 @@ def transition_day(gameid=0):
         "novictmsg": revt.data["novictmsg"],
         "howl": 0,
         "dead": dead,
-        "bywolves": bywolves,
-        "onlybywolves": onlybywolves,
         "killers": killers,
         })
     revt2.dispatch(var, victims)
@@ -2752,7 +2742,7 @@ def transition_day(gameid=0):
 
     killer_role = {}
     for deadperson in dead:
-        if deadperson in killers:
+        if killers.get(deadperson):
             killer = killers[deadperson][0]
             if killer == "@wolves":
                 killer_role[deadperson] = "wolf"

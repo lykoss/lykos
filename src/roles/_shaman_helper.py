@@ -372,7 +372,6 @@ def on_transition_day2(evt, var):
     for shaman, targets in DEATH.items():
         for target in targets:
             evt.data["victims"].append(target)
-            evt.data["onlybywolves"].discard(target)
             evt.data["killers"][target].append(shaman)
 
 @event_listener("transition_day", priority=4.1)

@@ -27,7 +27,7 @@ def wolves_diseased(var):
 def on_transition_day_resolve(evt, var, victims):
     global DISEASED_WOLVES
     for victim in evt.data["dead"]:
-        if victim in evt.data["bywolves"] and victim in DISEASED: # Silly wolves, eating a sick person... tsk tsk
+        if "@wolves" in evt.data["killers"][victim] and victim in DISEASED: # Silly wolves, eating a sick person... tsk tsk
             DISEASED_WOLVES = True
             break
     else:

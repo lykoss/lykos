@@ -68,7 +68,6 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 def on_transition_day(evt, var):
     for vigilante, target in list(KILLS.items()):
         evt.data["victims"].append(target)
-        evt.data["onlybywolves"].discard(target)
         evt.data["killers"][target].append(vigilante)
         # important, otherwise our del_player listener lets hunter kill again
         del KILLS[vigilante]
