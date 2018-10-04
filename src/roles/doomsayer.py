@@ -67,34 +67,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     # so that we can apply them in begin_day even if doomsayer dies.
     SEEN.discard(player)
 
-@event_listener("doctor_immunize")
-def on_doctor_immunize(evt, var, doctor, target):
-    if target in SICK.values():
-        for n, v in list(SICK.items()):
-            if v is target:
-                del SICK[n]
-        evt.data["message"] = "not_sick"
-
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(SEEN)
     evt.data["nightroles"].extend(get_all_players(("doomsayer",)))
-
-@event_listener("abstain")
-def on_abstain(evt, var, user):
-    if user in SICK.values():
-        user.send(messages["illness_no_vote"])
-        evt.prevent_default = True
-
-@event_listener("lynch")
-def on_lynch(evt, var, target):
-    if target in SICK.values():
-        target.send(messages["illness_no_vote"])
-        evt.prevent_default = True
-
-@event_listener("get_voters")
-def on_get_voters(evt, var):
-    evt.data["voters"].difference_update(SICK.values())
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -113,6 +89,7 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     for sick in SICK.values():
         status.add_disease(var, sick)
+        status.add_absent(var, sick, "illness_no_vote")
         var.SILENCED.add(sick.nick) # FIXME
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)

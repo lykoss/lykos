@@ -102,7 +102,6 @@ var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
 
 var.DEAD = UserSet()
-var.WOUNDED = UserSet()
 
 var.NO_LYNCH = UserSet()
 var.VOTES = UserDict()
@@ -1339,8 +1338,7 @@ def hurry_up(gameid, change):
 
     var.DAY_ID = 0
 
-    pl = set(get_players()) - var.WOUNDED
-    evt = Event("get_voters", {"voters": pl})
+    evt = Event("get_voters", {"voters": set(get_players())})
     evt.dispatch(var)
     pl = evt.data["voters"]
     not_lynching = set(var.NO_LYNCH)
@@ -1402,8 +1400,7 @@ def chk_decision(force=None, end_game=True):
             return
         # Even if the lynch fails, we want to go to night phase if we are forcing a lynch (day timeout)
         do_night_transision = True if force else False
-        pl = set(get_players()) - var.WOUNDED
-        evt = Event("get_voters", {"voters": pl})
+        evt = Event("get_voters", {"voters": set(get_players())})
         evt.dispatch(var)
         pl = evt.data["voters"]
         not_lynching = set(var.NO_LYNCH)
@@ -1538,8 +1535,7 @@ def show_votes(cli, nick, chan, rest):
 
         reply(cli, nick, chan, msg)
 
-        pl = set(get_players()) - var.WOUNDED
-        evt = Event("get_voters", {"voters": pl})
+        evt = Event("get_voters", {"voters": set(get_players())})
         evt.dispatch(var)
         pl = evt.data["voters"]
 
@@ -1813,8 +1809,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            pl = set(get_players()) - var.WOUNDED
-            evt = Event("get_voters", {"voters": pl})
+            evt = Event("get_voters", {"voters": set(get_players())})
             evt.dispatch(var)
             pl = evt.data["voters"]
             lpl = len(pl)
@@ -1826,7 +1821,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
             if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
                 wcroles = Wolf
             else:
-                wcroles = Wolf| {"traitor"}
+                wcroles = Wolf | {"traitor"}
         else:
             wcroles = Wolfchat
 
@@ -1955,7 +1950,6 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
                 break # can only vote once
 
         var.NO_LYNCH.discard(player)
-        var.WOUNDED.discard(player)
 
 # FIXME: get rid of the priority once we move state transitions into the main event loop instead of having it here
 @event_listener("kill_players", priority=10)
@@ -2573,7 +2567,6 @@ def transition_day(gameid=0):
     # that isn't going to be dying today, meaning we need to know who is dying first :)
 
     # Reset daytime variables
-    var.WOUNDED.clear()
     var.NO_LYNCH.clear()
 
     if var.START_WITH_DAY and var.FIRST_DAY:
@@ -2808,9 +2801,6 @@ def no_lynch(var, wrapper, message):
         return
     elif not evt.dispatch(var, wrapper.source):
         return
-    elif wrapper.source in var.WOUNDED:
-        channels.Main.send(messages["wounded_no_vote"].format(wrapper.source))
-        return
     for voter in list(var.VOTES):
         if wrapper.source in var.VOTES[voter]:
             var.VOTES[voter].remove(wrapper.source)
@@ -2828,9 +2818,6 @@ def lynch(var, wrapper, message):
         show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
         return
     if wrapper.private:
-        return
-    if wrapper.source in var.WOUNDED:
-        wrapper.send(messages["wounded_no_vote"].format(wrapper.source))
         return
     msg = re.split(" +", message)[0].strip()
 

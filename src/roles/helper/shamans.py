@@ -9,7 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import add_dying, try_protection
+from src.status import add_dying, add_absent, try_protection
 from src.cats import Cursed, Safe, Innocent, Wolf, All
 
 #####################################################################################
@@ -268,10 +268,6 @@ def on_see(evt, var, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-@event_listener("get_voters")
-def on_get_voters(evt, var):
-    evt.data["voters"] -= NARCOLEPSY
-
 @event_listener("chk_decision", priority=1)
 def on_chk_decision(evt, var, force):
     nl = []
@@ -477,22 +473,12 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
+    for user in NARCOLEPSY:
+        add_absent(var, user, "totem_narcolepsy")
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
     var.LUCKY.update(p.nick for p in LUCK)
     var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
-
-@event_listener("abstain")
-def on_abstain(evt, var, user):
-    if user in NARCOLEPSY:
-        user.send(messages["totem_narcolepsy"])
-        evt.prevent_default = True
-
-@event_listener("lynch")
-def on_lynch(evt, var, user):
-    if user in NARCOLEPSY:
-        user.send(messages["totem_narcolepsy"])
-        evt.prevent_default = True
 
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

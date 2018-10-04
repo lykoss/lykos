@@ -5,7 +5,7 @@ from src.decorators import command, event_listener
 from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
-from src.status import add_dying, kill_players
+from src.status import add_dying, kill_players, add_absent
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
@@ -68,17 +68,7 @@ def setup_variables(rolename):
                     return
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
-                var.WOUNDED.add(target)
-                lcandidates = list(var.VOTES.keys())
-                for cand in lcandidates:  # remove previous vote
-                    if target in var.VOTES[cand]:
-                        var.VOTES[cand].remove(target)
-                        if not var.VOTES.get(cand):
-                            del var.VOTES[cand]
-                        break
-                from src.wolfgame import chk_decision, chk_win
-                chk_decision()
-                chk_win()
+                add_absent(var, target, "wounded_no_vote", private=False)
 
         elif rand <= gun_evt.data["hit"] + gun_evt.data["miss"]:
             wrapper.send(messages["gunner_miss"].format(wrapper.source))
