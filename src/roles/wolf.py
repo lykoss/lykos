@@ -373,7 +373,6 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}
         evt.data["warlock"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
-        evt.data["cultist"] = {"Wolfteam"}
 
 @event_listener("wolf_numkills", priority=10)
 def on_wolf_numkills(evt, var):
