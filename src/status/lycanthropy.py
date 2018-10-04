@@ -1,6 +1,6 @@
 from src.decorators import event_listener
 from src.containers import UserDict
-from src.functions import get_all_players, get_main_role, change_role
+from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolf
@@ -16,7 +16,7 @@ def add_lycanthropy(var, target, prefix="lycan"):
     if target in LYCANTHROPES:
         return
 
-    if Event("add_lycanthropy", {}).dispatch(var, target):
+    if target in get_players() and Event("add_lycanthropy", {}).dispatch(var, target):
         LYCANTHROPES[target] = prefix
 
 def remove_lycanthropy(var, target):

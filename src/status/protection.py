@@ -1,5 +1,6 @@
 from src.containers import UserDict, DefaultUserDict
 from src.decorators import event_listener
+from src.functions import get_players
 from src.messages import messages
 from src.events import Event
 from src.cats import All
@@ -10,6 +11,9 @@ PROTECTIONS = UserDict() # type: UserDict[User, UserDict[Optional[User], List[Tu
 
 def add_protection(var, target, protector, protector_role, scope=All):
     """Add a protection to the target affecting the relevant scope."""
+    if target not in get_players():
+        return
+
     if target not in PROTECTIONS:
         PROTECTIONS[target] = DefaultUserDict(list)
 
