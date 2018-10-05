@@ -349,7 +349,7 @@ def on_gun_chances(evt, var, user, role):
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):
     wolves = get_players(Wolfchat)
-    if (user in wolves and target in wolves) or get_main_role(target) == "werekitten":
+    if user in wolves and target in wolves:
         evt.data["hit"] = False
 
 @event_listener("begin_day")
@@ -370,11 +370,9 @@ def on_get_role_metadata(evt, var, kind):
     elif kind == "role_categories":
         evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         # FIXME: split the following into their respective files
-        evt.data["werekitten"] = {"Wolf", "Wolfchat", "Wolfteam", "Innocent", "Killer", "Nocturnal"}
         evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}
         evt.data["warlock"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
-        evt.data["cultist"] = {"Wolfteam"}
 
 @event_listener("wolf_numkills", priority=10)
 def on_wolf_numkills(evt, var):
