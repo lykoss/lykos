@@ -38,7 +38,7 @@ def on_get_voters(evt, var):
 def on_lynch_and_abstain(evt, var, user):
     if user in ABSENT:
         target = user if ABSENT[user][1] else channels.Main
-        target.send(messages[ABSENT[user][0]])
+        target.send(messages[ABSENT[user][0]].format(user))
         evt.prevent_default = True
 
 @event_listener("revealroles")
