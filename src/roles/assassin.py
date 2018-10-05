@@ -70,14 +70,12 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
         pl.remove(ass)
 
-        if ass in get_all_players(("village drunk",)): # FIXME: Make into an event when village drunk is split
-            TARGETED[ass] = random.choice(pl)
-            PREV_ACTED.add(ass)
-            message = messages["drunken_assassin_notification"].format(TARGETED[ass])
-            if not ass.prefers_simple():
-                message += messages["assassin_info"]
-            ass.send(message)
+        ass_evt = Event("assassin_target", {"target": None})
+        ass_evt.dispatch(var, ass, pl)
 
+        if ass_evt.data["target"] is not None:
+            TARGETED[ass] = ass_evt.data["target"]
+            PREV_ACTED.add(ass)
         else:
             if ass.prefers_simple():
                 ass.send(messages["assassin_simple"])
