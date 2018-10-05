@@ -38,6 +38,5 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["fool"] = {"Neutral", "Win Stealer", "Innocent"}
         evt.data["jester"] = {"Neutral", "Innocent"}
         evt.data["demoniac"] = {"Neutral", "Win Stealer"}
-        evt.data["village drunk"] = {"Village", "Safe"}
 
 # vim: set sw=4 expandtab:

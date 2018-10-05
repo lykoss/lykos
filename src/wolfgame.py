@@ -3391,12 +3391,6 @@ def transition_night():
     # send PMs
     ps = get_players()
 
-    for drunk in get_all_players(("village drunk",)):
-        if drunk.prefers_simple():
-            drunk.send(messages["village_drunk_simple"])
-        else:
-            drunk.send(messages["village_drunk_notify"])
-
     for fool in get_all_players(("fool",)):
         if fool.prefers_simple():
             fool.send(messages["fool_simple"])
