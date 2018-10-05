@@ -1933,7 +1933,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
         var.ALL_PLAYERS.remove(player)
     if var.PHASE in var.GAME_PHASES:
         # remove the player from variables if they're in there
-        for x in (var.OBSERVED, var.LASTHEXED):
+        for x in (var.OBSERVED,):
             for k in list(x):
                 if player.nick in (k, x[k]):
                     del x[k]
@@ -1942,7 +1942,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
         # remove players from night variables
         # the dicts are handled above, these are the lists of who has acted which is used to determine whether night should end
         # if these aren't cleared properly night may end prematurely
-        for x in (var.PASSED, var.HEXED, var.CURSED):
+        for x in (var.PASSED, var.CURSED):
             x.discard(player.nick)
     if var.PHASE == "day":
         if player in var.VOTES:
@@ -2266,7 +2266,7 @@ def rename_player(var, user, prefix):
                 if prefix == k:
                     var.PLAYERS[nick] = var.PLAYERS.pop(k)
 
-            for dictvar in (var.OBSERVED, var.LASTHEXED):
+            for dictvar in (var.OBSERVED,):
                 kvp = []
                 for a,b in dictvar.items():
                     if a == prefix:
@@ -2287,7 +2287,7 @@ def rename_player(var, user, prefix):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.SILENCED, var.PASSED,
+            for setvar in (var.SILENCED, var.PASSED,
                            var.JESTERS, var.LUCKY,
                            var.MISDIRECTED, var.EXCHANGED, var.CURSED):
                 if prefix in setvar:
@@ -2487,11 +2487,10 @@ def begin_day():
     # Reset nighttime variables
     var.GAMEPHASE = "day"
     var.KILLER = ""  # nickname of who chose the victim
-    var.HEXED = set() # set of hags that have silenced others
     var.OBSERVED = {}  # those whom sorcerers have observed
     var.PASSED = set() # set of certain roles that have opted not to act
     var.STARTED_DAY_PLAYERS = len(list_players())
-    var.SILENCED = copy.copy(var.TOBESILENCED)
+    var.SILENCED = set()
     var.EXCHANGED = set()
     var.LUCKY = set()
     var.MISDIRECTED = set()
@@ -2562,15 +2561,6 @@ def transition_day(gameid=0):
 
     event_begin = Event("transition_day_begin", {})
     event_begin.dispatch(var)
-
-    if not var.START_WITH_DAY or not var.FIRST_DAY:
-        if len(var.HEXED) < len(var.ROLES["hag"]):
-            for hag in var.ROLES["hag"]:
-                if hag.nick not in var.HEXED: # FIXME
-                    var.LASTHEXED[hag.nick] = None # FIXME
-
-    # NOTE: Random assassin selection is further down, since if we're choosing at random we pick someone
-    # that isn't going to be dying today, meaning we need to know who is dying first :)
 
     # Reset daytime variables
     var.WOUNDED.clear()
@@ -2776,8 +2766,8 @@ def chk_nightdone():
     if var.PHASE != "night":
         return
 
-    actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.HEXED, var.CURSED)))
-    nightroles = list(get_all_players(("sorcerer", "hag", "warlock")))
+    actedcount = sum(map(len, (var.PASSED, var.OBSERVED, var.CURSED)))
+    nightroles = list(get_all_players(("sorcerer", "warlock")))
     event = Event("chk_nightdone", {"actedcount": actedcount, "nightroles": nightroles, "transition_day": transition_day})
     event.dispatch(var)
     actedcount = event.data["actedcount"]
@@ -2946,12 +2936,6 @@ def check_exchange(cli, actor, nick):
         if actor_role in ("sorcerer",):
             if actor in var.OBSERVED:
                 del var.OBSERVED[actor]
-        elif actor_role == "hag":
-            if actor in var.LASTHEXED:
-                if var.LASTHEXED[actor] in var.TOBESILENCED and actor in var.HEXED:
-                    var.TOBESILENCED.remove(var.LASTHEXED[actor])
-                del var.LASTHEXED[actor]
-            var.HEXED.discard(actor)
         elif actor_role == "warlock":
             var.CURSED.discard(actor)
 
@@ -2962,12 +2946,6 @@ def check_exchange(cli, actor, nick):
         if nick_role in ("sorcerer",):
             if nick in var.OBSERVED:
                 del var.OBSERVED[nick]
-        elif nick_role == "hag":
-            if nick in var.LASTHEXED:
-                if var.LASTHEXED[nick] in var.TOBESILENCED and nick in var.HEXED:
-                    var.TOBESILENCED.remove(var.LASTHEXED[nick])
-                del var.LASTHEXED[nick]
-            var.HEXED.discard(nick)
         elif nick_role == "warlock":
             var.CURSED.discard(nick)
 
@@ -3097,44 +3075,6 @@ def pass_cmd(cli, nick, chan, rest):
     var.PASSED.add(nick)
 
     debuglog("{0} ({1}) PASS".format(nick, get_role(nick)))
-
-@cmd("hex", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("hag",))
-def hex_target(cli, nick, chan, rest):
-    """Hex someone, preventing them from acting the next day and night."""
-    if nick in var.HEXED:
-        pm(cli, nick, messages["already_hexed"])
-        return
-    victim = get_victim(cli, nick, re.split(" +",rest)[0], False)
-    if not victim:
-        return
-
-    if nick == victim:
-        pm(cli, nick, messages["no_target_self"])
-        return
-    if var.LASTHEXED.get(nick) == victim:
-        pm(cli, nick, messages["no_multiple_hex"].format(victim))
-        return
-
-    victim = choose_target(nick, victim)
-    if in_wolflist(nick, victim):
-        pm(cli, nick, messages["no_hex_wolf"])
-        return
-    if check_exchange(cli, nick, victim):
-        return
-
-    vrole = get_role(victim)
-    var.HEXED.add(nick)
-    var.LASTHEXED[nick] = victim
-    wroles = Wolf
-    if not var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-        wroles = Wolf | {"traitor"}
-    if vrole not in wroles:
-        var.TOBESILENCED.add(victim)
-
-    pm(cli, nick, messages["hex_success"].format(victim))
-    relay_wolfchat_command(cli, nick, messages["hex_success_wolfchat"].format(nick, victim), ("hag",))
-
-    debuglog("{0} ({1}) HEX: {2} ({3})".format(nick, get_role(nick), victim, get_role(victim)))
 
 @cmd("curse", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def curse(cli, nick, chan, rest):
@@ -3356,11 +3296,9 @@ def transition_night():
 
     # Reset nighttime variables
     var.KILLER = ""  # nickname of who chose the victim
-    var.HEXED = set() # set of hags that have hexed
     var.CURSED = set() # set of warlocks that have cursed
     var.PASSED = set()
     var.OBSERVED = {}  # those whom sorcerers have observed
-    var.TOBESILENCED = set()
 
     daydur_msg = ""
 
@@ -3663,9 +3601,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.ROLES.clear()
     var.MAIN_ROLES.clear()
     var.OBSERVED = {}
-    var.LASTHEXED = {}
     var.SILENCED = set()
-    var.TOBESILENCED = set()
     var.JESTERS = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
@@ -3674,7 +3610,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LUCKY = set()
     var.MISDIRECTED = set()
     var.EXCHANGED = set()
-    var.HEXED = set()
     var.ABSTAINED = False
     var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
