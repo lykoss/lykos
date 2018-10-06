@@ -318,7 +318,7 @@
     "command_disabled": "This command has been disabled.",
     "exhausted_abstain": "The village has already abstained once this game and may not do so again.",
     "no_abstain_day_one": "The village may not abstain on the first day.",
-    "wounded_no_vote": "{0}: You are wounded and resting, thus you are unable to vote for the day.",
+    "wounded_no_vote": "You are wounded and resting, thus you are unable to vote for the day.",
     "player_abstain": "\u0002{0}\u0002 votes not to lynch anyone today.",
     "totem_narcolepsy": "As you place your vote, your totem emits a brilliant flash of light. After recovering, you notice that you are still in your bed. That entire sequence of events must have just been a dream...",
     "no_self_lynch": "You may not vote yourself.",

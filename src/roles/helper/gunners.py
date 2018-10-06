@@ -68,7 +68,10 @@ def setup_variables(rolename):
                     return
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
-                add_absent(var, target, "wounded_no_vote", private=False)
+                add_absent(var, target, "wounded_no_vote")
+                from src.wolfgame import chk_decision, chk_win
+                chk_decision()
+                chk_win()
 
         elif rand <= gun_evt.data["hit"] + gun_evt.data["miss"]:
             wrapper.send(messages["gunner_miss"].format(wrapper.source))

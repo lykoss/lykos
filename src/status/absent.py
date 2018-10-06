@@ -8,11 +8,11 @@ __all__ = ["add_absent"]
 
 ABSENT = UserDict() # type: UserDict[users.User, Tuple[str, bool]]
 
-def add_absent(var, target, key, *, private=True):
+def add_absent(var, target, reason):
     if target not in get_players():
         return
 
-    ABSENT[target] = (key, private)
+    ABSENT[target] = reason
 
     for votee, voters in list(var.VOTES.items()):
         if target in voters:
@@ -20,10 +20,6 @@ def add_absent(var, target, key, *, private=True):
             if not voters:
                 del var.VOTES[votee]
             break
-
-    from src.wolfgame import chk_decision, chk_win
-    chk_decision()
-    chk_win()
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
@@ -37,8 +33,7 @@ def on_get_voters(evt, var):
 @event_listener("abstain")
 def on_lynch_and_abstain(evt, var, user):
     if user in ABSENT:
-        target = user if ABSENT[user][1] else channels.Main
-        target.send(messages[ABSENT[user][0]].format(user))
+        user.send(messages[ABSENT[user]])
         evt.prevent_default = True
 
 @event_listener("revealroles")
