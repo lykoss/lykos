@@ -187,7 +187,7 @@ def on_player_win(evt, var, player, role, winner, survived):
             if singular(winner) not in Win_Stealer:
                 evt.data["iwon"] = True
                 break
-            elif var.LOVER_WINS_WITH_FOOL:
+            elif winner == "fool":
                 if lvr is VOTED:
                     evt.data["iwon"] = True
                     break

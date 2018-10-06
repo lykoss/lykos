@@ -93,10 +93,6 @@ class GameMode:
                     self.LIMIT_ABSTAIN = True
                 elif val == "disabled":
                     self.ABSTAIN_ENABLED = False
-            elif key == "lover wins with fool":
-                if val not in ("true", "false"):
-                    raise InvalidModeException(messages["invalid_lover_wins_with_fool"].format(val))
-                self.LOVER_WINS_WITH_FOOL = True if val == "true" else False
 
     def startup(self):
         pass
@@ -553,7 +549,6 @@ class RandomMode(GameMode):
         self.ROLE_REVEAL = random.choice(("on", "off", "team"))
         self.STATS_TYPE = "disabled" if self.ROLE_REVEAL == "off" else random.choice(("disabled", "team"))
         super().__init__(arg)
-        self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         for role in self.SECONDARY_ROLES:
             self.SECONDARY_ROLES[role] = All
@@ -973,7 +968,6 @@ class MaelstromMode(GameMode):
         self.ROLE_REVEAL = "on"
         self.STATS_TYPE = "disabled"
         super().__init__(arg)
-        self.LOVER_WINS_WITH_FOOL = True
         self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALWAYS_PM_ROLE = True
         # clone and wild child are pointless in this mode
