@@ -89,7 +89,7 @@ def on_transition_day(evt, var):
 def on_begin_day(evt, var):
     for sick in SICK.values():
         status.add_disease(var, sick)
-        status.add_absent(var, sick, "illness_no_vote")
+        status.add_absent(var, sick, "illness")
         var.SILENCED.add(sick.nick) # FIXME
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
