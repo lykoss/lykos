@@ -370,7 +370,6 @@ def on_get_role_metadata(evt, var, kind):
     elif kind == "role_categories":
         evt.data["wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
         # FIXME: split the following into their respective files
-        evt.data["hag"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
         evt.data["sorcerer"] = {"Wolfchat", "Wolfteam", "Nocturnal", "Spy"}
         evt.data["warlock"] = {"Wolfchat", "Wolfteam", "Nocturnal"}
 
