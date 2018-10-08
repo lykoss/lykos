@@ -170,6 +170,7 @@ def on_game_end_messages(evt, var):
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
+    from src.roles.fool import VOTED
     if player in LOVERS:
         evt.data["special"].append("lover")
     if winner == "lovers" and player in LOVERS:
@@ -183,12 +184,13 @@ def on_player_win(evt, var, player, role, winner, survived):
 
             lover_role = get_main_role(lvr)
 
-            if not winner.startswith("@") and singular(winner) not in Win_Stealer:
+            if singular(winner) not in Win_Stealer:
                 evt.data["iwon"] = True
                 break
-            elif winner.startswith("@") and winner == "@" + lvr.nick and var.LOVER_WINS_WITH_FOOL:
-                evt.data["iwon"] = True
-                break
+            elif winner == "fool":
+                if lvr is VOTED:
+                    evt.data["iwon"] = True
+                    break
             elif singular(winner) in Win_Stealer and lover_role == singular(winner):
                 evt.data["iwon"] = True
                 break
