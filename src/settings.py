@@ -130,7 +130,6 @@ START_WITH_DAY = False
 WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
 ROLE_REVEAL = "on" # on/off/team - what role information is shown on death
 STATS_TYPE = "default" # default/accurate/team/disabled - what role information is shown when doing !stats
-LOVER_WINS_WITH_FOOL = False # if fool is lynched, does their lover win with them?
 
 START_VOTES_SCALE = 0.3
 START_VOTES_MAX = 4

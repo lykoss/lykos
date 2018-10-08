@@ -1448,18 +1448,6 @@ def chk_decision(force=None, end_game=True):
                         not_lynching=not_lynching)
                     if vote_evt.dispatch(var, voters):
                         votee = vote_evt.data["votee"]
-                        # roles that end the game upon being lynched
-                        if votee in get_all_players(("fool",)):
-                            # ends game immediately, with fool as only winner
-                            # hardcode "fool" as the role since game is ending due to them being lynched,
-                            # so we want to show "fool" even if it's a template
-                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, "", "fool")
-                            channels.Main.send(lmsg)
-                            if chk_win(winner="@" + votee.nick):
-                                return
-                        # Other
-                        if votee in get_all_players(("jester",)):
-                            var.JESTERS.add(votee.nick)
 
                         if var.ROLE_REVEAL in ("on", "team"):
                             rrole = get_reveal_role(votee)
@@ -1701,18 +1689,12 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
                 if rol == "demoniac" and winner == "demoniacs":
                     won = True
-                elif rol == "fool" and "@" + splr == winner:
-                    won = True
 
             if pentry["dced"]:
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
-            elif rol == "fool" and "@" + splr == winner:
-                iwon = True
             elif rol == "demoniac" and plr in survived and winner == "demoniacs":
-                iwon = True
-            elif rol == "jester" and splr in var.JESTERS:
                 iwon = True
             elif not iwon:
                 iwon = won and plr in survived  # survived, team won = individual win
@@ -1741,11 +1723,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         for role,pl in var.ORIGINAL_ROLES.items():
             if len(pl) > 0:
                 game_options["roles"][role] = len(pl)
-
-        # normalize fool wins; to determine which fool won look for who got a team win for the game
-        # not plural (unlike other winner values) since only a singular fool wins
-        if winner.startswith("@"):
-            winner = "fool"
 
         db.add_game(var.CURRENT_GAMEMODE.name,
                     len(survived) + len(var.DEAD),
@@ -1838,10 +1815,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
         ltraitors = len(rolemap.get("traitor", ()))
 
         message = ""
-        # fool won, chk_win was called from !lynch
-        if winner and winner.startswith("@"):
-            message = messages["fool_win"]
-        elif lpl < 1:
+        if lpl < 1:
             message = messages["no_win"]
             # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
             winner = "no_team_wins"
@@ -2287,8 +2261,7 @@ def rename_player(var, user, prefix):
                 if b == prefix:
                     b = nick
                 var.EXCHANGED_ROLES[idx] = (a, b)
-            for setvar in (var.HEXED, var.SILENCED, var.PASSED,
-                           var.JESTERS, var.LUCKY,
+            for setvar in (var.HEXED, var.SILENCED, var.PASSED, var.LUCKY,
                            var.MISDIRECTED, var.EXCHANGED, var.CURSED):
                 if prefix in setvar:
                     setvar.remove(prefix)
@@ -2551,7 +2524,7 @@ def transition_day(gameid=0):
             return
     var.NIGHT_ID = 0
 
-    if var.PHASE == "day":
+    if var.PHASE not in ("night", "join"):
         return
 
     var.PHASE = "day"
@@ -2839,11 +2812,7 @@ def lynch(var, wrapper, message):
             and var.VILLAGERGAME_CHANCE > 0 and len(var.ALL_PLAYERS) <= 9):
         troll = True
 
-    no_vote_self = "save_self"
-    if wrapper.source in get_all_players(("fool", "jester")):
-        no_vote_self = "no_self_lynch"
-
-    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=troll, not_self_message=no_vote_self)
+    voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=troll, not_self_message="no_self_lynch")
     if not voted:
         return
 
@@ -3332,7 +3301,7 @@ def relay(var, wrapper, message):
 
 @handle_error
 def transition_night():
-    if var.PHASE == "night":
+    if var.PHASE not in ("day", "join"):
         return
     var.PHASE = "night"
     var.GAMEPHASE = "night"
@@ -3389,19 +3358,6 @@ def transition_night():
         return
 
     # send PMs
-    ps = get_players()
-
-    for fool in get_all_players(("fool",)):
-        if fool.prefers_simple():
-            fool.send(messages["fool_simple"])
-        else:
-            fool.send(messages["fool_notify"])
-
-    for jester in get_all_players(("jester",)):
-        if jester.prefers_simple():
-            jester.send(messages["jester_simple"])
-        else:
-            jester.send(messages["jester_notify"])
 
     for demoniac in get_all_players(("demoniac",)):
         if demoniac.prefers_simple():
@@ -3666,7 +3622,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.LASTHEXED = {}
     var.SILENCED = set()
     var.TOBESILENCED = set()
-    var.JESTERS = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.TRAITOR_TURNED = False
@@ -3824,7 +3779,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
 
     if restart:
-        var.PHASE = None # allow transition_* to run properly if game was restarted on first night
+        var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
     if not var.START_WITH_DAY:
         var.GAMEPHASE = "night"
         transition_night()
