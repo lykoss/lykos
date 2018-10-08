@@ -1,5 +1,6 @@
 from src.decorators import event_listener
 from src.containers import UserSet
+from src.functions import get_players
 from src.events import Event
 
 __all__ = ["add_disease", "remove_disease", "wolves_diseased"]
@@ -9,7 +10,7 @@ DISEASED_WOLVES = False
 
 def add_disease(var, target):
     """Effect the target with disease. Fire the add_disease event."""
-    if target in DISEASED:
+    if target in DISEASED or target not in get_players():
         return
 
     if Event("add_disease", {}).dispatch(var, target):
