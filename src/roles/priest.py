@@ -61,7 +61,7 @@ def consecrate(var, wrapper, message):
 
     wrapper.pm(messages["consecrate_success"].format(target))
     debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
-    add_absent(var, wrapper.source, "consecrating_no_vote")
+    add_absent(var, wrapper.source, "consecrating")
     from src.wolfgame import chk_decision, chk_win
     chk_decision()
     chk_win()

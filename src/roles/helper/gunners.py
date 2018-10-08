@@ -68,7 +68,7 @@ def setup_variables(rolename):
                     return
             else:
                 wrapper.send(messages["gunner_victim_injured"].format(target))
-                add_absent(var, target, "wounded_no_vote")
+                add_absent(var, target, "wounded")
                 from src.wolfgame import chk_decision, chk_win
                 chk_decision()
                 chk_win()

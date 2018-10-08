@@ -474,7 +474,7 @@ def on_transition_night_end(evt, var):
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
     for user in NARCOLEPSY:
-        add_absent(var, user, "totem_narcolepsy")
+        add_absent(var, user, "totem")
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
     var.LUCKY.update(p.nick for p in LUCK)

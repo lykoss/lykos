@@ -6,7 +6,7 @@ from src import channels
 
 __all__ = ["add_absent"]
 
-ABSENT = UserDict() # type: UserDict[users.User, Tuple[str, bool]]
+ABSENT = UserDict() # type: UserDict[users.User, str]
 
 def add_absent(var, target, reason):
     if target not in get_players():
@@ -33,7 +33,7 @@ def on_get_voters(evt, var):
 @event_listener("abstain")
 def on_lynch_and_abstain(evt, var, user):
     if user in ABSENT:
-        user.send(messages[ABSENT[user]])
+        user.send(messages[ABSENT[user] + "_absent"])
         evt.prevent_default = True
 
 @event_listener("revealroles")
