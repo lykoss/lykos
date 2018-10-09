@@ -56,6 +56,15 @@ def observe(var, wrapper, message):
 
     debuglog("{0} (sorcerer) OBSERVE: {1} ({2})".format(wrapper.source, target, targrole))
 
+@event_listener("chk_nightdone")
+def on_chk_nightdone(evt, var):
+    evt.data["actedcount"] += len(OBSERVED)
+    evt.data["nightroles"].extend(get_all_players(("sorcerer",)))
+
+@event_listener("del_player")
+def on_del_player(evt, var, player, allroles, death_triggers):
+    OBSERVED.discard(player)
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     OBSERVED.clear()

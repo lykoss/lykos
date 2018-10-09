@@ -2722,7 +2722,7 @@ def chk_nightdone():
     actedcount = event.data["actedcount"]
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles = [p for p in evt.data["nightroles"] if p.nick not in var.SILENCED]
+    nightroles = [p for p in event.data["nightroles"] if p.nick not in var.SILENCED]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         for x, t in var.TIMERS.items():

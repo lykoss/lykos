@@ -52,13 +52,34 @@ def curse(var, wrapper, message):
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(var, wrapper, message):
     """Decline to use your special power for that night."""
-    wrapper.pm(messages["warlock_pass"])
-    send_wolfchat_message(var, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
-
     del CURSED[:wrapper.source:]
     PASSED.add(wrapper.source)
 
+    wrapper.pm(messages["warlock_pass"])
+    send_wolfchat_message(var, wrapper.source, messages["warlock_pass_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="pass")
+
     debuglog("{0} (warlock) PASS".format(wrapper.source))
+
+@command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
+def retract(var, wrapper, message):
+    """Retract your curse or pass."""
+    del CURSED[:wrapper.source:]
+    PASSED.discard(wrapper.source)
+
+    wrapper.pm(messages["warlock_retract"])
+    send_wolfchat_message(var, wrapper.source, messages["warlock_retract_wolfchat"].format(wrapper.source), {"warlock"}, role="warlock", command="retract")
+
+    debuglog("{0} (warlock) RETRACT".format(wrapper.source))
+
+@event_listener("chk_nightdone")
+def on_chk_nightdone(evt, var):
+    evt.data["actedcount"] += len(CURSED) + len(PASSED)
+    evt.data["nightroles"].extend(get_all_players(("warlock",)))
+
+@event_listener("del_player")
+def on_del_player(evt, var, player, allroles, death_triggers):
+    del CURSED[:player:]
+    PASSED.discard(player)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
