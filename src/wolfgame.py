@@ -1684,18 +1684,10 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 if winner == "everyone":
                     iwon = True
 
-            # determine if this player's team won
-            if rol in Neutral:
-                # most true neutral roles never have a team win, only individual wins. Exceptions to that are here
-                if rol == "demoniac" and winner == "demoniacs":
-                    won = True
-
             if pentry["dced"]:
                 # You get NOTHING! You LOSE! Good DAY, sir!
                 won = False
                 iwon = False
-            elif rol == "demoniac" and plr in survived and winner == "demoniacs":
-                iwon = True
             elif not iwon:
                 iwon = won and plr in survived  # survived, team won = individual win
 
@@ -1809,21 +1801,13 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
 
         wolves = set(get_players(wcroles, mainroles=mainroles))
         lwolves = len(wolves & pl)
-        lcubs = len(rolemap.get("wolf cub", ()))
         lrealwolves = len(get_players(Wolf & Killer, mainroles=mainroles))
-        ldemoniacs = len(rolemap.get("demoniac", ()))
-        ltraitors = len(rolemap.get("traitor", ()))
 
         message = ""
         if lpl < 1:
             message = messages["no_win"]
             # still want people like jesters, dullahans, etc. to get wins if they fulfilled their win conds
             winner = "no_team_wins"
-        elif lrealwolves == 0 and ltraitors == 0 and lcubs == 0:
-            if ldemoniacs > 0:
-                s = "s" if ldemoniacs > 1 else ""
-                message = (messages["demoniac_win"]).format(s)
-                winner = "demoniacs"
 
         # TODO: flip priority order (so that things like fool run last, and therefore override previous win conds)
         # Priorities:
@@ -3295,14 +3279,6 @@ def transition_night():
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
     if chk_win():
         return
-
-    # send PMs
-
-    for demoniac in get_all_players(("demoniac",)):
-        if demoniac.prefers_simple():
-            demoniac.send(messages["demoniac_simple"])
-        else:
-            demoniac.send(messages["demoniac_notify"])
 
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
