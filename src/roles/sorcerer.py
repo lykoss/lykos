@@ -65,6 +65,11 @@ def on_chk_nightdone(evt, var):
 def on_del_player(evt, var, player, allroles, death_triggers):
     OBSERVED.discard(player)
 
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "sorcerer" and evt.data["role"] != "sorcerer":
+        OBSERVED.discard(user)
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     OBSERVED.clear()

@@ -2888,33 +2888,6 @@ def check_exchange(cli, actor, nick):
             user.send(*evt_same.data["actor_messages"])
             target.send(*evt_same.data["target_messages"])
 
-        wcroles = Wolfchat
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = Wolf
-            else:
-                wcroles = Wolf | {"traitor"}
-
-        if nick_role not in wcroles and nick_role == "warlock":
-            # this means warlock isn't in wolfchat, so only give cursed list
-            pl = list_players()
-            random.shuffle(pl)
-            pl.remove(actor)  # remove self from list
-            for i, player in enumerate(pl):
-                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
-                    pl[i] = player + " (cursed)"
-            pm(cli, actor, messages["players_list"].format(", ".join(pl)))
-
-        if actor_role not in wcroles and actor_role == "warlock":
-            # this means warlock isn't in wolfchat, so only give cursed list
-            pl = list_players()
-            random.shuffle(pl)
-            pl.remove(nick)  # remove self from list
-            for i, player in enumerate(pl):
-                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
-                    pl[i] = player + " (cursed)"
-            pm(cli, nick, messages["players_list"].format(", ".join(pl)))
-
         var.EXCHANGED_ROLES.append((actor, nick))
         return True
     return False

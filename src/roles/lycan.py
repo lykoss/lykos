@@ -30,10 +30,15 @@ def on_doctor_immunize(evt, var, doctor, target):
     if target in get_all_players(("lycan",)):
         evt.data["message"] = "lycan_cured"
 
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "lycan" and evt.data["role"] != "lycan":
+        status.remove_lycanthropy(var, user)
+
 #@event_listener("new_role") # FIXME: Disabled for now because we don't want to remove this if it's the main role
-def on_new_role(evt, var, player, old_role):
-    if evt.data["role"] in Wolf and old_role is not None:
-        var.ROLES["lycan"].discard(player) # remove the lycan template if the person becomes a wolf
+#def on_new_role(evt, var, player, old_role):
+#    if evt.data["role"] in Wolf and old_role is not None:
+#        var.ROLES["lycan"].discard(player) # remove the lycan template if the person becomes a wolf
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

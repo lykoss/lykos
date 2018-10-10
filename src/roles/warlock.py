@@ -81,6 +81,25 @@ def on_del_player(evt, var, player, allroles, death_triggers):
     del CURSED[:player:]
     PASSED.discard(player)
 
+@event_listener("new_role")
+def on_new_role(evt, var, user, old_role):
+    if old_role == "warlock" and evt.data["role"] != "warlock":
+        del CURSED[:user:]
+        PASSED.discard(user)
+
+    if not evt.data["in_wolfchat"] and evt.data["role"] == "warlock":
+        # this means warlock isn't in wolfchat, so only give cursed list
+        pl = get_players()
+        random.shuffle(pl)
+        pl.remove(user)
+        player_list = []
+        for player in pl:
+            if player in get_all_players(("cursed villager",)):
+                player_list.append("{0} (cursed".format(player))
+            else:
+                player_list.append(player.nick)
+        user.send(messages["players_list"].format(", ".join(player_list)))
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     wroles = get_wolfchat_roles(var)
