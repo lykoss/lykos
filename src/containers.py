@@ -158,7 +158,6 @@ class UserSet(Container, set):
     # Augmented assignment method overrides
 
     def __iand__(self, other):
-        res = super().__iand__(other)
         if not isinstance(other, set):
             return NotImplemented
 
@@ -257,12 +256,12 @@ class UserDict(Container, dict):
             _it = _it.items()
         try:
             for key, value in _it:
-                self[key] = value
+                _self[key] = value
             for key, value in kwargs.items():
-                self[key] = value
+                _self[key] = value
         except:
-            while self:
-                self.popitem() # don't clear, as it's recursive (we might not want that)
+            while _self:
+                _self.popitem() # don't clear, as it's recursive (we might not want that)
             raise
 
     def __str__(self):
@@ -317,8 +316,6 @@ class UserDict(Container, dict):
                 if self in value.dict_values:
                     value.dict_values.remove(self)
 
-            if isinstance(key, (UserList, UserSet, UserDict)):
-                key.clear()
             if isinstance(value, (UserList, UserSet, UserDict)):
                 value.clear()
 
