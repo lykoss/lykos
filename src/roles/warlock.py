@@ -39,15 +39,13 @@ def curse(var, wrapper, message):
     if not evt.dispatch(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
-
-    CURSED[wrapper.source] = target
+    CURSED[wrapper.source] = evt.data["target"]
     PASSED.discard(wrapper.source)
 
     wrapper.pm(messages["curse_success"].format(target))
     send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, target), {"warlock"}, role="warlock", command="curse")
 
-    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
+    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, evt.data["target"], get_main_role(evt.data["target"])))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(var, wrapper, message):
