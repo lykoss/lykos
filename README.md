@@ -49,6 +49,7 @@ Lykos has a host of commands which can be used for various purposes. Here is a n
 !rolestats: Outputs global role statistics. The command !rstats is an alias for this.
 
 !help: Get a list of commands, and can also be used to get more detailed information on specific commands.
+!wiki: Give a link to the wiki. If an argument is given, such as !wiki seer, the link to the particular article will be retrieved, and the summary from the page will be sent in a private notice to the player.
 ```
 
 ## For bot operators
@@ -149,16 +150,16 @@ This bot wouldn't be what it is today without the contribution of many people. H
 
 jcao219: Original programmer
 
-woffle / Skizzerz: Main developer
+woffle / Skizzerz: Main developer  
 Vgr: Main developer
 
-jacob1: Developer
+jacob1: Developer  
 nyuszika7h: Developer
 
 Iciloo: Testing
 
-Everyone who contributed to the code, no matter how small.
-Everyone who opened issues in our bug tracker.
+Everyone who contributed to the code, no matter how small.  
+Everyone who opened issues in our bug tracker.  
 And, of course, to all the bot owners and players who kept this project alive all this time!
 
 Special thanks to LaneAtomic for their work on the messages system, which made coding future features a lot easier.
