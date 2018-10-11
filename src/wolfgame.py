@@ -4958,85 +4958,65 @@ if botconfig.DEBUG_MODE:
         except Exception as e:
             wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-    # DO NOT MAKE THIS A PMCOMMAND ALSO
-    @cmd("force", flag="d")
-    def force(cli, nick, chan, rest):
+    def _force_command(var, wrapper, name, players, message):
+        name = name.lower().replace(botconfig.CMD_CHAR, "", 1)
+        if name in COMMANDS:
+            for func in COMMANDS[name]:
+                if func.owner_only and not wrapper.source.is_owner():
+                    wrapper.pm(messages["owner_only_force"])
+                    break
+                if func.flag and not wrapper.source.is_admin():
+                    wrapper.pm(messages["admin_only_force"])
+                    break
+                for user in players:
+                    # FIXME: This is the old command API, fix this when @cmd is killed off
+                    if func.chan:
+                        func.caller(user.client, user.rawnick, wrapper.target.name, message)
+                    else:
+                        func.caller(user.client, user.rawnick, users.Bot.nick, message)
+
+            wrapper.send(messages["operation_successful"])
+        else:
+            wrapper.send(messages["command_not_found"])
+
+    @command("force", flag="d")
+    def force(var, wrapper, message):
         """Force a certain player to use a specific command."""
-        rst = re.split(" +",rest)
-        if len(rst) < 2:
-            cli.msg(chan, messages["incorrect_syntax"])
+        msg = re.split(" +", message)
+        if len(msg) < 2:
+            wrapper.send(messages["incorrect_syntax"])
             return
-        who = rst.pop(0).strip()
-        if not who or who == users.Bot.nick:
-            cli.msg(chan, messages["invalid_target"])
+
+        target = msg.pop(0).strip()
+        match, _ = users.complete_match(target, get_players())
+        if target == "*":
+            players = get_players()
+        elif match is None:
+            wrapper.send(messages["invalid_target"])
             return
-        if who == "*":
-            who = list_players()
         else:
-            if not is_fake_nick(who):
-                ul = list(var.USERS.keys()) # ark
-                ull = [u.lower() for u in ul]
-                if who.lower() not in ull:
-                    cli.msg(chan, messages["invalid_target"])
-                    return
-                else:
-                    who = [ul[ull.index(who.lower())]]
-            else:
-                who = [who]
-        comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-        if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
-            for fn in COMMANDS[comm]:
-                if fn.owner_only:
-                    continue
-                if fn.flag and users.exists(nick) and not is_admin(nick):
-                    # Not a full admin
-                    cli.notice(nick, messages["admin_only_force"])
-                    continue
-                for user in who:
-                    if fn.chan:
-                        fn.caller(cli, user, chan, " ".join(rst))
-                    else:
-                        fn.caller(cli, user, users.Bot.nick, " ".join(rst))
-            cli.msg(chan, messages["operation_successful"])
-        else:
-            cli.msg(chan, messages["command_not_found"])
+            players = [match]
 
+        _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
 
-    @cmd("rforce", flag="d")
-    def rforce(cli, nick, chan, rest):
+    @command("rforce", flag="d")
+    def rforce(var, wrapper, message):
         """Force all players of a given role to perform a certain action."""
-        rst = re.split(" +",rest)
-        if len(rst) < 2:
-            cli.msg(chan, messages["incorrect_syntax"])
+        msg = re.split(" +", message)
+        if len(msg) < 2:
+            wrapper.send(messages["incorrect_syntax"])
             return
-        who = rst.pop(0).strip().lower()
-        who = who.replace("_", " ")
 
-        if who == "*": # wildcard match
-            tgt = get_players()
-        elif (who not in var.ROLES or not var.ROLES[who]) and var.PHASE in ("none", "join"):
-            cli.msg(chan, nick+": invalid role")
+        target = msg.pop(0).strip().lower()
+        possible = complete_role(var, target)
+        if target == "*":
+            players = get_players()
+        elif len(possible) == 1:
+            players = get_all_players((possible[0],))
+        else:
+            wrapper.send("Invalid role")
             return
-        else:
-            tgt = set(var.ROLES[who])
 
-        comm = rst.pop(0).lower().replace(botconfig.CMD_CHAR, "", 1)
-        if comm in COMMANDS and not COMMANDS[comm][0].owner_only:
-            for fn in COMMANDS[comm]:
-                if fn.owner_only:
-                    continue
-                if fn.flag and users.exists(nick) and not is_admin(nick):
-                    # Not a full admin
-                    cli.notice(nick, messages["admin_only_force"])
-                    continue
-                for user in tgt:
-                    # FIXME: old command API
-                    if fn.chan:
-                        fn.caller(cli, user.nick, chan, " ".join(rst))
-                    else:
-                        fn.caller(cli, user.nick, users.Bot.nick, " ".join(rst))
-            cli.msg(chan, messages["operation_successful"])
-        else:
-            cli.msg(chan, messages["command_not_found"])
+        _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
 
 # vim: set sw=4 expandtab:
