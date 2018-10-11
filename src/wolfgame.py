@@ -4962,12 +4962,9 @@ if botconfig.DEBUG_MODE:
         name = name.lower().replace(botconfig.CMD_CHAR, "", 1)
         if name in COMMANDS:
             for func in COMMANDS[name]:
-                if func.owner_only and not wrapper.source.is_owner():
-                    wrapper.pm(messages["owner_only_force"])
-                    break
-                if func.flag and not wrapper.source.is_admin():
-                    wrapper.pm(messages["admin_only_force"])
-                    break
+                if func.owner_only or func.flag:
+                    wrapper.pm(messages["no_force_admin"])
+                    return
                 for user in players:
                     # FIXME: This is the old command API, fix this when @cmd is killed off
                     if func.chan:
