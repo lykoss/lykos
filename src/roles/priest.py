@@ -11,9 +11,9 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import add_absent
 
 PRIESTS = UserSet() # type: Set[users.User]
-CONSECRATING = UserSet() # type: Set[users.User]
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(var, wrapper, message):
@@ -59,11 +59,11 @@ def consecrate(var, wrapper, message):
     evt = Event("consecrate", {})
     evt.dispatch(var, wrapper.source, target)
 
-    CONSECRATING.add(wrapper.source)
     wrapper.pm(messages["consecrate_success"].format(target))
     debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
-    # consecrating can possibly cause game to end, so check for that
-    from src.wolfgame import chk_win
+    add_absent(var, wrapper.source, "consecrating")
+    from src.wolfgame import chk_decision, chk_win
+    chk_decision()
     chk_win()
 
 @event_listener("transition_night_end")
@@ -74,36 +74,11 @@ def on_transition_night_end(evt, var):
         else:
             priest.send(messages["priest_notify"])
 
-@event_listener("del_player")
-def on_del_player(evt, var, player, all_roles, death_triggers):
-    CONSECRATING.discard(player)
-
-@event_listener("get_voters")
-def on_get_voters(evt, var):
-    evt.data["voters"].difference_update(CONSECRATING)
-
-@event_listener("lynch")
-def on_lynch(evt, var, user):
-    if user in CONSECRATING:
-        user.send(messages["consecrating_no_vote"])
-        evt.prevent_default = True
-
-@event_listener("abstain")
-def on_abstain(evt, var, user):
-    if user in CONSECRATING:
-        user.send(messages["consecrating_no_vote"])
-        evt.prevent_default = True
+@event_listener("reset")
+def on_reset(evt, var):
+    PRIESTS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["priest"] = {"Village", "Safe", "Innocent"}
-
-@event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
-    CONSECRATING.clear()
-
-@event_listener("reset")
-def on_reset(evt, var):
-    PRIESTS.clear()
-    CONSECRATING.clear()
