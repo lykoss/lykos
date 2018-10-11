@@ -93,7 +93,7 @@ def on_new_role(evt, var, user, old_role):
         player_list = []
         for player in pl:
             if player in get_all_players(("cursed villager",)):
-                player_list.append("{0} (cursed".format(player))
+                player_list.append("{0} (cursed)".format(player))
             else:
                 player_list.append(player.nick)
         user.send(messages["players_list"].format(", ".join(player_list)))
