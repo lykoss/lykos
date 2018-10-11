@@ -35,10 +35,8 @@ def on_new_role(evt, var, user, old_role):
     if old_role == "lycan" and evt.data["role"] != "lycan":
         status.remove_lycanthropy(var, user)
 
-#@event_listener("new_role") # FIXME: Disabled for now because we don't want to remove this if it's the main role
-#def on_new_role(evt, var, player, old_role):
-#    if evt.data["role"] in Wolf and old_role is not None:
-#        var.ROLES["lycan"].discard(player) # remove the lycan template if the person becomes a wolf
+# TODO: We want to remove lycan from someone who was just turned into a wolf if it was a template
+# There's no easy way to do this right now and it doesn't really matter, so it's fine for now
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
