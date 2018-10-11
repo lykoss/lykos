@@ -34,7 +34,5 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["villager"] = {"Village"}
-        # FIXME: split this into individual files once split from wolfgame.py
-        evt.data["demoniac"] = {"Neutral", "Win Stealer"}
 
 # vim: set sw=4 expandtab:
