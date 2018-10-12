@@ -44,4 +44,11 @@ def on_reset(evt, var):
     DISEASED.clear()
     DISEASED_WOLVES = False
 
+@event_listener("wolf_numkills", priority=10)
+def on_wolf_numkills(evt, var):
+    if wolves_diseased(var):
+        evt.data["numkills"] = 0
+        evt.data["message"] = "ill_wolves"
+        evt.stop_processing = True
+
 # vim: set sw=4 expandtab:

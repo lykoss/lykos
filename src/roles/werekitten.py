@@ -11,6 +11,9 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.roles.helper.wolves import register_killer
+
+register_killer("werekitten")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):

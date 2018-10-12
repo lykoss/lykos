@@ -12,9 +12,12 @@ from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.events import Event
 
-from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
+from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables
+from src.roles.helper.wolves import register_killer
 
 TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True)
+
+register_killer("wolf shaman")
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
 def wolf_shaman_totem(var, wrapper, message):

@@ -13,6 +13,10 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Wolf
 
+from src.roles.helper.wolves import register_killer
+
+register_killer("fallen angel")
+
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):
     if attacker_role == "wolf" and get_all_players(("fallen angel",)):
