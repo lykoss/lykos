@@ -1033,7 +1033,7 @@ class MaelstromMode(GameMode):
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
             channels.Main.mode(*cmodes)
-        evt = events.Event("new_role", {"messages": [], "role": role}, inherit_from=None)
+        evt = events.Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
         # Use "player" as old role, to force wolf event to send "new wolf" messages
         evt.dispatch(var, wrapper.source, "player")
         role = evt.data["role"]
@@ -1073,7 +1073,7 @@ class MaelstromMode(GameMode):
         # (note that None doesn't work, so "player" works fine)
         for player in var.MAIN_ROLES:
             var.MAIN_ROLES[player] = "player"
-        new_evt = events.Event("new_role", {"messages": [], "role": None}, inherit_from=None)
+        new_evt = events.Event("new_role", {"messages": [], "role": None, "in_wolfchat": False}, inherit_from=None)
         for role, count in addroles.items():
             selected = random.sample(villagers, count)
             for x in selected:

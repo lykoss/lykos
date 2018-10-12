@@ -3462,7 +3462,7 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     for role, players in var.ROLES.items():
         for player in players:
-            evt = Event("new_role", {"messages": [], "role": role}, inherit_from=None)
+            evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
             evt.dispatch(var, player, None)
 
     if not restart:
