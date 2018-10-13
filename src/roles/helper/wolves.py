@@ -145,7 +145,7 @@ def on_transition_day6(evt, var):
 @event_listener("retribution_kill")
 def on_retribution_kill(evt, var, victim, orig_target):
     if evt.data["target"] == "@wolves": # kill a random wolf
-        evt.data["target"] = random.choice(list(Wolf & Killer))
+        evt.data["target"] = random.choice(get_players(Wolf & Killer))
 
 @event_listener("new_role", priority=4)
 def on_new_role(evt, var, player, old_role):
