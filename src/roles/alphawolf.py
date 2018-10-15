@@ -9,7 +9,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolf, All
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles, register_killer
+
+register_killer("alpha wolf")
 
 ENABLED = False
 ALPHAS = UserSet() # type: UserSet[users.User]
@@ -67,7 +69,7 @@ def on_transition_day(evt, var):
         # simplify a lot of the code by offloading it to relevant pieces
         status.add_lycanthropy(var, target, "bitten")
         status.add_lycanthropy_scope(var, All)
-        evt.data["killers"][target].append(alpha)
+        evt.data["killers"][target].append("@wolves")
         evt.data["victims"].append(target)
 
     # reset ENABLED here instead of begin_day so that night deaths can enable alpha wolf the next night

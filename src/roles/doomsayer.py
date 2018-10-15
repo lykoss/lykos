@@ -8,8 +8,11 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.cats import All
 
-from src.roles.helper.wolves import is_known_wolf_ally
+from src.roles.helper.wolves import is_known_wolf_ally, register_killer
+
+register_killer("doomsayer")
 
 SEEN = UserSet()
 KILLS = UserDict()
@@ -85,22 +88,25 @@ def on_transition_day(evt, var):
         evt.data["victims"].append(victim)
         evt.data["killers"][victim].append(killer)
 
+@event_listener("transition_night_end")
+def on_transition_night_end(evt, var):
+    if get_all_players(("doomsayer",)):
+        status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
+    for lycan in LYCANS.values():
+        status.add_lycanthropy(var, lycan)
+
+    LYCANS.clear()
+    SICK.clear()
+
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     for sick in SICK.values():
         status.add_disease(var, sick)
         status.add_absent(var, sick, "illness")
         var.SILENCED.add(sick.nick) # FIXME
-    for lycan in LYCANS.values():
-        status.add_lycanthropy(var, lycan)
 
     SEEN.clear()
     KILLS.clear()
-    LYCANS.clear()
-
-@event_listener("transition_night_begin")
-def on_transition_night_begin(evt, var):
-    SICK.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):

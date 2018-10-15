@@ -11,7 +11,7 @@ from src.messages import messages
 from src.events import Event
 from src.cats import Wolf, Killer
 
-from src.roles.helper.wolves import wolf_can_kill, CAN_KILL
+from src.roles.helper.wolves import wolf_can_kill
 
 ANGRY_WOLVES = False
 
@@ -36,7 +36,7 @@ def on_transition_night_end(evt, var):
     if not ANGRY_WOLVES:
         return
 
-    wolves = get_players(CAN_KILL)
+    wolves = get_players(Wolf & Killer)
     if not wolves or not wolf_can_kill(var, wolves[0]):
         return
 

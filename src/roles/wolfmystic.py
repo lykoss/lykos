@@ -10,8 +10,11 @@ from src.messages import messages
 from src.events import Event
 
 from src.roles.helper.mystics import setup_variables
+from src.roles.helper.wolves import register_killer
 
 LAST_COUNT = setup_variables("wolf mystic", send_role=False, types=("Safe", "Win Stealer"))
+
+register_killer("wolf mystic")
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
