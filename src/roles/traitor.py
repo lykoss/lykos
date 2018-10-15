@@ -81,6 +81,18 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         if var.PHASE in var.GAME_PHASES:
             var.TRAITOR_TURNED = True
             channels.Main.send(messages["traitor_turn_channel"])
+            # fix !stats to show that traitor turned as well
+            newstats = set()
+            for rs in var.ROLE_STATS:
+                d = dict(rs)
+                # traitor count of 0 is not possible since we for-sure turned traitors into wolves earlier
+                # as such, exclude such cases from newstats entirely.
+                if d["traitor"] >= 1:
+                    d["wolf"] += d["traitor"]
+                    d["traitor"] = 0
+                    newstats.add(frozenset(d.items()))
+            var.ROLE_STATS = frozenset(newstats)
+
         evt.prevent_default = True
         evt.stop_processing = True
 
