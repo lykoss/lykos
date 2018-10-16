@@ -8,7 +8,7 @@ from src import debuglog, errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import Wolf, Killer
 
 from src.roles.helper.wolves import wolf_can_kill

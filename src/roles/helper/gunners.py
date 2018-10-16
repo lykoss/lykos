@@ -5,7 +5,7 @@ from src.decorators import command, event_listener
 from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role
 from src.messages import messages
-from src.status import add_dying, kill_players, add_absent
+from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
@@ -25,12 +25,9 @@ def setup_variables(rolename):
         if not target:
             return
 
-        # get actual victim
-        evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-        if not evt.dispatch(var, wrapper.source, target):
+        target = try_misdirection(var, wrapper.source, target)
+        if try_exchange(var, wrapper.source, target):
             return
-
-        target = evt.data["target"]
 
         GUNNERS[wrapper.source] -= 1
 

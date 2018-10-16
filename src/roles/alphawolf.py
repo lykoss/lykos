@@ -2,12 +2,12 @@ import re
 import random
 
 from src.utilities import *
-from src import users, channels, status, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_all_roles, get_target, get_main_role, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lycanthropy_scope
 from src.cats import Wolf, All
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles, register_killer
 
@@ -34,12 +34,10 @@ def observe(var, wrapper, message):
         return
 
     orig = target
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
     BITTEN[wrapper.source] = target
     wrapper.pm(messages["alpha_bite_target"].format(orig))
     send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
@@ -67,8 +65,8 @@ def on_transition_day(evt, var):
         # bite is now separate but some people may try to double up still
         # The implementation of bite is merely lycanthropy + kill, which lets us
         # simplify a lot of the code by offloading it to relevant pieces
-        status.add_lycanthropy(var, target, "bitten")
-        status.add_lycanthropy_scope(var, All)
+        add_lycanthropy(var, target, "bitten")
+        add_lycanthropy_scope(var, All)
         evt.data["killers"][target].append("@wolves")
         evt.data["victims"].append(target)
 

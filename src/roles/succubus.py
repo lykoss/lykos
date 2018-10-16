@@ -10,6 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 
 ENTRANCED = UserSet() # type: Set[users.User]
@@ -28,10 +29,9 @@ def hvisit(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-    target = evt.data["target"]
 
     VISITED[wrapper.source] = target
     PASSED.discard(wrapper.source)
@@ -94,19 +94,15 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["entranced_win"]
 
-@event_listener("exchange_roles")
-def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
-    del VISITED[:actor:]
-    del VISITED[:target:]
-    PASSED.discard(actor)
-    PASSED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "succubus" and evt.data["role"] != "succubus":
+        del VISITED[:player:]
+        PASSED.discard(player)
 
-    if actor in ENTRANCED:
-        ENTRANCED.remove(actor)
-        actor.send(messages["no_longer_entranced"])
-    if target in ENTRANCED:
-        ENTRANCED.remove(target)
-        target.send(messages["no_longer_entranced"])
+    if evt.data["role"] == "succubus" and player in ENTRANCED:
+        ENTRANCED.remove(player)
+        player.send(messages["no_longer_entranced"])
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

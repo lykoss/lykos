@@ -10,7 +10,7 @@ from src import channels, users, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
 CHARMED = UserSet() # type: Set[users.User]
@@ -41,18 +41,12 @@ def charm(var, wrapper, message):
     orig1 = target1
     orig2 = target2
 
-    evt1 = Event("targeted_command", {"target": target1, "misdirection": True, "exchange": True})
-    evt1.dispatch(var, wrapper.source, target1)
-    if evt1.prevent_default:
-        return
-    target1 = evt1.data["target"]
-
+    target1 = try_misdirection(var, wrapper.source, target1)
     if target2 is not None:
-        evt2 = Event("targeted_command", {"target": target2, "misdirection": True, "exchange": True})
-        evt2.dispatch(var, wrapper.source, target2)
-        if evt2.prevent_default:
-            return
-        target2 = evt2.data["target"]
+        target2 = try_misdirection(var, wrapper.source, target2)
+
+    if try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
+        return
 
     # Do these checks based on original targets, so piper doesn't know to change due to misdirection/luck totem
     if orig1 is orig2:
@@ -192,19 +186,14 @@ def on_transition_night_end(evt, var):
             to_send = "piper_simple"
         piper.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    # if we're shifting piper around, ensure that the new piper isn't charmed
-    if actor_role == "piper":
-        CHARMED.discard(target)
-        if target_role != "piper":
-            del TOBECHARMED[:actor:]
-            PASSED.discard(actor)
-    if target_role == "piper":
-        CHARMED.discard(actor)
-        if actor_role != "piper":
-            del TOBECHARMED[:target:]
-            PASSED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "piper" and evt.data["role"] != "piper":
+        del TOBECHARMED[:player:]
+        PASSED.discard(player)
+
+    if evt.data["role"] == "piper" and player in CHARMED:
+        CHARMED.remove(player)
 
 @event_listener("reset")
 def on_reset(evt, var):

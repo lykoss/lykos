@@ -56,21 +56,14 @@ def setup_variables(rolename, *, send_role, types):
                 mystic.send(messages[to_send])
             mystic.send(msg)
 
-    @event_listener("exchange_roles")
-    def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
-        if actor_role == rolename and target_role != rolename:
-            value, plural = LAST_COUNT.pop(actor)
-            LAST_COUNT[target] = (value, plural)
+    @event_listener("new_role")
+    def on_new_role(evt, var, player, old_role):
+        if evt.params.inherit_from is not None and old_role != rolename and evt.data["role"] == rolename:
+            value, plural = LAST_COUNT.pop(evt.params.inherit_from)
+            LAST_COUNT[player] = (value, plural)
             key = "were" if plural else "was"
             msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
-            evt.data["target_messages"].append(msg)
-
-        if target_role == rolename and actor_role != rolename:
-            value, plural = LAST_COUNT.pop(target)
-            LAST_COUNT[actor] = (value, plural)
-            key = "were" if plural else "was"
-            msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
-            evt.data["actor_messages"].append(msg)
+            evt.data["messages"].append(msg)
 
     @event_listener("reset")
     def on_reset(evt, var):

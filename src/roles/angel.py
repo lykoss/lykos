@@ -6,12 +6,12 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import users, channels, status, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
 
 GUARDED = UserDict() # type: Dict[User, User]
@@ -33,14 +33,11 @@ def guard(var, wrapper, message):
         wrapper.pm(messages["guardian_target_another"].format(target))
         return
 
-    target_other = wrapper.source is not target
-
-    evt = Event("targeted_command", {"target": target, "misdirection": target_other, "exchange": target_other})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
-    status.add_protection(var, target, wrapper.source, "guardian angel")
+    add_protection(var, target, wrapper.source, "guardian angel")
     GUARDED[wrapper.source] = target
     LASTGUARDED[wrapper.source] = target
 
@@ -73,20 +70,13 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 del dictvar[k]
     PASSED.discard(player)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "guardian angel":
-        if actor in GUARDED:
-            guarded = GUARDED.pop(actor)
-            guarded.send(messages["protector disappeared"])
-        if actor in LASTGUARDED:
-            del LASTGUARDED[actor]
-    if target_role == "guardian angel":
-        if target in GUARDED:
-            guarded = GUARDED.pop(target)
-            guarded.send(messages["protector disappeared"])
-        if target in LASTGUARDED:
-            del LASTGUARDED[target]
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "guardian angel" and evt.data["role"] != "guardian angel":
+        if player in GUARDED:
+            guarded = GUARDED.pop(player)
+            guarded.send(messages["protector_disappeared"])
+        del LASTGUARDED[:player:]
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -146,7 +136,7 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
         protector.send(messages[reason + "_success"].format(target))
         target.send(messages[reason + "_deprotect"])
         if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
-            status.add_dying(var, protector, killer_role="fallen angel", reason=reason)
+            add_dying(var, protector, killer_role="fallen angel", reason=reason)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

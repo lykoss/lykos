@@ -9,6 +9,7 @@ from src import debuglog, errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 
 @event_listener("get_reveal_role")

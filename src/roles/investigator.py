@@ -10,6 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Neutral, Wolfteam
 
@@ -37,17 +38,11 @@ def investigate(var, wrapper, message):
         wrapper.pm(messages["investigator_help"])
         return
 
-    evt = Event("targeted_command", {"target": target1, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target1)
-    if evt.prevent_default:
-        return
-    target1 = evt.data["target"]
+    target1 = try_misdirection(var, wrapper.source, target1)
+    target2 = try_misdirection(var, wrapper.source, target2)
 
-    evt = Event("targeted_command", {"target": target2, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target2)
-    if evt.prevent_default:
+    if try_exchange(var, wrapper.source, target1) or try_exchange(var, wrapper.source, target2):
         return
-    target2 = evt.data["target"]
 
     t1role = get_main_role(target1)
     t2role = get_main_role(target2)

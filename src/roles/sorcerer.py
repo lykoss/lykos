@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import Spy
 
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message
@@ -32,11 +32,9 @@ def observe(var, wrapper, message):
         wrapper.pm(messages["no_observe_wolf"])
         return
 
-    evt = Event("targeted_command", {"target": target, "exchange": True, "misdirection": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-
-    target = evt.data["target"]
 
     OBSERVED.add(wrapper.source)
     targrole = get_main_role(target)

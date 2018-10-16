@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 # Skeleton file for new roles. Not all events are represented, only the most common ones.
 
@@ -32,9 +32,15 @@ def on_chk_nightdone(evt, var):
 def on_transition_night_end(evt, var):
     pass
 
-# Update any role state that happens when someone with this role exchanges with someone else.
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
+# Create initial role state and handle swapping roles with someone else
+# If two players have the same role and their state needs to be exchanged, don't do it here
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    pass
+
+# Swap role state for two players. Only called during an actual exchange
+@event_listener("swap_role_state")
+def on_swap_role_state(evt, var, actor, target, role):
     pass
 
 # Update any game state which happens when player dies. If this role does things upon death,

@@ -9,6 +9,7 @@ from src.functions import get_main_role, get_players, get_all_roles, get_all_pla
 from src.decorators import event_listener, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
 from src import debuglog, users
@@ -51,12 +52,10 @@ def register_killer(rolename):
                 return
 
             orig.append(target)
-
-            evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-            if not evt.dispatch(var, wrapper.source, target):
+            target = try_misdirection(var, wrapper.source, target)
+            if try_exchange(var, wrapper.source, target):
                 return
 
-            target = evt.data["target"]
             targets.append(target)
 
         KILLS[wrapper.source] = UserList(targets)

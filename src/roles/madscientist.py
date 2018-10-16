@@ -10,8 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
-from src.status import try_protection, add_dying
+from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
 def _get_targets(var, pl, user):
     """Gets the mad scientist's targets.
