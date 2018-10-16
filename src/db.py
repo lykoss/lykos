@@ -360,7 +360,7 @@ def get_player_totals(acc, hostmask):
                    ON pe.id = pl.person
                  WHERE pe.id = ?""", (peid,))
     won_games = c.fetchone()[0]
-    order = role_order()
+    order = list(role_order())
     name = _get_display_name(peid)
     #ordered role stats
     totals = ["\u0002{0}\u0002: {1}".format(r, tmp[r]) for r in order if r in tmp]
