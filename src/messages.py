@@ -24,7 +24,7 @@ class Messages:
 
         if not os.path.isfile(os.path.join(ROOT_DIR, "messages.json")):
             return
-        with open(os.path.join(ROOT_DIR, "messages.json")) as f:
+        with open(os.path.join(ROOT_DIR, "messages.json"), encoding="utf-8") as f:
             custom_msgs = json.load(f)
 
         if not custom_msgs:
