@@ -30,6 +30,11 @@ def try_misdirection(var, actor, target):
 
     return target
 
+@event_listener("del_player")
+def on_del_player(evt, var, player, allroles, death_triggers):
+    MISDIRECTED.discard(player)
+    LUCKY.discard(player)
+
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
     if MISDIRECTED or LUCKY:

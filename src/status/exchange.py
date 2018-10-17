@@ -17,11 +17,11 @@ def try_exchange(var, actor, target):
 
     EXCHANGE.remove(target)
 
-    actor_role = get_main_role(actor)
+    role = get_main_role(actor)
     target_role = get_main_role(target)
 
-    actor_role = change_role(var, actor, actor_role, target_role, inherit_from=target)
-    target_role = change_role(var, target, target_role, actor_role, inherit_from=actor)
+    actor_role = change_role(var, actor, role, target_role, inherit_from=target)
+    target_role = change_role(var, target, target_role, role, inherit_from=actor)
 
     if actor_role == target_role: # swap state of two players with the same role
         evt = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
@@ -31,6 +31,10 @@ def try_exchange(var, actor, target):
         target.send(*evt.data["target_messages"])
 
     return True
+
+@event_listener("del_player")
+def on_del_player(evt, var, player, allroles, death_triggers):
+    EXCHANGE.discard(player)
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

@@ -90,6 +90,7 @@ def on_chk_nightdone(evt, var):
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
     if old_role == "harlot" and evt.data["role"] != "harlot":
+        PASSED.discard(player)
         if player in VISITED:
             VISITED.pop(player).send(messages["harlot_disappeared"].format(player))
 

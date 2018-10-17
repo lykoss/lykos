@@ -3,7 +3,7 @@ import random
 import re
 from collections import deque
 
-from src import channels, users, status, debuglog, errlog, plog
+from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -202,17 +202,16 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("swap_role_state")
     def on_swap_role_state(evt, var, actor, target, role):
-        if role == rolename:
-            if actor in TOTEMS and target in TOTEMS:
-                TOTEMS[actor], TOTEMS[target] = TOTEMS[target], TOTEMS[actor]
-                del SHAMANS[:actor:]
-                del SHAMANS[:target:]
-                del LASTGIVEN[:actor:]
-                del LASTGIVEN[:target:]
+        if role == rolename and actor in TOTEMS and target in TOTEMS:
+            TOTEMS[actor], TOTEMS[target] = TOTEMS[target], TOTEMS[actor]
+            del SHAMANS[:actor:]
+            del SHAMANS[:target:]
+            del LASTGIVEN[:actor:]
+            del LASTGIVEN[:target:]
 
-                if knows_totem:
-                    evt.data["actor_messages"].append(messages["shaman_totem"].format(TOTEMS[actor]))
-                    evt.data["target_messages"].append(messages["shaman_totem"].format(TOTEMS[target]))
+            if knows_totem:
+                evt.data["actor_messages"].append(messages["shaman_totem"].format(TOTEMS[actor]))
+                evt.data["target_messages"].append(messages["shaman_totem"].format(TOTEMS[target]))
 
     @event_listener("default_totems", priority=3)
     def add_shaman(evt, chances):

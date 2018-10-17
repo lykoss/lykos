@@ -58,7 +58,7 @@ def setup_variables(rolename, *, send_role, types):
 
     @event_listener("new_role")
     def on_new_role(evt, var, player, old_role):
-        if evt.params.inherit_from is not None and old_role != rolename and evt.data["role"] == rolename:
+        if evt.params.inherit_from in LAST_COUNT and old_role != rolename and evt.data["role"] == rolename:
             value, plural = LAST_COUNT.pop(evt.params.inherit_from)
             LAST_COUNT[player] = (value, plural)
             key = "were" if plural else "was"

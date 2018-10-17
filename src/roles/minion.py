@@ -38,6 +38,7 @@ def on_transition_night_end(evt, var):
 def on_new_role(evt, var, player, old_role):
     if old_role is not None and evt.data["role"] == "minion":
         evt.data["messages"].append(wolf_list(var))
+        RECEIVED_INFO.add(player)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
