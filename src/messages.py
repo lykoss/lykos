@@ -19,7 +19,7 @@ class Messages:
     __getitem__ = get
 
     def _load_messages(self):
-        with open(os.path.join(MESSAGES_DIR, self.lang + ".json")) as f:
+        with open(os.path.join(MESSAGES_DIR, self.lang + ".json"), encoding="utf-8") as f:
             self.messages = json.load(f)
 
         if not os.path.isfile(os.path.join(ROOT_DIR, "messages.json")):
