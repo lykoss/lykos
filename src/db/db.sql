@@ -33,8 +33,9 @@ CREATE TABLE person (
     simple BOOLEAN NOT NULL DEFAULT 0,
     -- If 1, the bot will automatically join the player to deadchat upon them dying
     deadchat BOOLEAN NOT NULL DEFAULT 1,
-    -- Pingif preference for the person, or NULL if they do not wish to be pinged
-    pingif INTEGER,
+    -- Pingif preferences for the person, or NULL if they do not wish to be pinged
+    -- This is a comma-separated list of integers
+    pingif TEXT,
     -- Amount of stasis this person has (stasis prevents them from joining games while active)
     -- each time a game is started, this is decremented by 1, to a minimum of 0
     stasis_amount INTEGER NOT NULL DEFAULT 0,

@@ -414,10 +414,10 @@ class User(IRCContext):
 
         return False
 
-    def get_pingif_count(self):
+    def get_pingif_counts(self):
         temp = self.lower()
 
-        if temp.account in var.PING_IF_PREFS_ACCS:
+        if var.PING_IF_PREFS_ACCS.get(temp.account):
             return var.PING_IF_PREFS_ACCS[temp.account]
 
         if not var.ACCOUNTS_ONLY:
@@ -425,54 +425,57 @@ class User(IRCContext):
                 if temp.match_hostmask(hostmask):
                     return pref
 
-        return 0
+        return []
 
-    def set_pingif_count(self, value, old=None):
+    def add_pingif_count(self, value):
         temp = self.lower()
 
-        if not value:
-            if temp.account in var.PING_IF_PREFS_ACCS:
-                del var.PING_IF_PREFS_ACCS[temp.account]
-                db.set_pingif(0, temp.account, None)
-                if old is not None:
-                    with var.WARNING_LOCK:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+        if temp.account is not None:
+            var.PING_IF_PREFS_ACCS[temp.account].append(value)
+            db.set_pingif(var.PING_IF_PREFS_ACCS[temp.account], temp.account, None)
+            with var.WARNING_LOCK:
+                var.PING_IF_NUMS_ACCS[value].add(temp.account)
 
-            if not var.ACCOUNTS_ONLY:
-                for hostmask in list(var.PING_IF_PREFS):
-                    if temp.match_hostmask(hostmask):
-                        del var.PING_IF_PREFS[hostmask]
-                        db.set_pingif(0, None, hostmask)
-                        if old is not None:
-                            with var.WARNING_LOCK:
-                                if old in var.PING_IF_NUMS:
-                                    var.PING_IF_NUMS[old].discard(hostmask)
-                                    var.PING_IF_NUMS[old].discard(temp.host)
+        elif not var.ACCOUNTS_ONLY:
+            var.PING_IF_PREFS[temp.userhost].append(value)
+            db.set_pingif(var.PING_IF_PREFS[temp.userhost], None, temp.userhost)
+            with var.WARNING_LOCK:
+                var.PING_IF_NUMS[value].add(temp.userhost)
 
-        else:
-            if temp.account is not None:
-                var.PING_IF_PREFS_ACCS[temp.account] = value
-                db.set_pingif(value, temp.account, None)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS_ACCS:
-                        var.PING_IF_NUMS_ACCS[value] = set()
-                    var.PING_IF_NUMS_ACCS[value].add(temp.account)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS_ACCS:
-                            var.PING_IF_NUMS_ACCS[old].discard(temp.account)
+    def remove_pingif_count(self, count):
+        temp = self.lower()
 
-            elif not var.ACCOUNTS_ONLY:
-                var.PING_IF_PREFS[temp.userhost] = value
-                db.set_pingif(value, None, temp.userhost)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS:
-                        var.PING_IF_NUMS[value] = set()
-                    var.PING_IF_NUMS[value].add(temp.userhost)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS:
-                            var.PING_IF_NUMS[old].discard(temp.host)
-                            var.PING_IF_NUMS[old].discard(temp.userhost)
+        if temp.account is not None:
+            if count in var.PING_IF_PREFS_ACCS.get(temp.account, ()):
+                var.PING_IF_PREFS_ACCS[temp.account].remove(count)
+                var.PING_IF_NUMS_ACCS[count].remove(temp.account)
+                db.set_pingif(var.PING_IF_PREFS_ACCS[temp.account], temp.account, None)
+
+        elif not var.ACCOUNTS_ONLY:
+            for hostmask, prefs in var.PING_IF_PREFS.items():
+                if temp.match_hostmask(hostmask) and count in prefs:
+                    prefs.remove(count)
+                    var.PING_IF_NUMS[count].discard(hostmask)
+                    var.PING_IF_NUMS[count].discard(temp.host)
+                    db.set_pingif(prefs, None, hostmask)
+
+    def clear_pingif_counts(self):
+        temp = self.lower()
+
+        if temp.account is not None:
+            for count in var.PING_IF_PREFS_ACCS[temp.account]:
+                var.PING_IF_NUMS_ACCS[count].remove(temp.account)
+            del var.PING_IF_PREFS_ACCS[temp.account]
+            db.set_pingif([], temp.account, None)
+
+        elif not var.ACCOUNTS_ONLY:
+            for hostmask, prefs in list(var.PING_IF_PREFS.items()):
+                if temp.match_hostmask(hostmask):
+                    for count in prefs:
+                        var.PING_IF_NUMS[count].discard(hostmask)
+                        var.PING_IF_NUMS[count].discard(temp.host)
+                    del var.PING_IF_PREFS[hostmask]
+                    db.set_pingif([], None, hostmask)
 
     def wants_deadchat(self):
         temp = self.lower()

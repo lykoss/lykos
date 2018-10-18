@@ -325,8 +325,7 @@ def reset():
     var.DEAD.clear()
     var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
     var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
-    var.PINGED_ALREADY = set()
-    var.PINGED_ALREADY_ACCS = set()
+    var.LAST_PING = 0
     var.NO_LYNCH.clear()
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
@@ -623,23 +622,24 @@ def replace(var, wrapper, message):
         if var.PHASE in var.GAME_PHASES:
             myrole.func(var, wrapper, "")
 
-
 @command("pingif", "pingme", "pingat", "pingpref", pm=True)
 def altpinger(var, wrapper, message):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
-
     if wrapper.source.account is None and var.ACCOUNTS_ONLY:
         wrapper.pm(messages["not_logged_in"])
         return
 
-    players = wrapper.source.get_pingif_count()
+    players = wrapper.source.get_pingif_counts()
     args = message.lower().split()
 
     msg = []
 
     if not args:
-        if players:
-            msg.append(messages["get_pingif"].format(players))
+        if len(players) > 1:
+            to_send = ", ".join(str(x) for x in players[:-1])
+            msg.append(messages["get_pingif"].format(" or ".join([to_send, str(players[-1])])))
+        elif players:
+            msg.append(messages["get_pingif"].format(players[0]))
         else:
             msg.append(messages["no_pingif"])
 
@@ -648,10 +648,24 @@ def altpinger(var, wrapper, message):
               len(args) > 1 and args[1].isdigit() and int(args[1]) == 0)):
 
         if players:
-            msg.append(messages["unset_pingif"].format(players))
-            wrapper.source.set_pingif_count(0, players)
+            to_send = ", ".join(str(x) for x in players)
+            msg.append(messages["unset_pingif"].format(to_send))
+            wrapper.source.clear_pingif_counts()
         else:
             msg.append(messages["no_pingif"])
+
+    elif ((args[0].startswith("-") and args[0][1:].isdigit()) or
+          (len(args) > 1 and args[1].startswith("-") and args[1][1:].isdigit())):
+        # remove a pingif pref
+        if args[0][1:].isdigit():
+            num = int(args[0][1:])
+        else:
+            num = int(args[1][1:])
+        if num not in players:
+            msg.append(messages["pingif_not_set"].format(num))
+        else:
+            msg.append(messages["remove_pingif"].format(num))
+            wrapper.source.remove_pingif_count(num)
 
     elif args[0].isdigit() or (len(args) > 1 and args[1].isdigit()):
         if args[0].isdigit():
@@ -660,14 +674,11 @@ def altpinger(var, wrapper, message):
             num = int(args[1])
         if num > 999:
             msg.append(messages["pingif_too_large"])
-        elif players == num:
+        elif num in players:
             msg.append(messages["pingif_already_set"].format(num))
-        elif players:
-            msg.append(messages["pingif_change"].format(players, num))
-            wrapper.source.set_pingif_count(num, players)
         else:
-            msg.append(messages["set_pingif"].format(num))
-            wrapper.source.set_pingif_count(num)
+            msg.append(messages["add_pingif"].format(num))
+            wrapper.source.add_pingif_count(num)
 
     else:
         msg.append(messages["pingif_invalid"])
@@ -679,60 +690,49 @@ def join_timer_handler(var):
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
         to_ping = []
-        pl = list_players()
+        pl = get_players()
 
-        checker = set()
-        chk_acc = set()
+        chk_accs = set()
+        chk_host = set()
 
-        # Add accounts/hosts to the list of possible players to ping
         if not var.DISABLE_ACCOUNTS:
             for num in var.PING_IF_NUMS_ACCS:
-                if num <= len(pl):
+                if num > var.LAST_PING and num <= len(pl):
                     for acc in var.PING_IF_NUMS_ACCS[num]:
-                        if db.has_unacknowledged_warnings(acc, None):
-                            continue
-                        chk_acc.add(users.lower(acc))
+                        if not db.has_unacknowledged_warnings(acc, None):
+                            chk_accs.add(acc)
+
+            for player in pl:
+                chk_accs.discard(player.lower().account)
 
         if not var.ACCOUNTS_ONLY:
             for num in var.PING_IF_NUMS:
-                if num <= len(pl):
-                    for hostmask in var.PING_IF_NUMS[num]:
-                        if db.has_unacknowledged_warnings(None, hostmask):
-                            continue
-                        checker.add(users.lower(hostmask, casemapping="ascii"))
+                if num > var.LAST_PING and num <= len(pl):
+                    for host in var.PING_IF_NUMS[num]:
+                        if not db.has_unacknowledged_warnings(None, host):
+                            chk_host.add(host)
 
-        # Don't ping alt connections of users that have already joined
-        if not var.DISABLE_ACCOUNTS:
-            for player in pl:
-                user = users._get(player) # FIXME
-                var.PINGED_ALREADY_ACCS.add(users.lower(user.account))
+        var.LAST_PING = len(pl)
 
-        # Remove players who have already been pinged from the list of possible players to ping
-        chk_acc -= var.PINGED_ALREADY_ACCS
-        checker -= var.PINGED_ALREADY
-
-        # If there is nobody to ping, do nothing
-        if not chk_acc and not checker:
+        if not chk_accs and not chk_host: # nobody to ping, exit out
             var.PINGING_IFS = False
             return
 
         def get_altpingers(event, var, chan, user):
-            if event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user.nick in pl: # FIXME: Fix this when list_players() returns User instances
+            if chan is not channels.Main or event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user in pl:
                 return
 
             temp = user.lower()
-            if temp.account in chk_acc:
+            if temp.account in chk_accs:
                 to_ping.append(temp)
-                var.PINGED_ALREADY_ACCS.add(temp.account)
                 return
 
             if not var.ACCOUNTS_ONLY:
-                if temp.userhost in checker:
+                if temp.userhost in chk_host:
                     to_ping.append(temp)
-                    var.PINGED_ALREADY.add(temp.userhost)
 
         def ping_altpingers(event, var, request):
-            if request is channels.Main:
+            if request is channels.Main and var.PINGING_IFS:
                 var.PINGING_IFS = False
                 if to_ping:
                     to_ping.sort(key=lambda x: x.nick)
@@ -903,8 +903,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
             var.WAIT_TB_LAST   = time.time()
         var.GAME_ID = time.time()
-        var.PINGED_ALREADY_ACCS = set()
-        var.PINGED_ALREADY = set()
+        var.LAST_PING = 0
         if wrapper.source.userhost:
             var.JOINED_THIS_GAME.add(wrapper.source.userhost)
         if wrapper.source.account:
@@ -3512,7 +3511,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.NIGHT_TIMEDELTA = timedelta(0)
     var.DAY_START_TIME = datetime.now()
     var.NIGHT_START_TIME = datetime.now()
-    var.LAST_PING = None
 
     var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
 

@@ -14,7 +14,7 @@ from src.utilities import irc_lower, break_long_message, role_order, singular
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 _ts = threading.local()
 
@@ -47,8 +47,8 @@ def init_vars():
         var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
         var.STASISED = defaultdict(int)
         var.STASISED_ACCS = defaultdict(int)
-        var.PING_IF_PREFS = {}
-        var.PING_IF_PREFS_ACCS = {}
+        var.PING_IF_PREFS = defaultdict(list)
+        var.PING_IF_PREFS_ACCS = defaultdict(list)
         var.PING_IF_NUMS = defaultdict(set)
         var.PING_IF_NUMS_ACCS = defaultdict(set)
         var.DEADCHAT_PREFS = set()
@@ -67,9 +67,12 @@ def init_vars():
                     var.PREFER_NOTICE_ACCS.add(acc)
                 if stasis > 0:
                     var.STASISED_ACCS[acc] = stasis
-                if pi is not None and pi > 0:
-                    var.PING_IF_PREFS_ACCS[acc] = pi
-                    var.PING_IF_NUMS_ACCS[pi].add(acc)
+                if pi is not None:
+                    for x in pi.split(","):
+                        x = int(x)
+                        if x:
+                            var.PING_IF_PREFS_ACCS[acc].append(x)
+                            var.PING_IF_NUMS_ACCS[x].add(acc)
                 if dc == 1:
                     var.DEADCHAT_PREFS_ACCS.add(acc)
                 if flags:
@@ -87,9 +90,12 @@ def init_vars():
                     var.PREFER_NOTICE.add(host)
                 if stasis > 0:
                     var.STASISED[host] = stasis
-                if pi is not None and pi > 0:
-                    var.PING_IF_PREFS[host] = pi
-                    var.PING_IF_NUMS[pi].add(host)
+                if pi is not None:
+                    for x in pi.split(","):
+                        x = int(x)
+                        if x:
+                            var.PING_IF_PREFS[host].append(x)
+                            var.PING_IF_NUMS[x].add(host)
                 if dc == 1:
                     var.DEADCHAT_PREFS.add(host)
                 if flags:
@@ -245,7 +251,7 @@ def toggle_deadchat(acc, hostmask):
     _toggle_thing("deadchat", acc, hostmask)
 
 def set_pingif(val, acc, hostmask):
-    _set_thing("pingif", val, acc, hostmask, raw=False)
+    _set_thing("pingif", ",".join(str(x) for x in val), acc, hostmask, raw=False)
 
 def add_game(mode, size, started, finished, winner, players, options):
     """ Adds a game record to the database.
@@ -963,6 +969,10 @@ def _upgrade(oldversion):
             if oldversion < 5:
                 print ("Upgrade from version 4 to 5...", file=sys.stderr)
                 c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
+            if oldversion < 6:
+                print ("Upgrade from version 5 to 6...", file=sys.stderr)
+                with open(os.path.join(dn, "db", "upgrade6.sql"), "rt") as f:
+                    c.executescript(f.read())
 
             print ("Rebuilding indexes...", file=sys.stderr)
             c.execute("REINDEX")
@@ -970,7 +980,7 @@ def _upgrade(oldversion):
             print ("Upgrades complete!", file=sys.stderr)
     except sqlite3.Error:
         print ("An error has occurred while upgrading the database schema.",
-               "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+               "Please report this issue to #lykos on irc.freenode.net.",
                "Include all of the following details in your report:",
                sep="\n", file=sys.stderr)
         if have_backup:
