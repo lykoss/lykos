@@ -3039,20 +3039,19 @@ def relay(var, wrapper, message):
             return
 
         badguys.remove(wrapper.source)
-        to_msg = set(u.nick for u in badguys) # FIXME: replace mass_privmsg with something user-aware below
         if message.startswith("\u0001ACTION"):
             message = message[7:-1]
-            mass_privmsg(wrapper.client, to_msg, "* \u0002{0}\u0002{1}".format(wrapper.source, message))
+            for player in badguys:
+                player.queue_message("* \u0002{0}\u0002{1}".format(wrapper.source, message))
             for player in var.SPECTATING_WOLFCHAT:
                 player.queue_message("* [wolfchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
-            if var.SPECTATING_WOLFCHAT:
-                player.send_messages()
         else:
-            mass_privmsg(wrapper.client, to_msg, "\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+            for player in badguys:
+                player.queue_message("\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
             for player in var.SPECTATING_WOLFCHAT:
                 player.queue_message("[wolfchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
-            if var.SPECTATING_WOLFCHAT:
-                player.send_messages()
+        if badguys or var.SPECTATING_WOLFCHAT:
+            player.send_messages()
 
 @handle_error
 def transition_night():

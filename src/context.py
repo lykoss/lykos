@@ -112,6 +112,7 @@ class IRCContext:
     """Base class for channels and users."""
 
     _messages = defaultdict(list)
+    _in_iter = False
 
     def __init__(self, name, client):
         self.name = name
@@ -154,6 +155,8 @@ class IRCContext:
         return "PRIVMSG"
 
     def queue_message(self, message):
+        if self._in_iter:
+            raise RuntimeError("Attempting to queue a new message while we're sending off messages")
         if self.is_fake:
             self.send(message) # Don't actually queue it
             return
@@ -165,6 +168,7 @@ class IRCContext:
 
     @classmethod
     def send_messages(cls, *, notice=False, privmsg=False):
+        cls._in_iter = True
         for message, targets in cls._messages.items():
             if isinstance(message, str):
                 message = (message,)
@@ -178,6 +182,7 @@ class IRCContext:
                     _send(message, "", " ", using[0].client, send_type, ",".join([t.nick for t in using]))
 
         cls._messages.clear()
+        cls._in_iter = False
 
     @classmethod
     def get_context_type(cls, *, max_types=1):
