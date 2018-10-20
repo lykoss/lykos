@@ -41,14 +41,14 @@ def on_new_role(evt, var, user, old_role):
     if evt.data["role"] == "wolf" and old_role == "wild child" and evt.params.inherit_from and "wild child" in get_all_roles(evt.params.inherit_from):
         evt.data["role"] = "wild child"
 
-    if evt.params.inherit_from in IDOLS and old_role != "wild child" and evt.data["role"] == "wild child":
+    if evt.params.inherit_from in IDOLS and "wild child" not in get_all_roles(user):
         IDOLS[user] = IDOLS.pop(evt.params.inherit_from)
         evt.data["messages"].append(messages["wild_child_idol"].format(IDOLS[user]))
 
 @event_listener("swap_role_state")
 def on_swap_role_state(evt, var, actor, target, role):
     if role == "wild child":
-        IDOLS[actor], IDOLS[target] = IDOLS[target], IDOLS[user]
+        IDOLS[actor], IDOLS[target] = IDOLS[target], IDOLS[actor]
         if IDOLS[actor] in get_players():
             evt.data["actor_messages"].append(messages["wild_child_idol"].format(IDOLS[actor]))
         else: # The King is dead, long live the King!
