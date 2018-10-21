@@ -659,7 +659,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users._get(rawnick) # FIXME
+    user = users._get(rawnick, allow_bot=True) # FIXME
     Event("server_quit", {}).dispatch(var, user, reason)
 
     for chan in set(user.channels):
