@@ -268,50 +268,6 @@ def on_see(evt, var, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-@event_listener("chk_decision", priority=1)
-def on_chk_decision(evt, var, force):
-    nl = []
-    for p in PACIFISM:
-        if p in evt.params.voters:
-            nl.append(p)
-    # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
-    for p in IMPATIENCE:
-        if p in nl:
-            nl.remove(p)
-    evt.data["not_lynching"].update(nl)
-
-    for votee, voters in evt.data["votelist"].items():
-        numvotes = 0
-        random.shuffle(IMPATIENCE)
-        for v in IMPATIENCE:
-            if v in evt.params.voters and v not in voters and v is not votee:
-                # don't add them in if they have the same number or more of pacifism totems
-                # this matters for desperation totem on the votee
-                imp_count = IMPATIENCE.count(v)
-                pac_count = PACIFISM.count(v)
-                if pac_count >= imp_count:
-                    continue
-
-                # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
-                # already !vote earlier. sucks to suck. >:)
-                voters.append(v)
-
-        for v in voters:
-            weight = 1
-            imp_count = IMPATIENCE.count(v)
-            pac_count = PACIFISM.count(v)
-            if pac_count > imp_count:
-                weight = 0 # more pacifists than impatience totems
-            elif imp_count == pac_count and v not in var.VOTES[votee]:
-                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-            if v in INFLUENCE:
-                weight *= 2
-            numvotes += weight
-            if votee not in evt.data["weights"]:
-                evt.data["weights"][votee] = {}
-            evt.data["weights"][votee][v] = weight
-        evt.data["numvotes"][votee] = numvotes
-
 @event_listener("chk_decision_abstain")
 def on_chk_decision_abstain(evt, var, not_lynching):
     for p in not_lynching:
@@ -473,8 +429,15 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
-    for user in NARCOLEPSY:
-        add_absent(var, user, "totem")
+    pl = get_players()
+    for player in NARCOLEPSY:
+        status.add_absent(var, player, "totem")
+    for player in IMPATIENCE:
+        status.force_vote(var, player, pl)
+    for player in PACIFISM:
+        status.force_abstain(var, player)
+    for player in INFLUENCE:
+        status.add_influence(var, player)
     var.EXCHANGED.update(p.nick for p in EXCHANGE)
     var.SILENCED.update(p.nick for p in SILENCE)
     var.LUCKY.update(p.nick for p in LUCK)

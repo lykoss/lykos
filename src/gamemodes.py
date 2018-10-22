@@ -1176,7 +1176,6 @@ class MudkipMode(GameMode):
             14: ["amnesiac"],
             15: ["succubus"],
         }
-        self.recursion_guard = False
 
     def startup(self):
         events.add_listener("chk_decision", self.chk_decision)
@@ -1196,55 +1195,12 @@ class MudkipMode(GameMode):
         # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
         # kill all tied players rather than hanging. The intent of this is to benefit village team in the event
         # of a stalemate, as they could use the extra help (especially in 5p).
-        if self.recursion_guard:
-            # in here, this means we're in a child chk_decision event called from this one
-            # we need to ensure we don't turn into nighttime prematurely or try to vote
-            # anyone other than the person we're forcing the lynch on
-            evt.data["transition_night"] = lambda: None
-            if force:
-                evt.data["votelist"].clear()
-                evt.data["votelist"][force] = set()
-                evt.data["numvotes"].clear()
-                evt.data["numvotes"][force] = 0
-            else:
-                evt.data["votelist"].clear()
-                evt.data["numvotes"].clear()
-            return
 
         avail = len(evt.params.voters)
         voted = sum(map(len, evt.data["votelist"].values()))
-        if (avail != voted and not evt.params.timeout) or voted == 0:
-            return
-
-        majority = avail // 2 + 1
-        maxv = max(evt.data["numvotes"].values())
-        if maxv >= majority or force:
-            # normal vote code will result in someone being lynched
-            # not bailing out here will result in the person being voted twice
-            return
-
-        # make a copy in case an event mutates it in recursive calls
-        tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
-        self.recursion_guard = True
-        gameid = var.GAME_ID
-        last = tovote[-1]
-
-        if evt.params.timeout:
-            channels.Main.send(messages["sunset_lynch"])
-
-        from src.wolfgame import chk_decision
-        for p in tovote:
-            deadlist = tovote[:]
-            deadlist.remove(p)
-            chk_decision(force=p, deadlist=deadlist, end_game=p is last)
-
-        self.recursion_guard = False
-        # gameid changes if game stops due to us voting someone
-        if var.GAME_ID == gameid:
-            evt.data["transition_night"]()
-
-        # make original chk_decision that called us no-op
-        evt.prevent_default = True
+        if avail == voted and voted > 0:
+            evt.data["force"] = True
+            evt.data["lynch_multiple"] = True
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"

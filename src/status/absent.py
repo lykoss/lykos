@@ -2,9 +2,8 @@ from src.decorators import event_listener
 from src.containers import UserDict
 from src.functions import get_players
 from src.messages import messages
-from src import channels
 
-__all__ = ["add_absent"]
+__all__ = ["add_absent", "get_absent"]
 
 ABSENT = UserDict() # type: UserDict[users.User, str]
 
@@ -21,13 +20,12 @@ def add_absent(var, target, reason):
                 del var.VOTES[votee]
             break
 
+def get_absent(var):
+    return set(ABSENT.keys())
+
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
     del ABSENT[:player:]
-
-@event_listener("get_voters")
-def on_get_voters(evt, var):
-    evt.data["voters"].difference_update(ABSENT)
 
 @event_listener("lynch")
 @event_listener("abstain")

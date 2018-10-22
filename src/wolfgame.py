@@ -1337,44 +1337,7 @@ def hurry_up(gameid, change):
         return
 
     var.DAY_ID = 0
-
-    evt = Event("get_voters", {"voters": set(get_players())})
-    evt.dispatch(var)
-    pl = evt.data["voters"]
-    not_lynching = set(var.NO_LYNCH)
-
-    avail = len(pl)
-    votesneeded = avail // 2 + 1
-
-    with copy.deepcopy(var.VOTES) as votelist:
-        # Note: this event can be differentiated between regular chk_decision
-        # by checking evt.params.timeout.
-        event = Event("chk_decision", {
-            "not_lynching": not_lynching,
-            "votelist": votelist,
-            "numvotes": {}, # filled as part of a priority 1 event
-            "weights": {}, # filled as part of a priority 1 event
-            "transition_night": transition_night
-            }, voters=pl, timeout=True)
-        if not event.dispatch(var, None):
-            return
-        numvotes = event.data["numvotes"]
-
-        found_dup = False
-        maxfound = (0, "")
-        for votee, voters in votelist.items():
-            if numvotes[votee] > maxfound[0]:
-                maxfound = (numvotes[votee], votee)
-                found_dup = False
-            elif numvotes[votee] == maxfound[0]:
-                found_dup = True
-
-    if maxfound[0] > 0 and not found_dup:
-        channels.Main.send(messages["sunset_lynch"])
-        chk_decision(force=maxfound[1])  # Induce a lynch
-    else:
-        channels.Main.send(messages["sunset"])
-        event.data["transition_night"]()
+    chk_decision(timeout=True)
 
 @cmd("fnight", flag="N")
 def fnight(cli, nick, chan, rest):
@@ -1393,13 +1356,12 @@ def fday(cli, nick, chan, rest):
     else:
         transition_day()
 
-# Specify force = user to force user to be lynched
-def chk_decision(force=None, end_game=True):
+# Specify timeout=True to force a lynch even if there is no majority
+def chk_decision(timeout=False):
     with var.GRAVEYARD_LOCK:
         if var.PHASE != "day":
             return
-        # Even if the lynch fails, we want to go to night phase if we are forcing a lynch (day timeout)
-        do_night_transision = True if force else False
+        do_night_transition = timeout
         evt = Event("get_voters", {"voters": set(get_players())})
         evt.dispatch(var)
         pl = evt.data["voters"]
@@ -1409,30 +1371,50 @@ def chk_decision(force=None, end_game=True):
         votesneeded = avail // 2 + 1
 
         with copy.deepcopy(var.VOTES) as votelist:
-
             event = Event("chk_decision", {
                 "not_lynching": not_lynching,
                 "votelist": votelist,
                 "numvotes": {}, # filled as part of a priority 1 event
                 "weights": {}, # filled as part of a priority 1 event
-                "transition_night": transition_night
-                }, voters=pl, timeout=False)
-            if not event.dispatch(var, force):
+                "transition_night": transition_night,
+                "force": timeout, # can be a bool or an iterable of users
+                "lynch_multiple": False # whether or not we can lynch more than 1 person
+                }, voters=pl, timeout=timeout)
+            if not event.dispatch(var):
                 return
 
+            force = set()
             numvotes = event.data["numvotes"]
+            if event.data["force"] is True:
+                maxfound = 0
+                for votee, voters in votelist.items():
+                    if numvotes[votee] > maxfound:
+                        maxfound = numvotes[votee]
+                        force = set(votee)
+                    elif numvotes[votee] == maxfound[0]:
+                        force.add(votee)
+            elif event.data["force"] is not False:
+                force = event.data["force"]
+
+            if not event.data["lynch_multiple"] and len(force) > 1:
+                force = set()
+
+            if timeout:
+                if force:
+                    channels.Main.send(messages["sunset_lynch"])
+                else:
+                    channels.Main.send(messages["sunset"])
 
             # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
             # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
-            if len(not_lynching) >= math.ceil(avail / 2):
+            if not force and len(not_lynching) >= math.ceil(avail / 2):
                 abs_evt = Event("chk_decision_abstain", {}, votelist=votelist, numvotes=numvotes)
                 abs_evt.dispatch(var, not_lynching)
                 channels.Main.send(messages["village_abstain"])
                 var.ABSTAINED = True
-                event.data["transition_night"]()
-                return
+                do_night_transition = True
             for votee, voters in votelist.items():
-                if numvotes[votee] >= votesneeded or votee is force:
+                if numvotes[votee] >= votesneeded or votee in force:
                     # priorities:
                     # 1 = displaying impatience totem messages
                     # 3 = mayor/revealing totem
@@ -1440,7 +1422,7 @@ def chk_decision(force=None, end_game=True):
                     # 5 = desperation totem, other things that happen on generic lynch
                     vote_evt = Event("chk_decision_lynch", {"votee": votee},
                         original_votee=votee,
-                        force=(votee is force),
+                        force=(votee in force),
                         votelist=votelist,
                         not_lynching=not_lynching)
                     if vote_evt.dispatch(var, voters):
@@ -1454,12 +1436,11 @@ def chk_decision(force=None, end_game=True):
                             lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                         channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "lynch")
-                        kill_players(var, end_game=False) # temporary hack; end_game=True calls chk_decision and we don't want that
-                        if end_game and chk_win():
-                            return
-                    do_night_transision = True
-                    break
+                        do_night_transition = True
             if do_night_transision:
+                kill_players(var, end_game=False) # temporary hack; end_game=True calls chk_decision and we don't want that
+                if chk_win():
+                    return
                 event.data["transition_night"]()
 
 @cmd("votes", pm=True, phases=("join", "day", "night"))
