@@ -57,7 +57,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.status import try_protection, add_dying, is_dying, kill_players
+from src.status import try_protection, add_dying, is_dying, kill_players, get_absent
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
 from src.functions import (
@@ -1362,9 +1362,7 @@ def chk_decision(timeout=False):
         if var.PHASE != "day":
             return
         do_night_transition = timeout
-        evt = Event("get_voters", {"voters": set(get_players())})
-        evt.dispatch(var)
-        pl = evt.data["voters"]
+        pl = set(get_players()) - get_absent(var)
         not_lynching = set(var.NO_LYNCH)
 
         avail = len(pl)
@@ -1504,10 +1502,7 @@ def show_votes(cli, nick, chan, rest):
 
         reply(cli, nick, chan, msg)
 
-        evt = Event("get_voters", {"voters": set(get_players())})
-        evt.dispatch(var)
-        pl = evt.data["voters"]
-
+        pl = set(get_players()) - get_absent(var)
         avail = len(pl)
         votesneeded = avail // 2 + 1
         not_voting = len(var.NO_LYNCH)
@@ -1759,9 +1754,7 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
     """Internal handler for the chk_win function."""
     with var.GRAVEYARD_LOCK:
         if var.PHASE == "day":
-            evt = Event("get_voters", {"voters": set(get_players())})
-            evt.dispatch(var)
-            pl = evt.data["voters"]
+            pl = set(get_players()) - get_absent(var)
             lpl = len(pl)
         else:
             pl = set(get_players(mainroles=mainroles))

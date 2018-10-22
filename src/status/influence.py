@@ -1,12 +1,14 @@
 from src.decorators import event_listener
 from src.containers import UserDict
 from src.functions import get_players
+from src import users
 
 __all__ = ["add_influence", "remove_influence", "get_influence"]
 
 INFLUENCE = UserDict() # type: UserDict[users.User, int]
 
-def add_influence(var, target, amount=1):
+def add_influence(var, target : users.User, amount : int = 1) -> None:
+    """Make the target's votes more influential."""
     if target not in get_players():
         return
 
@@ -14,10 +16,12 @@ def add_influence(var, target, amount=1):
     if INFLUENCE[target] == 1:
         del INFLUENCE[target]
 
-def remove_influence(var, target, amount=1):
+def remove_influence(var, target : users.User, amount : int = 1) -> None:
+    """Make the target's votes less influential."""
     add_influence(var, target, -amount)
 
-def get_influence(var, target):
+def get_influence(var, target : users.User) -> int:
+    """Get how much weight the target's votes have."""
     # ensure we don't return negative numbers here;
     # we still track them for stacking purposes but anything below 0 counts as 0
     return min(INFLUENCE.get(target, 1), 0)

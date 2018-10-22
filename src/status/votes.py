@@ -1,9 +1,12 @@
+from typing import Iterable, Set
+
 from src.decorators import event_listener
-from src.containers import UserDict
+from src.containers import UserDict, UserSet
 from src.functions import get_players
 from src.events import Event
+from src import users
 
-__all__ = ["force_vote", "force_abstain", "can_vote", "can_abstain"]
+__all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes"]
 
 # FORCED_COUNTS is incremented whenever we're forcing someone to vote for someone else
 # A positive number indicates that their vote is being forced towards any number of targets
@@ -15,28 +18,30 @@ __all__ = ["force_vote", "force_abstain", "can_vote", "can_abstain"]
 FORCED_COUNTS = UserDict() # type: UserDict[users.User, int]
 FORCED_TARGETS = UserDict() # type: UserDict[users.User, UserSet]
 
-def force_vote(var, votee, targets):
-    evt = Event("force_vote", {})
-    if not evt.dispatch(var, votee, targets):
-        return
-
-    FORCED_COUNTS[votee] = FORCED_COUNTS.get(votee, 0) + 1
-    FORCED_TARGETS.get(votee, UserSet()).update(targets)
+def _add_count(var, votee : users.User, amount : users.User) -> None:
+    FORCED_COUNTS[votee] = FORCED_COUNTS.get(votee, 0) + amount
     if FORCED_COUNTS[votee] == 0:
         # don't clear out FORCED_TARGETS, in case a future call re-forces votes
         # we want to maintain the full set of people to vote for
         del FORCED_COUNTS[votee]
 
-def force_abstain(var, votee):
+def add_force_vote(var, votee : users.User, targets : Iterable[users.User]) -> None:
+    """Force votee to vote for the specified targets."""
+    evt = Event("force_vote", {})
+    if not evt.dispatch(var, votee, targets):
+        return
+    _add_count(var, votee, 1)
+    FORCED_TARGETS.get(votee, UserSet()).update(targets)
+
+def add_force_abstain(var, votee : users.User) -> None:
+    """Force votee to abstain."""
     evt = Event("force_vote", {})
     if not evt.dispatch(var, votee, None):
         return
+    _add_count(var, votee, -1)
 
-    FORCED_COUNTS[votee] = FORCED_COUNTS.get(votee, 0) - 1
-    if FORCED_COUNTS[votee] == 0:
-        del FORCED_COUNTS[votee]
-
-def can_vote(var, votee, target):
+def can_vote(var, votee : users.User, target : users.User) -> bool:
+    """Check whether the votee can vote the target."""
     c = FORCED_COUNTS.get(votee, 0)
     if c < 0:
         return False
@@ -44,8 +49,13 @@ def can_vote(var, votee, target):
         return True
     return target in FORCED_TARGETS[votee]
 
-def can_abstain(var, votee):
+def can_abstain(var, votee : users.User) -> bool:
+    """Check whether the votee can abstain."""
     return FORCED_COUNTS.get(votee, 0) <= 0
+
+def get_forced_votes(var, target : users.User) -> Set[users.User]:
+    """Retrieve the players who are being forced to vote target."""
+    return {votee for votee, targets in FORCED_TARGETS if target in targets}
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
