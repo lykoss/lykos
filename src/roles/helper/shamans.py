@@ -3,14 +3,27 @@ import random
 import re
 from collections import deque
 
-from src import channels, users, status, debuglog, errlog, plog
+from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import add_dying, add_absent, try_protection
 from src.cats import Cursed, Safe, Innocent, Wolf, All
+from src.status import (
+    add_lycanthropy_scope,
+    add_misdirection,
+    add_lycanthropy,
+    add_protection,
+    add_exchange,
+    add_disease,
+    add_absent,
+    add_dying,
+
+    try_misdirection,
+    try_protection,
+    try_exchange,
+)
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -176,32 +189,29 @@ def setup_variables(rolename, *, knows_totem):
             # even though retribution kills, it is given a special kill message
             evt.data[rolename] = list(TOTEMS.values()).count("death")
 
-    @event_listener("exchange_roles")
-    def on_exchange(evt, var, actor, target, actor_role, target_role):
-        actor_totem = None
-        target_totem = None
-        if actor_role == rolename:
-            actor_totem = TOTEMS.pop(actor)
-            if actor in SHAMANS:
-                del SHAMANS[actor]
-            if actor in LASTGIVEN:
-                del LASTGIVEN[actor]
+    @event_listener("new_role")
+    def on_new_role(evt, var, player, old_role):
+        if evt.params.inherit_from in TOTEMS and old_role != rolename and evt.data["role"] == rolename:
+            totem = TOTEMS.pop(evt.params.inherit_from)
+            del SHAMANS[:evt.params.inherit_from:]
+            del LASTGIVEN[:evt.params.inherit_from:]
 
-        if target_role == rolename:
-            target_totem = TOTEMS.pop(target)
-            if target in SHAMANS:
-                del SHAMANS[target]
-            if target in LASTGIVEN:
-                del LASTGIVEN[target]
+            if knows_totem:
+                evt.data["messages"].append(messages["shaman_totem"].format(totem))
+            TOTEMS[player] = totem
 
-        if target_totem:
+    @event_listener("swap_role_state")
+    def on_swap_role_state(evt, var, actor, target, role):
+        if role == rolename and actor in TOTEMS and target in TOTEMS:
+            TOTEMS[actor], TOTEMS[target] = TOTEMS[target], TOTEMS[actor]
+            del SHAMANS[:actor:]
+            del SHAMANS[:target:]
+            del LASTGIVEN[:actor:]
+            del LASTGIVEN[:target:]
+
             if knows_totem:
-                evt.data["actor_messages"].append(messages["shaman_totem"].format(target_totem))
-            TOTEMS[actor] = target_totem
-        if actor_totem:
-            if knows_totem:
-                evt.data["target_messages"].append(messages["shaman_totem"].format(actor_totem))
-            TOTEMS[target] = actor_totem
+                evt.data["actor_messages"].append(messages["shaman_totem"].format(TOTEMS[actor]))
+                evt.data["target_messages"].append(messages["shaman_totem"].format(TOTEMS[target]))
 
     @event_listener("default_totems", priority=3)
     def add_shaman(evt, chances):
@@ -210,7 +220,7 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("transition_night_end")
     def on_transition_night_begin(evt, var):
         if get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
-            status.add_lycanthropy_scope(var, All)
+            add_lycanthropy_scope(var, All)
 
     if knows_totem:
         @event_listener("myrole")
@@ -238,11 +248,10 @@ def give_totem(var, wrapper, target, prefix, role, msg):
     orig_target = target
     orig_role = get_main_role(orig_target)
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
     targrole = get_main_role(target)
 
     wrapper.send(messages["shaman_success"].format(prefix, msg, orig_target))
@@ -376,7 +385,7 @@ def on_transition_day3(evt, var):
     # we set priority=4.1 to allow other modes of protection
     # to pre-empt us if desired
     for player in PROTECTION:
-        status.add_protection(var, player, protector=None, protector_role="shaman")
+        add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
@@ -466,19 +475,22 @@ def on_transition_night_end(evt, var):
     # We need to add them here otherwise transition_night_begin
     # will remove them before they even get used
     for lycan in LYCANTHROPY:
-        status.add_lycanthropy(var, lycan)
+        add_lycanthropy(var, lycan)
     for pestilent in PESTILENCE:
-        status.add_disease(var, pestilent)
+        add_disease(var, pestilent)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
-    for user in NARCOLEPSY:
-        add_absent(var, user, "totem")
-    var.EXCHANGED.update(p.nick for p in EXCHANGE)
+    for absent in NARCOLEPSY:
+        add_absent(var, absent, "totem")
+    for misdirected in MISDIRECTION:
+        add_misdirection(var, misdirected, as_actor=True)
+    for lucky in LUCK:
+        add_misdirection(var, lucky, as_target=True)
+    for exchanging in EXCHANGE:
+        add_exchange(var, exchanging)
     var.SILENCED.update(p.nick for p in SILENCE)
-    var.LUCKY.update(p.nick for p in LUCK)
-    var.MISDIRECTED.update(p.nick for p in MISDIRECTION)
 
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

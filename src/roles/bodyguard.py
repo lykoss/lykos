@@ -6,12 +6,12 @@ from collections import defaultdict
 
 import src.settings as var
 from src.utilities import *
-from src import users, channels, status, debuglog, errlog, plog
+from src import users, channels, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
 
 GUARDED = UserDict() # type: Dict[User, User]
@@ -29,12 +29,11 @@ def guard(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
-    status.add_protection(var, target, wrapper.source, "bodyguard")
+    add_protection(var, target, wrapper.source, "bodyguard")
     GUARDED[wrapper.source] = target
 
     wrapper.pm(messages["protecting_target"].format(target))
@@ -61,16 +60,12 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             del GUARDED[k]
     PASSED.discard(player)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if target_role == "bodyguard":
-        if target in GUARDED:
-            guarded = GUARDED.pop(target)
-            guarded.send(messages["protector disappeared"])
-    if actor_role == "bodyguard":
-        if actor in GUARDED:
-            guarded = GUARDED.pop(actor)
-            guarded.send(messages["protector disappeared"])
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "bodyguard" and evt.data["role"] != "bodyguard":
+        if player in GUARDED:
+            guarded = GUARDED.pop(player)
+            guarded.send(messages["protector_disappeared"])
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -129,14 +124,15 @@ def on_try_protection(evt, var, target, attacker, attacker_role, reason):
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if protector_role == "bodyguard":
         evt.data["messages"].append(messages[reason + "_bodyguard"].format(attacker, target, protector))
-        status.add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
-        DYING.add(protector)
+        add_dying(var, protector, killer_role=attacker_role, reason="bodyguard")
+        if var.PHASE == "night" and var.GAMEPHASE == "day": # currently transitioning
+            DYING.add(protector)
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if attacker_role == "fallen angel" and protector_role == "bodyguard":
         evt.data["remove"] = True
-        status.add_dying(var, protector, killer_role="fallen angel", reason=reason)
+        add_dying(var, protector, killer_role="fallen angel", reason=reason)
         protector.send(messages[reason + "_success"].format(target))
         target.send(messages[reason + "_deprotect"])
 

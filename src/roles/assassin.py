@@ -11,7 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import try_protection, add_dying
+from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
 TARGETED = UserDict() # type: Dict[users.User, users.User]
 PREV_ACTED = UserSet()
@@ -27,14 +27,14 @@ def target(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    orig = target
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-    target = evt.data["target"]
 
     TARGETED[wrapper.source] = target
 
-    wrapper.send(messages["assassin_target_success"].format(target))
+    wrapper.send(messages["assassin_target_success"].format(orig))
 
     debuglog("{0} (assassin) TARGET: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 

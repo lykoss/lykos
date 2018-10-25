@@ -11,7 +11,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import Wolf
 
 RECEIVED_INFO = UserSet()
@@ -34,12 +34,11 @@ def on_transition_night_end(evt, var):
         minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "minion":
-        evt.data["target_messages"].append(wolf_list(var))
-    elif target_role == "minion":
-        evt.data["actor_messages"].append(wolf_list(var))
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role is not None and evt.data["role"] == "minion":
+        evt.data["messages"].append(wolf_list(var))
+        RECEIVED_INFO.add(player)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

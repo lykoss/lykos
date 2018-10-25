@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message
 
@@ -35,17 +35,18 @@ def curse(var, wrapper, message):
         wrapper.pm(messages["no_curse_wolf"])
         return
 
-    evt = Event("targeted_command", {"target": target, "exchange": True, "misdirection": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    orig = target
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    CURSED[wrapper.source] = evt.data["target"]
+    CURSED[wrapper.source] = target
     PASSED.discard(wrapper.source)
 
-    wrapper.pm(messages["curse_success"].format(target))
-    send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, target), {"warlock"}, role="warlock", command="curse")
+    wrapper.pm(messages["curse_success"].format(orig))
+    send_wolfchat_message(var, wrapper.source, messages["curse_success_wolfchat"].format(wrapper.source, orig), {"warlock"}, role="warlock", command="curse")
 
-    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, evt.data["target"], get_main_role(evt.data["target"])))
+    debuglog("{0} (warlock) CURSE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
 @command("pass", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("warlock",))
 def pass_cmd(var, wrapper, message):

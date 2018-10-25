@@ -10,7 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables
 from src.roles.helper.wolves import register_killer

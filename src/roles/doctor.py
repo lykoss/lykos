@@ -5,12 +5,13 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import channels, users, debuglog, errlog, plog, status
+from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
+from src.status import try_misdirection, try_exchange, remove_lycanthropy, remove_disease
 
 IMMUNIZED = UserSet() # type: Set[users.User]
 DOCTORS = UserDict() # type: Dict[users.User, int]
@@ -26,11 +27,9 @@ def immunize(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-
-    target = evt.data["target"]
 
     doctor_evt = Event("doctor_immunize", {"message": "villager_immunized"})
     doctor_evt.dispatch(var, wrapper.source, target)
@@ -41,8 +40,8 @@ def immunize(var, wrapper, message):
 
     IMMUNIZED.add(target)
     DOCTORS[wrapper.source] -= 1
-    status.remove_lycanthropy(var, target)
-    status.remove_disease(var, target)
+    remove_lycanthropy(var, target)
+    remove_disease(var, target)
 
     debuglog("{0} (doctor) IMMUNIZE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 

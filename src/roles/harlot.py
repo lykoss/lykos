@@ -10,6 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
@@ -27,11 +28,10 @@ def hvisit(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-    target = evt.data["target"]
+
     vrole = get_main_role(target)
 
     VISITED[wrapper.source] = target
@@ -87,18 +87,12 @@ def on_chk_nightdone(evt, var):
     evt.data["actedcount"] += len(VISITED) + len(PASSED)
     evt.data["nightroles"].extend(get_all_players(("harlot",)))
 
-@event_listener("exchange_roles")
-def on_exchange_roles(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "harlot":
-        if actor in VISITED:
-            VISITED[actor].send(messages["harlot_disappeared"].format(actor))
-            del VISITED[actor]
-        PASSED.discard(actor)
-    if target_role == "harlot":
-        if target in VISITED:
-            VISITED[target].send(messages["harlot_disappeared"].format(target))
-            del VISITED[target]
-        PASSED.discard(target)
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "harlot" and evt.data["role"] != "harlot":
+        PASSED.discard(player)
+        if player in VISITED:
+            VISITED.pop(player).send(messages["harlot_disappeared"].format(player))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
