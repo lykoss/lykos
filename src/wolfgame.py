@@ -1860,7 +1860,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
     event = Event("reconfigure_stats", {"new": []})
     for p in possible:
         for rs in var.ROLE_STATS:
-            d = dict(rs)
+            d = Counter(dict(rs))
             if p in d and d[p] >= 1:
                 d[p] -= 1
                 event.data["new"] = [d]
@@ -2650,7 +2650,7 @@ def transition_day(gameid=0):
     for i in range(revt2.data["howl"]):
         newstats = set()
         for rs in var.ROLE_STATS:
-            d = dict(rs)
+            d = Counter(dict(rs))
             event.data["new"] = [d]
             event.dispatch(var, d, "howl")
             for v in event.data["new"]:
@@ -3419,8 +3419,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
     # Collapse possible_rolesets into var.ROLE_STATS
     # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
     possible_rolesets_set = set()
+    event = Event("reconfigure_stats", {"new": []})
     for pr in possible_rolesets:
-        possible_rolesets_set.add(frozenset(pr.items()))
+        event.data["new"] = [pr]
+        event.dispatch(var, pr, "start")
+        for v in event.data["new"]:
+            if min(v.values()) >= 0:
+                possible_rolesets_set.add(frozenset(v.items()))
     var.ROLE_STATS = frozenset(possible_rolesets_set)
 
     # Now for the secondary roles

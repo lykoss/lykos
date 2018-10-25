@@ -237,6 +237,7 @@ class VillagergameMode(GameMode):
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
         events.add_listener("chk_decision", self.chk_decision, priority=20)
+        events.add_listener("reconfigure_stats", self.reconfigure_stats)
 
     def teardown(self):
         events.remove_listener("chk_win", self.chk_win)
@@ -244,6 +245,19 @@ class VillagergameMode(GameMode):
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
         events.remove_listener("chk_decision", self.chk_decision, priority=20)
+        events.remove_listener("reconfigure_stats", self.reconfigure_stats)
+
+    def reconfigure_stats(self, evt, var, roleset, reason):
+        if reason == "start":
+            pc = len(var.ALL_PLAYERS)
+            roleset["wolf"] += 1
+            roleset["villager"] -= 1
+            if pc == 7:
+                roleset["cultist"] += 1
+                roleset["villager"] -= 1
+            elif pc >= 8:
+                roleset["traitor"] += 1
+                roleset["villager"] -= 1
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         # village can only win via unanimous vote on the bot nick
