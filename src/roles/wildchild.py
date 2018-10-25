@@ -118,7 +118,7 @@ def on_revealroles_role(evt, var, user, role):
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
-    if user in get_all_players(("wild child",)):
+    if evt.data["role"] == "wolf" and user in get_all_players(("wild child",)):
         evt.data["role"] = "wild child"
 
 @event_listener("reset")
