@@ -21,7 +21,7 @@ def add_absent(var, target, reason):
             break
 
 def get_absent(var):
-    return set(ABSENT.keys())
+    return set(ABSENT)
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
