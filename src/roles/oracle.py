@@ -28,7 +28,7 @@ def see(var, wrapper, message):
         return
 
     target = try_misdirection(var, wrapper.source, target)
-    if try_exchange(var, wrapper.source):
+    if try_exchange(var, wrapper.source, target):
         return
 
     targrole = get_main_role(target)
