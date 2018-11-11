@@ -92,6 +92,7 @@ var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
 var.PINGING_IFS = False
 var.TIMERS = {}
+var.PHASE = "none"
 var.OLD_MODES = defaultdict(set)
 
 var.ROLES = UserDict() # type: Dict[str, Set[users.User]]

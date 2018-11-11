@@ -268,6 +268,10 @@ def connect_callback(cli):
 
             if var.LOG_CHANNEL:
                 channels.add(var.LOG_CHANNEL, cli)
+        else:
+            alog("Preparing lag check")
+            # if we ARE doing a lagcheck, we need at least our own host or things break
+            users.Bot.who()
 
         #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
         #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
@@ -284,13 +288,14 @@ def connect_callback(cli):
 
             ping_server_timer(cli)
 
-        if lagcheck:
-            cli.command_handler["privmsg"] = on_privmsg
-            run_lagcheck(cli)
-
     def setup_handler(evt, var, target):
-        target.client.command_handler["privmsg"] = on_privmsg
-        target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
+        from src import lagcheck
+        if lagcheck: # we just got our own host back
+            target.client.command_handler["privmsg"] = on_privmsg
+            run_lagcheck(target.client)
+        else:
+            target.client.command_handler["privmsg"] = on_privmsg
+            target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
 
         events.remove_listener("who_end", setup_handler)
 
