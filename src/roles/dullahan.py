@@ -31,8 +31,6 @@ def dullahan_kill(var, wrapper, message):
     if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
-
     KILLS[wrapper.source] = target
 
     wrapper.pm(messages["player_kill"].format(orig))
