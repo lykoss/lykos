@@ -4,7 +4,7 @@
 
 ### What does Open-Source mean?
 
-Open-Source means that the code is available for free for everyone to view, download, use, and modify. We however have a [License][license], which essentially means that you're not allowed to sell the code or gain profit from it in some way. We do not take donations yet.
+Open-Source means that the code is available for free for everyone to view, download, use, and modify. We however have a [License][license], which requires that you include it in all derivative works and other works which include lykos code.
 
 ### What is Werewolf?
 
