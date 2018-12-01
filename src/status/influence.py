@@ -24,7 +24,7 @@ def get_influence(var, target : users.User) -> int:
     """Get how much weight the target's votes have."""
     # ensure we don't return negative numbers here;
     # we still track them for stacking purposes but anything below 0 counts as 0
-    return min(INFLUENCE.get(target, 1), 0)
+    return max(INFLUENCE.get(target, 1), 0)
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):

@@ -57,7 +57,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.status import try_protection, add_dying, is_dying, kill_players, get_absent
+from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, try_absent
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
 from src.functions import (
@@ -2686,7 +2686,6 @@ def chk_nightdone():
 @command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
 def no_lynch(var, wrapper, message):
     """Allows you to abstain from voting for the day."""
-    evt = Event("abstain", {})
     if not var.ABSTAIN_ENABLED:
         wrapper.pm(messages["command_disabled"])
         return
@@ -2696,7 +2695,7 @@ def no_lynch(var, wrapper, message):
     elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
         wrapper.pm(messages["no_abstain_day_one"])
         return
-    elif not evt.dispatch(var, wrapper.source):
+    elif try_absent(var, wrapper.source):
         return
     for voter in list(var.VOTES):
         if wrapper.source in var.VOTES[voter]:
@@ -2727,10 +2726,8 @@ def lynch(var, wrapper, message):
     if not voted:
         return
 
-    evt = Event("lynch", {"target": voted})
-    if not evt.dispatch(var, wrapper.source):
+    if try_absent(var, wrapper.source):
         return
-    voted = evt.data["target"]
 
     var.NO_LYNCH.discard(wrapper.source)
 
