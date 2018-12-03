@@ -8,8 +8,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_targe
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
-from src.status import add_dying
+from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Wolf, Win_Stealer
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
@@ -18,15 +17,12 @@ PASSED = UserSet() # type: Set[users.User]
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_kill(var, wrapper, message):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
-
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
 
     orig = target
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-    target = evt.data["target"]
 
     KILLS[wrapper.source] = target
     PASSED.discard(wrapper.source)

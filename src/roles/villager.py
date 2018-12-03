@@ -4,7 +4,7 @@ from src.functions import get_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import Hidden
 
 @event_listener("transition_night_end", priority=2)

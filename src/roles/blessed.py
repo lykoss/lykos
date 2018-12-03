@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 @event_listener("transition_night_end", priority=5)
 def on_transition_night_end(evt, var):

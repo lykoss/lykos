@@ -7,7 +7,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_targe
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import All
 
 from src.roles.helper.wolves import is_known_wolf_ally, register_killer
@@ -35,12 +35,10 @@ def see(var, wrapper, message):
         wrapper.send(messages["no_see_wolf"])
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
     targrole = get_main_role(target)
 
     mode, mapping = random.choice(_mappings)
@@ -52,17 +50,12 @@ def see(var, wrapper, message):
 
     SEEN.add(wrapper.source)
 
-@event_listener("exchange_roles")
-def on_exchange(evt, var, actor, target, actor_role, target_role):
-    if actor_role == "doomsayer" and target_role != "doomsayer":
-        SEEN.discard(actor)
+@event_listener("new_role")
+def on_new_role(evt, var, player, old_role):
+    if old_role == "doomsayer" and evt.data["role"] != "doomsayer":
+        SEEN.discard(player)
         for name, mapping in _mappings:
-            del mapping[:actor:]
-
-    elif target_role == "doomsayer" and actor_role != "doomsayer":
-        SEEN.discard(target)
-        for name, mapping in _mappings:
-            del mapping[:target:]
+            del mapping[:player:]
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

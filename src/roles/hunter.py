@@ -8,7 +8,7 @@ from src.functions import get_players, get_all_players, get_target, get_main_rol
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
 HUNTERS = UserSet()
@@ -25,12 +25,9 @@ def hunter_kill(var, wrapper, message):
         return
 
     orig = target
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    evt.dispatch(var, wrapper.source, target)
-    if evt.prevent_default:
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
-
-    target = evt.data["target"]
 
     KILLS[wrapper.source] = target
     HUNTERS.add(wrapper.source)

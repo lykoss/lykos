@@ -11,7 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import add_absent
+from src.status import try_misdirection, try_exchange, add_absent
 
 PRIESTS = UserSet() # type: Set[users.User]
 
@@ -26,8 +26,8 @@ def bless(var, wrapper, message):
     if not target:
         return
 
-    evt = Event("targeted_command", {"target": target, "exchange": True, "misdirection": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
     PRIESTS.add(wrapper.source)

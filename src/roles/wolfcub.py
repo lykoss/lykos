@@ -8,7 +8,7 @@ from src import debuglog, errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.events import Event
+from src.status import try_misdirection, try_exchange
 from src.cats import Wolf, Killer
 
 from src.roles.helper.wolves import wolf_can_kill
@@ -67,10 +67,10 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 @event_listener("reconfigure_stats")
 def on_reconfigure_stats(evt, var, roleset, reason):
     # if we're making new wolves or there aren't cubs, nothing to do here
-    if reason == "howl" or roleset.get("wolf cub", 0) == 0:
+    if reason == "howl" or roleset["wolf cub"] == 0:
         return
     for role in Wolf & Killer:
-        if role in roleset and roleset[role] > 0:
+        if roleset[role] > 0:
             break
     else:
         roleset["wolf"] = roleset["wolf cub"]

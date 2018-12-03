@@ -9,6 +9,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_targe
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
@@ -25,11 +26,10 @@ def investigate(var, wrapper, message):
     if target is None:
         return
 
-    evt = Event("targeted_command", {"target": target, "misdirection": True, "exchange": True})
-    if not evt.dispatch(var, wrapper.source, target):
+    target = try_misdirection(var, wrapper.source, target)
+    if try_exchange(var, wrapper.source, target):
         return
 
-    target = evt.data["target"]
     targrole = get_main_role(target)
 
     evt = Event("investigate", {"role": targrole})

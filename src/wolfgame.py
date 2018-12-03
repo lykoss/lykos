@@ -92,6 +92,7 @@ var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
 var.PINGING_IFS = False
 var.TIMERS = {}
+var.PHASE = "none"
 var.OLD_MODES = defaultdict(set)
 
 var.ROLES = UserDict() # type: Dict[str, Set[users.User]]
@@ -1669,7 +1670,7 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
     event = Event("reconfigure_stats", {"new": []})
     for p in possible:
         for rs in var.ROLE_STATS:
-            d = dict(rs)
+            d = Counter(dict(rs))
             if p in d and d[p] >= 1:
                 d[p] -= 1
                 event.data["new"] = [d]
@@ -2009,16 +2010,7 @@ def rename_player(var, user, prefix):
             for dictvar in (var.FINAL_ROLES,):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
-            for idx, tup in enumerate(var.EXCHANGED_ROLES):
-                a, b = tup
-                if a == prefix:
-                    a = nick
-                if b == prefix:
-                    b = nick
-                var.EXCHANGED_ROLES[idx] = (a, b)
-
-            for setvar in (var.SILENCED, var.LUCKY,
-                           var.MISDIRECTED, var.EXCHANGED):
+            for setvar in (var.SILENCED,):
                 if prefix in setvar:
                     setvar.remove(prefix)
                     setvar.add(nick)
@@ -2218,9 +2210,6 @@ def begin_day():
     var.KILLER = ""  # nickname of who chose the victim
     var.STARTED_DAY_PLAYERS = len(list_players())
     var.SILENCED = set()
-    var.EXCHANGED = set()
-    var.LUCKY = set()
-    var.MISDIRECTED = set()
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     channels.Main.send(msg)
@@ -2444,7 +2433,7 @@ def transition_day(gameid=0):
     for i in range(revt2.data["howl"]):
         newstats = set()
         for rs in var.ROLE_STATS:
-            d = dict(rs)
+            d = Counter(dict(rs))
             event.data["new"] = [d]
             event.dispatch(var, d, "howl")
             for v in event.data["new"]:
@@ -2503,89 +2492,6 @@ def chk_nightdone():
         if var.PHASE == "night":  # Double check
             event.data["transition_day"]()
 
-# chooses a target given nick, taking luck totem/misdirection totem into effect
-# returns the actual target
-def choose_target(actor, nick):
-    pl = list_players()
-    if actor in var.MISDIRECTED:
-        for i, user in enumerate(var.ALL_PLAYERS):
-            if user.nick == nick:
-                break
-        if random.randint(0, 1) == 0:
-            # going left
-            while True:
-                i -= 1
-                if var.ALL_PLAYERS[i].nick in pl:
-                    nick = var.ALL_PLAYERS[i].nick
-                    break
-        else:
-            # going right
-            while True:
-                i += 1
-                if i >= len(var.ALL_PLAYERS):
-                    i = 0
-                if var.ALL_PLAYERS[i].nick in pl:
-                    nick = var.ALL_PLAYERS[i].nick
-                    break
-    if nick in var.LUCKY:
-        for i, user in enumerate(var.ALL_PLAYERS):
-            if user.nick == nick:
-                break
-        if random.randint(0, 1) == 0:
-            # going left
-            while True:
-                i -= 1
-                if var.ALL_PLAYERS[i].nick in pl:
-                    nick = var.ALL_PLAYERS[i].nick
-                    break
-        else:
-            # going right
-            while True:
-                i += 1
-                if i >= len(var.ALL_PLAYERS):
-                    i = 0
-                if var.ALL_PLAYERS[i].nick in pl:
-                    nick = var.ALL_PLAYERS[i].nick
-                    break
-    return nick
-
-# returns true if a swap happened
-# check for that to short-circuit the nightrole
-def check_exchange(cli, actor, nick):
-    # July 2nd, 2018 - The exchanging mechanic has been updated and no longer handles
-    # some forms of exchanging properly. As a result, we are disabling exchanging until
-    # role classes are implemented, which needs all roles to be fully split first.
-    # Until then, this function is a no-op. -Vgr & woffle
-    return False
-    #some roles can act on themselves, ignore this
-    if actor == nick:
-        return False
-
-    user = users._get(actor) # FIXME
-    target = users._get(nick) # FIXME
-
-    if nick in var.EXCHANGED:
-        var.EXCHANGED.remove(nick)
-        actor_role = get_role(actor)
-        nick_role = get_role(nick)
-
-        evt = Event("exchange_roles", {"actor_messages": [], "target_messages": [], "actor_role": actor_role, "target_role": nick_role})
-        evt.dispatch(var, user, target, actor_role, nick_role) # FIXME: Deprecated, change in favor of new_role and swap_role_state
-
-        nick_role = change_role(var, user, actor_role, nick_role, inherit_from=target)
-        actor_role = change_role(var, target, nick_role, actor_role, inherit_from=user)
-
-        if nick_role == actor_role: # make sure that two players with the same role exchange their role state properly (e.g. dullahan)
-            evt_same = Event("swap_role_state", {"actor_messages": [], "target_messages": []})
-            evt_same.dispatch(var, user, target, actor_role)
-
-            user.send(*evt_same.data["actor_messages"])
-            target.send(*evt_same.data["target_messages"])
-
-        var.EXCHANGED_ROLES.append((actor, nick))
-        return True
-    return False
-
 @command("retract", "r", phases=("day", "join"))
 def retract(var, wrapper, message):
     """Takes back your vote during the day (for whom to lynch)."""
@@ -2603,15 +2509,6 @@ def retract(var, wrapper, message):
                 if len(var.START_VOTES) < 1:
                     var.TIMERS["start_votes"][0].cancel()
                     del var.TIMERS["start_votes"]
-
-@event_listener("targeted_command", priority=9)
-def on_targeted_command(evt, var, actor, orig_target):
-    if evt.data["misdirection"]:
-        evt.data["target"] = users._get(choose_target(actor.nick, evt.data["target"].nick)) # FIXME
-
-    if evt.data["exchange"] and check_exchange(actor.client, actor.nick, evt.data["target"].nick):
-        evt.stop_processing = True
-        evt.prevent_default = True
 
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
@@ -3068,10 +2965,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
     var.DAY_COUNT = 0
     var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
-    var.LUCKY = set()
-    var.MISDIRECTED = set()
-    var.EXCHANGED = set()
-    var.EXCHANGED_ROLES = []
     var.EXTRA_WOLVES = 0
 
     var.DEADCHAT_PLAYERS.clear()
@@ -3122,8 +3015,13 @@ def start(cli, nick, chan, forced = False, restart = ""):
     # Collapse possible_rolesets into var.ROLE_STATS
     # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
     possible_rolesets_set = set()
+    event = Event("reconfigure_stats", {"new": []})
     for pr in possible_rolesets:
-        possible_rolesets_set.add(frozenset(pr.items()))
+        event.data["new"] = [pr]
+        event.dispatch(var, pr, "start")
+        for v in event.data["new"]:
+            if min(v.values()) >= 0:
+                possible_rolesets_set.add(frozenset(v.items()))
     var.ROLE_STATS = frozenset(possible_rolesets_set)
 
     # Now for the secondary roles
