@@ -433,9 +433,9 @@ def on_begin_day(evt, var):
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
     for player in IMPATIENCE:
-        status.force_vote(var, player, pl)
+        status.add_force_vote(var, player, pl)
     for player in PACIFISM:
-        status.force_abstain(var, player)
+        status.add_force_abstain(var, player)
     for player in INFLUENCE:
         status.add_influence(var, player)
     var.EXCHANGED.update(p.nick for p in EXCHANGE)

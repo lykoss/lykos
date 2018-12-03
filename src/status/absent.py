@@ -12,12 +12,13 @@ def add_absent(var, target, reason):
         return
 
     ABSENT[target] = reason
+    from src.votes import VOTES
 
-    for votee, voters in list(var.VOTES.items()):
+    for votee, voters in list(VOTES.items()):
         if target in voters:
             voters.remove(target)
             if not voters:
-                del var.VOTES[votee]
+                del VOTES[votee]
             break
 
 def try_absent(var, user):
