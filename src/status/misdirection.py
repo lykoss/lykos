@@ -10,7 +10,7 @@ AS_ACTOR = UserSet() # type: Set[users.User]
 AS_TARGET = UserSet() # type: Set[users.User]
 
 def _get_target(target):
-    """Internal helper for try_misdirection. Return one target overt."""
+    """Internal helper for try_misdirection. Return one target over."""
     pl = get_players()
     index = pl.index(target)
     if random.randint(0, 1):
