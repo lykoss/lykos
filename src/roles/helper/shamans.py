@@ -3,27 +3,14 @@ import random
 import re
 from collections import deque
 
-from src import channels, users, debuglog, errlog, plog
+from src import channels, users, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_protection, try_exchange
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf, All
-from src.status import (
-    add_lycanthropy_scope,
-    add_misdirection,
-    add_lycanthropy,
-    add_protection,
-    add_exchange,
-    add_disease,
-    add_absent,
-    add_dying,
-
-    try_misdirection,
-    try_protection,
-    try_exchange,
-)
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -220,7 +207,7 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("transition_night_end")
     def on_transition_night_begin(evt, var):
         if get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
-            add_lycanthropy_scope(var, All)
+            status.add_lycanthropy_scope(var, All)
 
     if knows_totem:
         @event_listener("myrole")
@@ -325,7 +312,7 @@ def on_chk_decision_lynch5(evt, var, voters):
             else:
                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
             channels.Main.send(tmsg)
-            add_dying(var, target, killer_role="shaman", reason="totem_desperation")
+            status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
             # no kill_players() call here; let overall chk_decision() call that for us
 
 @event_listener("transition_day", priority=2)
@@ -341,7 +328,7 @@ def on_transition_day3(evt, var):
     # we set priority=4.1 to allow other modes of protection
     # to pre-empt us if desired
     for player in PROTECTION:
-        add_protection(var, player, protector=None, protector_role="shaman")
+        status.add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
@@ -430,10 +417,10 @@ def on_transition_night_end(evt, var):
     # These are the totems of the *previous* nights
     # We need to add them here otherwise transition_night_begin
     # will remove them before they even get used
-    for lycan in LYCANTHROPY:
-        add_lycanthropy(var, lycan)
-    for pestilent in PESTILENCE:
-        add_disease(var, pestilent)
+    for player in LYCANTHROPY:
+        status.add_lycanthropy(var, player)
+    for player in PESTILENCE:
+        status.add_disease(var, player)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
@@ -447,11 +434,11 @@ def on_begin_day(evt, var):
     for player in INFLUENCE:
         status.add_influence(var, player)
     for player in MISDIRECTION:
-        add_misdirection(var, player, as_actor=True)
+        status.add_misdirection(var, player, as_actor=True)
     for player in LUCK:
-        add_misdirection(var, player, as_target=True)
+        status.add_misdirection(var, player, as_target=True)
     for player in EXCHANGE:
-        add_exchange(var, player)
+        status.add_exchange(var, player)
     var.SILENCED.update(p.nick for p in SILENCE)
 
 @event_listener("player_protected")
