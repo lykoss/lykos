@@ -15,30 +15,6 @@ ABSTAINS = UserSet() # type: UserSet[users.User]
 ABSTAINED = False
 LAST_VOTES = None
 
-@command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
-def no_lynch(var, wrapper, message):
-    """Allow you to abstain from voting for the day."""
-    if not var.ABSTAIN_ENABLED:
-        wrapper.pm(messages["command_disabled"])
-        return
-    elif var.LIMIT_ABSTAIN and ABSTAINED:
-        wrapper.pm(messages["exhausted_abstain"])
-        return
-    elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
-        wrapper.pm(messages["no_abstain_day_one"])
-        return
-    elif try_absent(var, wrapper.source):
-        return
-    for voter in list(VOTES):
-        if wrapper.source in VOTES[voter]:
-            VOTES[voter].remove(wrapper.source)
-            if not VOTES[voter]:
-                del VOTES[voter]
-    ABSTAINS.add(wrapper.source)
-    channels.Main.send(messages["player_abstain"].format(wrapper.source))
-
-    chk_decision(var)
-
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(var, wrapper, message):
     """Use this to vote for a candidate to be lynched."""
@@ -83,6 +59,30 @@ def lynch(var, wrapper, message):
 
     global LAST_VOTES
     LAST_VOTES = None # reset
+
+    chk_decision(var)
+
+@command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
+def no_lynch(var, wrapper, message):
+    """Allow you to abstain from voting for the day."""
+    if not var.ABSTAIN_ENABLED:
+        wrapper.pm(messages["command_disabled"])
+        return
+    elif var.LIMIT_ABSTAIN and ABSTAINED:
+        wrapper.pm(messages["exhausted_abstain"])
+        return
+    elif var.LIMIT_ABSTAIN and var.FIRST_DAY:
+        wrapper.pm(messages["no_abstain_day_one"])
+        return
+    elif try_absent(var, wrapper.source):
+        return
+    for voter in list(VOTES):
+        if wrapper.source in VOTES[voter]:
+            VOTES[voter].remove(wrapper.source)
+            if not VOTES[voter]:
+                del VOTES[voter]
+    ABSTAINS.add(wrapper.source)
+    channels.Main.send(messages["player_abstain"].format(wrapper.source))
 
     chk_decision(var)
 
