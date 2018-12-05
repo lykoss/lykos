@@ -7,7 +7,8 @@ from src.containers import UserDict, UserList, UserSet
 from src.decorators import command, event_listener
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent
+from src.status import try_absent, get_absent, add_dying, kill_players
+from src.events import Event
 from src import channels
 
 VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
@@ -198,15 +199,18 @@ def vote(var, wrapper, message):
         return lynch.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
     return show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
 
-# Specify timeout=True to force a lynch even if there is no majority
-def chk_decision(var, *, timeout=False):
-    with var.GRAVEYARD_LOCK:
-        if var.PHASE != "day":
-            return
-        do_night_transition = timeout
+# Specify force=True to force a lynch even if there is no majority
+def chk_decision(var, *, force=False):
+    behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": force})
+    behaviour_evt.dispatch(var)
 
-        pl = set(get_players()) - get_absent(var)
+    num_lynches = behaviour_evt.data["num_lynches"]
+    kill_ties = behaviour_evt.data["kill_ties"]
+    force = behaviour_evt.data["force"]
 
+    voters = set(get_players()) - get_absent(var)
+    avail = len(voters)
+    needed = avail // 2 + 1
 
 
 
