@@ -431,6 +431,7 @@ def on_begin_day(evt, var):
         status.add_force_vote(var, player, pl)
     for player in PACIFISM:
         status.add_force_abstain(var, player)
+        status.remove_influence(var, player)
     for player in INFLUENCE:
         status.add_influence(var, player)
     for player in MISDIRECTION:
