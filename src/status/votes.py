@@ -27,17 +27,11 @@ def _add_count(var, votee : users.User, amount : users.User) -> None:
 
 def add_force_vote(var, votee : users.User, targets : Iterable[users.User]) -> None:
     """Force votee to vote for the specified targets."""
-    evt = Event("force_vote", {})
-    if not evt.dispatch(var, votee, targets):
-        return
     _add_count(var, votee, 1)
     FORCED_TARGETS.setdefault(votee, UserSet()).update(targets)
 
 def add_force_abstain(var, votee : users.User) -> None:
     """Force votee to abstain."""
-    evt = Event("force_vote", {})
-    if not evt.dispatch(var, votee, None):
-        return
     _add_count(var, votee, -1)
 
 def can_vote(var, votee : users.User, target : users.User) -> bool:
