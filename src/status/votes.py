@@ -6,7 +6,7 @@ from src.functions import get_players
 from src.events import Event
 from src import users
 
-__all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes"]
+__all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes", "get_forced_abstains"]
 
 # FORCED_COUNTS is incremented whenever we're forcing someone to vote for someone else
 # A positive number indicates that their vote is being forced towards any number of targets
@@ -50,6 +50,10 @@ def can_abstain(var, votee : users.User) -> bool:
 def get_forced_votes(var, target : users.User) -> Set[users.User]:
     """Retrieve the players who are being forced to vote target."""
     return {votee for votee, targets in FORCED_TARGETS if target in targets}
+
+def get_forced_abstains(var) -> Set[users.User]:
+    """Retrieve the players who are being forced to abstain."""
+    return {player for player, count in FORCED_COUNTS.items() if count < 0}
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
