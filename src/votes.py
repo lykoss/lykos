@@ -7,7 +7,7 @@ from src.containers import UserDict, UserList, UserSet
 from src.decorators import command, event_listener
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent, add_dying, kill_players
+from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_influence, add_dying, kill_players
 from src.events import Event
 from src import channels
 
@@ -15,6 +15,7 @@ VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
 ABSTAINS = UserSet() # type: UserSet[users.User]
 ABSTAINED = False
 LAST_VOTES = None
+LYNCHED = UserSet() # type: UserSet[users.User]
 
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(var, wrapper, message):
@@ -208,9 +209,25 @@ def chk_decision(var, *, force=False):
     kill_ties = behaviour_evt.data["kill_ties"]
     force = behaviour_evt.data["force"]
 
-    voters = set(get_players()) - get_absent(var)
-    avail = len(voters)
+    players = set(get_players()) - get_absent(var)
+    avail = len(players)
     needed = avail // 2 + 1
+
+    to_vote = []
+
+    for votee, voters in VOTES.items():
+        votes = voters + [x for x in get_forced_votes(var, votee) if x not in voters]
+        if sum(get_influence(x) for x in votes) >= needed:
+            to_vote.append(votee)
+            break
+
+    abstaining = False
+    if not to_vote:
+        if var.ABSTAIN_ENABLED and len(ABSTAINS | get_forced_abstains(var)) >= avail / 2:
+            abstaining = True
+        elif force:
+            
+
 
 
 
@@ -319,12 +336,17 @@ def on_del_player(evt, var, player, allroles, death_triggers):
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
+    global LAST_VOTES
+    LAST_VOTES = None
     ABSTAINS.clear()
+    LYNCHED.clear()
     VOTES.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):
-    global ABSTAINED
+    global ABSTAINED, LAST_VOTES
     ABSTAINED = False
+    LAST_VOTES = None
     ABSTAINS.clear()
+    LYNCHED.clear()
     VOTES.clear()
