@@ -277,9 +277,8 @@ def chk_decision(var, *, timeout=False):
                         channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
-                lynch_evt = Event("lynch", {"votee": votee})
+                lynch_evt = Event("lynch", {})
                 if lynch_evt.dispatch(var, votee, voters):
-                    votee = lynch_evt.data["votee"]
                     if var.ROLE_REVEAL in ("on", "team"):
                         rrole = get_reveal_role(votee)
                         an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
