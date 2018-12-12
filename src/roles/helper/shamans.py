@@ -264,19 +264,6 @@ def on_see(evt, var, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-@event_listener("chk_decision_abstain")
-def on_chk_decision_abstain(evt, var, not_lynching):
-    for p in not_lynching:
-        if p in PACIFISM and p not in var.NO_LYNCH:
-            channels.Main.send(messages["player_meek_abstain"].format(p))
-
-@event_listener("chk_decision_lynch", priority=1)
-def on_chk_decision_lynch1(evt, var, voters):
-    votee = evt.data["votee"]
-    for p in voters:
-        if p in IMPATIENCE and p not in var.VOTES[votee]:
-            channels.Main.send(messages["impatient_vote"].format(p, votee))
-
 # mayor is at exactly 3, so we want that to always happen before revealing totem
 @event_listener("chk_decision_lynch", priority=3.1)
 def on_chk_decision_lynch3(evt, var, voters):
@@ -425,6 +412,7 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
+    pl = get_players()
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
     for player in IMPATIENCE:

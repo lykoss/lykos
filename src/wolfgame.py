@@ -1737,7 +1737,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
 
         if var.PHASE == "day" and var.GAMEPHASE == "day":
             # PHASE is day but GAMEPHASE is night during transition_day; ensure we only induce lynch during actual daytime
-            chk_decision()
+            chk_decision(var)
         elif var.PHASE == "night" and var.GAMEPHASE == "night":
             # PHASE is night but GAMEPHASE is day during transition_night; ensure we only try to end night during actual nighttime
             chk_nightdone()

@@ -1,5 +1,6 @@
 from collections import Counter
 from datetime import datetime, timedelta
+import random
 import copy
 import math
 
@@ -7,15 +8,15 @@ from src.containers import UserDict, UserList, UserSet
 from src.decorators import command, event_listener
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_influence, add_dying, kill_players
+from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, add_dying, kill_players
 from src.events import Event
 from src import channels
 
 VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
-ABSTAINS = UserSet() # type: UserSet[users.User]
+ABSTAINS = UserSet() # type: UserList[users.User]
 ABSTAINED = False
 LAST_VOTES = None
-LYNCHED = UserSet() # type: UserSet[users.User]
+LYNCHED = 0 # type: int
 
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(var, wrapper, message):
@@ -202,123 +203,104 @@ def vote(var, wrapper, message):
 
 # Specify force=True to force a lynch even if there is no majority
 def chk_decision(var, *, force=False):
-    behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": force})
-    behaviour_evt.dispatch(var)
-
-    num_lynches = behaviour_evt.data["num_lynches"]
-    kill_ties = behaviour_evt.data["kill_ties"]
-    force = behaviour_evt.data["force"]
-
-    players = set(get_players()) - get_absent(var)
-    avail = len(players)
-    needed = avail // 2 + 1
-
-    to_vote = []
-
-    for votee, voters in VOTES.items():
-        votes = voters + [x for x in get_forced_votes(var, votee) if x not in voters]
-        if sum(get_influence(x) for x in votes) >= needed:
-            to_vote.append(votee)
-            break
-
-    abstaining = False
-    if not to_vote:
-        if var.ABSTAIN_ENABLED and len(ABSTAINS | get_forced_abstains(var)) >= avail / 2:
-            abstaining = True
-        elif force:
-            
-
-
-
-
-
-
-
-
-
     with var.GRAVEYARD_LOCK:
-        if var.PHASE != "day":
-            return
-        do_night_transition = timeout
-        pl = set(get_players()) - get_absent(var)
-        not_lynching = set(var.NO_LYNCH)
+        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": force})
+        behaviour_evt.dispatch(var)
 
-        avail = len(pl)
-        votesneeded = avail // 2 + 1
+        num_lynches = behaviour_evt.data["num_lynches"]
+        kill_ties = behaviour_evt.data["kill_ties"]
+        force = behaviour_evt.data["force"]
 
-        with copy.deepcopy(var.VOTES) as votelist:
-            event = Event("chk_decision", {
-                "not_lynching": not_lynching,
-                "votelist": votelist,
-                "numvotes": {}, # filled as part of a priority 1 event
-                "weights": {}, # filled as part of a priority 1 event
-                "transition_night": transition_night,
-                "force": timeout, # can be a bool or an iterable of users
-                "lynch_multiple": False # whether or not we can lynch more than 1 person
-                }, voters=pl, timeout=timeout)
-            if not event.dispatch(var):
-                return
+        players = set(get_players()) - get_absent(var)
+        avail = len(players)
+        needed = avail // 2 + 1
 
-            force = set()
-            numvotes = event.data["numvotes"]
-            if event.data["force"] is True:
-                maxfound = 0
-                for votee, voters in votelist.items():
-                    if numvotes[votee] > maxfound:
-                        maxfound = numvotes[votee]
-                        force = set(votee)
-                    elif numvotes[votee] == maxfound[0]:
-                        force.add(votee)
-            elif event.data["force"] is not False:
-                force = event.data["force"]
+        to_vote = []
 
-            if not event.data["lynch_multiple"] and len(force) > 1:
-                force = set()
+        for votee, voters in VOTES.items():
+            votes = (set(voters) | get_forced_votes(var, votee)) - get_forced_abstains(var)
+            if sum(get_vote_weight(var, x) for x in votes) >= needed:
+                to_vote.append(votee)
+                break
 
-            if timeout:
-                if force:
-                    channels.Main.send(messages["sunset_lynch"])
+        abstaining = False
+        if not to_vote:
+            if len(ABSTAINS | get_forced_abstains(var)) >= avail / 2:
+                abstaining = True
+            elif force:
+                voting = []
+                if VOTES:
+                    plurality = [(x, len(y)) for x, y in VOTES.items()]
+                    plurality.sort(key=lambda x: x[1])
+                    votee, value = plurality.pop()
+                    max_value = value
+                    while value == max_value:
+                        voting.append(votee)
+                        votee, value = plurality.pop()
+
+                if len(voting) == 1:
+                    to_vote.append(voting[0])
+                elif voting and kill_ties:
+                    if set(voting) == set(get_players()): # killing everyone off? have you considered not doing that
+                        abstaining = True
+                    else:
+                        to_vote.extend(voting)
                 else:
-                    channels.Main.send(messages["sunset"])
+                    abstaining = True
 
-            # we only need 50%+ to not lynch, instead of an actual majority, because a tie would time out day anyway
-            # don't check for ABSTAIN_ENABLED here since we may have a case where the majority of people have pacifism totems or something
-            if not force and len(not_lynching) >= math.ceil(avail / 2):
-                abs_evt = Event("chk_decision_abstain", {}, votelist=votelist, numvotes=numvotes)
-                abs_evt.dispatch(var, not_lynching)
-                channels.Main.send(messages["village_abstain"])
-                global ABSTAINED
-                ABSTAINED = True
-                do_night_transition = True
-            for votee, voters in votelist.items():
-                if numvotes[votee] >= votesneeded or votee in force:
-                    # priorities:
-                    # 1 = displaying impatience totem messages
-                    # 3 = mayor/revealing totem
-                    # 4 = fool
-                    # 5 = desperation totem, other things that happen on generic lynch
-                    vote_evt = Event("chk_decision_lynch", {"votee": votee},
-                        original_votee=votee,
-                        force=(votee in force),
-                        votelist=votelist,
-                        not_lynching=not_lynching)
-                    if vote_evt.dispatch(var, voters):
-                        votee = vote_evt.data["votee"]
+        if abstaining:
+            for forced_abstainer in get_forced_abstains(var):
+                if forced_abstainer not in ABSTAINS: # did not explicitly abstain
+                    channels.Main.send(messages["player_meek_abstain"].format(forced_abstainer))
 
-                        if var.ROLE_REVEAL in ("on", "team"):
-                            rrole = get_reveal_role(votee)
-                            an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
-                        else:
-                            lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
-                        channels.Main.send(lmsg)
-                        add_dying(var, votee, "villager", "lynch")
-                        do_night_transition = True
-            if do_night_transition:
-                kill_players(var, end_game=False) # temporary hack; end_game=True calls chk_decision and we don't want that
-                if chk_win():
-                    return
-                event.data["transition_night"]()
+            abstain_evt = Event("abstain", {})
+            abstain_evt.dispatch(var, ABSTAINS | get_forced_abstains(var))
+
+            global ABSTAINED
+            ABSTAINED = True
+            channels.Main.send(messages["village_abstain"])
+
+            from src.wolfgame import transition_night
+            transition_night()
+
+        if to_vote:
+            global LYNCHED
+            LYNCHED += len(to_vote) # track how many people we've lynched today
+
+            if force:
+                channels.Main.send(messages["sunset_lynch"])
+
+            for votee in to_vote:
+                voters = list(VOTES[votee])
+                for forced_voter in get_forced_votes(var, votee):
+                    if forced_voter not in voters: # did not explicitly vote
+                        channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
+                        voters.append(forced_voter) # they need to be counted as voting for them still
+
+                lynch_evt = Event("lynch", {"votee": votee})
+                if lynch_evt.dispatch(var, votee, voters):
+                    votee = lynch_evt.data["votee"]
+                    if var.ROLE_REVEAL in ("on", "team"):
+                        rrole = get_reveal_role(votee)
+                        an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
+                        lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
+                    else:
+                        lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
+                    channels.Main.send(lmsg)
+                    add_dying(var, votee, "villager", "lynch")
+
+            kill_players(var, end_game=False) # FIXME
+
+        elif force:
+            channels.Main.send(messages["sunset"])
+
+        from src.wolfgame import chk_win
+        if chk_win():
+            return # game ended, just exit out
+
+        if LYNCHED >= num_lynches:
+            from src.wolfgame import transition_night
+            transition_night()
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
@@ -332,21 +314,22 @@ def on_del_player(evt, var, player, allroles, death_triggers):
                     del VOTES[k]
                 break # can only vote once
 
-        ABSTAINS.discard(player)
+        if player in ABSTAINS:
+            ABSTAINS.remove(player)
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
-    global LAST_VOTES
+    global LAST_VOTES, LYNCHED
     LAST_VOTES = None
+    LYNCHED = 0
     ABSTAINS.clear()
-    LYNCHED.clear()
     VOTES.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):
-    global ABSTAINED, LAST_VOTES
+    global ABSTAINED, LAST_VOTES, LYNCHED
     ABSTAINED = False
     LAST_VOTES = None
+    LYNCHED = 0
     ABSTAINS.clear()
-    LYNCHED.clear()
     VOTES.clear()
