@@ -4,7 +4,7 @@ from src.decorators import event_listener
 from src.containers import UserDict, UserSet
 from src.functions import get_players
 from src.events import Event
-from src import users
+from src import channels, users
 
 __all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes", "get_forced_abstains"]
 
