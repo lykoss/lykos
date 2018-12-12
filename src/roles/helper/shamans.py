@@ -432,7 +432,7 @@ def on_begin_day(evt, var):
     for player in PACIFISM:
         status.add_force_abstain(var, player)
     for player in INFLUENCE:
-        status.add_influence(var, player)
+        status.add_vote_weight(var, player)
     for player in MISDIRECTION:
         status.add_misdirection(var, player, as_actor=True)
     for player in LUCK:
