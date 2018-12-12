@@ -201,10 +201,10 @@ def vote(var, wrapper, message):
         return lynch.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
     return show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
 
-# Specify force=True to force a lynch even if there is no majority
-def chk_decision(var, *, force=False):
+# Specify timeout=True to force a lynch and end of day even if there is no majority
+def chk_decision(var, *, timeout=False):
     with var.GRAVEYARD_LOCK:
-        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": force})
+        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": timeout})
         behaviour_evt.dispatch(var)
 
         num_lynches = behaviour_evt.data["num_lynches"]
@@ -267,7 +267,7 @@ def chk_decision(var, *, force=False):
             global LYNCHED
             LYNCHED += len(to_vote) # track how many people we've lynched today
 
-            if force:
+            if timeout:
                 channels.Main.send(messages["sunset_lynch"])
 
             for votee in to_vote:
@@ -291,14 +291,14 @@ def chk_decision(var, *, force=False):
 
             kill_players(var, end_game=False) # FIXME
 
-        elif force:
+        elif timeout:
             channels.Main.send(messages["sunset"])
 
         from src.wolfgame import chk_win
         if chk_win():
             return # game ended, just exit out
 
-        if LYNCHED >= num_lynches:
+        if timeout or LYNCHED >= num_lynches:
             from src.wolfgame import transition_night
             transition_night()
 
