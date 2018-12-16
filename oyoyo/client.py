@@ -359,19 +359,19 @@ class IRCClient:
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_ghost(self, nick, password, nickserv, command):
         if command:
-            cmdtext = command.format(nick=nick, password=passwd)
+            cmdtext = command.format(nick=nick, password=password)
             logtext = command.format(nick=nick, password="[redacted]")
             msg = "PRIVMSG {0} :{1}"
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_release(self, nick, password, nickserv="NickServ", command="RELEASE {nick}"):
         if command:
-            cmdtext = command.format(nick=nick, password=passwd)
+            cmdtext = command.format(nick=nick, password=password)
             logtext = command.format(nick=nick, password="[redacted]")
             msg = "PRIVMSG {0} :{1}"
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
     def ns_regain(self, nick, password, nickserv="NickServ", command="REGAIN {nick}"):
         if command:
-            cmdtext = command.format(nick=nick, password=passwd)
+            cmdtext = command.format(nick=nick, password=password)
             logtext = command.format(nick=nick, password="[redacted]")
             msg = "PRIVMSG {0} :{1}"
             self.send(msg.format(nickserv, cmdtext), log=msg.format(nickserv, logtext))
