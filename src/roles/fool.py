@@ -14,15 +14,15 @@ from src.status import try_misdirection, try_exchange
 
 VOTED = None # type: Optional[users.User]
 
-@event_listener("chk_decision_lynch", priority=4)
-def on_chk_decision_lynch(evt, var, voters):
+@event_listener("lynch")
+def on_lynch(evt, var, votee, voters):
     global VOTED
-    if evt.data["votee"] in get_all_players(("fool",)):
+    if votee in get_all_players(("fool",)):
         # ends game immediately, with fool as only winner
         # hardcode "fool" as the role since game is ending due to them being lynched,
         # so we want to show "fool" even if it's a template
-        lmsg = random.choice(messages["lynch_reveal"]).format(evt.data["votee"], "", "fool")
-        VOTED = evt.data["votee"]
+        lmsg = random.choice(messages["lynch_reveal"]).format(votee, "", "fool")
+        VOTED = votee
         channels.Main.send(lmsg)
         from src.wolfgame import chk_win
         chk_win(winner="fool")

@@ -265,7 +265,7 @@ def on_see(evt, var, seer, target):
             evt.data["role"] = "wolf"
 
 # mayor is at exactly 3, so we want that to always happen before revealing totem
-@event_listener("chk_decision_lynch", priority=3.1)
+@event_listener("chk_decision_lynch", priority=3.1) # FIX MEEEEEEEE
 def on_chk_decision_lynch3(evt, var, voters):
     votee = evt.data["votee"]
     if votee in REVEALING:
@@ -280,9 +280,8 @@ def on_chk_decision_lynch3(evt, var, voters):
         evt.prevent_default = True
         evt.stop_processing = True
 
-@event_listener("chk_decision_lynch", priority=5)
-def on_chk_decision_lynch5(evt, var, voters):
-    votee = evt.data["votee"]
+@event_listener("lynch")
+def on_lynch(evt, var, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
@@ -300,7 +299,7 @@ def on_chk_decision_lynch5(evt, var, voters):
                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
             channels.Main.send(tmsg)
             status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
-            # no kill_players() call here; let overall chk_decision() call that for us
+            # no kill_players() call here; let our caller do that for us
 
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):

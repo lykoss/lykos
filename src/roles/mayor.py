@@ -14,7 +14,7 @@ from src.status import try_misdirection, try_exchange
 REVEALED_MAYORS = UserSet()
 
 @event_listener("chk_decision_lynch", priority=3)
-def on_chk_decision_lynch(evt, var, voters):
+def on_chk_decision_lynch(evt, var, voters): # FIXME: Need to move this into its own status submodule
     votee = evt.data["votee"]
     if votee in var.ROLES["mayor"] and votee not in REVEALED_MAYORS:
         channels.Main.send(messages["mayor_reveal"].format(votee))
