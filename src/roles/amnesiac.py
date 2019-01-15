@@ -49,14 +49,14 @@ def on_new_role(evt, var, user, old_role):
         roles = set(role_order()) - _get_blacklist(var)
         ROLES[user] = random.choice(list(roles))
 
-@event_listener("revealing_totem")
-def on_revealing_totem(evt, var, votee):
-    if evt.data["role"] not in _get_blacklist(var) and not var.HIDDEN_AMNESIAC and len(var.ORIGINAL_ROLES["amnesiac"]):
+@event_listener("role_revealed")
+def on_revealing_totem(evt, var, user, role):
+    if role not in _get_blacklist(var) and not var.HIDDEN_AMNESIAC and var.ORIGINAL_ROLES["amnesiac"]:
         global STATS_FLAG
         STATS_FLAG = True
-    if evt.data["role"] == "amnesiac":
-        votee.send(messages["totem_amnesia_clear"])
-        change_role(var, votee, "amnesiac", ROLES[votee])
+    if role == "amnesiac":
+        votee.send(messages["amnesia_clear"].format(ROLES[user])
+        change_role(var, user, "amnesiac", ROLES[user])
 
 @event_listener("get_reveal_role")
 def on_reveal_role(evt, var, user):

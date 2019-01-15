@@ -9,7 +9,7 @@ from src.containers import UserDict, UserList, UserSet
 from src.decorators import command, event_listener
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, add_dying, kill_players
+from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event
 from src import channels
 
@@ -205,13 +205,6 @@ def vote(var, wrapper, message):
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 def chk_decision(var, *, timeout=False):
     with var.GRAVEYARD_LOCK:
-        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": timeout})
-        behaviour_evt.dispatch(var)
-
-        num_lynches = behaviour_evt.data["num_lynches"]
-        kill_ties = behaviour_evt.data["kill_ties"]
-        force = behaviour_evt.data["force"]
-
         players = set(get_players()) - get_absent(var)
         avail = len(players)
         needed = avail // 2 + 1
@@ -223,6 +216,13 @@ def chk_decision(var, *, timeout=False):
             if sum(get_vote_weight(var, x) for x in votes) >= needed:
                 to_vote.append(votee)
                 break
+
+        behaviour_evt = Event("lynch_behaviour", {"num_lynches": 1, "kill_ties": False, "force": timeout}, votes=VOTES, players=avail)
+        behaviour_evt.dispatch(var)
+
+        num_lynches = behaviour_evt.data["num_lynches"]
+        kill_ties = behaviour_evt.data["kill_ties"]
+        force = behaviour_evt.data["force"]
 
         abstaining = False
         if not to_vote:
@@ -278,16 +278,17 @@ def chk_decision(var, *, timeout=False):
                         channels.Main.send(messages["impatient_vote"].format(forced_voter, votee))
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
-                lynch_evt = Event("lynch", {})
-                if lynch_evt.dispatch(var, votee, voters):
-                    if var.ROLE_REVEAL in ("on", "team"):
-                        rrole = get_reveal_role(votee)
-                        an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                        lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
-                    else:
-                        lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
-                    channels.Main.send(lmsg)
-                    add_dying(var, votee, "villager", "lynch")
+                if not try_lynch_immunity(var, votee):
+                    lynch_evt = Event("lynch", {})
+                    if lynch_evt.dispatch(var, votee, voters):
+                        if var.ROLE_REVEAL in ("on", "team"):
+                            rrole = get_reveal_role(votee)
+                            an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
+                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
+                        else:
+                            lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
+                        channels.Main.send(lmsg)
+                        add_dying(var, votee, "villager", "lynch")
 
             kill_players(var, end_game=False) # FIXME
 

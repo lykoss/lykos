@@ -264,21 +264,16 @@ def on_see(evt, var, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-# mayor is at exactly 3, so we want that to always happen before revealing totem
-@event_listener("chk_decision_lynch", priority=3.1) # FIX MEEEEEEEE
-def on_chk_decision_lynch3(evt, var, voters):
-    votee = evt.data["votee"]
-    if votee in REVEALING:
-        role = get_main_role(votee)
-        rev_evt = Event("revealing_totem", {"role": role})
-        rev_evt.dispatch(var, votee)
-        role = rev_evt.data["role"]
+@event_listener("lynch_immunity")
+def on_lynch_immunity(evt, var, user, reason):
+    if reason == "totem":
+        role = get_main_role(user)
+        rev_evt = Event("role_revealed", {})
+        rev_evt.dispatch(var, user, role)
 
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-        channels.Main.send(messages["totem_reveal"].format(votee, an, role))
-        evt.data["votee"] = None
-        evt.prevent_default = True
-        evt.stop_processing = True
+        channels.Main.send(messages["totem_reveal"].format(user, an, role))
+        evt.data["immune"] = True
 
 @event_listener("lynch")
 def on_lynch(evt, var, votee, voters):
@@ -420,6 +415,8 @@ def on_begin_day(evt, var):
         status.add_force_abstain(var, player)
     for player in INFLUENCE:
         status.add_vote_weight(var, player)
+    for player in REVEALING:
+        status.add_lynch_immunity(var, player, "totem")
     for player in MISDIRECTION:
         status.add_misdirection(var, player, as_actor=True)
     for player in LUCK:

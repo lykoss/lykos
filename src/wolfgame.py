@@ -1333,7 +1333,7 @@ def hurry_up(gameid, change):
         return
 
     var.DAY_ID = 0
-    chk_decision(timeout=True)
+    chk_decision(var, timeout=True)
 
 @cmd("fnight", flag="N")
 def fnight(cli, nick, chan, rest):
@@ -2247,7 +2247,7 @@ def begin_day():
     event = Event("begin_day", {})
     event.dispatch(var)
     # induce a lynch if we need to (due to lots of pacifism/impatience totems or whatever)
-    chk_decision()
+    chk_decision(var)
 
 @handle_error
 def night_warn(gameid):

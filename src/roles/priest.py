@@ -63,7 +63,7 @@ def consecrate(var, wrapper, message):
     debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
     add_absent(var, wrapper.source, "consecrating")
     from src.wolfgame import chk_decision, chk_win
-    chk_decision()
+    chk_decision(var)
     chk_win()
 
 @event_listener("transition_night_end")
