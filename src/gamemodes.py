@@ -100,6 +100,9 @@ class GameMode:
     def teardown(self):
         pass
 
+    def can_vote_bot(self, var):
+        return False
+
     def set_default_totem_chances(self):
         if self.TOTEM_CHANCES is self.DEFAULT_TOTEM_CHANCES:
             return # nothing more we can do
@@ -207,6 +210,15 @@ class DefaultMode(GameMode):
     def teardown(self):
         events.remove_listener("chk_decision", self.chk_decision, priority=20)
 
+    def can_vote_bot(self, var):
+        if var.VILLAGERGAME_CHANCE:
+            vilgame = var.GAME_MODES.get("villagergame")
+            if vilgame is not None:
+                if vilgame[1] <= len(get_players()) <= vilgame[2]: # enough players
+                    return True
+
+        return False
+
     def chk_decision(self, evt, var, force):
         if len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
             if users.Bot in evt.data["votelist"]:
@@ -230,6 +242,9 @@ class VillagergameMode(GameMode):
             8: ["harlot"],
             9: ["crazed shaman"],
         }
+
+    def can_vote_bot(self, var):
+        return True
 
     def startup(self):
         events.add_listener("chk_win", self.chk_win)

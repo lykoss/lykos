@@ -29,13 +29,7 @@ def lynch(var, wrapper, message):
         return
     msg = re.split(" +", message)[0].strip()
 
-    can_vote_bot = False
-    if var.VILLAGERGAME_CHANCE:
-        # Handle villagergame here - TODO: Maybe not do that?
-        vilgame = var.GAME_MODES.get("villagergame")
-        if vilgame is not None:
-            if var.CURRENT_GAMEMODE.name in ("default", "villagergame") and vilgame[1] <= len(get_players()) <= vilgame[2]:
-                can_vote_bot = True
+    can_vote_bot = var.CURRENT_GAMEMODE.can_vote_bot(var)
 
     voted = get_target(var, wrapper, msg, allow_self=var.SELF_LYNCH_ALLOWED, allow_bot=can_vote_bot, not_self_message="no_self_lynch")
     if not voted:

@@ -2730,7 +2730,8 @@ def cgamemode(arg):
         from src.gamemodes import InvalidModeException
         md = modeargs.pop(0)
         try:
-            if md == "default" and len(var.ALL_PLAYERS) <= 9 and random.random() < var.VILLAGERGAME_CHANCE:
+            vilgame = var.GAME_MODES.get("villagergame")
+            if vilgame is not None and md == "default" and vilgame[1] <= len(var.ALL_PLAYERS) <= vilgame[2] and random.random() < var.VILLAGERGAME_CHANCE:
                 md = "villagergame"
             gm = var.GAME_MODES[md][0](*modeargs)
             gm.startup()
