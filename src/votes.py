@@ -273,7 +273,7 @@ def chk_decision(var, *, timeout=False):
                         voters.append(forced_voter) # they need to be counted as voting for them still
 
                 if not try_lynch_immunity(var, votee):
-                    lynch_evt = Event("lynch", {})
+                    lynch_evt = Event("lynch", {}, players=avail)
                     if lynch_evt.dispatch(var, votee, voters):
                         if var.ROLE_REVEAL in ("on", "team"):
                             rrole = get_reveal_role(votee)

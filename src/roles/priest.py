@@ -62,9 +62,11 @@ def consecrate(var, wrapper, message):
     wrapper.pm(messages["consecrate_success"].format(target))
     debuglog("{0} (priest) CONSECRATE: {1}".format(wrapper.source, target))
     add_absent(var, wrapper.source, "consecrating")
-    from src.wolfgame import chk_decision, chk_win
-    chk_decision(var)
-    chk_win()
+    from src.votes import chk_decision
+    from src.wolfgame import chk_win
+    if not chk_win():
+        # game didn't immediately end due to marking as absent, see if we should force through a lynch
+        chk_decision(var)
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
