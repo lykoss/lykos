@@ -4422,7 +4422,7 @@ def ftotem(var, wrapper, message):
 
     from src.roles.helper.shamans import change_totem
     try:
-        change_totem(var, target, " ".join(msg))
+        change_totem(var, match, " ".join(msg))
     except ValueError as e:
         wrapper.send(str(e))
         return
