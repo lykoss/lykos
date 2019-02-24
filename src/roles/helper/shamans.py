@@ -435,11 +435,10 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
-    pl = get_players()
     for player in NARCOLEPSY:
         status.add_absent(var, player, "totem")
     for player in IMPATIENCE:
-        status.add_force_vote(var, player, pl)
+        status.add_force_vote(var, player, get_all_players() - {player})
     for player in PACIFISM:
         status.add_force_abstain(var, player)
     for player in INFLUENCE:
