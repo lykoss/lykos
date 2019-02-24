@@ -49,7 +49,7 @@ def can_abstain(var, votee : users.User) -> bool:
 
 def get_forced_votes(var, target : users.User) -> Set[users.User]:
     """Retrieve the players who are being forced to vote target."""
-    return {votee for votee, targets in FORCED_TARGETS if target in targets}
+    return {votee for votee, targets in FORCED_TARGETS.items() if target in targets}
 
 def get_forced_abstains(var) -> Set[users.User]:
     """Retrieve the players who are being forced to abstain."""
