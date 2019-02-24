@@ -4294,29 +4294,6 @@ def fgame(var, wrapper, message):
     else:
         wrapper.pm(fgame.__doc__())
 
-@command("frole", flag="d", phases=("join",))
-def frole(var, wrapper, message):
-    """Force a player into a certain role."""
-    pl = get_players()
-
-    parts = message.strip().lower().replace("=", " ").split(",")
-    for part in parts:
-        try:
-            (name, role) = part.strip().split(" ", 1)
-        except ValueError:
-            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
-            return
-        user, _ = users.complete_match(name, pl)
-        role = role.replace("_", " ")
-        if role in var.ROLE_ALIASES:
-            role = var.ROLE_ALIASES[role]
-        if user is None or role not in role_order() or role == var.DEFAULT_ROLE:
-            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
-            return
-        var.FORCE_ROLES[role].add(user)
-
-    wrapper.send(messages["operation_successful"])
-
 def fgame_help(args=""):
     args = args.strip()
 
@@ -4330,80 +4307,126 @@ def fgame_help(args=""):
 
 fgame.__doc__ = fgame_help
 
-if botconfig.DEBUG_MODE:
+# eval/exec are owner-only but also marked with "d" flag
+# to disable them outside of debug mode
+@command("eval", owner_only=True, flag="d", pm=True)
+def pyeval(var, wrapper, message):
+    """Evaluate a Python expression."""
+    try:
+        wrapper.send(str(eval(message))[:500])
+    except Exception as e:
+        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-    @command("eval", owner_only=True, pm=True)
-    def pyeval(var, wrapper, message):
-        """Evaluate a Python expression."""
+@command("exec", owner_only=True, flag="d", pm=True)
+def py(var, wrapper, message):
+    """Execute arbitrary Python code."""
+    try:
+        exec(message)
+    except Exception as e:
+        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
+
+def _force_command(var, wrapper, name, players, message):
+    name = name.lower().replace(botconfig.CMD_CHAR, "", 1)
+    if name in COMMANDS:
+        for func in COMMANDS[name]:
+            if func.owner_only or func.flag:
+                wrapper.pm(messages["no_force_admin"])
+                return
+            for user in players:
+                # FIXME: This is the old command API, fix this when @cmd is killed off
+                if func.chan:
+                    func.caller(user.client, user.rawnick, wrapper.target.name, message)
+                else:
+                    func.caller(user.client, user.rawnick, users.Bot.nick, message)
+
+        wrapper.send(messages["operation_successful"])
+    else:
+        wrapper.send(messages["command_not_found"])
+
+@command("force", flag="d")
+def force(var, wrapper, message):
+    """Force a certain player to use a specific command."""
+    msg = re.split(" +", message)
+    if len(msg) < 2:
+        wrapper.send(messages["incorrect_syntax"])
+        return
+
+    target = msg.pop(0).strip()
+    match, _ = users.complete_match(target, get_players())
+    if target == "*":
+        players = get_players()
+    elif match is None:
+        wrapper.send(messages["invalid_target"])
+        return
+    else:
+        players = [match]
+
+    _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+
+@command("rforce", flag="d")
+def rforce(var, wrapper, message):
+    """Force all players of a given role to perform a certain action."""
+    msg = re.split(" +", message)
+    if len(msg) < 2:
+        wrapper.send(messages["incorrect_syntax"])
+        return
+
+    target = msg.pop(0).strip().lower()
+    possible = complete_role(var, target)
+    if target == "*":
+        players = get_players()
+    elif len(possible) == 1:
+        players = get_all_players((possible[0],))
+    else:
+        wrapper.send("Invalid role")
+        return
+
+    _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+
+@command("frole", flag="d", phases=("join",))
+def frole(var, wrapper, message):
+    """Force a player into a certain role."""
+    pl = get_players()
+
+    parts = message.lower().replace("=", ":").replace(";", ",").split(",")
+    for part in parts:
         try:
-            wrapper.send(str(eval(message))[:500])
-        except Exception as e:
-            wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
-
-    @command("exec", owner_only=True, pm=True)
-    def py(var, wrapper, message):
-        """Execute arbitrary Python code."""
-        try:
-            exec(message)
-        except Exception as e:
-            wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
-
-    def _force_command(var, wrapper, name, players, message):
-        name = name.lower().replace(botconfig.CMD_CHAR, "", 1)
-        if name in COMMANDS:
-            for func in COMMANDS[name]:
-                if func.owner_only or func.flag:
-                    wrapper.pm(messages["no_force_admin"])
-                    return
-                for user in players:
-                    # FIXME: This is the old command API, fix this when @cmd is killed off
-                    if func.chan:
-                        func.caller(user.client, user.rawnick, wrapper.target.name, message)
-                    else:
-                        func.caller(user.client, user.rawnick, users.Bot.nick, message)
-
-            wrapper.send(messages["operation_successful"])
-        else:
-            wrapper.send(messages["command_not_found"])
-
-    @command("force", flag="d")
-    def force(var, wrapper, message):
-        """Force a certain player to use a specific command."""
-        msg = re.split(" +", message)
-        if len(msg) < 2:
-            wrapper.send(messages["incorrect_syntax"])
+            (name, role) = part.split(":", 1)
+        except ValueError:
+            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
             return
-
-        target = msg.pop(0).strip()
-        match, _ = users.complete_match(target, get_players())
-        if target == "*":
-            players = get_players()
-        elif match is None:
-            wrapper.send(messages["invalid_target"])
+        user, _ = users.complete_match(name.strip(), pl)
+        role = role.strip().replace("_", " ")
+        if role in var.ROLE_ALIASES:
+            role = var.ROLE_ALIASES[role]
+        if user is None or role not in role_order() or role == var.DEFAULT_ROLE:
+            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
             return
-        else:
-            players = [match]
+        var.FORCE_ROLES[role].add(user)
 
-        _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+    wrapper.send(messages["operation_successful"])
 
-    @command("rforce", flag="d")
-    def rforce(var, wrapper, message):
-        """Force all players of a given role to perform a certain action."""
-        msg = re.split(" +", message)
-        if len(msg) < 2:
-            wrapper.send(messages["incorrect_syntax"])
-            return
+@command("ftotem", flag="d", phases=("night",))
+def ftotem(var, wrapper, message):
+    """Force a shaman to have a particular totem."""
+    msg = re.split(" +", message)
+    if len(msg) < 2:
+        wrapper.send(messages["incorrect_syntax"])
+        return
 
-        target = msg.pop(0).strip().lower()
-        possible = complete_role(var, target)
-        if target == "*":
-            players = get_players()
-        elif len(possible) == 1:
-            players = get_all_players((possible[0],))
-        else:
-            wrapper.send("Invalid role")
-            return
+    target = msg.pop(0).strip()
+    match, _ = users.complete_match(target, get_players())
+    if match is None:
+        wrapper.send(messages["invalid_target"])
+        return
 
-        _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
+    from src.roles.helper.shamans import change_totem
+    try:
+        change_totem(var, target, " ".join(msg))
+    except ValueError as e:
+        wrapper.send(str(e))
+        return
+
+    wrapper.send(messages["operation_successful"])
 
 # vim: set sw=4 expandtab:

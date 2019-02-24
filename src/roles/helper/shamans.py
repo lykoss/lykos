@@ -79,6 +79,10 @@ DECEIT = UserSet()          # type: Set[users.User]
 havetotem = []              # type: List[users.User]
 brokentotem = set()         # type: Set[users.User]
 
+# holds mapping of shaman roles to their state vars, for debugging
+# and unit testing purposes
+_rolestate = {}             # type: Dict[str, Dict[str, Any]]
+
 # Generated message keys used across all shaman files:
 # death_totem, protection_totem, revealing_totem, narcolepsy_totem,
 # silence_totem, desperation_totem, impatience_totem, pacifism_totem,
@@ -90,6 +94,11 @@ def setup_variables(rolename, *, knows_totem):
     TOTEMS = UserDict()     # type: Dict[users.User, str]
     LASTGIVEN = UserDict()  # type: Dict[users.User, users.User]
     SHAMANS = UserDict()    # type: Dict[users.User, List[users.User]]
+    _rolestate[rolename] = {
+        "TOTEMS": TOTEMS,
+        "LASTGIVEN": LASTGIVEN,
+        "SHAMANS": SHAMANS
+        }
 
     @event_listener("reset")
     def on_reset(evt, var):
@@ -245,6 +254,26 @@ def give_totem(var, wrapper, target, prefix, role, msg):
     debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
 
     return UserList((target, orig_target))
+
+def change_totem(var, player, totem, roles=None):
+    """Change the player's totem to the specified totem.
+
+    If roles is specified, only operates if the player has one of those roles.
+    Otherwise, changes the totem for all shaman roles the player has.
+    If the player previously gave out totems, they are retracted.
+    """
+    if totem not in var.CURRENT_GAMEMODE.TOTEM_CHANCES:
+        raise ValueError("{0} is not a valid totem type.".format(totem))
+
+    player_roles = get_all_roles(player)
+    shaman_roles = set(player_roles & _rolestate.keys())
+    if roles is not None:
+        shaman_roles.intersection_update(roles)
+
+    for role in shaman_roles:
+        del _rolestate[role]["SHAMANS"][:player:]
+        del _rolestate[role]["LASTGIVEN"][:player:]
+        _rolestate[role]["TOTEMS"][player] = totem
 
 @event_listener("see", priority=10)
 def on_see(evt, var, seer, target):

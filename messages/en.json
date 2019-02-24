@@ -315,7 +315,7 @@
     "majority_votes": "{0}Votes needed for a majority: {1}",
     "voting_daytime_only": "Voting is only during the day.",
     "no_votes": "No votes yet.",
-    "vote_stats": "\u0002{1}\u0002 players, \u0002{2}\u0002 votes required to lynch, \u0002{3}\u0002 players available to vote.",
+    "vote_stats": "\u0002{0}\u0002 players, \u0002{1}\u0002 votes required to lynch, \u0002{2}\u0002 players available to vote.",
     "vote_stats_abstain": " \u0002{0}\u0002 player{1} refrained from voting.",
     "wolves_list": "Wolves: {0}",
     "players_list": "Players: {0}",

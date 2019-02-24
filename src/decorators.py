@@ -206,6 +206,10 @@ class command:
                  playing=False, silenced=False, phases=(), roles=(), users=None,
                  exclusive=False):
 
+        # the "d" flag indicates it should only be enabled in debug mode
+        if flag == "d" and not botconfig.DEBUG_MODE:
+            return
+
         self.commands = frozenset(commands)
         self.flag = flag
         self.owner_only = owner_only
