@@ -55,7 +55,7 @@ def on_revealing_totem(evt, var, user, role):
         global STATS_FLAG
         STATS_FLAG = True
     if role == "amnesiac":
-        votee.send(messages["amnesia_clear"].format(ROLES[user]))
+        user.send(messages["amnesia_clear"].format(ROLES[user]))
         change_role(var, user, "amnesiac", ROLES[user])
 
 @event_listener("get_reveal_role")
