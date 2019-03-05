@@ -26,31 +26,7 @@ The bot contains over 50 roles, so it can take a while to get used to all of the
 
 ### As a player, what commands can I use?
 
-Lykos has a host of commands which can be used for various purposes. Here is a non-exhaustive list:
-
-```
-!join: Joins a new game. If a game is running, this lets you join the deadchat, where dead players and people who are not playing may interact. The command !j is an alias for this.
-!quit: Quits the game you're currently in. The command !leave is an alias for this.
-!start: Starts a new game of Werewolf. At least 4 players are required for most gamemodes, and sometimes more.
-!wait: Increases the wait time before a game can be started. If a game is not started 60 minutes after the first join (configurable by the bot owner), the game will be cancelled. The command !w is an alias for this.
-!game: If in the process of joining the game, this allows players to vote for a game mode of their choice. The commands !vote and !v are aliases for this.
-!pingif: Set a threshold of players. When there is at least as many players as your preference, you will be pinged by the bot. The commands !pingme and !pingat are aliases for this.
-
-!lynch: During a game and during the day, this allows you to vote for a player to be lynched. Lynching wolves is how the village wins! There needs to be a majority of votes on one person to induce a lynch. The commands !vote and !v are aliases for this.
-!abstain: During a game and during the day, this allows you to not vote for this day. This will be calculated along with the votes to determine whether or not a lynch happens. If a majority of players abstain, no lynch will happen for the day. The commands !abs and !nolynch are aliases for this.
-!stats: This shows you the current alive players as well as the roles currently alive. The role information is displayed as if a person who isn't playing was keeping track of deaths and showing the current roles to people. As such, it is guaranteed to always be accurate, even if sometimes confusing. The commands !s and !players are aliases for this.
-!roles: This shows you all of the roles that can be present in a given gamemode. If a game is running, this outputs what roles the game started with.
-!votes: Show how many votes there are for a specific gamemode (while joining the game) or a specific player (when a game is running). The commands !vote and !v are aliases for this.
-!time: Shows how much time is left before the game is cancelled (while joining the game), or before day or ngiht is over (when a game is running).
-
-!gamestats: Outputs game statistics for specific gamemodes. The command !gstats is an alias for this.
-!playerstats: Outputs player statistics for specific roles. The commands !pstats and !p are aliases for this.
-!mystats: Shows you your own player statistics. Same as doing !playerstats <myname>. The command !m is an alias for this.
-!rolestats: Outputs global role statistics. The command !rstats is an alias for this.
-
-!help: Get a list of commands, and can also be used to get more detailed information on specific commands.
-!wiki: Give a link to the wiki. If an argument is given, such as !wiki seer, the link to the particular article will be retrieved, and the summary from the page will be sent in a private notice to the player.
-```
+Lykos has a host of commands which can be used for various purposes. [You can view them on our wiki.](https://werewolf.chat/Commands)
 
 ## For bot operators
 
@@ -100,35 +76,7 @@ That's also possible! You can copy the `gamemodes.py.example` file into `gamemod
 
 ### What admin commands can I use?
 
-```
-!fjoin: Forcibly join a player to the game. Bypasses stasis.
-!fleave: Forcibly removes a player from the game. Instantly kills them if a game is running.
-!fstart: Forcibly start the game without waiting for the start timer
-!fstop: Force-stop the game. This is useful if there was an error and the game can't continue.
-!flastgame: Prevent players from joining in to a new game until the bot is restarted.
-
-!frestart: Forces the bot to restart. We recommend using '!aftergame frestart', which will queue the command for right after the game is over.
-!fdie: Kills the bot. You shouldn't usually need to do this. It will not kill the bot if a game is running. '!fdie -force' will kill the bot even if it's in a game. If there is an error and even that doesn't work, '!fdie -dirty' crashes the bot (all information is lost). Do not use the latter lightly.
-
-!update: Updates the bot with the latest code from the repository. We recommend using '!aftergame update' so that the bot is updated once the game is over.
-
-!fflags: This is the command to add new admins or moderators into your bot. Only a full admin may use it (owners are full admins). The valid flags are:
-
-+A: Grants !fjoin, !fleave, and !fstasis.
-+D: Grants !frestart, !aftergame, !flastgame, and !update.
-+F: Grants (almost) full control over the bot, including !fdie and !fwarn. User will show up in !admins.
-+N: Grants !fday and !fnight, forcing day or night, respectively.
-+S: Grants !fstart and !fstop.
-
-+a: Grants !revealroles, which lets player see who is what role at any given time. This command is disabled for anyone currently playing.
-+d: Grants !frole, !force and !rforce, which are all debug-mode commands.
-+g: Grants !fgame, allowing to force a certain gamemode to be picked.
-+j: Grants !fgoat, a silly harmless command.
-+m: Grants !fsync and !refreshdb, both useful when the bot is desynced from the IRC server, or if some data isn't accurate. This is usually helpful after recovering from netsplits, but otherwise not so much.
-+p: Grants !spectate, letting someone spectate the wolfchat during a game.
-+s: Grants !fsay and !fdo, allowing to send messages via the bot to the game channel. Only full admins can send messages anywhere.
-+w: Grants !fwait, forcibly increasing the wait time before the game can be started.
-```
+A [list of admin commands](https://werewolf.chat/Admin_commands) is available on our wiki.
 
 ### Our player base is mostly non-English speakers. Is there support for our language?
 
