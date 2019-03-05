@@ -17,7 +17,7 @@ DYING = UserDict() # type: UserDict[User, DyingEntry]
 def add_dying(var, player: User, killer_role: str, reason: str, *, death_triggers: bool = True) -> bool:
     """
     Mark a player as dying.
-    
+
     :param var: The game state
     :param player: The player to kill off
     :param killer_role: The role which is responsible for killing player; must be an actual role
@@ -43,7 +43,7 @@ def add_dying(var, player: User, killer_role: str, reason: str, *, death_trigger
 def is_dying(var, player: User) -> bool:
     """
     Determine if the player is marked as dying.
-    
+
     :param var: The game state
     :param player: Player to check
     :returns: True if the player is marked as dying, False otherwise

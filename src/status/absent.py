@@ -2,9 +2,8 @@ from src.decorators import event_listener
 from src.containers import UserDict
 from src.functions import get_players
 from src.messages import messages
-from src import channels
 
-__all__ = ["add_absent"]
+__all__ = ["add_absent", "try_absent", "get_absent"]
 
 ABSENT = UserDict() # type: UserDict[users.User, str]
 
@@ -13,28 +12,27 @@ def add_absent(var, target, reason):
         return
 
     ABSENT[target] = reason
+    from src.votes import VOTES
 
-    for votee, voters in list(var.VOTES.items()):
+    for votee, voters in list(VOTES.items()):
         if target in voters:
             voters.remove(target)
             if not voters:
-                del var.VOTES[votee]
+                del VOTES[votee]
             break
+
+def try_absent(var, user):
+    if user in ABSENT:
+        user.send(messages[ABSENT[user] + "_absent"])
+        return True
+    return False
+
+def get_absent(var):
+    return set(ABSENT)
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
     del ABSENT[:player:]
-
-@event_listener("get_voters")
-def on_get_voters(evt, var):
-    evt.data["voters"].difference_update(ABSENT)
-
-@event_listener("lynch")
-@event_listener("abstain")
-def on_lynch_and_abstain(evt, var, user):
-    if user in ABSENT:
-        user.send(messages[ABSENT[user] + "_absent"])
-        evt.prevent_default = True
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

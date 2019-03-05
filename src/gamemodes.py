@@ -100,6 +100,9 @@ class GameMode:
     def teardown(self):
         pass
 
+    def can_vote_bot(self, var):
+        return False
+
     def set_default_totem_chances(self):
         if self.TOTEM_CHANCES is self.DEFAULT_TOTEM_CHANCES:
             return # nothing more we can do
@@ -202,21 +205,30 @@ class DefaultMode(GameMode):
         }
 
     def startup(self):
-        events.add_listener("chk_decision", self.chk_decision, priority=20)
+        events.add_listener("lynch", self.on_lynch)
 
     def teardown(self):
-        events.remove_listener("chk_decision", self.chk_decision, priority=20)
+        events.remove_listener("lynch", self.on_lynch)
 
-    def chk_decision(self, evt, var, force):
-        if len(var.ALL_PLAYERS) <= 9 and var.VILLAGERGAME_CHANCE > 0:
-            if users.Bot in evt.data["votelist"]:
-                if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
-                    channels.Main.send(messages["villagergame_nope"])
-                    from src.wolfgame import stop_game
-                    stop_game(var, "wolves")
-                    evt.prevent_default = True
-                else:
-                    del evt.data["votelist"][users.Bot]
+    def can_vote_bot(self, var):
+        if var.VILLAGERGAME_CHANCE:
+            vilgame = var.GAME_MODES.get("villagergame")
+            if vilgame is not None:
+                if vilgame[1] <= len(get_players()) <= vilgame[2]: # enough players
+                    return True
+
+        return False
+
+    def on_lynch(self, evt, var, votee, voters):
+        from src import votes
+        if votee is users.Bot:
+            if len(voters) == evt.params.players:
+                channels.Main.send(messages["villagergame_nope"])
+                from src.wolfgame import stop_game
+                stop_game(var, "wolves")
+            # don't try to actually kill the bot and don't make bot lynches count for ending day
+            votes.LYNCHED -= 1
+            evt.prevent_default = True
 
 @game_mode("villagergame", minp=4, maxp=9, likelihood=0)
 class VillagergameMode(GameMode):
@@ -231,12 +243,15 @@ class VillagergameMode(GameMode):
             9: ["crazed shaman"],
         }
 
+    def can_vote_bot(self, var):
+        return True
+
     def startup(self):
         events.add_listener("chk_win", self.chk_win)
         events.add_listener("chk_nightdone", self.chk_nightdone)
         events.add_listener("transition_day_begin", self.transition_day)
         events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.add_listener("chk_decision", self.chk_decision, priority=20)
+        events.add_listener("lynch", self.on_lynch)
         events.add_listener("reconfigure_stats", self.reconfigure_stats)
 
     def teardown(self):
@@ -244,7 +259,7 @@ class VillagergameMode(GameMode):
         events.remove_listener("chk_nightdone", self.chk_nightdone)
         events.remove_listener("transition_day_begin", self.transition_day)
         events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.remove_listener("chk_decision", self.chk_decision, priority=20)
+        events.remove_listener("lynch", self.on_lynch)
         events.remove_listener("reconfigure_stats", self.reconfigure_stats)
 
     def reconfigure_stats(self, evt, var, roleset, reason):
@@ -323,15 +338,17 @@ class VillagergameMode(GameMode):
             evt.data["target"] = None
             evt.stop_processing = True
 
-    def chk_decision(self, evt, var, force):
-        if users.Bot in evt.data["votelist"]:
-            if len(evt.data["votelist"][users.Bot]) == len(set(evt.params.voters) - evt.data["not_lynching"]):
+    def on_lynch(self, evt, var, votee, voters):
+        from src import votes
+        if votee is users.Bot:
+            if len(voters) == evt.params.players:
                 channels.Main.send(messages["villagergame_win"])
                 from src.wolfgame import stop_game
                 stop_game(var, "everyone")
-                evt.prevent_default = True
-            else:
-                del evt.data["votelist"][users.Bot]
+            # we don't want to attempt to kill the bot, and we don't
+            # want any votes on the bot to count for ending day
+            votes.LYNCHED -= 1
+            evt.prevent_default = True
 
 @game_mode("foolish", minp=8, maxp=24, likelihood=10)
 class FoolishMode(GameMode):
@@ -1190,15 +1207,14 @@ class MudkipMode(GameMode):
             14: ["amnesiac"],
             15: ["succubus"],
         }
-        self.recursion_guard = False
 
     def startup(self):
-        events.add_listener("chk_decision", self.chk_decision)
+        events.add_listener("lynch_behaviour", self.lynch_behaviour)
         events.add_listener("daylight_warning", self.daylight_warning)
         events.add_listener("transition_day_begin", self.restore_totem_chances)
 
     def teardown(self):
-        events.remove_listener("chk_decision", self.chk_decision)
+        events.remove_listener("lynch_behaviour", self.lynch_behaviour)
         events.remove_listener("daylight_warning", self.daylight_warning)
         events.remove_listener("transition_day_begin", self.restore_totem_chances)
 
@@ -1206,59 +1222,11 @@ class MudkipMode(GameMode):
         if var.NIGHT_COUNT == 1: # don't fire unnecessarily every day
             self.TOTEM_CHANCES["pestilence"]["shaman"] = 1
 
-    def chk_decision(self, evt, var, force):
-        # If everyone is voting, end day here with the person with plurality being voted. If there's a tie,
-        # kill all tied players rather than hanging. The intent of this is to benefit village team in the event
-        # of a stalemate, as they could use the extra help (especially in 5p).
-        if self.recursion_guard:
-            # in here, this means we're in a child chk_decision event called from this one
-            # we need to ensure we don't turn into nighttime prematurely or try to vote
-            # anyone other than the person we're forcing the lynch on
-            evt.data["transition_night"] = lambda: None
-            if force:
-                evt.data["votelist"].clear()
-                evt.data["votelist"][force] = set()
-                evt.data["numvotes"].clear()
-                evt.data["numvotes"][force] = 0
-            else:
-                evt.data["votelist"].clear()
-                evt.data["numvotes"].clear()
-            return
-
-        avail = len(evt.params.voters)
-        voted = sum(map(len, evt.data["votelist"].values()))
-        if (avail != voted and not evt.params.timeout) or voted == 0:
-            return
-
-        majority = avail // 2 + 1
-        maxv = max(evt.data["numvotes"].values())
-        if maxv >= majority or force:
-            # normal vote code will result in someone being lynched
-            # not bailing out here will result in the person being voted twice
-            return
-
-        # make a copy in case an event mutates it in recursive calls
-        tovote = [p for p, n in evt.data["numvotes"].items() if n == maxv]
-        self.recursion_guard = True
-        gameid = var.GAME_ID
-        last = tovote[-1]
-
-        if evt.params.timeout:
-            channels.Main.send(messages["sunset_lynch"])
-
-        from src.wolfgame import chk_decision
-        for p in tovote:
-            deadlist = tovote[:]
-            deadlist.remove(p)
-            chk_decision(force=p, deadlist=deadlist, end_game=p is last)
-
-        self.recursion_guard = False
-        # gameid changes if game stops due to us voting someone
-        if var.GAME_ID == gameid:
-            evt.data["transition_night"]()
-
-        # make original chk_decision that called us no-op
-        evt.prevent_default = True
+    def lynch_behaviour(self, evt, var):
+        evt.data["kill_ties"] = True
+        voters = sum(map(len, evt.params.votes.values()))
+        if voters == evt.params.players:
+            evt.data["force"] = True
 
     def daylight_warning(self, evt, var):
         evt.data["message"] = "daylight_warning_killtie"

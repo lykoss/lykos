@@ -8,20 +8,23 @@ from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
+from src.functions import get_all_players
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import add_lynch_immunity
 
 REVEALED_MAYORS = UserSet()
 
-@event_listener("chk_decision_lynch", priority=3)
-def on_chk_decision_lynch(evt, var, voters):
-    votee = evt.data["votee"]
-    if votee in var.ROLES["mayor"] and votee not in REVEALED_MAYORS:
+@event_listener("transition_day_begin")
+def on_transition_day_begin(evt, var):
+    for user in get_all_players(("mayor",)):
+        if user not in REVEALED_MAYORS:
+            add_lynch_immunity(var, user, "mayor")
+
+@event_listener("lynch_immunity")
+def on_lynch_immunity(evt, var, user, reason):
+    if reason == "mayor":
         channels.Main.send(messages["mayor_reveal"].format(votee))
-        REVEALED_MAYORS.add(votee)
-        evt.data["votee"] = None
-        evt.prevent_default = True
-        evt.stop_processing = True
+        evt.data["immune"] = True
 
 @event_listener("reset")
 def on_reset(evt, var):

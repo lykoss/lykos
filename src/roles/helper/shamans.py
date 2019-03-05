@@ -3,27 +3,14 @@ import random
 import re
 from collections import deque
 
-from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src import channels, users, status, debuglog, errlog, plog
+from src.functions import get_players, get_all_players, get_main_role, get_all_roles, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
+from src.status import try_misdirection, try_protection, try_exchange
 from src.events import Event
 from src.cats import Cursed, Safe, Innocent, Wolf, All
-from src.status import (
-    add_lycanthropy_scope,
-    add_misdirection,
-    add_lycanthropy,
-    add_protection,
-    add_exchange,
-    add_disease,
-    add_absent,
-    add_dying,
-
-    try_misdirection,
-    try_protection,
-    try_exchange,
-)
 
 #####################################################################################
 ########### ADDING CUSTOM TOTEMS AND SHAMAN ROLES TO YOUR BOT -- READ THIS ##########
@@ -92,6 +79,10 @@ DECEIT = UserSet()          # type: Set[users.User]
 havetotem = []              # type: List[users.User]
 brokentotem = set()         # type: Set[users.User]
 
+# holds mapping of shaman roles to their state vars, for debugging
+# and unit testing purposes
+_rolestate = {}             # type: Dict[str, Dict[str, Any]]
+
 # Generated message keys used across all shaman files:
 # death_totem, protection_totem, revealing_totem, narcolepsy_totem,
 # silence_totem, desperation_totem, impatience_totem, pacifism_totem,
@@ -103,6 +94,11 @@ def setup_variables(rolename, *, knows_totem):
     TOTEMS = UserDict()     # type: Dict[users.User, str]
     LASTGIVEN = UserDict()  # type: Dict[users.User, users.User]
     SHAMANS = UserDict()    # type: Dict[users.User, List[users.User]]
+    _rolestate[rolename] = {
+        "TOTEMS": TOTEMS,
+        "LASTGIVEN": LASTGIVEN,
+        "SHAMANS": SHAMANS
+        }
 
     @event_listener("reset")
     def on_reset(evt, var):
@@ -220,7 +216,7 @@ def setup_variables(rolename, *, knows_totem):
     @event_listener("transition_night_end")
     def on_transition_night_begin(evt, var):
         if get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
-            add_lycanthropy_scope(var, All)
+            status.add_lycanthropy_scope(var, All)
 
     if knows_totem:
         @event_listener("myrole")
@@ -259,6 +255,26 @@ def give_totem(var, wrapper, target, prefix, role, msg):
 
     return UserList((target, orig_target))
 
+def change_totem(var, player, totem, roles=None):
+    """Change the player's totem to the specified totem.
+
+    If roles is specified, only operates if the player has one of those roles.
+    Otherwise, changes the totem for all shaman roles the player has.
+    If the player previously gave out totems, they are retracted.
+    """
+    if totem not in var.CURRENT_GAMEMODE.TOTEM_CHANCES:
+        raise ValueError("{0} is not a valid totem type.".format(totem))
+
+    player_roles = get_all_roles(player)
+    shaman_roles = set(player_roles & _rolestate.keys())
+    if roles is not None:
+        shaman_roles.intersection_update(roles)
+
+    for role in shaman_roles:
+        del _rolestate[role]["SHAMANS"][:player:]
+        del _rolestate[role]["LASTGIVEN"][:player:]
+        _rolestate[role]["TOTEMS"][player] = totem
+
 @event_listener("see", priority=10)
 def on_see(evt, var, seer, target):
     if (seer in DECEIT) ^ (target in DECEIT):
@@ -277,82 +293,19 @@ def on_see(evt, var, seer, target):
         else:
             evt.data["role"] = "wolf"
 
-@event_listener("chk_decision", priority=1)
-def on_chk_decision(evt, var, force):
-    nl = []
-    for p in PACIFISM:
-        if p in evt.params.voters:
-            nl.append(p)
-    # .remove() will only remove the first instance, which means this plays nicely with pacifism countering this
-    for p in IMPATIENCE:
-        if p in nl:
-            nl.remove(p)
-    evt.data["not_lynching"].update(nl)
-
-    for votee, voters in evt.data["votelist"].items():
-        numvotes = 0
-        random.shuffle(IMPATIENCE)
-        for v in IMPATIENCE:
-            if v in evt.params.voters and v not in voters and v is not votee:
-                # don't add them in if they have the same number or more of pacifism totems
-                # this matters for desperation totem on the votee
-                imp_count = IMPATIENCE.count(v)
-                pac_count = PACIFISM.count(v)
-                if pac_count >= imp_count:
-                    continue
-
-                # yes, this means that one of the impatient people will get desperation totem'ed if they didn't
-                # already !vote earlier. sucks to suck. >:)
-                voters.append(v)
-
-        for v in voters:
-            weight = 1
-            imp_count = IMPATIENCE.count(v)
-            pac_count = PACIFISM.count(v)
-            if pac_count > imp_count:
-                weight = 0 # more pacifists than impatience totems
-            elif imp_count == pac_count and v not in var.VOTES[votee]:
-                weight = 0 # impatience and pacifist cancel each other out, so don't count impatience
-            if v in INFLUENCE:
-                weight *= 2
-            numvotes += weight
-            if votee not in evt.data["weights"]:
-                evt.data["weights"][votee] = {}
-            evt.data["weights"][votee][v] = weight
-        evt.data["numvotes"][votee] = numvotes
-
-@event_listener("chk_decision_abstain")
-def on_chk_decision_abstain(evt, var, not_lynching):
-    for p in not_lynching:
-        if p in PACIFISM and p not in var.NO_LYNCH:
-            channels.Main.send(messages["player_meek_abstain"].format(p))
-
-@event_listener("chk_decision_lynch", priority=1)
-def on_chk_decision_lynch1(evt, var, voters):
-    votee = evt.data["votee"]
-    for p in voters:
-        if p in IMPATIENCE and p not in var.VOTES[votee]:
-            channels.Main.send(messages["impatient_vote"].format(p, votee))
-
-# mayor is at exactly 3, so we want that to always happen before revealing totem
-@event_listener("chk_decision_lynch", priority=3.1)
-def on_chk_decision_lynch3(evt, var, voters):
-    votee = evt.data["votee"]
-    if votee in REVEALING:
-        role = get_main_role(votee)
-        rev_evt = Event("revealing_totem", {"role": role})
-        rev_evt.dispatch(var, votee)
-        role = rev_evt.data["role"]
+@event_listener("lynch_immunity")
+def on_lynch_immunity(evt, var, user, reason):
+    if reason == "totem":
+        role = get_main_role(user)
+        rev_evt = Event("role_revealed", {})
+        rev_evt.dispatch(var, user, role)
 
         an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-        channels.Main.send(messages["totem_reveal"].format(votee, an, role))
-        evt.data["votee"] = None
-        evt.prevent_default = True
-        evt.stop_processing = True
+        channels.Main.send(messages["totem_reveal"].format(user, an, role))
+        evt.data["immune"] = True
 
-@event_listener("chk_decision_lynch", priority=5)
-def on_chk_decision_lynch5(evt, var, voters):
-    votee = evt.data["votee"]
+@event_listener("lynch")
+def on_lynch(evt, var, votee, voters):
     if votee in DESPERATION:
         # Also kill the very last person to vote them, unless they voted themselves last in which case nobody else dies
         target = voters[-1]
@@ -369,8 +322,8 @@ def on_chk_decision_lynch5(evt, var, voters):
             else:
                 tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
             channels.Main.send(tmsg)
-            add_dying(var, target, killer_role="shaman", reason="totem_desperation")
-            # no kill_players() call here; let overall chk_decision() call that for us
+            status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
+            # no kill_players() call here; let our caller do that for us
 
 @event_listener("transition_day", priority=2)
 def on_transition_day2(evt, var):
@@ -385,7 +338,7 @@ def on_transition_day3(evt, var):
     # we set priority=4.1 to allow other modes of protection
     # to pre-empt us if desired
     for player in PROTECTION:
-        add_protection(var, player, protector=None, protector_role="shaman")
+        status.add_protection(var, player, protector=None, protector_role="shaman")
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
@@ -474,22 +427,30 @@ def on_transition_night_end(evt, var):
     # These are the totems of the *previous* nights
     # We need to add them here otherwise transition_night_begin
     # will remove them before they even get used
-    for lycan in LYCANTHROPY:
-        add_lycanthropy(var, lycan)
-    for pestilent in PESTILENCE:
-        add_disease(var, pestilent)
+    for player in LYCANTHROPY:
+        status.add_lycanthropy(var, player)
+    for player in PESTILENCE:
+        status.add_disease(var, player)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     # Apply totem effects that need to begin on day proper
-    for absent in NARCOLEPSY:
-        add_absent(var, absent, "totem")
-    for misdirected in MISDIRECTION:
-        add_misdirection(var, misdirected, as_actor=True)
-    for lucky in LUCK:
-        add_misdirection(var, lucky, as_target=True)
-    for exchanging in EXCHANGE:
-        add_exchange(var, exchanging)
+    for player in NARCOLEPSY:
+        status.add_absent(var, player, "totem")
+    for player in IMPATIENCE:
+        status.add_force_vote(var, player, get_all_players() - {player})
+    for player in PACIFISM:
+        status.add_force_abstain(var, player)
+    for player in INFLUENCE:
+        status.add_vote_weight(var, player)
+    for player in REVEALING:
+        status.add_lynch_immunity(var, player, "totem")
+    for player in MISDIRECTION:
+        status.add_misdirection(var, player, as_actor=True)
+    for player in LUCK:
+        status.add_misdirection(var, player, as_target=True)
+    for player in EXCHANGE:
+        status.add_exchange(var, player)
     var.SILENCED.update(p.nick for p in SILENCE)
 
 @event_listener("player_protected")

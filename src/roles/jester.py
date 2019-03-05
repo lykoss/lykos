@@ -14,10 +14,10 @@ from src.status import try_misdirection, try_exchange
 
 JESTERS = UserSet() # type: UserSet[users.User]
 
-@event_listener("chk_decision_lynch")
-def on_chk_decision_lynch(evt, var, voters):
-    if evt.data["votee"] in get_all_players(("jester",)):
-        JESTERS.add(evt.data["votee"])
+@event_listener("lynch")
+def on_lynch(evt, var, votee, voters):
+    if votee in get_all_players(("jester",)):
+        JESTERS.add(votee)
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
