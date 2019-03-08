@@ -231,6 +231,8 @@ def chk_decision(var, *, timeout=False):
                     max_value = value
                     while value == max_value:
                         voting.append(votee)
+                        if not plurality:
+                            break
                         votee, value = plurality.pop()
 
                 if len(voting) == 1:
