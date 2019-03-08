@@ -229,6 +229,9 @@ def chk_decision(var, *, timeout=False):
                     plurality.sort(key=lambda x: x[1])
                     votee, value = plurality.pop()
                     max_value = value
+                    # Fetch all of the highest ties, exit out if we find someone lower
+                    # If everyone is tied, then at some point plurality will empty,
+                    # but the values will still be at the max. Everything's fine, just break
                     while value == max_value:
                         voting.append(votee)
                         if not plurality:
