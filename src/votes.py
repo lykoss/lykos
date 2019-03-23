@@ -230,7 +230,7 @@ def chk_decision(var, *, timeout=False):
                     votee, value = plurality.pop()
                     max_value = value
                     # Fetch all of the highest ties, exit out if we find someone lower
-                    # If everyone is tied, then at some point plurality will empty,
+                    # If everyone is tied, then at some point plurality will be empty,
                     # but the values will still be at the max. Everything's fine, just break
                     while value == max_value:
                         voting.append(votee)

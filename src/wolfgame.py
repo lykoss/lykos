@@ -3794,51 +3794,52 @@ def flastgame(var, wrapper, message):
     if message.strip():
         aftergame.func(var, wrapper, message)
 
-@cmd("gamestats", "gstats", pm=True)
-def game_stats(cli, nick, chan, rest):
-    """Gets the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
-    if (chan != nick and var.LAST_GSTATS and var.GSTATS_RATE_LIMIT and
-            var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) >
-            datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"])
-        return
+@command("gamestats", "gstats", pm=True)
+def gamestats(var, wrapper, message):
+    """Get the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
 
-    if chan != nick:
+    if wrapper.public:
+        if (var.GSTATS_RATE_LIMIT and var.LAST_GSTATS and
+            var.LAST_GSTATS + timedelta(seconds=var.GSTATS_RATE_LIMIT) > datetime.now()):
+            wrapper.pm(messages["command_ratelimited"])
+            return
+
         var.LAST_GSTATS = datetime.now()
-        if var.PHASE not in ("none", "join") and chan == botconfig.CHANNEL:
-            cli.notice(nick, messages["stats_wait_for_game_end"])
+        if var.PHASE in var.GAME_PHASES and wrapper.target is channels.Main:
+            wrapper.pm(messages["stats_wait_for_game_end"])
             return
 
     gamemode = "all"
     gamesize = None
-    rest = rest.split()
+    msg = message.split()
     # Check for gamemode
-    if len(rest) and not rest[0].isdigit():
-        gamemode = rest[0]
-        if gamemode != "all" and gamemode not in var.GAME_MODES.keys():
-            matches = complete_match(gamemode, var.GAME_MODES.keys())
+    if msg and not msg[0].isdigit():
+        gamemode = msg[0]
+        if gamemode != "all" and gamemode not in var.GAME_MODES:
+            matches = complete_match(gamemode, var.GAME_MODES)
             if len(matches) == 1:
                 gamemode = matches[0]
             if not matches:
-                cli.notice(nick, messages["invalid_mode"].format(rest[0]))
+                wrapper.pm(messages["invalid_mode"].format(msg[0]))
                 return
             if len(matches) > 1:
-                cli.notice(nick, messages["ambiguous_mode"].format(rest[0], ", ".join(matches)))
+                wrapper.pm(messages["ambiguous_mode"].format(msg[0], ", ".join(matches)))
                 return
-        rest.pop(0)
+        msg.pop(0)
+
     # Check for invalid input
-    if len(rest) and rest[0].isdigit():
-        gamesize = int(rest[0])
-        if gamemode != "all" and (gamesize > var.GAME_MODES[gamemode][2] or gamesize < var.GAME_MODES[gamemode][1]):
-            cli.notice(nick, messages["integer_range"].format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
+    if msg and msg[0].isdigit():
+        gamesize = int(msg[0])
+        if gamemode != "all" and not (var.GAME_MODES[gamemode][1] <= gamesize <= var.GAME_MODES[gamemode][2]):
+            wrapper.pm(messages["integer_range"].format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
             return
 
     # List all games sizes and totals if no size is given
     if not gamesize:
-        reply(cli, nick, chan, db.get_game_totals(gamemode))
+        wrapper.send(db.get_game_totals(gamemode))
     else:
         # Attempt to find game stats for the given game size
-        reply(cli, nick, chan, db.get_game_stats(gamemode, gamesize))
+        wrapper.send(db.get_game_stats(gamemode, gamesize))
 
 @cmd("playerstats", "pstats", "player", "p", pm=True) # XXX: mystats (just after this) needs updating along this one
 def player_stats(cli, nick, chan, rest):
