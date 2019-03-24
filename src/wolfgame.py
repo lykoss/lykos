@@ -2423,7 +2423,7 @@ def transition_day(gameid=0):
             "https://i.imgur.com/mUcM09n.gifv",
             "https://i.imgur.com/b8HAvjL.gifv",
             "https://i.imgur.com/PIIfL15.gifv",
-            "https://i.imgur.com/eJiMG5z.gifv"]
+            "https://i.imgur.com/nly0Cmm.gifv"]
             ))
     channels.Main.send("\n".join(to_send))
 
