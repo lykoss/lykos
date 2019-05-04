@@ -96,7 +96,7 @@ def on_begin_day(evt, var):
     for sick in SICK.values():
         status.add_disease(var, sick)
         status.add_absent(var, sick, "illness")
-        var.SILENCED.add(sick.nick) # FIXME
+        status.add_silent(var, sick)
 
     SEEN.clear()
     KILLS.clear()
