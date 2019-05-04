@@ -8,7 +8,7 @@ from src.functions import get_players, get_target, get_main_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, add_silent, is_silent
 from src.cats import All, Wolfteam
 
 KILLS = UserDict() # type: Dict[users.User, users.User]
@@ -67,7 +67,7 @@ def on_get_participants(evt, var):
 @event_listener("consecrate")
 def on_consecrate(evt, var, actor, target):
     if target in GHOSTS:
-        var.SILENCED.add(target.nick)
+        add_silent(var, target)
 
 @event_listener("player_win", priority=1)
 def on_player_win(evt, var, user, role, winner, survived):
@@ -114,7 +114,7 @@ def on_transition_day_begin(evt, var):
     wolves = get_players(Wolfteam)
     villagers = get_players(All - Wolfteam)
     for ghost, target in GHOSTS.items():
-        if target[0] == "!" or ghost.nick in var.SILENCED:
+        if target[0] == "!" or is_silent(var, ghost):
             continue
         if ghost not in KILLS:
             choice = None

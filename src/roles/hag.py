@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_revea
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, add_silent
 
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message
 
@@ -66,7 +66,7 @@ def on_begin_day(evt, var):
     LASTHEXED.clear()
     for hag, target in HEXED.items():
         LASTHEXED[hag] = target
-        var.SILENCED.add(target.nick)
+        add_silent(var, target)
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):

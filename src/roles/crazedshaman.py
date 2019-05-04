@@ -10,7 +10,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, is_silent
 from src.cats import Win_Stealer
 
 from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
@@ -37,7 +37,7 @@ def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(("crazed shaman",)):
-        if shaman not in SHAMANS and shaman.nick not in var.SILENCED:
+        if shaman not in SHAMANS and not is_silent(var, shaman):
             ps = pl[:]
             if shaman in LASTGIVEN:
                 if LASTGIVEN[shaman] in ps:

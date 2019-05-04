@@ -451,7 +451,8 @@ def on_begin_day(evt, var):
         status.add_misdirection(var, player, as_target=True)
     for player in EXCHANGE:
         status.add_exchange(var, player)
-    var.SILENCED.update(p.nick for p in SILENCE)
+    for player in SILENCE:
+        status.add_silent(var, player)
 
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

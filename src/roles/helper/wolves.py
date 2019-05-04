@@ -9,7 +9,7 @@ from src.functions import get_main_role, get_players, get_all_roles, get_all_pla
 from src.decorators import event_listener, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
 from src import debuglog, users
@@ -211,7 +211,7 @@ def on_chk_nightdone(evt, var):
     nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
-    wofls = [x for x in get_players(Wolf & Killer) if x.nick not in var.SILENCED]
+    wofls = [x for x in get_players(Wolf & Killer) if not is_silent(var, x)]
     if not num_kills or not wofls:
         return
 

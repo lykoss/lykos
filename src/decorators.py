@@ -14,6 +14,7 @@ from oyoyo.parse import parse_nick
 
 import botconfig
 import src.settings as var
+import src
 from src.dispatcher import MessageDispatcher
 from src.utilities import *
 from src.functions import get_players
@@ -301,7 +302,7 @@ class command:
             if (self.users is not None and user not in self.users) or self.roles:
                 return
 
-        if self.silenced and user.nick in var.SILENCED: # FIXME: Need to change this once var.SILENCED holds User instances
+        if self.silenced and src.status.is_silent(var, user):
             dispatcher.pm(messages["silenced"])
             return
 
@@ -456,7 +457,7 @@ class cmd:
             if (self.nicks is not None and nick not in self.nicks) or self.roles:
                 return
 
-        if self.silenced and nick in var.SILENCED:
+        if self.silenced and src.status.is_silent(var, users._get(nick)):
             if chan == nick:
                 pm(cli, nick, messages["silenced"])
             else:

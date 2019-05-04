@@ -11,7 +11,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.events import Event
-from src.status import try_misdirection, try_exchange, try_protection, add_dying
+from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_silent
 
 TARGETED = UserDict() # type: Dict[users.User, users.User]
 PREV_ACTED = UserSet()
@@ -48,13 +48,13 @@ def on_transition_day(evt, var):
     # Select a random target for assassin that isn't already going to die if they didn't target
     pl = get_players()
     for ass in get_all_players(("assassin",)):
-        if ass not in TARGETED and ass.nick not in var.SILENCED:
+        if ass not in TARGETED and not is_silent(var, ass):
             ps = pl[:]
             ps.remove(ass)
             for victim in set(evt.data["victims"]):
                 if victim in ps:
                     ps.remove(victim)
-            if len(ps) > 0:
+            if ps:
                 target = random.choice(ps)
                 TARGETED[ass] = target
                 ass.send(messages["assassin_random"].format(target))

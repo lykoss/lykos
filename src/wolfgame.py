@@ -57,7 +57,7 @@ from src.decorators import command, cmd, hook, handle_error, event_listener, COM
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
-from src.status import try_protection, add_dying, is_dying, kill_players, get_absent
+from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
 from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
 
@@ -2010,10 +2010,6 @@ def rename_player(var, user, prefix):
             for dictvar in (var.FINAL_ROLES,):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
-            for setvar in (var.SILENCED,):
-                if prefix in setvar:
-                    setvar.remove(prefix)
-                    setvar.add(nick)
             with var.GRAVEYARD_LOCK:  # to be safe
                 if prefix in var.LAST_SAID_TIME.keys():
                     var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
@@ -2208,8 +2204,7 @@ def begin_day():
     # Reset nighttime variables
     var.GAMEPHASE = "day"
     var.KILLER = ""  # nickname of who chose the victim
-    var.STARTED_DAY_PLAYERS = len(list_players())
-    var.SILENCED = set()
+    var.STARTED_DAY_PLAYERS = len(get_players())
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
     channels.Main.send(msg)
@@ -2482,7 +2477,7 @@ def chk_nightdone():
     actedcount = event.data["actedcount"]
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
-    nightroles = [p for p in event.data["nightroles"] if p.nick not in var.SILENCED]
+    nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
 
     if var.PHASE == "night" and actedcount >= len(nightroles):
         for x, t in var.TIMERS.items():
@@ -2961,7 +2956,6 @@ def start(cli, nick, chan, forced = False, restart = ""):
 
     var.ROLES.clear()
     var.MAIN_ROLES.clear()
-    var.SILENCED = set()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
     var.TRAITOR_TURNED = False
@@ -4353,7 +4347,7 @@ def force(var, wrapper, message):
         return
 
     target = msg.pop(0).strip()
-    match, _ = users.complete_match(target, get_players())
+    match, _ = users.complete_match(target, get_participants())
     if target == "*":
         players = get_players()
     elif match is None:
