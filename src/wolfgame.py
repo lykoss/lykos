@@ -78,7 +78,6 @@ var.LAST_GSTATS = None
 var.LAST_PSTATS = None
 var.LAST_RSTATS = None
 var.LAST_TIME = None
-var.LAST_START = {}
 var.LAST_WAIT = {}
 var.LAST_GOAT = {}
 
@@ -120,8 +119,6 @@ var.STARTED_DAY_PLAYERS = 0
 var.DISCONNECTED = {}  # players who are still alive but disconnected
 
 var.RESTARTING = False
-
-var.START_VOTES = UserSet()
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.NIGHT_TIME_LIMIT = 0 # 120
@@ -327,7 +324,6 @@ def reset():
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
     var.GAMEMODE_VOTES = {} #list of players who have used !game
-    var.START_VOTES.clear() # list of players who have voted to !start
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
 
     reset_settings()
@@ -1135,12 +1131,6 @@ def fleave(var, wrapper, message):
             wrapper.send(messages["not_playing"].format(person))
             return
 
-@cmd("fstart", flag="S", phases=("join",))
-def fstart(cli, nick, chan, rest):
-    """Forces the game to start immediately."""
-    cli.msg(botconfig.CHANNEL, messages["fstart_success"].format(nick))
-    start(cli, nick, botconfig.CHANNEL, forced = True)
-
 @event_listener("chan_kick")
 def kicked_modes(evt, var, chan, actor, target, reason):
     if target is users.Bot and chan is channels.Main:
@@ -1684,14 +1674,6 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
         if player.nick in var.GAMEMODE_VOTES:
             del var.GAMEMODE_VOTES[player.nick]
 
-        with var.WARNING_LOCK:
-            var.START_VOTES.discard(player)
-
-            # Cancel the start vote timer if there are no votes left
-            if not var.START_VOTES and "start_votes" in var.TIMERS:
-                var.TIMERS["start_votes"][0].cancel()
-                del var.TIMERS["start_votes"]
-
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
     if var.PHASE in var.GAME_PHASES:
@@ -2106,7 +2088,8 @@ def leave(var, what, user, why=None):
         lpl = len(ps) - 1
         if lpl < var.MIN_PLAYERS:
             with var.WARNING_LOCK:
-                var.START_VOTES.clear()
+                from pregame import START_VOTES
+                START_VOTES.clear()
 
         if lpl <= 0:
             population = " " + messages["no_players_remaining"]
@@ -2487,24 +2470,6 @@ def chk_nightdone():
         if var.PHASE == "night":  # Double check
             event.data["transition_day"]()
 
-@command("retract", "r", phases=("day", "join"))
-def retract(var, wrapper, message):
-    """Takes back your vote during the day (for whom to lynch)."""
-    if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED:
-        return
-
-    with var.GRAVEYARD_LOCK, var.WARNING_LOCK:
-        if var.PHASE == "join":
-            if not wrapper.source in var.START_VOTES:
-                wrapper.pm(messages["start_novote"])
-            else:
-                var.START_VOTES.discard(wrapper.source)
-                wrapper.send(messages["start_retract"].format(wrapper.source))
-
-                if len(var.START_VOTES) < 1:
-                    var.TIMERS["start_votes"][0].cancel()
-                    del var.TIMERS["start_votes"]
-
 @hook("featurelist")  # For multiple targets with PRIVMSG
 def getfeatures(cli, nick, *rest):
     for r in rest:
@@ -2743,390 +2708,6 @@ def cgamemode(arg):
             return False
     else:
         cli.msg(chan, messages["game_mode_not_found"].format(modeargs[0]))
-
-@handle_error
-def expire_start_votes(cli, chan):
-    # Should never happen as the timer is removed on game start, but just to be safe
-    if var.PHASE != 'join':
-        return
-
-    with var.WARNING_LOCK:
-        var.START_VOTES.clear()
-        cli.msg(chan, messages["start_expired"])
-
-@cmd("start", phases=("none", "join"))
-def start_cmd(cli, nick, chan, rest):
-    """Starts a game of Werewolf."""
-    start(cli, nick, chan)
-
-def start(cli, nick, chan, forced = False, restart = ""):
-    if (not forced and var.LAST_START and nick in var.LAST_START and
-            var.LAST_START[nick][0] + timedelta(seconds=var.START_RATE_LIMIT) >
-            datetime.now() and not restart):
-        var.LAST_START[nick][1] += 1
-        cli.notice(nick, messages["command_ratelimited"])
-        return
-
-    if restart:
-        var.RESTART_TRIES += 1
-    if var.RESTART_TRIES > 3:
-        stop_game(var, abort=True)
-        return
-
-    if not restart:
-        var.LAST_START[nick] = [datetime.now(), 1]
-
-    if chan != botconfig.CHANNEL:
-        return
-
-    villagers = list_players()
-    vils = set(get_players())
-    pl = villagers[:]
-
-    if not restart:
-        if var.PHASE == "none":
-            cli.notice(nick, messages["no_game_running"].format(botconfig.CMD_CHAR))
-            return
-        if var.PHASE != "join":
-            cli.notice(nick, messages["werewolf_already_running"])
-            return
-        if nick not in villagers and nick != chan and not forced:
-            return
-
-        now = datetime.now()
-        var.GAME_START_TIME = now  # Only used for the idler checker
-        dur = int((var.CAN_START_TIME - now).total_seconds())
-        if dur > 0 and not forced:
-            plural = "" if dur == 1 else "s"
-            cli.msg(chan, messages["please_wait"].format(dur, plural))
-            return
-
-        if len(villagers) < var.MIN_PLAYERS:
-            cli.msg(chan, messages["not_enough_players"].format(nick, var.MIN_PLAYERS))
-            return
-
-        if len(villagers) > var.MAX_PLAYERS:
-            cli.msg(chan, messages["max_players"].format(nick, var.MAX_PLAYERS))
-            return
-
-        with var.WARNING_LOCK:
-            user = users._get(nick) # FIXME
-            if not forced and user in var.START_VOTES:
-                user.send(messages["start_already_voted"], notice=True)
-                return
-
-            start_votes_required = min(math.ceil(len(villagers) * var.START_VOTES_SCALE), var.START_VOTES_MAX)
-            if not forced and len(var.START_VOTES) < start_votes_required:
-                # If there's only one more vote required, start the game immediately.
-                # Checked here to make sure that a player that has already voted can't
-                # vote again for the final start.
-                if len(var.START_VOTES) < start_votes_required - 1:
-                    var.START_VOTES.add(user)
-                    msg = messages["start_voted"]
-                    remaining_votes = start_votes_required - len(var.START_VOTES)
-
-                    if remaining_votes == 1:
-                        cli.msg(chan, msg.format(nick, remaining_votes, 'vote'))
-                    else:
-                        cli.msg(chan, msg.format(nick, remaining_votes, 'votes'))
-
-                    # If this was the first vote
-                    if len(var.START_VOTES) == 1:
-                        t = threading.Timer(60, expire_start_votes, (cli, chan))
-                        var.TIMERS["start_votes"] = (t, time.time(), 60)
-                        t.daemon = True
-                        t.start()
-                    return
-
-        if not var.FGAMED:
-            votes = {} #key = gamemode, not hostmask
-            for gamemode in var.GAMEMODE_VOTES.values():
-                if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2]:
-                    votes[gamemode] = votes.get(gamemode, 0) + 1
-            voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
-            if len(voted):
-                cgamemode(random.choice(voted))
-            else:
-                possiblegamemodes = []
-                numvotes = 0
-                for gamemode, num in votes.items():
-                    if len(villagers) < var.GAME_MODES[gamemode][1] or len(villagers) > var.GAME_MODES[gamemode][2] or var.GAME_MODES[gamemode][3] == 0:
-                        continue
-                    possiblegamemodes += [gamemode] * num
-                    numvotes += num
-                if len(villagers) - numvotes > 0:
-                    possiblegamemodes += [None] * ((len(villagers) - numvotes) // 2)
-                # check if we go with a voted mode or a random mode
-                gamemode = random.choice(possiblegamemodes)
-                if gamemode is None:
-                    possiblegamemodes = []
-                    for gamemode in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-                        if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
-                            possiblegamemodes += [gamemode] * var.GAME_MODES[gamemode][3]
-                    gamemode = random.choice(possiblegamemodes)
-                cgamemode(gamemode)
-
-    else:
-        cgamemode(restart)
-        var.GAME_ID = time.time() # restart reaper timer
-
-    event = Event("role_attribution", {"addroles": Counter()})
-    if event.dispatch(var, chk_win_conditions, villagers):
-        addroles = event.data["addroles"]
-        strip = lambda x: re.sub("\(.*\)", "", x)
-        lv = len(villagers)
-        roles = []
-        for num, rolelist in var.CURRENT_GAMEMODE.ROLE_GUIDE.items():
-            if num <= lv:
-                roles.extend(rolelist)
-        defroles = Counter(strip(x) for x in roles)
-        for role, count in list(defroles.items()):
-            if role[0] == "-":
-                srole = role[1:]
-                defroles[srole] -= count
-                del defroles[role]
-                if defroles[srole] == 0:
-                    del defroles[srole]
-        if not defroles:
-            cli.msg(chan, messages["no_settings_defined"].format(nick, lv))
-            return
-        for role, num in defroles.items():
-            addroles[role] = max(addroles.get(role, num), len(var.FORCE_ROLES.get(role, ())))
-        if sum([addroles[r] for r in addroles if r not in var.CURRENT_GAMEMODE.SECONDARY_ROLES]) > lv:
-            channels.Main.send(messages["too_many_roles"])
-            return
-        for role in All:
-            addroles.setdefault(role, 0)
-    else:
-        addroles = event.data["addroles"]
-
-    # convert roleset aliases into the appropriate roles
-    possible_rolesets = [Counter()]
-    roleset_roles = defaultdict(int)
-    for role, amt in list(addroles.items()):
-        # not a roleset? add a fixed amount of them
-        if role not in var.CURRENT_GAMEMODE.ROLE_SETS:
-            for pr in possible_rolesets:
-                pr[role] += amt
-            continue
-        # if a roleset, ensure we don't try to expose the roleset name in !stats or future attribution
-        del addroles[role]
-        # init !stats with all 0s so that it can number things properly; the keys need to exist in the Counter
-        # across every possible roleset so that !stats works right
-        rs = Counter(var.CURRENT_GAMEMODE.ROLE_SETS[role])
-        for r in rs:
-            for pr in possible_rolesets:
-                pr[r] += 0
-        toadd = random.sample(list(rs.elements()), amt)
-        for r in toadd:
-            addroles[r] += 1
-            roleset_roles[r] += 1
-        add_rolesets = []
-        temp_rolesets = []
-        for c in itertools.combinations(rs.elements(), amt):
-            add_rolesets.append(Counter(c))
-        for pr in possible_rolesets:
-            for ar in add_rolesets:
-                temp = Counter(pr)
-                temp.update(ar)
-                temp_rolesets.append(temp)
-        possible_rolesets = temp_rolesets
-
-    if var.ORIGINAL_SETTINGS and not restart:  # Custom settings
-        need_reset = True
-        wvs = sum(addroles[r] for r in Wolfchat)
-        if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.CURRENT_GAMEMODE.SECONDARY_ROLES)):
-            cli.msg(chan, messages["too_few_players_custom"])
-        elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
-            cli.msg(chan, messages["need_one_wolf"])
-        elif wvs > (len(villagers) / 2):
-            cli.msg(chan, messages["too_many_wolves"])
-        else:
-            need_reset = False
-
-        if need_reset:
-            reset_settings()
-            cli.msg(chan, messages["default_reset"].format(botconfig.CMD_CHAR))
-            var.PHASE = "join"
-            return
-
-    if var.ADMIN_TO_PING is not None and not restart:
-        for decor in (COMMANDS["join"] + COMMANDS["start"]):
-            decor(_command_disabled)
-
-    var.ROLES.clear()
-    var.MAIN_ROLES.clear()
-    var.NIGHT_COUNT = 0
-    var.DAY_COUNT = 0
-    var.TRAITOR_TURNED = False
-    var.FINAL_ROLES = {}
-    var.EXTRA_WOLVES = 0
-
-    var.DEADCHAT_PLAYERS.clear()
-    var.SPECTATING_WOLFCHAT.clear()
-    var.SPECTATING_DEADCHAT.clear()
-
-    for role in All:
-        var.ROLES[role] = UserSet()
-    var.ROLES[var.DEFAULT_ROLE] = UserSet()
-    for role, ps in var.FORCE_ROLES.items():
-        if role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys():
-            vils.difference_update(ps)
-
-    for role, count in addroles.items():
-        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
-            var.ROLES[role] = (None,) * count
-            continue # We deal with those later, see below
-
-        to_add = set()
-
-        if role in var.FORCE_ROLES:
-            if len(var.FORCE_ROLES[role]) > count:
-                channels.Main.send(messages["error_frole_too_many"].format(role))
-                return
-            for user in var.FORCE_ROLES[role]:
-                # If multiple main roles were forced, only first one is put in MAIN_ROLES
-                if not user in var.MAIN_ROLES:
-                    var.MAIN_ROLES[user] = role
-                var.ORIGINAL_MAIN_ROLES[user] = role
-                to_add.add(user)
-                count -= 1
-
-        selected = random.sample(vils, count)
-        for x in selected:
-            var.MAIN_ROLES[x] = role
-            var.ORIGINAL_MAIN_ROLES[x] = role
-            vils.remove(x)
-        var.ROLES[role].update(selected)
-        var.ROLES[role].update(to_add)
-    var.ROLES[var.DEFAULT_ROLE].update(vils)
-    for x in vils:
-        var.MAIN_ROLES[x] = var.DEFAULT_ROLE
-        var.ORIGINAL_MAIN_ROLES[x] = var.DEFAULT_ROLE
-    if vils:
-        for pr in possible_rolesets:
-            pr[var.DEFAULT_ROLE] += len(vils)
-
-    # Collapse possible_rolesets into var.ROLE_STATS
-    # which is a FrozenSet[FrozenSet[Tuple[str, int]]]
-    possible_rolesets_set = set()
-    event = Event("reconfigure_stats", {"new": []})
-    for pr in possible_rolesets:
-        event.data["new"] = [pr]
-        event.dispatch(var, pr, "start")
-        for v in event.data["new"]:
-            if min(v.values()) >= 0:
-                possible_rolesets_set.add(frozenset(v.items()))
-    var.ROLE_STATS = frozenset(possible_rolesets_set)
-
-    # Now for the secondary roles
-    for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
-        count = len(var.ROLES[role])
-        var.ROLES[role] = UserSet()
-        if role in var.FORCE_ROLES:
-            ps = var.FORCE_ROLES[role]
-            var.ROLES[role].update(ps)
-            count -= len(ps)
-        # Don't do anything further if this secondary role was forced on enough players already
-        if count <= 0:
-            continue
-        possible = get_players(dfn)
-        if len(possible) < count:
-            cli.msg(chan, messages["not_enough_targets"].format(role))
-            if var.ORIGINAL_SETTINGS:
-                var.ROLES.clear()
-                var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
-                reset_settings()
-                cli.msg(chan, messages["default_reset"].format(botconfig.CMD_CHAR))
-                var.PHASE = "join"
-                return
-            else:
-                cli.msg(chan, messages["role_skipped"])
-                continue
-        var.ROLES[role].update(x for x in random.sample(possible, count))
-
-    with var.WARNING_LOCK: # cancel timers
-        for name in ("join", "join_pinger", "start_votes"):
-            if name in var.TIMERS:
-                var.TIMERS[name][0].cancel()
-                del var.TIMERS[name]
-
-    var.LAST_STATS = None
-    var.LAST_TIME = None
-
-    for role, players in var.ROLES.items():
-        for player in players:
-            evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
-            evt.dispatch(var, player, None)
-
-    if not restart:
-        gamemode = var.CURRENT_GAMEMODE.name
-        if gamemode == "villagergame":
-            gamemode = "default"
-
-        # Alert the players to option changes they may not be aware of
-        options = []
-        if var.ORIGINAL_SETTINGS.get("ROLE_REVEAL") is not None:
-            if var.ROLE_REVEAL == "on":
-                options.append("role reveal")
-            elif var.ROLE_REVEAL == "team":
-                options.append("team reveal")
-            elif var.ROLE_REVEAL == "off":
-                options.append("no role reveal")
-        if var.ORIGINAL_SETTINGS.get("STATS_TYPE") is not None:
-            if var.STATS_TYPE == "disabled":
-                options.append("no stats")
-            else:
-                options.append("{0} stats".format(var.STATS_TYPE))
-        if var.ORIGINAL_SETTINGS.get("ABSTAIN_ENABLED") is not None or var.ORIGINAL_SETTINGS.get("LIMIT_ABSTAIN") is not None:
-            if var.ABSTAIN_ENABLED and var.LIMIT_ABSTAIN:
-                options.append("restricted abstaining")
-            elif var.ABSTAIN_ENABLED:
-                options.append("unrestricted abstaining")
-            else:
-                options.append("no abstaining")
-
-        if len(options) > 2:
-            options = " with {0}, and {1}".format(", ".join(options[:-1]), options[-1])
-        elif len(options) == 2:
-            options = " with {0} and {1}".format(options[0], options[1])
-        elif len(options) == 1:
-            options = " with {0}".format(options[0])
-        else:
-            options = ""
-
-        cli.msg(chan, messages["welcome"].format(", ".join(pl), gamemode, options))
-        cli.mode(chan, "+m")
-
-    var.ORIGINAL_ROLES.clear()
-    for role, players in var.ROLES.items():
-        var.ORIGINAL_ROLES[role] = players.copy()
-
-    var.DAY_TIMEDELTA = timedelta(0)
-    var.NIGHT_TIMEDELTA = timedelta(0)
-    var.DAY_START_TIME = datetime.now()
-    var.NIGHT_START_TIME = datetime.now()
-    var.LAST_PING = None
-
-    var.PLAYERS = {plr:dict(var.USERS[plr]) for plr in pl if plr in var.USERS}
-
-    if restart:
-        var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
-    if not var.START_WITH_DAY:
-        var.GAMEPHASE = "night"
-        transition_night()
-    else:
-        var.FIRST_DAY = True
-        var.GAMEPHASE = "day"
-        transition_day()
-
-    decrement_stasis()
-
-    if not botconfig.DEBUG_MODE or not var.DISABLE_DEBUG_MODE_REAPER:
-        # DEATH TO IDLERS!
-        reapertimer = threading.Thread(None, reaper, args=(cli,var.GAME_ID))
-        reapertimer.daemon = True
-        reapertimer.start()
 
 @hook("error")
 def on_error(cli, pfx, msg):
