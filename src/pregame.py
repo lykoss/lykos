@@ -19,10 +19,70 @@ from src import channels
 
 import botconfig
 
+WAIT_LOCK = threading.RLock()
+WAIT_TOKENS = 0
+WAIT_LAST = 0
+
 LAST_START = UserDict() # type: UserDict[users.User, List[datetime, int]]
+LAST_WAIT = UserDict() # type: UserDict[users.User, datetime]
 START_VOTES = UserSet() # type: UserSet[users.User]
 RESTART_TRIES = 0 # type: int
 MAX_RETRIES = 3 # constant: not a setting
+
+@command("wait", "w", playing=True, phases=("join",))
+def wait(var, wrapper, message):
+    """Increase the wait time until !start can be used."""
+    if wrapper.target is not channels.Main:
+        return
+
+    pl = get_players()
+
+    with WAIT_LOCK:
+        global WAIT_TOKENS, WAIT_LAST
+        wait_check_time = time.time()
+        WAIT_TOKENS += (wait_check_time - WAIT_LAST) / var.WAIT_TB_DELAY
+        WAIT_LAST = wait_check_time
+
+        WAIT_TOKENS = min(WAIT_TOKENS, var.WAIT_TB_BURST)
+
+        now = datetime.now()
+        if ((LAST_WAIT and wrapper.source in LAST_WAIT and LAST_WAIT[wrapper.source] +
+                timedelta(seconds=var.WAIT_RATE_LIMIT) > now) or WAIT_TOKENS < 1):
+            wrapper.pm(messages["command_ratelimited"])
+            return
+
+        LAST_WAIT[wrapper.source] = now
+        WAIT_TOKENS -= 1
+        if now > var.CAN_START_TIME:
+            var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
+        else:
+            var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
+        wrapper.send(messages["wait_time_increase"].format(wrapper.source, var.EXTRA_WAIT))
+
+@command("fwait", flag="w", phases=("join",))
+def fwait(var, wrapper, message):
+    """Force an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
+    pl = get_players()
+
+    msg = re.split(" +", message.strip(), 1)[0]
+
+    if msg and (msg.isdigit() or (msg[0] == "-" and msg[1:].isdigit())):
+        extra = int(msg)
+    else:
+        extra = var.EXTRA_WAIT
+
+    now = datetime.now()
+    extra = max(-900, min(900, extra))
+
+    if now > var.CAN_START_TIME:
+        var.CAN_START_TIME = now + timedelta(seconds=extra)
+    else:
+        var.CAN_START_TIME += timedelta(seconds=extra)
+
+    if extra >= 0:
+        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra), "s" if extra != 1 else ""))
+    else:
+        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra), "s" if extra != -1 else ""))
 
 @command("start", phases=("none", "join"))
 def start_cmd(var, wrapper, message):
@@ -453,7 +513,10 @@ def expire_start_votes(var, channel):
 
 @event_listener("reset")
 def on_reset(evt, var):
-    global MAX_RETRIES
+    global MAX_RETRIES, WAIT_TOKENS, WAIT_LAST
     LAST_START.clear()
+    LAST_WAIT.clear()
     START_VOTES.clear()
     MAX_RETRIES = 0
+    WAIT_TOKENS = 0
+    WAIT_LAST = 0

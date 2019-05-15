@@ -78,7 +78,6 @@ var.LAST_GSTATS = None
 var.LAST_PSTATS = None
 var.LAST_RSTATS = None
 var.LAST_TIME = None
-var.LAST_WAIT = {}
 var.LAST_GOAT = {}
 
 var.USERS = {}
@@ -891,9 +890,10 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         var.MAIN_ROLES[wrapper.source] = "person"
         var.ALL_PLAYERS.append(wrapper.source)
         var.PHASE = "join"
-        with var.WAIT_TB_LOCK:
-            var.WAIT_TB_TOKENS = var.WAIT_TB_INIT
-            var.WAIT_TB_LAST   = time.time()
+        from src import pregame
+        with pregame.WAIT_LOCK:
+            pregame.WAIT_TOKENS = var.WAIT_TB_INIT
+            pregame.WAIT_LAST   = time.time()
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
@@ -2877,65 +2877,6 @@ def fflags(cli, nick, chan, rest):
 
         # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
         db.init_vars()
-
-
-@cmd("wait", "w", playing=True, phases=("join",))
-def wait(cli, nick, chan, rest):
-    """Increases the wait time until !start can be used."""
-    pl = list_players()
-
-    if chan != botconfig.CHANNEL:
-        return
-
-    with var.WAIT_TB_LOCK:
-        wait_check_time = time.time()
-        var.WAIT_TB_TOKENS += (wait_check_time - var.WAIT_TB_LAST) / var.WAIT_TB_DELAY
-        var.WAIT_TB_LAST = wait_check_time
-
-        var.WAIT_TB_TOKENS = min(var.WAIT_TB_TOKENS, var.WAIT_TB_BURST)
-
-        now = datetime.now()
-        if ((var.LAST_WAIT and nick in var.LAST_WAIT and var.LAST_WAIT[nick] +
-                timedelta(seconds=var.WAIT_RATE_LIMIT) > now)
-                or var.WAIT_TB_TOKENS < 1):
-            cli.notice(nick, messages["command_ratelimited"])
-            return
-
-        var.LAST_WAIT[nick] = now
-        var.WAIT_TB_TOKENS -= 1
-        if now > var.CAN_START_TIME:
-            var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT)
-        else:
-            var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT)
-        cli.msg(chan, messages["wait_time_increase"].format(nick, var.EXTRA_WAIT))
-
-
-@cmd("fwait", flag="w", phases=("join",))
-def fwait(cli, nick, chan, rest):
-    """Forces an increase (or decrease) in wait time. Can be used with a number of seconds to wait."""
-
-    pl = list_players()
-
-    rest = re.split(" +", rest.strip(), 1)[0]
-
-    if rest and (rest.isdigit() or (rest[0] == "-" and rest[1:].isdigit())):
-        extra = int(rest)
-    else:
-        extra = var.EXTRA_WAIT
-
-    now = datetime.now()
-    extra = max(-900, min(900, extra))
-
-    if now > var.CAN_START_TIME:
-        var.CAN_START_TIME = now + timedelta(seconds=extra)
-    else:
-        var.CAN_START_TIME += timedelta(seconds=extra)
-
-    if extra >= 0:
-        cli.msg(chan, messages["forced_wait_time_increase"].format(nick, abs(extra), "s" if extra != 1 else ""))
-    else:
-        cli.msg(chan, messages["forced_wait_time_decrease"].format(nick, abs(extra), "s" if extra != -1 else ""))
-
 
 @cmd("fstop", flag="S", phases=("join", "day", "night"))
 def reset_game(cli, nick, chan, rest):
