@@ -2,6 +2,7 @@ import json
 import os
 
 import src.settings as var
+from src.message import Message
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
@@ -12,11 +13,18 @@ class Messages:
         self._load_messages()
 
     def get(self, key):
-        if not self.messages[key.lower()]:
+        if not self.messages[key]:
             raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(key))
-        return self.messages[key.lower()]
+        return Message(self.messages[key])
 
     __getitem__ = get
+
+    def raw(self, *args):
+        m = self.messages
+        for key in args:
+            m = m[key]
+
+        return m
 
     def _load_messages(self):
         with open(os.path.join(MESSAGES_DIR, self.lang + ".json"), encoding="utf-8") as f:
@@ -37,6 +45,3 @@ class Messages:
             self.messages[key.lower()] = message
 
 messages = Messages()
-
-# Because woffle is needy
-# vim: set sw=4 expandtab:
