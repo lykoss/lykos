@@ -246,6 +246,5 @@ ALL_FLAGS = frozenset("AaDdFgjmNpSsw")
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
-WAIT_TB_LOCK = threading.RLock()
 
 # vim: set sw=4 expandtab:

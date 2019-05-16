@@ -11,7 +11,7 @@ from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event
-from src import channels
+from src import channels, pregame
 
 VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
 ABSTAINS = UserSet() # type: UserList[users.User]
@@ -139,8 +139,8 @@ def show_votes(var, wrapper, message):
             msg += messages["majority_votes"].format("; " if votelist else "", math.ceil(len(pl) / 2))
 
         with var.WARNING_LOCK:
-            if var.START_VOTES:
-                msg += messages["start_votes"].format(len(var.START_VOTES), ", ".join(p.nick for p in var.START_VOTES))
+            if pregame.START_VOTES:
+                msg += messages["start_votes"].format(len(pregame.START_VOTES), ", ".join(p.nick for p in pregame.START_VOTES))
 
         wrapper.send(msg)
         return
