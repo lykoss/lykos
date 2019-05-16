@@ -2160,16 +2160,15 @@ def leave_game(var, wrapper, message):
 
     if get_main_role(wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
         role = get_reveal_role(wrapper.source)
-        an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
         if var.DYNQUIT_DURING_GAME:
-            lmsg = random.choice(messages["quit"]).format(wrapper.source.nick, an, role)
+            lmsg = random.choice(messages["quit_reveal"]).format(wrapper.source.nick, role)
             channels.Main.send(lmsg)
         else:
-            channels.Main.send((messages["static_quit"] + "{2}").format(wrapper.source.nick, role, population))
+            channels.Main.send(messages["static_quit"].format(wrapper.source.nick, role) + population)
     else:
         # DYNQUIT_DURING_GAME should not have any effect during the join phase, so only check if we aren't in that
         if var.PHASE != "join" and not var.DYNQUIT_DURING_GAME:
-            channels.Main.send((messages["static_quit_no_reveal"] + "{1}").format(wrapper.source.nick, population))
+            channels.Main.send(messages["static_quit_no_reveal"].format(wrapper.source.nick) + population)
         else:
             lmsg = random.choice(messages["quit_no_reveal"]).format(wrapper.source.nick) + population
             channels.Main.send(lmsg)

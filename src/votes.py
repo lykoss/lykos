@@ -282,8 +282,7 @@ def chk_decision(var, *, timeout=False):
                     if lynch_evt.dispatch(var, votee, voters):
                         if var.ROLE_REVEAL in ("on", "team"):
                             rrole = get_reveal_role(votee)
-                            an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
+                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, rrole)
                         else:
                             lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
                         channels.Main.send(lmsg)
