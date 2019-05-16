@@ -112,7 +112,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 
     if var.PHASE == "day" and len(uncharmed) == 0:
         evt.data["winner"] = "pipers"
-        evt.data["message"] = messages["piper_win"].format("s" if lp > 1 else "", "s" if lp == 1 else "")
+        evt.data["message"] = messages["piper_win"].format(lp)
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, mainrole, winner, survived):

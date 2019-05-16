@@ -729,7 +729,7 @@ def join_timer_handler(var):
                     to_ping.sort(key=lambda x: x.nick)
                     user_list = [(user.ref or user).nick for user in to_ping]
 
-                    msg_prefix = messages["ping_player"].format(len(pl), "" if len(pl) == 1 else "s")
+                    msg_prefix = messages["ping_player"].format(len(pl))
                     channels.Main.send(*user_list, first=msg_prefix)
                     del to_ping[:]
 
@@ -865,10 +865,11 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     if stasis > 0:
         if forced and stasis == 1:
             decrement_stasis(wrapper.source)
+        elif wrapper.source is who:
+            who.send(messages["you_stasis"].format(stasis), notice=True)
+            return False
         else:
-            who.send(messages["stasis"].format(
-                "you are" if wrapper.source is who else wrapper.source.nick + " is", stasis,
-                "s" if stasis != 1 else ""), notice=True)
+            who.send(messages["other_stasis"].format(wrapper.source, stasis), notice=True)
             return False
 
     temp = wrapper.source.lower()
@@ -902,7 +903,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         if wrapper.source.account:
             var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
-        wrapper.send(messages["new_game"].format(wrapper.source.nick, botconfig.CMD_CHAR))
+        wrapper.send(messages["new_game"].format(wrapper.source))
 
         # Set join timer
         if var.JOIN_TIME_LIMIT > 0:
@@ -3186,7 +3187,7 @@ def list_roles(var, wrapper, message):
                 wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
                 return
             if len(matches) > 1:
-                wrapper.reply(messages["ambiguous_mode"].format(mode, ", ".join(matches)), prefix_nick=True)
+                wrapper.reply(messages["ambiguous_mode"].format(mode, matches), prefix_nick=True)
                 return
 
             mode = matches[0]
@@ -3338,7 +3339,7 @@ def gamestats(var, wrapper, message):
                 wrapper.pm(messages["invalid_mode"].format(msg[0]))
                 return
             if len(matches) > 1:
-                wrapper.pm(messages["ambiguous_mode"].format(msg[0], ", ".join(matches)))
+                wrapper.pm(messages["ambiguous_mode"].format(msg[0], matches))
                 return
         msg.pop(0)
 
@@ -3470,7 +3471,7 @@ def role_stats(var, wrapper, rest):
             if len(roles) > 0:
                 wrapper.pm(messages["ambiguous_role"].format(", ".join(roles)))
             elif len(matches) > 0:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
+                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
             else:
                 wrapper.pm(messages["no_such_role"].format(rest))
             return
@@ -3504,7 +3505,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             return
         if len(matches) > 1:
             if doreply:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, ", ".join(matches)))
+                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
             return
         if len(matches) == 1:
             gamemode = matches[0]

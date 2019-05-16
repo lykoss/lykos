@@ -2,6 +2,7 @@ import fnmatch
 import re
 import random
 import string
+from collections import OrderedDict
 
 class Message:
     def __init__(self, value):
@@ -29,9 +30,12 @@ class _Formatter(string.Formatter):
       conversions or format specs on these literals.
     - New spec ":plural(N)" for use on list values. Returns the singular or plural version given the value of N.
     - New spec ":random" for use on list values: Returns an element in the list chosen at random.
-    - New spec ":join" to join a list of values. The ":join" spec takes optional arguments to override the default
-      separators, in the form ":join(sep,sep,sep)". If specifying arguments, all 3 must be specified. Otherwise, all
-      3 must be omitted.
+    - New spec ":join" to join a list of values. Can be called in four ways:
+      :join to join with default settings
+      :join(spec) to apply spec to all list elements and then join with default settings
+      :join(sep,sep,sep) to use the specified separators instead of default separators
+      :join(spec,sep,sep,sep) to apply spec to all list elements and then join with the specified separators
+      As a technical restriction, inner specs cannot contain colons
     - New spec ":bold" to bold the value. This can be combined with other format specifiers.
     - New spec ":color(C)" to make the value the color C. ":colour(C)" is accepted as an alias.
       This can be combined with other format specifiers.
@@ -52,7 +56,10 @@ class _Formatter(string.Formatter):
         return super().get_value(key, args, kwargs)
 
     def format_field(self, value, format_spec):
-        specs = set()
+        if not format_spec:
+            return super().format_field(value, format_spec)
+
+        specs = OrderedDict()
         for spec in format_spec.split(":"):
             m = re.fullmatch(r"(.*?)\((.*)\)", spec)
             if m:
@@ -60,36 +67,52 @@ class _Formatter(string.Formatter):
                 args = m.group(2).split(",")
             else:
                 key = spec
-                args = []
+                args = None
             # remap aliases for uniqueness
             if key == "colour":
                 key = "color"
-            specs.add((key, args))
+            specs[key] = args
 
-        # handle main specs
-        for key, args in specs:
-            if key == "plural":
-                value = self._plural(value, args)
-                break
-            if key == "random":
-                value = self._random(value, args)
-                break
-            if key == "join":
-                value = self._join(value, args)
-                break
-            if key == "article":
-                value = self._article(value, args)
-                break
+        # handle specs that operate on lists. Combining multiple of these isn't supported
+        if "plural" in specs:
+            value = self._plural(value, specs["plural"])
+            del specs["plural"]
+        if "random" in specs:
+            value = self._random(value, specs["random"])
+            del specs["random"]
+        if "join" in specs:
+            value = self._join(value, specs["join"])
+            del specs["join"]
 
-        # handle bold/color
-        for key, args in specs:
-            if key == "bold":
-                # FIXME make this transport-agnostic
-                value = "\u0002" + value + "\u0002"
-            if key == "color" or key == "colour":
-                value = self._color(value, args)
+        # if value is a list by this point, retrieve the first element
+        # this happens when using !role but expecting just the singular value
+        if isinstance(value, list):
+            value = value[0]
 
-        # not one of our custom things
+        # handle specs that work on strings. Combining multiple of these isn't supported
+        if "article" in specs:
+            value = self._article(value, specs["article"])
+            del specs["article"]
+
+        # Combining these is supported, and these specs work on strings
+        if "bold" in specs:
+            # FIXME make this transport-agnostic
+            value = "\u0002" + value + "\u0002"
+            del specs["bold"]
+        if "color" in specs:
+            value = self._color(value, specs["color"])
+            del specs["color"]
+
+        # let __format__ and default specs handle anything that's left. This means we need to recombine
+        # anything that we didn't handle back into a single spec string, reintroducing : where necessary
+        remain = []
+        for spec, args in specs.items():
+            if args is not None:
+                remain.append("{0}({1})".format(spec, ",".join(args)))
+            else:
+                remain.append(spec)
+
+        format_spec = ":".join(remain)
         return super().format_field(value, format_spec)
 
     def convert_field(self, value, conversion):
@@ -119,17 +142,21 @@ class _Formatter(string.Formatter):
     def _join(self, value, args):
         from src.messages import messages
 
+        spec = None
+        if len(args) == 1 or len(args) == 4:
+            spec = args.pop(0)
+
         if not args:
             args = messages.raw("list")
 
         if not value:
-            return value
+            return ""
         elif len(value) == 1:
-            return value[0]
+            return self.format_field(value[0], spec)
         elif len(value) == 2:
-            return args[1].join(value)
+            return args[0].join(self.format_field(v, spec) for v in value)
         else:
-            return args[0].join(value[:-1]) + args[2] + value[-1]
+            return args[1].join(self.format_field(v, spec) for v in value[:-1]) + args[2] + self.format_field(value[-1], spec)
 
     def _article(self, value, args):
         from src.messages import messages

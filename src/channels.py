@@ -93,6 +93,12 @@ class Channel(IRCContext):
     def __repr__(self):
         return "{self.__class__.__name__}({self.name!r})".format(self=self)
 
+    def __format__(self, format_spec):
+        if format_spec == "#":
+            return self.name
+
+        return super().__format__(format_spec)
+
     def __hash__(self):
         return hash(self.name)
 

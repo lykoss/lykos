@@ -139,7 +139,7 @@ def latency(var, wrapper, message):
     @hook("pong", hookid=300)
     def latency_pong(cli, server, target, ts):
         lat = round(time.time() - float(ts), 3)
-        wrapper.reply(messages["latency"].format(lat, "" if lat == 1 else "s"))
+        wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
 def run_lagcheck(cli):
