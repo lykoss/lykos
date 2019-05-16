@@ -39,6 +39,12 @@ SERVER_PASS = None
 OWNERS = ("unaffiliated/wolfbot_admin1",)  # The comma is required at the end if there is only one owner.
 OWNERS_ACCOUNTS = ("1owner_acc",)
 
+# If you want the werewolf bot to talk in a different language, change this.
+# Currently supported: en (English), nl (Dutch / Nederlands)
+# In languages other then english might contain some English, this is because there are strings hardcoded
+
+LANGUAGE = "en"
+
 #RULES = "https://werewolf.chat/Freenode:Rules"
 
 OWNERS_ONLY_COMMANDS = [] # Commands that should only be allowed for owners, regardless of their original permissions
