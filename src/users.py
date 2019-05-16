@@ -268,6 +268,11 @@ class User(IRCContext):
     def __repr__(self):
         return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(self=self)
 
+    def __format__(self, format_spec):
+        if format_spec == "@":
+            return "\u0002" + self.name + "\u0002"
+        return super().__format__(format_spec)
+
     def __hash__(self):
         if self.ident is None or self.host is None:
             raise ValueError("cannot hash a User with no ident or host")

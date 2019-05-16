@@ -1,4 +1,5 @@
 import fnmatch
+import re
 import random
 import string
 
@@ -23,32 +24,20 @@ class _Formatter(string.Formatter):
     """ Custom formatter for message strings.
 
     This inherits all features of base str.format() with the following additions:
-    - The syntax {=literal:spec} can be used to apply a format spec to a literal string.
-      as opposed to passing the string in as an argument. If the literal contains commas, it will
-      be treated as a list.
-    - The syntax {=literal!convert} can be used to apply a conversion to a literal string
-      as opposed to passing the string in as an argument. If the literal contains commas, it will
-      be treated as a list.
-    - New spec ":plural:N" for use on list values: Returns the first argument (singular) if N=1,
-      and the second argument (plural) otherwise.
+    - Prefixing a value with = will treat it as a literal. It will be a list if the value contains commas,
+      and a string otherwise. Example: {=some literal string} or {=some,literal,list}. You can use any valid
+      conversions or format specs on these literals.
+    - New spec ":plural(N)" for use on list values. Returns the singular or plural version given the value of N.
     - New spec ":random" for use on list values: Returns an element in the list chosen at random.
-    - New spec ":join" to join a list of values. The "list" key at the top level of the json will be used to
-      join elements together. The value should be a list with three items: the regular separator, the final
-      separator in the event the list contains exactly two elements, and the final separator if the list contains
-      3 or more elements. The ":join" spec takes optional arguments to override these default separators, in the
-      form ":join:sep:2sep:3sep" -- for example ":join:, : and :, and " would reflect the default value for en.
-      If specifying arguments, all 3 must be specified. Otherwise, all 3 must be omitted.
-    - New spec ":article" to give the indefinite article for the given value. The "articles" key at the top
-      level of the json will be used to retrieve this article. It is processed from top to bottom using pattern
-      matching (globs, so * is wildcard), stopping at the first match and using that article. If nothing matches,
-      an error is raised.
+    - New spec ":join" to join a list of values. The ":join" spec takes optional arguments to override the default
+      separators, in the form ":join(sep,sep,sep)". If specifying arguments, all 3 must be specified. Otherwise, all
+      3 must be omitted.
+    - New spec ":bold" to bold the value. This can be combined with other format specifiers.
+    - New spec ":color(C)" to make the value the color C. ":colour(C)" is accepted as an alias.
+      This can be combined with other format specifiers.
+    - New spec ":article to give the indefinite article for the given value.
     - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
-      The "roles" key at the top level of the json will be used to resolve role names. It should be a dict of
-      role names to a list of ["singular role", "plural role"].
-    - New convert type "!cmd" to indicate the value is a command name (and will be translated appropriately).
-      The "commands" key at the top level of the json will be used to resolve command names. It should be a dict
-      of command names to a list containing that command name and all aliases. Even if there are no aliases, it
-      must be a list.
+    - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     """
     def get_value(self, key, args, kwargs):
         try:
@@ -63,16 +52,42 @@ class _Formatter(string.Formatter):
         return super().get_value(key, args, kwargs)
 
     def format_field(self, value, format_spec):
-        args = format_spec.split(":")
-        key = args.pop(0)
-        if key == "plural":
-            return self._plural(value, args)
-        if key == "random":
-            return self._random(value, args)
-        if key == "join":
-            return self._join(value, args)
-        if key == "article":
-            return self._article(value, args)
+        specs = set()
+        for spec in format_spec.split(":"):
+            m = re.fullmatch(r"(.*?)\((.*)\)", spec)
+            if m:
+                key = m.group(1)
+                args = m.group(2).split(",")
+            else:
+                key = spec
+                args = []
+            # remap aliases for uniqueness
+            if key == "colour":
+                key = "color"
+            specs.add((key, args))
+
+        # handle main specs
+        for key, args in specs:
+            if key == "plural":
+                value = self._plural(value, args)
+                break
+            if key == "random":
+                value = self._random(value, args)
+                break
+            if key == "join":
+                value = self._join(value, args)
+                break
+            if key == "article":
+                value = self._article(value, args)
+                break
+
+        # handle bold/color
+        for key, args in specs:
+            if key == "bold":
+                # FIXME make this transport-agnostic
+                value = "\u0002" + value + "\u0002"
+            if key == "color" or key == "colour":
+                value = self._color(value, args)
 
         # not one of our custom things
         return super().format_field(value, format_spec)
@@ -125,5 +140,27 @@ class _Formatter(string.Formatter):
 
         raise ValueError("No article rules matched the value {0!r} in language metadata!".format(value))
 
+    def _color(self, value, args):
+        # FIXME make this transport-agnostic
+        cmap = {
+            "white": 0,
+            "black": 1,
+            "blue": 2,
+            "green": 3,
+            "red": 4,
+            "brown": 5,
+            "purple": 6,
+            "orange": 7,
+            "yellow": 8,
+            "lightgreen": 9,
+            "cyan": 10,
+            "lightcyan": 11,
+            "lightblue": 12,
+            "pink": 13,
+            "grey": 14,
+            "lightgrey": 15
+        }
+
+        return "\u0003{0}{1}\u0003".format(cmap[args[0]], value)
 
 _fmt = _Formatter()

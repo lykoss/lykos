@@ -118,10 +118,10 @@ class IRCContext:
         self.client = client
         self.ref = None
 
-    def __format__(self, format_spec=""):
+    def __format__(self, format_spec):
         if not format_spec:
             return self.name
-        raise ValueError("Format specificer {0} has undefined semantics".format(format_spec))
+        raise ValueError("Format specifier {0} has undefined semantics".format(format_spec))
 
     def __eq__(self, other):
         return self._compare(other, __class__) # This will always return False
