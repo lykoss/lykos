@@ -40,6 +40,7 @@ class _Formatter(string.Formatter):
     - New spec ":color(C)" to make the value the color C. ":colour(C)" is accepted as an alias.
       This can be combined with other format specifiers.
     - New spec ":article to give the indefinite article for the given value.
+    - New spec ":!" prefixes the value with the bot's command character.
     - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     """
@@ -93,6 +94,9 @@ class _Formatter(string.Formatter):
         if "article" in specs:
             value = self._article(value, specs["article"])
             del specs["article"]
+        if "!" in specs:
+            from botconfig import CMD_CHAR
+            value = CMD_CHAR + value
 
         # Combining these is supported, and these specs work on strings
         if "bold" in specs:
