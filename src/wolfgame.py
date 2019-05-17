@@ -1144,9 +1144,10 @@ def parted_modes(evt, var, chan, user, reason):
         chan.join()
     var.OLD_MODES.pop(user, None)
 
-@cmd("stats", "players", pm=True, phases=("join", "day", "night"))
-def stats(cli, nick, chan, rest):
+@command("stats", "players", pm=True, phases=("join", "day", "night"))
+def stats(var, wrapper, message):
     """Displays the player statistics."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     pl = list_players()
 
@@ -1326,20 +1327,19 @@ def hurry_up(gameid, change):
     var.DAY_ID = 0
     chk_decision(var, timeout=True)
 
-@cmd("fnight", flag="N")
-def fnight(cli, nick, chan, rest):
-    """Forces the day to end and night to begin."""
+@command("fnight", flag="N")
+def fnight(var, wrapper, message):
+    """Force the day to end and night to begin."""
     if var.PHASE != "day":
-        cli.notice(nick, messages["not_daytime"])
+        wrapper.send(messages["not_daytime"], notice=True)
     else:
         hurry_up(0, True)
 
-
-@cmd("fday", flag="N")
-def fday(cli, nick, chan, rest):
-    """Forces the night to end and the next day to begin."""
+@command("fday", flag="N")
+def fday(var, wrapper, message):
+    """Force the night to end and the next day to begin."""
     if var.PHASE != "night":
-        cli.notice(nick, messages["not_nighttime"])
+        wrapper.send(messages["not_nighttime"], notice=True)
     else:
         transition_day()
 
@@ -1843,15 +1843,13 @@ def reaper(cli, gameid):
             kill_players(var)
         time.sleep(10)
 
-@cmd("")  # update last said
-def update_last_said(cli, nick, chan, rest):
-    if chan != botconfig.CHANNEL:
+@command("")  # update last said
+def update_last_said(var, wrapper, message):
+    if wrapper.target is not channels.Main:
         return
 
     if var.PHASE not in ("join", "none"):
-        var.LAST_SAID_TIME[nick] = datetime.now()
-
-    fullstring = "".join(rest)
+        var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now() # FIXME
 
 def dispatch_role_prefix(var, wrapper, message, *, role):
     from src import handler
@@ -2716,8 +2714,9 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-@cmd("template", "ftemplate", flag="F", pm=True)
-def ftemplate(cli, nick, chan, rest):
+@command("template", "ftemplate", flag="F", pm=True)
+def ftemplate(var, wrapper, message):
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
     params = re.split(" +", rest)
 
     if params[0] == "":
@@ -2781,8 +2780,9 @@ def ftemplate(cli, nick, chan, rest):
         # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
         db.init_vars()
 
-@cmd("fflags", flag="F", pm=True)
-def fflags(cli, nick, chan, rest):
+@command("fflags", flag="F", pm=True)
+def fflags(var, wrapper, message):
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
     params = re.split(" +", rest)
 
     if params[0] == "":
@@ -2878,13 +2878,11 @@ def fflags(cli, nick, chan, rest):
         # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
         db.init_vars()
 
-@cmd("fstop", flag="S", phases=("join", "day", "night"))
-def reset_game(cli, nick, chan, rest):
+@command("fstop", flag="S", phases=("join", "day", "night"))
+def reset_game(var, wrapper, message):
     """Forces the game to stop."""
-    if nick == "<stderr>":
-        cli.msg(botconfig.CHANNEL, messages["error_stop"])
-    else:
-        cli.msg(botconfig.CHANNEL, messages["fstop_success"].format(nick))
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
+    cli.msg(botconfig.CHANNEL, messages["fstop_success"].format(nick))
     if var.PHASE != "join":
         stop_game(var, log=False)
     else:
@@ -2893,9 +2891,10 @@ def reset_game(cli, nick, chan, rest):
         reset()
         cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
 
-@cmd("rules", pm=True)
-def show_rules(cli, nick, chan, rest):
+@command("rules", pm=True)
+def show_rules(var, wrapper, message):
     """Displays the rules."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     if hasattr(botconfig, "RULES"):
         rules = botconfig.RULES
@@ -2910,9 +2909,10 @@ def show_rules(cli, nick, chan, rest):
     else:
         reply(cli, nick, chan, messages["no_channel_rules"].format(botconfig.CHANNEL))
 
-@cmd("help", raw_nick=True, pm=True)
-def get_help(cli, rnick, chan, rest):
+@command("help", pm=True)
+def get_help(var, wrapper, message):
     """Gets help."""
+    cli, rnick, chan, rest = wrapper.client, wrapper.source.rawnick, wrapper.target.name, message # FIXME: @cmd
     nick, _, ident, host = parse_nick(rnick)
     fns = []
 
@@ -2971,9 +2971,10 @@ def get_wiki_page(URI):
         return False, messages["wiki_open_failure"]
     return True, parsed
 
-@cmd("wiki", pm=True)
-def wiki(cli, nick, chan, rest):
+@command("wiki", pm=True)
+def wiki(var, wrapper, message):
     """Prints information on roles from the wiki."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     # no arguments, just print a link to the wiki
     if not rest:
@@ -3030,9 +3031,10 @@ def on_invite(cli, raw_nick, something, chan):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
 
-@cmd("admins", "ops", pm=True)
-def show_admins(cli, nick, chan, rest):
+@command("admins", "ops", pm=True)
+def show_admins(var, wrapper, message):
     """Pings the admins that are available."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     admins = []
     pl = list_players()
@@ -3116,9 +3118,10 @@ def cat(var, wrapper, message):
     """Toss a cat into the air and see what happens!"""
     wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"], sep="\n")
 
-@cmd("time", pm=True, phases=("join", "day", "night"))
-def timeleft(cli, nick, chan, rest):
+@command("time", pm=True, phases=("join", "day", "night"))
+def timeleft(var, wrapper, message):
     """Returns the time left until the next day/night transition."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     if (chan != nick and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
@@ -3357,9 +3360,10 @@ def gamestats(var, wrapper, message):
         # Attempt to find game stats for the given game size
         wrapper.send(db.get_game_stats(gamemode, gamesize))
 
-@cmd("playerstats", "pstats", "player", "p", pm=True) # XXX: mystats (just after this) needs updating along this one
-def player_stats(cli, nick, chan, rest):
+@command("playerstats", "pstats", "player", "p", pm=True)
+def player_stats(var, wrapper, message):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
+    cli, nick, chan, rest = wrapper.client, wrapper.source.nick, wrapper.target.name, message # FIXME: @cmd
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
             datetime.now()):
@@ -3427,11 +3431,11 @@ def player_stats(cli, nick, chan, rest):
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
-@cmd("mystats", "m", pm=True)
-def my_stats(cli, nick, chan, rest):
+@command("mystats", "m", pm=True)
+def my_stats(var, wrapper, message):
     """Get your own stats."""
-    rest = rest.split()
-    player_stats.func(cli, nick, chan, " ".join([nick] + rest))
+    message = message.split()
+    player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + rest))
 
 @command("rolestats", "rstats", pm=True)
 def role_stats(var, wrapper, rest):
