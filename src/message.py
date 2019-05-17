@@ -20,7 +20,6 @@ class Message:
     def format(self, *args, **kwargs):
         return _fmt.vformat(self.value, args, kwargs)
 
-
 class _Formatter(string.Formatter):
     """ Custom formatter for message strings.
 
@@ -135,7 +134,7 @@ class _Formatter(string.Formatter):
 
         num = int(args[0])
         for rule in messages.raw("_metadata", "plural"):
-            if rule["amount"] is None or rule["amount"] == num:
+            if rule["number"] is None or rule["number"] == num:
                 return value[rule["index"]]
 
         raise ValueError("No plural rules matched the number {0!r} in language metadata!".format(num))
@@ -151,7 +150,7 @@ class _Formatter(string.Formatter):
             spec = args.pop(0)
 
         if not args:
-            args = messages.raw("list")
+            args = messages.raw("_metadata", "list")
 
         if not value:
             return ""

@@ -270,7 +270,7 @@ class User(IRCContext):
 
     def __format__(self, format_spec):
         if format_spec == "@":
-            return "\u0002" + self.name + "\u0002"
+            return "\u0002{0}\u0002".format(self.name)
         return super().__format__(format_spec)
 
     def __hash__(self):
