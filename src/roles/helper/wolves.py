@@ -288,7 +288,7 @@ def on_transition_night_end(evt, var):
         if wolf not in KNOWS_MINIONS:
             minions = len(get_all_players(("minion",)))
             if minions > 0:
-                wolf.send(messages["has_minions"].format(minions, plural("minion", minions)))
+                wolf.send(messages["has_minions"].format(minions))
             KNOWS_MINIONS.add(wolf)
 
         pl = ps[:]

@@ -139,31 +139,18 @@ def on_transition_day_begin(evt, var):
         charmedlist = list(CHARMED | tocharm - {target})
         message = messages["charmed"]
 
-        if len(charmedlist) <= 0:
-            target.send(message + messages["no_charmed_players"])
-        elif len(charmedlist) == 1:
-            target.send(message + messages["one_charmed_player"].format(charmedlist[0]))
-        elif len(charmedlist) == 2:
-            target.send(message + messages["two_charmed_players"].format(charmedlist[0], charmedlist[1]))
-        else:
-            target.send(message + messages["many_charmed_players"].format("\u0002, \u0002".join(p.nick for p in charmedlist[:-1]), charmedlist[-1]))
+        to_send = "charmed_players"
+        if not charmedlist:
+            to_send = "no_charmed_players"
+        target.send(messages["charmed"] + messages[to_send].format(charmedlist))
 
     if len(tocharm) > 0:
         for target in CHARMED:
-            tobecharmedlist = list(tocharm)
-
-            if len(tobecharmedlist) == 1:
-                message = messages["players_charmed_one"].format(tobecharmedlist[0])
-            elif len(tobecharmedlist) == 2:
-                message = messages["players_charmed_two"].format(tobecharmedlist[0], tobecharmedlist[1])
-            else:
-                message = messages["players_charmed_many"].format("\u0002, \u0002".join(p.nick for p in tobecharmedlist[:-1]), tobecharmedlist[-1])
-
             previouscharmed = CHARMED - {target}
-            if len(previouscharmed):
-                target.send(message + messages["previously_charmed"].format("\u0002, \u0002".join(p.nick for p in previouscharmed)))
+            if previouscharmed:
+                target.send(messages["players_charmed"].format(tocharm) + messages["previously_charmed"].format(previouscharmed))
             else:
-                target.send(message)
+                target.send(messages["players_charmed"].format(tocharm))
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()

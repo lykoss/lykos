@@ -140,10 +140,11 @@ def on_transition_day_resolve_end(evt, var, victims):
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
+                    role = get_reveal_role(succubus)
+                    to_send = "visited_victim_noreveal"
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"][succubus].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
-                    else:
-                        evt.data["message"][succubus].append(messages["visited_victim_noreveal"].format(succubus))
+                        to_send = "visited_victim"
+                    evt.data["message"][succubus].append(messages[to_send].format(succubus, role))
                     evt.data["dead"].append(succubus)
 
 @event_listener("chk_nightdone")

@@ -1525,13 +1525,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
         # spit out the list of winners
         winners = sorted(winners)
-        if len(winners) == 1:
-            channels.Main.send(messages["single_winner"].format(winners[0]))
-        elif len(winners) == 2:
-            channels.Main.send(messages["two_winners"].format(winners[0], winners[1]))
-        elif len(winners) > 2:
-            nicklist = ("\u0002" + x + "\u0002" for x in winners[0:-1])
-            channels.Main.send(messages["many_winners"].format(", ".join(nicklist), winners[-1]))
+        channels.Main.send(messages["winners"].format(winners))
 
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:
@@ -1792,7 +1786,7 @@ def reaper(cli, gameid):
                         continue
                     if var.ROLE_REVEAL in ("on", "team"):
                         cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(users._get(nck)))) # FIXME
-                    else:
+                    else: # FIXME: Merge these two
                         cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
                     user = users._get(nck) # FIXME
                     user.disconnected = True
@@ -1804,7 +1798,7 @@ def reaper(cli, gameid):
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
-                    cli.msg(chan, messages["channel_idle_warning"].format(", ".join(x)))
+                    cli.msg(chan, messages["channel_idle_warning"].format(x))
                 msg_targets = [p for p in to_warn_pm if p in pl]
                 mass_privmsg(cli, msg_targets, messages["player_idle_warning"].format(chan), privmsg=True)
             for dcedplayer, (timeofdc, what) in list(var.DISCONNECTED.items()):
@@ -1813,7 +1807,7 @@ def reaper(cli, gameid):
                 if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
-                    else:
+                    else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
@@ -1823,7 +1817,7 @@ def reaper(cli, gameid):
                 elif what == "part" and (datetime.now() - timeofdc) > timedelta(seconds=var.PART_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["part_death"].format(dcedplayer, revealrole))
-                    else:
+                    else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
                         add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
@@ -1913,8 +1907,7 @@ def goat(var, wrapper, message):
         return
 
     var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
-    goatact = random.choice(messages["goat_actions"])
-    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, victim))
+    wrapper.send(messages["goat_success"].format(wrapper.source, messages["goat_actions"], victim))
 
 @command("fgoat", flag="j")
 def fgoat(var, wrapper, message):
@@ -1926,9 +1919,8 @@ def fgoat(var, wrapper, message):
         togoat = victim
     else:
         togoat = message
-    goatact = random.choice(messages["goat_actions"])
 
-    wrapper.send(messages["goat_success"].format(wrapper.source, goatact, togoat))
+    wrapper.send(messages["goat_success"].format(wrapper.source, messages["goat_actions"], togoat))
 
 @handle_error
 def return_to_village(var, target, *, show_message, new_user=None):
@@ -2361,12 +2353,10 @@ def transition_day(gameid=0):
             if not killers[victim]:
                 continue
 
+            to_send = "death_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(victim)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                revt.data["message"][victim].append(messages["death"].format(victim, an, role))
-            else:
-                revt.data["message"][victim].append(messages["death_no_reveal"].format(victim))
+                to_send = "death"
+            revt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(victim)))
             revt.data["dead"].append(victim)
 
     # Priorities:

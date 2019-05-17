@@ -100,13 +100,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if protected is not None:
                 channels.Main.send(*protected)
                 return
+            to_send = "assassin_success_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(target)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                message = messages["assassin_success"].format(player, target, an, role)
-            else:
-                message = messages["assassin_success_no_reveal"].format(player, target)
-            channels.Main.send(message)
+                to_send = "assassin_success"
+            channels.Main.send(messages[to_send].format(player, target, get_reveal_role(target)))
             debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")
 

@@ -89,10 +89,10 @@ def on_transition_day_resolve_end(evt, var, victims):
         if GUARDED.get(gangel) in get_players(Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
+                to_send = "guardian_angel_protected_wolf_no_reveal"
                 if var.ROLE_REVEAL == "on":
-                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf"].format(gangel))
-                else: # off and team
-                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
+                    to_send = "guardian_angel_protected_wolf"
+                evt.data["message"][gangel].append(messages[to_send].format(gangel))
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")

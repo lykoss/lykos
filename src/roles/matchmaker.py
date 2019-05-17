@@ -137,13 +137,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         for lover in lovers:
             if lover not in get_players():
                 continue # already died somehow
+            to_send = "lover_suicide_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(lover)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                message = messages["lover_suicide"].format(lover, an, role)
-            else:
-                message = messages["lover_suicide_no_reveal"].format(lover)
-            channels.Main.send(message)
+                to_send = "lover_suicide"
+            channels.Main.send(messages[to_send].format(lover, get_reveal_role(lover)))
             debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, evt.params.main_role))
             add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
 

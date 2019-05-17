@@ -132,7 +132,12 @@ class _Formatter(string.Formatter):
     def _plural(self, value, args):
         from src.messages import messages
 
-        num = int(args[0])
+        if not args:
+            num = None
+        elif args[0].isdigit():
+            num = int(args[0])
+        else:
+            num = len(args[0])
         for rule in messages.raw("_metadata", "plural"):
             if rule["number"] is None or rule["number"] == num:
                 return value[rule["index"]]

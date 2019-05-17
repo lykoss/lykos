@@ -44,10 +44,9 @@ def setup_variables(rolename):
 
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
-            an = "n" if targrole.startswith(("a", "e", "i", "o", "u")) else ""
             if realrole in Wolf:
                 if var.ROLE_REVEAL == "on":
-                    wrapper.send(messages["gunner_victim_wolf_death"].format(target, an, targrole))
+                    wrapper.send(messages["gunner_victim_wolf_death"].format(target, targrole))
                 else: # off and team
                     wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(target))
                 add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
@@ -75,10 +74,10 @@ def setup_variables(rolename):
         elif rand <= gun_evt.data["hit"] + gun_evt.data["miss"]:
             wrapper.send(messages["gunner_miss"].format(wrapper.source))
         else: # BOOM! your gun explodes, you're dead
+            to_send = "gunner_suicide_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                wrapper.send(messages["gunner_suicide"].format(wrapper.source, get_reveal_role(wrapper.source)))
-            else:
-                wrapper.send(messages["gunner_suicide_no_reveal"].format(wrapper.source))
+                to_send = "gunner_suicide"
+            wrapper.send(messages[to_send].format(wrapper.source, get_reveal_role(wrapper.source)))
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
@@ -100,10 +99,10 @@ def setup_variables(rolename):
                     wolfset = [wolf for wolf in get_players(Wolf) if wolf not in evt.data["dead"]]
                     if wolfset:
                         deadwolf = random.choice(wolfset)
+                        to_send = "gunner_killed_wolf_overnight_no_reveal"
                         if var.ROLE_REVEAL in ("on", "team"):
-                            evt.data["message"][victim].append(messages["gunner_killed_wolf_overnight"].format(victim, deadwolf, get_reveal_role(deadwolf)))
-                        else:
-                            evt.data["message"][victim].append(messages["gunner_killed_wolf_overnight_no_reveal"].format(victim, deadwolf))
+                            to_send = "gunner_killed_wolf_overnight"
+                        evt.data["message"][victim].append(messages[to_send].format(victim, deadwolf, get_reveal_role(deadwolf)))
                         evt.data["dead"].append(deadwolf)
                         evt.data["killers"][deadwolf].append(victim)
                         GUNNERS[victim] -= 1 # deduct the used bullet

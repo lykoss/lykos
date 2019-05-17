@@ -300,8 +300,7 @@ def on_lynch_immunity(evt, var, user, reason):
         rev_evt = Event("role_revealed", {})
         rev_evt.dispatch(var, user, role)
 
-        an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-        channels.Main.send(messages["totem_reveal"].format(user, an, role))
+        channels.Main.send(messages["totem_reveal"].format(user, role))
         evt.data["immune"] = True
 
 @event_listener("lynch")
@@ -315,13 +314,10 @@ def on_lynch(evt, var, votee, voters):
                 channels.Main.send(*protected)
                 return
 
+            to_send = "totem_desperation_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target)
-                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["totem_desperation"].format(votee, target, an1, r1)
-            else:
-                tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
-            channels.Main.send(tmsg)
+                to_send = "totem_desperation"
+            channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(target)))
             status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
             # no kill_players() call here; let our caller do that for us
 
@@ -403,12 +399,10 @@ def on_transition_day_resolve6(evt, var, victims):
                     return
 
                 evt.data["dead"].append(loser)
+                to_send = "totem_death_no_reveal"
                 if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(loser)
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    evt.data["message"][loser].append(messages["totem_death"].format(victim, loser, an, role))
-                else:
-                    evt.data["message"][loser].append(messages["totem_death_no_reveal"].format(victim, loser))
+                    to_send = "totem_death"
+                evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(loser)))
 
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt, var):
@@ -416,8 +410,10 @@ def on_transition_day_end(evt, var):
     havetotem.sort(key=lambda x: x.nick)
     for player, tlist in itertools.groupby(havetotem):
         ntotems = len(list(tlist))
-        message.append(messages["totem_posession"].format(
-            player, "ed" if player not in get_players() else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
+        to_send = "totem_posession_dead"
+        if player in get_players():
+            to_send = "totem_posession_alive"
+        message.append(messages[to_send].format(player, ntotems)
     for player in brokentotem:
         message.append(messages["totem_broken"].format(player))
     channels.Main.send("\n".join(message))

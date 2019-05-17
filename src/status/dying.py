@@ -104,9 +104,7 @@ def kill_off_dying_players(evt, var, victims):
             evt.data["novictmsg"] = False
             evt.data["dead"].append(victim)
 
+            to_send = "death_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(victim)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                evt.data["message"][victim].append(messages["death"].format(victim, an, role))
-            else:
-                evt.data["message"][victim].append(messages["death_no_reveal"].format(victim))
+                to_send = "death"
+            evt.data["message"][victim].append(messages[to_send].format(victim, get_reveal_role(victim)))
