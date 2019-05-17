@@ -1,26 +1,9 @@
-import fnmatch
-import re
-import random
 import string
+import re
+import fnmatch
 from collections import OrderedDict
 
-class Message:
-    def __init__(self, value):
-        self.value = value
-
-    def __str__(self):
-        return str(self.value)
-
-    def __add__(self, other):
-        return str(self) + other
-
-    def __radd__(self, other):
-        return other + str(self)
-
-    def format(self, *args, **kwargs):
-        return _fmt.vformat(self.value, args, kwargs)
-
-class _Formatter(string.Formatter):
+class Formatter(string.Formatter):
     """ Custom formatter for message strings.
 
     This inherits all features of base str.format() with the following additions:
@@ -197,5 +180,3 @@ class _Formatter(string.Formatter):
         }
 
         return "\u0003{0}{1}\u0003".format(cmap[args[0]], value)
-
-_fmt = _Formatter()

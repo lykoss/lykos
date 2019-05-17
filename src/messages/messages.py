@@ -2,13 +2,13 @@ import json
 import os
 
 import src.settings as var
-from src.message import Message
+from src.messages.message import Message
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 
 class Messages:
-    def __init__ (self):
+    def __init__(self):
         self.lang = var.LANGUAGE
         self._load_messages()
 
@@ -38,7 +38,7 @@ class Messages:
             seen.add(fallback)
             with open(os.path.join(MESSAGES_DIR, fallback + ".json"), encoding="utf-8") as f:
                 fallback_msgs = json.load(f)
-                fallback = messages["_metadata"]["fallback"]
+                fallback = self.messages["_metadata"]["fallback"]
                 for key, message in fallback_msgs.items():
                     if key not in self.messages:
                         self.messages[key] = message
@@ -74,5 +74,3 @@ class Messages:
                     self.messages[key] = message
             else:
                 self.messages[key] = message
-
-messages = Messages()
