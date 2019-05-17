@@ -3293,19 +3293,11 @@ def aftergame(var, wrapper, message):
 def _command_disabled(var, wrapper, message):
     wrapper.send(messages["command_disabled_admin"])
 
-def _command_disabled_oldapi(cli, nick, chan, rest):
-    # FIXME: kill this off when the old @cmd API is completely killed off
-    reply(cli, nick, chan, messages["command_disabled_admin"])
-
 @command("lastgame", "flastgame", flag="D", pm=True)
 def flastgame(var, wrapper, message):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     for cmdcls in (COMMANDS["join"] + COMMANDS["start"]):
-        if isinstance(cmdcls, command):
-            cmdcls.func = _command_disabled
-        else:
-            # FIXME: kill this off when the old @cmd API is completely killed off
-            cmdcls.func = _command_disabled_oldapi
+        cmdcls.func = _command_disabled
 
     channels.Main.send(messages["disable_new_games"].format(wrapper.source))
     var.ADMIN_TO_PING = wrapper.source
@@ -3854,11 +3846,11 @@ def _force_command(var, wrapper, name, players, message):
                 wrapper.pm(messages["no_force_admin"])
                 return
             for user in players:
-                # FIXME: This is the old command API, fix this when @cmd is killed off
                 if func.chan:
-                    func.caller(user.client, user.rawnick, wrapper.target.name, message)
+                    func.caller(var, wrapper, message)
                 else:
-                    func.caller(user.client, user.rawnick, users.Bot.nick, message)
+                    wrapper.target = users.Bot
+                    func.caller(var, wrapper, message)
 
         wrapper.send(messages["operation_successful"])
     else:

@@ -122,8 +122,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
 
     for fn in cmds:
         if phase == var.PHASE:
-            # FIXME: pass in var, wrapper, message instead of cli, rawnick, chan, message
-            fn.caller(cli, rawnick, ch, message)
+            fn.caller(var, wrapper, message)
 
 def unhandled(cli, prefix, cmd, *args):
     for fn in decorators.HOOKS.get(cmd, []):

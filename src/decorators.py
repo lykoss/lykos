@@ -15,7 +15,6 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 import src
-from src.dispatcher import MessageDispatcher
 from src.utilities import *
 from src.functions import get_players
 from src.messages import messages
@@ -264,29 +263,17 @@ class command:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest):
+    def caller(self, var, wrapper, message):
         _ignore_locals_ = True
-        user = users._get(rawnick, allow_none=True) # FIXME
-
-        if users.equals(chan, users.Bot.nick): # PM
-            target = users.Bot
-        else:
-            target = channels.get(chan, allow_none=True)
-
-        if user is None or target is None:
-            return
-
-        dispatcher = MessageDispatcher(user, target)
-
-        if (not self.pm and dispatcher.private) or (not self.chan and dispatcher.public):
+        if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
 
-        if dispatcher.public and target is not channels.Main and not (self.flag or self.owner_only):
+        if wrapper.public and target is not channels.Main and not (self.flag or self.owner_only):
             if "" in self.commands or not self.alt_allowed:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            self.func(var, dispatcher, rest)
+            self.func(var, wrapper, rest)
             return
 
         if self.phases and var.PHASE not in self.phases:
@@ -303,11 +290,11 @@ class command:
                 return
 
         if self.silenced and src.status.is_silent(var, user):
-            dispatcher.pm(messages["silenced"])
+            wrapper.pm(messages["silenced"])
             return
 
         if self.roles or (self.users is not None and user in self.users):
-            self.func(var, dispatcher, rest) # don't check restrictions for role commands
+            self.func(var, wrapper, rest) # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
@@ -317,10 +304,10 @@ class command:
         if self.owner_only:
             if user.is_owner():
                 adminlog(chan, rawnick, self.name, rest)
-                self.func(var, dispatcher, rest)
+                self.func(var, wrapper, rest)
                 return
 
-            dispatcher.pm(messages["not_owner"])
+            wrapper.pm(messages["not_owner"])
             return
 
         temp = user.lower()
@@ -329,197 +316,24 @@ class command:
 
         if self.flag and (user.is_admin() or user.is_owner()):
             adminlog(chan, rawnick, self.name, rest)
-            return self.func(var, dispatcher, rest)
+            return self.func(var, wrapper, rest)
 
         denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
 
         if self.commands & denied_commands:
-            dispatcher.pm(messages["invalid_permissions"])
+            wrapper.pm(messages["invalid_permissions"])
             return
 
         if self.flag:
             if self.flag in flags:
                 adminlog(chan, rawnick, self.name, rest)
-                self.func(var, dispatcher, rest)
+                self.func(var, wrapper, rest)
                 return
 
-            dispatcher.pm(messages["not_an_admin"])
+            wrapper.pm(messages["not_an_admin"])
             return
 
-        self.func(var, dispatcher, rest)
-
-class cmd:
-    def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
-                 chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None):
-
-        self.cmds = cmds
-        self.raw_nick = raw_nick
-        self.flag = flag
-        self.owner_only = owner_only
-        self.chan = chan
-        self.pm = pm
-        self.playing = playing
-        self.silenced = silenced
-        self.phases = phases
-        self.roles = roles
-        self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
-        self.func = None
-        self.aftergame = False
-        self.name = cmds[0]
-        self.exclusive = False # for compatibility with new command API
-
-        alias = False
-        self.aliases = []
-        if var.DISABLED_COMMANDS.intersection(cmds):
-            return # command is disabled, do not add to COMMANDS
-
-        for name in cmds:
-            for func in COMMANDS[name]:
-                if (func.owner_only != owner_only or
-                    func.flag != flag):
-                    raise ValueError("unmatching protection levels for " + func.name)
-                if func.exclusive:
-                    raise ValueError("exclusive command already exists for {0}".format(name))
-
-            COMMANDS[name].append(self)
-            if alias:
-                self.aliases.append(name)
-            alias = True
-
-    def __call__(self, func):
-        if isinstance(func, cmd):
-            func = func.func
-        self.func = func
-        self.__doc__ = self.func.__doc__
-        return self
-
-    @handle_error
-    def caller(self, cli, rawnick, chan, rest):
-        _ignore_locals_ = True
-        if users.equals(chan, users.Bot.nick):
-            chan = users.parse_rawnick_as_dict(rawnick)["nick"]
-
-        largs = [cli, rawnick, chan, rest]
-
-        cli, rawnick, chan, rest = largs
-        nick, mode, ident, host = parse_nick(rawnick)
-
-        if ident is None:
-            ident = ""
-
-        if host is None:
-            host = ""
-
-        if not self.raw_nick:
-            largs[1] = nick
-
-        if not self.pm and chan == nick:
-            return # PM command, not allowed
-
-        if not self.chan and chan != nick:
-            return # channel command, not allowed
-
-        if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.flag or self.owner_only):
-            if "" in self.cmds:
-                return # don't have empty commands triggering in other channels
-            for command in self.cmds:
-                if command in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
-                    break
-            else:
-                return
-
-        if nick not in var.USERS and not is_fake_nick(nick):
-            return
-
-        if nick in var.USERS and var.USERS[nick]["account"] != "*":
-            acc = irc_lower(var.USERS[nick]["account"])
-        else:
-            acc = None
-        ident = irc_lower(ident)
-        host = host.lower()
-        hostmask = nick + "!" + ident + "@" + host
-
-        if "" in self.cmds:
-            self.func(*largs)
-            return
-
-        if self.phases and var.PHASE not in self.phases:
-            return
-
-        if self.playing and (nick not in list_players() or users._get(nick) in var.DISCONNECTED):
-            return
-
-        for role in self.roles:
-            if users._get(nick) in var.ROLES[role]:
-                break
-        else:
-            if (self.nicks is not None and nick not in self.nicks) or self.roles:
-                return
-
-        if self.silenced and src.status.is_silent(var, users._get(nick)):
-            if chan == nick:
-                pm(cli, nick, messages["silenced"])
-            else:
-                cli.notice(nick, messages["silenced"])
-            return
-
-        if self.roles or (self.nicks is not None and nick in self.nicks):
-            self.func(*largs) # don't check restrictions for role commands
-            # Role commands might end the night if it's nighttime
-            if var.PHASE == "night":
-                from src.wolfgame import chk_nightdone
-                chk_nightdone()
-            return
-
-        forced_owner_only = False
-        if hasattr(botconfig, "OWNERS_ONLY_COMMANDS"):
-            for command in self.cmds:
-                if command in botconfig.OWNERS_ONLY_COMMANDS:
-                    forced_owner_only = True
-                    break
-
-        owner = is_owner(rawnick)
-        if self.owner_only or forced_owner_only:
-            if owner:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(*largs)
-                return
-
-            if chan == nick:
-                pm(cli, nick, messages["not_owner"])
-            else:
-                cli.notice(nick, messages["not_owner"])
-            return
-
-        flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-        admin = is_admin(rawnick)
-        if self.flag and (admin or owner):
-            adminlog(chan, rawnick, self.name, rest)
-            self.func(*largs)
-            return
-
-        denied_cmds = var.DENY[hostmask] | var.DENY_ACCS[acc]
-        for command in self.cmds:
-            if command in denied_cmds:
-                if chan == nick:
-                    pm(cli, nick, messages["invalid_permissions"])
-                else:
-                    cli.notice(nick, messages["invalid_permissions"])
-                return
-
-        if self.flag:
-            if self.flag in flags:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(*largs)
-                return
-            elif chan == nick:
-                pm(cli, nick, messages["not_an_admin"])
-            else:
-                cli.notice(nick, messages["not_an_admin"])
-            return
-
-        self.func(*largs)
+        self.func(var, wrapper, rest)
 
 class hook:
     def __init__(self, name, hookid=-1):
