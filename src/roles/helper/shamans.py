@@ -413,7 +413,7 @@ def on_transition_day_end(evt, var):
         to_send = "totem_posession_dead"
         if player in get_players():
             to_send = "totem_posession_alive"
-        message.append(messages[to_send].format(player, ntotems)
+        message.append(messages[to_send].format(player, ntotems))
     for player in brokentotem:
         message.append(messages["totem_broken"].format(player))
     channels.Main.send("\n".join(message))

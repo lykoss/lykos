@@ -109,6 +109,8 @@ class Formatter(string.Formatter):
             return messages.raw("_roles", value)
         if conversion == "command":
             return messages.raw("_commands", value)
+        if conversion == "totem":
+            return messages.raw("_totems", value)
 
         # not one of our custom things
         return super().convert_field(value, conversion)

@@ -45,20 +45,20 @@ def setup_variables(rolename):
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
             if realrole in Wolf:
+                to_send = "gunner_victim_wolf_death_no_reveal"
                 if var.ROLE_REVEAL == "on":
-                    wrapper.send(messages["gunner_victim_wolf_death"].format(target, targrole))
-                else: # off and team
-                    wrapper.send(messages["gunner_victim_wolf_death_no_reveal"].format(target))
+                    to_send = "gunner_victim_wolf_death"
+                wrapper.send(messages[to_send].format(target, targrole))
                 add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
                 if kill_players(var):
                     return
             elif shoot_evt.data["kill"]:
-                accident = "accidentally "
+                to_send = "gunner_victim_villager_death_accident"
                 if gun_evt.data["headshot"] == 1: # would always headshot
-                    accident = ""
-                wrapper.send(messages["gunner_victim_villager_death"].format(target, accident))
+                    to_send = "gunner_victim_villager_death"
+                wrapper.send(messages[to_send].format(target))
                 if var.ROLE_REVEAL in ("on", "team"):
-                    wrapper.send(messages["gunner_victim_role"].format(an, targrole))
+                    wrapper.send(messages["gunner_victim_role"].format(targrole))
                 add_dying(var, target, killer_role=get_main_role(wrapper.source), reason="gunner_victim")
                 if kill_players(var):
                     return

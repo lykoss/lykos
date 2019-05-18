@@ -54,7 +54,10 @@ def see(var, wrapper, message):
         evt.dispatch(var, wrapper.source, target)
         targrole = evt.data["role"]
 
-    wrapper.send(messages["oracle_success"].format(target, "" if iswolf else "\u0002not\u0002 ", "\u0002" if iswolf else ""))
+    to_send = "oracle_success_not_wolf"
+    if iswolf:
+        to_send = "oracle_success_wolf"
+    wrapper.send(messages[to_send].format(target))
     debuglog("{0} (oracle) SEE: {1} ({2}) (Wolf: {3})".format(wrapper.source, target, trole, str(iswolf)))
 
     SEEN.add(wrapper.source)
