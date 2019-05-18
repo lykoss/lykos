@@ -27,6 +27,11 @@ botconfig.py
 # Certificates/keys
 *.pem
 
+# ANTLR interpreter files (unused/unneeded)
+*.interp
+
 # IDE things
 .idea/
+.antlr/
+.vs/
 venv/
