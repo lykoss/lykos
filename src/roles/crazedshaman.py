@@ -25,7 +25,7 @@ def crazed_shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="crazed shaman", msg="")
+    give_totem(var, wrapper, target, key="shaman_success_night", role="crazed shaman")
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
@@ -46,7 +46,7 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="crazed shaman", msg="")
+                give_totem(var, dispatcher, target, key="shaman_success_random", role="crazed shaman")
             else:
                 LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:

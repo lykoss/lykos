@@ -24,7 +24,7 @@ def shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    give_totem(var, wrapper, target, key="shaman_success_night", role="shaman")
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
@@ -40,7 +40,7 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="shaman", msg=" of {0}".format(TOTEMS[shaman]))
+                give_totem(var, dispatcher, target, key="shaman_success_random", role="shaman")
             else:
                 LASTGIVEN[shaman] = None
         elif shaman not in SHAMANS:

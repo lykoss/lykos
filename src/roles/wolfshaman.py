@@ -27,7 +27,7 @@ def wolf_shaman_totem(var, wrapper, message):
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="wolf shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    give_totem(var, wrapper, target, key="shaman_success_night", role="wolf shaman")
 
     relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), is_wolf_command=True)
 
@@ -45,7 +45,7 @@ def on_transition_day_begin(evt, var):
                 target = random.choice(ps)
                 dispatcher = MessageDispatcher(shaman, shaman)
 
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="wolf shaman", msg=" of {0}".format(TOTEMS[shaman]))
+                give_totem(var, dispatcher, target, key="shaman_success_random", role="wolf shaman")
                 relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
             else:
                 LASTGIVEN[shaman] = None

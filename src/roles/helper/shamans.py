@@ -97,8 +97,9 @@ def setup_variables(rolename, *, knows_totem):
     _rolestate[rolename] = {
         "TOTEMS": TOTEMS,
         "LASTGIVEN": LASTGIVEN,
-        "SHAMANS": SHAMANS
-        }
+        "SHAMANS": SHAMANS,
+        "knows_totem": knows_totem,
+    }
 
     @event_listener("reset")
     def on_reset(evt, var):
@@ -238,7 +239,7 @@ def get_totem_target(var, wrapper, message, lastgiven):
 
     return target
 
-def give_totem(var, wrapper, target, prefix, role, msg):
+def give_totem(var, wrapper, target, *, key, role):
     """Give a totem to a player. Return the value of SHAMANS[user]."""
 
     orig_target = target
@@ -249,11 +250,17 @@ def give_totem(var, wrapper, target, prefix, role, msg):
         return
 
     targrole = get_main_role(target)
+    totem = _rolestate[role]["TOTEMS"][wrapper.source]
 
-    wrapper.send(messages["shaman_success"].format(prefix, msg, orig_target))
-    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
+    if _rolestate[role]["knows_totem"]:
+        key += "_known"
+    else:
+        key += "_unknown"
 
-    return UserList((target, orig_target))
+    wrapper.send(messages[key].format(orig_target, totem))
+    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5}): {6}".format(wrapper.source, role, target, targrole, orig_target, orig_role, totem))
+
+    _rolestate[role]["SHAMANS"][wrapper.source] = UserList((target, orig_target))
 
 def change_totem(var, player, totem, roles=None):
     """Change the player's totem to the specified totem.
