@@ -13,8 +13,13 @@ OPEN_SUB : '{' -> pushMode(IN_SUB) ;
 
 mode IN_TAG;
 TAG_NAME : [a-zA-Z]+ ;
-TAG_PARAM : '=' ~[\]]+ ;
+TAG_PARAM : '=' (
+    ~[\]{}]
+    | '{{' { setText("{") }
+    | '}}' { setText("}") }
+    )+ ;
 TAG_SLASH : '/' ;
+TAG_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
 CLOSE_TAG : ']' -> popMode ;
 
 mode IN_SUB;

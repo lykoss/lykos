@@ -7,6 +7,7 @@ from src.messages.message import Message
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
 
+
 class Messages:
     def __init__(self):
         self.lang = var.LANGUAGE
@@ -15,7 +16,7 @@ class Messages:
     def get(self, key):
         if not self.messages[key]:
             raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(key))
-        return Message(self.messages[key])
+        return Message(key, self.messages[key])
 
     __getitem__ = get
 

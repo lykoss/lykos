@@ -7,13 +7,23 @@ main
 
 string
     : string TEXT
-    | string open_tag string close_tag
+    | string tag
     | string sub
     |
     ;
 
+tag
+    : open_tag string close_tag
+    ;
+
 open_tag
-    : OPEN_TAG TAG_NAME TAG_PARAM? CLOSE_TAG
+    : OPEN_TAG TAG_NAME tag_param CLOSE_TAG
+    ;
+
+tag_param
+    : tag_param TAG_PARAM
+    | tag_param sub
+    |
     ;
 
 close_tag
@@ -21,7 +31,7 @@ close_tag
     ;
 
 sub
-    : OPEN_SUB SUB_FIELD? sub_convert sub_spec CLOSE_SUB
+    : OPEN_SUB SUB_FIELD sub_convert sub_spec CLOSE_SUB
     ;
 
 sub_convert
@@ -37,5 +47,6 @@ sub_spec
 spec_value
     : spec_value SPEC_VALUE
     | spec_value sub
-    |
+    | SPEC_VALUE
+    | sub
     ;

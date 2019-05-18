@@ -1,4 +1,4 @@
-# Generated from C:/Projects/lykos/src/messages\message_parser.g4 by ANTLR 4.7.2
+# Generated from D:/Code/lykos/src/messages\message_parser.g4 by ANTLR 4.7.2
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -9,31 +9,35 @@ import sys
 def serializedATN():
     with StringIO() as buf:
         buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3\17")
-        buf.write("Q\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b")
-        buf.write("\t\b\4\t\t\t\3\2\3\2\3\2\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3")
-        buf.write("\3\3\3\3\3\7\3 \n\3\f\3\16\3#\13\3\3\4\3\4\3\4\5\4(\n")
-        buf.write("\4\3\4\3\4\3\5\3\5\3\5\3\5\3\5\3\6\3\6\5\6\63\n\6\3\6")
-        buf.write("\3\6\3\6\3\6\3\7\3\7\3\7\5\7<\n\7\3\b\3\b\3\b\3\b\7\b")
-        buf.write("B\n\b\f\b\16\bE\13\b\3\t\3\t\3\t\3\t\3\t\7\tL\n\t\f\t")
-        buf.write("\16\tO\13\t\3\t\2\5\4\16\20\n\2\4\6\b\n\f\16\20\2\2\2")
-        buf.write("Q\2\22\3\2\2\2\4\25\3\2\2\2\6$\3\2\2\2\b+\3\2\2\2\n\60")
-        buf.write("\3\2\2\2\f;\3\2\2\2\16=\3\2\2\2\20F\3\2\2\2\22\23\5\4")
-        buf.write("\3\2\23\24\7\2\2\3\24\3\3\2\2\2\25!\b\3\1\2\26\27\f\6")
-        buf.write("\2\2\27 \7\3\2\2\30\31\f\5\2\2\31\32\5\6\4\2\32\33\5\4")
-        buf.write("\3\2\33\34\5\b\5\2\34 \3\2\2\2\35\36\f\4\2\2\36 \5\n\6")
-        buf.write("\2\37\26\3\2\2\2\37\30\3\2\2\2\37\35\3\2\2\2 #\3\2\2\2")
-        buf.write("!\37\3\2\2\2!\"\3\2\2\2\"\5\3\2\2\2#!\3\2\2\2$%\7\4\2")
-        buf.write("\2%\'\7\6\2\2&(\7\7\2\2\'&\3\2\2\2\'(\3\2\2\2()\3\2\2")
-        buf.write("\2)*\7\t\2\2*\7\3\2\2\2+,\7\4\2\2,-\7\b\2\2-.\7\6\2\2")
-        buf.write("./\7\t\2\2/\t\3\2\2\2\60\62\7\5\2\2\61\63\7\n\2\2\62\61")
-        buf.write("\3\2\2\2\62\63\3\2\2\2\63\64\3\2\2\2\64\65\5\f\7\2\65")
-        buf.write("\66\5\16\b\2\66\67\7\16\2\2\67\13\3\2\2\289\7\13\2\29")
-        buf.write("<\7\f\2\2:<\3\2\2\2;8\3\2\2\2;:\3\2\2\2<\r\3\2\2\2=C\b")
-        buf.write("\b\1\2>?\f\4\2\2?@\7\r\2\2@B\5\20\t\2A>\3\2\2\2BE\3\2")
-        buf.write("\2\2CA\3\2\2\2CD\3\2\2\2D\17\3\2\2\2EC\3\2\2\2FM\b\t\1")
-        buf.write("\2GH\f\5\2\2HL\7\17\2\2IJ\f\4\2\2JL\5\n\6\2KG\3\2\2\2")
-        buf.write("KI\3\2\2\2LO\3\2\2\2MK\3\2\2\2MN\3\2\2\2N\21\3\2\2\2O")
-        buf.write("M\3\2\2\2\n\37!\'\62;CKM")
+        buf.write("`\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b")
+        buf.write("\t\b\4\t\t\t\4\n\t\n\4\13\t\13\3\2\3\2\3\2\3\3\3\3\3\3")
+        buf.write("\3\3\3\3\3\3\3\3\7\3!\n\3\f\3\16\3$\13\3\3\4\3\4\3\4\3")
+        buf.write("\4\3\5\3\5\3\5\3\5\3\5\3\6\3\6\3\6\3\6\3\6\7\6\64\n\6")
+        buf.write("\f\6\16\6\67\13\6\3\7\3\7\3\7\3\7\3\7\3\b\3\b\3\b\3\b")
+        buf.write("\3\b\3\b\3\t\3\t\3\t\5\tG\n\t\3\n\3\n\3\n\3\n\7\nM\n\n")
+        buf.write("\f\n\16\nP\13\n\3\13\3\13\3\13\5\13U\n\13\3\13\3\13\3")
+        buf.write("\13\3\13\7\13[\n\13\f\13\16\13^\13\13\3\13\2\6\4\n\22")
+        buf.write("\24\f\2\4\6\b\n\f\16\20\22\24\2\2\2_\2\26\3\2\2\2\4\31")
+        buf.write("\3\2\2\2\6%\3\2\2\2\b)\3\2\2\2\n.\3\2\2\2\f8\3\2\2\2\16")
+        buf.write("=\3\2\2\2\20F\3\2\2\2\22H\3\2\2\2\24T\3\2\2\2\26\27\5")
+        buf.write("\4\3\2\27\30\7\2\2\3\30\3\3\2\2\2\31\"\b\3\1\2\32\33\f")
+        buf.write("\6\2\2\33!\7\3\2\2\34\35\f\5\2\2\35!\5\6\4\2\36\37\f\4")
+        buf.write("\2\2\37!\5\16\b\2 \32\3\2\2\2 \34\3\2\2\2 \36\3\2\2\2")
+        buf.write("!$\3\2\2\2\" \3\2\2\2\"#\3\2\2\2#\5\3\2\2\2$\"\3\2\2\2")
+        buf.write("%&\5\b\5\2&\'\5\4\3\2\'(\5\f\7\2(\7\3\2\2\2)*\7\4\2\2")
+        buf.write("*+\7\6\2\2+,\5\n\6\2,-\7\t\2\2-\t\3\2\2\2.\65\b\6\1\2")
+        buf.write("/\60\f\5\2\2\60\64\7\7\2\2\61\62\f\4\2\2\62\64\5\16\b")
+        buf.write("\2\63/\3\2\2\2\63\61\3\2\2\2\64\67\3\2\2\2\65\63\3\2\2")
+        buf.write("\2\65\66\3\2\2\2\66\13\3\2\2\2\67\65\3\2\2\289\7\4\2\2")
+        buf.write("9:\7\b\2\2:;\7\6\2\2;<\7\t\2\2<\r\3\2\2\2=>\7\5\2\2>?")
+        buf.write("\7\n\2\2?@\5\20\t\2@A\5\22\n\2AB\7\16\2\2B\17\3\2\2\2")
+        buf.write("CD\7\13\2\2DG\7\f\2\2EG\3\2\2\2FC\3\2\2\2FE\3\2\2\2G\21")
+        buf.write("\3\2\2\2HN\b\n\1\2IJ\f\4\2\2JK\7\r\2\2KM\5\24\13\2LI\3")
+        buf.write("\2\2\2MP\3\2\2\2NL\3\2\2\2NO\3\2\2\2O\23\3\2\2\2PN\3\2")
+        buf.write("\2\2QR\b\13\1\2RU\7\17\2\2SU\5\16\b\2TQ\3\2\2\2TS\3\2")
+        buf.write("\2\2U\\\3\2\2\2VW\f\6\2\2W[\7\17\2\2XY\f\5\2\2Y[\5\16")
+        buf.write("\b\2ZV\3\2\2\2ZX\3\2\2\2[^\3\2\2\2\\Z\3\2\2\2\\]\3\2\2")
+        buf.write("\2]\25\3\2\2\2^\\\3\2\2\2\13 \"\63\65FNTZ\\")
         return buf.getvalue()
 
 
@@ -57,15 +61,17 @@ class message_parser ( Parser ):
 
     RULE_main = 0
     RULE_string = 1
-    RULE_open_tag = 2
-    RULE_close_tag = 3
-    RULE_sub = 4
-    RULE_sub_convert = 5
-    RULE_sub_spec = 6
-    RULE_spec_value = 7
+    RULE_tag = 2
+    RULE_open_tag = 3
+    RULE_tag_param = 4
+    RULE_close_tag = 5
+    RULE_sub = 6
+    RULE_sub_convert = 7
+    RULE_sub_spec = 8
+    RULE_spec_value = 9
 
-    ruleNames =  [ "main", "string", "open_tag", "close_tag", "sub", "sub_convert", 
-                   "sub_spec", "spec_value" ]
+    ruleNames =  [ "main", "string", "tag", "open_tag", "tag_param", "close_tag", 
+                   "sub", "sub_convert", "sub_spec", "spec_value" ]
 
     EOF = Token.EOF
     TEXT=1
@@ -124,9 +130,9 @@ class message_parser ( Parser ):
         self.enterRule(localctx, 0, self.RULE_main)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 16
+            self.state = 20
             self.string(0)
-            self.state = 17
+            self.state = 21
             self.match(message_parser.EOF)
         except RecognitionException as re:
             localctx.exception = re
@@ -143,22 +149,15 @@ class message_parser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def string(self, i:int=None):
-            if i is None:
-                return self.getTypedRuleContexts(message_parser.StringContext)
-            else:
-                return self.getTypedRuleContext(message_parser.StringContext,i)
+        def string(self):
+            return self.getTypedRuleContext(message_parser.StringContext,0)
 
 
         def TEXT(self):
             return self.getToken(message_parser.TEXT, 0)
 
-        def open_tag(self):
-            return self.getTypedRuleContext(message_parser.Open_tagContext,0)
-
-
-        def close_tag(self):
-            return self.getTypedRuleContext(message_parser.Close_tagContext,0)
+        def tag(self):
+            return self.getTypedRuleContext(message_parser.TagContext,0)
 
 
         def sub(self):
@@ -188,7 +187,7 @@ class message_parser ( Parser ):
         try:
             self.enterOuterAlt(localctx, 1)
             self._ctx.stop = self._input.LT(-1)
-            self.state = 31
+            self.state = 32
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,1,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -196,48 +195,44 @@ class message_parser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 29
+                    self.state = 30
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,0,self._ctx)
                     if la_ == 1:
                         localctx = message_parser.StringContext(self, _parentctx, _parentState)
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_string)
-                        self.state = 20
+                        self.state = 24
                         if not self.precpred(self._ctx, 4):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
-                        self.state = 21
+                        self.state = 25
                         self.match(message_parser.TEXT)
                         pass
 
                     elif la_ == 2:
                         localctx = message_parser.StringContext(self, _parentctx, _parentState)
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_string)
-                        self.state = 22
+                        self.state = 26
                         if not self.precpred(self._ctx, 3):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
-                        self.state = 23
-                        self.open_tag()
-                        self.state = 24
-                        self.string(0)
-                        self.state = 25
-                        self.close_tag()
+                        self.state = 27
+                        self.tag()
                         pass
 
                     elif la_ == 3:
                         localctx = message_parser.StringContext(self, _parentctx, _parentState)
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_string)
-                        self.state = 27
+                        self.state = 28
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 28
+                        self.state = 29
                         self.sub()
                         pass
 
              
-                self.state = 33
+                self.state = 34
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,1,self._ctx)
 
@@ -247,6 +242,59 @@ class message_parser ( Parser ):
             self._errHandler.recover(self, re)
         finally:
             self.unrollRecursionContexts(_parentctx)
+        return localctx
+
+
+    class TagContext(ParserRuleContext):
+
+        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
+            super().__init__(parent, invokingState)
+            self.parser = parser
+
+        def open_tag(self):
+            return self.getTypedRuleContext(message_parser.Open_tagContext,0)
+
+
+        def string(self):
+            return self.getTypedRuleContext(message_parser.StringContext,0)
+
+
+        def close_tag(self):
+            return self.getTypedRuleContext(message_parser.Close_tagContext,0)
+
+
+        def getRuleIndex(self):
+            return message_parser.RULE_tag
+
+        def enterRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "enterTag" ):
+                listener.enterTag(self)
+
+        def exitRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "exitTag" ):
+                listener.exitTag(self)
+
+
+
+
+    def tag(self):
+
+        localctx = message_parser.TagContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 4, self.RULE_tag)
+        try:
+            self.enterOuterAlt(localctx, 1)
+            self.state = 35
+            self.open_tag()
+            self.state = 36
+            self.string(0)
+            self.state = 37
+            self.close_tag()
+        except RecognitionException as re:
+            localctx.exception = re
+            self._errHandler.reportError(self, re)
+            self._errHandler.recover(self, re)
+        finally:
+            self.exitRule()
         return localctx
 
 
@@ -262,11 +310,12 @@ class message_parser ( Parser ):
         def TAG_NAME(self):
             return self.getToken(message_parser.TAG_NAME, 0)
 
+        def tag_param(self):
+            return self.getTypedRuleContext(message_parser.Tag_paramContext,0)
+
+
         def CLOSE_TAG(self):
             return self.getToken(message_parser.CLOSE_TAG, 0)
-
-        def TAG_PARAM(self):
-            return self.getToken(message_parser.TAG_PARAM, 0)
 
         def getRuleIndex(self):
             return message_parser.RULE_open_tag
@@ -285,23 +334,16 @@ class message_parser ( Parser ):
     def open_tag(self):
 
         localctx = message_parser.Open_tagContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 4, self.RULE_open_tag)
-        self._la = 0 # Token type
+        self.enterRule(localctx, 6, self.RULE_open_tag)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 34
-            self.match(message_parser.OPEN_TAG)
-            self.state = 35
-            self.match(message_parser.TAG_NAME)
-            self.state = 37
-            self._errHandler.sync(self)
-            _la = self._input.LA(1)
-            if _la==message_parser.TAG_PARAM:
-                self.state = 36
-                self.match(message_parser.TAG_PARAM)
-
-
             self.state = 39
+            self.match(message_parser.OPEN_TAG)
+            self.state = 40
+            self.match(message_parser.TAG_NAME)
+            self.state = 41
+            self.tag_param(0)
+            self.state = 42
             self.match(message_parser.CLOSE_TAG)
         except RecognitionException as re:
             localctx.exception = re
@@ -309,6 +351,93 @@ class message_parser ( Parser ):
             self._errHandler.recover(self, re)
         finally:
             self.exitRule()
+        return localctx
+
+
+    class Tag_paramContext(ParserRuleContext):
+
+        def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
+            super().__init__(parent, invokingState)
+            self.parser = parser
+
+        def tag_param(self):
+            return self.getTypedRuleContext(message_parser.Tag_paramContext,0)
+
+
+        def TAG_PARAM(self):
+            return self.getToken(message_parser.TAG_PARAM, 0)
+
+        def sub(self):
+            return self.getTypedRuleContext(message_parser.SubContext,0)
+
+
+        def getRuleIndex(self):
+            return message_parser.RULE_tag_param
+
+        def enterRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "enterTag_param" ):
+                listener.enterTag_param(self)
+
+        def exitRule(self, listener:ParseTreeListener):
+            if hasattr( listener, "exitTag_param" ):
+                listener.exitTag_param(self)
+
+
+
+    def tag_param(self, _p:int=0):
+        _parentctx = self._ctx
+        _parentState = self.state
+        localctx = message_parser.Tag_paramContext(self, self._ctx, _parentState)
+        _prevctx = localctx
+        _startState = 8
+        self.enterRecursionRule(localctx, 8, self.RULE_tag_param, _p)
+        try:
+            self.enterOuterAlt(localctx, 1)
+            self._ctx.stop = self._input.LT(-1)
+            self.state = 51
+            self._errHandler.sync(self)
+            _alt = self._interp.adaptivePredict(self._input,3,self._ctx)
+            while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
+                if _alt==1:
+                    if self._parseListeners is not None:
+                        self.triggerExitRuleEvent()
+                    _prevctx = localctx
+                    self.state = 49
+                    self._errHandler.sync(self)
+                    la_ = self._interp.adaptivePredict(self._input,2,self._ctx)
+                    if la_ == 1:
+                        localctx = message_parser.Tag_paramContext(self, _parentctx, _parentState)
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_tag_param)
+                        self.state = 45
+                        if not self.precpred(self._ctx, 3):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
+                        self.state = 46
+                        self.match(message_parser.TAG_PARAM)
+                        pass
+
+                    elif la_ == 2:
+                        localctx = message_parser.Tag_paramContext(self, _parentctx, _parentState)
+                        self.pushNewRecursionContext(localctx, _startState, self.RULE_tag_param)
+                        self.state = 47
+                        if not self.precpred(self._ctx, 2):
+                            from antlr4.error.Errors import FailedPredicateException
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
+                        self.state = 48
+                        self.sub()
+                        pass
+
+             
+                self.state = 53
+                self._errHandler.sync(self)
+                _alt = self._interp.adaptivePredict(self._input,3,self._ctx)
+
+        except RecognitionException as re:
+            localctx.exception = re
+            self._errHandler.reportError(self, re)
+            self._errHandler.recover(self, re)
+        finally:
+            self.unrollRecursionContexts(_parentctx)
         return localctx
 
 
@@ -347,16 +476,16 @@ class message_parser ( Parser ):
     def close_tag(self):
 
         localctx = message_parser.Close_tagContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 6, self.RULE_close_tag)
+        self.enterRule(localctx, 10, self.RULE_close_tag)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 41
+            self.state = 54
             self.match(message_parser.OPEN_TAG)
-            self.state = 42
+            self.state = 55
             self.match(message_parser.TAG_SLASH)
-            self.state = 43
+            self.state = 56
             self.match(message_parser.TAG_NAME)
-            self.state = 44
+            self.state = 57
             self.match(message_parser.CLOSE_TAG)
         except RecognitionException as re:
             localctx.exception = re
@@ -376,6 +505,9 @@ class message_parser ( Parser ):
         def OPEN_SUB(self):
             return self.getToken(message_parser.OPEN_SUB, 0)
 
+        def SUB_FIELD(self):
+            return self.getToken(message_parser.SUB_FIELD, 0)
+
         def sub_convert(self):
             return self.getTypedRuleContext(message_parser.Sub_convertContext,0)
 
@@ -386,9 +518,6 @@ class message_parser ( Parser ):
 
         def CLOSE_SUB(self):
             return self.getToken(message_parser.CLOSE_SUB, 0)
-
-        def SUB_FIELD(self):
-            return self.getToken(message_parser.SUB_FIELD, 0)
 
         def getRuleIndex(self):
             return message_parser.RULE_sub
@@ -407,24 +536,18 @@ class message_parser ( Parser ):
     def sub(self):
 
         localctx = message_parser.SubContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 8, self.RULE_sub)
+        self.enterRule(localctx, 12, self.RULE_sub)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 46
+            self.state = 59
             self.match(message_parser.OPEN_SUB)
-            self.state = 48
-            self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,3,self._ctx)
-            if la_ == 1:
-                self.state = 47
-                self.match(message_parser.SUB_FIELD)
-
-
-            self.state = 50
+            self.state = 60
+            self.match(message_parser.SUB_FIELD)
+            self.state = 61
             self.sub_convert()
-            self.state = 51
+            self.state = 62
             self.sub_spec(0)
-            self.state = 52
+            self.state = 63
             self.match(message_parser.CLOSE_SUB)
         except RecognitionException as re:
             localctx.exception = re
@@ -464,16 +587,16 @@ class message_parser ( Parser ):
     def sub_convert(self):
 
         localctx = message_parser.Sub_convertContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 10, self.RULE_sub_convert)
+        self.enterRule(localctx, 14, self.RULE_sub_convert)
         try:
-            self.state = 57
+            self.state = 68
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,4,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 54
+                self.state = 65
                 self.match(message_parser.SUB_CONVERT)
-                self.state = 55
+                self.state = 66
                 self.match(message_parser.SUB_IDENTIFIER)
                 pass
 
@@ -527,12 +650,12 @@ class message_parser ( Parser ):
         _parentState = self.state
         localctx = message_parser.Sub_specContext(self, self._ctx, _parentState)
         _prevctx = localctx
-        _startState = 12
-        self.enterRecursionRule(localctx, 12, self.RULE_sub_spec, _p)
+        _startState = 16
+        self.enterRecursionRule(localctx, 16, self.RULE_sub_spec, _p)
         try:
             self.enterOuterAlt(localctx, 1)
             self._ctx.stop = self._input.LT(-1)
-            self.state = 65
+            self.state = 76
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -542,15 +665,15 @@ class message_parser ( Parser ):
                     _prevctx = localctx
                     localctx = message_parser.Sub_specContext(self, _parentctx, _parentState)
                     self.pushNewRecursionContext(localctx, _startState, self.RULE_sub_spec)
-                    self.state = 60
+                    self.state = 71
                     if not self.precpred(self._ctx, 2):
                         from antlr4.error.Errors import FailedPredicateException
                         raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                    self.state = 61
+                    self.state = 72
                     self.match(message_parser.SUB_SPEC)
-                    self.state = 62
+                    self.state = 73
                     self.spec_value(0) 
-                self.state = 67
+                self.state = 78
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
 
@@ -569,15 +692,15 @@ class message_parser ( Parser ):
             super().__init__(parent, invokingState)
             self.parser = parser
 
-        def spec_value(self):
-            return self.getTypedRuleContext(message_parser.Spec_valueContext,0)
-
-
         def SPEC_VALUE(self):
             return self.getToken(message_parser.SPEC_VALUE, 0)
 
         def sub(self):
             return self.getTypedRuleContext(message_parser.SubContext,0)
+
+
+        def spec_value(self):
+            return self.getTypedRuleContext(message_parser.Spec_valueContext,0)
 
 
         def getRuleIndex(self):
@@ -598,48 +721,62 @@ class message_parser ( Parser ):
         _parentState = self.state
         localctx = message_parser.Spec_valueContext(self, self._ctx, _parentState)
         _prevctx = localctx
-        _startState = 14
-        self.enterRecursionRule(localctx, 14, self.RULE_spec_value, _p)
+        _startState = 18
+        self.enterRecursionRule(localctx, 18, self.RULE_spec_value, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self._ctx.stop = self._input.LT(-1)
-            self.state = 75
+            self.state = 82
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,7,self._ctx)
+            token = self._input.LA(1)
+            if token in [message_parser.SPEC_VALUE]:
+                self.state = 80
+                self.match(message_parser.SPEC_VALUE)
+                pass
+            elif token in [message_parser.OPEN_SUB]:
+                self.state = 81
+                self.sub()
+                pass
+            else:
+                raise NoViableAltException(self)
+
+            self._ctx.stop = self._input.LT(-1)
+            self.state = 90
+            self._errHandler.sync(self)
+            _alt = self._interp.adaptivePredict(self._input,8,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 73
+                    self.state = 88
                     self._errHandler.sync(self)
-                    la_ = self._interp.adaptivePredict(self._input,6,self._ctx)
+                    la_ = self._interp.adaptivePredict(self._input,7,self._ctx)
                     if la_ == 1:
                         localctx = message_parser.Spec_valueContext(self, _parentctx, _parentState)
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_spec_value)
-                        self.state = 69
-                        if not self.precpred(self._ctx, 3):
+                        self.state = 84
+                        if not self.precpred(self._ctx, 4):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
-                        self.state = 70
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
+                        self.state = 85
                         self.match(message_parser.SPEC_VALUE)
                         pass
 
                     elif la_ == 2:
                         localctx = message_parser.Spec_valueContext(self, _parentctx, _parentState)
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_spec_value)
-                        self.state = 71
-                        if not self.precpred(self._ctx, 2):
+                        self.state = 86
+                        if not self.precpred(self._ctx, 3):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 72
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
+                        self.state = 87
                         self.sub()
                         pass
 
              
-                self.state = 77
+                self.state = 92
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,7,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,8,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -655,8 +792,9 @@ class message_parser ( Parser ):
         if self._predicates == None:
             self._predicates = dict()
         self._predicates[1] = self.string_sempred
-        self._predicates[6] = self.sub_spec_sempred
-        self._predicates[7] = self.spec_value_sempred
+        self._predicates[4] = self.tag_param_sempred
+        self._predicates[8] = self.sub_spec_sempred
+        self._predicates[9] = self.spec_value_sempred
         pred = self._predicates.get(ruleIndex, None)
         if pred is None:
             raise Exception("No predicate with index:" + str(ruleIndex))
@@ -676,18 +814,27 @@ class message_parser ( Parser ):
                 return self.precpred(self._ctx, 2)
          
 
-    def sub_spec_sempred(self, localctx:Sub_specContext, predIndex:int):
+    def tag_param_sempred(self, localctx:Tag_paramContext, predIndex:int):
             if predIndex == 3:
+                return self.precpred(self._ctx, 3)
+         
+
+            if predIndex == 4:
+                return self.precpred(self._ctx, 2)
+         
+
+    def sub_spec_sempred(self, localctx:Sub_specContext, predIndex:int):
+            if predIndex == 5:
                 return self.precpred(self._ctx, 2)
          
 
     def spec_value_sempred(self, localctx:Spec_valueContext, predIndex:int):
-            if predIndex == 4:
-                return self.precpred(self._ctx, 3)
+            if predIndex == 6:
+                return self.precpred(self._ctx, 4)
          
 
-            if predIndex == 5:
-                return self.precpred(self._ctx, 2)
+            if predIndex == 7:
+                return self.precpred(self._ctx, 3)
          
 
 

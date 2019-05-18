@@ -2,7 +2,6 @@ import string
 import random
 import re
 import fnmatch
-from collections import OrderedDict
 
 class Formatter(string.Formatter):
     """ Custom formatter for message strings.
@@ -20,12 +19,11 @@ class Formatter(string.Formatter):
       :join(spec,sep,sep,sep) to apply spec to all list elements and then join with the specified separators
       As a technical restriction, inner specs cannot contain colons
     - New spec ":bold" to bold the value. This can be combined with other format specifiers.
-    - New spec ":color(C)" to make the value the color C. ":colour(C)" is accepted as an alias.
-      This can be combined with other format specifiers.
     - New spec ":article to give the indefinite article for the given value.
     - New spec ":!" prefixes the value with the bot's command character.
     - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
+    - New convert type "!totem" to indicate the value is a totem name (and will be translated appropriately).
     """
     def get_value(self, key, args, kwargs):
         try:
@@ -43,8 +41,11 @@ class Formatter(string.Formatter):
         if not format_spec:
             return super().format_field(value, format_spec)
 
-        specs = OrderedDict()
-        for spec in format_spec.split(":"):
+        if not isinstance(format_spec, list):
+            format_spec = [format_spec]
+
+        specs = {}
+        for spec in format_spec:
             m = re.fullmatch(r"(.*?)\((.*)\)", spec)
             if m:
                 key = m.group(1)
@@ -52,9 +53,6 @@ class Formatter(string.Formatter):
             else:
                 key = spec
                 args = None
-            # remap aliases for uniqueness
-            if key == "colour":
-                key = "color"
             specs[key] = args
 
         # handle specs that operate on lists. Combining multiple of these isn't supported
@@ -83,12 +81,8 @@ class Formatter(string.Formatter):
 
         # Combining these is supported, and these specs work on strings
         if "bold" in specs:
-            # FIXME make this transport-agnostic
-            value = "\u0002" + value + "\u0002"
+            value = self._bold(value, specs["bold"])
             del specs["bold"]
-        if "color" in specs:
-            value = self._color(value, specs["color"])
-            del specs["color"]
 
         # let __format__ and default specs handle anything that's left. This means we need to recombine
         # anything that we didn't handle back into a single spec string, reintroducing : where necessary
@@ -161,25 +155,9 @@ class Formatter(string.Formatter):
 
         raise ValueError("No article rules matched the value {0!r} in language metadata!".format(value))
 
-    def _color(self, value, args):
+    def _bold(self, value, args):
         # FIXME make this transport-agnostic
-        cmap = {
-            "white": 0,
-            "black": 1,
-            "blue": 2,
-            "green": 3,
-            "red": 4,
-            "brown": 5,
-            "purple": 6,
-            "orange": 7,
-            "yellow": 8,
-            "lightgreen": 9,
-            "cyan": 10,
-            "lightcyan": 11,
-            "lightblue": 12,
-            "pink": 13,
-            "grey": 14,
-            "lightgrey": 15
-        }
+        return "\u0002{0}\u0002".format(value)
 
-        return "\u0003{0}{1}\u0003".format(cmap[args[0]], value)
+    def tag_b(self, content, param):
+        return self._bold(content, param)

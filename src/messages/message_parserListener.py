@@ -1,4 +1,4 @@
-# Generated from C:/Projects/lykos/src/messages\message_parser.g4 by ANTLR 4.7.2
+# Generated from D:/Code/lykos/src/messages\message_parser.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .message_parser import message_parser
@@ -26,12 +26,30 @@ class message_parserListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by message_parser#tag.
+    def enterTag(self, ctx:message_parser.TagContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#tag.
+    def exitTag(self, ctx:message_parser.TagContext):
+        pass
+
+
     # Enter a parse tree produced by message_parser#open_tag.
     def enterOpen_tag(self, ctx:message_parser.Open_tagContext):
         pass
 
     # Exit a parse tree produced by message_parser#open_tag.
     def exitOpen_tag(self, ctx:message_parser.Open_tagContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#tag_param.
+    def enterTag_param(self, ctx:message_parser.Tag_paramContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#tag_param.
+    def exitTag_param(self, ctx:message_parser.Tag_paramContext):
         pass
 
 

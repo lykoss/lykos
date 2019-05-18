@@ -4,9 +4,12 @@ from src.messages.message_lexer import message_lexer
 from src.messages.message_parser import message_parser
 from src.messages.listener import Listener
 
+
 class Message:
-    def __init__(self, value):
+    def __init__(self, key, value):
+        self.key = key
         self.value = value
+        self.formatter = message_formatter
 
     def __str__(self):
         return str(self.value)
@@ -23,7 +26,7 @@ class Message:
         token_stream = CommonTokenStream(lexer)
         parser = message_parser(token_stream)
         tree = parser.main()
-        listener = Listener(message_formatter, args, kwargs)
+        listener = Listener(self, args, kwargs)
         walker = ParseTreeWalker()
         walker.walk(listener, tree)
         return listener.value()
