@@ -4,8 +4,8 @@ import os
 import src.settings as var
 from src.messages.message import Message
 
-MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "messages")
-ROOT_DIR = os.path.join(os.path.dirname(__file__), "..")
+MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "messages")
+ROOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
 class Messages:

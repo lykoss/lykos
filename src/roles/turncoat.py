@@ -9,17 +9,11 @@ from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
+from src.messages import messages, get_role_name
 from src.status import try_misdirection, try_exchange
 
 TURNCOATS = UserDict() # type: Dict[users.User, Tuple[str, int]]
 PASSED = UserSet() # type: Set[users.User]
-
-def _get_side(user):
-    side = "currently with \u0002{0}\u0002".format(TURNCOATS[user][0])
-    if TURNCOATS[user][0] == "none":
-        side = "not currently on any side"
-    return side
 
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def change_sides(var, wrapper, message, sendmsg=True):
@@ -27,11 +21,14 @@ def change_sides(var, wrapper, message, sendmsg=True):
         wrapper.pm(messages["turncoat_already_turned"])
         return
 
+    possible = (get_role_name("villager", number=None), get_role_name("wolf", number=None))
     team = re.split(" +", message)[0]
-    team = complete_one_match(team, ("villagers", "wolves"))
+    team = complete_one_match(team, possible)
     if not team:
         wrapper.pm(messages["turncoat_error"])
         return
+
+    team = "villager" if team == possible[0] else "wolf"
 
     wrapper.pm(messages["turncoat_success"].format(team))
     TURNCOATS[wrapper.source] = (team, var.NIGHT_COUNT)
@@ -92,17 +89,21 @@ def on_chk_nightdone(evt, var):
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
     if role == "turncoat" and player in TURNCOATS and TURNCOATS[player][0] != "none":
-        evt.data["won"] = (winner == TURNCOATS[player][0])
+        team = "villagers" if TURNCOATS[player][0] == "villager" else "wolves"
+        evt.data["won"] = (winner == team)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if evt.data["role"] == "turncoat" and user in TURNCOATS:
-        evt.data["messages"].append(messages["turncoat_side"].format(_get_side(user)))
+        key = "turncoat_current_no_team"
+        if TURNCOATS[user][0] != "none":
+            key = "turncoat_current_team"
+        evt.data["messages"].append(messages[key].format(TURNCOATS[user][0]))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "turncoat" and user in TURNCOATS:
-        evt.data["special_case"].append(_get_side(user))
+        evt.data["special_case"].append("siding with {0}".format(TURNCOATS[user][0]))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -115,8 +116,11 @@ def on_new_role(evt, var, player, old_role):
 def on_swap_role_state(evt, var, actor, target, role):
     if role == "turncoat":
         TURNCOATS[actor], TURNCOATS[target] = TURNCOATS.pop(target), TURNCOATS.pop(actor)
-        evt.data["actor_messages"].append(messages["turncoat_side"].format(_get_side(actor)))
-        evt.data["target_messages"].append(messages["turncoat_side"].format(_get_side(target)))
+        for user, to_send in ((actor, "actor_messages"), (target, "target_messages")):
+            key = "turncoat_current_no_team"
+            if TURNCOATS[user][0] != "none":
+                key = "turncoat_current_team"
+            evt.data[to_send].append(messages[key].format(TURNCOATS[user][0]))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

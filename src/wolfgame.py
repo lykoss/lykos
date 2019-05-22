@@ -53,7 +53,7 @@ from src import db, events, dispatcher, channels, users, hooks, logger, debuglog
 from src.users import User
 
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.decorators import command, cmd, hook, handle_error, event_listener, COMMANDS
+from src.decorators import command, hook, handle_error, event_listener, COMMANDS
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext

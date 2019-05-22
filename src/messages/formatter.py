@@ -114,10 +114,11 @@ class Formatter(string.Formatter):
 
         if not args:
             num = None
-        elif args[0].isdigit():
-            num = int(args[0])
         else:
-            num = len(args[0])
+            try:
+                num = int(args[0])
+            except ValueError:
+                num = len(args[0])
         for rule in messages.raw("_metadata", "plural"):
             if rule["number"] is None or rule["number"] == num:
                 return value[rule["index"]]
