@@ -36,8 +36,7 @@ _local = _local()
 
 # This is a mapping of stringified tracebacks to (link, uuid) tuples
 # That way, we don't have to call in to the website everytime we have
-# another error. If you ever need to delete pastes, do the following:
-# $ curl -x DELETE https://ptpb.pw/<uuid>
+# another error.
 
 _tracebacks = {}
 
@@ -122,49 +121,35 @@ class print_traceback:
 
         variables[1] = _local.handler.traceback
 
-        if not botconfig.PASTEBIN_ERRORS or channels.Main is not channels.Dev:
+        if channels.Main is not channels.Dev:
             channels.Main.send(messages["error_log"])
-        if botconfig.PASTEBIN_ERRORS and channels.Dev is not None:
-            message = [messages["error_log"]]
+        message = [messages["error_log"]]
 
-            link_uuid = _tracebacks.get("\n".join(variables))
-            if link_uuid is None:
-                bot_id = re.sub(r"[^A-Za-z0-9-]", "-", users.Bot.nick)
-                bot_id = re.sub(r"--+", "-", bot_id).strip("-")
+        link = _tracebacks.get("\n".join(variables))
+        if link is None:
+            api_url = "https://ww.chat/submit"
+            data = None
+            with _local.handler:
+                req = urllib.request.Request(api_url, json.dumps({
+                        "c": "\n".join(variables),  # contents
+                    }).encode("utf-8", "replace"))
 
-                rand_id = "".join(random.sample(string.ascii_letters + string.digits, 8))
+                req.add_header("Accept", "application/json")
+                req.add_header("Content-Type", "application/json; charset=utf-8")
+                resp = urllib.request.urlopen(req)
+                data = json.loads(resp.read().decode("utf-8"))
 
-                api_url = "https://ptpb.pw/~{0}-error-{1}".format(bot_id, rand_id)
-
-                data = None
-                with _local.handler:
-                    req = urllib.request.Request(api_url, urllib.parse.urlencode({
-                            "c": "\n".join(variables),  # contents
-                        }).encode("utf-8", "replace"))
-
-                    req.add_header("Accept", "application/json")
-                    resp = urllib.request.urlopen(req)
-                    data = json.loads(resp.read().decode("utf-8"))
-
-                if data is None: # couldn't fetch the link
-                    message.append(messages["error_pastebin"])
-                    variables[1] = _local.handler.traceback # an error happened; update the stored traceback
-                else:
-                    link, uuid = _tracebacks["\n".join(variables)] = (data["url"] + "/pytb", data.get("uuid"))
-                    message.append(link)
-                    if uuid is None: # if there's no uuid, the paste already exists and we don't have it
-                        message.append("(Already reported by another instance)")
-                    else:
-                        message.append("(uuid: {0})".format(uuid))
-
+            if data is None: # couldn't fetch the link
+                message.append(messages["error_pastebin"])
+                variables[1] = _local.handler.traceback # an error happened; update the stored traceback
             else:
-                link, uuid = link_uuid
+                link = _tracebacks["\n".join(variables)] = data["url"]
                 message.append(link)
-                if uuid is None:
-                    message.append("(Previously reported)")
-                else:
-                    message.append("(uuid: {0}-...)".format(uuid[:8]))
 
+        else:
+            message.append(link)
+
+        if channels.Dev is not None:
             channels.Dev.send(" ".join(message), prefix=botconfig.DEV_PREFIX)
 
         errlog("\n".join(variables))

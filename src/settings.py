@@ -200,7 +200,6 @@ LOG_CHANNEL = "" # Log !fwarns to this channel, if set
 LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
-PASTEBIN_ERRORS = False
 
 TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
 
