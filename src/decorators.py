@@ -4,6 +4,7 @@ import string
 import random
 import json
 import re
+import os.path
 
 import urllib.request, urllib.parse
 
@@ -120,6 +121,9 @@ class print_traceback:
                 variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
+        bot_root = os.path.dirname(__file__).split("src")[0]
+        if bot_root and bot_root != "/":
+            variables[1] = variables[1].replace(bot_root, "/")
 
         if channels.Main is not channels.Dev:
             channels.Main.send(messages["error_log"])
