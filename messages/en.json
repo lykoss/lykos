@@ -103,6 +103,24 @@
         "misdirection": "misdirection",
         "deceit": "deceit"
     },
+    "_role_categories": {
+        "*": "For assistance in configuring this metadata, please see https://werewolf.chat/Translation#RoleCategories",
+        "Wolf": ["wolf", "wolves"],
+        "Wolfchat": ["wolfchat member", "wolfchat members"],
+        "Wolfteam": ["evil villager", "evil villagers"],
+        "Killer": ["killer", "killers"],
+        "Village": ["village member", "village members"],
+        "Nocturnal": ["nocturnal role", "nocturnal roles"],
+        "Neutral": ["neutral players", "neutral players"],
+        "Win Stealer": ["win stealer", "win stealers"],
+        "Hidden": ["hidden role", "hidden roles"],
+        "Safe": ["special villager", "special villagers"],
+        "Spy": ["spy role", "spy roles"],
+        "Intuitive": ["intuitive role", "intuitive roles"],
+        "Cursed": ["cursed villager", "cursed villagers"],
+        "Innocent": ["innocent player", "innocent players"],
+        "Team Switcher": ["team switcher", "team switchers"]
+    },
     "no_victims": [
         "The body of a young penguin pet is found.",
         "Paw prints are found circling around the village.",
@@ -550,14 +568,10 @@
     "shaman_totem": "You have {0!totem:article} {0!totem:bold} totem.",
     "players_exchanged_roles": "{0:@} and {1:@} have exchanged roles!",
 
-    "========": "PROGRESS HALT ========",
-    "mystic_safe": "special villager",
-    "mystic_wolfteam": "evil villager",
-    "mystic_win_stealer": "win stealer",
-    "mystic_night_num": " at the beginning of the night",
-    "mystic_day_num": " at the beginning of last night",
-    "mystic_info" : "There {0} {1}{2} alive{3}.",
-    "========": "PROGRESS RESUME ========",
+    "mystic_join": "{0:bold} {1!cat:plural({0})}",
+    "mystic_info_initial": "There {=is,are:plural({0})} {1:join} currently alive.",
+    "mystic_info_night": "There {=was,were:plural({0})} {1:join} alive at the beginning of the night.",
+    "mystic_info_day": "There {=was,were:plural({0})} {1:join} alive at the beginning of last night.",
 
     "ill_wolves": "You are feeling ill tonight, and are unable to kill anyone.",
     "angry_wolves": "You are {=angry:bold} tonight, and may kill two targets by using \"{=kill!command} <nick1> <nick2>\".",

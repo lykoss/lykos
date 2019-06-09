@@ -24,6 +24,7 @@ class Formatter(string.Formatter):
     - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     - New convert type "!totem" to indicate the value is a totem name (and will be translated appropriately).
+    - New convert type "!cat" to indicate the value is a role category name (and will be translated appropriately).
     """
     def get_value(self, key, args, kwargs):
         try:
@@ -105,6 +106,8 @@ class Formatter(string.Formatter):
             return messages.raw("_commands", value)
         if conversion == "totem":
             return messages.raw("_totems", value)
+        if conversion == "cat":
+            return messages.raw("_role_categories", value)
 
         # not one of our custom things
         return super().convert_field(value, conversion)
