@@ -2079,7 +2079,7 @@ def leave(var, what, user, why=None):
         lpl = len(ps) - 1
         if lpl < var.MIN_PLAYERS:
             with var.WARNING_LOCK:
-                from pregame import START_VOTES
+                from src.pregame import START_VOTES
                 START_VOTES.clear()
 
         if lpl <= 0:

@@ -8,28 +8,6 @@ from src import logger
 from src.logger import stream, stream_handler, debuglog, errlog, plog
 from src import db
 
-# Import the user-defined game modes
-# These are not required, so failing to import it doesn't matter
-# The file then imports our game modes
-# Fall back to importing our game modes if theirs fail
-# Do the same with roles
-
-try:
-    ModuleNotFoundError # 3.6+
-except NameError:
-    ModuleNotFoundError = ImportError # generic fallback
-
-try:
-    import gamemodes # type: ignore
-except ModuleNotFoundError:
-    import src.gamemodes
-
-try:
-    import roles # type: ignore
-    roles.CUSTOM_ROLES_DEFINED
-except (ModuleNotFoundError, AttributeError):
-    import src.roles
-
 # Handle launch parameters
 
 # Argument --debug means start in debug mode
@@ -74,5 +52,27 @@ if args.lagcheck: lagcheck = True
 
 botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False
+
+# Import the user-defined game modes
+# These are not required, so failing to import it doesn't matter
+# The file then imports our game modes
+# Fall back to importing our game modes if theirs fail
+# Do the same with roles
+
+try:
+    ModuleNotFoundError # 3.6+
+except NameError:
+    ModuleNotFoundError = ImportError # generic fallback
+
+try:
+    import gamemodes # type: ignore
+except ModuleNotFoundError:
+    import src.gamemodes
+
+try:
+    import roles # type: ignore
+    roles.CUSTOM_ROLES_DEFINED
+except (ModuleNotFoundError, AttributeError):
+    import src.roles
 
 # vim: set sw=4 expandtab:
