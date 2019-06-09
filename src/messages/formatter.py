@@ -40,7 +40,7 @@ class Formatter(string.Formatter):
 
     def format_field(self, value, format_spec):
         if not format_spec:
-            return super().format_field(value, format_spec)
+            return super().format_field(value, format_spec="")
 
         if not isinstance(format_spec, list):
             format_spec = [format_spec]
@@ -79,6 +79,7 @@ class Formatter(string.Formatter):
         if "!" in specs:
             from botconfig import CMD_CHAR
             value = CMD_CHAR + value
+            del specs["!"]
 
         # Combining these is supported, and these specs work on strings
         if "bold" in specs:

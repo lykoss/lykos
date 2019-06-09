@@ -409,7 +409,7 @@
     "fjoin_in_chan": ": You may only fjoin people who are in this channel.",
     "account_not_logged_in": "{0} is not logged in to NickServ.",
     "not_allowed": "No, that won't be allowed.",
-    "fjoin_success": "{0:@} used fjoin and raised the number of players to {1:@}.",
+    "fjoin_success": "{0:@} used fjoin and raised the number of players to [b]{1}[/b].",
     "fquit_success": "{0:@} is forcing {1:@} to leave.",
     "fquit_goodbye": "Say goodbye to the {0!role:bold}.",
     "no_players_remaining": "No more players remaining.",

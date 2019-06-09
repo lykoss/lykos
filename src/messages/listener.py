@@ -26,12 +26,12 @@ class Listener(message_parserListener):
 
         str1 = self.stack.pop()
         if ctx.TEXT() is not None:
-            self.stack.append(str1 + ctx.TEXT().text)
+            self.stack.append(str(str1) + ctx.TEXT().getText())
         else:
             # Note: if we have two arguments, they're reversed due to the nature of stacks
             # So, str2 actually appears first
             str2 = self.stack.pop()
-            self.stack.append(str2 + str1)
+            self.stack.append(str(str2) + str(str1))
 
     def exitTag(self, ctx: message_parser.TagContext):
         # to resolve a tag, we call the relevant function on our formatter, passing in the
@@ -44,20 +44,20 @@ class Listener(message_parserListener):
         if tag_name != close_name:
             # mismatch of tag names
             raise ValueError("Parse error: {}: Opening tag {} ({}) does not match closing tag {} ({})".format(
-                             self.message.key, tag_name, ctx.open_tag().OPEN_TAG().column,
-                             close_name, ctx.close_tag().CLOSE_TAG().column))
+                             self.message.key, tag_name, ctx.open_tag().OPEN_TAG().getSymbol().column,
+                             close_name, ctx.close_tag().CLOSE_TAG().getSymbol().column))
 
         tag_func = getattr(self.message.formatter, "tag_" + tag_name, None)
         if not tag_func or not callable(tag_func):
             raise ValueError("Parse error: {}: Unknown tag {} ({})".format(
-                             self.message.key, tag_name, ctx.open_tag().OPEN_TAG().column))
+                             self.message.key, tag_name, ctx.open_tag().OPEN_TAG().getSymbol().column))
 
         value = tag_func(content, param)
         self.stack.append(value)
 
     def exitOpen_tag(self, ctx: message_parser.Open_tagContext):
         param = self.stack.pop()
-        self.stack.append(ctx.TAG_NAME().text)
+        self.stack.append(ctx.TAG_NAME().getText())
         self.stack.append(param)
 
     def exitTag_param(self, ctx: message_parser.Tag_paramContext):
@@ -67,7 +67,7 @@ class Listener(message_parserListener):
 
         param1 = self.stack.pop()
         if ctx.TAG_PARAM() is not None:
-            param2 = ctx.TAG_PARAM().text
+            param2 = ctx.TAG_PARAM().getText()
             if param1 is not None:
                 # Force prefix to be a string if we're adding in text
                 # Otherwise if we're only doing a single substitution we support arbitrary data types
@@ -85,12 +85,12 @@ class Listener(message_parserListener):
                 self.stack.append(param1)
 
     def exitClose_tag(self, ctx: message_parser.Close_tagContext):
-        self.stack.append(ctx.TAG_NAME().text)
+        self.stack.append(ctx.TAG_NAME().getText())
 
     def exitSub(self, ctx: message_parser.SubContext):
         spec = self.stack.pop()
         convert = self.stack.pop()
-        field_name = ctx.SUB_FIELD().text
+        field_name = ctx.SUB_FIELD().getText()
         # if spec is an empty list, change it to None. Makes us more consistent with built in format method
         # (since formatter can be used for both this parse tree as well as normal formatting)
         if not spec:
@@ -110,7 +110,7 @@ class Listener(message_parserListener):
             self.stack.append(None)
             return
 
-        self.stack.append(ctx.SUB_IDENTIFIER().text)
+        self.stack.append(ctx.SUB_IDENTIFIER().getText())
 
     def exitSub_spec(self, ctx: message_parser.Sub_specContext):
         if ctx.getChildCount() == 0:
@@ -125,13 +125,13 @@ class Listener(message_parserListener):
     def exitSpec_value(self, ctx: message_parser.Spec_valueContext):
         if ctx.getChildCount() == 1:
             if ctx.SPEC_VALUE() is not None:
-                self.stack.append(ctx.SPEC_VALUE().text)
+                self.stack.append(ctx.SPEC_VALUE().getText())
             # else: the top of the stack is the sub value, which we want to keep on top of stack, so do nothing
             return
 
         if ctx.SPEC_VALUE() is not None:
             value = self.stack.pop()
-            self.stack.append(str(value) + ctx.SPEC_VALUE().text)
+            self.stack.append(str(value) + ctx.SPEC_VALUE().getText())
         else:
             sub = self.stack.pop()
             value = self.stack.pop()

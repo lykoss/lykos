@@ -24,10 +24,14 @@ CLOSE_TAG : ']' -> popMode ;
 
 mode IN_SUB;
 SUB_FIELD : ~[!:}]+ ;
-SUB_CONVERT : '!' ;
-SUB_IDENTIFIER : [a-zA-Z]+ ;
-SUB_SPEC : ':' -> pushMode(IN_SPEC) ;
+SUB_CONVERT : '!' -> mode(IN_CONV) ;
+SUB_SPEC : ':' -> mode(IN_SPEC) ;
 CLOSE_SUB : '}' -> popMode ;
+
+mode IN_CONV;
+SUB_IDENTIFIER : [a-zA-Z]+ ;
+CONV_SPEC : ':' -> mode(IN_SPEC), type(SUB_SPEC) ;
+CLOSE_CONV : '}' -> popMode, type(CLOSE_SUB) ;
 
 mode IN_SPEC;
 SPEC_VALUE : (

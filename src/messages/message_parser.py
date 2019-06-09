@@ -30,9 +30,9 @@ def serializedATN():
         buf.write("\2\63/\3\2\2\2\63\61\3\2\2\2\64\67\3\2\2\2\65\63\3\2\2")
         buf.write("\2\65\66\3\2\2\2\66\13\3\2\2\2\67\65\3\2\2\289\7\4\2\2")
         buf.write("9:\7\b\2\2:;\7\6\2\2;<\7\t\2\2<\r\3\2\2\2=>\7\5\2\2>?")
-        buf.write("\7\n\2\2?@\5\20\t\2@A\5\22\n\2AB\7\16\2\2B\17\3\2\2\2")
-        buf.write("CD\7\13\2\2DG\7\f\2\2EG\3\2\2\2FC\3\2\2\2FE\3\2\2\2G\21")
-        buf.write("\3\2\2\2HN\b\n\1\2IJ\f\4\2\2JK\7\r\2\2KM\5\24\13\2LI\3")
+        buf.write("\7\n\2\2?@\5\20\t\2@A\5\22\n\2AB\7\r\2\2B\17\3\2\2\2C")
+        buf.write("D\7\13\2\2DG\7\16\2\2EG\3\2\2\2FC\3\2\2\2FE\3\2\2\2G\21")
+        buf.write("\3\2\2\2HN\b\n\1\2IJ\f\4\2\2JK\7\f\2\2KM\5\24\13\2LI\3")
         buf.write("\2\2\2MP\3\2\2\2NL\3\2\2\2NO\3\2\2\2O\23\3\2\2\2PN\3\2")
         buf.write("\2\2QR\b\13\1\2RU\7\17\2\2SU\5\16\b\2TQ\3\2\2\2TS\3\2")
         buf.write("\2\2U\\\3\2\2\2VW\f\6\2\2W[\7\17\2\2XY\f\5\2\2Y[\5\16")
@@ -56,7 +56,7 @@ class message_parser ( Parser ):
 
     symbolicNames = [ "<INVALID>", "TEXT", "OPEN_TAG", "OPEN_SUB", "TAG_NAME", 
                       "TAG_PARAM", "TAG_SLASH", "CLOSE_TAG", "SUB_FIELD", 
-                      "SUB_CONVERT", "SUB_IDENTIFIER", "SUB_SPEC", "CLOSE_SUB", 
+                      "SUB_CONVERT", "SUB_SPEC", "CLOSE_SUB", "SUB_IDENTIFIER", 
                       "SPEC_VALUE" ]
 
     RULE_main = 0
@@ -83,9 +83,9 @@ class message_parser ( Parser ):
     CLOSE_TAG=7
     SUB_FIELD=8
     SUB_CONVERT=9
-    SUB_IDENTIFIER=10
-    SUB_SPEC=11
-    CLOSE_SUB=12
+    SUB_SPEC=10
+    CLOSE_SUB=11
+    SUB_IDENTIFIER=12
     SPEC_VALUE=13
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
