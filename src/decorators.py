@@ -126,7 +126,7 @@ class print_traceback:
 
         if channels.Main is not channels.Dev:
             channels.Main.send(messages["error_log"])
-        message = [messages["error_log"]]
+        message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))
         if link is None:
@@ -257,33 +257,33 @@ class command:
         if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
 
-        if wrapper.public and target is not channels.Main and not (self.flag or self.owner_only):
+        if wrapper.public and wrapper.target is not channels.Main and not (self.flag or self.owner_only):
             if "" in self.commands or not self.alt_allowed:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            self.func(var, wrapper, rest)
+            self.func(var, wrapper, message)
             return
 
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (user not in get_players() or user in var.DISCONNECTED):
+        if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
             return
 
         for role in self.roles:
-            if user in var.ROLES[role]:
+            if wrapper.source in var.ROLES[role]:
                 break
         else:
-            if (self.users is not None and user not in self.users) or self.roles:
+            if (self.users is not None and wrapper.source not in self.users) or self.roles:
                 return
 
-        if self.silenced and src.status.is_silent(var, user):
+        if self.silenced and src.status.is_silent(var, wrapper.source):
             wrapper.pm(messages["silenced"])
             return
 
-        if self.roles or (self.users is not None and user in self.users):
-            self.func(var, wrapper, rest) # don't check restrictions for role commands
+        if self.roles or (self.users is not None and wrapper.source in self.users):
+            self.func(var, wrapper, wrapper.source) # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
@@ -291,21 +291,21 @@ class command:
             return
 
         if self.owner_only:
-            if user.is_owner():
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(var, wrapper, rest)
+            if wrapper.source.is_owner():
+                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                self.func(var, wrapper, message)
                 return
 
             wrapper.pm(messages["not_owner"])
             return
 
-        temp = user.lower()
+        temp = wrapper.source.lower()
 
         flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
 
-        if self.flag and (user.is_admin() or user.is_owner()):
-            adminlog(chan, rawnick, self.name, rest)
-            return self.func(var, wrapper, rest)
+        if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
+            adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+            return self.func(var, wrapper, message)
 
         denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
 
@@ -315,14 +315,14 @@ class command:
 
         if self.flag:
             if self.flag in flags:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(var, wrapper, rest)
+                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                self.func(var, wrapper, message)
                 return
 
             wrapper.pm(messages["not_an_admin"])
             return
 
-        self.func(var, wrapper, rest)
+        self.func(var, wrapper, message)
 
 class hook:
     def __init__(self, name, hookid=-1):

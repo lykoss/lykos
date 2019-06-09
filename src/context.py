@@ -1,6 +1,7 @@
 from collections import defaultdict
 from operator import attrgetter
 
+from src.messages.message import Message
 from src.logger import debuglog
 
 Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}, "TARGMAX": {"PRIVMSG": 1, "NOTICE": 1}}
@@ -53,6 +54,8 @@ def _send(data, first, sep, client, send_type, name):
     messages = []
     count = 0
     for line in data:
+        if isinstance(line, Message):
+            line = str(line) # the only acceptable input type beside str
         if count and count + len(sep) + len(line) > length:
             count = len(line)
             cur_sep = "\n"
@@ -168,6 +171,8 @@ class IRCContext:
         messages = list(cls._messages.items())
         cls._messages.clear()
         for message, targets in messages:
+            if isinstance(message, Message):
+                message = str(message)
             if isinstance(message, str):
                 message = (message,)
             send_types = defaultdict(list)
