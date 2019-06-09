@@ -117,8 +117,6 @@ RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of 
 
 ENABLE_DEADCHAT = True # dead players can communicate with each other
 
-DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
-
 ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
 LIMIT_ABSTAIN = True # if true, village will be limited to successfully !abstaining a vote only once
 SELF_LYNCH_ALLOWED = True

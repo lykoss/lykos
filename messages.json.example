@@ -1,10 +1,6 @@
 {
   "ping": [
-        "Why would you DO such a thing!?",
+        "Why would you [b]DO[/b] such a thing!?",
         "That was fun. Do it again."
-  ],
-  "goat_actions": [
-        "licks",
-        "stares coldly at"
   ]
 }

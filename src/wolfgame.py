@@ -498,10 +498,9 @@ def restart_program(var, wrapper, message):
 @command("ping", pm=True)
 def pinger(var, wrapper, message):
     """Check if you or the bot is still connected."""
-    wrapper.reply(random.choice(messages["ping"]).format(
+    wrapper.reply(messages["ping"].format(
         nick=wrapper.source, bot_nick=users.Bot,
-        cmd_char=botconfig.CMD_CHAR,
-        goat_action=random.choice(messages["goat_actions"])))
+        cmd_char=botconfig.CMD_CHAR))
 
 @command("simple", pm=True)
 def mark_simple_notify(var, wrapper, message):
@@ -940,7 +939,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
-            wrapper.send(random.choice(messages["player_joined"]).format(wrapper.source, len(pl) + 1))
+            wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
         if not sanity:
             # Abandon Hope All Ye Who Enter Here
             leave_deadchat(var, wrapper.source)
@@ -1907,7 +1906,7 @@ def goat(var, wrapper, message):
         return
 
     var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
-    wrapper.send(messages["goat_success"].format(wrapper.source, messages["goat_actions"], victim))
+    wrapper.send(messages["goat_success"].format(wrapper.source, victim))
 
 @command("fgoat", flag="j")
 def fgoat(var, wrapper, message):
@@ -1920,7 +1919,7 @@ def fgoat(var, wrapper, message):
     else:
         togoat = message
 
-    wrapper.send(messages["goat_success"].format(wrapper.source, messages["goat_actions"], togoat))
+    wrapper.send(messages["goat_success"].format(wrapper.source, togoat))
 
 @handle_error
 def return_to_village(var, target, *, show_message, new_user=None):
@@ -2151,18 +2150,9 @@ def leave_game(var, wrapper, message):
 
     if get_main_role(wrapper.source) != "person" and var.ROLE_REVEAL in ("on", "team"):
         role = get_reveal_role(wrapper.source)
-        if var.DYNQUIT_DURING_GAME:
-            lmsg = random.choice(messages["quit_reveal"]).format(wrapper.source.nick, role)
-            channels.Main.send(lmsg)
-        else:
-            channels.Main.send(messages["static_quit"].format(wrapper.source.nick, role) + population)
+        channels.Main.send(messages["quit_reveal"].format(wrapper.source, role) + population)
     else:
-        # DYNQUIT_DURING_GAME should not have any effect during the join phase, so only check if we aren't in that
-        if var.PHASE != "join" and not var.DYNQUIT_DURING_GAME:
-            channels.Main.send(messages["static_quit_no_reveal"].format(wrapper.source.nick) + population)
-        else:
-            lmsg = random.choice(messages["quit_no_reveal"]).format(wrapper.source.nick) + population
-            channels.Main.send(lmsg)
+        channels.Main.send(messages["quit_no_reveal"].format(wrapper.source) + population)
     if var.PHASE != "join":
         var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
@@ -2383,14 +2373,7 @@ def transition_day(gameid=0):
         to_send.extend(msg)
 
     if random.random() < var.GIF_CHANCE:
-        to_send.append(random.choice(
-            ["https://i.imgur.com/nO8rZ.gifv",
-            "https://i.imgur.com/uGVfZ.gifv",
-            "https://i.imgur.com/mUcM09n.gifv",
-            "https://i.imgur.com/b8HAvjL.gifv",
-            "https://i.imgur.com/PIIfL15.gifv",
-            "https://i.imgur.com/nly0Cmm.gifv"]
-            ))
+        to_send.append(messages["gifs"])
     channels.Main.send("\n".join(to_send))
 
     # chilling howl message was played, give roles the opportunity to update !stats
@@ -2435,7 +2418,7 @@ def transition_day(gameid=0):
 @event_listener("transition_day_resolve_end", priority=2.9)
 def on_transition_day_resolve_end(evt, var, victims):
     if evt.data["novictmsg"] and len(evt.data["dead"]) == 0:
-        evt.data["message"]["*"].append(random.choice(messages["no_victims"]) + messages["no_victims_append"])
+        evt.data["message"]["*"].append(messages["no_victims"] + messages["no_victims_append"])
     for i in range(evt.data["howl"]):
         evt.data["message"]["*"].append(messages["new_wolf"])
 
@@ -3078,12 +3061,12 @@ def coin(var, wrapper, message):
     rnd = random.random()
     # 59/29/12 split, 59+29=88
     if rnd < 0.59:
-        coin = messages["coin_choices"][0]
+        coin = messages.get("coin_land", 0)
     elif rnd < 0.88:
-        coin = messages["coin_choices"][1]
+        coin = messages.get("coin_land", 1)
     else:
-        coin = messages["coin_choices"][2]
-    wrapper.send(messages["coin_land"].format(coin))
+        coin = messages.get("coin_land", 2)
+    wrapper.send(coin.format())
 
 @command("pony", "horse", pm=True)
 def pony(var, wrapper, message):
@@ -3093,20 +3076,19 @@ def pony(var, wrapper, message):
     # 59/29/7/5 split
     rnd = random.random()
     if rnd < 0.59:
-        pony = messages["pony_choices"][0]
+        pony = messages.get("pony_land", 0)
     elif rnd < 0.88:
-        pony = messages["pony_choices"][1]
+        pony = messages.get("pony_land", 1)
     elif rnd < 0.95:
-        pony = messages["pony_choices"][2].format(nick=wrapper.source)
+        pony = messages.get("pony_land", 2)
     else:
-        wrapper.send(messages["pony_fly"])
-        return
-    wrapper.send(messages["pony_land"].format(pony))
+        pony = messages.get("pony_land", 3)
+    wrapper.send(pony.format(nick=wrapper.source))
 
 @command("cat", pm=True)
 def cat(var, wrapper, message):
     """Toss a cat into the air and see what happens!"""
-    wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"], sep="\n")
+    wrapper.send(messages["cat_toss"].format(wrapper.source), messages["cat_land"].format(), sep="\n")
 
 @command("time", pm=True, phases=("join", "day", "night"))
 def timeleft(var, wrapper, message):

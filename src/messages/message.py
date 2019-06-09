@@ -1,3 +1,4 @@
+import random
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
 from antlr4.error.ErrorListener import ErrorListener
 from src.messages import message_formatter
@@ -9,9 +10,22 @@ __all__ = ["Message"]
 
 
 class Message:
-    def __init__(self, key, value):
+    def __init__(self, key, value, index=None):
+        """Construct a new message.
+
+        :param key: Message key, must exist in message json file
+        :param value: Message value, str and list supported
+        :param index: If value is a list, determines which list index to retrieve.
+            If None, retrieves a random list index (default None)
+        """
         self.key = key
-        self.value = value
+        if isinstance(value, list):
+            if index is None:
+                self.value = random.choice(value)
+            else:
+                self.value = value[index]
+        else:
+            self.value = value
         self.formatter = message_formatter
 
     def __str__(self):

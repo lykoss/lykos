@@ -82,7 +82,8 @@
         "join": ["join", "j"],
         "start": ["start"],
         "swap": ["swap"],
-        "wait": ["wait", "w"]
+        "wait": ["wait", "w"],
+        "ping": ["ping"]
     },
     "_totems": {
         "*": "For assistance in configuring this section, please see https://werewolf.chat/Translation#Totems",
@@ -154,16 +155,24 @@
         "I'm here!",
         "I refuse!",
         "What?",
-        "Don't you mean {=ping:!:bold}?",
+        "Don't you mean {=ping!command:!:bold}?",
         "{bot_nick}.exe has stopped working. Windows is checking for a solution to the problem...",
         "skynet.exe has stopped working. Windows is checking for a solution to the problem...",
         "No ping received for 1337 seconds.",
-        "Congratulations! You're the 1337th person to use {=ping:!}. You win a goat!\n{nick:@}'s goat walks by and {goat_action} {nick:@}.",
+        "Congratulations! You're the 1337th person to use {=ping!command:!}. You win a goat!\n{nick:@}'s goat walks by and headbutts {nick:@}.",
         "PING! {nick}",
         "PONG! {nick}",
         "I'm sorry Dave, I'm afraid I can't do that.",
         "Give me a ping, Vasily. One ping only, please.",
         "Would you people please leave me alone? Seriously."
+    ],
+    "gifs": [
+        "https://i.imgur.com/nO8rZ.gifv",
+        "https://i.imgur.com/uGVfZ.gifv",
+        "https://i.imgur.com/mUcM09n.gifv",
+        "https://i.imgur.com/b8HAvjL.gifv",
+        "https://i.imgur.com/PIIfL15.gifv",
+        "https://i.imgur.com/nly0Cmm.gifv"
     ],
     "latency": "{0:.3f} {=second,seconds:plural({0})}.",
     "lynch_reveal": [
@@ -409,14 +418,14 @@
     "fjoin_in_chan": ": You may only fjoin people who are in this channel.",
     "account_not_logged_in": "{0} is not logged in to NickServ.",
     "not_allowed": "No, that won't be allowed.",
-    "fjoin_success": "{0:@} used fjoin and raised the number of players to [b]{1}[/b].",
+    "fjoin_success": "{0:@} used fjoin and raised the number of players to {1:bold}.",
     "fquit_success": "{0:@} is forcing {1:@} to leave.",
     "fquit_goodbye": "Say goodbye to the {0!role:bold}.",
     "no_players_remaining": "No more players remaining.",
     "new_player_count": "New player count: {0:bold}",
     "fstart_success": "{0:@} has forced the game to start.",
-    "account_reidentify": "Please reidentify to the account {0:@}",
-    "account_midgame_change": "Please do not change accounts midgame",
+    "account_reidentify": "Please re-identify to the account {0:@}",
+    "account_midgame_change": "Please do not change accounts mid-game",
     "player_return": "{0:@} has returned to the village.",
     "player_return_nickchange": "{0:@} has returned to the village (was {1:bold}).",
     "command_ratelimited": "This command is rate-limited. Please wait a while before using it again.",
@@ -444,10 +453,10 @@
     "wolves_list": "Wolves: {0}",
     "players_list": "Players: {0}",
     "cub_grow_up": "You have grown up into a wolf and vowed to take revenge for your dead parents!",
-    "traitor_turn": "HOOOOOOOOOWL. You have become... a wolf!\nIt is up to you to avenge your fallen leaders!",
+    "traitor_turn": "HOOOOOOOOOWL. You have become... a wolf! It is up to you to avenge your fallen leaders!",
     "traitor_turn_channel": "The villagers, during their celebrations, are frightened as they hear a loud howl. The wolves are not gone!",
     "role_attribution_failed": "The role attribution failed 3 times. Game was canceled.",
-    "endgame_stats": "Game lasted {0:0>2:bold}:{1:0>2:bold}. {2:0>2:bold}:{3:0>2:bold} was day. {4:0>2:bold}:{5:0>2:bold} was night. ",
+    "endgame_stats": "Game lasted [b]{0:0>2}:{1:0>2}[/b]. [b]{2:0>2}:{3:0>2}[/b] was day. [b]{4:0>2}:{5:0>2}[/b] was night. ",
     "endgame_deadchat": "The game has ended, check {0} for the results.",
     "winners": "The {=winner,winners:plural({0})} {=is,are:plural({0})} {0:join(@)}.",
     "new_role": "You are now {0!role:article} {0!role:bold}.",
@@ -470,7 +479,6 @@
     "retribution_totem_bodyguard": "{0:@}'s totem retaliated against {1:@}, but {2:@} sacrificed their life to save them.",
     "time_lord_dead": "Tick tock! Since the time lord has died, day will now only last {0} seconds and night will now only last {1} seconds!",
     "vengeful_turn": "OOOooooOOOOooo! You are the {=vengeful ghost!role:bold}. It is now your job to exact your revenge on the {0!role:plural:bold} that killed you.",
-    "bitten": "Upon gazing at {0}'s lifeless body, you feel a sharp pang of regret and vengeance. You quickly look away and the feelings subside...",
     "mad_scientist_kill": "{0:@} throws a potent chemical concoction into the crowd. {1:@}, {2!role:article} {2!role:bold}, and {3:@}, {4!role:article} {4!role:bold}, get hit by the chemicals and die.",
     "mad_scientist_kill_no_reveal": "{0:@} throws a potent chemical concoction into the crowd. {1:@} and {3:@} get hit by the chemicals and die.",
     "mad_scientist_kill_single": "{0:@} throws a potent chemical concoction into the crowd. {1:@}, {2!role:article} {2!role:bold}, gets hit by the chemicals and dies.",
@@ -500,18 +508,15 @@
     "goat_fail": "This can only be done once per day.",
     "not_enough_parameters": "Not enough parameters.",
     "goat_target_not_in_channel": "{0:bold} is not in this channel.",
-    "goat_actions": [
-        "kicks",
-        "headbutts"
+    "goat_success": [
+        "{0:@}'s goat walks by and kicks {1:bold}.",
+        "{0:@}'s goat walks by and headbutts {1:bold}."
     ],
-    "goat_success": "{0:@}'s goat walks by and {1:random} {2:bold}.",
     "part_grace_time_notice": "It appears you have left {0}. Please rejoin within {1} seconds or you will be declared dead.",
     "player_missing": "{0:@} has gone missing.",
     "leave_death": "{0:@} died due to falling off a cliff. The {1!role:bold} is lost to the ravine forever.",
     "leave_death_no_reveal": "{0:@} died due to falling off a cliff.",
     "leave_game_ingame_safeguard": "The game already started! If you still want to quit, use \"{=leave!command:!} -force\".",
-    "static_quit_reveal": "{0:@}, {1!role:article} {1!role:bold}, has died of an unknown disease.",
-    "static_quit_no_reveal": "{0:@} has died of an unknown disease.",
     "villagers_lynch": "The villagers must now vote for whom to lynch. Use \"{=lynch!command:!} <nick>\" to cast your vote. {1} votes are required to lynch.",
     "random_clone": "Because you forgot to select someone to clone at night, you are now cloning {0:@}.",
     "random_matchmaker": "Because you forgot to choose lovers at night, two lovers have been selected for you.",
@@ -1008,22 +1013,20 @@
     "consecrate_fail": "{0:@} is not currently playing or is not dead.",
     "consecrate_success": "You have consecrated the body of {0:@}.",
     "coin_toss": "{0:@} tosses a coin into the air...",
-    "coin_land": "The coin lands on {0:@}.",
-    "coin_choices": [
-        "tails",
-        "heads",
-        "its side"
+    "coin_land": [
+        "The coin lands on [b]tails[/b].",
+        "The coin lands on [b]heads[/b].",
+        "The coin lands on [b]its side[/b]."
     ],
     "pony_toss": "{0:@} tosses a pony into the air...",
-    "pony_land": "The pony lands on {0:@}.",
-    "pony_choices": [
-        "hoof",
-        "plot",
-        "{nick}"
+    "pony_land": [
+        "The pony lands on [b]hoof[/b].",
+        "The pony lands on [b]plot[/b].",
+        "The pony lands on {nick:@}.",
+        "The pony flies away."
     ],
-    "pony_fly": "The pony flies away.",
     "cat_toss": "{0:@} tosses a cat into the air...",
-    "cat_land": "The cat lands on its \u0002feet\u0002.",
+    "cat_land": "The cat lands on its [b]feet[/b].",
     "vengeful_role": "You are a \u0002vengeful ghost\u0002 who is against the {0:@}.",
     "show_role": "You are {0:article} {1:@}.",
     "original_wolves": "Original wolves: {0}",

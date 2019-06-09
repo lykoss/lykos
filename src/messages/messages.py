@@ -13,10 +13,10 @@ class Messages:
         self.lang = var.LANGUAGE
         self._load_messages()
 
-    def get(self, key):
+    def get(self, key, index=None):
         if not self.messages[key]:
             raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(key))
-        return Message(key, self.messages[key])
+        return Message(key, self.messages[key], index)
 
     __getitem__ = get
 

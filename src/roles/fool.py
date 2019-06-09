@@ -21,7 +21,7 @@ def on_lynch(evt, var, votee, voters):
         # ends game immediately, with fool as only winner
         # hardcode "fool" as the role since game is ending due to them being lynched,
         # so we want to show "fool" even if it's a template
-        lmsg = random.choice(messages["lynch_reveal"]).format(votee, "fool")
+        lmsg = messages["lynch_reveal"].format(votee, "fool")
         VOTED = votee
         channels.Main.send(lmsg)
         from src.wolfgame import chk_win
