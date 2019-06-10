@@ -54,8 +54,6 @@ def _send(data, first, sep, client, send_type, name):
     messages = []
     count = 0
     for line in data:
-        if isinstance(line, Message):
-            line = str(line) # the only acceptable input type beside str
         if count and count + len(sep) + len(line) > length:
             count = len(line)
             cur_sep = "\n"
@@ -147,7 +145,7 @@ class IRCContext:
         return done
 
     def lower(self):
-        temp = type(self)(lower(name), client)
+        temp = type(self)(lower(self.name), self.client)
         temp.ref = self.ref or self
         return temp
 
@@ -215,9 +213,14 @@ class IRCContext:
         return _who(self.client, self.name, data)
 
     def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
+        new = []
+        for line in data:
+            if isinstance(line, Message):
+                line = str(line)
+            new.append(line)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
-            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(data)))
+            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(new)))
             return
 
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
@@ -228,6 +231,6 @@ class IRCContext:
             first = ""
         if sep is None:
             sep = " "
-        _send(data, first, sep, self.client, send_type, name)
+        _send(new, first, sep, self.client, send_type, name)
 
 # vim: set sw=4 expandtab:

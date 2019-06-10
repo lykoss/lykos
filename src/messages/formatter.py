@@ -136,7 +136,7 @@ class Formatter(string.Formatter):
         from src.messages import messages
 
         spec = None
-        if len(args) == 1 or len(args) == 4:
+        if args and (len(args) == 1 or len(args) == 4):
             spec = args.pop(0)
 
         if not args:

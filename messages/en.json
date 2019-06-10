@@ -954,7 +954,7 @@
     "cultist_simple": "You are a \u0002cultist\u0002.",
     "blessed_notify": "You feel incredibly safe. You are a \u0002blessed villager\u0002.",
     "blessed_simple": "You are a \u0002blessed villager\u0002.",
-    "welcome": "{0}: Welcome to Werewolf, the popular detective/social party game (a theme of Mafia). Using the {1:@} game mode{2}.",
+    "welcome": "{0}: Welcome to Werewolf, the popular detective/social party game (a theme of Mafia). Using the {1:bold} game mode{2}.",
     "invalid_mode_args": "Invalid syntax for mode arguments. arg={0}",
     "invalid_reveal": "Did not recognize value {0:@} for role reveal. Allowed values: on, off, team",
     "invalid_stats": "Did not recognize value {0:@} for stats type. Allowed values: default, accurate, team, disabled",
