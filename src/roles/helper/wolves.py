@@ -159,7 +159,6 @@ def on_new_role(evt, var, player, old_role):
     sayrole = evt.data["role"]
     if sayrole in Hidden:
         sayrole = var.HIDDEN_ROLE
-    an = "n" if sayrole.startswith(("a", "e", "i", "o", "u")) else ""
 
     if player in KILLS:
         del KILLS[player]
@@ -172,7 +171,7 @@ def on_new_role(evt, var, player, old_role):
         if wofls:
             new_wolves = []
             for wofl in wofls:
-                wofl.queue_message(messages["wolfchat_new_member"].format(player, an, sayrole))
+                wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
             wofl.send_messages()
         else:
             return # no other wolves, nothing else to do
