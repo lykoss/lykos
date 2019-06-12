@@ -29,7 +29,7 @@ START_VOTES = UserSet() # type: UserSet[users.User]
 RESTART_TRIES = 0 # type: int
 MAX_RETRIES = 3 # constant: not a setting
 
-@command("wait", "w", playing=True, phases=("join",))
+@command("wait", playing=True, phases=("join",))
 def wait(var, wrapper, message):
     """Increase the wait time until !start can be used."""
     if wrapper.target is not channels.Main:
@@ -97,7 +97,7 @@ def fstart(var, wrapper, message):
     wrapper.target = channels.Main
     start(var, wrapper, forced=True)
 
-@command("retract", "r", phases=("day", "join"))
+@command("retract", phases=("day", "join"))
 def retract(var, wrapper, message):
     """Take back your vote during the day (for whom to lynch)."""
     if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED:

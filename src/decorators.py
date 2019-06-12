@@ -192,12 +192,15 @@ class handle_error:
 
 class command:
     def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None,
-                 exclusive=False):
+                 playing=False, silenced=False, phases=(), roles=(), users=None):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not botconfig.DEBUG_MODE:
             return
+
+        # handle command localizations
+        # FIXME: make this always happen once all commands are converted
+        commands = messages.raw("_commands").get(commands[0], commands)
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -213,7 +216,6 @@ class command:
         self.aftergame = False
         self.name = commands[0]
         self.alt_allowed = bool(flag or owner_only)
-        self.exclusive = exclusive
 
         alias = False
         self.aliases = []
@@ -222,14 +224,9 @@ class command:
             return # command is disabled, do not add to COMMANDS
 
         for name in commands:
-            if exclusive and name in COMMANDS:
-                raise ValueError("exclusive command already exists for {0}".format(name))
-
             for func in COMMANDS[name]:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
-                if func.exclusive:
-                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
@@ -283,7 +280,7 @@ class command:
             return
 
         if self.roles or (self.users is not None and wrapper.source in self.users):
-            self.func(var, wrapper, wrapper.source) # don't check restrictions for role commands
+            self.func(var, wrapper, message) # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone

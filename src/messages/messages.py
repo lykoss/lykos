@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Dict, Set
 
 import src.settings as var
 from src.messages.message import Message
@@ -11,6 +12,7 @@ ROOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 class Messages:
     def __init__(self):
         self.lang = var.LANGUAGE
+        self.cache = {}
         self._load_messages()
 
     def get(self, key, index=None):
@@ -26,6 +28,51 @@ class Messages:
             m = m[key]
 
         return m
+
+    def get_role_mapping(self,
+                         reverse: bool = False,
+                         remove_spaces: bool = False) -> Dict[str, str]:
+        """ Retrieve a mapping between internal role names and localized role names.
+
+        :param reverse: If True, maps localized role names and aliases to internal role names.
+            If False, maps internal role names to the singular localized version of that name.
+        :param remove_spaces: Whether the lookup keys (not values) should have spaces removed
+        :return:
+        """
+        cache_key = "role_map_" + str(reverse) + str(remove_spaces)
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        plural_rules = self.messages["_metadata"]["plural"]
+        plural_index = 0
+        for rule in plural_rules:
+            if rule["number"] == 1 or rule["number"] is None:
+                plural_index = rule["index"]
+                break
+
+        def maybe_remove_spaces(x: str) -> str:
+            return x.replace(" ", "") if remove_spaces else x
+
+        roles = {}  # type: Dict[str, str]
+        for key, role in self.messages["_roles"].items():
+            if key.startswith("*"):
+                continue
+            internal = key
+            local = role[plural_index]
+            if reverse:
+                roles[maybe_remove_spaces(local)] = internal
+            else:
+                roles[maybe_remove_spaces(internal)] = local
+
+        if reverse:
+            for key, aliases in self.messages["_role_aliases"].items():
+                if key.startswith("*"):
+                    continue
+                for alias in aliases:
+                    roles[maybe_remove_spaces(alias)] = key
+
+        self.cache[cache_key] = roles
+        return roles
 
     def _load_messages(self):
         with open(os.path.join(MESSAGES_DIR, self.lang + ".json"), encoding="utf-8") as f:

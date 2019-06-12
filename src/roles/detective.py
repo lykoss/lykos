@@ -80,7 +80,7 @@ def on_transition_night_end(evt, var):
         to_send = "detective_notify"
         if dttv.prefers_simple():
             to_send = "detective_simple"
-        dttv.send(messages[to_send].format(warning), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+        dttv.send(messages[to_send].format(warning), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

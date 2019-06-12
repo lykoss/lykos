@@ -60,7 +60,7 @@ def lynch(var, wrapper, message):
 
     chk_decision(var)
 
-@command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
+@command("abstain", playing=True, phases=("day",))
 def no_lynch(var, wrapper, message):
     """Allow you to abstain from voting for the day."""
     if not var.ABSTAIN_ENABLED:
@@ -84,7 +84,7 @@ def no_lynch(var, wrapper, message):
 
     chk_decision(var)
 
-@command("retract", "r", phases=("day", "join"))
+@command("retract", phases=("day", "join"))
 def retract(var, wrapper, message):
     """Takes back your vote during the day (for whom to lynch)."""
     if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED or var.PHASE != "day":
@@ -186,15 +186,15 @@ def show_votes(var, wrapper, message):
 
     wrapper.reply(to_send, prefix_nick=True)
 
-@command("vote", "v", pm=True, phases=("join", "day"))
+@command("vote", pm=True, phases=("join", "day"))
 def vote(var, wrapper, message):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if message:
         if var.PHASE == "join" and wrapper.public:
             from src.wolfgame import game
-            return game.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
-        return lynch.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
-    return show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
+            return game.caller(var, wrapper, message)
+        return lynch.caller(var, wrapper, message)
+    return show_votes.caller(var, wrapper, message)
 
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 def chk_decision(var, *, timeout=False):

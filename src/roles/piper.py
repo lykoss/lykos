@@ -171,7 +171,7 @@ def on_transition_night_end(evt, var):
         to_send = "piper_notify"
         if piper.prefers_simple():
             to_send = "piper_simple"
-        piper.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+        piper.send(messages[to_send], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):

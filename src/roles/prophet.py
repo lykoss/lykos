@@ -12,7 +12,8 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-PRAYED = UserSet() # type: Set[users.User]
+PRAYED = UserSet()  # type: Set[users.User]
+
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
 def pray(var, wrapper, message):
@@ -27,62 +28,39 @@ def pray(var, wrapper, message):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    role = complete_one_match(what.lower(), {p for p in role_order() if p not in var.CURRENT_GAMEMODE.SECONDARY_ROLES})
-    if role is None and what.lower() in var.ROLE_ALIASES:
-        role = var.ROLE_ALIASES[what.lower()]
-        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES: # allow only main roles
-            role = None
-    if role is None:
-        # typo, let them fix it
-        wrapper.pm(messages["specific_invalid_role"].format(what))
+    matches = complete_role(var, what)
+    if not matches:
+        wrapper.pm(messages["no_such_role"].format(what))
+        return
+    elif len(matches) > 1:
+        wrapper.pm(messages["ambiguous_role"].format(matches))
         return
 
-    # get a list of all roles actually in the game, including roles that amnesiacs will be turning into
-    # (amnesiacs are special since they're also listed as amnesiac; that way a prophet can see both who the
-    # amnesiacs themselves are as well as what they'll become)
+    role = matches[0]
     pl = get_players()
-    from src.roles.amnesiac import ROLES as amn_roles
-    valid_roles = {r for p, r in amn_roles.items() if p in pl}.union(var.MAIN_ROLES.values())
-
     PRAYED.add(wrapper.source)
 
-    if role in valid_roles:
-        # this sees through amnesiac, so the amnesiac's final role counts as their role
-        # also, if we're the only person with that role, say so
-        people = set(get_all_players((role,))) | {p for p, r in amn_roles.items() if p in pl and r == role}
-        if len(people) == 1 and wrapper.source in people:
-            wrapper.pm(messages["vision_only_role_self"].format(role))
-            PRAYED.add(wrapper.source)
-            debuglog("{0} (prophet) PRAY {1} - ONLY".format(wrapper.source, role))
-            return
-
-        target = random.choice(list(people))
-        part = random.sample([p for p in pl if p is not wrapper.source], len(pl) // 3)
-        if target not in part:
-            part[0] = target
-        random.shuffle(part)
-        part = [p.nick for p in part]
-
-        an = ""
-        if role.startswith(("a", "e", "i", "o", "u")):
-            an = "n"
-
-        key = "vision_players"
-        if len(part) == 1:
-            key = "vision_role"
-
-        if len(part) > 2:
-            msg = "{0}, and {1}".format(", ".join(part[:-1]), part[-1])
-        else:
-            msg = " and ".join(part)
-
-        wrapper.pm(messages[key].format(role, an, msg))
-        debuglog("{0} (prophet) PRAY {1} ({2})".format(wrapper.source, role, target))
-
-    else:
+    # this sees through amnesiac, so the amnesiac's final role counts as their role
+    from src.roles.amnesiac import ROLES as amn_roles
+    people = set(get_all_players((role,))) | {p for p, r in amn_roles.items() if p in pl and r == role}
+    if len(people) == 0:
         # role is not in this game, this still counts as a successful activation of the power!
-        wrapper.pm(messages["vision_none"].format(plural(role)))
+        wrapper.pm(messages["vision_none"].format(role))
         debuglog("{0} (prophet) PRAY {1} - NONE".format(wrapper.source, role))
+        return
+
+    target = random.choice(list(people))
+    part = random.sample([p for p in pl if p is not wrapper.source], len(pl) // 3)
+    if target not in part:
+        part[0] = target
+    random.shuffle(part)
+
+    if len(part) == 1:
+        wrapper.pm(messages["vision_role"].format(role, target))
+    else:
+        wrapper.pm(messages["vision_players"].format(role, part))
+    debuglog("{0} (prophet) PRAY {1} ({2})".format(wrapper.source, role, target))
+
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
@@ -109,5 +87,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["prophet"] = {"Village", "Safe", "Nocturnal", "Spy"}
-
-# vim: set sw=4 expandtab:

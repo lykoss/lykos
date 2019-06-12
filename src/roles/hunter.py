@@ -108,7 +108,7 @@ def on_transition_night_end(evt, var):
         to_send = "hunter_notify"
         if hunter.prefers_simple():
             to_send = "hunter_simple"
-        hunter.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+        hunter.send(messages[to_send], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

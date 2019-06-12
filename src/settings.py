@@ -204,18 +204,6 @@ TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 
 # How often to ping the server (in seconds) to detect unclean disconnection
 SERVER_PING_INTERVAL = 120
 
-# Shorthand for naming roles, used to set up command aliases as well as be valid targets when
-# specifying role names for things (such as !pstats or prophet's !pray)
-ROLE_ALIASES = {
-        "ga": "guardian angel",
-        "drunk": "village drunk",
-        "cs": "crazed shaman",
-        "potato": "villager",
-        "vg": "vengeful ghost",
-        "mm": "matchmaker",
-        "ms": "mad scientist",
-        }
-
 # The default role can be anything, but HIDDEN_ROLE must be either "villager" or "cultist";
 # hidden roles are informed they are HIDDEN_ROLE (ergo that role should not have any abilities),
 # and win with that role's team. Seer sees all non-safe and non-cursed roles as HIDDEN_ROLE.
@@ -230,12 +218,6 @@ DISABLED_GAMEMODES = frozenset()
 
 # Commands listed here cannot be used by anyone (even admins/owners)
 DISABLED_COMMANDS = frozenset()
-
-# Roles which have a command equivalent to the role name need to implement special handling for being
-# passed their command again as a prefix and strip it out. For example, both !clone foo and !clone clone foo
-# should be valid. Failure to add such a command to this set will result in the bot not starting
-# with the error "ValueError: exclusive command already exists for ..."
-ROLE_COMMAND_EXCEPTIONS = set()
 
 GIF_CHANCE = 1/50
 

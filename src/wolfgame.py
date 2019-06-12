@@ -49,7 +49,7 @@ import botconfig
 import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats
+from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats, handler
 from src.users import User
 
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
@@ -1844,32 +1844,6 @@ def update_last_said(var, wrapper, message):
     if var.PHASE not in ("join", "none"):
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now() # FIXME
 
-def dispatch_role_prefix(var, wrapper, message, *, role):
-    from src import handler
-    _ignore_locals_ = True
-    handler.on_privmsg(wrapper.client, wrapper.source.rawnick, wrapper.target.name, message, force_role=role)
-
-def setup_role_commands(evt):
-    aliases = defaultdict(set)
-    for alias, role in var.ROLE_ALIASES.items():
-        aliases[role].add(alias)
-    for role in set(role_order()) - var.ROLE_COMMAND_EXCEPTIONS:
-        keys = ["".join(c for c in role if c.isalpha())]
-        keys.extend(aliases[role])
-        fn = functools.partial(dispatch_role_prefix, role=role)
-        fn.__doc__ = "Execute {0} command".format(role)
-        # don't allow these in-channel, as it could be used to prove that someone is a particular role
-        # (there are no examples of this right now, but it could be possible in the future). For example,
-        # if !shoot was rewritten so that there was a "gunner" and "sharpshooter" template, one could
-        # prove they are sharpshooter -- and therefore prove should they miss that the target is werekitten,
-        # as opposed to the possiblity of them being a wolf with 1 bullet who stole the gun from a dead gunner --
-        # by using !sharpshooter shoot target.
-        command(*keys, exclusive=True, pm=True, chan=False, playing=True)(fn)
-
-# event_listener decorator wraps callback in handle_error, which we don't want for the init event
-# (as no IRC connection exists at this point)
-events.add_listener("init", setup_role_commands, priority=10000)
-
 @event_listener("chan_join", priority=1)
 def on_join(evt, var, chan, user):
     if user is users.Bot:
@@ -2854,15 +2828,14 @@ def fflags(var, wrapper, message):
 @command("fstop", flag="S", phases=("join", "day", "night"))
 def reset_game(var, wrapper, message):
     """Forces the game to stop."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
-    cli.msg(botconfig.CHANNEL, messages["fstop_success"].format(nick))
+    wrapper.send(messages["fstop_success"].format(wrapper.source))
     if var.PHASE != "join":
         stop_game(var, log=False)
     else:
-        pl = [p for p in list_players() if not is_fake_nick(p)]
+        pl = [p for p in get_players() if not p.is_fake]
         reset_modes_timers(var)
         reset()
-        cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
+        wrapper.send("PING! {0}".format(" ".join(pl)))
 
 @command("rules", pm=True)
 def show_rules(var, wrapper, message):
@@ -3375,23 +3348,14 @@ def player_stats(var, wrapper, message):
         reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True)
     else:
         role = " ".join(params[1:])
-        all_roles = set(role_order())
-        if role not in all_roles:
-            special_keys = {"lover"}
-            evt = Event("get_role_metadata", {})
-            evt.dispatch(var, "special_keys")
-            special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
-            if role.lower() in var.ROLE_ALIASES:
-                matches = (var.ROLE_ALIASES[role.lower()],)
-            else:
-                matches = complete_match(role, all_roles | special_keys)
-            if not matches:
-                reply(cli, nick, chan, messages["no_such_role"].format(role))
-                return
-            if len(matches) > 1:
-                reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
-                return
-            role = matches[0]
+        matches = complete_role(var, role)
+        if not matches:
+            reply(cli, nick, chan, messages["no_such_role"].format(role))
+            return
+        if len(matches) > 1:
+            reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
+            return
+        role = matches[0]
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
@@ -3399,7 +3363,7 @@ def player_stats(var, wrapper, message):
 def my_stats(var, wrapper, message):
     """Get your own stats."""
     message = message.split()
-    player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + rest))
+    player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + message))
 
 @command("rolestats", "rstats", pm=True)
 def role_stats(var, wrapper, rest):
@@ -3437,7 +3401,7 @@ def role_stats(var, wrapper, rest):
             gamemode = matches[0]
         else:
             if len(roles) > 0:
-                wrapper.pm(messages["ambiguous_role"].format(", ".join(roles)))
+                wrapper.pm(messages["ambiguous_role"].format(roles))
             elif len(matches) > 0:
                 wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
             else:
@@ -3483,7 +3447,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             wrapper.pm(messages["already_voted_game"].format(gamemode))
         else:
             var.GAMEMODE_VOTES[wrapper.source.nick] = gamemode
-            wrapper.send(messages["vote_game_mode"].format(wrapper.source.nick, gamemode))
+            wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
     else:
         if doreply:
             wrapper.pm(messages["vote_game_fail"])
@@ -3810,23 +3774,12 @@ def py(var, wrapper, message):
     except Exception as e:
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
-def _force_command(var, wrapper, name, players, message):
-    name = name.lower().replace(botconfig.CMD_CHAR, "", 1)
-    if name in COMMANDS:
-        for func in COMMANDS[name]:
-            if func.owner_only or func.flag:
-                wrapper.pm(messages["no_force_admin"])
-                return
-            for user in players:
-                if func.chan:
-                    func.caller(var, wrapper, message)
-                else:
-                    wrapper.target = users.Bot
-                    func.caller(var, wrapper, message)
 
-        wrapper.send(messages["operation_successful"])
-    else:
-        wrapper.send(messages["command_not_found"])
+def _force_command(var, wrapper, name, players, message):
+    for user in players:
+        handler.parse_and_dispatch(var, wrapper, name, message, force=user)
+    wrapper.send(messages["operation_successful"])
+
 
 @command("force", flag="d")
 def force(var, wrapper, message):
@@ -3873,19 +3826,20 @@ def frole(var, wrapper, message):
     """Force a player into a certain role."""
     pl = get_players()
 
-    parts = message.lower().replace("=", ":").replace(";", ",").split(",")
+    parts = message.lower().split(",")
     for part in parts:
         try:
             (name, role) = part.split(":", 1)
         except ValueError:
-            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
+            wrapper.send(messages["frole_incorrect"].format(part))
             return
         user, _ = users.complete_match(name.strip(), pl)
-        role = role.strip().replace("_", " ")
-        if role in var.ROLE_ALIASES:
-            role = var.ROLE_ALIASES[role]
+        matches = complete_role(var, role.strip())
+        role = None
+        if len(matches) == 1:
+            role = matches[0]
         if user is None or role not in role_order() or role == var.DEFAULT_ROLE:
-            wrapper.send(messages["frole_incorrect"].format(botconfig.CMD_CHAR, part))
+            wrapper.send(messages["frole_incorrect"].format(part))
             return
         var.FORCE_ROLES[role].add(user)
 

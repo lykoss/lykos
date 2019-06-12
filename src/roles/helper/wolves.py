@@ -191,12 +191,12 @@ def on_new_role(evt, var, player, old_role):
                 if tags:
                     tags += " "
                 pt.append("\u0002{0}\u0002 ({1}{2})".format(p, tags, prole))
-            elif tags:
+            elif tags:  # FIXME: make tags i18n-friendly
                 pt.append("{0} ({1})".format(p, tags))
             else:
                 pt.append(p.nick)
 
-        evt.data["messages"].append(messages["players_list"].format(", ".join(pt)))
+        evt.data["messages"].append(messages["players_list"].format(pt))
 
         if var.PHASE == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -312,11 +312,12 @@ def on_transition_night_end(evt, var):
             # warlock specifically only sees cursed if they're not in wolfchat
             for player in pl:
                 if player in var.ROLES["cursed villager"]:
+                    # FIXME: make i18n friendly (also there's some code duplication between here and warlock.py)
                     players.append(player.nick + " (cursed)")
                 else:
                     players.append(player.nick)
 
-        wolf.send(messages["players_list"].format(", ".join(players)))
+        wolf.send(messages["players_list"].format(players))
         nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
         nevt.dispatch(var)
         if role in Wolf & Killer and not nevt.data["numkills"] and nevt.data["message"]:

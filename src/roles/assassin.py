@@ -81,7 +81,7 @@ def on_transition_night_end(evt, var):
                 ass.send(messages["assassin_simple"])
             else:
                 ass.send(messages["assassin_notify"])
-            ass.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
+            ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

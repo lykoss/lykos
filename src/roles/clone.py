@@ -24,17 +24,6 @@ def clone(var, wrapper, message):
         return
 
     params = re.split(" +", message)
-    # allow for role-prefixed command such as !clone clone target
-    # if we get !clone clone (with no 3rd arg), we give preference to prefixed version;
-    # meaning if the person wants to clone someone named clone, they must type !clone clone clone
-    # (or just !clone clon, !clone clo, etc. assuming those would be unambiguous matches)
-    if params[0] == "clone":
-        if len(params) > 1:
-           del params[0]
-        else:
-            wrapper.pm(messages["clone_clone_clone"])
-            return
-
     target = get_target(var, wrapper, params[0])
     if target is None:
         return
@@ -43,15 +32,6 @@ def clone(var, wrapper, message):
     wrapper.pm(messages["clone_target_success"].format(target))
 
     debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
-
-def setup_clone(evt):
-    # We need to add "clone" to the role command exceptions so there's no error
-    # This is done here so that var isn't imported at the global scope
-    # (when we implement proper game state this will be in a different event)
-    from src import settings as var
-    var.ROLE_COMMAND_EXCEPTIONS.add("clone")
-
-events.add_listener("init", setup_clone) # no IRC connection, so no possible error handler yet
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
@@ -100,7 +80,7 @@ def on_transition_night_end(evt, var):
             clone.send(messages["clone_simple"])
         else:
             clone.send(messages["clone_notify"])
-        clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
+        clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

@@ -155,6 +155,7 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     succubi = get_all_players(("succubus",))
+    role_map = messages.get_role_mapping()
     for succubus in succubi:
         pl = get_players()
         random.shuffle(pl)
@@ -165,10 +166,10 @@ def on_transition_night_end(evt, var):
         succ = []
         for p in pl:
             if p in succubi:
-                succ.append("{0} (succubus)".format(p))
+                succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send], messages["players_list"].format(", ".join(succ)), sep="\n")
+        succubus.send(messages[to_send], messages["players_list"].format(succ), sep="\n")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):

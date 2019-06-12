@@ -92,7 +92,7 @@ def on_transition_night_end(evt, var):
         to_send = "vigilante_notify"
         if vigilante.prefers_simple():
             to_send = "vigilante_simple"
-        vigilante.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+        vigilante.send(messages[to_send], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

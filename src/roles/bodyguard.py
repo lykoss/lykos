@@ -109,7 +109,7 @@ def on_transition_night_end(evt, var):
         to_send = "bodyguard_notify"
         if bg.prefers_simple():
             to_send = "bodyguard_simple"
-        bg.send(messages[to_send].format(warning), messages["players_list"].format(", ".join(p.nick for p in pl), sep="\n"))
+        bg.send(messages[to_send].format(warning), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):
