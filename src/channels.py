@@ -96,6 +96,19 @@ class Channel(IRCContext):
     def __format__(self, format_spec):
         if format_spec == "#":
             return self.name
+        elif format_spec == "for_tb":
+            if var.CHANNEL_DATA_LEVEL == 0:
+                if self is Main:
+                    value = "Main"
+                elif self is Dummy:
+                    value = "Dummy"
+                elif self is Dev:
+                    value = "Dev"
+                else:
+                    value = format(id(self), "x")
+                return "{self.__class__.__name__}({0})".format(value, self=self)
+            else:
+                return repr(self)
 
         return super().__format__(format_spec)
 

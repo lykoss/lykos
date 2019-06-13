@@ -199,7 +199,12 @@ LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
 
-TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
+# Data collection settings. lykos will send details about errors that happen to the lykos developers,
+# these settings control how much data is sent. Please see https://werewolf.chat/dc for more information.
+# These settings additionally impacts what data is written to the error log.
+TRACEBACK_VERBOSITY = 2  # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
+USER_DATA_LEVEL = 0  # 0 = fully anonymize users, 1 = expose nick only, 2 = expose full hostmask, account, and channel membership
+CHANNEL_DATA_LEVEL = 0  # 0 = fully anonymize channels, 1 = expose channel name
 
 # How often to ping the server (in seconds) to detect unclean disconnection
 SERVER_PING_INTERVAL = 120

@@ -1435,7 +1435,6 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         if additional_winners is not None:
             winners.update(additional_winners)
         for plr, rol in mainroles.items():
-            splr = plr.nick # FIXME: for backwards-compat
             pentry = {"version": 2,
                       "nick": None,
                       "account": None,
@@ -1496,7 +1495,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 pentry["won"] = won
                 pentry["iwon"] = iwon
                 if won or iwon:
-                    winners.add(plr.nick)
+                    winners.add(plr)
 
             if not plr.is_fake:
                 # don't record fjoined fakes
@@ -1523,7 +1522,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                     game_options)
 
         # spit out the list of winners
-        winners = sorted(winners)
+        winners = sorted(winners, key=lambda u: u.nick)
         channels.Main.send(messages["winners"].format(winners))
 
     # Message players in deadchat letting them know that the game has ended
@@ -2347,7 +2346,7 @@ def transition_day(gameid=0):
         to_send.extend(msg)
 
     if random.random() < var.GIF_CHANCE:
-        to_send.append(messages["gifs"])
+        to_send.append(str(messages["gifs"]))
     channels.Main.send("\n".join(to_send))
 
     # chilling howl message was played, give roles the opportunity to update !stats

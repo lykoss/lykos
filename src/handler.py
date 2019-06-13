@@ -26,6 +26,10 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if notice and "!" not in rawnick or not rawnick: # server notice; we don't care about those
         return
 
+    _ignore_locals_ = False
+    if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
+        _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
+
     user = users._get(rawnick, allow_none=True) # FIXME
 
     ch = chan.lstrip("".join(hooks.Features["PREFIX"]))

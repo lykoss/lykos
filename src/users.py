@@ -271,6 +271,13 @@ class User(IRCContext):
     def __format__(self, format_spec):
         if format_spec == "@":
             return "\u0002{0}\u0002".format(self.name)
+        elif format_spec == "for_tb":
+            if var.USER_DATA_LEVEL == 0:
+                return "{self.__class__.__name__}({0:x})".format(id(self), self=self)
+            elif var.USER_DATA_LEVEL == 1:
+                return "{self.__class__.__name__}({self.nick!r})".format(self=self)
+            else:
+                return repr(self)
         return super().__format__(format_spec)
 
     def __hash__(self):
@@ -595,6 +602,13 @@ class FakeUser(User):
 
     def __hash__(self):
         return hash(self.nick)
+
+    def __format__(self, format_spec):
+        if format_spec == "for_tb" and self.nick.startswith("@"):
+            # fakes starting with @ are used internally for various purposes (such as @WolvesAgree@)
+            # so it'd be good to keep that around when debugging in tracebacks
+            return "{self.__class__.__name__}({self.nick!r})".format(self=self)
+        return super().__format__(format_spec)
 
     @classmethod
     def from_nick(cls, nick):
