@@ -38,20 +38,28 @@ class Message:
         return other + str(self)
 
     def format(self, *args, **kwargs):
-        error_listener = MessageErrorListener()
-        input_stream = InputStream(self.value)
-        lexer = message_lexer(input_stream)
-        lexer.message_key = self.key
-        lexer.addErrorListener(error_listener)
-        token_stream = CommonTokenStream(lexer)
-        parser = message_parser(token_stream)
-        parser.message_key = self.key
-        parser.addErrorListener(error_listener)
-        tree = parser.main()
-        listener = Listener(self, args, kwargs)
-        walker = ParseTreeWalker()
-        walker.walk(listener, tree)
-        return listener.value()
+        try:
+            error_listener = MessageErrorListener()
+            input_stream = InputStream(self.value)
+            lexer = message_lexer(input_stream)
+            lexer.message_key = self.key
+            lexer.addErrorListener(error_listener)
+            token_stream = CommonTokenStream(lexer)
+            parser = message_parser(token_stream)
+            parser.message_key = self.key
+            parser.addErrorListener(error_listener)
+            tree = parser.main()
+            listener = Listener(self, args, kwargs)
+            walker = ParseTreeWalker()
+            walker.walk(listener, tree)
+            return listener.value()
+        except Exception as e:
+            import botconfig
+            import src.settings as var
+            if not botconfig.DEBUG_MODE or not var.DEBUG_MODE_NOTHROW_MESSAGES:
+                raise
+
+            return "ERROR: {0!s} ({1}: {2!r}, {3!r})".format(e, self.key, args, kwargs)
 
 
 class MessageErrorListener(ErrorListener):

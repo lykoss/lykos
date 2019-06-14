@@ -137,6 +137,7 @@ DISABLE_DEBUG_MODE_TIMERS = True
 DISABLE_DEBUG_MODE_TIME_LORD = False
 DISABLE_DEBUG_MODE_REAPER = True
 DISABLE_DEBUG_MODE_STASIS = True
+DEBUG_MODE_NOTHROW_MESSAGES = True
 
 # Minimum number of players needed for mad scientist to skip over dead people when determining who is next to them
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
