@@ -54,6 +54,7 @@ from src.users import User
 
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, handle_error, event_listener, COMMANDS
+from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
@@ -3221,7 +3222,8 @@ def aftergame(var, wrapper, message):
         def do_action():
             for fn in COMMANDS[cmd]:
                 fn.aftergame = True
-                fn.caller(wrapper.source.client, wrapper.source.rawnick, channels.Main.name if fn.chan else users.Bot.nick, " ".join(args))
+                context = MessageDispatcher(wrapper.source, channels.Main if fn.chan else users.Bot)
+                fn.caller(var, context, " ".join(args))
                 fn.aftergame = False
     else:
         wrapper.pm(messages["command_not_found"])

@@ -170,7 +170,7 @@ class IRCContext:
         cls._messages.clear()
         for message, targets in messages:
             if isinstance(message, Message):
-                message = str(message)
+                message = message.format()
             if isinstance(message, str):
                 message = (message,)
             send_types = defaultdict(list)
@@ -216,7 +216,7 @@ class IRCContext:
         new = []
         for line in data:
             if isinstance(line, Message):
-                line = str(line)
+                line = line.format()
             new.append(line)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that

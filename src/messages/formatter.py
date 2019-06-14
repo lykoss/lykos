@@ -104,7 +104,7 @@ class Formatter(string.Formatter):
         if conversion == "role":
             return messages.raw("_roles", value)
         if conversion == "command":
-            return messages.raw("_commands", value)
+            return messages.raw("_commands", value)[0]
         if conversion == "totem":
             return messages.raw("_totems", value)
         if conversion == "cat":
