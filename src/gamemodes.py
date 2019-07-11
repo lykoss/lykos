@@ -214,7 +214,7 @@ class DefaultMode(GameMode):
         if var.VILLAGERGAME_CHANCE:
             vilgame = var.GAME_MODES.get("villagergame")
             if vilgame is not None:
-                if vilgame[1] <= len(get_players()) <= vilgame[2]: # enough players
+                if vilgame[1] <= len(var.ALL_PLAYERS) <= vilgame[2]: # enough players
                     return True
 
         return False

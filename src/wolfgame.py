@@ -2832,7 +2832,8 @@ def reset_game(var, wrapper, message):
         pl = [p for p in get_players() if not p.is_fake]
         reset_modes_timers(var)
         reset()
-        wrapper.send("PING! {0}".format(" ".join(pl)))
+        if pl:
+            wrapper.send("PING! {0}".format(" ".join(pl)))
 
 @command("rules", pm=True)
 def show_rules(var, wrapper, message):
