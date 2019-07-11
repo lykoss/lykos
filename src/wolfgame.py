@@ -771,7 +771,7 @@ def join_deadchat(var, *all_users):
         user.queue_message("[deadchat] " + msg)
     for user in to_join:
         user.queue_message(messages["joined_deadchat"])
-        user.queue_message(messages["players_list"].format(", ".join([user.nick for user in people])))
+        user.queue_message(messages["players_list"].format(list(people)))
 
     var.DEADCHAT_PLAYERS.update(to_join)
     var.SPECTATING_DEADCHAT.difference_update(to_join)
