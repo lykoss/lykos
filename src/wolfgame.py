@@ -2891,7 +2891,8 @@ def reset_game(cli, nick, chan, rest):
         pl = [p for p in list_players() if not is_fake_nick(p)]
         reset_modes_timers(var)
         reset()
-        cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
+        if pl:
+            cli.msg(botconfig.CHANNEL, "PING! {0}".format(" ".join(pl)))
 
 @cmd("rules", pm=True)
 def show_rules(cli, nick, chan, rest):
