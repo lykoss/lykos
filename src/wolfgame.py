@@ -1177,17 +1177,14 @@ def stats(var, wrapper, message):
     if chan == nick and role in badguys | {"warlock"}:
         ps = pl[:]
         if role in badguys:
+            cursed = [x.nick for x in get_all_players(("cursed villager",))] # FIXME
             for i, player in enumerate(ps):
                 prole = get_role(player)
-                wevt = Event("wolflist", {"tags": set()})
-                wevt.dispatch(var, users._get(player), users._get(nick)) # FIXME
-                tags = " ".join(wevt.data["tags"])
-                if prole in badguys:
-                    if tags:
-                        tags += " "
-                    ps[i] = "\u0002{0}\u0002 ({1}{2})".format(player, tags, prole)
-                elif tags:
-                    ps[i] = "{0} ({1})".format(player, tags)
+                if prole in badguys: # FIXME: Move all this to proper message keys
+                    if player in cursed:
+                        ps[i] = "\u0002{0}\u0002 (cursed, {1})".format(player, prole)
+                elif player in cursed:
+                    ps[i] = "{0} (cursed)".format(player)
         elif role == "warlock":
             # warlock not in wolfchat explicitly only sees cursed
             for i, player in enumerate(pl):

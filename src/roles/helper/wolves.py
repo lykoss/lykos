@@ -181,18 +181,13 @@ def on_new_role(evt, var, player, old_role):
             pl.remove(player)
         random.shuffle(pl)
         pt = []
-        wevt = Event("wolflist", {"tags": set()})
+        cursed = get_all_players(("cursed villager",))
         for p in pl:
-            prole = get_main_role(p)
-            wevt.data["tags"].clear()
-            wevt.dispatch(var, p, player)
-            tags = " ".join(wevt.data["tags"])
+            prole = get_main_role(p) # FIXME: Use proper message keys
             if prole in wcroles:
-                if tags:
-                    tags += " "
-                pt.append("\u0002{0}\u0002 ({1}{2})".format(p, tags, prole))
-            elif tags:  # FIXME: make tags i18n-friendly
-                pt.append("{0} ({1})".format(p, tags))
+                pt.append("\u0002{0}\u0002 ({1}{2})".format(p, "cursed, " if p in cursed else "", prole))
+            elif p in cursed:
+                pt.append("{0} (cursed)".format(p))
             else:
                 pt.append(p.nick)
 
@@ -247,42 +242,23 @@ def on_transition_night_end(evt, var):
     elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
         wccond = " during night"
 
+    cursed = get_all_players(("cursed villager",))
     for wolf in wolves:
         normal_notify = not wolf.prefers_simple()
         role = get_main_role(wolf)
-        wevt = Event("wolflist", {"tags": set()})
-        tags = ""
-        if role in wcroles:
-            wevt.dispatch(var, wolf, wolf)
-            tags = " ".join(wevt.data["tags"])
-            if tags:
-                tags += " "
 
         if normal_notify:
             msg = "{0}_notify".format(role.replace(" ", "_"))
-            cmsg = "cursed_" + msg
-            if "cursed" in wevt.data["tags"]:
-                try:
-                    tags2 = " ".join(wevt.data["tags"] - {"cursed"})
-                    if tags2:
-                        tags2 += " "
-                    wolf.send(messages[cmsg].format(tags2))
-                except KeyError:
-                    wolf.send(messages[msg].format(tags))
-            else:
-                wolf.send(messages[msg].format(tags))
+
+            wolf.send(messages[msg])
 
             if len(wolves) > 1 and wccond is not None and role in talkroles:
                 wolf.send(messages["wolfchat_notify"].format(wccond))
         else:
-            an = ""
-            if tags:
-                if tags.startswith(("a", "e", "i", "o", "u")):
-                    an = "n"
-            elif role.startswith(("a", "e", "i", "o", "u")):
-                an = "n"
-            wolf.send(messages["wolf_simple"].format(an, tags, role))  # !simple
+            wolf.send(messages["role_simple"].format(role))  # !simple
 
+        if wolf in cursed:
+            wolf.send(messages["cursed_notify"])
 
         if wolf not in KNOWS_MINIONS:
             minions = len(get_all_players(("minion",)))
@@ -295,17 +271,13 @@ def on_transition_night_end(evt, var):
         pl.remove(wolf)  # remove self from list
         players = []
         if role in wcroles:
+            cursed = get_all_players(("cursed villager",))
             for player in pl:
                 prole = get_main_role(player)
-                wevt.data["tags"] = set()
-                wevt.dispatch(var, player, wolf)
-                tags = " ".join(wevt.data["tags"])
                 if prole in wcroles:
-                    if tags:
-                        tags += " "
-                    players.append("\u0002{0}\u0002 ({1}{2})".format(player, tags, prole))
-                elif tags:
-                    players.append("{0} ({1})".format(player, tags))
+                    players.append("\u0002{0}\u0002 ({1}{2})".format(player, "cursed, " if player in cursed else "", prole))
+                elif player in cursed:
+                    players.append("{0} (cursed)".format(player))
                 else:
                     players.append(player.nick)
         elif role == "warlock":
