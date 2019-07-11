@@ -23,9 +23,14 @@ TAG_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
 CLOSE_TAG : ']' -> popMode ;
 
 mode IN_SUB;
-SUB_FIELD : ~[!:}]+ ;
+SUB_FIELD : (
+    ~[!:{}]
+    | '{{' { setText("{") }
+    | '}}' { setText("}") }
+    )+ ;
 SUB_CONVERT : '!' -> mode(IN_CONV) ;
 SUB_SPEC : ':' -> mode(IN_SPEC) ;
+SUB_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
 CLOSE_SUB : '}' -> popMode ;
 
 mode IN_CONV;
