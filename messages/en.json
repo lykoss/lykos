@@ -41,7 +41,8 @@
         "PONG! {nick}",
         "I'm sorry Dave, I'm afraid I can't do that.",
         "Give me a ping, Vasily. One ping only, please.",
-        "Would you people please leave me alone? Seriously."
+        "Would you people please leave me alone? Seriously.",
+        "Knope"
     ],
     "latency": "{0:.3f} second{1}.",
     "lynch_reveal": [
