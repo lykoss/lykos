@@ -86,9 +86,9 @@ def setup_variables(rolename):
         for gunner in get_all_players((rolename,)):
             if GUNNERS[gunner]:
                 if gunner.prefers_simple(): # gunner and sharpshooter share the same key for simple
-                    gunner.send(messages["gunner_simple"].format(rolename, GUNNERS[gunner], "s" if GUNNERS[gunner] > 1 else ""))
+                    gunner.send(messages["gunner_simple"].format(rolename, GUNNERS[gunner]))
                 else:
-                    gunner.send(messages["{0}_notify".format(rolename)].format(botconfig.CMD_CHAR, GUNNERS[gunner], "s" if GUNNERS[gunner] > 1 else ""))
+                    gunner.send(messages["{0}_notify".format(rolename)].format(botconfig.CMD_CHAR, GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4)
     def on_transition_day_resolve_end(evt, var, victims):

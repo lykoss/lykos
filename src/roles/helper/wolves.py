@@ -231,16 +231,20 @@ def on_transition_night_end(evt, var):
     wcroles = get_wolfchat_roles(var)
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles(var)
-    # condition imposed on talking in wolfchat (only during day/night, or None if talking is disabled)
-    wccond = ""
+    # condition imposed on talking in wolfchat (only during day/night, or no talking)
+    # 0 = no talking
+    # 1 = normal
+    # 2 = only during day
+    # 3 = only during night
+    wccond = 1
 
     if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_NIGHT:
         if var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-            wccond = None
+            wccond = 0
         else:
-            wccond = " during day"
+            wccond = 2
     elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
-        wccond = " during night"
+        wccond = 3
 
     cursed = get_all_players(("cursed villager",))
     for wolf in wolves:
@@ -252,8 +256,8 @@ def on_transition_night_end(evt, var):
 
             wolf.send(messages[msg])
 
-            if len(wolves) > 1 and wccond is not None and role in talkroles:
-                wolf.send(messages["wolfchat_notify"].format(wccond))
+            if len(wolves) > 1 and role in talkroles:
+                wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
         else:
             wolf.send(messages["role_simple"].format(role))  # !simple
 

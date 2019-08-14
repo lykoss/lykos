@@ -36,7 +36,7 @@ def setup_variables(rolename):
 
             to_send = "seer_role_info"
             if seer.prefers_simple():
-                seer.send(messages["seer_simple"].format(rolename))
+                seer.send(messages["role_simple"].format(rolename))
             else:
                 seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
             seer.send(messages["players_list"].format(pl))
