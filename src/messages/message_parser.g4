@@ -31,8 +31,15 @@ close_tag
     ;
 
 sub
-    : OPEN_SUB SUB_FIELD sub_convert sub_spec CLOSE_SUB
+    : OPEN_SUB sub_field sub_convert sub_spec CLOSE_SUB
     ;
+
+sub_field
+    : sub_field SUB_FIELD
+    | sub_field sub
+    | SUB_FIELD
+    | sub
+     ;
 
 sub_convert
     : SUB_CONVERT SUB_IDENTIFIER

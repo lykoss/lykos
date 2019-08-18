@@ -69,5 +69,5 @@ class MessageErrorListener(ErrorListener):
     Then it tries to call our tree listener with bad parse state, which causes things to blow up down the line.
     The exception messages from that are less-than intuitive, when we really just want to know the message itself
     is bad."""
-    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        raise RuntimeError("Ill-formed message key \"{0}\" (offset {1}): {2}", recognizer.message_key, column, msg)
+    def syntaxError(self, recognizer, offending_symbol, line, column, msg, e):
+        raise RuntimeError("Ill-formed message \"{0}\" (offset {1}): {2}".format(recognizer.message_key, column, msg))

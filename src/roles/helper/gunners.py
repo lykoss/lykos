@@ -1,6 +1,7 @@
 import random
 import re
 
+from src import users
 from src.decorators import command, event_listener
 from src.containers import UserDict
 from src.functions import get_players, get_all_players, get_target, get_main_role, get_reveal_role

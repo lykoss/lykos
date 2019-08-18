@@ -417,9 +417,9 @@ def on_transition_day_end(evt, var):
     havetotem.sort(key=lambda x: x.nick)
     for player, tlist in itertools.groupby(havetotem):
         ntotems = len(list(tlist))
-        to_send = "totem_posession_dead"
+        to_send = "totem_possession_dead"
         if player in get_players():
-            to_send = "totem_posession_alive"
+            to_send = "totem_possession_alive"
         message.append(messages[to_send].format(player, ntotems))
     for player in brokentotem:
         message.append(messages["totem_broken"].format(player))
