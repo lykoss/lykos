@@ -1,6 +1,6 @@
 from src.containers import UserSet
 from src.decorators import event_listener
-from src.functions import get_main_role, change_role
+from src.functions import get_main_role, change_role, get_players
 from src.events import Event
 
 __all__ = ["add_exchange", "try_exchange"]
@@ -8,6 +8,8 @@ __all__ = ["add_exchange", "try_exchange"]
 EXCHANGE = UserSet() # type: Set[users.User]
 
 def add_exchange(var, user):
+    if user not in get_players():
+        return
     EXCHANGE.add(user)
 
 def try_exchange(var, actor, target):

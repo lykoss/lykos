@@ -20,6 +20,7 @@ def _get_target(target):
     return pl[index+1]
 
 def add_misdirection(var, user, *, as_actor=False, as_target=False):
+    # misdirection should work on dead players as well; don't do an alive check here
     if as_actor:
         AS_ACTOR.add(user)
     if as_target:
@@ -36,7 +37,7 @@ def try_misdirection(var, actor, target):
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
-    AS_ACTOR.discard(player)
+    # don't clear AS_ACTOR here; we want dead players to still be misdirected (e.g. vengeful ghost)
     AS_TARGET.discard(player)
 
 @event_listener("revealroles")
