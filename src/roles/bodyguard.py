@@ -95,7 +95,6 @@ def on_transition_night_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    # the messages for angel and guardian angel are different enough to merit individual loops
     ps = get_players()
     for bg in get_all_players(("bodyguard",)):
         pl = ps[:]
@@ -108,8 +107,11 @@ def on_transition_night_end(evt, var):
 
         to_send = "bodyguard_notify"
         if bg.prefers_simple():
-            to_send = "bodyguard_simple"
-        bg.send(messages[to_send].format(warning), messages["players_list"].format(pl), sep="\n")
+            to_send = "role_simple"
+        bg.send(messages[to_send].format("bodyguard"))
+        if chance > 0:
+            bg.send(messages["bodyguard_death_chance"].format(chance))
+        bg.send(messages["players_list"].format(pl))
 
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):

@@ -32,8 +32,11 @@ def register_mystic(rolename, *, send_role, types):
         for mystic in get_all_players((rolename,)):
             LAST_COUNT[mystic] = values
             if send_role:
-                to_send = "{0}_{1}".format(role, ("simple" if mystic.prefers_simple() else "notify"))
-                mystic.send(messages[to_send])
+                if mystic.prefers_simple():
+                    to_send = "role_simple"
+                else:
+                    to_send = "{0}_notify".format(role)
+                mystic.send(messages[to_send].format(rolename))
             mystic.send(msg)
 
     @event_listener("new_role")

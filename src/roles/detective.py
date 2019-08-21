@@ -11,7 +11,8 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event
-from src.cats import Wolf, Wolfchat
+
+from src.roles.helper.wolves import get_wolfchat_roles
 
 INVESTIGATED = UserSet()
 
@@ -40,16 +41,9 @@ def investigate(var, wrapper, message):
     wrapper.send(messages["investigate_success"].format(target, targrole))
     debuglog("{0} (detective) ID: {1} ({2})".format(wrapper.source, target, targrole))
 
-    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (should be changeable in settings)
+    if random.random() < var.DETECTIVE_REVEALED_CHANCE:  # a 2/5 chance (changeable in settings)
         # The detective's identity is compromised!
-        wcroles = Wolfchat
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = Wolf
-            else:
-                wcroles = Wolf | {"traitor"}
-
-        wolves = get_all_players(wcroles)
+        wolves = get_all_players(get_wolfchat_roles(var))
         if wolves:
             for wolf in wolves:
                 wolf.queue_message(messages["detective_reveal"].format(wrapper.source))
@@ -74,13 +68,14 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
         pl.remove(dttv)
         chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["detective_chance"].format(chance)
+
         to_send = "detective_notify"
         if dttv.prefers_simple():
-            to_send = "detective_simple"
-        dttv.send(messages[to_send].format(warning), messages["players_list"].format(pl), sep="\n")
+            to_send = "role_simple"
+        dttv.send(messages[to_send].format("detective"))
+        if chance > 0:
+            dttv.send(messages["detective_chance"].format(chance))
+        dttv.send(messages["players_list"].format(pl))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

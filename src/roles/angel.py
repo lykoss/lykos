@@ -107,22 +107,22 @@ def on_transition_night_end(evt, var):
     for gangel in get_all_players(("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)
-        gself = messages["guardian_self_notification"]
-        if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            pl.remove(gangel)
-            gself = ""
         if gangel in LASTGUARDED:
             if LASTGUARDED[gangel] in pl:
                 pl.remove(LASTGUARDED[gangel])
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
 
         to_send = "guardian_angel_notify"
         if gangel.prefers_simple():
-            to_send = "guardian_angel_simple"
-        gangel.send(messages[to_send].format(warning, gself), messages["players_list"].format(pl), sep="\n")
+            to_send = "role_simple"
+        gangel.send(messages[to_send].format("guardian angel"))
+        if chance > 0:
+            gangel.send(messages["bodyguard_death_chance"].format(chance))
+        if var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
+            gangel.send(messages["guardian_self_notification"])
+        else:
+            pl.remove(gangel)
+        gangel.send(messages["players_list"].format(pl))
 
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
