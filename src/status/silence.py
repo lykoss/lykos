@@ -7,6 +7,7 @@ SILENT = UserSet() # type: UserSet[users.User]
 
 def add_silent(var, user):
     """Silence the target, preventing them from using actions for a day."""
+    # silence should work on dead players; don't add an alive check here
     SILENT.add(user)
 
 def is_silent(var, user):

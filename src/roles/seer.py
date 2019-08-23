@@ -10,7 +10,7 @@ from src.functions import get_players, get_all_players, get_main_role, get_targe
 from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange
-from src.cats import Cursed, Safe, Innocent, Wolf
+from src.cats import Cursed, Safe, Innocent, Neutral, Win_Stealer, Team_Switcher, Wolf
 
 from src.roles.helper.seers import setup_variables
 
@@ -40,6 +40,8 @@ def see(var, wrapper, message):
         pass # Keep the same role
     elif targrole in Innocent:
         targrole = var.HIDDEN_ROLE
+    elif targrole in (Neutral - Win_Stealer - Team_Switcher):
+        pass # Keep the same role
     elif targrole in Wolf:
         targrole = "wolf"
     else:

@@ -34,31 +34,23 @@ def see(var, wrapper, message):
     targrole = get_main_role(target)
     trole = targrole # keep a copy for logging
 
-    for i in range(2): # need to go through loop twice
-        iswolf = False
-        if targrole in Cursed:
-            targrole = "wolf"
-            iswolf = True
-        elif targrole in Safe | Innocent:
-            targrole = var.HIDDEN_ROLE
-        elif targrole in Wolf:
-            targrole = "wolf"
-            iswolf = True
-        else:
-            targrole = var.HIDDEN_ROLE
+    if targrole in Cursed:
+        targrole = "wolf"
+    elif targrole in Safe | Innocent:
+        targrole = var.HIDDEN_ROLE
+    elif targrole in Wolf:
+        targrole = "wolf"
 
-        if i:
-            break
-
-        evt = Event("see", {"role": targrole})
-        evt.dispatch(var, wrapper.source, target)
-        targrole = evt.data["role"]
+    evt = Event("see", {"role": targrole})
+    evt.dispatch(var, wrapper.source, target)
+    targrole = evt.data["role"]
 
     to_send = "oracle_success_not_wolf"
-    if iswolf:
+    if targrole == "wolf":
         to_send = "oracle_success_wolf"
     wrapper.send(messages[to_send].format(target))
-    debuglog("{0} (oracle) SEE: {1} ({2}) (Wolf: {3})".format(wrapper.source, target, trole, str(iswolf)))
+
+    debuglog("{0} (oracle) SEE: {1} ({2}) (Wolf: {3})".format(wrapper.source, target, trole, "True" if targrole == "wolf" else "False"))
 
     SEEN.add(wrapper.source)
 
