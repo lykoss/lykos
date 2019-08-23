@@ -278,18 +278,8 @@ def change_totem(var, player, totem, roles=None):
 @event_listener("see", priority=10)
 def on_see(evt, var, seer, target):
     if (seer in DECEIT) ^ (target in DECEIT):
-        role = evt.data["role"]
-        if role in Cursed:
-            role = "wolf"
-        elif role in Safe | Innocent:
-            role = "villager"
-        elif role in Wolf:
-            role = "wolf"
-        else:
-            role = "villager"
-
-        if role == "wolf":
-            evt.data["role"] = "villager"
+        if evt.data["role"] == "wolf":
+            evt.data["role"] = var.HIDDEN_ROLE
         else:
             evt.data["role"] = "wolf"
 
