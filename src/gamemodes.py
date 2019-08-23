@@ -538,15 +538,15 @@ class LycanMode(GameMode):
         super().__init__(arg)
         self.ROLE_GUIDE = {
             7:  ["wolf", "seer", "hunter", "lycan", "cursed villager"],
-            8:  ["traitor"],
+            8:  ["wolf"],
             9:  ["clone"],
-            10: ["wolf shaman", "hunter(2)", "lycan(2)"],
+            10: ["wolf shaman", "hunter(2)"],
             11: ["bodyguard", "mayor"],
-            12: ["lycan(3)", "cursed villager(2)"],
-            15: ["matchmaker", "lycan(4)"],
+            12: ["lycan(2)", "cursed villager(2)"],
+            15: ["matchmaker", "lycan(3)"],
             17: ["clone(2)", "gunner/sharpshooter"],
             19: ["seer(2)"],
-            20: ["lycan(5)"],
+            20: ["lycan(4)"],
         }
 
 @game_mode("valentines", minp=8, maxp=24, likelihood=0)
