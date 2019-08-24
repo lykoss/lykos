@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 # Credits to Metacity for designing and current name
 # Blame arkiwitect for the original name of KrabbyPatty
 @game_mode("aleatoire", minp=8, maxp=24, likelihood=10)

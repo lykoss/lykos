@@ -9,10 +9,8 @@ from src.cats import All, Cursed, Wolf, Innocent, Village, Neutral, Hidden, Team
 
 __all__ = ["InvalidModeException", "game_mode", "GameMode"]
 
-
 class InvalidModeException(Exception):
     pass
-
 
 def game_mode(name, minp, maxp, likelihood=0):
     def decor(c):
@@ -20,7 +18,6 @@ def game_mode(name, minp, maxp, likelihood=0):
         var.GAME_MODES[name] = (c, minp, maxp, likelihood)
         return c
     return decor
-
 
 class GameMode:
     def __init__(self, arg=""):

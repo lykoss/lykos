@@ -5,7 +5,6 @@ from src.messages import messages
 from src import events, channels, users
 from src.cats import All, Wolf, Killer
 
-
 @game_mode("random", minp=8, maxp=24, likelihood=0)
 class RandomMode(GameMode):
     """Completely random and hidden roles."""

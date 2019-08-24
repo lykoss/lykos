@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 @game_mode("drunkfire", minp=8, maxp=17, likelihood=0)
 class DrunkFireMode(GameMode):
     """Most players get a gun, quickly shoot all the wolves!"""

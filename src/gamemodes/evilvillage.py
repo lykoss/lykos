@@ -4,7 +4,6 @@ from src.functions import get_players
 from src import events, channels, users
 from src.cats import Village
 
-
 @game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
 class EvilVillageMode(GameMode):
     """Majority of the village is wolf aligned, safes must secretly try to kill the wolves."""
