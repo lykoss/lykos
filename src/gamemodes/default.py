@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 @game_mode("default", minp=4, maxp=24, likelihood=40)
 class DefaultMode(GameMode):
     """Default game mode."""

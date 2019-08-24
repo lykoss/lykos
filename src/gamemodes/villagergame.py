@@ -6,7 +6,6 @@ from src.messages import messages
 from src.functions import get_all_players, get_players
 from src import events, channels, users
 
-
 @game_mode("villagergame", minp=4, maxp=9, likelihood=0)
 class VillagergameMode(GameMode):
     """This mode definitely does not exist, now please go away."""

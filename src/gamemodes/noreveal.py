@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 @game_mode("noreveal", minp=4, maxp=21, likelihood=1)
 class NoRevealMode(GameMode):
     """Roles are not revealed when players die."""

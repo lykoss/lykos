@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 @game_mode("mad", minp=7, maxp=22, likelihood=5)
 class MadMode(GameMode):
     """This game mode has mad scientist and many things that may kill you."""

@@ -9,7 +9,6 @@ from src.functions import get_players, change_role
 from src.status import add_dying
 from src import events, channels, users
 
-
 @game_mode("sleepy", minp=10, maxp=24, likelihood=1)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""

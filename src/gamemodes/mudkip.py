@@ -2,7 +2,6 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-
 # someone let woffle commit while drunk again... tsk tsk
 @game_mode("mudkip", minp=5, maxp=15, likelihood=5)
 class MudkipMode(GameMode):

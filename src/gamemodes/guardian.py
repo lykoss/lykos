@@ -3,7 +3,6 @@ from src.messages import messages
 from src.functions import get_players
 from src import events, channels, users
 
-
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
 @game_mode("guardian", minp=8, maxp=16, likelihood=1)
 class GuardianMode(GameMode):
