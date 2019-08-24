@@ -538,7 +538,7 @@ class LycanMode(GameMode):
         super().__init__(arg)
         self.ROLE_GUIDE = {
             7:  ["wolf", "seer", "hunter", "lycan", "cursed villager"],
-            8:  ["wolf"],
+            8:  ["wolf(2)"],
             9:  ["clone"],
             10: ["wolf shaman", "hunter(2)"],
             11: ["bodyguard", "mayor"],
