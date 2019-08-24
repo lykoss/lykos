@@ -3201,7 +3201,7 @@ def list_roles(var, wrapper, message):
             wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
             return
 
-    strip = lambda x: re.sub("\(.*\)", "", x)
+    strip = lambda x: re.sub(r"\(.*\)", "", x)
     rolecnt = Counter()
     roles = list((x, map(strip, y)) for x, y in gamemode.ROLE_GUIDE.items())
     roles.sort(key=lambda x: x[0])
@@ -3228,7 +3228,7 @@ def list_roles(var, wrapper, message):
             snum = "[{0}]".format(num)
             if num <= lpl:
                 snum = "\u0002{0}\u0002".format(snum)
-            final.append(snum + " ")
+            final.append(snum)
             new = []
             for role in role_num:
                 if role.startswith("-"):
