@@ -66,7 +66,8 @@ except NameError:
 
 try:
     import gamemodes # type: ignore
-except ModuleNotFoundError:
+    gamemodes.CUSTOM_MODES_DEFINED
+except (ModuleNotFoundError, AttributeError):
     import src.gamemodes
 
 try:
@@ -74,5 +75,3 @@ try:
     roles.CUSTOM_ROLES_DEFINED
 except (ModuleNotFoundError, AttributeError):
     import src.roles
-
-# vim: set sw=4 expandtab:

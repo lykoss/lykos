@@ -3201,7 +3201,9 @@ def list_roles(var, wrapper, message):
             wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
             return
 
-    roles = list(gamemode.ROLE_GUIDE.items())
+    strip = lambda x: re.sub("\(.*\)", "", x)
+    rolecnt = Counter()
+    roles = list((x, map(strip, y)) for x, y in gamemode.ROLE_GUIDE.items())
     roles.sort(key=lambda x: x[0])
 
     if pieces and pieces[0].isdigit():
@@ -3209,9 +3211,12 @@ def list_roles(var, wrapper, message):
         new = []
         for role in itertools.chain.from_iterable([y for x, y in roles if x <= specific]):
             if role.startswith("-"):
+                rolecnt[role[1:]] -= 1
                 new.remove(role[1:])
             else:
-                new.append(role)
+                rolecnt[role] += 1
+                append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
+                new.append(role + append)
 
         msg.append("[{0}]".format(specific))
         msg.append(", ".join(new))
@@ -3219,11 +3224,22 @@ def list_roles(var, wrapper, message):
     else:
         final = []
 
-        for num, role in roles:
+        for num, role_num in roles:
             snum = "[{0}]".format(num)
             if num <= lpl:
                 snum = "\u0002{0}\u0002".format(snum)
-            final.append("{0} {1}".format(snum, ", ".join(role)))
+            final.append(snum + " ")
+            new = []
+            for role in role_num:
+                if role.startswith("-"):
+                    rolecnt[role[1:]] -= 1
+                    new.append(role)
+                else:
+                    rolecnt[role] += 1
+                    append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
+                    new.append(role + append)
+
+            final.append(", ".join(new))
 
         msg.append(" ".join(final))
 
