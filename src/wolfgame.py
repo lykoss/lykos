@@ -346,7 +346,7 @@ def reset():
     evt = Event("reset", {})
     evt.dispatch(var)
 
-@command("sync", "fsync", flag="m", pm=True)
+@command("sync", flag="m", pm=True)
 def fsync(var, wrapper, message):
     """Makes the bot apply the currently appropriate channel modes."""
     sync_modes(var)
@@ -384,7 +384,7 @@ def refreshdb(var, wrapper, message):
     expire_tempbans()
     wrapper.reply("Done.")
 
-@command("fdie", "fbye", flag="F", pm=True)
+@command("fdie", flag="F", pm=True)
 def forced_exit(var, wrapper, message):
     """Forces the bot to close."""
 
@@ -432,7 +432,7 @@ def _restart_program(mode=None):
         os.execl(python, python, *sys.argv)
 
 
-@command("restart", "frestart", flag="D", pm=True)
+@command("frestart", flag="D", pm=True)
 def restart_program(var, wrapper, message):
     """Restarts the bot."""
 
@@ -550,7 +550,7 @@ def mark_prefer_notice(var, wrapper, message):
     db.toggle_notice(account, userhost)
     wrapper.pm(messages["notice_" + toggle])
 
-@command("swap", "replace", pm=True, phases=("join", "day", "night"))
+@command("swap", pm=True, phases=("join", "day", "night"))
 def replace(var, wrapper, message):
     """Swap out a player logged in to your account."""
     if wrapper.source not in channels.Main.users:
@@ -615,7 +615,7 @@ def replace(var, wrapper, message):
             myrole.func(var, wrapper, "")
 
 
-@command("pingif", "pingme", "pingat", "pingpref", pm=True)
+@command("pingif", pm=True)
 def altpinger(var, wrapper, message):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
@@ -827,7 +827,7 @@ def deadchat_pref(var, wrapper, message):
 
     db.toggle_deadchat(temp.account, temp.host)
 
-@command("join", "j", pm=True)
+@command("join", pm=True)
 def join(var, wrapper, message):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     # keep this and the event in fjoin() in sync
@@ -1086,7 +1086,7 @@ def fjoin(var, wrapper, message):
     if fake:
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(list_players())))
 
-@command("fleave", "fquit", flag="A", pm=True, phases=("join", "day", "night"))
+@command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(var, wrapper, message):
     """Force someone to leave the game."""
 
@@ -1144,7 +1144,7 @@ def parted_modes(evt, var, chan, user, reason):
         chan.join()
     var.OLD_MODES.pop(user, None)
 
-@command("stats", "players", pm=True, phases=("join", "day", "night"))
+@command("stats", pm=True, phases=("join", "day", "night"))
 def stats(var, wrapper, message):
     """Displays the player statistics."""
     cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
@@ -2095,7 +2095,7 @@ def leave(var, what, user, why=None):
         temp = user.lower()
         var.DISCONNECTED[user] = (datetime.now(), what)
 
-@command("quit", "leave", pm=True, phases=("join", "day", "night"))
+@command("leave", pm=True, phases=("join", "day", "night"))
 def leave_game(var, wrapper, message):
     """Quits the game."""
     if wrapper.target is channels.Main:
@@ -2658,7 +2658,7 @@ def on_error(cli, pfx, msg):
     elif msg.startswith("Closing Link:"):
         raise SystemExit
 
-@command("template", "ftemplate", flag="F", pm=True)
+@command("ftemplate", flag="F", pm=True)
 def ftemplate(var, wrapper, message):
     cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
     params = re.split(" +", rest)
@@ -2975,7 +2975,7 @@ def on_invite(cli, raw_nick, something, chan):
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(nick, "INVITE", chan, display=True)
 
-@command("admins", "ops", pm=True)
+@command("admins", pm=True)
 def show_admins(var, wrapper, message):
     """Pings the admins that are available."""
     cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
@@ -3039,7 +3039,7 @@ def coin(var, wrapper, message):
         coin = messages.get("coin_land", 2)
     wrapper.send(coin.format())
 
-@command("pony", "horse", pm=True)
+@command("pony", pm=True)
 def pony(var, wrapper, message):
     """Toss a magical pony into the air and see what happens!"""
 
@@ -3216,7 +3216,7 @@ def myrole(var, wrapper, message):
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
 
-@command("aftergame", "faftergame", flag="D", pm=True)
+@command("faftergame", flag="D", pm=True)
 def aftergame(var, wrapper, message):
     """Schedule a command to be run after the current game."""
     if not message.strip():
@@ -3253,7 +3253,7 @@ def aftergame(var, wrapper, message):
 def _command_disabled(var, wrapper, message):
     wrapper.send(messages["command_disabled_admin"])
 
-@command("lastgame", "flastgame", flag="D", pm=True)
+@command("flastgame", flag="D", pm=True)
 def flastgame(var, wrapper, message):
     """Disables starting or joining a game, and optionally schedules a command to run after the current game ends."""
     for cmdcls in (COMMANDS["join"] + COMMANDS["start"]):
@@ -3265,7 +3265,7 @@ def flastgame(var, wrapper, message):
     if message.strip():
         aftergame.func(var, wrapper, message)
 
-@command("gamestats", "gstats", pm=True)
+@command("gamestats", pm=True)
 def gamestats(var, wrapper, message):
     """Get the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
 
@@ -3312,7 +3312,7 @@ def gamestats(var, wrapper, message):
         # Attempt to find game stats for the given game size
         wrapper.send(db.get_game_stats(gamemode, gamesize))
 
-@command("playerstats", "pstats", "player", "p", pm=True)
+@command("playerstats", pm=True)
 def player_stats(var, wrapper, message):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     cli, nick, chan, rest = wrapper.client, wrapper.source.nick, wrapper.target.name, message # FIXME: @cmd
@@ -3374,13 +3374,13 @@ def player_stats(var, wrapper, message):
         # Attempt to find the player's stats
         reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
 
-@command("mystats", "m", pm=True)
+@command("mystats", pm=True)
 def my_stats(var, wrapper, message):
     """Get your own stats."""
     message = message.split()
     player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + message))
 
-@command("rolestats", "rstats", pm=True)
+@command("rolestats", pm=True)
 def role_stats(var, wrapper, rest):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
     if (wrapper.target != users.Bot and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
@@ -3479,7 +3479,7 @@ def game(var, wrapper, message):
         wrapper.pm(messages["no_mode_specified"] + gamemodes)
         return
 
-@command("games", "modes", pm=True)
+@command("games", pm=True)
 def show_modes(var, wrapper, message):
     """Show the available game modes."""
     modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES))
@@ -3539,7 +3539,7 @@ def _git_pull(wrapper):
     return (ret == 0)
 
 
-@command("pull", "fpull", flag="D", pm=True)
+@command("fpull", flag="D", pm=True)
 def fpull(var, wrapper, message):
     """Pulls from the repository to update the bot."""
     _git_pull(wrapper)
@@ -3607,7 +3607,7 @@ def fsay(var, wrapper, message):
     """Talk through the bot as a normal message."""
     _say(wrapper, message, "say")
 
-@command("fdo", "fme", flag="s", pm=True)
+@command("fdo", flag="s", pm=True)
 def fdo(var, wrapper, message):
     """Act through the bot as an action."""
     _say(wrapper, message, "act", action=True)

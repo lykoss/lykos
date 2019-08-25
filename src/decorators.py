@@ -217,7 +217,7 @@ class handle_error:
             return self.func(*args, **kwargs)
 
 class command:
-    def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
+    def __init__(self, command, *, flag=None, owner_only=False, chan=True, pm=False,
                  playing=False, silenced=False, phases=(), roles=(), users=None):
 
         # the "d" flag indicates it should only be enabled in debug mode
@@ -225,8 +225,7 @@ class command:
             return
 
         # handle command localizations
-        # FIXME: make this always happen once all commands are converted
-        commands = messages.raw("_commands").get(commands[0], commands)
+        commands = messages.raw("_commands")[command]
 
         self.commands = frozenset(commands)
         self.flag = flag

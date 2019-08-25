@@ -17,7 +17,7 @@ from src.roles.helper.shamans import setup_variables, get_totem_target, give_tot
 
 TOTEMS, LASTGIVEN, SHAMANS = setup_variables("crazed shaman", knows_totem=False)
 
-@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
+@command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
 def crazed_shaman_totem(var, wrapper, message):
     """Give a random totem to a player."""
 

@@ -18,7 +18,7 @@ GUARDED = UserDict() # type: Dict[User, User]
 LASTGUARDED = UserDict() # type: Dict[User, User]
 PASSED = UserSet() # type: Set[User]
 
-@command("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
+@command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
 def guard(var, wrapper, message):
     """Guard a player, preventing them from being killed that night."""
     if wrapper.source in GUARDED:

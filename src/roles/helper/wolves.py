@@ -72,7 +72,7 @@ def register_killer(rolename):
 
         send_wolfchat_message(var, wrapper.source, msg, Wolf, role=rolename, command="kill")
 
-    @command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=(rolename,))
+    @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=(rolename,))
     def wolf_retract(var, wrapper, message):
         """Removes a wolf's kill selection."""
         if wrapper.source in KILLS:

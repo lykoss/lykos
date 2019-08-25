@@ -16,7 +16,7 @@ from src.status import try_misdirection, try_exchange, remove_lycanthropy, remov
 IMMUNIZED = UserSet() # type: Set[users.User]
 DOCTORS = UserDict() # type: Dict[users.User, int]
 
-@command("give", "immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
+@command("immunize", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(var, wrapper, message):
     """Immunize a player, preventing them from turning into a wolf."""
     if not DOCTORS[wrapper.source]:

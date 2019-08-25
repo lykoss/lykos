@@ -16,7 +16,7 @@ from src.cats import Neutral, Wolfteam
 
 INVESTIGATED = UserSet()
 
-@command("id", "investigate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
+@command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
 def investigate(var, wrapper, message):
     """Investigate two players to determine their relationship to each other."""
     if wrapper.source in INVESTIGATED:

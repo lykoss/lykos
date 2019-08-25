@@ -43,7 +43,7 @@ def observe(var, wrapper, message):
     send_wolfchat_message(var, wrapper.source, messages["alpha_bite_wolfchat"].format(wrapper.source, target), {"alpha wolf"}, role="alpha wolf", command="bite")
     debuglog("{0} (alpha wolf) BITE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("alpha wolf",))
 def retract(var, wrapper, message):
     """Retract your bite."""
     if wrapper.source in BITTEN:

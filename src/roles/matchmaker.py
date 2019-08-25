@@ -71,7 +71,7 @@ def get_lovers():
 
     return lovers
 
-@command("match", "choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
+@command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(var, wrapper, message):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if wrapper.source in MATCHMAKERS:

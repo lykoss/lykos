@@ -48,7 +48,7 @@ def vg_kill(var, wrapper, message):
 
     debuglog("{0} (vengeful ghost) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=False, phases=("night",))
+@command("retract", chan=False, pm=True, playing=False, phases=("night",))
 def vg_retract(var, wrapper, message):
     """Removes a vengeful ghost's kill selection."""
     if wrapper.source not in GHOSTS:

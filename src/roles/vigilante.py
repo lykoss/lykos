@@ -30,7 +30,7 @@ def vigilante_kill(var, wrapper, message):
     wrapper.send(messages["player_kill"].format(orig))
     debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 def vigilante_retract(var, wrapper, message):
     """Removes a vigilante's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:

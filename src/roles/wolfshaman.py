@@ -19,7 +19,7 @@ TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True)
 
 register_killer("wolf shaman")
 
-@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
+@command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
 def wolf_shaman_totem(var, wrapper, message):
     """Give a totem to a player."""
 
