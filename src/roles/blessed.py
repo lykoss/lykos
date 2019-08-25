@@ -19,8 +19,8 @@ def on_transition_night_end(evt, var):
         if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
             to_send = "blessed_notify"
             if blessed.prefers_simple():
-                to_send = "blessed_simple"
-            blessed.send(messages[to_send])
+                to_send = "role_simple"
+            blessed.send(messages[to_send].format("blessed villager"))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

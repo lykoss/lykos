@@ -10,8 +10,6 @@ from src.status import try_misdirection, try_exchange, add_dying, kill_players, 
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
-import botconfig
-
 def setup_variables(rolename):
     GUNNERS = UserDict() # type: UserDict[users.User, int]
 
@@ -89,7 +87,7 @@ def setup_variables(rolename):
                 if gunner.prefers_simple(): # gunner and sharpshooter share the same key for simple
                     gunner.send(messages["gunner_simple"].format(rolename, GUNNERS[gunner]))
                 else:
-                    gunner.send(messages["{0}_notify".format(rolename)].format(botconfig.CMD_CHAR, GUNNERS[gunner]))
+                    gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4)
     def on_transition_day_resolve_end(evt, var, victims):

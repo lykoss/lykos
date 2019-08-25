@@ -36,7 +36,7 @@ def on_transition_night_end(evt, var):
     for monster in get_all_players(("monster",)):
         add_protection(var, monster, protector=None, protector_role="monster", scope=Wolf)
         if monster.prefers_simple():
-            monster.send(messages["monster_simple"])
+            monster.send(messages["role_simple"].format("monster"))
         else:
             monster.send(messages["monster_notify"])
 

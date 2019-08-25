@@ -89,7 +89,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
-        evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
+        evt.data["message"] = messages["succubus_win"].format(lsuccubi)
     elif not lsuccubi and lentranced and var.PHASE == "day" and lpl == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["entranced_win"]
@@ -162,14 +162,14 @@ def on_transition_night_end(evt, var):
         pl.remove(succubus)
         to_send = "succubus_notify"
         if succubus.prefers_simple():
-            to_send = "succubus_simple"
+            to_send = "role_simple"
         succ = []
         for p in pl:
             if p in succubi:
                 succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send], messages["players_list"].format(succ), sep="\n")
+        succubus.send(messages[to_send].format("succubus"), messages["players_list"].format([succ]), sep="\n")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):

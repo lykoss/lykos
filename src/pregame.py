@@ -80,9 +80,9 @@ def fwait(var, wrapper, message):
         var.CAN_START_TIME += timedelta(seconds=extra)
 
     if extra >= 0:
-        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra), "s" if extra != 1 else ""))
+        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra)))
     else:
-        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra), "s" if extra != -1 else ""))
+        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
 
 @command("start", phases=("none", "join"))
 def start_cmd(var, wrapper, message):
@@ -151,7 +151,7 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     if not restart:
         if var.PHASE == "none":
-            wrapper.source.send(messages["no_game_running"].format(botconfig.CMD_CHAR))
+            wrapper.source.send(messages["no_game_running"])
             return
         if var.PHASE != "join":
             wrapper.source.send(messages["werewolf_already_running"])
@@ -188,8 +188,7 @@ def start(var, wrapper, *, forced=False, restart=""):
                 if len(START_VOTES) < start_votes_required - 1:
                     START_VOTES.add(wrapper.source)
                     remaining_votes = start_votes_required - len(START_VOTES)
-                    word = "vote" if remaining_votes == 1 else "votes"
-                    wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes, word))
+                    wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
 
                     # If this was the first vote
                     if len(START_VOTES) == 1:
@@ -312,7 +311,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         if need_reset:
             from src.wolfgame import reset_settings
             reset_settings()
-            wrapper.send(messages["default_reset"].format(botconfig.CMD_CHAR))
+            wrapper.send(messages["default_reset"])
             var.PHASE = "join"
             return
 
@@ -404,7 +403,7 @@ def start(var, wrapper, *, forced=False, restart=""):
                 var.ROLES.clear()
                 var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
                 reset_settings()
-                wrapper.send(messages["default_reset"].format(botconfig.CMD_CHAR))
+                wrapper.send(messages["default_reset"])
                 var.PHASE = "join"
                 return
             else:
@@ -462,7 +461,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         else:
             options = ""
 
-        wrapper.send(messages["welcome"].format(", ".join(x.nick for x in villagers), gamemode, options))
+        wrapper.send(messages["welcome"].format(villagers, gamemode, options))
         wrapper.target.mode("+m")
 
     var.ORIGINAL_ROLES.clear()

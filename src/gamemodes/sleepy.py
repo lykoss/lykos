@@ -40,10 +40,10 @@ class SleepyMode(GameMode):
 
         cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.having_nightmare)
 
-        self.north_cmd = command("north", "n", **cmd_params)(functools.partial(self.move, "n"))
-        self.east_cmd = command("east", "e", **cmd_params)(functools.partial(self.move, "e"))
-        self.south_cmd = command("south", "s", **cmd_params)(functools.partial(self.move, "s"))
-        self.west_cmd = command("west", "w", **cmd_params)(functools.partial(self.move, "w"))
+        self.north_cmd = command("north", **cmd_params)(functools.partial(self.move, "n"))
+        self.east_cmd = command("east", **cmd_params)(functools.partial(self.move, "e"))
+        self.south_cmd = command("south", **cmd_params)(functools.partial(self.move, "s"))
+        self.west_cmd = command("west", **cmd_params)(functools.partial(self.move, "w"))
 
     def teardown(self):
         from src import decorators

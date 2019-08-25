@@ -81,10 +81,7 @@ def choose(var, wrapper, message):
     pieces = re.split(" +", message)
     victim1 = pieces[0]
     if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            victim2 = pieces[2]
-        else:
-            victim2 = pieces[1]
+        victim2 = pieces[1]
     else:
         victim2 = None
 
@@ -124,10 +121,10 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         if mm.prefers_simple():
-            mm.send(messages["matchmaker_simple"])
+            mm.send(messages["role_simple"].format("matchmaker"))
         else:
             mm.send(messages["matchmaker_notify"])
-        mm.send("Players: " + ", ".join(p.nick for p in pl))
+        mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -208,15 +205,7 @@ def on_get_team_affiliation(evt, var, target1, target2):
 def on_myrole(evt, var, user):
     # Remind lovers of each other
     if user in get_players() and user in LOVERS:
-        msg = [messages["matched_info"]]
-        lovers = sorted(LOVERS[user], key=lambda x: x.nick)
-        if len(lovers) == 1:
-            msg.append(lovers[0].nick)
-        elif len(lovers) == 2:
-            msg.extend((lovers[0].nick, "and", lovers[1].nick))
-        else:
-            msg.extend((", ".join([l.nick for l in lovers[:-1]]) + ",", "and", lovers[-1].nick))
-        evt.data["messages"].append(" ".join(msg) + ".")
+        evt.data["messages"].append(messages["matched_info"].format(LOVERS[user]))
 
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):

@@ -211,11 +211,9 @@ def fstasis(var, wrapper, message):
 
         if len(data) == 1:
             if acc is not None and var.STASISED_ACCS[acc] == cur:
-                plural = "" if cur == 1 else "s"
-                wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur, plural))
+                wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
             elif hostmask is not None and var.STASISED[hostmask] == cur:
-                plural = "" if cur == 1 else "s"
-                wrapper.reply(messages["hostmask_in_stasis"].format(data[0], hostmask, cur, plural))
+                wrapper.reply(messages["hostmask_in_stasis"].format(data[0], hostmask, cur))
             elif acc is not None:
                 wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
             else:
@@ -244,11 +242,10 @@ def fstasis(var, wrapper, message):
             db.set_stasis(amt, acc, hostmask)
             db.init_vars()
             if amt > 0:
-                plural = "" if amt == 1 else "s"
                 if acc is not None:
-                    wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt, plural))
+                    wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt))
                 else:
-                    wrapper.reply(messages["fstasis_hostmask_add"].format(data[0], hostmask, amt, plural))
+                    wrapper.reply(messages["fstasis_hostmask_add"].format(data[0], hostmask, amt))
             elif acc is not None:
                 wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
             else:
@@ -392,10 +389,7 @@ def warn(var, wrapper, message):
         if warning["sanctions"]:
             sanctions.append(messages["fwarn_view_sanctions"])
             if "stasis" in warning["sanctions"]:
-                if warning["sanctions"]["stasis"] != 1:
-                    sanctions.append(messages["fwarn_view_stasis_plural"].format(warning["sanctions"]["stasis"]))
-                else:
-                    sanctions.append(messages["fwarn_view_stasis_sing"])
+                sanctions.append(messages["fwarn_view_stasis"].format(warning["sanctions"]["stasis"]))
             if "deny" in warning["sanctions"]:
                 sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
         if sanctions:
@@ -618,10 +612,7 @@ def fwarn(var, wrapper, message):
         if warning["sanctions"]:
             sanctions.append(messages["fwarn_view_sanctions"])
             if "stasis" in warning["sanctions"]:
-                if warning["sanctions"]["stasis"] != 1:
-                    sanctions.append(messages["fwarn_view_stasis_plural"].format(warning["sanctions"]["stasis"]))
-                else:
-                    sanctions.append(messages["fwarn_view_stasis_sing"])
+                sanctions.append(messages["fwarn_view_stasis"].format(warning["sanctions"]["stasis"]))
             if "deny" in warning["sanctions"]:
                 sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
             if "tempban" in warning["sanctions"]:

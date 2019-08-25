@@ -140,7 +140,7 @@ def show_votes(var, wrapper, message):
 
         with var.WARNING_LOCK:
             if pregame.START_VOTES:
-                msg += messages["start_votes"].format(len(pregame.START_VOTES), ", ".join(p.nick for p in pregame.START_VOTES))
+                msg += messages["start_votes"].format(len(pregame.START_VOTES), pregame.START_VOTES)
 
         wrapper.send(msg)
         return

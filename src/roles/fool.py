@@ -45,7 +45,7 @@ def on_player_win(evt, var, player, role, winner, survived):
 def on_transition_night_end(evt, var):
     for fool in get_all_players(("fool",)):
         if fool.prefers_simple():
-            fool.send(messages["fool_simple"])
+            fool.send(messages["role_simple"].format("fool"))
         else:
             fool.send(messages["fool_notify"])
 

@@ -78,7 +78,7 @@ def on_transition_night_end(evt, var):
             PREV_ACTED.add(ass)
         else:
             if ass.prefers_simple():
-                ass.send(messages["assassin_simple"])
+                ass.send(messages["role_simple"].format("assassin"))
             else:
                 ass.send(messages["assassin_notify"])
             ass.send(messages["players_list"].format(pl))

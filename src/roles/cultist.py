@@ -24,8 +24,8 @@ def on_transition_night_end(evt, var):
             for cultist in cultists:
                 to_send = "cultist_notify"
                 if cultist.prefers_simple():
-                    to_send = "cultist_simple"
-                cultist.queue_message(messages[to_send])
+                    to_send = "role_simple"
+                cultist.queue_message(messages[to_send].format("cultist"))
             cultist.send_messages()
 
 @event_listener("chk_win", priority=3)

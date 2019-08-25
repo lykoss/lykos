@@ -77,9 +77,9 @@ def on_transition_night_end(evt, var):
                 TOTEMS[shaman] = t
                 break
         if shaman.prefers_simple():
-            shaman.send(messages["shaman_simple"].format("crazed shaman"))
+            shaman.send(messages["role_simple"].format("crazed shaman"))
         else:
-            shaman.send(messages["shaman_notify"].format("crazed shaman", "random "))
+            shaman.send(messages["shaman_random_notify"].format("crazed shaman"))
         shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")

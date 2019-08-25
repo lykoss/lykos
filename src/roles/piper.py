@@ -22,10 +22,7 @@ def charm(var, wrapper, message):
     pieces = re.split(" +", message)
     target1 = pieces[0]
     if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            target2 = pieces[2]
-        else:
-            target2 = pieces[1]
+        target2 = pieces[1]
     else:
         target2 = None
 
@@ -89,7 +86,7 @@ def pass_cmd(var, wrapper, message):
     wrapper.send(messages["piper_pass"])
     debuglog("{0} (piper) PASS".format(wrapper.source))
 
-@command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+@command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
     """Remove your decision to charm people."""
     if wrapper.source in TOBECHARMED or wrapper.source in PASSED:
@@ -110,7 +107,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 
     uncharmed = set(get_players(mainroles=mainroles)) - CHARMED - pipers
 
-    if var.PHASE == "day" and len(uncharmed) == 0:
+    if var.PHASE == "day" and not uncharmed:
         evt.data["winner"] = "pipers"
         evt.data["message"] = messages["piper_win"].format(lp)
 
@@ -170,8 +167,8 @@ def on_transition_night_end(evt, var):
         pl.remove(piper)
         to_send = "piper_notify"
         if piper.prefers_simple():
-            to_send = "piper_simple"
-        piper.send(messages[to_send], messages["players_list"].format(pl), sep="\n")
+            to_send = "role_simple"
+        piper.send(messages[to_send].format("piper"), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -191,15 +188,13 @@ def on_reset(evt, var):
 @event_listener("revealroles")
 def on_revealroles(evt, var, wrapper):
     if CHARMED:
-        nicks = ", ".join(p.nick for p in CHARMED)
-        evt.data["output"].append(messages["piper_revealroles_charmed"].format(nicks))
+        evt.data["output"].append(messages["piper_revealroles_charmed"].format(CHARMED))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     players = TOBECHARMED.get(user)
     if players:
-        nicks = ", ".join(p.nick for p in players)
-        evt.data["special_case"].append(messages["piper_revealroles_charming"].format(nicks))
+        evt.data["special_case"].append(messages["piper_revealroles_charming"].format(players))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

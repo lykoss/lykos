@@ -16,7 +16,7 @@ from src.status import try_misdirection, try_exchange
 def on_transition_night_end(evt, var):
     for demoniac in get_all_players(("demoniac",)):
         if demoniac.prefers_simple():
-            demoniac.send(messages["demoniac_simple"])
+            demoniac.send(messages["role_simple"].format("demoniac"))
         else:
             demoniac.send(messages["demoniac_notify"])
 
@@ -28,8 +28,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     cubs = len(rolemap.get("wolf cub", ()))
 
     if not lrealwolves and not traitors and not cubs and demoniacs:
-        s = "s" if demoniacs > 1 else ""
-        evt.data["message"] = messages["demoniac_win"].format(s)
+        evt.data["message"] = messages["demoniac_win"].format(demoniacs)
         evt.data["winner"] = "demoniacs"
 
 @event_listener("player_win")

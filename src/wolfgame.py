@@ -473,7 +473,7 @@ def restart_program(var, wrapper, message):
             valid_modes = ("normal", "verbose", "debug")
 
             if mode not in valid_modes:
-                wrapper.pm(messages["invalid_restart_mode"].format(mode, ", ".join(valid_modes)))
+                wrapper.pm(messages["invalid_restart_mode"].format(mode, valid_modes))
                 return
 
             msg += " in {0} mode".format(mode)
@@ -756,13 +756,8 @@ def join_deadchat(var, *all_users):
     if not to_join:
         return
 
-    if len(to_join) == 1:
-        msg = messages["player_joined_deadchat"].format(to_join[0])
-    elif len(to_join) == 2:
-        msg = messages["multiple_joined_deadchat"].format(*to_join)
-    else:
-        msg = messages["multiple_joined_deadchat"].format("\u0002, \u0002".join([user.nick for user in to_join[:-1]]), to_join[-1])
-
+    msg = messages["player_joined_deadchat"].format(to_join)
+    
     people = var.DEADCHAT_PLAYERS.union(to_join)
 
     for user in var.DEADCHAT_PLAYERS:
@@ -928,11 +923,10 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         if not botconfig.DEBUG_MODE:
             for nick in pl:
                 if users.equals(users._get(nick).account, temp.account): # FIXME
-                    msg = messages["account_already_joined"]
                     if who is wrapper.source:
-                        who.send(msg.format(who, "your", messages["join_swap_instead"].format(botconfig.CMD_CHAR)), notice=True)
+                        who.send(messages["account_already_joined_self"].format(who), notice=True)
                     else:
-                        who.send(msg.format(who, "their", ""), notice=True)
+                        who.send(messages["account_already_joined_other"].format(who), notice=True)
                     return
 
         var.ALL_PLAYERS.append(wrapper.source)
@@ -2137,7 +2131,6 @@ def leave_game(var, wrapper, message):
 def begin_day():
     # Reset nighttime variables
     var.GAMEPHASE = "day"
-    var.KILLER = ""  # nickname of who chose the victim
     var.STARTED_DAY_PLAYERS = len(get_players())
     var.LAST_GOAT.clear()
     msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
@@ -2580,17 +2573,14 @@ def transition_night():
         tmr[0].cancel()
     var.TIMERS = {}
 
-    # Reset nighttime variables
-    var.KILLER = ""  # nickname of who chose the victim
-
-    daydur_msg = ""
+    dmsg = []
 
     if var.NIGHT_TIMEDELTA or var.START_WITH_DAY:  #  transition from day
         td = var.NIGHT_START_TIME - var.DAY_START_TIME
         var.DAY_START_TIME = None
         var.DAY_TIMEDELTA += td
         min, sec = td.seconds // 60, td.seconds % 60
-        daydur_msg = messages["day_lasted"].format(min,sec)
+        dmsg.append(messages["day_lasted"].format(min, sec))
 
     var.NIGHT_ID = time.time()
     if var.NIGHT_TIME_LIMIT > 0:
@@ -2612,11 +2602,11 @@ def transition_night():
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)
 
-    dmsg = (daydur_msg + messages["night_begin"])
+    dmsg.append(messages["night_begin"])
 
     if var.NIGHT_COUNT > 1:
-        dmsg = (dmsg + messages["first_night_begin"])
-    channels.Main.send(dmsg)
+        dmsg.append(messages["first_night_begin"])
+    channels.Main.send(*dmsg, sep=" ")
     debuglog("BEGIN NIGHT")
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone()
@@ -3077,10 +3067,8 @@ def timeleft(var, wrapper, message):
     if var.PHASE == "join":
         dur = int((var.CAN_START_TIME - datetime.now()).total_seconds())
         msg = None
-        if dur > 1:
-            msg = messages["start_timer_plural"].format(dur)
-        elif dur == 1:
-            msg = messages["start_timer_singular"]
+        if dur > 0:
+            msg = messages["start_timer"].format(dur)
 
         if msg is not None:
             reply(cli, nick, chan, msg)
@@ -3210,8 +3198,7 @@ def myrole(var, wrapper, message):
         return
     role = evt.data["role"]
 
-    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-    wrapper.pm(messages["show_role"].format(an, role))
+    wrapper.pm(messages["show_role"].format(role))
 
     for msg in evt.data["messages"]:
         wrapper.pm(msg)
@@ -3368,7 +3355,7 @@ def player_stats(var, wrapper, message):
             reply(cli, nick, chan, messages["no_such_role"].format(role))
             return
         if len(matches) > 1:
-            reply(cli, nick, chan, messages["ambiguous_role"].format(", ".join(matches)))
+            reply(cli, nick, chan, messages["ambiguous_role"].format(matches))
             return
         role = matches[0]
         # Attempt to find the player's stats
@@ -3433,7 +3420,7 @@ def role_stats(var, wrapper, rest):
         if len(roles) == 0:
             wrapper.pm(messages["no_such_role"].format(role))
         else:
-            wrapper.pm(messages["ambiguous_role"].format(", ".join(roles)))
+            wrapper.pm(messages["ambiguous_role"].format(roles))
         return
     wrapper.reply(db.get_role_stats(roles[0], gamemode))
 
@@ -3467,29 +3454,32 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
         if doreply:
             wrapper.pm(messages["vote_game_fail"])
 
+def _get_gamemodes(var):
+    gamemodes = []
+    for gm, (cls, min, max, chance) in var.GAME_MODES.items():
+        if gm in {"roles", "villagergame"} or gm in var.DISABLED_GAMEMODES:
+            continue
+        if min <= len(get_players()) <= max:
+            gm = messages["bold"].format(gm)
+        gamemodes.append(gm)
+
+    return gamemodes
+
 @command("game", playing=True, phases=("join",))
 def game(var, wrapper, message):
     """Vote for a game mode to be picked."""
     if message:
         vote_gamemode(var, wrapper, message.lower().split()[0], doreply=True)
     else:
-        gamemodes = ", ".join("\u0002{0}\u0002".format(gamemode) if len(list_players()) in range(var.GAME_MODES[gamemode][1],
-            var.GAME_MODES[gamemode][2]+1) else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and
-            gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES)
-        wrapper.pm(messages["no_mode_specified"] + gamemodes)
-        return
+        wrapper.pm(messages["no_mode_specified"].format(_get_gamemodes(var)))
 
 @command("games", pm=True)
 def show_modes(var, wrapper, message):
     """Show the available game modes."""
-    modes = "\u0002, \u0002".join(sorted(var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES))
+    wrapper.pm(messages["available_modes"].format(_get_gamemodes(var)))
 
-    wrapper.pm("{0}{1}\u0002".format(messages["available_modes"], modes))
-
-def game_help(args=""):
-    return (messages["available_mode_setters_help"] +
-        ", ".join("\u0002{0}\u0002".format(gamemode) if len(list_players()) in range(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]+1)
-        else gamemode for gamemode in var.GAME_MODES.keys() if gamemode != "roles" and gamemode not in var.DISABLED_GAMEMODES))
+def game_help(args=""): # FIXME: Needs DI for var
+    return messages["available_mode_setters_help"].format(_get_gamemodes(var))
 game.__doc__ = game_help
 
 def _call_command(wrapper, command, no_out=False):
@@ -3575,7 +3565,7 @@ def _say(wrapper, rest, cmd, action=False):
     rest = rest.split(" ", 1)
 
     if len(rest) < 2:
-        wrapper.pm(messages["fsend_usage"].format(botconfig.CMD_CHAR, cmd))
+        wrapper.pm(messages["fsend_usage"].format(cmd))
         return
 
     target, message = rest
@@ -3762,7 +3752,7 @@ def fgame_help(args=""):
     args = args.strip()
 
     if not args:
-        return messages["available_mode_setters"] + ", ".join(var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
+        return messages["available_mode_setters"].format(var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
     elif args in var.GAME_MODES.keys() and args not in var.DISABLED_GAMEMODES:
         return var.GAME_MODES[args][0].__doc__ or messages["setter_no_doc"].format(args)
     else:

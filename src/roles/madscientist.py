@@ -93,8 +93,8 @@ def on_transition_night_end(evt, var):
 
         to_send = "mad_scientist_notify"
         if ms.prefers_simple():
-            to_send = "mad_scientist_simple"
-        ms.send(messages[to_send].format(target1, target2))
+            to_send = "role_simple"
+        ms.send(messages[to_send].format("mad scientist"), messages["mad_scientist_myrole_targets"].format(target1, target2), sep=" ")
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

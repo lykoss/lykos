@@ -71,10 +71,10 @@ def on_transition_night_end(evt, var):
                 TOTEMS[shaman] = t
                 break
         if shaman.prefers_simple():
-            shaman.send(messages["shaman_simple"].format("shaman"))
+            shaman.send(messages["role_simple"].format("shaman"))
             shaman.send(messages["totem_simple"].format(TOTEMS[shaman]))
         else:
-            shaman.send(messages["shaman_notify"].format("shaman", ""))
+            shaman.send(messages["shaman_notify"].format("shaman"))
             totem = TOTEMS[shaman]
             tmsg = messages["shaman_totem"].format(totem)
             tmsg += messages[totem + "_totem"]

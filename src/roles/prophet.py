@@ -66,7 +66,7 @@ def pray(var, wrapper, message):
 def on_transition_night_end(evt, var):
     for pht in get_all_players(("prophet",)):
         if pht.prefers_simple():
-            pht.send(messages["prophet_simple"])
+            pht.send(messages["role_simple"].format("prophet"))
         else:
             pht.send(messages["prophet_notify"])
 

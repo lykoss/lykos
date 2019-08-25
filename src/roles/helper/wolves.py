@@ -252,7 +252,7 @@ def on_transition_night_end(evt, var):
         role = get_main_role(wolf)
 
         if normal_notify:
-            msg = "{0}_notify".format(role.replace(" ", "_"))
+            msg = "{0}_notify".format(role.replace(" ", "_")) # FIXME: Split into each role file
 
             wolf.send(messages[msg])
 
