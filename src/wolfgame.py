@@ -1533,7 +1533,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         var.AFTER_FLASTGAME()
         var.AFTER_FLASTGAME = None
     if var.ADMIN_TO_PING is not None:  # It was an flastgame
-        channels.Main.send("PING! {0}".format(var.ADMIN_TO_PING))
+        channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
         var.ADMIN_TO_PING = None
 
 def chk_win(*, end_game=True, winner=None):
@@ -1551,7 +1551,7 @@ def chk_win(*, end_game=True, winner=None):
                 var.AFTER_FLASTGAME()
                 var.AFTER_FLASTGAME = None
             if var.ADMIN_TO_PING is not None:  # It was an flastgame
-                channels.Main.send("PING! {0}".format(var.ADMIN_TO_PING))
+                channels.Main.send(messages["fstop_ping"].format([var.ADMIN_TO_PING]))
                 var.ADMIN_TO_PING = None
 
             return True
@@ -2338,7 +2338,7 @@ def transition_day(gameid=0):
 
     if random.random() < var.GIF_CHANCE:
         to_send.append(str(messages["gifs"]))
-    channels.Main.send("\n".join(to_send))
+    channels.Main.send(*to_send, sep="\n")
 
     # chilling howl message was played, give roles the opportunity to update !stats
     # to account for this
@@ -2823,7 +2823,7 @@ def reset_game(var, wrapper, message):
         reset_modes_timers(var)
         reset()
         if pl:
-            wrapper.send("PING! {0}".format(" ".join(pl)))
+            wrapper.send(messages["fstop_ping"].format(pl))
 
 @command("rules", pm=True)
 def show_rules(var, wrapper, message):
@@ -3714,7 +3714,7 @@ def revealroles(var, wrapper, message):
             output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(out)))
 
     evt = Event("revealroles", {"output": output})
-    evt.dispatch(var, wrapper)
+    evt.dispatch(var)
 
     if botconfig.DEBUG_MODE:
         wrapper.send(*output, sep=" | ")

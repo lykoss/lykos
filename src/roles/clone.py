@@ -95,7 +95,7 @@ def on_transition_day_begin(evt, var):
         if clone not in CLONED:
             ps = pl[:]
             ps.remove(clone)
-            if len(ps) > 0:
+            if ps:
                 target = random.choice(ps)
                 CLONED[clone] = target
                 clone.send(messages["random_clone"].format(target))
@@ -135,7 +135,7 @@ def on_myrole(evt, var, user):
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "clone" and user in CLONED:
-        evt.data["special_case"].append("cloning {0}".format(CLONED[user]))
+        evt.data["special_case"].append(messages["clone_revealroles"].format(CLONED[user]))
 
 @event_listener("reset")
 def on_reset(evt, var):

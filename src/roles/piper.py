@@ -186,7 +186,7 @@ def on_reset(evt, var):
     PASSED.clear()
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if CHARMED:
         evt.data["output"].append(messages["piper_revealroles_charmed"].format(CHARMED))
 

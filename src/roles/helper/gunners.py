@@ -123,12 +123,12 @@ def setup_variables(rolename):
     @event_listener("myrole")
     def on_myrole(evt, var, user):
         if GUNNERS.get(user):
-            evt.data["messages"].append(messages["gunner_simple"].format(rolename, GUNNERS[user], "" if GUNNERS[user] == 1 else "s"))
+            evt.data["messages"].append(messages["gunner_simple"].format(rolename, GUNNERS[user]))
 
     @event_listener("revealroles_role")
     def on_revealroles_role(evt, var, user, role):
         if role == rolename and user in GUNNERS:
-            evt.data["special_case"].append("{0} bullet{1}".format(GUNNERS[user], "" if GUNNERS[user] == 1 else "s"))
+            evt.data["special_case"].append(messages["gunner_revealroles"].format(GUNNERS[user]))
 
     @event_listener("reset")
     def on_reset(evt, var):

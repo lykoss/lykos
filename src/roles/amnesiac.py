@@ -66,13 +66,12 @@ def on_reveal_role(evt, var, user):
 @event_listener("get_endgame_message")
 def on_get_endgame_message(evt, var, player, role, is_mainrole):
     if role == "amnesiac":
-        # FIXME: Harcoded English
-        evt.data["message"].append("would be {0}".format(ROLES[player]))
+        evt.data["message"].append(messages["amnesiac_endgame"].format(ROLES[player]))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "amnesiac":
-        evt.data["special_case"].append("will become {0}".format(ROLES[user]))
+        evt.data["special_case"].append(messages["amnesiac_revealroles"].format(ROLES[user]))
 
 @event_listener("update_stats")
 def on_update_stats(evt, var, player, mainrole, revealrole, allroles):

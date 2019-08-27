@@ -40,7 +40,7 @@ class Formatter(string.Formatter):
 
     def format_field(self, value, format_spec):
         if not format_spec:
-            return super().format_field(value, format_spec="")
+            format_spec = []
 
         if not isinstance(format_spec, list):
             format_spec = [format_spec]
@@ -141,6 +141,8 @@ class Formatter(string.Formatter):
 
         if not args:
             args = messages.raw("_metadata", "list")
+
+        value = list(value) # make sure we can index it
 
         if not value:
             return ""

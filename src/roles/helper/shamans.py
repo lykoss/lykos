@@ -115,11 +115,11 @@ def setup_variables(rolename, *, knows_totem):
     def on_revealroles(evt, var, user, role):
         if role == rolename and user in TOTEMS:
             if user in SHAMANS:
-                evt.data["special_case"].append("giving {0} totem to {1}".format(TOTEMS[user], SHAMANS[user][0]))
+                evt.data["special_case"].append(messages["shaman_revealroles_giving"].format(TOTEMS[user], SHAMANS[user][0]))
             elif var.PHASE == "night":
-                evt.data["special_case"].append("has {0} totem".format(TOTEMS[user]))
+                evt.data["special_case"].append(messages["shaman_revealroles_current"].format(TOTEMS[user]))
             elif user in LASTGIVEN and LASTGIVEN[user]:
-                evt.data["special_case"].append("gave {0} totem to {1}".format(TOTEMS[user], LASTGIVEN[user]))
+                evt.data["special_case"].append(messages["shaman_revealroles_past"].format(TOTEMS[user], LASTGIVEN[user]))
 
     @event_listener("transition_day_begin", priority=7)
     def on_transition_day_begin2(evt, var):

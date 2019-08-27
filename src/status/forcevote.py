@@ -3,6 +3,7 @@ from typing import Iterable, Set
 from src.decorators import event_listener
 from src.containers import UserDict, UserSet
 from src.functions import get_players
+from src.messages import messages
 from src.events import Event
 from src import channels, users
 
@@ -72,7 +73,7 @@ def on_del_player(evt, var, player, allroles, death_triggers):
                 del FORCED_COUNTS[votee]
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if FORCED_COUNTS:
         num_players = len(get_players())
         vlist = []
@@ -86,9 +87,9 @@ def on_revealroles(evt, var, wrapper):
                 vlist.append("{0} ({1})".format(p, ", ".join(v.nick for v in FORCED_TARGETS[p])))
 
         if vlist:
-            evt.data["output"].append("\u0002forced votes\u0002: {0}".format(", ".join(vlist)))
+            evt.data["output"].append(messages["forced_votes_revealroles"].format(vlist))
         if alist:
-            evt.data["output"].append("\u0002forced abstentions\u0002: {0}".format(", ".join(alist)))
+            evt.data["output"].append(messages["forced_abstentions_revealroles"].format(alist))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

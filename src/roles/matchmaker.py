@@ -150,16 +150,14 @@ def on_game_end_messages(evt, var):
             # check if already said the pairing
             if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
                 continue
-            lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
+            lovers.append(messages["lover_pair_endgame"].format(lover1, lover2))
             if lover1 in done:
                 done[lover1].append(lover2)
             else:
                 done[lover1] = [lover2]
 
-    if len(lovers) == 1 or len(lovers) == 2:
-        evt.data["messages"].append("The lovers were {0}.".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        evt.data["messages"].append("The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+    if lovers:
+        evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
@@ -208,7 +206,7 @@ def on_myrole(evt, var, user):
         evt.data["messages"].append(messages["matched_info"].format(LOVERS[user]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     # print out lovers
     pl = get_players()
     done = {}
@@ -227,10 +225,8 @@ def on_revealroles(evt, var, wrapper):
                 done[lover1].append(lover2)
             else:
                 done[lover1] = [lover2]
-    if len(lovers) == 1 or len(lovers) == 2:
-        evt.data["output"].append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        evt.data["output"].append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+    if lovers:
+        evt.data["output"].append(messages["lovers_revealroles"].format(lovers))
 
 @event_listener("reset")
 def on_reset(evt, var):

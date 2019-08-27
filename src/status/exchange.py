@@ -1,6 +1,7 @@
 from src.containers import UserSet
 from src.decorators import event_listener
 from src.functions import get_main_role, change_role, get_players
+from src.messages import messages
 from src.events import Event
 
 __all__ = ["add_exchange", "try_exchange"]
@@ -39,9 +40,9 @@ def on_del_player(evt, var, player, allroles, death_triggers):
     EXCHANGE.discard(player)
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if EXCHANGE:
-        evt.data["output"].append("\u0002exchange\u0002: {0}".format(", ".join(p.nick for p in EXCHANGE)))
+        evt.data["output"].append(messages["exchange_revealroles"].format(EXCHANGE))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):

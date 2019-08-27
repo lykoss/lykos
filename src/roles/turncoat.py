@@ -103,7 +103,10 @@ def on_myrole(evt, var, user):
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "turncoat" and user in TURNCOATS:
-        evt.data["special_case"].append("siding with {0}".format(TURNCOATS[user][0]))
+        if TURNCOATS[user][0] == "none":
+            evt.data["special_case"].append(messages["turncoat_revealroles_none"])
+        else:
+            evt.data["special_case"].append(messages["turncoat_revealroles"].format(TURNCOATS[user][0]))
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):

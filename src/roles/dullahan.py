@@ -142,9 +142,9 @@ def on_transition_night_end(evt, var):
         random.shuffle(targets)
         to_send = "dullahan_notify"
         if dullahan.prefers_simple():
-            to_send = "dullahan_simple"
+            to_send = "role_simple"
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
-        dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
+        dullahan.send(messages[to_send].format("dullahan"), t + ", ".join(t.nick for t in targets), sep="\n")
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):

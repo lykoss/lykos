@@ -181,12 +181,6 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "succubus" and user in ENTRANCED:
-        ENTRANCED.remove(user)
-        user.send(messages["no_longer_entranced"])
-
 @event_listener("reset")
 def on_reset(evt, var):
     global ALL_SUCC_IDLE
@@ -196,9 +190,9 @@ def on_reset(evt, var):
     PASSED.clear()
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if ENTRANCED:
-        evt.data["output"].append("\u0002entranced players\u0002: {0}".format(", ".join(p.nick for p in ENTRANCED)))
+        evt.data["output"].append(messages["entranced_revealroles"].format(ENTRANCED))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

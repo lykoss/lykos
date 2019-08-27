@@ -128,11 +128,10 @@ def show_votes(var, wrapper, message):
             # - No other game mode has a majority
             if (var.GAME_MODES[gamemode][1] <= len(pl) <= var.GAME_MODES[gamemode][2] and
                 (not majority or num_votes >= len(pl) / 2) and (var.GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl) / 2)):
-                votelist.append("\u0002{0}\u0002: {1}".format(gamemode, num_votes))
+                gamemode = messages["bold"].format(gamemode)
                 if num_votes >= len(pl) / 2:
                     majority = True
-            else:
-                votelist.append("{0}: {1}".format(gamemode, num_votes))
+            votelist.append("{0}: {1}".format(gamemode, num_votes))
 
         msg = ", ".join(votelist)
         if len(pl) >= var.MIN_PLAYERS:

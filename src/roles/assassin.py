@@ -110,15 +110,15 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if user in get_all_players(("assassin",)):
-        msg = ""
         if user in TARGETED:
-            msg = messages["assassin_targeting"].format(TARGETED[user])
-        user.send(messages["assassin_role_info"].format(msg))
+            evt.data["messages"].append(messages["assassin_targeting"].format(TARGETED[user]))
+        else:
+            evt.data["messages"].append(messages["role_simple"].format("assassin"))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "assassin" and user in TARGETED:
-        evt.data["special_case"].append("targeting {0}".format(TARGETED[user]))
+        evt.data["special_case"].append(messages["assassin_revealroles"].format(TARGETED[user]))
 
 @event_listener("reset")
 def on_reset(evt, var):

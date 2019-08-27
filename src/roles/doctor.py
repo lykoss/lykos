@@ -69,9 +69,9 @@ def on_transition_night_end(evt, var):
             doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if IMMUNIZED:
-        evt.data["output"].append("\u0002immunized\u0002: {0}".format(", ".join(p.nick for p in IMMUNIZED)))
+        evt.data["output"].append(messages["immunized_revealroles"].format(IMMUNIZED))
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):

@@ -163,8 +163,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         var.GAME_START_TIME = now  # Only used for the idler checker
         dur = int((var.CAN_START_TIME - now).total_seconds())
         if dur > 0 and not forced:
-            plural = "" if dur == 1 else "s"
-            wrapper.send(messages["please_wait"].format(dur, plural))
+            wrapper.send(messages["please_wait"].format(dur))
             return
 
         if len(villagers) < var.MIN_PLAYERS:
@@ -237,7 +236,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
-        strip = lambda x: re.sub("\(.*\)", "", x)
+        strip = lambda x: re.sub(r"\(.*\)", "", x)
         lv = len(villagers)
         roles = []
         for num, rolelist in var.CURRENT_GAMEMODE.ROLE_GUIDE.items():
@@ -323,7 +322,6 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
     var.EXTRA_WOLVES = 0
 

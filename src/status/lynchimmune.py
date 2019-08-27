@@ -1,6 +1,7 @@
 from src.containers import DefaultUserDict
 from src.decorators import event_listener
 from src.functions import get_players
+from src.messages import messages
 from src.events import Event
 
 __all__ = ["add_lynch_immunity", "try_lynch_immunity"]
@@ -23,9 +24,9 @@ def try_lynch_immunity(var, user) -> bool:
     return False
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if IMMUNITY:
-        evt.data["output"].append("\u0002lynch immunity\u0002: {0}".format(", ".join(p.nick for p in IMMUNITY)))
+        evt.data["output"].append(messages["lynch_immune_revealroles"].format(IMMUNITY))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

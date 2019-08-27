@@ -202,13 +202,16 @@ def on_myrole(evt, var, user):
             user.send(messages["vengeful_role"].format(GHOSTS[user]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if GHOSTS:
         glist = []
         for ghost, team in GHOSTS.items():
-            dead = "driven away, " if team[0] == "!" else ""
-            glist.append("{0} ({1}against {2})".format(ghost.nick, dead, team.lstrip("!")))
-        evt.data["output"].append("\u0002dead vengeful ghost\u0002: {0}".format(", ".join(glist)))
+            to_send = []
+            if team[0] == "!":
+                to_send.append(messages["vg_driven_away"].format()) # call .format() so it's actually a str
+            to_send.append(messages["vg_against"].format(team.lstrip("!")))
+            glist.append("{0} ({1})".format(ghost, ", ".join(to_send)))
+        evt.data["output"].append(messages["vengeful_ghost_revealroles"].format(glist))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

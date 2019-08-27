@@ -206,6 +206,6 @@ class SleepyMode(GameMode):
                 for cultist in cultists:
                     change_role(var, cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
 
-    def on_revealroles(self, evt, var, wrapper):
+    def on_revealroles(self, evt, var):
         if self.having_nightmare:
-            evt.data["output"].append("\u0002having nightmare\u0002: {0}".format(self.having_nightmare[0]))
+            evt.data["output"].append(messages["sleepy_revealroles"].format(self.having_nightmare[0]))
