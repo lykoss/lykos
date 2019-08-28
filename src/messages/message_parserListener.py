@@ -71,6 +71,15 @@ class message_parserListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by message_parser#sub_field.
+    def enterSub_field(self, ctx:message_parser.Sub_fieldContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#sub_field.
+    def exitSub_field(self, ctx:message_parser.Sub_fieldContext):
+        pass
+
+
     # Enter a parse tree produced by message_parser#sub_convert.
     def enterSub_convert(self, ctx:message_parser.Sub_convertContext):
         pass

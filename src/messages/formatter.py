@@ -38,7 +38,7 @@ class Formatter(string.Formatter):
 
         return super().get_value(key, args, kwargs)
 
-    def format_field(self, value, format_spec):
+    def format_field(self, value, format_spec, *, flatten_lists=True):
         if not format_spec:
             format_spec = []
 
@@ -69,7 +69,7 @@ class Formatter(string.Formatter):
 
         # if value is a list by this point, retrieve the first element
         # this happens when using !role but expecting just the singular value
-        if isinstance(value, list):
+        if flatten_lists and isinstance(value, list):
             value = value[0]
 
         # handle specs that work on strings. Combining multiple of these isn't supported
@@ -121,7 +121,7 @@ class Formatter(string.Formatter):
         else:
             try:
                 num = int(args[0])
-            except ValueError:
+            except TypeError:
                 num = len(args[0])
         for rule in messages.raw("_metadata", "plural"):
             if rule["number"] is None or rule["number"] == num:

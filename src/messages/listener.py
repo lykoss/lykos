@@ -6,6 +6,7 @@ class Listener(message_parserListener):
     def __init__(self, message, args, kwargs):
         super().__init__()
         self.stack = []
+        self.nest_level = 0
         self.used_args = set()
         self.message = message
         self.args = args
@@ -87,10 +88,15 @@ class Listener(message_parserListener):
     def exitClose_tag(self, ctx: message_parser.Close_tagContext):
         self.stack.append(ctx.TAG_NAME().getText())
 
+    def enterSub(self, ctx: message_parser.SubContext):
+        self.nest_level += 1
+
     def exitSub(self, ctx: message_parser.SubContext):
+        self.nest_level -= 1
+        flatten_lists = self.nest_level == 0
         spec = self.stack.pop()
         convert = self.stack.pop()
-        field_name = ctx.SUB_FIELD().getText()
+        field_name = self.stack.pop()
         # if spec is an empty list, change it to None. Makes us more consistent with built in format method
         # (since formatter can be used for both this parse tree as well as normal formatting)
         if not spec:
@@ -100,10 +106,25 @@ class Listener(message_parserListener):
         obj, key = self.message.formatter.get_field(field_name, self.args, self.kwargs)
         self.used_args.add(key)
         obj = self.message.formatter.convert_field(obj, convert)
-        obj = self.message.formatter.format_field(obj, spec)
+        obj = self.message.formatter.format_field(obj, spec, flatten_lists=flatten_lists)
         # obj is not necessarily a string here; we support passing objects through until the point where we need
         # to concatenate them with other things (at which point we coerce to string)
         self.stack.append(obj)
+
+    def exitSub_field(self, ctx:message_parser.Sub_fieldContext):
+        if ctx.getChildCount() == 1:
+            if ctx.SUB_FIELD() is not None:
+                self.stack.append(ctx.SUB_FIELD().getText())
+            # else: the top of the stack is the sub value, which we want to keep on top of stack, so do nothing
+            return
+
+        if ctx.SUB_FIELD() is not None:
+            value = self.stack.pop()
+            self.stack.append(str(value) + ctx.SUB_FIELD().getText())
+        else:
+            sub = self.stack.pop()
+            value = self.stack.pop()
+            self.stack.append(str(value) + str(sub))
 
     def exitSub_convert(self, ctx: message_parser.Sub_convertContext):
         if ctx.getChildCount() == 0:
