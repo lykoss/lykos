@@ -1396,18 +1396,12 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                 roleswap_key = "endgame_roleswap_short"
             evt = Event("get_endgame_message", {"message": player_msg})
             evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
+            key = "endgame_role_player_short"
             if player_msg:
-                msg.append("\u0002{0}\u0002 ({1})".format(player, ", ".join(player_msg)))
-            else:
-                msg.append("\u0002{0}\u0002".format(player))
+                key = "endgame_role_player_long"
+            msg.append(messages[key].format(player, player_msg))
 
-        # FIXME: get rid of hardcoded English
-        if numrole == 2:
-            roles_msg.append("The {1} were {0[0]} and {0[1]}.".format(msg, plural(role)))
-        elif numrole == 1:
-            roles_msg.append("The {1} was {0[0]}.".format(msg, role))
-        else:
-            roles_msg.append("The {2} were {0}, and {1}.".format(", ".join(msg[0:-1]), msg[-1], plural(role)))
+        roles_msg.append(messages["endgame_role_msg"].format(role, msg))
 
     message = ""
     count = 0
@@ -3344,6 +3338,9 @@ def player_stats(var, wrapper, message):
     else:
         acc = irc_lower(user)
         hostmask = None
+
+    if acc == "*": #FIXME
+        acc = None
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:

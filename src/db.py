@@ -10,7 +10,9 @@ from datetime import datetime, timedelta
 
 import botconfig
 import src.settings as var
-from src.utilities import irc_lower, break_long_message, role_order, singular
+from src.utilities import break_long_message, role_order, singular
+from src.messages import messages
+from src.context import lower as irc_lower
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
@@ -303,7 +305,7 @@ def add_game(mode, size, started, finished, winner, players, options):
 def get_player_stats(acc, hostmask, role):
     peid, plid = _get_ids(acc, hostmask)
     if not _total_games(peid):
-        return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -325,9 +327,9 @@ def get_player_stats(acc, hostmask, role):
     row = c.fetchone()
     name = _get_display_name(peid)
     if row:
-        return ("\u0002{0}\u0002 as \u0002{1[0]}\u0002 | Team wins: {1[1]} ({2:.0%}), "
-                "Individual wins: {1[2]} ({3:.0%}), Overall wins: {1[3]} ({4:.0%}), Total games: {1[4]}.").format(name, row, row[1]/row[4], row[2]/row[4], row[3]/row[4])
-    return "No stats for \u0002{0}\u0002 as \u0002{1}\u0002.".format(name, role)
+        role, team, indiv, overall, total = row
+        return messages["db_player_stats"].format(name, role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
+    return messages["db_pstats_no_role"].format(name, role)
 
 def get_player_totals(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
