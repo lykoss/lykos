@@ -10,9 +10,10 @@ from datetime import datetime, timedelta
 
 import botconfig
 import src.settings as var
-from src.utilities import break_long_message, role_order, singular
-from src.messages import messages
+from src.utilities import break_long_message, singular
+from src.messages import messages, get_role_name
 from src.context import lower as irc_lower
+from cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
@@ -335,7 +336,7 @@ def get_player_totals(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     total_games = _total_games(peid)
     if not total_games:
-        return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -365,10 +366,10 @@ def get_player_totals(acc, hostmask):
     order = list(role_order())
     name = _get_display_name(peid)
     #ordered role stats
-    totals = ["\u0002{0}\u0002: {1}".format(r, tmp[r]) for r in order if r in tmp]
+    totals = [messages["db_role_games"].format(r, tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
-    totals += ["\u0002{0}\u0002: {1}".format(r, t) for r, t in tmp.items() if r not in order]
-    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | Winrate: \u0002{2:.0%}\u0002 | {3}".format(name, total_games, won_games / total_games, break_long_message(totals, ", "))
+    totals += [messages["db_role_games"].format(r, t) for r, t in tmp.items() if r not in order]
+    return messages["db_total_games"].format(name, total_games, won_games / total_games, break_long_message(totals, ", ")) # FIXME: Remove break_long_message
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -381,7 +382,7 @@ def get_game_stats(mode, size):
 
     total_games = c.fetchone()[0]
     if not total_games:
-        return "No stats for \u0002{0}\u0002 player games.".format(size)
+        return messages["db_gstats_no_game"].format(size)
 
     if mode == "all":
         c.execute("""SELECT
@@ -413,20 +414,20 @@ def get_game_stats(mode, size):
                      GROUP BY team
                      ORDER BY ord ASC, team ASC""", (mode, size))
 
+    key = "db_gstats_specific"
     if mode == "all":
-        msg = "\u0002{0}\u0002 player games | ".format(size)
-    else:
-        msg = "\u0002{0}\u0002 player games (\u0002{1}\u0002) | ".format(size, mode)
+        key = "db_gstats_all"
 
     bits = []
     for row in c:
-        winner = singular(row[0]).title()
+        winner = singular(row[0])
+        winner = get_role_name(winner, number=None).title()
         if not winner:
             winner = botconfig.NICK.title()
-        bits.append("{0} wins: {1} ({2}%)".format(winner, row[1], round(row[1]/total_games * 100)))
-    bits.append("Total games: {0}".format(total_games))
+        bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
+    bits.append(messages["db_gstats_total"].format(total_games))
 
-    return msg + ", ".join(bits)
+    return messages[key].format(size, mode, bits)
 
 def get_game_totals(mode):
     conn = _conn()
@@ -986,7 +987,6 @@ def _upgrade(oldversion):
 
 def _migrate():
     # try to make a backup copy of the database
-    import shutil
     try:
         shutil.copyfile("data.sqlite3", "data.sqlite3.bak")
     except OSError:

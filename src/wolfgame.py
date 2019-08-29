@@ -3344,7 +3344,7 @@ def player_stats(var, wrapper, message):
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True)
+        reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True) # FIXME: Code still uses break_long_message
     else:
         role = " ".join(params[1:])
         matches = complete_role(var, role)
