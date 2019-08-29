@@ -1,11 +1,11 @@
+from antlr4 import TerminalNode
 from src.messages.message_parserListener import message_parserListener
 from src.messages.message_parser import message_parser
-
 
 class Listener(message_parserListener):
     def __init__(self, message, args, kwargs):
         super().__init__()
-        self.stack = []
+        self._value = None
         self.nest_level = 0
         self.used_args = set()
         self.message = message
@@ -13,34 +13,48 @@ class Listener(message_parserListener):
         self.kwargs = kwargs
 
     def value(self):
-        if len(self.stack) != 1:
+        if self._value is None:
             raise ValueError("Parse error: {}: Unexpected end of message".format(self.message.key))
-        return self.stack[0]
+        return self._value
+
+    def _join_fragments(self, fragments, *, enforce_string=False):
+        # fragments is typically a generator function but we need to access values multiple times
+        fragment_list = list(fragments)
+        if not enforce_string and len(fragment_list) == 1:
+            return fragment_list[0]
+
+        bits = []
+        for node in fragment_list:
+            if isinstance(node, TerminalNode):
+                bits.append(node.getText())
+            else:
+                bits.append(str(node.value))
+
+        return "".join(bits)
+
+    def _coalesce(self, *args, default=None):
+        for thing in args:
+            if thing is None:
+                continue
+            if isinstance(thing, TerminalNode):
+                return thing.getText()
+            return thing.value
+
+        return default
 
     def exitMain(self, ctx: message_parser.MainContext):
+        self._value = ctx.string().value
         self.message.formatter.check_unused_args(self.used_args, self.args, self.kwargs)
 
     def exitString(self, ctx: message_parser.StringContext):
-        if ctx.getChildCount() == 0:
-            self.stack.append("")
-            return
-
-        str1 = self.stack.pop()
-        if ctx.TEXT() is not None:
-            self.stack.append(str(str1) + ctx.TEXT().getText())
-        else:
-            # Note: if we have two arguments, they're reversed due to the nature of stacks
-            # So, str2 actually appears first
-            str2 = self.stack.pop()
-            self.stack.append(str(str2) + str(str1))
+        ctx.value = self._join_fragments(ctx.getChildren(), enforce_string=True)
 
     def exitTag(self, ctx: message_parser.TagContext):
         # to resolve a tag, we call the relevant function on our formatter, passing in the
         # parameter (if any) and tag content
-        close_name = self.stack.pop()
-        content = self.stack.pop()
-        param = self.stack.pop()  # may be None
-        tag_name = self.stack.pop()
+        tag_name, param = ctx.open_tag().value  # param may be None
+        content = ctx.string().value
+        close_name = ctx.close_tag().value
 
         if tag_name != close_name:
             # mismatch of tag names
@@ -53,40 +67,19 @@ class Listener(message_parserListener):
             raise ValueError("Parse error: {}: Unknown tag {} ({})".format(
                              self.message.key, tag_name, ctx.open_tag().OPEN_TAG().getSymbol().column))
 
-        value = tag_func(content, param)
-        self.stack.append(value)
+        ctx.value = tag_func(content, param)
 
     def exitOpen_tag(self, ctx: message_parser.Open_tagContext):
-        param = self.stack.pop()
-        self.stack.append(ctx.TAG_NAME().getText())
-        self.stack.append(param)
+        ctx.value = (ctx.TAG_NAME().getText(), self._coalesce(ctx.tag_param()))
 
     def exitTag_param(self, ctx: message_parser.Tag_paramContext):
-        if ctx.getChildCount() == 0:
-            self.stack.append(None)
-            return
+        ctx.value = self._join_fragments(ctx.tag_param_frag())
 
-        param1 = self.stack.pop()
-        if ctx.TAG_PARAM() is not None:
-            param2 = ctx.TAG_PARAM().getText()
-            if param1 is not None:
-                # Force prefix to be a string if we're adding in text
-                # Otherwise if we're only doing a single substitution we support arbitrary data types
-                # to pass to our tag formatter; we expect the formatter knows what to do with it and raises otherwise
-                self.stack.append(str(param1) + param2)
-            else:
-                self.stack.append(param2)
-        else:
-            # param1 is the sub, param2 is the prefix
-            param2 = self.stack.pop()
-            if param2 is not None:
-                # If we're combining two subs together, the only thing that makes sense is to make them both strings
-                self.stack.append(str(param2) + str(param1))
-            else:
-                self.stack.append(param1)
+    def exitTag_param_frag(self, ctx: message_parser.Tag_param_fragContext):
+        ctx.value = self._coalesce(ctx.sub(), ctx.TAG_PARAM())
 
     def exitClose_tag(self, ctx: message_parser.Close_tagContext):
-        self.stack.append(ctx.TAG_NAME().getText())
+        ctx.value = ctx.TAG_NAME().getText()
 
     def enterSub(self, ctx: message_parser.SubContext):
         self.nest_level += 1
@@ -94,66 +87,44 @@ class Listener(message_parserListener):
     def exitSub(self, ctx: message_parser.SubContext):
         self.nest_level -= 1
         flatten_lists = self.nest_level == 0
-        spec = self.stack.pop()
-        convert = self.stack.pop()
-        field_name = self.stack.pop()
-        # if spec is an empty list, change it to None. Makes us more consistent with built in format method
+
+        field_name = ctx.sub_field().value
+        convert = self._coalesce(ctx.sub_convert())
+        spec = dict(x.value for x in ctx.sub_spec())
+        # if spec is empty, change it to None. Makes us more consistent with built in format method
         # (since formatter can be used for both this parse tree as well as normal formatting)
         if not spec:
             spec = None
+
         # get_field internally calls get_value(), and then resolves attributes/indexes like 0.foo or 1[2]
         # the returned obj is end result of resolving all of that
         obj, key = self.message.formatter.get_field(field_name, self.args, self.kwargs)
         self.used_args.add(key)
         obj = self.message.formatter.convert_field(obj, convert)
         obj = self.message.formatter.format_field(obj, spec, flatten_lists=flatten_lists)
+
         # obj is not necessarily a string here; we support passing objects through until the point where we need
         # to concatenate them with other things (at which point we coerce to string)
-        self.stack.append(obj)
+        ctx.value = obj
 
-    def exitSub_field(self, ctx:message_parser.Sub_fieldContext):
-        if ctx.getChildCount() == 1:
-            if ctx.SUB_FIELD() is not None:
-                self.stack.append(ctx.SUB_FIELD().getText())
-            # else: the top of the stack is the sub value, which we want to keep on top of stack, so do nothing
-            return
+    def exitSub_field(self, ctx: message_parser.Sub_fieldContext):
+        ctx.value = self._join_fragments(ctx.sub_field_frag())
 
-        if ctx.SUB_FIELD() is not None:
-            value = self.stack.pop()
-            self.stack.append(str(value) + ctx.SUB_FIELD().getText())
-        else:
-            sub = self.stack.pop()
-            value = self.stack.pop()
-            self.stack.append(str(value) + str(sub))
+    def exitSub_field_frag(self, ctx: message_parser.Sub_field_fragContext):
+        ctx.value = self._coalesce(ctx.sub(), ctx.SUB_FIELD())
 
     def exitSub_convert(self, ctx: message_parser.Sub_convertContext):
-        if ctx.getChildCount() == 0:
-            self.stack.append(None)
-            return
-
-        self.stack.append(ctx.SUB_IDENTIFIER().getText())
+        ctx.value = ctx.SUB_IDENTIFIER().getText()
 
     def exitSub_spec(self, ctx: message_parser.Sub_specContext):
-        if ctx.getChildCount() == 0:
-            self.stack.append([])
-            return
-
-        value = self.stack.pop()
-        spec = self.stack.pop()
-        spec.append(value)
-        self.stack.append(spec)
+        ctx.value = ctx.spec_value().value
 
     def exitSpec_value(self, ctx: message_parser.Spec_valueContext):
-        if ctx.getChildCount() == 1:
-            if ctx.SPEC_VALUE() is not None:
-                self.stack.append(ctx.SPEC_VALUE().getText())
-            # else: the top of the stack is the sub value, which we want to keep on top of stack, so do nothing
-            return
+        ctx.value = self._coalesce(ctx.spec_func(), ctx.spec_literal())
 
-        if ctx.SPEC_VALUE() is not None:
-            value = self.stack.pop()
-            self.stack.append(str(value) + ctx.SPEC_VALUE().getText())
-        else:
-            sub = self.stack.pop()
-            value = self.stack.pop()
-            self.stack.append(str(value) + str(sub))
+    def exitSpec_literal(self, ctx: message_parser.Spec_literalContext):
+        ctx.value = (self._join_fragments(ctx.spec_literal_frag(), enforce_string=True), None)
+
+    def exitSpec_literal_frag(self, ctx: message_parser.Spec_literal_fragContext):
+        ctx.value = self._coalesce(ctx.sub(), ctx.SPEC_VALUE())
+

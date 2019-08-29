@@ -53,6 +53,15 @@ class message_parserListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by message_parser#tag_param_frag.
+    def enterTag_param_frag(self, ctx:message_parser.Tag_param_fragContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#tag_param_frag.
+    def exitTag_param_frag(self, ctx:message_parser.Tag_param_fragContext):
+        pass
+
+
     # Enter a parse tree produced by message_parser#close_tag.
     def enterClose_tag(self, ctx:message_parser.Close_tagContext):
         pass
@@ -80,6 +89,15 @@ class message_parserListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by message_parser#sub_field_frag.
+    def enterSub_field_frag(self, ctx:message_parser.Sub_field_fragContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#sub_field_frag.
+    def exitSub_field_frag(self, ctx:message_parser.Sub_field_fragContext):
+        pass
+
+
     # Enter a parse tree produced by message_parser#sub_convert.
     def enterSub_convert(self, ctx:message_parser.Sub_convertContext):
         pass
@@ -104,6 +122,51 @@ class message_parserListener(ParseTreeListener):
 
     # Exit a parse tree produced by message_parser#spec_value.
     def exitSpec_value(self, ctx:message_parser.Spec_valueContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#spec_literal.
+    def enterSpec_literal(self, ctx:message_parser.Spec_literalContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#spec_literal.
+    def exitSpec_literal(self, ctx:message_parser.Spec_literalContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#spec_literal_frag.
+    def enterSpec_literal_frag(self, ctx:message_parser.Spec_literal_fragContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#spec_literal_frag.
+    def exitSpec_literal_frag(self, ctx:message_parser.Spec_literal_fragContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#spec_func.
+    def enterSpec_func(self, ctx:message_parser.Spec_funcContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#spec_func.
+    def exitSpec_func(self, ctx:message_parser.Spec_funcContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#spec_func_arg.
+    def enterSpec_func_arg(self, ctx:message_parser.Spec_func_argContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#spec_func_arg.
+    def exitSpec_func_arg(self, ctx:message_parser.Spec_func_argContext):
+        pass
+
+
+    # Enter a parse tree produced by message_parser#spec_func_arg_frag.
+    def enterSpec_func_arg_frag(self, ctx:message_parser.Spec_func_arg_fragContext):
+        pass
+
+    # Exit a parse tree produced by message_parser#spec_func_arg_frag.
+    def exitSpec_func_arg_frag(self, ctx:message_parser.Spec_func_arg_fragContext):
         pass
 
 

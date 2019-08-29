@@ -11,13 +11,13 @@ class Formatter(string.Formatter):
       and a string otherwise. Example: {=some literal string} or {=some,literal,list}. You can use any valid
       conversions or format specs on these literals.
     - New spec ":plural(N)" for use on list values. Returns the singular or plural version given the value of N.
+      N can be either numeric or a list (in which case the length of the list is used).
     - New spec ":random" for use on list values: Returns an element in the list chosen at random.
     - New spec ":join" to join a list of values. Can be called in four ways:
       :join to join with default settings
       :join(spec) to apply spec to all list elements and then join with default settings
-      :join(sep,sep,sep) to use the specified separators instead of default separators
-      :join(spec,sep,sep,sep) to apply spec to all list elements and then join with the specified separators
-      As a technical restriction, inner specs cannot contain colons
+    - The ":join_space" and ":join_simple" specs work like ":join", but join with only spaces or only commas
+      rather than regular join which adds an "and" and avoids commas when there are only two list elements.
     - New spec ":bold" to bold the value. This can be combined with other format specifiers.
     - New spec ":article to give the indefinite article for the given value.
     - New spec ":!" prefixes the value with the bot's command character.
@@ -40,21 +40,11 @@ class Formatter(string.Formatter):
 
     def format_field(self, value, format_spec, *, flatten_lists=True):
         if not format_spec:
-            format_spec = []
-
-        if not isinstance(format_spec, list):
-            format_spec = [format_spec]
-
-        specs = {}
-        for spec in format_spec:
-            m = re.fullmatch(r"(.*?)\((.*)\)", spec)
-            if m:
-                key = m.group(1)
-                args = m.group(2).split(",")
-            else:
-                key = spec
-                args = None
-            specs[key] = args
+            specs = {}
+        elif not isinstance(format_spec, dict):
+            specs = {format_spec: None}
+        else:
+            specs = format_spec.copy()
 
         # handle specs that operate on lists. Combining multiple of these isn't supported
         if "plural" in specs:
@@ -66,11 +56,25 @@ class Formatter(string.Formatter):
         if "join" in specs:
             value = self._join(value, specs["join"])
             del specs["join"]
+        if "join_space" in specs:
+            value = self._join_space(value, specs["join_space"])
+            del specs["join_space"]
+        if "join_simple" in specs:
+            value = self._join_simple(value, specs["join_simple"])
+            del specs["join_simple"]
 
-        # if value is a list by this point, retrieve the first element
-        # this happens when using !role but expecting just the singular value
-        if flatten_lists and isinstance(value, list):
-            value = value[0]
+        if isinstance(value, list):
+            if flatten_lists:
+                # if value is a list by this point, retrieve the first element
+                # this happens when using !role but expecting just the singular value
+                value = value[0]
+            else:
+                # if we aren't supposed to be flattening lists, ensure we don't have any specs remaining
+                # which operate on strings. If we do, that's an error.
+                # We can't call super() here because that will coerce value into a string.
+                if specs:
+                    raise ValueError("Invalid format specifier for list context")
+                return value
 
         # handle specs that work on strings. Combining multiple of these isn't supported
         if "article" in specs:
@@ -89,9 +93,9 @@ class Formatter(string.Formatter):
         # let __format__ and default specs handle anything that's left. This means we need to recombine
         # anything that we didn't handle back into a single spec string, reintroducing : where necessary
         remain = []
-        for spec, args in specs.items():
-            if args is not None:
-                remain.append("{0}({1})".format(spec, ",".join(args)))
+        for spec, arg in specs.items():
+            if arg is not None:
+                remain.append("{0}({1})".format(spec, arg))
             else:
                 remain.append(spec)
 
@@ -113,34 +117,44 @@ class Formatter(string.Formatter):
         # not one of our custom things
         return super().convert_field(value, conversion)
 
-    def _plural(self, value, args):
+    def _plural(self, value, arg):
         from src.messages import messages
 
-        if not args:
+        if not arg:
             num = None
         else:
             try:
-                num = int(args[0])
+                num = int(arg)
             except TypeError:
-                num = len(args[0])
+                num = len(arg)
         for rule in messages.raw("_metadata", "plural"):
             if rule["number"] is None or rule["number"] == num:
                 return value[rule["index"]]
 
         raise ValueError("No plural rules matched the number {0!r} in language metadata!".format(num))
 
-    def _random(self, value, args):
+    def _random(self, value, arg):
         return random.choice(value)
 
-    def _join(self, value, args):
+    def _join_space(self, value, arg):
+        return self._join(value, arg, join_chars=[" ", " ", " "])
+
+    def _join_simple(self, value, arg):
+        from src.messages import messages
+        # join using only a comma (in English), regardless of the number of list items
+        normal_chars = messages.raw("_metadata", "list")
+        simple = normal_chars[1]
+        return self._join(value, arg, join_chars=[simple, simple, simple])
+
+    def _join(self, value, arg, join_chars=None):
         from src.messages import messages
 
         spec = None
-        if args and (len(args) == 1 or len(args) == 4):
-            spec = args.pop(0)
+        if arg:
+            spec = arg
 
-        if not args:
-            args = messages.raw("_metadata", "list")
+        if not join_chars:
+            join_chars = messages.raw("_metadata", "list")
 
         value = list(value) # make sure we can index it
 
@@ -149,11 +163,13 @@ class Formatter(string.Formatter):
         elif len(value) == 1:
             return self.format_field(value[0], spec)
         elif len(value) == 2:
-            return args[0].join(self.format_field(v, spec) for v in value)
+            return join_chars[0].join(self.format_field(v, spec) for v in value)
         else:
-            return args[1].join(self.format_field(v, spec) for v in value[:-1]) + args[2] + self.format_field(value[-1], spec)
+            return (join_chars[1].join(self.format_field(v, spec) for v in value[:-1])
+                    + join_chars[2]
+                    + self.format_field(value[-1], spec))
 
-    def _article(self, value, args):
+    def _article(self, value, arg):
         from src.messages import messages
 
         for rule in messages.raw("_metadata", "articles"):
@@ -162,7 +178,7 @@ class Formatter(string.Formatter):
 
         raise ValueError("No article rules matched the value {0!r} in language metadata!".format(value))
 
-    def _bold(self, value, args):
+    def _bold(self, value, arg):
         # FIXME make this transport-agnostic
         return "\u0002{0}\u0002".format(value)
 

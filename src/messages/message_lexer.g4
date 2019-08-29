@@ -13,14 +13,18 @@ OPEN_SUB : '{' -> pushMode(IN_SUB) ;
 
 mode IN_TAG;
 TAG_NAME : [a-zA-Z]+ ;
-TAG_PARAM : '=' (
-    ~[\]{}]
+TAG_SLASH : '/' ;
+TAG_SEP : '=' -> mode(IN_TAG_PARAM) ;
+CLOSE_TAG : ']' -> popMode ;
+
+mode IN_TAG_PARAM;
+TAG_PARAM : (
+    ~[[\]{}]
     | '{{' { setText("{") }
     | '}}' { setText("}") }
     )+ ;
-TAG_SLASH : '/' ;
 TAG_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
-CLOSE_TAG : ']' -> popMode ;
+TAG_PARAM_CLOSE : ']' -> popMode, type(CLOSE_TAG) ;
 
 mode IN_SUB;
 SUB_FIELD : (
@@ -47,4 +51,14 @@ SPEC_VALUE : (
     )+ ;
 SPEC_SEP : ':' -> type(SUB_SPEC) ;
 SPEC_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
+OPEN_ARGLIST : '(' -> pushMode(IN_ARGLIST) ;
 CLOSE_SPEC : '}' -> popMode, type(CLOSE_SUB) ;
+
+mode IN_ARGLIST;
+ARGLIST_VALUE : (
+    ~[{}()]
+    | '{{' { setText("{") }
+    | '}}' { setText("}") }
+    )+ ;
+ARGLIST_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
+CLOSE_ARGLIST : ')' -> popMode ;

@@ -475,7 +475,7 @@
         "{0:@} heard rumors that the village was a good vacation spot. They raised the number of players to {1:bold}."
     ],
     "bold": "{0:bold}",
-    "fstop_ping": "PING! {0:join( , , )}",
+    "fstop_ping": "PING! {0:join_space}",
     "fool_win": "Game over! The {=fool!role} has been lynched, causing them to win.",
     "no_win": "Game over! There are no players remaining.",
     "piper_win": "Game over! Everyone has fallen victim to the charms of the {=piper!role:plural({0})}. The {=piper!role:plural({0})} {=leads,lead:plural({0})} the villagers away from the village, never to return...",
