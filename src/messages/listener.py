@@ -20,17 +20,18 @@ class Listener(message_parserListener):
     def _join_fragments(self, fragments, *, enforce_string=False):
         # fragments is typically a generator function but we need to access values multiple times
         fragment_list = list(fragments)
-        if not enforce_string and len(fragment_list) == 1:
-            return fragment_list[0]
 
         bits = []
         for node in fragment_list:
             if isinstance(node, TerminalNode):
                 bits.append(node.getText())
             else:
-                bits.append(str(node.value))
+                bits.append(node.value)
 
-        return "".join(bits)
+        if not enforce_string and len(bits) == 1:
+            return bits[0]
+
+        return "".join(str(x) for x in bits)
 
     def _coalesce(self, *args, default=None):
         for thing in args:
@@ -128,3 +129,11 @@ class Listener(message_parserListener):
     def exitSpec_literal_frag(self, ctx: message_parser.Spec_literal_fragContext):
         ctx.value = self._coalesce(ctx.sub(), ctx.SPEC_VALUE())
 
+    def exitSpec_func(self, ctx: message_parser.Spec_funcContext):
+        ctx.value = (ctx.SPEC_VALUE().getText(), ctx.spec_func_arg().value)
+
+    def exitSpec_func_arg(self, ctx: message_parser.Spec_func_argContext):
+        ctx.value = self._join_fragments(ctx.spec_func_arg_frag())
+
+    def exitSpec_func_arg_frag(self, ctx: message_parser.Spec_func_arg_fragContext):
+        ctx.value = self._coalesce(ctx.sub(), ctx.ARGLIST_VALUE())

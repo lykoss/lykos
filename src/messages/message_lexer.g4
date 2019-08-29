@@ -44,7 +44,7 @@ CLOSE_CONV : '}' -> popMode, type(CLOSE_SUB) ;
 
 mode IN_SPEC;
 SPEC_VALUE : (
-    ~[:{}]
+    ~[:{}()]
     | '::' { setText(":") }
     | '{{' { setText("{") }
     | '}}' { setText("}") }
