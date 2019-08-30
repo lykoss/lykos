@@ -62,6 +62,7 @@ class VillagergameMode(GameMode):
             evt.data["winner"] = None
 
     def chk_nightdone(self, evt, var):
+        self.saved_timers = var.TIMERS
         transition_day = evt.data["transition_day"]
         evt.data["transition_day"] = lambda gameid=0: self.prolong_night(var, gameid, transition_day)
 
@@ -71,13 +72,38 @@ class VillagergameMode(GameMode):
         if rand <= 0 and nspecials > 0:
             transition_day(gameid=gameid)
         else:
-            t = threading.Timer(abs(rand), transition_day, kwargs={"gameid": gameid})
+            # restart saved timers (they were cancelled before prolong_night was called)
+            var.TIMERS = self.saved_timers
+            if "night" in var.TIMERS:
+                oldid = var.TIMERS["night"][0].kwargs["gameid"]
+                var.TIMERS["night"][0].kwargs = {
+                    "var": var,
+                    "gameid": oldid,
+                    "transition_day": transition_day
+                }
+                var.TIMERS["night"][0].function = self.prolong_night_end
+            for x, t in var.TIMERS.items():
+                if t[0].is_alive():
+                    t[0].finished.clear() # tell timer to run its callback again
+
+            delay = abs(rand)
+            t = threading.Timer(delay, self.prolong_night_end, kwargs={"var": var, "gameid": gameid, "transition_day": transition_day})
+            var.TIMERS["villagergame"] = (t, var.NIGHT_ID, delay)
+            t.daemon = True
             t.start()
+
+    def prolong_night_end(self, var, gameid, transition_day):
+        # clean up timers again before calling transition_day
+        for x, t in var.TIMERS.items():
+            if t[0].is_alive():
+                t[0].cancel()
+        self.saved_timers = {}
+        var.TIMERS = {}
+        transition_day(gameid=gameid)
 
     def transition_day(self, evt, var):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
-        self.delaying_night = False
         pl = get_players()
         tgt = None
         seer = None
