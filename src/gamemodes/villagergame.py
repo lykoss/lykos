@@ -1,4 +1,5 @@
 import random
+import time
 import threading
 import botconfig
 from src.gamemodes import game_mode, GameMode, InvalidModeException
@@ -18,6 +19,7 @@ class VillagergameMode(GameMode):
             8: ["harlot"],
             9: ["crazed shaman"],
         }
+        self.saved_timers = {}
 
     def can_vote_bot(self, var):
         return True
@@ -72,25 +74,37 @@ class VillagergameMode(GameMode):
         if rand <= 0 and nspecials > 0:
             transition_day(gameid=gameid)
         else:
-            # restart saved timers (they were cancelled before prolong_night was called)
-            var.TIMERS = self.saved_timers
-            if "night" in var.TIMERS:
-                oldid = var.TIMERS["night"][0].kwargs["gameid"]
-                var.TIMERS["night"][0].kwargs = {
+            # rejig the night ending timer to cleanup what we're doing
+            # NOTE: this relies on implementation details in CPython and may not work across python versions
+            # or with other python implementations. If this becomes problematic, we may want to use our own timer impl
+            # rather than rely on threading.Timer; we can mostly just lift what CPython has for that
+            if "night" in self.saved_timers:
+                oldid = self.saved_timers["night"][0].kwargs["gameid"]
+                self.saved_timers["night"][0].kwargs = {
                     "var": var,
                     "gameid": oldid,
                     "transition_day": transition_day
                 }
-                var.TIMERS["night"][0].function = self.prolong_night_end
-            for x, t in var.TIMERS.items():
-                if t[0].is_alive():
-                    t[0].finished.clear() # tell timer to run its callback again
+                self.saved_timers["night"][0].function = self.prolong_night_end
 
+            # bootstrap villagergame delay timer
+            current = time.time()
             delay = abs(rand)
-            t = threading.Timer(delay, self.prolong_night_end, kwargs={"var": var, "gameid": gameid, "transition_day": transition_day})
-            var.TIMERS["villagergame"] = (t, var.NIGHT_ID, delay)
-            t.daemon = True
-            t.start()
+            t = threading.Timer(delay, self.prolong_night_end,
+                                kwargs={"var": var, "gameid": gameid, "transition_day": transition_day})
+            self.saved_timers["villagergame"] = (t, current, delay)
+
+            # restart saved timers (they were cancelled before prolong_night was called)
+            for name, t in self.saved_timers.items():
+                elapsed = current - t[1]
+                remaining = t[2] - elapsed
+                if remaining > 0:
+                    new_timer = threading.Timer(remaining, t[0].function, t[0].args, t[0].kwargs)
+                    var.TIMERS[name] = (new_timer, t[1], t[2])
+                    new_timer.daemon = True
+                    new_timer.start()
+
+            self.saved_timers = {}
 
     def prolong_night_end(self, var, gameid, transition_day):
         # clean up timers again before calling transition_day
