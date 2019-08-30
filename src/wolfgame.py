@@ -1311,10 +1311,10 @@ def stats(cli, nick, chan, rest):
 
 @handle_error
 def hurry_up(gameid, change):
-    if var.PHASE != "day": return
-    if gameid:
-        if gameid != var.DAY_ID:
-            return
+    if var.PHASE != "day":
+        return
+    if gameid and gameid != var.DAY_ID:
+        return
 
     if not change:
         event = Event("daylight_warning", {"message": "daylight_warning"})
@@ -2652,13 +2652,13 @@ def transition_night():
 
     var.NIGHT_ID = time.time()
     if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, [var.NIGHT_ID])
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, kwargs={"gameid": var.NIGHT_ID})
         var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
         t.daemon = True
         t.start()
 
     if var.NIGHT_TIME_WARN > 0:
-        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, [var.NIGHT_ID])
+        t2 = threading.Timer(var.NIGHT_TIME_WARN, night_warn, kwargs={"gameid": var.NIGHT_ID})
         var.TIMERS["night_warn"] = (t2, var.NIGHT_ID, var.NIGHT_TIME_WARN)
         t2.daemon = True
         t2.start()

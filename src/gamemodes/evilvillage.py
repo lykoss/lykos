@@ -31,7 +31,9 @@ class EvilVillageMode(GameMode):
         lcultists = len(get_players(["cultist"], mainroles=mainroles))
         evt.stop_processing = True
 
-        if lrealwolves == 0 and lsafes == 0:
+        if evt.data["winner"] == "fool":
+            return
+        elif lrealwolves == 0 and lsafes == 0:
             evt.data["winner"] = "no_team_wins"
             evt.data["message"] = messages["evil_no_win"]
         elif lrealwolves == 0:
@@ -50,8 +52,4 @@ class EvilVillageMode(GameMode):
             evt.data["winner"] = "villagers"
             evt.data["message"] = messages["evil_more_villagers"]
         else:
-            try:
-                if evt.data["winner"][0] != "@":
-                    evt.data["winner"] = None
-            except TypeError:
-                evt.data["winner"] = None
+            evt.data["winner"] = None
