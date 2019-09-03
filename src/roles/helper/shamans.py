@@ -130,14 +130,14 @@ def setup_variables(rolename, *, knows_totem):
                 # here: evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
                 #           messages["shaman_revealroles_night_totem"].format(num, totem) for num, totem in TOTEMS[user].items(),
                 #           sum(TOTEMS[user].values()))
-                totems = [num + " " + totem for num, totem in TOTEMS[user].items()]
+                totems = ["{0} {1}".format(num, totem) for totem, num in TOTEMS[user].items()]
                 if len(totems) == 2:
                     tstr = totems[0] + " and " + totems[1]
                 elif len(totems) > 2:
                     tstr = ", ".join(totems[0:-1]) + ", and " + totems[-1]
                 else:
                     tstr = totems[0]
-                evt.data["special_case"].append("has {0} totem{1}".format(tstr, sum(TOTEMS[user].values())))
+                evt.data["special_case"].append("has {0} totem{1}".format(tstr, "" if totems[-1].startswith("1 ") else "s"))
             elif user in LASTGIVEN and LASTGIVEN[user]:
                 # FIXME: When merging this into messages PR, it'd be better to have a format like so:
                 # en.json: "shaman_revealroles_day": "gave {0:join}",
@@ -164,7 +164,7 @@ def setup_variables(rolename, *, knows_totem):
     def on_transition_day_begin2(evt, var):
         for shaman, given in SHAMANS.items():
             LASTGIVEN[shaman].clear()
-            for totem, targets in given:
+            for totem, targets in given.items():
                 for target in targets:
                     victim = RETARGET[shaman].get(target, target)
                     if not victim:
@@ -203,8 +203,9 @@ def setup_variables(rolename, *, knows_totem):
                         MISDIRECTION.add(victim)
                     elif totem == "deceit":
                         DECEIT.add(victim)
-                    # other totem types possibly handled in an earlier event,
-                    # as such there is no else: clause here
+                    else:
+                        event = Event("apply_totem", {})
+                        event.dispatch(var, rolename, totem, shaman, victim)
 
                     if target is not victim:
                         shaman.send(messages["totem_retarget"].format(victim, target))
@@ -217,8 +218,9 @@ def setup_variables(rolename, *, knows_totem):
             if player is a:
                 del SHAMANS[a]
             else:
-                for totem in b:
-                    SHAMANS[a][totem].discard(player)
+                for totem, c in b.items():
+                    if player in c:
+                        SHAMANS[a][totem].remove(player)
         del RETARGET[:player:]
         for a, b in list(RETARGET.items()):
             for c, d in list(b.items()):
@@ -287,18 +289,18 @@ def totem_message(totems, count_only=False):
     totemcount = sum(totems.values())
     if not count_only and totemcount == 1:
         totem = list(totems.keys())[0]
-        return messages["shaman_totem"].format(totem)
+        return messages["shaman_totem"].format(totem, "n" if totem[0] in ("a", "e", "i", "o", "u") else "")
     elif count_only:
         return messages["shaman_totem_multiple"].format(totemcount, "s" if totemcount != 1 else "")
     else:
-        pieces = ["{0} \u0002{1}\u0002".format(num, totem) for num, totem in totems.items()]
+        pieces = ["{0} \u0002{1}\u0002".format(num, totem) for totem, num in totems.items()]
         if len(pieces) == 2:
             tstr = pieces[0] + " and " + pieces[1]
         elif len(pieces) > 2:
             tstr = ", ".join(pieces[0:-1]) + ", and " + pieces[-1]
         else:
             tstr = pieces[0]
-        return messages["shaman_totem_multiple"].format(tstr)
+        return messages["shaman_totem_multiple"].format(tstr, "" if pieces[-1].startswith("1 ") else "s")
 
 def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
     """Get the totem target."""
@@ -307,7 +309,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
 
     if len(pieces) > 1:
         # first piece might be a totem name
-        totem = complete_one_match(pieces[0], totems[wrapper.source].keys())
+        totem = complete_one_match(pieces[0], totems)
 
     if totem:
         target_str = pieces[1]

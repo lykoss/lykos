@@ -40,7 +40,7 @@ def shaman_totem(var, wrapper, message):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    given = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(totem))
     if given:
         victim, target = given
         if victim is not target:
@@ -61,7 +61,7 @@ def on_transition_day_begin(evt, var):
         for given in itertools.chain.from_iterable(SHAMANS[shaman].values()):
             if given in ps:
                 ps.remove(given)
-        for totem, count in TOTEMS[shaman]:
+        for totem, count in TOTEMS[shaman].items():
             mustgive = count - len(SHAMANS[shaman][totem])
             for i in range(mustgive):
                 if ps:

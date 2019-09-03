@@ -90,7 +90,7 @@ class GameMode:
                     self.ABSTAIN_ENABLED = False
 
     def startup(self):
-        for event, listeners in self.EVENTS:
+        for event, listeners in self.EVENTS.items():
             if isinstance(listeners, EventListener):
                 listeners.install(event)
             else:
@@ -98,7 +98,7 @@ class GameMode:
                     listener.install(event)
 
     def teardown(self):
-        for event, listeners in self.EVENTS:
+        for event, listeners in self.EVENTS.items():
             if isinstance(listeners, EventListener):
                 listeners.remove(event)
             else:

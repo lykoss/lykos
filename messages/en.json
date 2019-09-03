@@ -448,7 +448,7 @@
     "harlot_disappeared": "\u0002{0}\u0002 seems to have disappeared...",
     "role_swap": "You have exchanged roles with someone! You are now a \u0002{0}\u0002.",
     "clone_target": "You are cloning \u0002{0}\u0002.",
-    "shaman_totem": "You have a \u0002{0}\u0002 totem.",
+    "shaman_totem": "You have a{1} \u0002{0}\u0002 totem.",
     "shaman_totem_multiple": "You have {0} totem{1}.",
     "players_exchanged_roles": "\u0002{0}\u0002 and \u0002{1}\u0002 have exchanged roles!",
 

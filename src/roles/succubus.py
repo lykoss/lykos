@@ -179,12 +179,6 @@ def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
 
-@event_listener("new_role")
-def on_new_role(evt, var, user, old_role):
-    if evt.data["role"] == "succubus" and user in ENTRANCED:
-        ENTRANCED.remove(user)
-        user.send(messages["no_longer_entranced"])
-
 @event_listener("reset")
 def on_reset(evt, var):
     global ALL_SUCC_IDLE

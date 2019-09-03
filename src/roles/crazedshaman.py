@@ -69,7 +69,7 @@ def on_transition_day_begin(evt, var):
         for given in itertools.chain.from_iterable(SHAMANS[shaman].values()):
             if given in ps:
                 ps.remove(given)
-        for totem, count in TOTEMS[shaman]:
+        for totem, count in TOTEMS[shaman].items():
             mustgive = count - len(SHAMANS[shaman][totem])
             for i in range(mustgive):
                 if ps:
