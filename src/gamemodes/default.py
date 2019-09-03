@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("default", minp=4, maxp=24, likelihood=40)
 class DefaultMode(GameMode):
@@ -25,12 +26,9 @@ class DefaultMode(GameMode):
             23: ["amnesiac", "mayor"],
             24: ["hag"],
         }
-
-    def startup(self):
-        events.add_listener("lynch", self.on_lynch)
-
-    def teardown(self):
-        events.remove_listener("lynch", self.on_lynch)
+        self.EVENTS = {
+            "lynch": EventListener(self.on_lynch)
+        }
 
     def can_vote_bot(self, var):
         if var.VILLAGERGAME_CHANCE:

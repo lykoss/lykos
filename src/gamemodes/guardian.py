@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
 @game_mode("guardian", minp=8, maxp=16, likelihood=1)
@@ -35,14 +36,10 @@ class GuardianMode(GameMode):
             "misdirection"  : {"shaman": 4},
             "deceit"        : {"shaman": 0},
         }
-
         self.set_default_totem_chances()
-
-    def startup(self):
-        events.add_listener("chk_win", self.chk_win)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.chk_win)
+        self.EVENTS = {
+            "chk_win": EventListener(self.chk_win)
+        }
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lguardians = len(get_players(["guardian angel", "bodyguard"], mainroles=mainroles))

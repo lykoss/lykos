@@ -4,7 +4,7 @@ import glob
 import importlib
 import src.settings as var
 from src.messages import messages
-from src import events
+from src.events import Event, EventListener
 from src.cats import All, Cursed, Wolf, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
 __all__ = ["InvalidModeException", "game_mode", "GameMode"]
@@ -35,12 +35,14 @@ class GameMode:
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
 
+        self.EVENTS = {}
+
         # Support all shamans and totems
         # Listeners should add their custom totems with non-zero chances, and custom roles in evt.data["shaman_roles"]
         # Totems (both the default and custom ones) get filled with every shaman role at a chance of 0
         # Add totems with a priority of 1 and shamans with a priority of 3
         # Listeners at priority 5 can make use of this information freely
-        evt = events.Event("default_totems", {"shaman_roles": set()})
+        evt = Event("default_totems", {"shaman_roles": set()})
         evt.dispatch(self.TOTEM_CHANCES)
 
         shamans = evt.data["shaman_roles"]
@@ -88,10 +90,20 @@ class GameMode:
                     self.ABSTAIN_ENABLED = False
 
     def startup(self):
-        pass
+        for event, listeners in self.EVENTS.items():
+            if isinstance(listeners, EventListener):
+                listeners.install(event)
+            else:
+                for listener in listeners:
+                    listener.install(event)
 
     def teardown(self):
-        pass
+        for event, listeners in self.EVENTS.items():
+            if isinstance(listeners, EventListener):
+                listeners.remove(event)
+            else:
+                for listener in listeners:
+                    listener.remove(event)
 
     def can_vote_bot(self, var):
         return False

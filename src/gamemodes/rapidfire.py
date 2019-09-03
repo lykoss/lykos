@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("rapidfire", minp=6, maxp=24, likelihood=0)
 class RapidFireMode(GameMode):
@@ -21,9 +22,6 @@ class RapidFireMode(GameMode):
             18: ["wolf(3)", "hunter(2)", "mad scientist(2)", "time lord(2)", "cursed villager(2)"],
             22: ["wolf(4)", "matchmaker(2)", "vengeful ghost(2)"],
         }
-
-    def startup(self):
-        events.add_listener("chk_win", self.all_dead_chk_win)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.all_dead_chk_win)
+        self.EVENTS = {
+            "chk_win": EventListener(self.all_dead_chk_win)
+        }

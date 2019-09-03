@@ -5,6 +5,7 @@ import random
 import json
 import re
 import os.path
+from typing import Optional
 
 import urllib.request, urllib.parse
 
@@ -541,24 +542,31 @@ class hook:
                 del HOOKS[each]
 
 class event_listener:
-    def __init__(self, event, priority=5):
+    def __init__(self, event, priority=5, listener_id=None):
         self.event = event
         self.priority = priority
         self.func = None
+        self.listener_id = listener_id
+        self.listener = None # type: Optional[events.EventListener]
 
     def __call__(self, *args, **kwargs):
         if self.func is None:
             func = args[0]
             if isinstance(func, event_listener):
                 func = func.func
+            if self.listener_id is None:
+                self.listener_id = func.__qualname__
+            # always prefix with module for disambiguation if possible
+            if func.__module__ is not None:
+                self.listener_id = func.__module__ + "." + self.listener_id
             self.func = handle_error(func)
-            events.add_listener(self.event, self.func, self.priority)
+            self.listener = events.EventListener(self.func, priority=self.priority, listener_id=self.listener_id)
+            self.listener.install(self.event)
             self.__doc__ = self.func.__doc__
             return self
         else:
             return self.func(*args, **kwargs)
 
     def remove(self):
-        events.remove_listener(self.event, self.func, self.priority)
+        self.listener.remove(self.event)
 
-# vim: set sw=4 expandtab:
