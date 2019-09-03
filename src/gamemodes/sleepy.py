@@ -36,6 +36,7 @@ class SleepyMode(GameMode):
         }
 
     def startup(self):
+        super().startup()
         self.having_nightmare = UserList()
 
         cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.having_nightmare)
@@ -47,6 +48,7 @@ class SleepyMode(GameMode):
 
     def teardown(self):
         from src import decorators
+        super().teardown()
 
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:
