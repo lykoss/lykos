@@ -26,8 +26,8 @@ class EventListener:
         EVENT_CALLBACKS[event].discard(self)
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            raise NotImplemented
+        if not isinstance(other, EventListener):
+            return NotImplemented
         return self.id == other.id
 
     def __hash__(self):
@@ -48,6 +48,7 @@ def find_listener(event: str, listener_id: str) -> Optional[EventListener]:
     for evt in EVENT_CALLBACKS[event]:
         if evt.id == listener_id:
             return evt
+    raise Exception("Could not find listener with id {0}".format(listener_id))
 
 class Event:
     def __init__(self, _name, _data, **kwargs):
