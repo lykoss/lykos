@@ -10,12 +10,13 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
+from src.events import Event
 from src.status import try_misdirection, try_exchange, is_silent
 
-from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables
+from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
 from src.roles.helper.wolves import register_killer
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("wolf shaman", knows_totem=True)
+TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
 
 register_killer("wolf shaman")
 
@@ -23,11 +24,33 @@ register_killer("wolf shaman")
 def wolf_shaman_totem(var, wrapper, message):
     """Give a totem to a player."""
 
-    target = get_totem_target(var, wrapper, message, LASTGIVEN)
+    totem_types = list(TOTEMS[wrapper.source].keys())
+    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="wolf shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    if not totem:
+        totem_types = list(TOTEMS[wrapper.source].keys())
+        if len(totem_types) == 1:
+            totem = totem_types[0]
+        else:
+            wrapper.send(messages["shaman_ambiguous_give"])
+            return
+
+    orig_target = target
+    target = RETARGET[wrapper.source].get(target, target)
+    if target in itertools.chain.from_iterable(SHAMANS[wrapper.source].values()):
+        wrapper.send(messages["shaman_no_stacking"].format(orig_target))
+        return
+
+    given = give_totem(var, wrapper, target, prefix="You", role="wolf shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    if given:
+        victim, target = given
+        if victim is not target:
+            RETARGET[wrapper.source][target] = victim
+        SHAMANS[wrapper.source][totem].append(victim)
+        if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
+            SHAMANS[wrapper.source][totem].pop(0)
 
     relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), is_wolf_command=True)
 
@@ -36,23 +59,26 @@ def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(("wolf shaman",)):
-        if shaman not in SHAMANS and not is_silent(var, shaman):
-            ps = pl[:]
-            if shaman in LASTGIVEN:
-                if LASTGIVEN[shaman] in ps:
-                    ps.remove(LASTGIVEN[shaman])
-            if ps:
-                target = random.choice(ps)
-                dispatcher = MessageDispatcher(shaman, shaman)
+        ps = pl[:]
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for given in itertools.chain.from_iterable(SHAMANS[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for totem, count in TOTEMS[shaman]:
+            mustgive = count - len(SHAMANS[shaman][totem])
+            for i in range(mustgive):
+                if ps:
+                    target = random.choice(ps)
+                    ps.remove(target)
+                    dispatcher = MessageDispatcher(shaman, shaman)
+                    given = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="wolf shaman", msg=" of {0}".format(TOTEMS[shaman]))
+                    if given:
+                        relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
+                        SHAMANS[shaman][totem].append(given[0])
 
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="wolf shaman", msg=" of {0}".format(TOTEMS[shaman]))
-                relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
-            else:
-                LASTGIVEN[shaman] = None
-        elif shaman not in SHAMANS:
-            LASTGIVEN[shaman] = None
-
-@event_listener("transition_night_end", priority=2.01)
+@event_listener("transition_night_end", priority=1.99)
 def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["wolf shaman"] for x in chances.values())
@@ -65,25 +91,37 @@ def on_transition_night_end(evt, var):
     for shaman in shamans:
         pl = ps[:]
         random.shuffle(pl)
-        if LASTGIVEN.get(shaman):
-            if LASTGIVEN[shaman] in pl:
-                pl.remove(LASTGIVEN[shaman])
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in pl:
+                pl.remove(given)
 
-        target = 0
-        rand = random.random() * max_totems
-        for t in chances:
-            target += chances[t]["wolf shaman"]
-            if rand <= target:
-                TOTEMS[shaman] = t
-                break
-        if shaman.prefers_simple():
-            # Message about role was sent with wolfchat
-            shaman.send(messages["totem_simple"].format(TOTEMS[shaman]))
+        event = Event("totem_assignment", {"totems": {}})
+        event.dispatch(var, "wolf shaman")
+        if event.data["totems"]:
+            TOTEMS[shaman] = event.data["totems"]
         else:
-            totem = TOTEMS[shaman]
-            tmsg = messages["shaman_totem"].format(totem)
-            tmsg += messages[totem + "_totem"]
-            shaman.send(tmsg)
+            target = 0
+            rand = random.random() * max_totems
+            for t in chances:
+                target += chances[t]["wolf shaman"]
+                if rand <= target:
+                    TOTEMS[shaman] = {t: 1}
+                    break
+
+        num_totems = sum(TOTEMS[shaman].values())
+        if shaman.prefers_simple():
+            shaman.send(messages["shaman_simple"].format("wolf shaman"))
+        else:
+            if num_totems > 1:
+                shaman.send(messages["shaman_notify_multiple_known"].format("wolf shaman"))
+            else:
+                shaman.send(messages["shaman_notify"].format("wolf shaman"))
+        tmsg = totem_message(TOTEMS[shaman])
+        if not shaman.prefers_simple():
+            for totem in TOTEMS[shaman]:
+                tmsg += " " + messages[totem + "_totem"]
+        shaman.send(tmsg)
+        # player list and notification that WS can kill is handled by shared wolves handler
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
@@ -101,5 +139,3 @@ def set_wolf_totems(evt, chances):
     chances["retribution"]  ["wolf shaman"] = 1
     chances["misdirection"] ["wolf shaman"] = 1
     chances["deceit"]       ["wolf shaman"] = 1
-
-# vim: set sw=4 expandtab:

@@ -6,7 +6,8 @@ import botconfig
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Killer
 
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
@@ -22,21 +23,14 @@ class MaelstromMode(GameMode):
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay
         # succubus keeps around entranced people, who are then unable to win even if there are later no succubi (not very fun)
         self.roles = All - Team_Switcher - Win_Stealer + {"fool", "lycan", "turncoat"} - self.SECONDARY_ROLES.keys()
-
+        self.EVENTS = {
+            "role_attribution": EventListener(self.role_attribution),
+            "transition_night_begin": EventListener(self.transition_night_begin),
+            "del_player": EventListener(self.on_del_player),
+            "join": EventListener(self.on_join)
+        }
         self.DEAD_ACCOUNTS = set()
         self.DEAD_HOSTS = set()
-
-    def startup(self):
-        events.add_listener("role_attribution", self.role_attribution)
-        events.add_listener("transition_night_begin", self.transition_night_begin)
-        events.add_listener("del_player", self.on_del_player)
-        events.add_listener("join", self.on_join)
-
-    def teardown(self):
-        events.remove_listener("role_attribution", self.role_attribution)
-        events.remove_listener("transition_night_begin", self.transition_night_begin)
-        events.remove_listener("del_player", self.on_del_player)
-        events.remove_listener("join", self.on_join)
 
     def on_del_player(self, evt, var, player, all_roles, death_triggers):
         if player.is_fake:

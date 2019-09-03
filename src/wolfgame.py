@@ -69,6 +69,7 @@ from src.functions import (
 
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
+EventListener = events.EventListener
 
 # Game Logic Begins:
 
@@ -202,7 +203,7 @@ def connect_callback():
             var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
             reset()
 
-            events.remove_listener("who_end", who_end)
+            who_end_listener.remove("who_end")
 
     def end_listmode(event, var, chan, mode):
         if chan is channels.Main and mode == var.QUIET_MODE:
@@ -213,18 +214,21 @@ def connect_callback():
             accumulator.send(pending)
             next(accumulator, None)
 
-            events.remove_listener("end_listmode", end_listmode)
+            end_listmode_listener.remove("end_listmode")
 
     def mode_change(event, var, actor, target):
         if target is channels.Main: # we may or may not be opped; assume we are
             accumulator.send([])
             next(accumulator, None)
 
-            events.remove_listener("mode_change", mode_change)
+            mode_change_listener.remove("mode_change")
 
-    events.add_listener("who_end", who_end)
-    events.add_listener("end_listmode", end_listmode)
-    events.add_listener("mode_change", mode_change)
+    who_end_listener = EventListener(who_end)
+    who_end_listener.install("who_end")
+    end_listmode_listener = EventListener(end_listmode)
+    end_listmode_listener.install("end_listmode")
+    mode_change_listener = EventListener(mode_change)
+    mode_change_listener.install("mode_change")
 
     def accumulate_cmodes(count):
         modes = []
@@ -488,7 +492,7 @@ def restart_program(var, wrapper, message):
         if user is users.Bot:
             _restart_program(mode)
 
-    events.add_listener("server_quit", restart_buffer)
+    EventListener(restart_buffer).install("server_quit")
 
     # This is checked in the on_error handler. Some IRCds, such as InspIRCd, don't send the bot
     # its own QUIT message, so we need to use ERROR. Ideally, we shouldn't even need the above
@@ -733,11 +737,13 @@ def join_timer_handler(var):
                     channels.Main.send(*user_list, first=msg_prefix)
                     del to_ping[:]
 
-                events.remove_listener("who_result", get_altpingers)
-                events.remove_listener("who_end", ping_altpingers)
+                who_result.remove("who_result")
+                who_end.remove("who_end")
 
-        events.add_listener("who_result", get_altpingers)
-        events.add_listener("who_end", ping_altpingers)
+        who_result = EventListener(get_altpingers)
+        who_result.install("who_result")
+        who_end = EventListener(ping_altpingers)
+        who_end.install("who_end")
 
         channels.Main.who()
 
@@ -1876,7 +1882,7 @@ def setup_role_commands(evt):
 
 # event_listener decorator wraps callback in handle_error, which we don't want for the init event
 # (as no IRC connection exists at this point)
-events.add_listener("init", setup_role_commands, priority=10000)
+EventListener(setup_role_commands, priority=10000).install("init")
 
 @event_listener("chan_join", priority=1)
 def on_join(evt, var, chan, user):
@@ -3071,11 +3077,13 @@ def show_admins(cli, nick, chan, rest):
 
         var.ADMIN_PINGING = False
 
-        events.remove_listener("who_result", admin_whoreply)
-        events.remove_listener("who_end", admin_endwho)
+        who_result.remove("who_result")
+        who_end.remove("who_end")
 
-    events.add_listener("who_result", admin_whoreply)
-    events.add_listener("who_end", admin_endwho)
+    who_result = EventListener(admin_whoreply)
+    who_result.install("who_result")
+    who_end = EventListener(admin_endwho)
+    who_end.install("who_end")
 
     channels.Main.who()
 

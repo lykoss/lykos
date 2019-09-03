@@ -1,7 +1,8 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 from src.cats import Village
 
 @game_mode("evilvillage", minp=6, maxp=18, likelihood=5)
@@ -19,12 +20,9 @@ class EvilVillageMode(GameMode):
             12: ["shaman"],
             15: ["wolf(2)", "hunter(2)"],
         }
-
-    def startup(self):
-        events.add_listener("chk_win", self.chk_win)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.chk_win)
+        self.EVENTS = {
+            "chk_win": EventListener(self.chk_win)
+        }
 
     def chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         lsafes = len(get_players(Village, mainroles=mainroles))

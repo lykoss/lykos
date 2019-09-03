@@ -4,7 +4,8 @@ import re
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
-from src import db, events
+from src import db
+from src.events import EventListener
 
 import botconfig
 
@@ -172,8 +173,8 @@ def _reset(evt, var):
 
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
-events.add_listener("cleanup_user", _cleanup_user)
-events.add_listener("reset", _reset)
+EventListener(_cleanup_user).install("cleanup_user")
+EventListener(_reset).install("reset")
 
 class User(IRCContext):
 

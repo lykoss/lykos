@@ -10,41 +10,67 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
+from src.events import Event
 from src.status import try_misdirection, try_exchange, is_silent
 
-from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
+from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("shaman", knows_totem=True)
+TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
 
 @command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
 def shaman_totem(var, wrapper, message):
     """Give a totem to a player."""
 
-    target = get_totem_target(var, wrapper, message, LASTGIVEN)
+    totem_types = list(TOTEMS[wrapper.source].keys())
+    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, totem_types)
     if not target:
         return
 
-    SHAMANS[wrapper.source] = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    if not totem:
+        totem_types = list(TOTEMS[wrapper.source].keys())
+        if len(totem_types) == 1:
+            totem = totem_types[0]
+        else:
+            wrapper.send(messages["shaman_ambiguous_give"])
+            return
+
+    orig_target = target
+    target = RETARGET[wrapper.source].get(target, target)
+    if target in itertools.chain.from_iterable(SHAMANS[wrapper.source].values()):
+        wrapper.send(messages["shaman_no_stacking"].format(orig_target))
+        return
+
+    given = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(TOTEMS[wrapper.source]))
+    if given:
+        victim, target = given
+        if victim is not target:
+            RETARGET[wrapper.source][target] = victim
+        SHAMANS[wrapper.source][totem].append(victim)
+        if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
+            SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(("shaman",)):
-        if shaman not in SHAMANS and not is_silent(var, shaman):
-            ps = pl[:]
-            if shaman in LASTGIVEN:
-                if LASTGIVEN[shaman] in ps:
-                    ps.remove(LASTGIVEN[shaman])
-            if ps:
-                target = random.choice(ps)
-                dispatcher = MessageDispatcher(shaman, shaman)
-
-                SHAMANS[shaman] = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="shaman", msg=" of {0}".format(TOTEMS[shaman]))
-            else:
-                LASTGIVEN[shaman] = None
-        elif shaman not in SHAMANS:
-            LASTGIVEN[shaman] = None
+        ps = pl[:]
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for given in itertools.chain.from_iterable(SHAMANS[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for totem, count in TOTEMS[shaman]:
+            mustgive = count - len(SHAMANS[shaman][totem])
+            for i in range(mustgive):
+                if ps:
+                    target = random.choice(ps)
+                    ps.remove(target)
+                    dispatcher = MessageDispatcher(shaman, shaman)
+                    given = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="shaman", msg=" of {0}".format(totem))
+                    if given:
+                        SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, var):
@@ -59,26 +85,36 @@ def on_transition_night_end(evt, var):
     for shaman in shamans:
         pl = ps[:]
         random.shuffle(pl)
-        if LASTGIVEN.get(shaman):
-            if LASTGIVEN[shaman] in pl:
-                pl.remove(LASTGIVEN[shaman])
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in pl:
+                pl.remove(given)
 
-        target = 0
-        rand = random.random() * max_totems
-        for t in chances:
-            target += chances[t]["shaman"]
-            if rand <= target:
-                TOTEMS[shaman] = t
-                break
+        event = Event("totem_assignment", {"totems": {}})
+        event.dispatch(var, "shaman")
+        if event.data["totems"]:
+            TOTEMS[shaman] = event.data["totems"]
+        else:
+            target = 0
+            rand = random.random() * max_totems
+            for t in chances:
+                target += chances[t]["shaman"]
+                if rand <= target:
+                    TOTEMS[shaman] = {t: 1}
+                    break
+
+        num_totems = sum(TOTEMS[shaman].values())
         if shaman.prefers_simple():
             shaman.send(messages["shaman_simple"].format("shaman"))
-            shaman.send(messages["totem_simple"].format(TOTEMS[shaman]))
         else:
-            shaman.send(messages["shaman_notify"].format("shaman", ""))
-            totem = TOTEMS[shaman]
-            tmsg = messages["shaman_totem"].format(totem)
-            tmsg += messages[totem + "_totem"]
-            shaman.send(tmsg)
+            if num_totems > 1:
+                shaman.send(messages["shaman_notify_multiple_known"].format("shaman"))
+            else:
+                shaman.send(messages["shaman_notify"].format("shaman"))
+        tmsg = totem_message(TOTEMS[shaman])
+        if not shaman.prefers_simple():
+            for totem in TOTEMS[shaman]:
+                tmsg += " " + messages[totem + "_totem"]
+        shaman.send(tmsg)
         shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
 
 @event_listener("get_role_metadata")

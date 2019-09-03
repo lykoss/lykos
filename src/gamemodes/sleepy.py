@@ -7,7 +7,8 @@ from src.containers import UserList
 from src.decorators import command, handle_error
 from src.functions import get_players, change_role
 from src.status import add_dying
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("sleepy", minp=10, maxp=24, likelihood=1)
 class SleepyMode(GameMode):
@@ -25,17 +26,16 @@ class SleepyMode(GameMode):
         self.SECONDARY_ROLES["blessed villager"] = ["priest"]
         self.SECONDARY_ROLES["prophet"] = ["priest"]
         self.SECONDARY_ROLES["gunner"] = ["village drunk"]
-        # disable wolfchat
-        #self.RESTRICT_WOLFCHAT = 0x0f
+        self.EVENTS = {
+            "dullahan_targets": EventListener(self.dullahan_targets),
+            "transition_night_begin": EventListener(self.setup_nightmares),
+            "chk_nightdone": EventListener(self.prolong_night),
+            "transition_day_begin": EventListener(self.nightmare_kill),
+            "del_player": EventListener(self.happy_fun_times),
+            "revealroles": EventListener(self.on_revealroles)
+        }
 
     def startup(self):
-        events.add_listener("dullahan_targets", self.dullahan_targets)
-        events.add_listener("transition_night_begin", self.setup_nightmares)
-        events.add_listener("chk_nightdone", self.prolong_night)
-        events.add_listener("transition_day_begin", self.nightmare_kill)
-        events.add_listener("del_player", self.happy_fun_times)
-        events.add_listener("revealroles", self.on_revealroles)
-
         self.having_nightmare = UserList()
 
         cmd_params = dict(chan=False, pm=True, playing=True, phases=("night",), users=self.having_nightmare)
@@ -47,12 +47,6 @@ class SleepyMode(GameMode):
 
     def teardown(self):
         from src import decorators
-        events.remove_listener("dullahan_targets", self.dullahan_targets)
-        events.remove_listener("transition_night_begin", self.setup_nightmares)
-        events.remove_listener("chk_nightdone", self.prolong_night)
-        events.remove_listener("transition_day_begin", self.nightmare_kill)
-        events.remove_listener("del_player", self.happy_fun_times)
-        events.remove_listener("revealroles", self.on_revealroles)
 
         def remove_command(name, command):
             if len(decorators.COMMANDS[name]) > 1:

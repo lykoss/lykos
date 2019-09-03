@@ -5,7 +5,8 @@ import botconfig
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_all_players, get_players
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("villagergame", minp=4, maxp=9, likelihood=0)
 class VillagergameMode(GameMode):
@@ -19,26 +20,18 @@ class VillagergameMode(GameMode):
             8: ["harlot"],
             9: ["crazed shaman"],
         }
+        self.EVENTS = {
+            "chk_win": EventListener(self.chk_win),
+            "chk_nightdone": EventListener(self.chk_nightdone),
+            "transition_day_begin": EventListener(self.transition_day),
+            "retribution_kill": EventListener(self.on_retribution_kill, priority=4),
+            "lynch": EventListener(self.on_lynch),
+            "reconfigure_stats": EventListener(self.reconfigure_stats)
+        }
         self.saved_timers = {}
 
     def can_vote_bot(self, var):
         return True
-
-    def startup(self):
-        events.add_listener("chk_win", self.chk_win)
-        events.add_listener("chk_nightdone", self.chk_nightdone)
-        events.add_listener("transition_day_begin", self.transition_day)
-        events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.add_listener("lynch", self.on_lynch)
-        events.add_listener("reconfigure_stats", self.reconfigure_stats)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.chk_win)
-        events.remove_listener("chk_nightdone", self.chk_nightdone)
-        events.remove_listener("transition_day_begin", self.transition_day)
-        events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.remove_listener("lynch", self.on_lynch)
-        events.remove_listener("reconfigure_stats", self.reconfigure_stats)
 
     def reconfigure_stats(self, evt, var, roleset, reason):
         if reason == "start":

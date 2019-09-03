@@ -12,11 +12,12 @@ import math
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, events, channels, hooks, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, channels, hooks, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.functions import get_participants, get_all_roles
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
+from src.events import EventListener
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False, force_role=None):
@@ -297,9 +298,10 @@ def connect_callback(cli):
             target.client.command_handler["privmsg"] = on_privmsg
             target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
 
-        events.remove_listener("who_end", setup_handler)
+        who_end.remove("who_end")
 
-    events.add_listener("who_end", setup_handler)
+    who_end = EventListener(setup_handler)
+    who_end.install("who_end")
 
     def mustregain(cli, server, bot_nick, nick, msg):
         nonlocal regaincount

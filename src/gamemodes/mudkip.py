@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 # someone let woffle commit while drunk again... tsk tsk
 @game_mode("mudkip", minp=5, maxp=15, likelihood=5)
@@ -46,15 +47,11 @@ class MudkipMode(GameMode):
             15: ["succubus"],
         }
 
-    def startup(self):
-        events.add_listener("lynch_behaviour", self.lynch_behaviour)
-        events.add_listener("daylight_warning", self.daylight_warning)
-        events.add_listener("transition_day_begin", self.restore_totem_chances)
-
-    def teardown(self):
-        events.remove_listener("lynch_behaviour", self.lynch_behaviour)
-        events.remove_listener("daylight_warning", self.daylight_warning)
-        events.remove_listener("transition_day_begin", self.restore_totem_chances)
+        self.EVENTS = {
+            "lynch_behaviour": EventListener(self.lynch_behaviour),
+            "daylight_warning": EventListener(self.daylight_warning),
+            "transition_day_begin": EventListener(self.restore_totem_chances)
+        }
 
     def restore_totem_chances(self, evt, var):
         if var.NIGHT_COUNT == 1: # don't fire unnecessarily every day

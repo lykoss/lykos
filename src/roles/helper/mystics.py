@@ -20,7 +20,7 @@ def setup_variables(rolename, *, send_role, types):
 
     role = rolename.replace(" ", "_")
 
-    @event_listener("transition_night_end")
+    @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
         pl = set()
         ctr = Counter()
@@ -56,7 +56,7 @@ def setup_variables(rolename, *, send_role, types):
                 mystic.send(messages[to_send])
             mystic.send(msg)
 
-    @event_listener("new_role")
+    @event_listener("new_role", listener_id="<{}>.on_new_role".format(rolename))
     def on_new_role(evt, var, player, old_role):
         if evt.params.inherit_from in LAST_COUNT and old_role != rolename and evt.data["role"] == rolename:
             value, plural = LAST_COUNT.pop(evt.params.inherit_from)
@@ -65,11 +65,11 @@ def setup_variables(rolename, *, send_role, types):
             msg = messages["mystic_info"].format(key, value, "", messages["mystic_{0}_num".format(var.PHASE)])
             evt.data["messages"].append(msg)
 
-    @event_listener("reset")
+    @event_listener("reset", listener_id="<{}>.on_reset".format(rolename))
     def on_reset(evt, var):
         LAST_COUNT.clear()
 
-    @event_listener("myrole")
+    @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
         if user in get_all_players((rolename,)):
             value, plural = LAST_COUNT[user]
@@ -78,5 +78,3 @@ def setup_variables(rolename, *, send_role, types):
             evt.data["messages"].append(msg)
 
     return LAST_COUNT
-
-# vim: set sw=4 expandtab:
