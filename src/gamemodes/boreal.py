@@ -3,10 +3,11 @@ from collections import defaultdict
 from typing import List, Tuple, Dict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src.functions import get_players, get_all_players, get_main_role
+from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.events import EventListener, find_listener
 from src.containers import DefaultUserDict
 from src.status import add_dying
+from src.cats import Wolfteam
 from src import channels, users
 
 @game_mode("boreal", minp=6, maxp=24, likelihood=1)
@@ -16,6 +17,8 @@ class BorealMode(GameMode):
         super().__init__(arg)
         self.LIMIT_ABSTAIN = False
         self.DEFAULT_ROLE = "shaman"
+        # If you add non-wolfteam, non-shaman roles, be sure to update update_stats to account for it!
+        # otherwise !stats will break if they turn into VG.
         self.ROLE_GUIDE = {
             6: ["wolf shaman"],
             10: ["wolf shaman(2)"],
@@ -32,7 +35,8 @@ class BorealMode(GameMode):
             "apply_totem": EventListener(self.on_apply_totem),
             "lynch": EventListener(self.on_lynch),
             "chk_win": EventListener(self.on_chk_win),
-            "revealroles_role": EventListener(self.on_revealroles_role)
+            "revealroles_role": EventListener(self.on_revealroles_role),
+            "update_stats": EventListener(self.on_update_stats)
         }
 
         self.TOTEM_CHANCES = {totem: {} for totem in self.DEFAULT_TOTEM_CHANCES}
@@ -44,10 +48,9 @@ class BorealMode(GameMode):
         self.TOTEM_CHANCES["sustenance"] = {"shaman": 10, "wolf shaman": 0, "crazed shaman": 0}
         self.TOTEM_CHANCES["hunger"] = {"shaman": 0, "wolf shaman": 6, "crazed shaman": 0}
         # extra shaman totems
-        self.TOTEM_CHANCES["revealing"]["shaman"] = 2
+        self.TOTEM_CHANCES["revealing"]["shaman"] = 4
         self.TOTEM_CHANCES["death"]["shaman"] = 1
         self.TOTEM_CHANCES["influence"]["shaman"] = 4
-        self.TOTEM_CHANCES["luck"]["shaman"] = 2
         self.TOTEM_CHANCES["silence"]["shaman"] = 1
         # extra WS totems: note that each WS automatically gets a hunger totem in addition to this in phase 1
         self.TOTEM_CHANCES["death"]["wolf shaman"] = 1
@@ -110,7 +113,7 @@ class BorealMode(GameMode):
     def on_transition_day_begin(self, evt, var):
         ps = get_players()
         for p in ps:
-            if get_main_role(p) == "wolf shaman":
+            if get_main_role(p) in Wolfteam:
                 continue # wolf shamans can't starve
 
             if self.totem_tracking[p] > 0:
@@ -118,7 +121,8 @@ class BorealMode(GameMode):
                 self.hunger_levels[p] = 0
             elif self.totem_tracking[p] < 0:
                 # if hunger totem made it through, fast-track player to starvation
-                self.hunger_levels[p] += 2
+                if self.hunger_levels[p] < 3:
+                    self.hunger_levels[p] = 3
 
             # apply natural hunger
             self.hunger_levels[p] += 1
@@ -145,10 +149,10 @@ class BorealMode(GameMode):
         num_wendigos = len(vengefulghost.GHOSTS)
         num_wolf_shamans = len(get_players(("wolf shaman",)))
         if num_wendigos < num_wolf_shamans:
-            var.ROLES["vengeful ghost"].add(player)
+            change_role(var, player, get_main_role(player), "vengeful ghost", message=None)
 
     def on_lynch(self, evt, var, votee, voters):
-        if get_main_role(votee) == "shaman":
+        if get_main_role(votee) not in Wolfteam:
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
             self.maybe_make_wendigo(var, votee)
 
@@ -177,3 +181,7 @@ class BorealMode(GameMode):
     def on_revealroles_role(self, evt, var, player, role):
         if player in self.hunger_levels:
             evt.data["special_case"].append(messages["boreal_revealroles"].format(self.hunger_levels[player]))
+
+    def on_update_stats(self, evt, var, player, main_role, reveal_role, all_roles):
+        if main_role == "vengeful ghost":
+            evt.data["possible"].add("shaman")
