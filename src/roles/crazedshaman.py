@@ -90,6 +90,8 @@ def on_transition_night_end(evt, var):
         if s not in shamans:
             del LASTGIVEN[s]
 
+    shamans = list(shamans)
+    random.shuffle(shamans)
     for shaman in shamans:
         pl = ps[:]
         random.shuffle(pl)
@@ -97,18 +99,16 @@ def on_transition_night_end(evt, var):
             if given in pl:
                 pl.remove(given)
 
-        event = Event("totem_assignment", {"totems": {}})
+        target = 0
+        rand = random.random() * max_totems
+        for t in chances:
+            target += chances[t]["crazed shaman"]
+            if rand <= target:
+                TOTEMS[shaman] = {t: 1}
+                break
+        event = Event("totem_assignment", {"totems": TOTEMS[shaman]})
         event.dispatch(var, "crazed shaman")
-        if event.data["totems"]:
-            TOTEMS[shaman] = event.data["totems"]
-        else:
-            target = 0
-            rand = random.random() * max_totems
-            for t in chances:
-                target += chances[t]["crazed shaman"]
-                if rand <= target:
-                    TOTEMS[shaman] = {t: 1}
-                    break
+        TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())
         if shaman.prefers_simple():

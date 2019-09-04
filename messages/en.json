@@ -1025,11 +1025,13 @@
     "boreal_hungry": "Your stomach is rumbling when you wake up and you feel weak. You feel like you are on the verge of starvation!",
     "boreal_turn": "You wake up in the middle of the snow, confused. You thought you died, but here you are, clearly alive and very, very hungry. You look down upon your monstrous claws and gaunt frame, and realize that you have become a wendigo! Your mind focuses on one thing only, consuming the members of your tribe that did this to you.",
     "boreal_exile": [
-      "The tribe has decided to exile \u0002{0}\u0002, a{1} \u0002{2}\u0002. They do not make it far into the snowstorm before the cold consumes them."
+        "The tribe has decided to exile \u0002{0}\u0002, a{1} \u0002{2}\u0002. They do not make it far into the snowstorm before the cold consumes them."
     ],
     "boreal_time_up": "Game over! The winter storm has let up, and the village is able to find food once again. The evil spirits retreat, vowing revenge next year.",
     "boreal_village_win": "Game over! The tribe has exiled all of the wolf shamans, allowing them to outlast the storm in safety.",
     "boreal_wolf_win": "Game over! The evil spirits have demolished the tribe, and the remaining wolf shamans travel to other clans to spread their misery there.",
+    "boreal_day_count": "The night is over, but the storm still rages outside. The tribe elder estimates the storm will subside in {0} more day{1}.",
+    "boreal_revealroles": "hunger level {0}",
     "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight.",
     "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation.",
 
