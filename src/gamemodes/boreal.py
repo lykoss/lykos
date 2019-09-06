@@ -94,10 +94,18 @@ class BorealMode(GameMode):
         self.feed_command = command("feed", **kwargs)(self.feed)
 
     def teardown(self):
+        from src import decorators
         super().teardown()
+        def remove_command(name, command):
+            if len(decorators.COMMANDS[name]) > 1:
+                decorators.COMMANDS[name].remove(command)
+            else:
+                del decorators.COMMANDS[name]
+
         self.hunger_levels.clear()
         for key, value in self.saved_messages.items():
             messages.messages[key] = value
+        remove_command("feed", self.feed_command)
 
     def on_totem_assignment(self, evt, var, role):
         if role == "shaman":
