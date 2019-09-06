@@ -1,5 +1,4 @@
 import random
-import math
 from collections import defaultdict
 from typing import List, Tuple, Dict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
@@ -68,7 +67,8 @@ class BorealMode(GameMode):
         self.phase = 1
         self.max_nights = 7
         self.village_hunger = 0
-        self.village_hunger_percent = 0.28
+        self.village_hunger_percent_base = 0.3
+        self.village_hunger_percent_adj = 0.03
         self.village_starve = 0
         self.max_village_starve = 3
         self.num_retribution = 0
@@ -119,8 +119,10 @@ class BorealMode(GameMode):
         self.num_retribution = sum(1 for p in vengefulghost.GHOSTS if vengefulghost.GHOSTS[p][0] != "!")
         if self.num_retribution > 0:
             self.phase = 2
-        # determine how many tribe members need to be fed. It's a percentage of remaining shamans (not counting WS)
-        self.village_hunger = math.ceil(len(get_players(("shaman",))) * self.village_hunger_percent)
+        # determine how many tribe members need to be fed. It's a percentage of remaining shamans
+        # Each alive WS reduces the percentage needed; the number is rounded off (.5 rounding to even)
+        percent = self.village_hunger_percent_base - self.village_hunger_percent_adj * len(get_players(("wolf shaman",)))
+        self.village_hunger = round(len(get_players(("shaman",))) * percent)
 
     def on_wolf_numkills(self, evt, var):
         evt.data["numkills"] = 0
