@@ -62,6 +62,9 @@ def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(("crazed shaman",)):
+        if is_silent(var, shaman):
+            continue
+
         ps = pl[:]
         for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
             if given in ps:

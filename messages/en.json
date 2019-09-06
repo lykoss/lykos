@@ -1030,9 +1030,13 @@
     "boreal_time_up": "Game over! The winter storm has let up, and the village is able to find food once again. The evil spirits retreat, vowing revenge next year.",
     "boreal_village_win": "Game over! The tribe has exiled all of the wolf shamans, allowing them to outlast the storm in safety.",
     "boreal_wolf_win": "Game over! The evil spirits have demolished the tribe, and the remaining wolf shamans travel to other clans to spread their misery there.",
+    "boreal_village_starve": "Game over! The starving members of the tribe have embraced the evil spirits and resorted to cannibalism. They transform into fearsome wendigos and devour the rest of the tribe.",
     "boreal_day_count": "The night is over, but the storm still rages outside. The tribe elder estimates the storm will subside in {0} more day{1}.",
+    "boreal_night_reminder": "The tribe is hungry and needs to be fed {0} time{1} tonight. They have gone hungry {2} time{3} in the past.",
+    "boreal_village_hungry": "The tribe was not fed enough last night and looks increasingly on-edge from their hunger.",
+    "boreal_feed_success": "You have given your totem of sustenance to the tribe.",
     "boreal_revealroles": "hunger level {0}",
-    "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight.",
+    "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
     "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation.",
 
     "_": " vim: set sw=4 expandtab:"

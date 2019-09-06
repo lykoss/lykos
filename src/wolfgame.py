@@ -2682,6 +2682,11 @@ def transition_night():
         dmsg = (dmsg + messages["first_night_begin"])
     channels.Main.send(dmsg)
     debuglog("BEGIN NIGHT")
+
+    event_night = Event("begin_night", {"messages": []})
+    event_night.dispatch(var)
+    channels.Main.send(*event_night.data["messages"])
+
     # If there are no nightroles that can act, immediately turn it to daytime
     chk_nightdone()
 

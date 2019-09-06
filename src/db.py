@@ -1104,7 +1104,7 @@ def _conn():
     try:
         return _ts.conn
     except AttributeError:
-        _ts.conn = sqlite3.connect("data.sqlite3")
+        _ts.conn = sqlite3.connect("data.sqlite3", isolation_level=None)
         with _ts.conn:
             c = _ts.conn.cursor()
             c.execute("PRAGMA foreign_keys = ON")
