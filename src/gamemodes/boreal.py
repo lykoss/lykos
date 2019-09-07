@@ -47,12 +47,12 @@ class BorealMode(GameMode):
             for role in roles:
                 self.TOTEM_CHANCES[totem][role] = 0
         # custom totems
-        self.TOTEM_CHANCES["sustenance"] = {"shaman": 10, "wolf shaman": 0, "crazed shaman": 0}
+        self.TOTEM_CHANCES["sustenance"] = {"shaman": 12, "wolf shaman": 0, "crazed shaman": 0}
         self.TOTEM_CHANCES["hunger"] = {"shaman": 0, "wolf shaman": 6, "crazed shaman": 0}
         # extra shaman totems
         self.TOTEM_CHANCES["revealing"]["shaman"] = 4
         self.TOTEM_CHANCES["death"]["shaman"] = 1
-        self.TOTEM_CHANCES["pacifism"]["shaman"] = 4
+        self.TOTEM_CHANCES["pacifism"]["shaman"] = 2
         self.TOTEM_CHANCES["silence"]["shaman"] = 1
         # extra WS totems: note that each WS automatically gets a hunger totem in addition to this in phase 1
         self.TOTEM_CHANCES["death"]["wolf shaman"] = 2
