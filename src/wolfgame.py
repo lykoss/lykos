@@ -404,8 +404,7 @@ def forced_exit(var, wrapper, message):
         if var.PHASE == "join" or force or wrapper.source.nick == "<console>":
             stop_game(var, log=False)
         else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
-                what="stop", cmd="fdie", prefix=botconfig.CMD_CHAR))
+            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="stop", cmd="fdie"))
             return
 
     reset_modes_timers(var)
@@ -449,8 +448,7 @@ def restart_program(var, wrapper, message):
         if var.PHASE == "join" or force:
             stop_game(var, log=False)
         else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
-                what="restart", cmd="frestart", prefix=botconfig.CMD_CHAR))
+            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="frestart"))
             return
 
     reset_modes_timers(var)
@@ -499,9 +497,7 @@ def restart_program(var, wrapper, message):
 @command("ping", pm=True)
 def pinger(var, wrapper, message):
     """Check if you or the bot is still connected."""
-    wrapper.reply(messages["ping"].format(
-        nick=wrapper.source, bot_nick=users.Bot,
-        cmd_char=botconfig.CMD_CHAR))
+    wrapper.reply(messages["ping"].format(nick=wrapper.source, bot_nick=users.Bot))
 
 @command("simple", pm=True)
 def mark_simple_notify(var, wrapper, message):
@@ -577,7 +573,7 @@ def replace(var, wrapper, message):
                 elif target is None:
                     target = user
                 else:
-                    wrapper.pm(messages["swap_notice"].format(botconfig.CMD_CHAR))
+                    wrapper.pm(messages["swap_notice"])
                     return
 
         if target is None:
@@ -1352,9 +1348,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     nitemin, nitesec = var.NIGHT_TIMEDELTA.seconds // 60, var.NIGHT_TIMEDELTA.seconds % 60
     total = var.DAY_TIMEDELTA + var.NIGHT_TIMEDELTA
     tmin, tsec = total.seconds // 60, total.seconds % 60
-    gameend_msg = messages["endgame_stats"].format(tmin, tsec,
-                                                daymin, daysec,
-                                                nitemin, nitesec)
+    gameend_msg = messages["endgame_stats"].format(tmin, tsec, daymin, daysec, nitemin, nitesec)
 
     if not abort:
         channels.Main.send(gameend_msg)
@@ -2097,7 +2091,7 @@ def leave_game(var, wrapper, message):
                 population = " " + messages["new_player_count"].format(lpl)
         else:
             if not message.startswith("-force"):
-                wrapper.pm(messages["leave_game_ingame_safeguard"].format(botconfig.CMD_CHAR))
+                wrapper.pm(messages["leave_game_ingame_safeguard"])
                 return
             population = ""
     elif wrapper.private:
@@ -2127,7 +2121,7 @@ def begin_day():
     var.GAMEPHASE = "day"
     var.STARTED_DAY_PLAYERS = len(get_players())
     var.LAST_GOAT.clear()
-    msg = messages["villagers_lynch"].format(botconfig.CMD_CHAR, len(list_players()) // 2 + 1)
+    msg = messages["villagers_lynch"].format(len(get_players()) // 2 + 1)
     channels.Main.send(msg)
 
     var.DAY_ID = time.time()
@@ -2502,16 +2496,16 @@ def relay(var, wrapper, message):
         to_msg = var.DEADCHAT_PLAYERS - {wrapper.source}
         if to_msg or var.SPECTATING_DEADCHAT:
             if message.startswith("\u0001ACTION"):
-                message = message[7:-1]
+                message = message[8:-1]
                 for user in to_msg:
-                    user.queue_message("* \u0002{0}\u0002{1}".format(wrapper.source, message))
+                    user.queue_message(messages["relay_action"].format(wrapper.source, message))
                 for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message("* [deadchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
+                    user.queue_message(messages["relay_action_deadchat"].format(wrapper.source, message))
             else:
                 for user in to_msg:
-                    user.queue_message("\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+                    user.queue_message(messages["relay_message"].format(wrapper.source, message))
                 for user in var.SPECTATING_DEADCHAT:
-                    user.queue_message("[deadchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+                    user.queue_message(messages["relay_message_deadchat"].format(wrapper.source, message))
 
             user.send_messages()
 
@@ -2532,14 +2526,14 @@ def relay(var, wrapper, message):
         if message.startswith("\u0001ACTION"):
             message = message[7:-1]
             for player in badguys:
-                player.queue_message("* \u0002{0}\u0002{1}".format(wrapper.source, message))
+                player.queue_message(messages["relay_action"].format(wrapper.source, message))
             for player in var.SPECTATING_WOLFCHAT:
-                player.queue_message("* [wolfchat] \u0002{0}\u0002{1}".format(wrapper.source, message))
+                player.queue_message(messages["relay_action_wolfchat"].format(wrapper.source, message))
         else:
             for player in badguys:
-                player.queue_message("\u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+                player.queue_message(messages["relay_message"].format(wrapper.source, message))
             for player in var.SPECTATING_WOLFCHAT:
-                player.queue_message("[wolfchat] \u0002{0}\u0002 says: {1}".format(wrapper.source, message))
+                player.queue_message(messages["relay_message_wolfchat"].format(wrapper.source, message))
         if badguys or var.SPECTATING_WOLFCHAT:
             player.send_messages()
 
@@ -3541,8 +3535,7 @@ def update(var, wrapper, message):
         if var.PHASE == "join" or force:
             stop_game(var, log=False)
         else:
-            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(
-                what="restart", cmd="update", prefix=botconfig.CMD_CHAR))
+            wrapper.pm(messages["stop_bot_ingame_safeguard"].format(what="restart", cmd="update"))
             return
 
     if update.aftergame:
