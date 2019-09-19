@@ -13,8 +13,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Win_Stealer
 
-MATCHMAKERS = UserSet() # type: Set[users.User]
-LOVERS = UserDict() # type: Dict[users.User, Set[users.User]]
+MATCHMAKERS = UserSet()
+ACTED = UserSet()
+LOVERS = UserDict()
 
 def _set_lovers(target1, target2):
     if target1 in LOVERS:
@@ -98,6 +99,7 @@ def choose(var, wrapper, message):
         return
 
     MATCHMAKERS.add(wrapper.source)
+    ACTED.add(wrapper.source)
 
     _set_lovers(target1, target2)
 
@@ -107,6 +109,7 @@ def choose(var, wrapper, message):
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
+    ACTED.clear()
     pl = get_players()
     for mm in get_all_players(("matchmaker",)):
         if mm not in MATCHMAKERS:
@@ -132,6 +135,7 @@ def on_transition_night_end(evt, var):
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
     MATCHMAKERS.discard(player)
+    ACTED.discard(player)
     if death_triggers and player in LOVERS:
         lovers = set(LOVERS[player])
         for lover in lovers:
@@ -196,8 +200,9 @@ def on_player_win(evt, var, player, role, winner, survived):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(MATCHMAKERS)
-    evt.data["nightroles"].extend(get_all_players(("matchmaker",)))
+    mms = (get_all_players(("matchmaker",)) - MATCHMAKERS) | ACTED
+    evt.data["actedcount"] += len(ACTED)
+    evt.data["nightroles"].extend(mms)
 
 @event_listener("get_team_affiliation")
 def on_get_team_affiliation(evt, var, target1, target2):
@@ -249,11 +254,10 @@ def on_revealroles(evt, var, wrapper):
 @event_listener("reset")
 def on_reset(evt, var):
     MATCHMAKERS.clear()
+    ACTED.clear()
     LOVERS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["matchmaker"] = {"Village", "Safe"}
-
-# vim: set sw=4 expandtab:
