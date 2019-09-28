@@ -702,7 +702,7 @@
     "shoot_success": "{0:@} shoots {1:@} with a silver bullet!",
     "gunner_victim_wolf_death": "{0:@} is {1!role:article} {1!role:bold}, and has perished from the silver bullet.",
     "gunner_victim_wolf_death_no_reveal": "{0:@} is a wolf, and has perished from the silver bullet.",
-    "gunner_victim_villager_death_accident": "{0:@} is not a wolf but was fatally injured.",
+    "gunner_victim_villager_death_accident": "{0:@} is not a wolf but was accidentally killed.",
     "gunner_victim_villager_death": "{0:@} is not a wolf but was fatally injured.",
     "gunner_victim_role": "The village has sacrificed {0!role:article} {0!role:bold}.",
     "gunner_victim_injured": "{0:@} is a villager and was injured. Luckily the injury is minor and will heal after a day of rest.",
