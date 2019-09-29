@@ -3243,6 +3243,7 @@ def flastgame(var, wrapper, message):
 @command("gamestats", pm=True)
 def gamestats(var, wrapper, message):
     """Get the game stats for a given game size or lists game totals for all game sizes if no game size is given."""
+    # NOTE: Need to dynamically translate roles and gamemodes
 
     if wrapper.public:
         if (var.GSTATS_RATE_LIMIT and var.LAST_GSTATS and
@@ -3290,6 +3291,7 @@ def gamestats(var, wrapper, message):
 @command("playerstats", pm=True)
 def player_stats(var, wrapper, message):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
+    # NOTE: Need to dynamically translate roles and gamemodes
     cli, nick, chan, rest = wrapper.client, wrapper.source.nick, wrapper.target.name, message # FIXME: @cmd
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
@@ -3361,6 +3363,7 @@ def my_stats(var, wrapper, message):
 @command("rolestats", pm=True)
 def role_stats(var, wrapper, rest):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
+    # NOTE: Need to dynamically translate roles and gamemodes
     if (wrapper.target != users.Bot and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])

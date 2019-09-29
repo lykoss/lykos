@@ -22,6 +22,7 @@ class Formatter(string.Formatter):
     - New spec ":article to give the indefinite article for the given value.
     - New spec ":!" prefixes the value with the bot's command character.
     - New convert type "!role" to indicate the value is a role name (and will be translated appropriately).
+    - New convert type "!mode" to indicate the value is a gamemode name (and will be translated appropriately).
     - New convert type "!command" to indicate the value is a command name (and will be translated appropriately).
     - New convert type "!totem" to indicate the value is a totem name (and will be translated appropriately).
     - New convert type "!cat" to indicate the value is a role category name (and will be translated appropriately).
@@ -107,6 +108,8 @@ class Formatter(string.Formatter):
 
         if conversion == "role":
             return messages.raw("_roles", value)
+        if conversion == "mode":
+            return messages.raw("_gamemodes", value)
         if conversion == "command":
             return messages.raw("_commands", value)[0]
         if conversion == "totem":

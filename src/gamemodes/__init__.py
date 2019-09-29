@@ -72,7 +72,7 @@ class GameMode:
                 elif val == "team" and not hasattr(self, "STATS_TYPE"):
                     self.STATS_TYPE = "team"
             elif key in ("stats type", "stats"):
-                if val not in ("default", "accurate", "team", "disabled", "experimental"):
+                if val not in ("default", "accurate", "team", "disabled"):
                     raise InvalidModeException(messages["invalid_stats"].format(val))
                 self.STATS_TYPE = val
             elif key == "abstain":

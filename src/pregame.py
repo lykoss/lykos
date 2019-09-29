@@ -450,16 +450,10 @@ def start(var, wrapper, *, forced=False, restart=""):
             else:
                 options.append("no abstaining")
 
-        if len(options) > 2:
-            options = " with {0}, and {1}".format(", ".join(options[:-1]), options[-1])
-        elif len(options) == 2:
-            options = " with {0} and {1}".format(options[0], options[1])
-        elif len(options) == 1:
-            options = " with {0}".format(options[0])
-        else:
-            options = ""
-
-        wrapper.send(messages["welcome"].format(villagers, gamemode, options))
+        key = "welcome_simple"
+        if options:
+            key = "welcome_options"
+        wrapper.send(messages[key].format(villagers, gamemode, options))
         wrapper.target.mode("+m")
 
     var.ORIGINAL_ROLES.clear()
