@@ -3575,6 +3575,15 @@ def _call_command(wrapper, command, no_out=False):
     return (ret, out)
 
 def _git_pull(wrapper):
+    (ret, out) = _call_command(wrapper, "git rev-parse --abbrev-ref @{upstream}", no_out=True)
+    if ret != 0:
+        return False
+
+    if out.strip() == "origin/stable":
+        (ret, _) = _call_command("git branch --set-upstream-to=origin/master", no_out=True)
+        if ret != 0:
+            return False
+    
     (ret, _) = _call_command(wrapper, "git fetch")
     if ret != 0:
         return False
