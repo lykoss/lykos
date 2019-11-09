@@ -429,26 +429,21 @@ def start(var, wrapper, *, forced=False, restart=""):
             gamemode = "default"
 
         # Alert the players to option changes they may not be aware of
+        # All keys begin with gso_* (game start options)
         options = []
         if var.ORIGINAL_SETTINGS.get("ROLE_REVEAL") is not None:
-            if var.ROLE_REVEAL == "on":
-                options.append("role reveal")
-            elif var.ROLE_REVEAL == "team":
-                options.append("team reveal")
-            elif var.ROLE_REVEAL == "off":
-                options.append("no role reveal")
+            # Keys used here: gso_rr_on, gso_rr_team, gso_rr_off
+            options.append(messages["gso_rr_{0}".format(var.ROLE_REVEAL)])
         if var.ORIGINAL_SETTINGS.get("STATS_TYPE") is not None:
-            if var.STATS_TYPE == "disabled":
-                options.append("no stats")
-            else:
-                options.append("{0} stats".format(var.STATS_TYPE))
+            # Keys used here: gso_st_default, gso_st_accurate, gso_st_team, gso_st_disabled
+            options.append(messages["gso_st_{0}".format(var.STATS_TYPE)])
         if var.ORIGINAL_SETTINGS.get("ABSTAIN_ENABLED") is not None or var.ORIGINAL_SETTINGS.get("LIMIT_ABSTAIN") is not None:
             if var.ABSTAIN_ENABLED and var.LIMIT_ABSTAIN:
-                options.append("restricted abstaining")
+                options.append(messages["gso_abs_rest"])
             elif var.ABSTAIN_ENABLED:
-                options.append("unrestricted abstaining")
+                options.append(messages["gso_abs_unrest"])
             else:
-                options.append("no abstaining")
+                options.append(messages["gso_abs_none"])
 
         key = "welcome_simple"
         if options:
