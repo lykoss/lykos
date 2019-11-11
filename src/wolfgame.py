@@ -2356,7 +2356,7 @@ def transition_day(gameid=0):
 
     killer_role = {}
     for deadperson in dead:
-        if is_dying(deadperson):
+        if is_dying(var, deadperson):
             continue
 
         if killers.get(deadperson):
