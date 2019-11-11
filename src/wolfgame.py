@@ -1151,7 +1151,7 @@ def stats(var, wrapper, message):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-            cli.notice(nick, messages["command_ratelimited"])
+            cli.notice(nick, messages["command_ratelimited"].format())
             return
 
         var.LAST_STATS = datetime.now()
@@ -2985,7 +2985,7 @@ def show_admins(var, wrapper, message):
 
     if (chan != nick and var.LAST_ADMINS and var.LAST_ADMINS +
             timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"])
+        cli.notice(nick, messages["command_ratelimited"].format())
         return
 
     if chan != nick or (var.PHASE in var.GAME_PHASES or nick in pl):
@@ -3070,7 +3070,7 @@ def timeleft(var, wrapper, message):
 
     if (chan != nick and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"])
+        cli.notice(nick, messages["command_ratelimited"].format())
         return
 
     if chan != nick:
@@ -3320,11 +3320,11 @@ def player_stats(var, wrapper, message):
     if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
             datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"])
+        cli.notice(nick, messages["command_ratelimited"].format())
         return
 
     if chan != nick and chan == botconfig.CHANNEL and var.PHASE not in ("none", "join"):
-        cli.notice(nick, messages["no_command_in_channel"])
+        cli.notice(nick, messages["no_command_in_channel"].format())
         return
 
     if chan != nick:
@@ -3346,7 +3346,7 @@ def player_stats(var, wrapper, message):
         hostmask = luser + "!" + irc_lower(lusers[luser]["ident"]) + "@" + lusers[luser]["host"].lower()
         if acc == "*" and var.ACCOUNTS_ONLY:
             if luser == nick.lower():
-                cli.notice(nick, messages["not_logged_in"])
+                cli.notice(nick, messages["not_logged_in"].format())
             else:
                 cli.notice(nick, messages["account_not_logged_in"].format(user))
             return

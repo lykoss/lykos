@@ -41,7 +41,7 @@ def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
     from src.channels import get as chan_get
     from src.dispatcher import MessageDispatcher
     user = users_get(nick)
-    if private or nick == chan:
+    if private or nick == chan or chan == Bot.nick:
         target = Bot
     else:
         target = chan_get(chan)

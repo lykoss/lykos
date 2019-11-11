@@ -517,7 +517,7 @@
     "other_stasis": "Sorry, but {0} is in stasis for {1} {=game,games:plural({1})}",
     "your_current_stasis": "You are currently in stasis for {0:bold} {=game,games:plural({0})}.",
     "you_not_in_stasis": "You are not currently in stasis.",
-    "not_playing": "{0:@} is not currently playing.",
+    "not_playing": "{0:bold} is not currently playing.",
     "ambiguous_mode": "{0:bold} is not a valid game mode. Valid modes are: {1:join}",
     "simple_off": "You now no longer receive simple role instructions.",
     "simple_on": "You now receive simple role instructions.",
