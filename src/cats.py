@@ -82,7 +82,7 @@ def register_roles(evt):
     All._roles = frozenset(All._roles)
     FROZEN = True
 
-events.add_listener("init", register_roles, 1)
+events.EventListener(register_roles, priority=1).install("init")
 
 class Category:
     """Base class for role categories."""

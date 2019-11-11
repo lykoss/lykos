@@ -2,7 +2,8 @@ import random
 from collections import defaultdict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 from src.cats import All, Wolf, Killer
 
 @game_mode("random", minp=8, maxp=24, likelihood=0)
@@ -36,16 +37,12 @@ class RandomMode(GameMode):
         }
 
         self.ROLE_SETS["gunner/sharpshooter"] = {"gunner": 8, "sharpshooter": 4}
-
         self.set_default_totem_chances()
 
-    def startup(self):
-        events.add_listener("role_attribution", self.role_attribution)
-        events.add_listener("chk_win", self.lovers_chk_win)
-
-    def teardown(self):
-        events.remove_listener("role_attribution", self.role_attribution)
-        events.remove_listener("chk_win", self.lovers_chk_win)
+        self.EVENTS = {
+            "role_attribution": EventListener(self.role_attribution),
+            "chK_win": EventListener(self.lovers_chk_win)
+        }
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         lpl = len(villagers) - 1

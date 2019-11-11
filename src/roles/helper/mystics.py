@@ -18,7 +18,7 @@ def register_mystic(rolename, *, send_role, types):
 
     role = rolename.replace(" ", "_")
 
-    @event_listener("transition_night_end")
+    @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
         values = []
 
@@ -39,7 +39,7 @@ def register_mystic(rolename, *, send_role, types):
                 mystic.send(messages[to_send].format(rolename))
             mystic.send(msg)
 
-    @event_listener("new_role")
+    @event_listener("new_role", listener_id="<{}>.on_new_role".format(rolename))
     def on_new_role(evt, var, player, old_role):
         if evt.params.inherit_from in LAST_COUNT and old_role != rolename and evt.data["role"] == rolename:
             values = LAST_COUNT.pop(evt.params.inherit_from)
@@ -48,11 +48,11 @@ def register_mystic(rolename, *, send_role, types):
             msg = messages[key].format(values[0][0], [messages["mystic_join"].format(c, t) for c, t in values])
             evt.data["messages"].append(msg)
 
-    @event_listener("reset")
+    @event_listener("reset", listener_id="<{}>.on_reset".format(rolename))
     def on_reset(evt, var):
         LAST_COUNT.clear()
 
-    @event_listener("myrole")
+    @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
         if user in get_all_players((rolename,)):
             values = LAST_COUNT[user]

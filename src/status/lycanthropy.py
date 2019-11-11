@@ -14,10 +14,13 @@ SCOPE = set()
 def add_lycanthropy(var, target, prefix="lycan"):
     """Effect the target with lycanthropy. Fire the add_lycanthropy event."""
     if target in LYCANTHROPES or target not in get_players():
-        return
+        return True
 
     if Event("add_lycanthropy", {}).dispatch(var, target):
         LYCANTHROPES[target] = prefix
+        return True
+
+    return False
 
 def remove_lycanthropy(var, target):
     """Remove the lycanthropy effect from the target."""

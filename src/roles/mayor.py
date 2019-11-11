@@ -23,8 +23,9 @@ def on_transition_day_begin(evt, var):
 @event_listener("lynch_immunity")
 def on_lynch_immunity(evt, var, user, reason):
     if reason == "mayor":
-        channels.Main.send(messages["mayor_reveal"].format(votee))
+        channels.Main.send(messages["mayor_reveal"].format(user))
         evt.data["immune"] = True
+        REVEALED_MAYORS.add(user)
 
 @event_listener("reset")
 def on_reset(evt, var):

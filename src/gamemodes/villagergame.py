@@ -1,10 +1,12 @@
 import random
+import time
 import threading
 import botconfig
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_all_players, get_players
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("villagergame", minp=4, maxp=9, likelihood=0)
 class VillagergameMode(GameMode):
@@ -18,25 +20,18 @@ class VillagergameMode(GameMode):
             8: ["harlot"],
             9: ["crazed shaman"],
         }
+        self.EVENTS = {
+            "chk_win": EventListener(self.chk_win),
+            "chk_nightdone": EventListener(self.chk_nightdone),
+            "transition_day_begin": EventListener(self.transition_day),
+            "retribution_kill": EventListener(self.on_retribution_kill, priority=4),
+            "lynch": EventListener(self.on_lynch),
+            "reconfigure_stats": EventListener(self.reconfigure_stats)
+        }
+        self.saved_timers = {}
 
     def can_vote_bot(self, var):
         return True
-
-    def startup(self):
-        events.add_listener("chk_win", self.chk_win)
-        events.add_listener("chk_nightdone", self.chk_nightdone)
-        events.add_listener("transition_day_begin", self.transition_day)
-        events.add_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.add_listener("lynch", self.on_lynch)
-        events.add_listener("reconfigure_stats", self.reconfigure_stats)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.chk_win)
-        events.remove_listener("chk_nightdone", self.chk_nightdone)
-        events.remove_listener("transition_day_begin", self.transition_day)
-        events.remove_listener("retribution_kill", self.on_retribution_kill, priority=4)
-        events.remove_listener("lynch", self.on_lynch)
-        events.remove_listener("reconfigure_stats", self.reconfigure_stats)
 
     def reconfigure_stats(self, evt, var, roleset, reason):
         if reason == "start":
@@ -62,6 +57,7 @@ class VillagergameMode(GameMode):
             evt.data["winner"] = None
 
     def chk_nightdone(self, evt, var):
+        self.saved_timers = var.TIMERS
         transition_day = evt.data["transition_day"]
         evt.data["transition_day"] = lambda gameid=0: self.prolong_night(var, gameid, transition_day)
 
@@ -71,13 +67,50 @@ class VillagergameMode(GameMode):
         if rand <= 0 and nspecials > 0:
             transition_day(gameid=gameid)
         else:
-            t = threading.Timer(abs(rand), transition_day, kwargs={"gameid": gameid})
-            t.start()
+            # rejig the night ending timer to cleanup what we're doing
+            # NOTE: this relies on implementation details in CPython and may not work across python versions
+            # or with other python implementations. If this becomes problematic, we may want to use our own timer impl
+            # rather than rely on threading.Timer; we can mostly just lift what CPython has for that
+            if "night" in self.saved_timers:
+                oldid = self.saved_timers["night"][0].kwargs["gameid"]
+                self.saved_timers["night"][0].kwargs = {
+                    "var": var,
+                    "gameid": oldid,
+                    "transition_day": transition_day
+                }
+                self.saved_timers["night"][0].function = self.prolong_night_end
+
+            # bootstrap villagergame delay timer
+            current = time.time()
+            delay = abs(rand)
+            t = threading.Timer(delay, self.prolong_night_end,
+                                kwargs={"var": var, "gameid": gameid, "transition_day": transition_day})
+            self.saved_timers["villagergame"] = (t, current, delay)
+
+            # restart saved timers (they were cancelled before prolong_night was called)
+            for name, t in self.saved_timers.items():
+                elapsed = current - t[1]
+                remaining = t[2] - elapsed
+                if remaining > 0:
+                    new_timer = threading.Timer(remaining, t[0].function, t[0].args, t[0].kwargs)
+                    var.TIMERS[name] = (new_timer, t[1], t[2])
+                    new_timer.daemon = True
+                    new_timer.start()
+
+            self.saved_timers = {}
+
+    def prolong_night_end(self, var, gameid, transition_day):
+        # clean up timers again before calling transition_day
+        for x, t in var.TIMERS.items():
+            if t[0].is_alive():
+                t[0].cancel()
+        self.saved_timers = {}
+        var.TIMERS = {}
+        transition_day(gameid=gameid)
 
     def transition_day(self, evt, var):
         # 30% chance we kill a safe, otherwise kill at random
         # when killing safes, go after seer, then harlot, then shaman
-        self.delaying_night = False
         pl = get_players()
         tgt = None
         seer = None

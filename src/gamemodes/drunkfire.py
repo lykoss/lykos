@@ -1,6 +1,7 @@
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
-from src import events, channels, users
+from src.events import EventListener
+from src import channels, users
 
 @game_mode("drunkfire", minp=8, maxp=17, likelihood=0)
 class DrunkFireMode(GameMode):
@@ -22,9 +23,6 @@ class DrunkFireMode(GameMode):
             14: ["wolf(3)", "seer(2)", "gunner(5)", "assassin"],
             16: ["traitor(2)", "village drunk(5)", "sharpshooter(4)"],
         }
-
-    def startup(self):
-        events.add_listener("chk_win", self.all_dead_chk_win)
-
-    def teardown(self):
-        events.remove_listener("chk_win", self.all_dead_chk_win)
+        self.EVENTS = {
+            "chk_win": EventListener(self.all_dead_chk_win)
+        }

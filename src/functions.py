@@ -91,7 +91,8 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
     if sayrole in Hidden:
         sayrole = var.HIDDEN_ROLE
 
-    player.send(messages[message].format(sayrole))
+    if message:
+        player.send(messages[message].format(an, sayrole))
     player.send(*evt.data["messages"])
 
     return newrole

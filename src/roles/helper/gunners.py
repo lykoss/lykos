@@ -80,7 +80,7 @@ def setup_variables(rolename):
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
-    @event_listener("transition_night_end")
+    @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
         for gunner in get_all_players((rolename,)):
             if GUNNERS[gunner]:
@@ -89,7 +89,7 @@ def setup_variables(rolename):
                 else:
                     gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
-    @event_listener("transition_day_resolve_end", priority=4)
+    @event_listener("transition_day_resolve_end", priority=4, listener_id="<{}>.on_transition_day_resolve_end".format(rolename))
     def on_transition_day_resolve_end(evt, var, victims):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
@@ -120,17 +120,17 @@ def setup_variables(rolename):
                     var.ROLES[rolename].add(looter)
                     looter.send(messages["wolf_gunner"].format(victim))
 
-    @event_listener("myrole")
+    @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
         if GUNNERS.get(user):
             evt.data["messages"].append(messages["gunner_simple"].format(rolename, GUNNERS[user]))
 
-    @event_listener("revealroles_role")
+    @event_listener("revealroles_role", listener_id="<{}>.on_revealroles_role".format(rolename))
     def on_revealroles_role(evt, var, user, role):
         if role == rolename and user in GUNNERS:
             evt.data["special_case"].append(messages["gunner_revealroles"].format(GUNNERS[user]))
 
-    @event_listener("reset")
+    @event_listener("reset", listener_id="<{}>.on_reset".format(rolename))
     def on_reset(evt, var):
         GUNNERS.clear()
 

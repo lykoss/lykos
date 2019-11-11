@@ -19,7 +19,8 @@ def on_transition_night_end(evt, var):
     if lycans:
         add_lycanthropy_scope(var, {"lycan"})
     for lycan in lycans:
-        add_lycanthropy(var, lycan)
+        if not add_lycanthropy(var, lycan):
+            continue
         if lycan.prefers_simple():
             lycan.send(messages["role_simple"].format("lycan"))
         else:

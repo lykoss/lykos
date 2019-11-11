@@ -5,13 +5,14 @@ import math
 from collections import defaultdict
 
 from src.utilities import *
-from src import events, channels, users, debuglog, errlog, plog
+from src import channels, users, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target, change_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Win_Stealer
+from src.events import EventListener
 
 CLONED = UserDict() # type: Dict[users.User, users.User]
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones
@@ -147,5 +148,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["clone"] = {"Neutral", "Team Switcher"}
-
-# vim: set sw=4 expandtab:

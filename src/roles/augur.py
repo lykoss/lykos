@@ -43,7 +43,9 @@ def see(var, wrapper, message):
         aura = "red"
     elif targrole in Neutral:
         aura = "grey"
-    wrapper.send(messages["augur_success"].format(target, aura))
+
+    # used message keys (for grep): augur_success_blue, augur_success_red, augur_success_grey
+    wrapper.send(messages["augur_success_" + aura].format(target))
     debuglog("{0} (augur) SEE: {1} ({2}) as {3} ({4} aura)".format(wrapper.source, target, trole, targrole, aura))
 
     SEEN.add(wrapper.source)
@@ -54,5 +56,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["augur"] = {"Village", "Nocturnal", "Spy", "Safe"}
     elif kind == "lycanthropy_role":
         evt.data["augur"] = {"role": "doomsayer", "prefix": "seer"}
-
-# vim: set sw=4 expandtab:

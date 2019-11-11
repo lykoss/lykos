@@ -7,25 +7,50 @@ from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
+from src.events import Event
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, is_silent
 from src.cats import Win_Stealer
 
-from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem
+from src.roles.helper.shamans import setup_variables, get_totem_target, give_totem, totem_message
 
-TOTEMS, LASTGIVEN, SHAMANS = setup_variables("crazed shaman", knows_totem=False)
+TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("crazed shaman", knows_totem=False)
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("crazed shaman",))
 def crazed_shaman_totem(var, wrapper, message):
     """Give a random totem to a player."""
 
-    target = get_totem_target(var, wrapper, message, LASTGIVEN)
+    totem_types = list(TOTEMS[wrapper.source].keys())
+    totem, target = get_totem_target(var, wrapper, message, LASTGIVEN, []) # don't pass totem_types so they can't autocomplete what random totems they have
     if not target:
         return
 
-    give_totem(var, wrapper, target, key="shaman_success_night", role="crazed shaman")
+    # get the first totem type they haven't fully given out yet
+    for type in totem_types:
+        given = len(SHAMANS[wrapper.source][type])
+        total = TOTEMS[wrapper.source][type]
+        if given < total:
+            totem = type
+            break
+    else: # all totems are given out, change targets for a random one
+        totem = random.choice(totem_types)
+
+    orig_target = target
+    target = RETARGET[wrapper.source].get(target, target)
+    if target in itertools.chain.from_iterable(SHAMANS[wrapper.source].values()):
+        wrapper.send(messages["shaman_no_stacking"].format(orig_target))
+        return
+
+    given = give_totem(var, wrapper, target, key="shaman_success_night_unknown", role="crazed shaman")
+    if given:
+        victim, target = given
+        if victim is not target:
+            RETARGET[wrapper.source][target] = victim
+        SHAMANS[wrapper.source][totem].append(victim)
+        if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
+            SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
 def on_player_win(evt, var, user, role, winner, survived):
@@ -37,20 +62,26 @@ def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
     for shaman in get_players(("crazed shaman",)):
-        if shaman not in SHAMANS and not is_silent(var, shaman):
-            ps = pl[:]
-            if shaman in LASTGIVEN:
-                if LASTGIVEN[shaman] in ps:
-                    ps.remove(LASTGIVEN[shaman])
-            if ps:
-                target = random.choice(ps)
-                dispatcher = MessageDispatcher(shaman, shaman)
+        if is_silent(var, shaman):
+            continue
 
-                give_totem(var, dispatcher, target, key="shaman_success_random", role="crazed shaman")
-            else:
-                LASTGIVEN[shaman] = None
-        elif shaman not in SHAMANS:
-            LASTGIVEN[shaman] = None
+        ps = pl[:]
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for given in itertools.chain.from_iterable(SHAMANS[shaman].values()):
+            if given in ps:
+                ps.remove(given)
+        for totem, count in TOTEMS[shaman].items():
+            mustgive = count - len(SHAMANS[shaman][totem])
+            for i in range(mustgive):
+                if ps:
+                    target = random.choice(ps)
+                    ps.remove(target)
+                    dispatcher = MessageDispatcher(shaman, shaman)
+                    given = give_totem(var, dispatcher, target, key="shaman_success_random_unknown", role="crazed shaman")
+                    if given:
+                        SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("transition_night_end", priority=2.01)
 def on_transition_night_end(evt, var):
@@ -62,24 +93,35 @@ def on_transition_night_end(evt, var):
         if s not in shamans:
             del LASTGIVEN[s]
 
+    shamans = list(shamans)
+    random.shuffle(shamans)
     for shaman in shamans:
         pl = ps[:]
         random.shuffle(pl)
-        if LASTGIVEN.get(shaman):
-            if LASTGIVEN[shaman] in pl:
-                pl.remove(LASTGIVEN[shaman])
+        for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
+            if given in pl:
+                pl.remove(given)
 
         target = 0
         rand = random.random() * max_totems
         for t in chances:
             target += chances[t]["crazed shaman"]
             if rand <= target:
-                TOTEMS[shaman] = t
+                TOTEMS[shaman] = {t: 1}
                 break
+        event = Event("totem_assignment", {"totems": TOTEMS[shaman]})
+        event.dispatch(var, "crazed shaman")
+        TOTEMS[shaman] = event.data["totems"]
+
+        num_totems = sum(TOTEMS[shaman].values())
         if shaman.prefers_simple():
             shaman.send(messages["role_simple"].format("crazed shaman"))
         else:
-            shaman.send(messages["shaman_random_notify"].format("crazed shaman"))
+            if num_totems > 1:
+                shaman.send(messages["shaman_notify_multiple_random"].format("crazed shaman"))
+            else:
+                shaman.send(messages["shaman_notify"].format("crazed shaman"))
+        shaman.send(totem_message(TOTEMS[shaman], count_only=True))
         shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
@@ -93,5 +135,3 @@ def on_get_role_metadata(evt, var, kind):
 def set_crazed_totems(evt, chances):
     for chance in chances.values():
         chance["crazed shaman"] = 1
-
-# vim: set sw=4 expandtab:
