@@ -13,7 +13,7 @@ import src.settings as var
 from src.utilities import break_long_message, singular
 from src.messages import messages, get_role_name
 from src.context import lower as irc_lower
-from cats import role_order
+from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons

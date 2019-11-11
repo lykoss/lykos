@@ -125,15 +125,16 @@ def setup_variables(rolename, *, knows_totem):
         if role == rolename and user in TOTEMS:
             if var.PHASE == "night":
                 evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
-                    messages["shaman_revealroles_night_totem"].format(num, totem) for num, totem in TOTEMS[user].items(),
-                    sum(TOTEMS[user].values()))
+                    (messages["shaman_revealroles_night_totem"].format(num, totem)
+                        for num, totem in TOTEMS[user].items()),
+                    sum(TOTEMS[user].values())))
             elif user in LASTGIVEN and LASTGIVEN[user]:
                 given = []
                 for totem, recips in LASTGIVEN[user].items():
-                    for recip in reips:
+                    for recip in recips:
                         given.append((totem, recip))
                     evt.data["special_case"].append(messages["shaman_revealroles_day"].format(
-                        messages["shaman_revealroles_day_totem"].format(totem, recip) for totem, recip in given)
+                        messages["shaman_revealroles_day_totem"].format(totem, recip) for totem, recip in given))
 
     @event_listener("transition_day_begin", priority=7, listener_id="<{}>.transition_day_begin".format(rolename))
     def on_transition_day_begin2(evt, var):
@@ -264,18 +265,12 @@ def totem_message(totems, count_only=False):
     totemcount = sum(totems.values())
     if not count_only and totemcount == 1:
         totem = list(totems.keys())[0]
-        return messages["shaman_totem"].format(totem, "n" if totem[0] in ("a", "e", "i", "o", "u") else "")
+        return messages["shaman_totem"].format(totem)
     elif count_only:
-        return messages["shaman_totem_multiple"].format(totemcount, "s" if totemcount != 1 else "")
+        return messages["shaman_totem_multiple_unknown"].format(totemcount)
     else:
-        pieces = ["{0} \u0002{1}\u0002".format(num, totem) for totem, num in totems.items()]
-        if len(pieces) == 2:
-            tstr = pieces[0] + " and " + pieces[1]
-        elif len(pieces) > 2:
-            tstr = ", ".join(pieces[0:-1]) + ", and " + pieces[-1]
-        else:
-            tstr = pieces[0]
-        return messages["shaman_totem_multiple"].format(tstr, "" if pieces[-1].startswith("1 ") else "s")
+        pieces = [messages["shaman_totem_piece"].format(num, totem) for totem, num in totems.items()]
+        return messages["shaman_totem_multiple_known"].format(pieces)
 
 def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
     """Get the totem target."""
