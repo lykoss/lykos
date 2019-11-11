@@ -1147,7 +1147,7 @@ def stats(var, wrapper, message):
 
     pl = list_players()
 
-    if nick != chan and (nick in pl or var.PHASE == "join"):
+    if wrapper.public and (nick in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
@@ -1157,7 +1157,7 @@ def stats(var, wrapper, message):
         var.LAST_STATS = datetime.now()
 
     _nick = nick + ": "
-    if nick == chan:
+    if wrapper.private:
         _nick = ""
 
     badguys = Wolfchat
@@ -1170,7 +1170,7 @@ def stats(var, wrapper, message):
     role = None
     if nick in pl:
         role = get_role(nick)
-    if chan == nick and role in badguys | {"warlock"}:
+    if wrapper.private and role in badguys | {"warlock"}:
         ps = pl[:]
         if role in badguys:
             cursed = [x.nick for x in get_all_players(("cursed villager",))] # FIXME
@@ -2958,7 +2958,7 @@ def wiki(var, wrapper, message):
         page = page[:page.find("\n")]
 
     wikilink = "https://werewolf.chat/{0}".format(suggestion.capitalize())
-    if nick == chan:
+    if wrapper.private:
         pm(cli, nick, wikilink)
         pm(cli, nick, break_long_message(page.split()))
     else:
@@ -2983,12 +2983,12 @@ def show_admins(var, wrapper, message):
     admins = []
     pl = list_players()
 
-    if (chan != nick and var.LAST_ADMINS and var.LAST_ADMINS +
+    if (wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS +
             timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
         cli.notice(nick, messages["command_ratelimited"].format())
         return
 
-    if chan != nick or (var.PHASE in var.GAME_PHASES or nick in pl):
+    if wrapper.public or (var.PHASE in var.GAME_PHASES or nick in pl):
         var.LAST_ADMINS = datetime.now()
 
     if var.ADMIN_PINGING:
@@ -3068,12 +3068,12 @@ def timeleft(var, wrapper, message):
     """Returns the time left until the next day/night transition."""
     cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
-    if (chan != nick and var.LAST_TIME and
+    if (wrapper.public and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
         cli.notice(nick, messages["command_ratelimited"].format())
         return
 
-    if chan != nick:
+    if wrapper.public:
         var.LAST_TIME = datetime.now()
 
     if var.PHASE == "join":
@@ -3317,17 +3317,17 @@ def player_stats(var, wrapper, message):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
     # NOTE: Need to dynamically translate roles and gamemodes
     cli, nick, chan, rest = wrapper.client, wrapper.source.nick, wrapper.target.name, message # FIXME: @cmd
-    if (chan != nick and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
+    if (wrapper.public and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
             datetime.now()):
         cli.notice(nick, messages["command_ratelimited"].format())
         return
 
-    if chan != nick and chan == botconfig.CHANNEL and var.PHASE not in ("none", "join"):
+    if wrapper.public and wrapper.target is channels.Main and var.PHASE not in ("none", "join"):
         cli.notice(nick, messages["no_command_in_channel"].format())
         return
 
-    if chan != nick:
+    if wrapper.public:
         var.LAST_PSTATS = datetime.now()
 
     params = rest.split()
