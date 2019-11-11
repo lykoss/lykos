@@ -35,19 +35,18 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if targs:
         user.send_messages()
 
-# Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
+# FIXME: Deprecated in favor of MessageDispatcher
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
-    if chan == nick:
-        pm(cli, nick, msg)
-    elif private or (chan == botconfig.CHANNEL and
-            ((nick not in list_players() and var.PHASE in var.GAME_PHASES) or
-             (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
-        cli.notice(nick, msg)
+    from src.users import Bot, _get as users_get
+    from src.channels import get as chan_get
+    from src.dispatcher import MessageDispatcher
+    user = users_get(nick)
+    if private or nick == chan:
+        target = Bot
     else:
-        if prefix_nick:
-            cli.msg(chan, "{0}: {1}".format(nick, msg))
-        else:
-            cli.msg(chan, msg)
+        target = chan_get(chan)
+    wrapper = MessageDispatcher(user, target)
+    wrapper.reply(msg, prefix_nick=prefix_nick)
 
 # FIXME: Deprecated in favor of helper.wolves method
 def in_wolflist(nick, who):

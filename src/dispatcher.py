@@ -35,7 +35,7 @@ class MessageDispatcher:
         """Reply to the user, either in channel or privately."""
         first = ""
         if prefix_nick:
-            first = "{0}: ".format(self.source.nick)
+            first = "{0}: ".format(self.source)
         if self.private:
             self.source.send(*messages, **kwargs)
         elif (self.target is channels.Main and
