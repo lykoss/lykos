@@ -89,7 +89,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     lentranced = len([x for x in ENTRANCED if x not in var.DEAD])
     if var.PHASE == "day" and lpl - lsuccubi == lentranced:
         evt.data["winner"] = "succubi"
-        evt.data["message"] = messages["succubus_win"].format(plural("succubus", lsuccubi), plural("has", lsuccubi), plural("master's", lsuccubi))
+        evt.data["message"] = messages["succubus_win"].format(lsuccubi)
     elif not lsuccubi and lentranced and var.PHASE == "day" and lpl == lentranced:
         evt.data["winner"] = "succubi"
         evt.data["message"] = messages["entranced_win"]
@@ -140,10 +140,11 @@ def on_transition_day_resolve_end(evt, var, victims):
         if victim in evt.data["dead"] and victim in VISITED.values() and "@wolves" in evt.data["killers"][victim]:
             for succubus in VISITED:
                 if VISITED[succubus] is victim and succubus not in evt.data["dead"]:
+                    role = get_reveal_role(succubus)
+                    to_send = "visited_victim_noreveal"
                     if var.ROLE_REVEAL in ("on", "team"):
-                        evt.data["message"][succubus].append(messages["visited_victim"].format(succubus, get_reveal_role(succubus)))
-                    else:
-                        evt.data["message"][succubus].append(messages["visited_victim_noreveal"].format(succubus))
+                        to_send = "visited_victim"
+                    evt.data["message"][succubus].append(messages[to_send].format(succubus, role))
                     evt.data["dead"].append(succubus)
 
 @event_listener("chk_nightdone")
@@ -154,20 +155,21 @@ def on_chk_nightdone(evt, var):
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
     succubi = get_all_players(("succubus",))
+    role_map = messages.get_role_mapping()
     for succubus in succubi:
         pl = get_players()
         random.shuffle(pl)
         pl.remove(succubus)
         to_send = "succubus_notify"
         if succubus.prefers_simple():
-            to_send = "succubus_simple"
+            to_send = "role_simple"
         succ = []
         for p in pl:
             if p in succubi:
-                succ.append("{0} (succubus)".format(p))
+                succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send], messages["players_list"].format(", ".join(succ)), sep="\n")
+        succubus.send(messages[to_send].format("succubus"), messages["players_list"].format([succ]), sep="\n")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):
@@ -188,9 +190,9 @@ def on_reset(evt, var):
     PASSED.clear()
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if ENTRANCED:
-        evt.data["output"].append("\u0002entranced players\u0002: {0}".format(", ".join(p.nick for p in ENTRANCED)))
+        evt.data["output"].append(messages["entranced_revealroles"].format(ENTRANCED))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

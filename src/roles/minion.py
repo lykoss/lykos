@@ -27,10 +27,10 @@ def on_transition_night_end(evt, var):
         if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
             continue
         if minion.prefers_simple():
-            to_send = "minion_simple"
+            to_send = "role_simple"
         else:
             to_send = "minion_notify"
-        minion.send(messages[to_send])
+        minion.send(messages[to_send].format("minion"))
         minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
 
@@ -46,8 +46,8 @@ def on_myrole(evt, var, user):
         wolves = []
         for wolfrole in Wolf:
             for player in var.ORIGINAL_ROLES[wolfrole]:
-                wolves.append(player.nick)
-        evt.data["messages"].append(messages["original_wolves"].format(", ".join(wolves)))
+                wolves.append(player)
+        evt.data["messages"].append(messages["original_wolves"].format(wolves))
 
 @event_listener("reset")
 def on_reset(evt, var):

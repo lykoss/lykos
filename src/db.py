@@ -10,7 +10,10 @@ from datetime import datetime, timedelta
 
 import botconfig
 import src.settings as var
-from src.utilities import irc_lower, break_long_message, role_order, singular
+from src.utilities import break_long_message, singular
+from src.messages import messages, get_role_name
+from src.context import lower as irc_lower
+from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
@@ -303,7 +306,7 @@ def add_game(mode, size, started, finished, winner, players, options):
 def get_player_stats(acc, hostmask, role):
     peid, plid = _get_ids(acc, hostmask)
     if not _total_games(peid):
-        return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -325,15 +328,15 @@ def get_player_stats(acc, hostmask, role):
     row = c.fetchone()
     name = _get_display_name(peid)
     if row:
-        return ("\u0002{0}\u0002 as \u0002{1[0]}\u0002 | Team wins: {1[1]} ({2:.0%}), "
-                "Individual wins: {1[2]} ({3:.0%}), Overall wins: {1[3]} ({4:.0%}), Total games: {1[4]}.").format(name, row, row[1]/row[4], row[2]/row[4], row[3]/row[4])
-    return "No stats for \u0002{0}\u0002 as \u0002{1}\u0002.".format(name, role)
+        role, team, indiv, overall, total = row
+        return messages["db_player_stats"].format(name, role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
+    return messages["db_pstats_no_role"].format(name, role)
 
 def get_player_totals(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     total_games = _total_games(peid)
     if not total_games:
-        return "\u0002{0}\u0002 has not played any games.".format(acc if acc and acc != "*" else hostmask)
+        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -363,10 +366,10 @@ def get_player_totals(acc, hostmask):
     order = list(role_order())
     name = _get_display_name(peid)
     #ordered role stats
-    totals = ["\u0002{0}\u0002: {1}".format(r, tmp[r]) for r in order if r in tmp]
+    totals = [messages["db_role_games"].format(r, tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
-    totals += ["\u0002{0}\u0002: {1}".format(r, t) for r, t in tmp.items() if r not in order]
-    return "\u0002{0}\u0002's totals | \u0002{1}\u0002 games | Winrate: \u0002{2:.0%}\u0002 | {3}".format(name, total_games, won_games / total_games, break_long_message(totals, ", "))
+    totals += [messages["db_role_games"].format(r, t) for r, t in tmp.items() if r not in order]
+    return messages["db_total_games"].format(name, total_games, won_games / total_games, break_long_message(totals, ", ")) # FIXME: Remove break_long_message
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -379,7 +382,7 @@ def get_game_stats(mode, size):
 
     total_games = c.fetchone()[0]
     if not total_games:
-        return "No stats for \u0002{0}\u0002 player games.".format(size)
+        return messages["db_gstats_no_game"].format(size)
 
     if mode == "all":
         c.execute("""SELECT
@@ -411,20 +414,20 @@ def get_game_stats(mode, size):
                      GROUP BY team
                      ORDER BY ord ASC, team ASC""", (mode, size))
 
+    key = "db_gstats_specific"
     if mode == "all":
-        msg = "\u0002{0}\u0002 player games | ".format(size)
-    else:
-        msg = "\u0002{0}\u0002 player games (\u0002{1}\u0002) | ".format(size, mode)
+        key = "db_gstats_all"
 
     bits = []
     for row in c:
-        winner = singular(row[0]).title()
+        winner = singular(row[0])
+        winner = get_role_name(winner, number=None).title()
         if not winner:
             winner = botconfig.NICK.title()
-        bits.append("{0} wins: {1} ({2}%)".format(winner, row[1], round(row[1]/total_games * 100)))
-    bits.append("Total games: {0}".format(total_games))
+        bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
+    bits.append(messages["db_gstats_total"].format(total_games))
 
-    return msg + ", ".join(bits)
+    return messages[key].format(size, mode, bits)
 
 def get_game_totals(mode):
     conn = _conn()
@@ -437,7 +440,7 @@ def get_game_totals(mode):
 
     total_games = c.fetchone()[0]
     if not total_games:
-        return "No games have been played in the {0} game mode.".format(mode)
+        return messages["db_gstats_gm_none"].format(mode)
 
     if mode == "all":
         c.execute("""SELECT
@@ -456,17 +459,16 @@ def get_game_totals(mode):
                      ORDER BY gamesize ASC""", (mode,))
     totals = []
     for row in c:
-        totals.append("\u0002{0}p\u0002: {1}".format(*row))
+        totals.append(messages["db_gstats_gm_p"].format(row[0], row[1]))
 
     if mode == "all":
-        return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
-    else:
-        return "Total games (\u0002{0}\u0002): {1} | {2}".format(mode, total_games, ", ".join(totals))
+        return messages["db_gstats_gm_all_total"].format(total_games, totals)
+    return messages["db_gstats_gm_specific_total"].format(mode, total_games, totals)
 
 def get_role_stats(role, mode=None):
     conn = _conn()
     c = conn.cursor()
-    
+
     if mode is None:
         c.execute("""SELECT
                    gpr.role AS role,
@@ -484,11 +486,11 @@ def get_role_stats(role, mode=None):
     else:
         c.execute("""SELECT
                    gpr.role AS role,
-                   g.gamemode AS gamemode,
                    SUM(gp.team_win) AS team,
                    SUM(gp.indiv_win) AS indiv,
                    SUM(gp.team_win OR gp.indiv_win) AS overall,
-                   COUNT(1) AS total
+                   COUNT(1) AS total,
+                   g.gamemode AS gamemode
                  FROM game g
                  JOIN game_player gp
                    ON gp.game = g.id
@@ -499,18 +501,17 @@ def get_role_stats(role, mode=None):
                  GROUP BY role, gamemode""", (role, mode))
 
     row = c.fetchone()
-    if row and row[2] is not None:
+    if row:
         if mode is None:
-            return ("\u0002{0[0]}\u0002 | Team winners: {0[1]} ({1:.0%}), "
-                    "Individual winners: {0[2]} ({2:.0%}), Overall winners: {0[3]} ({3:.0%}), Total games: {0[4]}.").format(row, row[1]/row[4], row[2]/row[4], row[3]/row[4])
-        else:
-            return ("\u0002{0[0]}\u0002 in \u0002{0[1]}\u0002 | Team winners: {0[2]} ({1:.0%}), "
-                    "Individual winners: {0[3]} ({2:.0%}), Overall winners: {0[4]} ({3:.0%}), Total games: {0[5]}.").format(row, row[2]/row[5], row[3]/row[5], row[4]/row[5])
-    else:
-        if mode is None:
-            return "No stats for \u0002{0}\u0002.".format(role)
-        else:
-            return "No stats for \u0002{0}\u0002 in \u0002{1}\u0002.".format(role, mode)
+            role, team, indiv, overall, total = row
+            return messages["db_role_stats_global"].format(role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
+
+        role, team, indiv, overall, total, gamemode = row
+        return messages["db_role_stats_specific"].format(gamemode, role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
+
+    if mode is None:
+        return messages["db_rstats_none"].format(role)
+    return messages["db_rstats_specific"].format(role, mode)
 
 def get_role_totals(mode=None):
     conn = _conn()
@@ -522,9 +523,9 @@ def get_role_totals(mode=None):
     total_games = c.fetchone()[0]
     if not total_games:
         if mode is None:
-            return "No games played."
+            return messages["db_rstats_nogame"]
         else:
-            return "No games played in the \u0002{0}\u0002 gamemode".format(mode)
+            return messages["db_rstats_no_mode"].format(mode)
 
     if mode is None:
         c.execute("""SELECT
@@ -547,13 +548,13 @@ def get_role_totals(mode=None):
                   ORDER BY count DESC""", (mode,))
 
     totals = []
-    for row in c:
-        totals.append("\u0002{0}\u0002: {1}".format(*row))
+    for role, count in c:
+        totals.append(messages["db_role_games"].format(role, count))
     if mode is None:
-        return "Total games: {0} | {1}".format(total_games, ", ".join(totals))
+        return messages["db_rstats_total"].format(total_games, totals)
     else:
-        return "\u0002{0}\u0002 games: {1} | {2}".format(mode, total_games, ", ".join(totals))
-    
+        return messages["db_rstats_total_mode"].format(mode, total_games, totals)
+
 
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
@@ -930,15 +931,15 @@ def set_pre_restart_state(players):
 
 def _upgrade(oldversion):
     # try to make a backup copy of the database
-    print ("Performing schema upgrades, this may take a while.", file=sys.stderr)
+    print("Performing schema upgrades, this may take a while.", file=sys.stderr)
     have_backup = False
     try:
-        print ("Creating database backup...", file=sys.stderr)
+        print("Creating database backup...", file=sys.stderr)
         shutil.copyfile("data.sqlite3", "data.sqlite3.bak")
         have_backup = True
-        print ("Database backup created at data.sqlite3.bak...", file=sys.stderr)
+        print("Database backup created at data.sqlite3.bak...", file=sys.stderr)
     except OSError:
-        print ("Database backup failed! Hit Ctrl+C to abort, otherwise upgrade will continue in 5 seconds...", file=sys.stderr)
+        print("Database backup failed! Hit Ctrl+C to abort, otherwise upgrade will continue in 5 seconds...", file=sys.stderr)
         time.sleep(5)
 
     dn = os.path.dirname(__file__)
@@ -947,44 +948,43 @@ def _upgrade(oldversion):
         with conn:
             c = conn.cursor()
             if oldversion < 2:
-                print ("Upgrade from version 1 to 2...", file=sys.stderr)
+                print("Upgrade from version 1 to 2...", file=sys.stderr)
                 # Update FKs to be deferrable, update collations to nocase where it makes sense,
                 # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
                 # player id as a string). When nocasing players, this may cause some records to be merged.
                 with open(os.path.join(dn, "db", "upgrade2.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 3:
-                print ("Upgrade from version 2 to 3...", file=sys.stderr)
+                print("Upgrade from version 2 to 3...", file=sys.stderr)
                 with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 4:
-                print ("Upgrade from version 3 to 4...", file=sys.stderr)
+                print("Upgrade from version 3 to 4...", file=sys.stderr)
                 # no actual upgrades, just wanted to force an index rebuild
             if oldversion < 5:
-                print ("Upgrade from version 4 to 5...", file=sys.stderr)
+                print("Upgrade from version 4 to 5...", file=sys.stderr)
                 c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
 
-            print ("Rebuilding indexes...", file=sys.stderr)
+            print("Rebuilding indexes...", file=sys.stderr)
             c.execute("REINDEX")
             c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
-            print ("Upgrades complete!", file=sys.stderr)
+            print("Upgrades complete!", file=sys.stderr)
     except sqlite3.Error:
-        print ("An error has occurred while upgrading the database schema.",
-               "Please report this issue to ##werewolf-dev on irc.freenode.net.",
-               "Include all of the following details in your report:",
-               sep="\n", file=sys.stderr)
+        print("An error has occurred while upgrading the database schema.",
+              "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+              "Include all of the following details in your report:",
+              sep="\n", file=sys.stderr)
         if have_backup:
             try:
                 shutil.copyfile("data.sqlite3.bak", "data.sqlite3")
             except OSError:
-                print ("An error has occurred while restoring your database backup.",
-                       "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
-                       sep="\n", file=sys.stderr)
+                print("An error has occurred while restoring your database backup.",
+                      "You can manually move data.sqlite3.bak to data.sqlite3 to restore the original database.",
+                      sep="\n", file=sys.stderr)
         raise
 
 def _migrate():
     # try to make a backup copy of the database
-    import shutil
     try:
         shutil.copyfile("data.sqlite3", "data.sqlite3.bak")
     except OSError:

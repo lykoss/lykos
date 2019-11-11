@@ -117,8 +117,6 @@ RW_TRAITOR_NON_WOLF = 0x80 # Consider traitor as a non-wolf for the purposes of 
 
 ENABLE_DEADCHAT = True # dead players can communicate with each other
 
-DYNQUIT_DURING_GAME = False # are dynamic quit messages used while a game is in progress? Note that true will break certain stats scrapers
-
 ABSTAIN_ENABLED = True # whether village can !abstain in order to not vote anyone during day
 LIMIT_ABSTAIN = True # if true, village will be limited to successfully !abstaining a vote only once
 SELF_LYNCH_ALLOWED = True
@@ -139,6 +137,7 @@ DISABLE_DEBUG_MODE_TIMERS = True
 DISABLE_DEBUG_MODE_TIME_LORD = False
 DISABLE_DEBUG_MODE_REAPER = True
 DISABLE_DEBUG_MODE_STASIS = True
+DEBUG_MODE_NOTHROW_MESSAGES = True
 
 # Minimum number of players needed for mad scientist to skip over dead people when determining who is next to them
 # Set to 0 to always skip over dead players. Note this is number of players that !joined, NOT number of players currently alive
@@ -201,22 +200,15 @@ LOG_PREFIX = "" # Message prefix for LOG_CHANNEL
 DEV_CHANNEL = ""
 DEV_PREFIX = ""
 
-TRACEBACK_VERBOSITY = 2 # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
+# Data collection settings. lykos will send details about errors that happen to the lykos developers,
+# these settings control how much data is sent. Please see https://werewolf.chat/dc for more information.
+# These settings additionally impacts what data is written to the error log.
+TRACEBACK_VERBOSITY = 2  # 0 = no locals at all, 1 = innermost frame's locals, 2 = all locals
+USER_DATA_LEVEL = 0  # 0 = fully anonymize users, 1 = expose nick only, 2 = expose full hostmask, account, and channel membership
+CHANNEL_DATA_LEVEL = 0  # 0 = fully anonymize channels, 1 = expose channel name
 
 # How often to ping the server (in seconds) to detect unclean disconnection
 SERVER_PING_INTERVAL = 120
-
-# Shorthand for naming roles, used to set up command aliases as well as be valid targets when
-# specifying role names for things (such as !pstats or prophet's !pray)
-ROLE_ALIASES = {
-        "ga": "guardian angel",
-        "drunk": "village drunk",
-        "cs": "crazed shaman",
-        "potato": "villager",
-        "vg": "vengeful ghost",
-        "mm": "matchmaker",
-        "ms": "mad scientist",
-        }
 
 # The default role can be anything, but HIDDEN_ROLE must be either "villager" or "cultist";
 # hidden roles are informed they are HIDDEN_ROLE (ergo that role should not have any abilities),
@@ -232,12 +224,6 @@ DISABLED_GAMEMODES = frozenset()
 
 # Commands listed here cannot be used by anyone (even admins/owners)
 DISABLED_COMMANDS = frozenset()
-
-# Roles which have a command equivalent to the role name need to implement special handling for being
-# passed their command again as a prefix and strip it out. For example, both !clone foo and !clone clone foo
-# should be valid. Failure to add such a command to this set will result in the bot not starting
-# with the error "ValueError: exclusive command already exists for ..."
-ROLE_COMMAND_EXCEPTIONS = set()
 
 GIF_CHANCE = 1/50
 

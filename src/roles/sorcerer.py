@@ -42,14 +42,11 @@ def observe(var, wrapper, message):
         from src.roles.amnesiac import ROLES as amn_roles
         targrole = amn_roles[target]
 
-    an = ""
     key = "sorcerer_fail"
     if targrole in Spy:
-        if targrole.startswith(("a", "e", "i", "o", "u")):
-            an = "n"
         key = "sorcerer_success"
 
-    wrapper.pm(messages[key].format(target, an, targrole))
+    wrapper.pm(messages[key].format(target, targrole))
     send_wolfchat_message(var, wrapper.source, messages["sorcerer_success_wolfchat"].format(wrapper.source, target), {"sorcerer"}, role="sorcerer", command="observe")
 
     debuglog("{0} (sorcerer) OBSERVE: {1} ({2})".format(wrapper.source, target, targrole))

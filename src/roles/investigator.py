@@ -16,7 +16,7 @@ from src.cats import Neutral, Wolfteam
 
 INVESTIGATED = UserSet()
 
-@command("id", "investigate", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
+@command("id", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("investigator",))
 def investigate(var, wrapper, message):
     """Investigate two players to determine their relationship to each other."""
     if wrapper.source in INVESTIGATED:
@@ -28,8 +28,6 @@ def investigate(var, wrapper, message):
         return
     target1 = pieces[0]
     target2 = pieces[1]
-    if target2.lower() == "and" and len(pieces) > 2:
-        target2 = pieces[2]
     target1 = get_target(var, wrapper, target1, not_self_message="no_investigate_self")
     target2 = get_target(var, wrapper, target2, not_self_message="no_investigate_self")
     if not target1 or not target2:
@@ -103,8 +101,8 @@ def on_transition_night_end(evt, var):
         pl.remove(inv)
         to_send = "investigator_notify"
         if inv.prefers_simple():
-            to_send = "investigator_simple"
-        inv.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+            to_send = "role_simple"
+        inv.send(messages[to_send].format("investigator"), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

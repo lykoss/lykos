@@ -44,6 +44,13 @@ class Container:
         vars = [format(x) for x in self]
         return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
 
+    def __format__(self, format_spec):
+        if format_spec == "for_tb":
+            vars = [format(x, "for_tb") for x in self]
+            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+
+        return super().__format__(format_spec)
+
     def __eq__(self, other):
         return self is other
 
@@ -267,6 +274,20 @@ class UserDict(Container, dict):
     def __str__(self):
         vars = ["{0}: {1}".format(x, y) for x, y in self.items()]
         return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+
+    def __format__(self, format_spec):
+        if format_spec == "for_tb":
+            # we don't know if the keys, the values, or both are Users or other user containers, so try all 3...
+            try:
+                vars = ["{0:for_tb}: {1:for_tb}".format(x, y) for x, y in self.items()]
+            except TypeError:
+                try:
+                    vars = ["{0:for_tb}: {1}".format(x, y) for x, y in self.items()]
+                except TypeError:
+                    vars = ["{0}: {1:for_tb}".format(x, y) for x, y in self.items()]
+            return "{0}({1})".format(self.__class__.__name__, ", ".join(vars))
+
+        return super().__format__(format_spec)
 
     def __deepcopy__(self, memo):
         new = type(self)()

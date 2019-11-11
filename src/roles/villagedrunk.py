@@ -16,7 +16,7 @@ from src.status import try_misdirection, try_exchange
 def on_transition_night_end(evt, var):
     for drunk in get_all_players(("village drunk",)):
         if drunk.prefers_simple():
-            drunk.send(messages["village_drunk_simple"])
+            drunk.send(messages["role_simple"].format("village drunk"))
         else:
             drunk.send(messages["village_drunk_notify"])
 

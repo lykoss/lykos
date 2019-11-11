@@ -18,8 +18,8 @@ def on_transition_night_end(evt, var):
             for villager in villagers:
                 to_send = "villager_notify"
                 if villager.prefers_simple():
-                    to_send = "villager_simple"
-                villager.queue_message(messages[to_send])
+                    to_send = "role_simple"
+                villager.queue_message(messages[to_send].format("villager"))
             villager.send_messages()
 
 @event_listener("chk_win", priority=3)

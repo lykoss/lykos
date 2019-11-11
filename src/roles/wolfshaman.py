@@ -20,7 +20,7 @@ TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_tote
 
 register_killer("wolf shaman")
 
-@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
+@command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
 def wolf_shaman_totem(var, wrapper, message):
     """Give a totem to a player."""
 
@@ -43,7 +43,7 @@ def wolf_shaman_totem(var, wrapper, message):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, prefix="You", role="wolf shaman", msg=" of {0}".format(totem))
+    given = give_totem(var, wrapper, target, totem, key="shaman_success_night_known", role="wolf shaman")
     if given:
         victim, target = given
         if victim is not target:
@@ -76,7 +76,7 @@ def on_transition_day_begin(evt, var):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, shaman)
-                    given = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="wolf shaman", msg=" of {0}".format(totem))
+                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="wolf shaman")
                     if given:
                         relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
                         SHAMANS[shaman][totem].append(given[0])
@@ -113,7 +113,7 @@ def on_transition_night_end(evt, var):
 
         num_totems = sum(TOTEMS[shaman].values())
         if shaman.prefers_simple():
-            shaman.send(messages["shaman_simple"].format("wolf shaman"))
+            shaman.send(messages["role_simple"].format("wolf shaman"))
         else:
             if num_totems > 1:
                 shaman.send(messages["shaman_notify_multiple_known"].format("wolf shaman"))

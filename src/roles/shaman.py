@@ -17,7 +17,7 @@ from src.roles.helper.shamans import setup_variables, get_totem_target, give_tot
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("shaman", knows_totem=True)
 
-@command("give", "totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
+@command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman",))
 def shaman_totem(var, wrapper, message):
     """Give a totem to a player."""
 
@@ -40,7 +40,7 @@ def shaman_totem(var, wrapper, message):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, prefix="You", role="shaman", msg=" of {0}".format(totem))
+    given = give_totem(var, wrapper, target, totem, key="shaman_success_night_known", role="shaman")
     if given:
         victim, target = given
         if victim is not target:
@@ -71,7 +71,7 @@ def on_transition_day_begin(evt, var):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, shaman)
-                    given = give_totem(var, dispatcher, target, prefix=messages["random_totem_prefix"], role="shaman", msg=" of {0}".format(totem))
+                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
 
@@ -107,7 +107,7 @@ def on_transition_night_end(evt, var):
 
         num_totems = sum(TOTEMS[shaman].values())
         if shaman.prefers_simple():
-            shaman.send(messages["shaman_simple"].format("shaman"))
+            shaman.send(messages["role_simple"].format("shaman"))
         else:
             if num_totems > 1:
                 shaman.send(messages["shaman_notify_multiple_known"].format("shaman"))
@@ -118,7 +118,7 @@ def on_transition_night_end(evt, var):
             for totem in TOTEMS[shaman]:
                 tmsg += " " + messages[totem + "_totem"]
         shaman.send(tmsg)
-        shaman.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
+        shaman.send(messages["players_list"].format(pl))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

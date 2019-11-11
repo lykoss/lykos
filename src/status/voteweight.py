@@ -1,6 +1,7 @@
 from src.decorators import event_listener
 from src.containers import UserDict
 from src.functions import get_players
+from src.messages import messages
 from src import users
 
 __all__ = ["add_vote_weight", "remove_vote_weight", "get_vote_weight"]
@@ -31,12 +32,12 @@ def on_del_player(evt, var, player, allroles, death_triggers):
     del WEIGHT[:player:]
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if WEIGHT:
         ilist = []
         for p, n in WEIGHT.items():
             ilist.append("{0} ({1})".format(p, max(n, 0)))
-        evt.data["output"].append("\u0002vote weight\u0002: {0}".format(", ".join(ilist)))
+        evt.data["output"].append(messages["vote_weight_revealroles"].format(ilist))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

@@ -9,9 +9,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-from src.roles.helper.mystics import setup_variables
+from src.roles.helper.mystics import register_mystic
 
-LAST_COUNT = setup_variables("mystic", send_role=True, types=("Wolfteam",))
+register_mystic("mystic", send_role=True, types=("Wolfteam",))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

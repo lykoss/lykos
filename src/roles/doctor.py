@@ -16,7 +16,7 @@ from src.status import try_misdirection, try_exchange, remove_lycanthropy, remov
 IMMUNIZED = UserSet() # type: Set[users.User]
 DOCTORS = UserDict() # type: Dict[users.User, int]
 
-@command("give", "immunize", "immunise", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
+@command("immunize", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("doctor",))
 def immunize(var, wrapper, message):
     """Immunize a player, preventing them from turning into a wolf."""
     if not DOCTORS[wrapper.source]:
@@ -63,15 +63,15 @@ def on_transition_night_end(evt, var):
             pl = ps[:]
             random.shuffle(pl)
             if doctor.prefers_simple():
-                doctor.send(messages["doctor_simple"])
+                doctor.send(messages["role_simple"].format("doctor"))
             else:
                 doctor.send(messages["doctor_notify"])
-            doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor], "s" if DOCTORS[doctor] > 1 else ""))
+            doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if IMMUNIZED:
-        evt.data["output"].append("\u0002immunized\u0002: {0}".format(", ".join(p.nick for p in IMMUNIZED)))
+        evt.data["output"].append(messages["immunized_revealroles"].format(IMMUNIZED))
 
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):

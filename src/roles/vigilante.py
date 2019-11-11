@@ -30,7 +30,7 @@ def vigilante_kill(var, wrapper, message):
     wrapper.send(messages["player_kill"].format(orig))
     debuglog("{0} (vigilante) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("vigilante",))
 def vigilante_retract(var, wrapper, message):
     """Removes a vigilante's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
@@ -91,8 +91,8 @@ def on_transition_night_end(evt, var):
         pl.remove(vigilante)
         to_send = "vigilante_notify"
         if vigilante.prefers_simple():
-            to_send = "vigilante_simple"
-        vigilante.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+            to_send = "role_simple"
+        vigilante.send(messages[to_send].format("vigilante"), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

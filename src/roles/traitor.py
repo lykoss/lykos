@@ -80,7 +80,6 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                 debuglog(traitor, "(traitor) TURNING")
     if did_something:
         if var.PHASE in var.GAME_PHASES:
-            var.TRAITOR_TURNED = True
             channels.Main.send(messages["traitor_turn_channel"])
             # fix !stats to show that traitor turned as well
             newstats = set()

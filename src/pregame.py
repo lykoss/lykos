@@ -29,7 +29,7 @@ START_VOTES = UserSet() # type: UserSet[users.User]
 RESTART_TRIES = 0 # type: int
 MAX_RETRIES = 3 # constant: not a setting
 
-@command("wait", "w", playing=True, phases=("join",))
+@command("wait", playing=True, phases=("join",))
 def wait(var, wrapper, message):
     """Increase the wait time until !start can be used."""
     if wrapper.target is not channels.Main:
@@ -80,9 +80,9 @@ def fwait(var, wrapper, message):
         var.CAN_START_TIME += timedelta(seconds=extra)
 
     if extra >= 0:
-        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra), "s" if extra != 1 else ""))
+        wrapper.send(messages["forced_wait_time_increase"].format(wrapper.source, abs(extra)))
     else:
-        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra), "s" if extra != -1 else ""))
+        wrapper.send(messages["forced_wait_time_decrease"].format(wrapper.source, abs(extra)))
 
 @command("start", phases=("none", "join"))
 def start_cmd(var, wrapper, message):
@@ -97,7 +97,7 @@ def fstart(var, wrapper, message):
     wrapper.target = channels.Main
     start(var, wrapper, forced=True)
 
-@command("retract", "r", phases=("day", "join"))
+@command("retract", phases=("day", "join"))
 def retract(var, wrapper, message):
     """Take back your vote during the day (for whom to lynch)."""
     if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED:
@@ -151,7 +151,7 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     if not restart:
         if var.PHASE == "none":
-            wrapper.source.send(messages["no_game_running"].format(botconfig.CMD_CHAR))
+            wrapper.source.send(messages["no_game_running"])
             return
         if var.PHASE != "join":
             wrapper.source.send(messages["werewolf_already_running"])
@@ -163,8 +163,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         var.GAME_START_TIME = now  # Only used for the idler checker
         dur = int((var.CAN_START_TIME - now).total_seconds())
         if dur > 0 and not forced:
-            plural = "" if dur == 1 else "s"
-            wrapper.send(messages["please_wait"].format(dur, plural))
+            wrapper.send(messages["please_wait"].format(dur))
             return
 
         if len(villagers) < var.MIN_PLAYERS:
@@ -188,8 +187,7 @@ def start(var, wrapper, *, forced=False, restart=""):
                 if len(START_VOTES) < start_votes_required - 1:
                     START_VOTES.add(wrapper.source)
                     remaining_votes = start_votes_required - len(START_VOTES)
-                    word = "vote" if remaining_votes == 1 else "votes"
-                    wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes, word))
+                    wrapper.send(messages["start_voted"].format(wrapper.source, remaining_votes))
 
                     # If this was the first vote
                     if len(START_VOTES) == 1:
@@ -238,7 +236,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
-        strip = lambda x: re.sub("\(.*\)", "", x)
+        strip = lambda x: re.sub(r"\(.*\)", "", x)
         lv = len(villagers)
         roles = []
         for num, rolelist in var.CURRENT_GAMEMODE.ROLE_GUIDE.items():
@@ -312,7 +310,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         if need_reset:
             from src.wolfgame import reset_settings
             reset_settings()
-            wrapper.send(messages["default_reset"].format(botconfig.CMD_CHAR))
+            wrapper.send(messages["default_reset"])
             var.PHASE = "join"
             return
 
@@ -324,7 +322,6 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.TRAITOR_TURNED = False
     var.FINAL_ROLES = {}
     var.EXTRA_WOLVES = 0
 
@@ -404,7 +401,7 @@ def start(var, wrapper, *, forced=False, restart=""):
                 var.ROLES.clear()
                 var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
                 reset_settings()
-                wrapper.send(messages["default_reset"].format(botconfig.CMD_CHAR))
+                wrapper.send(messages["default_reset"])
                 var.PHASE = "join"
                 return
             else:
@@ -432,37 +429,26 @@ def start(var, wrapper, *, forced=False, restart=""):
             gamemode = "default"
 
         # Alert the players to option changes they may not be aware of
+        # All keys begin with gso_* (game start options)
         options = []
         if var.ORIGINAL_SETTINGS.get("ROLE_REVEAL") is not None:
-            if var.ROLE_REVEAL == "on":
-                options.append("role reveal")
-            elif var.ROLE_REVEAL == "team":
-                options.append("team reveal")
-            elif var.ROLE_REVEAL == "off":
-                options.append("no role reveal")
+            # Keys used here: gso_rr_on, gso_rr_team, gso_rr_off
+            options.append(messages["gso_rr_{0}".format(var.ROLE_REVEAL)])
         if var.ORIGINAL_SETTINGS.get("STATS_TYPE") is not None:
-            if var.STATS_TYPE == "disabled":
-                options.append("no stats")
-            else:
-                options.append("{0} stats".format(var.STATS_TYPE))
+            # Keys used here: gso_st_default, gso_st_accurate, gso_st_team, gso_st_disabled
+            options.append(messages["gso_st_{0}".format(var.STATS_TYPE)])
         if var.ORIGINAL_SETTINGS.get("ABSTAIN_ENABLED") is not None or var.ORIGINAL_SETTINGS.get("LIMIT_ABSTAIN") is not None:
             if var.ABSTAIN_ENABLED and var.LIMIT_ABSTAIN:
-                options.append("restricted abstaining")
+                options.append(messages["gso_abs_rest"])
             elif var.ABSTAIN_ENABLED:
-                options.append("unrestricted abstaining")
+                options.append(messages["gso_abs_unrest"])
             else:
-                options.append("no abstaining")
+                options.append(messages["gso_abs_none"])
 
-        if len(options) > 2:
-            options = " with {0}, and {1}".format(", ".join(options[:-1]), options[-1])
-        elif len(options) == 2:
-            options = " with {0} and {1}".format(options[0], options[1])
-        elif len(options) == 1:
-            options = " with {0}".format(options[0])
-        else:
-            options = ""
-
-        wrapper.send(messages["welcome"].format(", ".join(x.nick for x in villagers), gamemode, options))
+        key = "welcome_simple"
+        if options:
+            key = "welcome_options"
+        wrapper.send(messages[key].format(villagers, gamemode, options))
         wrapper.target.mode("+m")
 
     var.ORIGINAL_ROLES.clear()
@@ -481,12 +467,12 @@ def start(var, wrapper, *, forced=False, restart=""):
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
     if not var.START_WITH_DAY:
         from src.wolfgame import transition_night
-        var.GAMEPHASE = "night"
+        var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night()
     else:
         from src.wolfgame import transition_day
         var.FIRST_DAY = True
-        var.GAMEPHASE = "day"
+        var.GAMEPHASE = "night"
         transition_day()
 
     decrement_stasis()

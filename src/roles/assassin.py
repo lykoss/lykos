@@ -78,10 +78,10 @@ def on_transition_night_end(evt, var):
             PREV_ACTED.add(ass)
         else:
             if ass.prefers_simple():
-                ass.send(messages["assassin_simple"])
+                ass.send(messages["role_simple"].format("assassin"))
             else:
                 ass.send(messages["assassin_notify"])
-            ass.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
+            ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -100,28 +100,25 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
             if protected is not None:
                 channels.Main.send(*protected)
                 return
+            to_send = "assassin_success_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(target)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                message = messages["assassin_success"].format(player, target, an, role)
-            else:
-                message = messages["assassin_success_no_reveal"].format(player, target)
-            channels.Main.send(message)
+                to_send = "assassin_success"
+            channels.Main.send(messages[to_send].format(player, target, get_reveal_role(target)))
             debuglog("{0} (assassin) ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
             add_dying(var, target, killer_role=evt.params.main_role, reason="assassin")
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
     if user in get_all_players(("assassin",)):
-        msg = ""
         if user in TARGETED:
-            msg = messages["assassin_targeting"].format(TARGETED[user])
-        user.send(messages["assassin_role_info"].format(msg))
+            evt.data["messages"].append(messages["assassin_targeting"].format(TARGETED[user]))
+        else:
+            evt.data["messages"].append(messages["role_simple"].format("assassin"))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "assassin" and user in TARGETED:
-        evt.data["special_case"].append("targeting {0}".format(TARGETED[user]))
+        evt.data["special_case"].append(messages["assassin_revealroles"].format(TARGETED[user]))
 
 @event_listener("reset")
 def on_reset(evt, var):

@@ -35,9 +35,9 @@ def on_del_player(evt, var, player, allroles, death_triggers):
     del ABSENT[:player:]
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if ABSENT:
-        evt.data["output"].append("\u0002absent\u0002: {0}".format(", ".join(p.nick for p in ABSENT)))
+        evt.data["output"].append(messages["absent_revealroles"].format(ABSENT))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

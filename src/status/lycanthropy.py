@@ -94,9 +94,9 @@ def on_transition_day_resolve_end(evt, var, victims):
                 debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if LYCANTHROPES:
-        evt.data["output"].append("\u0002lycanthropes\u0002: {0}".format(", ".join(p.nick for p in LYCANTHROPES)))
+        evt.data["output"].append(messages["lycanthropy_revealroles"].format(LYCANTHROPES))
 
 @event_listener("transition_night_begin")
 def on_begin_day(evt, var):

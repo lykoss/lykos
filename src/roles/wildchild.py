@@ -104,7 +104,7 @@ def on_transition_night_end(evt, var):
         if child in wolves:
             continue
         if child.prefers_simple():
-            child.send(messages["wild_child_simple"])
+            child.send(messages["role_simple"].format("wild child"))
         else:
             child.send(messages["wild_child_notify"])
 

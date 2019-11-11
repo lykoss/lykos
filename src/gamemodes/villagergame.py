@@ -52,7 +52,7 @@ class VillagergameMode(GameMode):
         pc = len(var.ALL_PLAYERS)
         if (pc >= 8 and lpl <= 4) or lpl <= 2:
             evt.data["winner"] = ""
-            evt.data["message"] = messages["villagergame_lose"].format(botconfig.CMD_CHAR, users.Bot.nick)
+            evt.data["message"] = messages["villagergame_lose"].format(users.Bot)
         else:
             evt.data["winner"] = None
 

@@ -173,7 +173,7 @@ class BorealMode(GameMode):
         # say how many days remaining
         remain = self.max_nights - var.NIGHT_COUNT
         if remain > 0:
-            evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain, "s" if remain != 1 else ""))
+            evt.data["message"]["*"].append(messages["boreal_day_count"].format(remain))
 
     def maybe_make_wendigo(self, var, player):
         from src.roles import vengefulghost
@@ -228,12 +228,7 @@ class BorealMode(GameMode):
             evt.data["possible"].add("shaman")
 
     def on_begin_night(self, evt, var):
-        evt.data["messages"].append(messages["boreal_night_reminder"].format(
-            self.village_hunger,
-            "s" if self.village_hunger != 1 else "",
-            self.village_starve,
-            "s" if self.village_starve != 1 else ""
-        ))
+        evt.data["messages"].append(messages["boreal_night_reminder"].format(self.village_hunger, self.village_starve))
 
     def feed(self, var, wrapper, message):
         """Give your sustenance totem to the tribe members so they don't starve."""

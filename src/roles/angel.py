@@ -18,7 +18,7 @@ GUARDED = UserDict() # type: Dict[User, User]
 LASTGUARDED = UserDict() # type: Dict[User, User]
 PASSED = UserSet() # type: Set[User]
 
-@command("guard", "protect", "save", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
+@command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
 def guard(var, wrapper, message):
     """Guard a player, preventing them from being killed that night."""
     if wrapper.source in GUARDED:
@@ -89,10 +89,10 @@ def on_transition_day_resolve_end(evt, var, victims):
         if GUARDED.get(gangel) in get_players(Wolf) and gangel not in evt.data["dead"]:
             r = random.random()
             if r < var.GUARDIAN_ANGEL_DIES_CHANCE:
+                to_send = "guardian_angel_protected_wolf_no_reveal"
                 if var.ROLE_REVEAL == "on":
-                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf"].format(gangel))
-                else: # off and team
-                    evt.data["message"][gangel].append(messages["guardian_angel_protected_wolf_no_reveal"].format(gangel))
+                    to_send = "guardian_angel_protected_wolf"
+                evt.data["message"][gangel].append(messages[to_send].format(gangel))
                 evt.data["dead"].append(gangel)
 
 @event_listener("transition_night_begin")
@@ -107,22 +107,22 @@ def on_transition_night_end(evt, var):
     for gangel in get_all_players(("guardian angel",)):
         pl = ps[:]
         random.shuffle(pl)
-        gself = messages["guardian_self_notification"]
-        if not var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
-            pl.remove(gangel)
-            gself = ""
         if gangel in LASTGUARDED:
             if LASTGUARDED[gangel] in pl:
                 pl.remove(LASTGUARDED[gangel])
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
 
         to_send = "guardian_angel_notify"
         if gangel.prefers_simple():
-            to_send = "guardian_angel_simple"
-        gangel.send(messages[to_send].format(warning, gself), messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+            to_send = "role_simple"
+        gangel.send(messages[to_send].format("guardian angel"))
+        if chance > 0:
+            gangel.send(messages["bodyguard_death_chance"].format(chance))
+        if var.GUARDIAN_ANGEL_CAN_GUARD_SELF:
+            gangel.send(messages["guardian_self_notification"])
+        else:
+            pl.remove(gangel)
+        gangel.send(messages["players_list"].format(pl))
 
 @event_listener("player_protected")
 def on_player_protected(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

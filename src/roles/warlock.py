@@ -94,10 +94,10 @@ def on_new_role(evt, var, user, old_role):
         player_list = []
         for player in pl:
             if player in get_all_players(("cursed villager",)):
-                player_list.append("{0} (cursed)".format(player))
+                player_list.append("{0} (cursed)".format(player))  # FIXME: make i18n friendly
             else:
                 player_list.append(player.nick)
-        user.send(messages["players_list"].format(", ".join(player_list)))
+        user.send(messages["players_list"].format(player_list))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

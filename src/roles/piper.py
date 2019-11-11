@@ -22,10 +22,7 @@ def charm(var, wrapper, message):
     pieces = re.split(" +", message)
     target1 = pieces[0]
     if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            target2 = pieces[2]
-        else:
-            target2 = pieces[1]
+        target2 = pieces[1]
     else:
         target2 = None
 
@@ -89,7 +86,7 @@ def pass_cmd(var, wrapper, message):
     wrapper.send(messages["piper_pass"])
     debuglog("{0} (piper) PASS".format(wrapper.source))
 
-@command("retract", "r", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
+@command("retract", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def retract(var, wrapper, message):
     """Remove your decision to charm people."""
     if wrapper.source in TOBECHARMED or wrapper.source in PASSED:
@@ -110,9 +107,9 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 
     uncharmed = set(get_players(mainroles=mainroles)) - CHARMED - pipers
 
-    if var.PHASE == "day" and len(uncharmed) == 0:
+    if var.PHASE == "day" and not uncharmed:
         evt.data["winner"] = "pipers"
-        evt.data["message"] = messages["piper_win"].format("s" if lp > 1 else "", "s" if lp == 1 else "")
+        evt.data["message"] = messages["piper_win"].format(lp)
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, mainrole, winner, survived):
@@ -139,31 +136,18 @@ def on_transition_day_begin(evt, var):
         charmedlist = list(CHARMED | tocharm - {target})
         message = messages["charmed"]
 
-        if len(charmedlist) <= 0:
-            target.send(message + messages["no_charmed_players"])
-        elif len(charmedlist) == 1:
-            target.send(message + messages["one_charmed_player"].format(charmedlist[0]))
-        elif len(charmedlist) == 2:
-            target.send(message + messages["two_charmed_players"].format(charmedlist[0], charmedlist[1]))
-        else:
-            target.send(message + messages["many_charmed_players"].format("\u0002, \u0002".join(p.nick for p in charmedlist[:-1]), charmedlist[-1]))
+        to_send = "charmed_players"
+        if not charmedlist:
+            to_send = "no_charmed_players"
+        target.send(messages["charmed"] + messages[to_send].format(charmedlist))
 
     if len(tocharm) > 0:
         for target in CHARMED:
-            tobecharmedlist = list(tocharm)
-
-            if len(tobecharmedlist) == 1:
-                message = messages["players_charmed_one"].format(tobecharmedlist[0])
-            elif len(tobecharmedlist) == 2:
-                message = messages["players_charmed_two"].format(tobecharmedlist[0], tobecharmedlist[1])
-            else:
-                message = messages["players_charmed_many"].format("\u0002, \u0002".join(p.nick for p in tobecharmedlist[:-1]), tobecharmedlist[-1])
-
             previouscharmed = CHARMED - {target}
-            if len(previouscharmed):
-                target.send(message + messages["previously_charmed"].format("\u0002, \u0002".join(p.nick for p in previouscharmed)))
+            if previouscharmed:
+                target.send(messages["players_charmed"].format(tocharm) + messages["previously_charmed"].format(previouscharmed))
             else:
-                target.send(message)
+                target.send(messages["players_charmed"].format(tocharm))
 
     CHARMED.update(tocharm)
     TOBECHARMED.clear()
@@ -183,8 +167,8 @@ def on_transition_night_end(evt, var):
         pl.remove(piper)
         to_send = "piper_notify"
         if piper.prefers_simple():
-            to_send = "piper_simple"
-        piper.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+            to_send = "role_simple"
+        piper.send(messages[to_send].format("piper"), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -202,17 +186,15 @@ def on_reset(evt, var):
     PASSED.clear()
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if CHARMED:
-        nicks = ", ".join(p.nick for p in CHARMED)
-        evt.data["output"].append(messages["piper_revealroles_charmed"].format(nicks))
+        evt.data["output"].append(messages["piper_revealroles_charmed"].format(CHARMED))
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     players = TOBECHARMED.get(user)
     if players:
-        nicks = ", ".join(p.nick for p in players)
-        evt.data["special_case"].append(messages["piper_revealroles_charming"].format(nicks))
+        evt.data["special_case"].append(messages["piper_revealroles_charming"].format(players))
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

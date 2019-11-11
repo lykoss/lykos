@@ -37,7 +37,7 @@ def dullahan_kill(var, wrapper, message):
 
     debuglog("{0} (dullahan) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("dullahan",))
 def dullahan_retract(var, wrapper, message):
     """Removes a dullahan's kill selection."""
     if wrapper.source in KILLS:
@@ -73,8 +73,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
                 if var.ROLE_REVEAL in ("on", "team"):
                     role = get_reveal_role(target)
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    channels.Main.send(messages["dullahan_die_success"].format(player, target, an, role))
+                    channels.Main.send(messages["dullahan_die_success"].format(player, target, role))
                 else:
                     channels.Main.send(messages["dullahan_die_success_noreveal"].format(player, target))
                 debuglog("{0} (dullahan) DULLAHAN ASSASSINATE: {1} ({2})".format(player, target, get_main_role(target)))
@@ -143,9 +142,9 @@ def on_transition_night_end(evt, var):
         random.shuffle(targets)
         to_send = "dullahan_notify"
         if dullahan.prefers_simple():
-            to_send = "dullahan_simple"
+            to_send = "role_simple"
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
-        dullahan.send(messages[to_send], t + ", ".join(t.nick for t in targets), sep="\n")
+        dullahan.send(messages[to_send].format("dullahan"), t + ", ".join(t.nick for t in targets), sep="\n")
 
 @event_listener("succubus_visit")
 def on_succubus_visit(evt, var, succubus, target):
@@ -164,8 +163,8 @@ def on_myrole(evt, var, user):
                 targets.remove(target)
         random.shuffle(targets)
         if targets:
-            t = messages["dullahan_targets"] if targets == list(TARGETS[user]) else messages["dullahan_remaining_targets"]
-            evt.data["messages"].append(t + ", ".join(t.nick for t in targets))
+            t = messages["dullahan_targets"] if set(targets) == TARGETS[user] else messages["dullahan_remaining_targets"]
+            evt.data["messages"].append(t.format(targets))
         else:
             evt.data["messages"].append(messages["dullahan_targets_dead"])
 
@@ -177,7 +176,7 @@ def on_revealroles_role(evt, var, user, role):
             if target in var.DEAD:
                 targets.remove(target)
         if targets:
-            evt.data["special_case"].append(messages["dullahan_to_kill"].format(", ".join(t.nick for t in targets)))
+            evt.data["special_case"].append(messages["dullahan_to_kill"].format(targets))
         else:
             evt.data["special_case"].append(messages["dullahan_all_dead"])
 

@@ -124,41 +124,17 @@ def setup_variables(rolename, *, knows_totem):
     def on_revealroles(evt, var, user, role):
         if role == rolename and user in TOTEMS:
             if var.PHASE == "night":
-                # FIXME: When merging this into messages PR, it'd be better to have a format like so:
-                # en.json: "shaman_revealroles_night": "has {0:join} {=totem,totems:plural({1})",
-                #          "shaman_revealroles_night_totem": "{0} {1!totem}"
-                # here: evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
-                #           messages["shaman_revealroles_night_totem"].format(num, totem) for num, totem in TOTEMS[user].items(),
-                #           sum(TOTEMS[user].values()))
-                totems = ["{0} {1}".format(num, totem) for totem, num in TOTEMS[user].items()]
-                if len(totems) == 2:
-                    tstr = totems[0] + " and " + totems[1]
-                elif len(totems) > 2:
-                    tstr = ", ".join(totems[0:-1]) + ", and " + totems[-1]
-                else:
-                    tstr = totems[0]
-                evt.data["special_case"].append("has {0} totem{1}".format(tstr, "" if totems[-1].startswith("1 ") else "s"))
+                evt.data["special_case"].append(messages["shaman_revealroles_night"].format(
+                    (messages["shaman_revealroles_night_totem"].format(num, totem)
+                        for num, totem in TOTEMS[user].items()),
+                    sum(TOTEMS[user].values())))
             elif user in LASTGIVEN and LASTGIVEN[user]:
-                # FIXME: When merging this into messages PR, it'd be better to have a format like so:
-                # en.json: "shaman_revealroles_day": "gave {0:join}",
-                #          "shaman_revealroles_day_totem": "{0!totem} to {1}"
-                # here: given = []
-                #       for totem, recips in LASTGIVEN[user].items():
-                #           for recip in reips:
-                #               given.append((totem, recip))
-                #       evt.data["special_case"].append(messages["shaman_revealroles_day"].format(
-                #           messages["shaman_revealroles_day_totem"].format(totem, recip) for totem, recip in given)
                 given = []
                 for totem, recips in LASTGIVEN[user].items():
                     for recip in recips:
-                        given.append("{0} to {1}".format(totem, recip))
-                if len(given) == 2:
-                    gstr = given[0] + " and " + given[1]
-                elif len(given) > 2:
-                    gstr = ", ".join(given[0:-1]) + ", and " + given[-1]
-                else:
-                    gstr = given[0]
-                evt.data["special_case"].append("gave {0}".format(gstr))
+                        given.append((totem, recip))
+                    evt.data["special_case"].append(messages["shaman_revealroles_day"].format(
+                        messages["shaman_revealroles_day_totem"].format(totem, recip) for totem, recip in given))
 
     @event_listener("transition_day_begin", priority=7, listener_id="<{}>.transition_day_begin".format(rolename))
     def on_transition_day_begin2(evt, var):
@@ -289,18 +265,12 @@ def totem_message(totems, count_only=False):
     totemcount = sum(totems.values())
     if not count_only and totemcount == 1:
         totem = list(totems.keys())[0]
-        return messages["shaman_totem"].format(totem, "n" if totem[0] in ("a", "e", "i", "o", "u") else "")
+        return messages["shaman_totem"].format(totem)
     elif count_only:
-        return messages["shaman_totem_multiple"].format(totemcount, "s" if totemcount != 1 else "")
+        return messages["shaman_totem_multiple_unknown"].format(totemcount)
     else:
-        pieces = ["{0} \u0002{1}\u0002".format(num, totem) for totem, num in totems.items()]
-        if len(pieces) == 2:
-            tstr = pieces[0] + " and " + pieces[1]
-        elif len(pieces) > 2:
-            tstr = ", ".join(pieces[0:-1]) + ", and " + pieces[-1]
-        else:
-            tstr = pieces[0]
-        return messages["shaman_totem_multiple"].format(tstr, "" if pieces[-1].startswith("1 ") else "s")
+        pieces = [messages["shaman_totem_piece"].format(num, totem) for totem, num in totems.items()]
+        return messages["shaman_totem_multiple_known"].format(pieces)
 
 def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional[str], Optional[users.User]]:
     """Get the totem target."""
@@ -326,7 +296,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
 
     return totem, target
 
-def give_totem(var, wrapper, target, prefix, role, msg) -> Optional[Tuple[users.User, users.User]]:
+def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[users.User, users.User]]:
     """Give a totem to a player."""
 
     orig_target = target
@@ -338,8 +308,9 @@ def give_totem(var, wrapper, target, prefix, role, msg) -> Optional[Tuple[users.
 
     targrole = get_main_role(target)
 
-    wrapper.send(messages["shaman_success"].format(prefix, msg, orig_target))
-    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5})".format(wrapper.source, role, target, targrole, orig_target, orig_role))
+    # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
+    wrapper.send(messages[key].format(orig_target, totem))
+    debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5}): {6}".format(wrapper.source, role, target, targrole, orig_target, orig_role, totem))
 
     return target, orig_target
 
@@ -396,8 +367,7 @@ def on_lynch_immunity(evt, var, user, reason):
         rev_evt = Event("role_revealed", {})
         rev_evt.dispatch(var, user, role)
 
-        an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-        channels.Main.send(messages["totem_reveal"].format(user, an, role))
+        channels.Main.send(messages["totem_reveal"].format(user, role))
         evt.data["immune"] = True
 
 @event_listener("lynch")
@@ -411,13 +381,10 @@ def on_lynch(evt, var, votee, voters):
                 channels.Main.send(*protected)
                 return
 
+            to_send = "totem_desperation_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target)
-                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["totem_desperation"].format(votee, target, an1, r1)
-            else:
-                tmsg = messages["totem_desperation_no_reveal"].format(votee, target)
-            channels.Main.send(tmsg)
+                to_send = "totem_desperation"
+            channels.Main.send(messages[to_send].format(votee, target, get_reveal_role(target)))
             status.add_dying(var, target, killer_role="shaman", reason="totem_desperation")
             # no kill_players() call here; let our caller do that for us
 
@@ -499,12 +466,10 @@ def on_transition_day_resolve6(evt, var, victims):
                     return
 
                 evt.data["dead"].append(loser)
+                to_send = "totem_death_no_reveal"
                 if var.ROLE_REVEAL in ("on", "team"):
-                    role = get_reveal_role(loser)
-                    an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                    evt.data["message"][loser].append(messages["totem_death"].format(victim, loser, an, role))
-                else:
-                    evt.data["message"][loser].append(messages["totem_death_no_reveal"].format(victim, loser))
+                    to_send = "totem_death"
+                evt.data["message"][loser].append(messages[to_send].format(victim, loser, get_reveal_role(loser)))
 
 @event_listener("transition_day_end", priority=1)
 def on_transition_day_end(evt, var):
@@ -512,8 +477,10 @@ def on_transition_day_end(evt, var):
     havetotem.sort(key=lambda x: x.nick)
     for player, tlist in itertools.groupby(havetotem):
         ntotems = len(list(tlist))
-        message.append(messages["totem_posession"].format(
-            player, "ed" if player not in get_players() else "s", "a" if ntotems == 1 else "\u0002{0}\u0002".format(ntotems), "s" if ntotems > 1 else ""))
+        to_send = "totem_possession_dead"
+        if player in get_players():
+            to_send = "totem_possession_alive"
+        message.append(messages[to_send].format(player, ntotems))
     for player in brokentotem:
         message.append(messages["totem_broken"].format(player))
     channels.Main.send("\n".join(message))

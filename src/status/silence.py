@@ -1,5 +1,6 @@
 from src.containers import UserSet
 from src.decorators import event_listener
+from src.messages import messages
 
 __all__ = ["add_silent", "is_silent"]
 
@@ -17,9 +18,9 @@ def is_silent(var, user):
 # No del_player listener - we want roles that can act when dead to remain silenced (e.g. vengeful ghost)
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if SILENT:
-        evt.data["output"].append("\u0002silent\u0002: {0}".format(", ".join(p.nick for p in SILENT)))
+        evt.data["output"].append(messages["silence_revealroles"].format(SILENT))
 
 @event_listener("transition_day_end")
 def on_transition_day_end(evt, var):

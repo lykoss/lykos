@@ -62,41 +62,28 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     kill1 = prots1 is None and add_dying(var, target1, killer_role="mad scientist", reason="mad_scientist")
     kill2 = prots2 is None and target1 is not target2 and add_dying(var, target2, killer_role="mad scientist", reason="mad_scientist")
 
-    if kill1:
-        if kill2:
-            if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target1)
-                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                r2 = get_reveal_role(target2)
-                an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill"].format(player, target1, an1, r1, target2, an2, r2)
-            else:
-                tmsg = messages["mad_scientist_kill_no_reveal"].format(player, target1, target2)
-            channels.Main.send(tmsg)
-            debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(target1), target2, get_main_role(target2)))
-        else:
-            if var.ROLE_REVEAL in ("on", "team"):
-                r1 = get_reveal_role(target1)
-                an1 = "n" if r1.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill_single"].format(player, target1, an1, r1)
-            else:
-                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(player, target1)
-            channels.Main.send(tmsg)
-            debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(target1)))
+    role1 = get_reveal_role(target1)
+    role2 = get_reveal_role(target2)
+    if kill1 and kill2:
+        to_send = "mad_scientist_kill"
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(target1), target2, get_main_role(target2)))
+    elif kill1:
+        to_send = "mad_scientist_kill_single"
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target1, get_main_role(target1)))
+    elif kill2:
+        to_send = "mad_scientist_kill_single"
+        debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(target2)))
+        # swap the targets around to show the proper target
+        target1, target2 = target2, target1
+        role1, role2 = role2, role1
     else:
-        if kill2:
-            if var.ROLE_REVEAL in ("on", "team"):
-                r2 = get_reveal_role(target2)
-                an2 = "n" if r2.startswith(("a", "e", "i", "o", "u")) else ""
-                tmsg = messages["mad_scientist_kill_single"].format(player, target2, an2, r2)
-            else:
-                tmsg = messages["mad_scientist_kill_single_no_reveal"].format(player, target2)
-            channels.Main.send(tmsg)
-            debuglog(player.nick, "(mad scientist) KILL: {0} ({1})".format(target2, get_main_role(target2)))
-        else:
-            tmsg = messages["mad_scientist_fail"].format(player)
-            channels.Main.send(tmsg)
-            debuglog(player.nick, "(mad scientist) KILL FAIL")
+        to_send = "mad_scientist_fail"
+        debuglog(player.nick, "(mad scientist) KILL FAIL")
+
+    if to_send != "mad_scientist_fail" and var.ROLE_REVEAL not in ("on", "team"):
+        to_send += "_no_reveal"
+
+    channels.Main.send(messages[to_send].format(player, target1, role1, target2, role2))
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
@@ -106,8 +93,8 @@ def on_transition_night_end(evt, var):
 
         to_send = "mad_scientist_notify"
         if ms.prefers_simple():
-            to_send = "mad_scientist_simple"
-        ms.send(messages[to_send].format(target1, target2))
+            to_send = "role_simple"
+        ms.send(messages[to_send].format("mad scientist"), messages["mad_scientist_myrole_targets"].format(target1, target2), sep=" ")
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

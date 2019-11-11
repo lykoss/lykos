@@ -22,14 +22,13 @@ def on_player_win(evt, var, player, mainrole, winner, survived):
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     monsters = rolemap.get("monster", ())
     traitors = rolemap.get("traitor", ())
+    lm = len(monsters)
 
     if not lwolves and not traitors and monsters:
-        s = "s" if len(monsters) > 1 else ""
-        evt.data["message"] = messages["monster_win"].format(s, "" if s else "s")
+        evt.data["message"] = messages["monster_win"].format(lm)
         evt.data["winner"] = "monsters"
     elif lwolves >= lpl / 2 and monsters:
-        s = "s" if len(monsters) > 1 else ""
-        evt.data["message"] = messages["monster_wolf_win"].format(s)
+        evt.data["message"] = messages["monster_wolf_win"].format(lm)
         evt.data["winner"] = "monsters"
 
 @event_listener("transition_night_end")
@@ -37,7 +36,7 @@ def on_transition_night_end(evt, var):
     for monster in get_all_players(("monster",)):
         add_protection(var, monster, protector=None, protector_role="monster", scope=Wolf)
         if monster.prefers_simple():
-            monster.send(messages["monster_simple"])
+            monster.send(messages["role_simple"].format("monster"))
         else:
             monster.send(messages["monster_notify"])
 

@@ -72,7 +72,7 @@ def get_lovers():
 
     return lovers
 
-@command("match", "choose", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
+@command("match", chan=False, pm=True, playing=True, phases=("night",), roles=("matchmaker",))
 def choose(var, wrapper, message):
     """Select two players to fall in love. You may select yourself as one of the lovers."""
     if wrapper.source in MATCHMAKERS:
@@ -82,10 +82,7 @@ def choose(var, wrapper, message):
     pieces = re.split(" +", message)
     victim1 = pieces[0]
     if len(pieces) > 1:
-        if len(pieces) > 2 and pieces[1].lower() == "and":
-            victim2 = pieces[2]
-        else:
-            victim2 = pieces[1]
+        victim2 = pieces[1]
     else:
         victim2 = None
 
@@ -127,10 +124,10 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         if mm.prefers_simple():
-            mm.send(messages["matchmaker_simple"])
+            mm.send(messages["role_simple"].format("matchmaker"))
         else:
             mm.send(messages["matchmaker_notify"])
-        mm.send("Players: " + ", ".join(p.nick for p in pl))
+        mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -141,13 +138,10 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         for lover in lovers:
             if lover not in get_players():
                 continue # already died somehow
+            to_send = "lover_suicide_no_reveal"
             if var.ROLE_REVEAL in ("on", "team"):
-                role = get_reveal_role(lover)
-                an = "n" if role.startswith(("a", "e", "i", "o", "u")) else ""
-                message = messages["lover_suicide"].format(lover, an, role)
-            else:
-                message = messages["lover_suicide_no_reveal"].format(lover)
-            channels.Main.send(message)
+                to_send = "lover_suicide"
+            channels.Main.send(messages[to_send].format(lover, get_reveal_role(lover)))
             debuglog("{0} ({1}) LOVE SUICIDE: {2} ({3})".format(lover, get_main_role(lover), player, evt.params.main_role))
             add_dying(var, lover, killer_role=evt.params.killer_role, reason="lover_suicide")
 
@@ -160,16 +154,14 @@ def on_game_end_messages(evt, var):
             # check if already said the pairing
             if (lover1 in done and lover2 in done[lover1]) or (lover2 in done and lover1 in done[lover2]):
                 continue
-            lovers.append("\u0002{0}\u0002/\u0002{1}\u0002".format(lover1, lover2))
+            lovers.append(messages["lover_pair_endgame"].format(lover1, lover2))
             if lover1 in done:
                 done[lover1].append(lover2)
             else:
                 done[lover1] = [lover2]
 
-    if len(lovers) == 1 or len(lovers) == 2:
-        evt.data["messages"].append("The lovers were {0}.".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        evt.data["messages"].append("The lovers were {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+    if lovers:
+        evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, role, winner, survived):
@@ -216,18 +208,10 @@ def on_get_team_affiliation(evt, var, target1, target2):
 def on_myrole(evt, var, user):
     # Remind lovers of each other
     if user in get_players() and user in LOVERS:
-        msg = [messages["matched_info"]]
-        lovers = sorted(LOVERS[user], key=lambda x: x.nick)
-        if len(lovers) == 1:
-            msg.append(lovers[0].nick)
-        elif len(lovers) == 2:
-            msg.extend((lovers[0].nick, "and", lovers[1].nick))
-        else:
-            msg.extend((", ".join([l.nick for l in lovers[:-1]]) + ",", "and", lovers[-1].nick))
-        evt.data["messages"].append(" ".join(msg) + ".")
+        evt.data["messages"].append(messages["matched_info"].format(LOVERS[user]))
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     # print out lovers
     pl = get_players()
     done = {}
@@ -246,10 +230,8 @@ def on_revealroles(evt, var, wrapper):
                 done[lover1].append(lover2)
             else:
                 done[lover1] = [lover2]
-    if len(lovers) == 1 or len(lovers) == 2:
-        evt.data["output"].append("\u0002lovers\u0002: {0}".format(" and ".join(lovers)))
-    elif len(lovers) > 2:
-        evt.data["output"].append("\u0002lovers\u0002: {0}, and {1}".format(", ".join(lovers[0:-1]), lovers[-1]))
+    if lovers:
+        evt.data["output"].append(messages["lovers_revealroles"].format(lovers))
 
 @event_listener("reset")
 def on_reset(evt, var):
@@ -261,3 +243,7 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["matchmaker"] = {"Village", "Safe"}
+    elif kind == "special_keys":
+        evt.data["matchmaker"] = {"lover"}
+
+# vim: set sw=4 expandtab:

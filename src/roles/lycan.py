@@ -22,7 +22,7 @@ def on_transition_night_end(evt, var):
         if not add_lycanthropy(var, lycan):
             continue
         if lycan.prefers_simple():
-            lycan.send(messages["lycan_simple"])
+            lycan.send(messages["role_simple"].format("lycan"))
         else:
             lycan.send(messages["lycan_notify"])
 
@@ -34,7 +34,7 @@ def on_doctor_immunize(evt, var, doctor, target):
 @event_listener("new_role")
 def on_new_role(evt, var, user, old_role):
     if old_role == "lycan" and evt.data["role"] != "lycan":
-        remove_lycanthropy(var, user)
+        remove_lycanthropy(var, user) # FIXME: We might be a lycanthrope from more than just the lycan role
 
 # TODO: We want to remove lycan from someone who was just turned into a wolf if it was a template
 # There's no easy way to do this right now and it doesn't really matter, so it's fine for now

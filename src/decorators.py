@@ -17,7 +17,6 @@ from oyoyo.parse import parse_nick
 import botconfig
 import src.settings as var
 import src
-from src.dispatcher import MessageDispatcher
 from src.utilities import *
 from src.functions import get_players
 from src.messages import messages
@@ -94,7 +93,11 @@ class print_traceback:
             frames = []
 
             while tb is not None:
-                if tb.tb_next is not None and tb.tb_frame.f_locals.get("_ignore_locals_") or not tb.tb_frame.f_locals:
+                ignore_locals = not tb.tb_frame.f_locals or tb.tb_frame.f_locals.get("_ignore_locals_")
+                # also ignore locals for library code
+                if "/lib/" in tb.tb_frame.f_code.co_filename.replace("\\", "/"):
+                    ignore_locals = True
+                if tb.tb_next is not None and ignore_locals:
                     frames.append(None)
                 else:
                     frames.append(tb.tb_frame)
@@ -110,7 +113,24 @@ class print_traceback:
                         continue
                     variables.append(word.format(i, frame.f_code.co_name))
                     for name, value in frame.f_locals.items():
-                        variables.append("{0} = {1!r}".format(name, value))
+                        try:
+                            if isinstance(value, dict):
+                                try:
+                                    log_value = "{{{0}}}".format(", ".join("{0:for_tb}: {1:for_tb}".format(k, v) for k, v in value.items()))
+                                except:
+                                    try:
+                                        log_value = "{{{0}}}".format(", ".join("{0!r}: {1:for_tb}".format(k, v) for k, v in value.items()))
+                                    except:
+                                        log_value = "{{{0}}}".format(", ".join("{0:for_tb}: {1!r}".format(k, v) for k, v in value.items()))
+                            elif isinstance(value, list):
+                                log_value = "[{0}]".format(", ".join(format(v, "for_tb") for v in value))
+                            elif isinstance(value, set):
+                                log_value = "{{{0}}}".format(", ".join(format(v, "for_tb") for v in value))
+                            else:
+                                log_value = format(value, "for_tb")
+                        except:
+                            log_value = repr(value)
+                        variables.append("{0} = {1}".format(name, log_value))
 
             if len(variables) > 3:
                 variables.append("\n")
@@ -122,18 +142,25 @@ class print_traceback:
                 variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
-        bot_root = os.path.dirname(__file__).split("src")[0]
-        if bot_root and bot_root != "/":
-            variables[1] = variables[1].replace(bot_root, "/")
+        errlog("\n".join(variables))
+
+        # sanitize paths in tb: convert backslash to forward slash and remove prefixes from src and library paths
+        variables[1] = variables[1].replace("\\", "/")
+        variables[1] = re.sub(r'File "[^"]*/(src|lib|wolfbot)', r'File "/\1', variables[1])
+
+        # sanitize values within local frames
+        if len(variables) > 3:
+            for i in range(3, len(variables)):
+                # strip filenames out of module printouts
+                variables[i] = re.sub(r"<(module .*?) from .*?>", r"<\1>", variables[i])
 
         if channels.Main is not channels.Dev:
             channels.Main.send(messages["error_log"])
-        message = [messages["error_log"]]
+        message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))
         if link is None:
             api_url = "https://ww.chat/submit"
-            data = None
             with _local.handler:
                 req = urllib.request.Request(api_url, json.dumps({
                         "c": "\n".join(variables),  # contents
@@ -144,9 +171,9 @@ class print_traceback:
                 resp = urllib.request.urlopen(req)
                 data = json.loads(resp.read().decode("utf-8"))
 
-            if data is None: # couldn't fetch the link
+            if data is None:  # couldn't fetch the link
                 message.append(messages["error_pastebin"])
-                variables[1] = _local.handler.traceback # an error happened; update the stored traceback
+                errlog(_local.handler.traceback)
             else:
                 link = _tracebacks["\n".join(variables)] = data["url"]
                 message.append(link)
@@ -156,8 +183,6 @@ class print_traceback:
 
         if channels.Dev is not None:
             channels.Dev.send(" ".join(message), prefix=botconfig.DEV_PREFIX)
-
-        errlog("\n".join(variables))
 
         _local.level -= 1
         if not _local.level: # outermost caller; we're done here
@@ -193,13 +218,15 @@ class handle_error:
             return self.func(*args, **kwargs)
 
 class command:
-    def __init__(self, *commands, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None,
-                 exclusive=False):
+    def __init__(self, command, *, flag=None, owner_only=False, chan=True, pm=False,
+                 playing=False, silenced=False, phases=(), roles=(), users=None):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not botconfig.DEBUG_MODE:
             return
+
+        # handle command localizations
+        commands = messages.raw("_commands")[command]
 
         self.commands = frozenset(commands)
         self.flag = flag
@@ -215,7 +242,6 @@ class command:
         self.aftergame = False
         self.name = commands[0]
         self.alt_allowed = bool(flag or owner_only)
-        self.exclusive = exclusive
 
         alias = False
         self.aliases = []
@@ -224,14 +250,9 @@ class command:
             return # command is disabled, do not add to COMMANDS
 
         for name in commands:
-            if exclusive and name in COMMANDS:
-                raise ValueError("exclusive command already exists for {0}".format(name))
-
             for func in COMMANDS[name]:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
-                if func.exclusive:
-                    raise ValueError("exclusive command already exists for {0}".format(name))
 
             COMMANDS[name].append(self)
             if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
@@ -254,50 +275,38 @@ class command:
         return self
 
     @handle_error
-    def caller(self, cli, rawnick, chan, rest):
+    def caller(self, var, wrapper, message):
         _ignore_locals_ = True
-        user = users._get(rawnick, allow_none=True) # FIXME
-
-        if users.equals(chan, users.Bot.nick): # PM
-            target = users.Bot
-        else:
-            target = channels.get(chan, allow_none=True)
-
-        if user is None or target is None:
-            return
-
-        dispatcher = MessageDispatcher(user, target)
-
-        if (not self.pm and dispatcher.private) or (not self.chan and dispatcher.public):
+        if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
 
-        if dispatcher.public and target is not channels.Main and not (self.flag or self.owner_only):
+        if wrapper.public and wrapper.target is not channels.Main and not (self.flag or self.owner_only):
             if "" in self.commands or not self.alt_allowed:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            self.func(var, dispatcher, rest)
+            self.func(var, wrapper, message)
             return
 
         if self.phases and var.PHASE not in self.phases:
             return
 
-        if self.playing and (user not in get_players() or user in var.DISCONNECTED):
+        if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
             return
 
         for role in self.roles:
-            if user in var.ROLES[role]:
+            if wrapper.source in var.ROLES[role]:
                 break
         else:
-            if (self.users is not None and user not in self.users) or self.roles:
+            if (self.users is not None and wrapper.source not in self.users) or self.roles:
                 return
 
-        if self.silenced and src.status.is_silent(var, user):
-            dispatcher.pm(messages["silenced"])
+        if self.silenced and src.status.is_silent(var, wrapper.source):
+            wrapper.pm(messages["silenced"])
             return
 
-        if self.roles or (self.users is not None and user in self.users):
-            self.func(var, dispatcher, rest) # don't check restrictions for role commands
+        if self.roles or (self.users is not None and wrapper.source in self.users):
+            self.func(var, wrapper, message) # don't check restrictions for role commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
@@ -305,211 +314,38 @@ class command:
             return
 
         if self.owner_only:
-            if user.is_owner():
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(var, dispatcher, rest)
+            if wrapper.source.is_owner():
+                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                self.func(var, wrapper, message)
                 return
 
-            dispatcher.pm(messages["not_owner"])
+            wrapper.pm(messages["not_owner"])
             return
 
-        temp = user.lower()
+        temp = wrapper.source.lower()
 
         flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
 
-        if self.flag and (user.is_admin() or user.is_owner()):
-            adminlog(chan, rawnick, self.name, rest)
-            return self.func(var, dispatcher, rest)
+        if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
+            adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+            return self.func(var, wrapper, message)
 
         denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
 
         if self.commands & denied_commands:
-            dispatcher.pm(messages["invalid_permissions"])
+            wrapper.pm(messages["invalid_permissions"])
             return
 
         if self.flag:
             if self.flag in flags:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(var, dispatcher, rest)
+                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                self.func(var, wrapper, message)
                 return
 
-            dispatcher.pm(messages["not_an_admin"])
+            wrapper.pm(messages["not_an_admin"])
             return
 
-        self.func(var, dispatcher, rest)
-
-class cmd:
-    def __init__(self, *cmds, raw_nick=False, flag=None, owner_only=False,
-                 chan=True, pm=False, playing=False, silenced=False,
-                 phases=(), roles=(), nicks=None):
-
-        self.cmds = cmds
-        self.raw_nick = raw_nick
-        self.flag = flag
-        self.owner_only = owner_only
-        self.chan = chan
-        self.pm = pm
-        self.playing = playing
-        self.silenced = silenced
-        self.phases = phases
-        self.roles = roles
-        self.nicks = nicks # iterable of nicks that can use the command at any time (should be a mutable object)
-        self.func = None
-        self.aftergame = False
-        self.name = cmds[0]
-        self.exclusive = False # for compatibility with new command API
-
-        alias = False
-        self.aliases = []
-        if var.DISABLED_COMMANDS.intersection(cmds):
-            return # command is disabled, do not add to COMMANDS
-
-        for name in cmds:
-            for func in COMMANDS[name]:
-                if (func.owner_only != owner_only or
-                    func.flag != flag):
-                    raise ValueError("unmatching protection levels for " + func.name)
-                if func.exclusive:
-                    raise ValueError("exclusive command already exists for {0}".format(name))
-
-            COMMANDS[name].append(self)
-            if alias:
-                self.aliases.append(name)
-            alias = True
-
-    def __call__(self, func):
-        if isinstance(func, cmd):
-            func = func.func
-        self.func = func
-        self.__doc__ = self.func.__doc__
-        return self
-
-    @handle_error
-    def caller(self, cli, rawnick, chan, rest):
-        _ignore_locals_ = True
-        if users.equals(chan, users.Bot.nick):
-            chan = users.parse_rawnick_as_dict(rawnick)["nick"]
-
-        largs = [cli, rawnick, chan, rest]
-
-        cli, rawnick, chan, rest = largs
-        nick, mode, ident, host = parse_nick(rawnick)
-
-        if ident is None:
-            ident = ""
-
-        if host is None:
-            host = ""
-
-        if not self.raw_nick:
-            largs[1] = nick
-
-        if not self.pm and chan == nick:
-            return # PM command, not allowed
-
-        if not self.chan and chan != nick:
-            return # channel command, not allowed
-
-        if chan.startswith("#") and chan != botconfig.CHANNEL and not (self.flag or self.owner_only):
-            if "" in self.cmds:
-                return # don't have empty commands triggering in other channels
-            for command in self.cmds:
-                if command in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
-                    break
-            else:
-                return
-
-        if nick not in var.USERS and not is_fake_nick(nick):
-            return
-
-        if nick in var.USERS and var.USERS[nick]["account"] != "*":
-            acc = irc_lower(var.USERS[nick]["account"])
-        else:
-            acc = None
-        ident = irc_lower(ident)
-        host = host.lower()
-        hostmask = nick + "!" + ident + "@" + host
-
-        if "" in self.cmds:
-            self.func(*largs)
-            return
-
-        if self.phases and var.PHASE not in self.phases:
-            return
-
-        if self.playing and (nick not in list_players() or users._get(nick) in var.DISCONNECTED):
-            return
-
-        for role in self.roles:
-            if users._get(nick) in var.ROLES[role]:
-                break
-        else:
-            if (self.nicks is not None and nick not in self.nicks) or self.roles:
-                return
-
-        if self.silenced and src.status.is_silent(var, users._get(nick)):
-            if chan == nick:
-                pm(cli, nick, messages["silenced"])
-            else:
-                cli.notice(nick, messages["silenced"])
-            return
-
-        if self.roles or (self.nicks is not None and nick in self.nicks):
-            self.func(*largs) # don't check restrictions for role commands
-            # Role commands might end the night if it's nighttime
-            if var.PHASE == "night":
-                from src.wolfgame import chk_nightdone
-                chk_nightdone()
-            return
-
-        forced_owner_only = False
-        if hasattr(botconfig, "OWNERS_ONLY_COMMANDS"):
-            for command in self.cmds:
-                if command in botconfig.OWNERS_ONLY_COMMANDS:
-                    forced_owner_only = True
-                    break
-
-        owner = is_owner(rawnick)
-        if self.owner_only or forced_owner_only:
-            if owner:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(*largs)
-                return
-
-            if chan == nick:
-                pm(cli, nick, messages["not_owner"])
-            else:
-                cli.notice(nick, messages["not_owner"])
-            return
-
-        flags = var.FLAGS[hostmask] + var.FLAGS_ACCS[acc]
-        admin = is_admin(rawnick)
-        if self.flag and (admin or owner):
-            adminlog(chan, rawnick, self.name, rest)
-            self.func(*largs)
-            return
-
-        denied_cmds = var.DENY[hostmask] | var.DENY_ACCS[acc]
-        for command in self.cmds:
-            if command in denied_cmds:
-                if chan == nick:
-                    pm(cli, nick, messages["invalid_permissions"])
-                else:
-                    cli.notice(nick, messages["invalid_permissions"])
-                return
-
-        if self.flag:
-            if self.flag in flags:
-                adminlog(chan, rawnick, self.name, rest)
-                self.func(*largs)
-                return
-            elif chan == nick:
-                pm(cli, nick, messages["not_an_admin"])
-            else:
-                cli.notice(nick, messages["not_an_admin"])
-            return
-
-        self.func(*largs)
+        self.func(var, wrapper, message)
 
 class hook:
     def __init__(self, name, hookid=-1):

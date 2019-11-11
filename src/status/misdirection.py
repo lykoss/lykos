@@ -3,6 +3,7 @@ import random
 from src.decorators import event_listener
 from src.containers import UserSet
 from src.functions import get_players
+from src.messages import messages
 
 __all__ = ["add_misdirection", "try_misdirection"]
 
@@ -41,18 +42,18 @@ def on_del_player(evt, var, player, allroles, death_triggers):
     AS_TARGET.discard(player)
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if AS_ACTOR or AS_TARGET:
         misdirected = AS_ACTOR | AS_TARGET
         out = []
         for user in misdirected:
             as_what = []
             if user in AS_ACTOR:
-                as_what.append("actor")
+                as_what.append(messages["misdirection_as_actor"])
             if user in AS_TARGET:
-                as_what.append("target")
-            out.append("{0} (as {1})".format(user, " and ".join(as_what)))
-        evt.data["output"].append("\u0002misdirected\u0002: {0}".format(", ".join(out)))
+                as_what.append(messages["misdirection_as_target"])
+            out.append(messages["misdirection_join"].format(user, as_what))
+        evt.data["output"].append(messages["misdirection_revealroles"].format(out))
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):

@@ -37,7 +37,7 @@ def hunter_kill(var, wrapper, message):
 
     debuglog("{0} (hunter) KILL: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
-@command("retract", "r", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=("hunter",))
 def hunter_retract(var, wrapper, message):
     """Removes a hunter's kill selection."""
     if wrapper.source not in KILLS and wrapper.source not in PASSED:
@@ -107,8 +107,8 @@ def on_transition_night_end(evt, var):
         pl.remove(hunter)
         to_send = "hunter_notify"
         if hunter.prefers_simple():
-            to_send = "hunter_simple"
-        hunter.send(messages[to_send], messages["players_list"].format(", ".join(p.nick for p in pl)), sep="\n")
+            to_send = "role_simple"
+        hunter.send(messages[to_send].format("hunter"), messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

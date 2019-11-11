@@ -60,7 +60,7 @@ class MaelstromMode(GameMode):
             evt.data["join_player"] = lambda var, wrapper, who=None, forced=False: jp(var, wrapper, who=who, forced=forced, sanity=False) and self._on_join(var, wrapper)
 
     def _on_join(self, var, wrapper):
-        from src import hooks, channels
+        from src import hooks
         role = random.choice(list(self.roles))
         with copy.deepcopy(var.ROLES) as rolemap, copy.deepcopy(var.MAIN_ROLES) as mainroles:
             rolemap[role].add(wrapper.source)
@@ -93,7 +93,7 @@ class MaelstromMode(GameMode):
             wrapper.pm(message)
 
         from src.decorators import COMMANDS
-        COMMANDS["myrole"][0].caller(wrapper.source.client, wrapper.source.nick, wrapper.target.name, "") # FIXME: New/old API
+        COMMANDS["myrole"][0].caller(var, wrapper, "")
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions

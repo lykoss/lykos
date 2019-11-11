@@ -3,6 +3,7 @@ import functools
 import fnmatch
 import re
 from collections import defaultdict
+from typing import List
 
 import botconfig
 import src.settings as var
@@ -34,19 +35,18 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
     if targs:
         user.send_messages()
 
-# Decide how to reply to a user, depending on the channel / query it was called in, and whether a game is running and they are playing
+# FIXME: Deprecated in favor of MessageDispatcher
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
-    if chan == nick:
-        pm(cli, nick, msg)
-    elif private or (chan == botconfig.CHANNEL and
-            ((nick not in list_players() and var.PHASE in var.GAME_PHASES) or
-             (var.DEVOICE_DURING_NIGHT and var.PHASE == "night"))):
-        cli.notice(nick, msg)
+    from src.users import Bot, _get as users_get
+    from src.channels import get as chan_get
+    from src.dispatcher import MessageDispatcher
+    user = users_get(nick)
+    if private or nick == chan:
+        target = Bot
     else:
-        if prefix_nick:
-            cli.msg(chan, "{0}: {1}".format(nick, msg))
-        else:
-            cli.msg(chan, msg)
+        target = chan_get(chan)
+    wrapper = MessageDispatcher(user, target)
+    wrapper.reply(msg, prefix_nick=prefix_nick)
 
 # FIXME: Deprecated in favor of helper.wolves method
 def in_wolflist(nick, who):
@@ -180,20 +180,43 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
         return
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
-def complete_role(var, role):
-    from src.cats import ROLES
-    if role not in ROLES:
-        special_keys = {"lover"}
-        evt = Event("get_role_metadata", {})
-        evt.dispatch(var, "special_keys")
-        special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
-        if role.lower() in var.ROLE_ALIASES:
-            matches = (var.ROLE_ALIASES[role.lower()],)
-        else:
-            matches = complete_match(role, ROLES.keys() | special_keys)
-        if not matches:
-            return []
-        return matches
-    return [role]
 
-# vim: set sw=4 expandtab:
+def complete_role(var, role: str, remove_spaces: bool = False) -> List[str]:
+    """ Match a partial role or alias name into the internal role key.
+
+    :param var: Game state
+    :param role: Partial role to match on
+    :param remove_spaces: Whether or not to remove all spaces before matching.
+        This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
+        prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :return: A list of 0 elements if the role didn't match anything.
+        A list with 1 element containing the internal role key if the role matched unambiguously.
+        A list with 2 or more elements containing localized role or alias names if the role had ambiguous matches.
+    """
+    from src.cats import ROLES
+
+    role = role.lower()
+    if remove_spaces:
+        role = role.replace(" ", "")
+
+    role_map = messages.get_role_mapping(reverse=True, remove_spaces=remove_spaces)
+
+    special_keys = set()
+    evt = Event("get_role_metadata", {})
+    evt.dispatch(var, "special_keys")
+    special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+
+    matches = complete_match(role, role_map.keys())
+    if not matches:
+        return []
+
+    # strip matches that don't refer to actual roles or special keys (i.e. refer to team names)
+    filtered_matches = []
+    allowed = ROLES.keys() | special_keys
+    for match in matches:
+        if role_map[match] in allowed:
+            filtered_matches.append(match)
+
+    if len(filtered_matches) == 1:
+        return [role_map[filtered_matches[0]]]
+    return filtered_matches

@@ -60,7 +60,7 @@ def lynch(var, wrapper, message):
 
     chk_decision(var)
 
-@command("nolynch", "nl", "novote", "nv", "abstain", "abs", playing=True, phases=("day",))
+@command("abstain", playing=True, phases=("day",))
 def no_lynch(var, wrapper, message):
     """Allow you to abstain from voting for the day."""
     if not var.ABSTAIN_ENABLED:
@@ -84,7 +84,7 @@ def no_lynch(var, wrapper, message):
 
     chk_decision(var)
 
-@command("retract", "r", phases=("day", "join"))
+@command("retract", phases=("day", "join"))
 def retract(var, wrapper, message):
     """Takes back your vote during the day (for whom to lynch)."""
     if wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED or var.PHASE != "day":
@@ -128,11 +128,10 @@ def show_votes(var, wrapper, message):
             # - No other game mode has a majority
             if (var.GAME_MODES[gamemode][1] <= len(pl) <= var.GAME_MODES[gamemode][2] and
                 (not majority or num_votes >= len(pl) / 2) and (var.GAME_MODES[gamemode][3] > 0 or num_votes >= len(pl) / 2)):
-                votelist.append("\u0002{0}\u0002: {1}".format(gamemode, num_votes))
+                gamemode = messages["bold"].format(gamemode)
                 if num_votes >= len(pl) / 2:
                     majority = True
-            else:
-                votelist.append("{0}: {1}".format(gamemode, num_votes))
+            votelist.append("{0}: {1}".format(gamemode, num_votes))
 
         msg = ", ".join(votelist)
         if len(pl) >= var.MIN_PLAYERS:
@@ -140,7 +139,7 @@ def show_votes(var, wrapper, message):
 
         with var.WARNING_LOCK:
             if pregame.START_VOTES:
-                msg += messages["start_votes"].format(len(pregame.START_VOTES), ", ".join(p.nick for p in pregame.START_VOTES))
+                msg += messages["start_votes"].format(len(pregame.START_VOTES), pregame.START_VOTES)
 
         wrapper.send(msg)
         return
@@ -186,15 +185,15 @@ def show_votes(var, wrapper, message):
 
     wrapper.reply(to_send, prefix_nick=True)
 
-@command("vote", "v", pm=True, phases=("join", "day"))
+@command("vote", pm=True, phases=("join", "day"))
 def vote(var, wrapper, message):
     """Vote for a game mode if no game is running, or for a player to be lynched."""
     if message:
         if var.PHASE == "join" and wrapper.public:
             from src.wolfgame import game
-            return game.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
-        return lynch.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
-    return show_votes.caller(wrapper.client, wrapper.source.nick, wrapper.target.name, message)
+            return game.caller(var, wrapper, message)
+        return lynch.caller(var, wrapper, message)
+    return show_votes.caller(var, wrapper, message)
 
 # Specify timeout=True to force a lynch and end of day even if there is no majority
 def chk_decision(var, *, timeout=False):
@@ -280,12 +279,10 @@ def chk_decision(var, *, timeout=False):
                 if not try_lynch_immunity(var, votee):
                     lynch_evt = Event("lynch", {}, players=avail)
                     if lynch_evt.dispatch(var, votee, voters):
+                        to_send = "lynch_no_reveal"
                         if var.ROLE_REVEAL in ("on", "team"):
-                            rrole = get_reveal_role(votee)
-                            an = "n" if rrole.startswith(("a", "e", "i", "o", "u")) else ""
-                            lmsg = random.choice(messages["lynch_reveal"]).format(votee, an, rrole)
-                        else:
-                            lmsg = random.choice(messages["lynch_no_reveal"]).format(votee)
+                            to_send = "lynch_reveal"
+                        lmsg = messages[to_send].format(votee, get_reveal_role(votee))
                         channels.Main.send(lmsg)
                         add_dying(var, votee, "villager", "lynch")
 

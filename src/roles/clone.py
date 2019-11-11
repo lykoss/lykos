@@ -25,17 +25,6 @@ def clone(var, wrapper, message):
         return
 
     params = re.split(" +", message)
-    # allow for role-prefixed command such as !clone clone target
-    # if we get !clone clone (with no 3rd arg), we give preference to prefixed version;
-    # meaning if the person wants to clone someone named clone, they must type !clone clone clone
-    # (or just !clone clon, !clone clo, etc. assuming those would be unambiguous matches)
-    if params[0] == "clone":
-        if len(params) > 1:
-           del params[0]
-        else:
-            wrapper.pm(messages["clone_clone_clone"])
-            return
-
     target = get_target(var, wrapper, params[0])
     if target is None:
         return
@@ -44,15 +33,6 @@ def clone(var, wrapper, message):
     wrapper.pm(messages["clone_target_success"].format(target))
 
     debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
-
-def setup_clone(evt):
-    # We need to add "clone" to the role command exceptions so there's no error
-    # This is done here so that var isn't imported at the global scope
-    # (when we implement proper game state this will be in a different event)
-    from src import settings as var
-    var.ROLE_COMMAND_EXCEPTIONS.add("clone")
-
-EventListener(setup_clone).install("init") # no IRC connection, so no possible error handler yet
 
 @event_listener("get_reveal_role")
 def on_get_reveal_role(evt, var, user):
@@ -98,10 +78,10 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
         pl.remove(clone)
         if clone.prefers_simple():
-            clone.send(messages["clone_simple"])
+            clone.send(messages["role_simple"].format("clone"))
         else:
             clone.send(messages["clone_notify"])
-        clone.send(messages["players_list"].format(", ".join(p.nick for p in pl)))
+        clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -116,7 +96,7 @@ def on_transition_day_begin(evt, var):
         if clone not in CLONED:
             ps = pl[:]
             ps.remove(clone)
-            if len(ps) > 0:
+            if ps:
                 target = random.choice(ps)
                 CLONED[clone] = target
                 clone.send(messages["random_clone"].format(target))
@@ -156,7 +136,7 @@ def on_myrole(evt, var, user):
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
     if role == "clone" and user in CLONED:
-        evt.data["special_case"].append("cloning {0}".format(CLONED[user]))
+        evt.data["special_case"].append(messages["clone_revealroles"].format(CLONED[user]))
 
 @event_listener("reset")
 def on_reset(evt, var):

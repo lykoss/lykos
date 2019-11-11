@@ -1,6 +1,7 @@
 from collections import defaultdict
 from operator import attrgetter
 
+from src.messages.message import Message
 from src.logger import debuglog
 
 Features = {"CASEMAPPING": "rfc1459", "CHARSET": "utf-8", "STATUSMSG": {"@", "+"}, "CHANTYPES": {"#"}, "TARGMAX": {"PRIVMSG": 1, "NOTICE": 1}}
@@ -118,10 +119,10 @@ class IRCContext:
         self.client = client
         self.ref = None
 
-    def __format__(self, format_spec=""):
+    def __format__(self, format_spec):
         if not format_spec:
             return self.name
-        raise ValueError("Format specificer {0} has undefined semantics".format(format_spec))
+        raise ValueError("Format specifier {0} has undefined semantics".format(format_spec))
 
     def __eq__(self, other):
         return self._compare(other, __class__) # This will always return False
@@ -144,7 +145,7 @@ class IRCContext:
         return done
 
     def lower(self):
-        temp = type(self)(lower(name), client)
+        temp = type(self)(lower(self.name), self.client)
         temp.ref = self.ref or self
         return temp
 
@@ -168,6 +169,8 @@ class IRCContext:
         messages = list(cls._messages.items())
         cls._messages.clear()
         for message, targets in messages:
+            if isinstance(message, Message):
+                message = message.format()
             if isinstance(message, str):
                 message = (message,)
             send_types = defaultdict(list)
@@ -210,13 +213,14 @@ class IRCContext:
         return _who(self.client, self.name, data)
 
     def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
-        if not data:
-            # nothing to send
-            return
-
+        new = []
+        for line in data:
+            if isinstance(line, Message):
+                line = line.format()
+            new.append(line)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
-            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(data)))
+            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(new)))
             return
 
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)
@@ -227,4 +231,6 @@ class IRCContext:
             first = ""
         if sep is None:
             sep = " "
-        _send(data, first, sep, self.client, send_type, name)
+        _send(new, first, sep, self.client, send_type, name)
+
+# vim: set sw=4 expandtab:

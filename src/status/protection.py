@@ -71,9 +71,9 @@ def on_remove_protection(evt, var, target, attacker, attacker_role, protector, p
         target.send(messages["protector_disappeared"])
 
 @event_listener("revealroles")
-def on_revealroles(evt, var, wrapper):
+def on_revealroles(evt, var):
     if PROTECTIONS:
-        evt.data["output"].append("\u0002protected\u0002: {0}".format(", ".join(x.nick for x in PROTECTIONS)))
+        evt.data["output"].append(messages["protection_revealroles"].format(PROTECTIONS))
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):
