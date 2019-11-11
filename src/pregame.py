@@ -467,12 +467,12 @@ def start(var, wrapper, *, forced=False, restart=""):
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
     if not var.START_WITH_DAY:
         from src.wolfgame import transition_night
-        var.GAMEPHASE = "night"
+        var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night()
     else:
         from src.wolfgame import transition_day
         var.FIRST_DAY = True
-        var.GAMEPHASE = "day"
+        var.GAMEPHASE = "night"
         transition_day()
 
     decrement_stasis()

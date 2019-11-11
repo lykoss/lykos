@@ -296,7 +296,7 @@ def get_totem_target(var, wrapper, message, lastgiven, totems) -> Tuple[Optional
 
     return totem, target
 
-def give_totem(var, wrapper, target, *, key, role):
+def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[users.User, users.User]]:
     """Give a totem to a player."""
 
     orig_target = target
@@ -307,12 +307,12 @@ def give_totem(var, wrapper, target, *, key, role):
         return
 
     targrole = get_main_role(target)
-    totem = _rolestate[role]["TOTEMS"][wrapper.source]
 
+    # keys: shaman_success_night_known, shaman_success_random_known, shaman_success_night_unknown, shaman_success_random_unknown
     wrapper.send(messages[key].format(orig_target, totem))
     debuglog("{0} ({1}) TOTEM: {2} ({3}) as {4} ({5}): {6}".format(wrapper.source, role, target, targrole, orig_target, orig_role, totem))
 
-    _rolestate[role]["SHAMANS"][wrapper.source] = UserList((target, orig_target))
+    return target, orig_target
 
 def change_totem(var, player, totem, roles=None):
     """Change the player's totem to the specified totem.

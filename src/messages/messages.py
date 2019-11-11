@@ -16,7 +16,7 @@ class Messages:
         self._load_messages()
 
     def get(self, key, index=None):
-        if not self.messages[key]:
+        if key not in self.messages:
             raise KeyError("Key {0!r} does not exist! Add it to messages.json".format(key))
         return Message(key, self.messages[key], index)
 

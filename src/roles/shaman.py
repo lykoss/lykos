@@ -40,7 +40,7 @@ def shaman_totem(var, wrapper, message):
         wrapper.send(messages["shaman_no_stacking"].format(orig_target))
         return
 
-    given = give_totem(var, wrapper, target, key="shaman_success_night_known", role="shaman")
+    given = give_totem(var, wrapper, target, totem, key="shaman_success_night_known", role="shaman")
     if given:
         victim, target = given
         if victim is not target:
@@ -71,7 +71,7 @@ def on_transition_day_begin(evt, var):
                     target = random.choice(ps)
                     ps.remove(target)
                     dispatcher = MessageDispatcher(shaman, shaman)
-                    given = give_totem(var, dispatcher, target, key="shaman_success_random_unknown", role="shaman")
+                    given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="shaman")
                     if given:
                         SHAMANS[shaman][totem].append(given[0])
 

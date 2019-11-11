@@ -1715,14 +1715,22 @@ def reaper(cli, gameid):
 
     last_day_id = var.DAY_COUNT
     num_night_iters = 0
+    short = False
 
     while gameid == var.GAME_ID:
         skip = False
+        time.sleep(1 if short else 10)
+        short = False
         with var.GRAVEYARD_LOCK:
             # Terminate reaper when game ends
-            if var.PHASE not in ("day", "night"):
+            if var.PHASE not in var.GAME_PHASES:
                 return
-            if var.DEVOICE_DURING_NIGHT:
+            if var.PHASE != var.GAMEPHASE:
+                # in a phase transition, so don't run the reaper here or else things may break
+                # flag to re-run sooner than usual though
+                short = True
+                continue
+            elif var.DEVOICE_DURING_NIGHT:
                 if var.PHASE == "night":
                     # don't count nighttime towards idling
                     # this doesn't do an exact count, but is good enough
@@ -1734,7 +1742,6 @@ def reaper(cli, gameid):
                     for nick in var.LAST_SAID_TIME:
                         var.LAST_SAID_TIME[nick] += timedelta(seconds=10*num_night_iters)
                     num_night_iters = 0
-
 
             if not skip and (var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME):  # only if enabled
                 to_warn    = []
@@ -1819,7 +1826,6 @@ def reaper(cli, gameid):
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "account", death_triggers=False)
             kill_players(var)
-        time.sleep(10)
 
 @command("")  # update last said
 def update_last_said(var, wrapper, message):
@@ -2350,6 +2356,9 @@ def transition_day(gameid=0):
 
     killer_role = {}
     for deadperson in dead:
+        if is_dying(deadperson):
+            continue
+
         if killers.get(deadperson):
             killer = killers[deadperson][0]
             if killer == "@wolves":
@@ -2360,8 +2369,8 @@ def transition_day(gameid=0):
             # no killers, so assume suicide
             killer_role[deadperson] = get_main_role(deadperson)
 
-    for deadperson in dead:
         add_dying(var, deadperson, killer_role[deadperson], "night_kill")
+
     kill_players(var, end_game=False) # temporary hack; end_game=False also prevents kill_players from attempting phase transitions
 
     event_end = Event("transition_day_end", {"begin_day": begin_day})
@@ -2548,7 +2557,6 @@ def transition_night():
     if var.PHASE not in ("day", "join"):
         return
     var.PHASE = "night"
-    var.GAMEPHASE = "night"
 
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
@@ -2602,6 +2610,9 @@ def transition_night():
         dmsg.append(messages["first_night_begin"])
     channels.Main.send(*dmsg, sep=" ")
     debuglog("BEGIN NIGHT")
+
+    # it's now officially nighttime
+    var.GAMEPHASE = "night"
 
     event_night = Event("begin_night", {"messages": []})
     event_night.dispatch(var)
