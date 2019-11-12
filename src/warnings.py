@@ -210,9 +210,9 @@ def fstasis(var, wrapper, message):
         cur = max(var.STASISED[hostmask], var.STASISED_ACCS[acc])
 
         if len(data) == 1:
-            if acc is not None and var.STASISED_ACCS[acc] == cur:
+            if acc is not None and var.STASISED_ACCS[acc] == cur and cur > 0:
                 wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
-            elif hostmask is not None and var.STASISED[hostmask] == cur:
+            elif hostmask is not None and var.STASISED[hostmask] == cur and cur > 0:
                 wrapper.reply(messages["hostmask_in_stasis"].format(data[0], hostmask, cur))
             elif acc is not None:
                 wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
@@ -250,18 +250,22 @@ def fstasis(var, wrapper, message):
                 wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
             else:
                 wrapper.reply(messages["fstasis_hostmask_remove"].format(data[0], hostmask))
-    elif var.STASISED or var.STASISED_ACCS:
+    else:
         stasised = {}
         for hostmask in var.STASISED:
-            stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
+            if var.STASISED[hostmask] > 0:
+                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
         for acc in var.STASISED_ACCS:
-            stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
-        msg = messages["currently_stasised"].format(", ".join(
-            "\u0002{0}\u0002 ({1})".format(usr, number)
-            for usr, number in stasised.items()))
-        wrapper.reply(msg)
-    else:
-        wrapper.reply(messages["noone_stasised"])
+            if var.STASISED_ACCS[acc] > 0:
+                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
+
+        if stasised:
+            msg = messages["currently_stasised"].format(", ".join(
+                "\u0002{0}\u0002 ({1})".format(usr, number)
+                for usr, number in stasised.items()))
+            wrapper.reply(msg)
+        else:
+            wrapper.reply(messages["noone_stasised"])
 
 @command("warn", pm=True)
 def warn(var, wrapper, message):
