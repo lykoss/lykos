@@ -62,10 +62,7 @@ def on_transition_night_end(evt, var):
         if DOCTORS[doctor]: # has immunizations remaining
             pl = ps[:]
             random.shuffle(pl)
-            if doctor.prefers_simple():
-                doctor.send(messages["role_simple"].format("doctor"))
-            else:
-                doctor.send(messages["doctor_notify"])
+            doctor.send(messages["doctor_notify"])
             doctor.send(messages["doctor_immunizations"].format(DOCTORS[doctor]))
 
 @event_listener("revealroles")

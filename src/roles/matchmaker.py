@@ -28,16 +28,8 @@ def _set_lovers(target1, target2):
     else:
         LOVERS[target2] = UserSet({target1})
 
-    t1_msg = "matchmaker_target_notify"
-    if target1.prefers_simple():
-        t1_msg += "_simple"
-
-    t2_msg = "matchmaker_target_notify"
-    if target2.prefers_simple():
-        t2_msg += "_simple"
-
-    target1.send(messages[t1_msg].format(target2))
-    target2.send(messages[t2_msg].format(target1))
+    target1.send(messages["matchmaker_target_notify"].format(target2))
+    target2.send(messages["matchmaker_target_notify"].format(target1))
 
 def get_lovers():
     lovers = []
@@ -123,10 +115,7 @@ def on_transition_night_end(evt, var):
             continue
         pl = ps[:]
         random.shuffle(pl)
-        if mm.prefers_simple():
-            mm.send(messages["role_simple"].format("matchmaker"))
-        else:
-            mm.send(messages["matchmaker_notify"])
+        mm.send(messages["matchmaker_notify"])
         mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")

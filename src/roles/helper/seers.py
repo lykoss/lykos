@@ -34,11 +34,7 @@ def setup_variables(rolename):
             random.shuffle(pl)
             pl.remove(seer)  # remove self from list
 
-            to_send = "seer_role_info"
-            if seer.prefers_simple():
-                seer.send(messages["role_simple"].format(rolename))
-            else:
-                seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
+            seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
             seer.send(messages["players_list"].format(pl))
 
     @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))

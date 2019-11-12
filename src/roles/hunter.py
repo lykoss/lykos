@@ -105,10 +105,7 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(hunter)
-        to_send = "hunter_notify"
-        if hunter.prefers_simple():
-            to_send = "role_simple"
-        hunter.send(messages[to_send].format("hunter"), messages["players_list"].format(pl), sep="\n")
+        hunter.send(messages["hunter_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

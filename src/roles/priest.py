@@ -71,10 +71,7 @@ def consecrate(var, wrapper, message):
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     for priest in get_all_players(("priest",)):
-        if priest.prefers_simple():
-            priest.send(messages["role_simple"].format("priest"))
-        else:
-            priest.send(messages["priest_notify"])
+        priest.send(messages["priest_notify"])
 
 @event_listener("reset")
 def on_reset(evt, var):

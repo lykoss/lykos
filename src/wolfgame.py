@@ -503,27 +503,6 @@ def pinger(var, wrapper, message):
     """Check if you or the bot is still connected."""
     wrapper.reply(messages["ping"].format(nick=wrapper.source, bot_nick=users.Bot))
 
-@command("simple", pm=True)
-def mark_simple_notify(var, wrapper, message):
-    """Makes the bot give you simple role instructions, in case you are familiar with the roles."""
-
-    temp = wrapper.source.lower()
-
-    account = temp.account
-    userhost = temp.userhost
-
-    if account is None and var.ACCOUNTS_ONLY:
-        wrapper.pm(messages["not_logged_in"])
-        return
-
-    simple = wrapper.source.prefers_simple()
-    simple_set, value = (var.SIMPLE_NOTIFY, userhost) if account is None else (var.SIMPLE_NOTIFY_ACCS, account)
-    action, toggle = (simple_set.discard, "off") if simple else (simple_set.add, "on")
-
-    action(value)
-    db.toggle_simple(account, userhost)
-    wrapper.pm(messages["simple_" + toggle])
-
 @command("notice", pm=True)
 def mark_prefer_notice(var, wrapper, message):
     """Makes the bot NOTICE you for every interaction."""

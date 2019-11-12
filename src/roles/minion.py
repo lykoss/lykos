@@ -26,11 +26,7 @@ def on_transition_night_end(evt, var):
     for minion in get_all_players(("minion",)):
         if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
             continue
-        if minion.prefers_simple():
-            to_send = "role_simple"
-        else:
-            to_send = "minion_notify"
-        minion.send(messages[to_send].format("minion"))
+        minion.send(messages["minion_notify"])
         minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
 

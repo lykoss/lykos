@@ -69,10 +69,7 @@ def on_transition_night_end(evt, var):
         pl.remove(dttv)
         chance = math.floor(var.DETECTIVE_REVEALED_CHANCE * 100)
 
-        to_send = "detective_notify"
-        if dttv.prefers_simple():
-            to_send = "role_simple"
-        dttv.send(messages[to_send].format("detective"))
+        dttv.send(messages["detective_notify"])
         if chance > 0:
             dttv.send(messages["detective_chance"].format(chance))
         dttv.send(messages["players_list"].format(pl))

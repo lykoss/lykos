@@ -11,7 +11,7 @@ from src.events import Event
 
 # Generated message keys used in this file:
 # mystic_night_num, mystic_day_num, mystic_info,
-# mystic_simple, mystic_notify, wolf_mystic_simple, wolf_mystic_notify
+# mystic_notify, wolf_mystic_notify
 
 def register_mystic(rolename, *, send_role, types):
     LAST_COUNT = UserDict() # type: Dict[users.User, List[Tuple[str, int]]]
@@ -32,10 +32,7 @@ def register_mystic(rolename, *, send_role, types):
         for mystic in get_all_players((rolename,)):
             LAST_COUNT[mystic] = values
             if send_role:
-                if mystic.prefers_simple():
-                    to_send = "role_simple"
-                else:
-                    to_send = "{0}_notify".format(role)
+                to_send = "{0}_notify".format(role)
                 mystic.send(messages[to_send].format(rolename))
             mystic.send(msg)
 

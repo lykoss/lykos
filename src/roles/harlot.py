@@ -101,10 +101,7 @@ def on_transition_night_end(evt, var):
         pl = get_players()
         random.shuffle(pl)
         pl.remove(harlot)
-        to_send = "harlot_info"
-        if harlot.prefers_simple():
-            to_send = "role_simple"
-        harlot.send(messages[to_send].format("harlot"), messages["players_list"].format(pl), sep="\n")
+        harlot.send(messages["harlot_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

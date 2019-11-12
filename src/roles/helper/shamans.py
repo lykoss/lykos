@@ -35,7 +35,7 @@ from src.cats import Cursed, Safe, Innocent, Wolf, All
 # 2. Listen to the "default_totems" event at priority 5 (the default)               #
 #    and set chances[totem][shaman_role] = 1 for relevant roles                     #
 # 3. Add a message key totemname_totem in your custom messages.json file            #
-#    describing the totem (this is displayed at night if !simple is off)            #
+#    describing the totem                                                           #
 # 4. Add event listeners as necessary to implement the totem's functionality        #
 #                                                                                   #
 # To add new shaman roles in your custom files:                                     #

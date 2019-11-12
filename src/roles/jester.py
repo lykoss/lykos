@@ -27,10 +27,7 @@ def on_player_win(evt, var, player, role, winner, survived):
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     for jester in get_all_players(("jester",)):
-        if jester.prefers_simple():
-            jester.send(messages["role_simple"].format("jester"))
-        else:
-            jester.send(messages["jester_notify"])
+        jester.send(messages["jester_notify"])
 
 @event_listener("reset")
 def on_reset(evt, var):

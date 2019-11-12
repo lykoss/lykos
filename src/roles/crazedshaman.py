@@ -114,13 +114,10 @@ def on_transition_night_end(evt, var):
         TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())
-        if shaman.prefers_simple():
-            shaman.send(messages["role_simple"].format("crazed shaman"))
+        if num_totems > 1:
+            shaman.send(messages["shaman_notify_multiple_random"].format("crazed shaman"))
         else:
-            if num_totems > 1:
-                shaman.send(messages["shaman_notify_multiple_random"].format("crazed shaman"))
-            else:
-                shaman.send(messages["shaman_notify"].format("crazed shaman"))
+            shaman.send(messages["shaman_notify"].format("crazed shaman"))
         shaman.send(totem_message(TOTEMS[shaman], count_only=True))
         shaman.send(messages["players_list"].format(pl))
 

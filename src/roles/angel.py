@@ -112,10 +112,7 @@ def on_transition_night_end(evt, var):
                 pl.remove(LASTGUARDED[gangel])
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
 
-        to_send = "guardian_angel_notify"
-        if gangel.prefers_simple():
-            to_send = "role_simple"
-        gangel.send(messages[to_send].format("guardian angel"))
+        gangel.send(messages["guardian_angel_notify"])
         if chance > 0:
             gangel.send(messages["bodyguard_death_chance"].format(chance))
         if var.GUARDIAN_ANGEL_CAN_GUARD_SELF:

@@ -160,16 +160,13 @@ def on_transition_night_end(evt, var):
         pl = get_players()
         random.shuffle(pl)
         pl.remove(succubus)
-        to_send = "succubus_notify"
-        if succubus.prefers_simple():
-            to_send = "role_simple"
         succ = []
         for p in pl:
             if p in succubi:
                 succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages[to_send].format("succubus"), messages["players_list"].format([succ]), sep="\n")
+        succubus.send(messages["succubus_notify"], messages["players_list"].format([succ]), sep="\n")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):

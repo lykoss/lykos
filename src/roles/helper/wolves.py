@@ -248,18 +248,13 @@ def on_transition_night_end(evt, var):
 
     cursed = get_all_players(("cursed villager",))
     for wolf in wolves:
-        normal_notify = not wolf.prefers_simple()
         role = get_main_role(wolf)
+        msg = "{0}_notify".format(role.replace(" ", "_")) # FIXME: Split into each role file
 
-        if normal_notify:
-            msg = "{0}_notify".format(role.replace(" ", "_")) # FIXME: Split into each role file
+        wolf.send(messages[msg])
 
-            wolf.send(messages[msg])
-
-            if len(wolves) > 1 and role in talkroles:
-                wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
-        else:
-            wolf.send(messages["role_simple"].format(role))  # !simple
+        if len(wolves) > 1 and role in talkroles:
+            wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
 
         if wolf in cursed:
             wolf.send(messages["cursed_notify"])

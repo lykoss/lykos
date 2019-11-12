@@ -105,10 +105,7 @@ def on_transition_night_end(evt, var):
         if chance > 0:
             warning = messages["bodyguard_death_chance"].format(chance)
 
-        to_send = "bodyguard_notify"
-        if bg.prefers_simple():
-            to_send = "role_simple"
-        bg.send(messages[to_send].format("bodyguard"))
+        bg.send(messages["bodyguard_notify"])
         if chance > 0:
             bg.send(messages["bodyguard_death_chance"].format(chance))
         bg.send(messages["players_list"].format(pl))

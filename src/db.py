@@ -29,7 +29,6 @@ def init_vars():
                        pl.account,
                        pl.hostmask,
                        pe.notice,
-                       pe.simple,
                        pe.deadchat,
                        pe.pingif,
                        pe.stasis_amount,
@@ -44,8 +43,6 @@ def init_vars():
                        ON at.id = a.template
                      WHERE pl.active = 1""")
 
-        var.SIMPLE_NOTIFY = set()  # cloaks of people who !simple, who don't want detailed instructions
-        var.SIMPLE_NOTIFY_ACCS = set() # same as above, except accounts. takes precedence
         var.PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
         var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
         var.STASISED = defaultdict(int)
@@ -61,11 +58,9 @@ def init_vars():
         var.DENY = defaultdict(set)
         var.DENY_ACCS = defaultdict(set)
 
-        for acc, host, notice, simple, dc, pi, stasis, stasisexp, flags in c:
+        for acc, host, notice, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
                 acc = irc_lower(acc)
-                if simple == 1:
-                    var.SIMPLE_NOTIFY_ACCS.add(acc)
                 if notice == 1:
                     var.PREFER_NOTICE_ACCS.add(acc)
                 if stasis > 0:
@@ -84,8 +79,6 @@ def init_vars():
                     host = irc_lower(hl) + "@" + hr.lower()
                 except ValueError:
                     host = host.lower()
-                if simple == 1:
-                    var.SIMPLE_NOTIFY.add(host)
                 if notice == 1:
                     var.PREFER_NOTICE.add(host)
                 if stasis > 0:
@@ -237,9 +230,6 @@ def set_access(acc, hostmask, flags=None, tid=None):
             c.execute("""INSERT OR REPLACE INTO access
                          (person, template, flags)
                          VALUES (?, NULL, ?)""", (peid, flags))
-
-def toggle_simple(acc, hostmask):
-    _toggle_thing("simple", acc, hostmask)
 
 def toggle_notice(acc, hostmask):
     _toggle_thing("notice", acc, hostmask)

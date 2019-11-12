@@ -60,15 +60,11 @@ def on_transition_night_end(evt, var):
         if turncoat not in TURNCOATS:
             TURNCOATS[turncoat] = ("none", -1)
 
-        if turncoat.prefers_simple():
-            turncoat.send(messages["turncoat_simple"].format(TURNCOATS[turncoat][0]))
+        if TURNCOATS[turncoat][0] != "none":
+            message = messages["turncoat_current_team"].format(TURNCOATS[turncoat][0])
         else:
-            message = messages["turncoat_notify"]
-            if TURNCOATS[turncoat][0] != "none":
-                message += messages["turncoat_current_team"].format(TURNCOATS[turncoat][0])
-            else:
-                message += messages["turncoat_no_team"]
-            turncoat.send(message)
+            message = messages["turncoat_no_team"]
+        turncoat.send(messages["turncoat_notify"], message)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

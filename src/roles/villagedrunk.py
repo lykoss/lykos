@@ -15,19 +15,13 @@ from src.status import try_misdirection, try_exchange
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     for drunk in get_all_players(("village drunk",)):
-        if drunk.prefers_simple():
-            drunk.send(messages["role_simple"].format("village drunk"))
-        else:
-            drunk.send(messages["village_drunk_notify"])
+        drunk.send(messages["village_drunk_notify"])
 
 @event_listener("assassin_target")
 def on_assassin_target(evt, var, assassin, players):
     if evt.data["target"] is None and assassin in get_all_players(("village drunk",)):
         evt.data["target"] = random.choice(players)
-        message = messages["drunken_assassin_notification"].format(evt.data["target"])
-        if not assassin.prefers_simple():
-            message += messages["assassin_info"]
-        assassin.send(message)
+        assassin.send(messages["drunken_assassin_notification"].format(evt.data["target"]))
 
 @event_listener("gun_shoot")
 def on_gun_chances(evt, var, user, role):

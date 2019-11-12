@@ -77,10 +77,7 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(clone)
-        if clone.prefers_simple():
-            clone.send(messages["role_simple"].format("clone"))
-        else:
-            clone.send(messages["clone_notify"])
+        clone.send(messages["clone_notify"])
         clone.send(messages["players_list"].format(pl))
 
 @event_listener("chk_nightdone")

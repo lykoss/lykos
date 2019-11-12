@@ -35,10 +35,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_transition_night_end(evt, var):
     for monster in get_all_players(("monster",)):
         add_protection(var, monster, protector=None, protector_role="monster", scope=Wolf)
-        if monster.prefers_simple():
-            monster.send(messages["role_simple"].format("monster"))
-        else:
-            monster.send(messages["monster_notify"])
+        monster.send(messages["monster_notify"])
 
 @event_listener("remove_protection")
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):

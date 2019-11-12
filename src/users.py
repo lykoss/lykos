@@ -411,22 +411,6 @@ class User(IRCContext):
 
         return False
 
-    def prefers_simple(self):
-        if self.is_fake:
-            return True
-
-        temp = self.lower()
-
-        if temp.account in var.SIMPLE_NOTIFY_ACCS:
-            return True
-
-        if not var.ACCOUNTS_ONLY:
-            for hostmask in var.SIMPLE_NOTIFY:
-                if temp.match_hostmask(hostmask):
-                    return True
-
-        return False
-
     def get_pingif_count(self):
         temp = self.lower()
 

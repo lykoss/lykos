@@ -84,10 +84,7 @@ def setup_variables(rolename):
     def on_transition_night_end(evt, var):
         for gunner in get_all_players((rolename,)):
             if GUNNERS[gunner]:
-                if gunner.prefers_simple(): # gunner and sharpshooter share the same key for simple
-                    gunner.send(messages["gunner_simple"].format(rolename, GUNNERS[gunner]))
-                else:
-                    gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
+                gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
     @event_listener("transition_day_resolve_end", priority=4, listener_id="<{}>.on_transition_day_resolve_end".format(rolename))
     def on_transition_day_resolve_end(evt, var, victims):
@@ -123,7 +120,7 @@ def setup_variables(rolename):
     @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
         if GUNNERS.get(user):
-            evt.data["messages"].append(messages["gunner_simple"].format(rolename, GUNNERS[user]))
+            evt.data["messages"].append(messages["gunner_myrole"].format(rolename, GUNNERS[user]))
 
     @event_listener("revealroles_role", listener_id="<{}>.on_revealroles_role".format(rolename))
     def on_revealroles_role(evt, var, user, role):

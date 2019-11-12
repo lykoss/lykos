@@ -77,10 +77,7 @@ def on_transition_night_end(evt, var):
             TARGETED[ass] = ass_evt.data["target"]
             PREV_ACTED.add(ass)
         else:
-            if ass.prefers_simple():
-                ass.send(messages["role_simple"].format("assassin"))
-            else:
-                ass.send(messages["assassin_notify"])
+            ass.send(messages["assassin_notify"])
             ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
@@ -113,7 +110,7 @@ def on_myrole(evt, var, user):
         if user in TARGETED:
             evt.data["messages"].append(messages["assassin_targeting"].format(TARGETED[user]))
         else:
-            evt.data["messages"].append(messages["role_simple"].format("assassin"))
+            evt.data["messages"].append(messages["assassin_no_target"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):

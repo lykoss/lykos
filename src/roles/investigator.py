@@ -99,10 +99,7 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(inv)
-        to_send = "investigator_notify"
-        if inv.prefers_simple():
-            to_send = "role_simple"
-        inv.send(messages[to_send].format("investigator"), messages["players_list"].format(pl), sep="\n")
+        inv.send(messages["investigator_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("transition_night_begin")
 def on_transition_night_begin(evt, var):

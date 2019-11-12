@@ -15,10 +15,7 @@ from src.status import try_misdirection, try_exchange
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     for demoniac in get_all_players(("demoniac",)):
-        if demoniac.prefers_simple():
-            demoniac.send(messages["role_simple"].format("demoniac"))
-        else:
-            demoniac.send(messages["demoniac_notify"])
+        demoniac.send(messages["demoniac_notify"])
 
 # monster is at priority 4, and we want demoniac to take precedence
 @event_listener("chk_win", priority=4.1) # FIXME: Kill the priorities

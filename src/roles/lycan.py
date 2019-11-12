@@ -21,10 +21,7 @@ def on_transition_night_end(evt, var):
     for lycan in lycans:
         if not add_lycanthropy(var, lycan):
             continue
-        if lycan.prefers_simple():
-            lycan.send(messages["role_simple"].format("lycan"))
-        else:
-            lycan.send(messages["lycan_notify"])
+        lycan.send(messages["lycan_notify"])
 
 @event_listener("doctor_immunize")
 def on_doctor_immunize(evt, var, doctor, target):
