@@ -1324,7 +1324,7 @@ def hurry_up(gameid, change):
 def fnight(var, wrapper, message):
     """Force the day to end and night to begin."""
     if var.PHASE != "day":
-        wrapper.send(messages["not_daytime"], notice=True)
+        wrapper.pm(messages["not_daytime"])
     else:
         hurry_up(0, True)
 
@@ -1332,7 +1332,7 @@ def fnight(var, wrapper, message):
 def fday(var, wrapper, message):
     """Force the night to end and the next day to begin."""
     if var.PHASE != "night":
-        wrapper.send(messages["not_nighttime"], notice=True)
+        wrapper.pm(messages["not_nighttime"])
     else:
         transition_day()
 
