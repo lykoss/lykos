@@ -3721,14 +3721,14 @@ def revealroles(var, wrapper, message):
                 if not evt.prevent_default and user not in var.ORIGINAL_ROLES[role] and role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
                     for old_role in role_order(): # order doesn't matter here, but oh well
                         if user in var.ORIGINAL_ROLES[old_role] and user not in var.ROLES[old_role]:
-                            special_case.append("was {0}".format(old_role))
+                            special_case.append(messages["revealroles_old_role"].format(old_role))
                             break
                 if special_case:
-                    out.append("".join((user.nick, " (", ", ".join(special_case), ")")))
+                    out.append(messages["revealroles_special"].format(user, special_case))
                 else:
-                    out.append(user.nick)
+                    out.append(user)
 
-            output.append("\u0002{0}\u0002: {1}".format(role, ", ".join(out)))
+            output.append(messages["revealroles_output"].format(role, out))
 
     evt = Event("revealroles", {"output": output})
     evt.dispatch(var)
