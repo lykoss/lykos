@@ -679,7 +679,7 @@ def fwarn(var, wrapper, message):
             expires = expires[1:]
             reason = reason.strip()
 
-            if expires in messages["never_aliases"]:
+            if expires in messages.messages["never_aliases"]:
                 expires = None
             else:
                 suffix = expires[-1]
@@ -840,7 +840,7 @@ def fwarn(var, wrapper, message):
     if expires is None:
         expires = var.DEFAULT_EXPIRY
 
-    if expires.lower() in messages["never_aliases"]:
+    if expires.lower() in messages.messages["never_aliases"]:
         expires = None
 
     try:
