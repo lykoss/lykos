@@ -1707,7 +1707,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
         evt.prevent_default = True
 
 @handle_error
-def reaper(cli, gameid):
+def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to be fixed too (some still use :bold where :@ is needed)
     # check to see if idlers need to be killed.
     var.IDLE_WARNED    = set()
     var.IDLE_WARNED_PM = set()

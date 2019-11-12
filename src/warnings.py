@@ -123,6 +123,7 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
 
     if actor not in var.USERS and actor != users.Bot.nick:
         return False
+    reason = reason.format()
     sacc = None
     shm = None
     if actor in var.USERS:
