@@ -1241,7 +1241,7 @@
     "warn_view_syntax": "Usage: {=warn!command} view <id>",
     "warn_ack_syntax": "Usage: {=warn!command} ack <id>",
     "warn_help_syntax": "Usage: {=warn!command} help <subcommand>",
-    "fwarn_add_syntax": "Usage: {=fwarn!command} add <nick[[!user@host]]|=account> <points> [[sanctions]]",
+    "fwarn_add_syntax": "Usage: {=fwarn!command} add <nick[[!user@host]]|=account> <points> [[~expiry]] [[sanctions]] [[:]]<reason> [[| notes]]",
     "fwarn_page_invalid": "Invalid page, must be a number 1 or greater.",
     "fwarn_points_invalid": "Invalid points, must be a non-negative integer.",
     "fwarn_expiry_invalid": "Invalid expiration, must be a number above 0 followed by either d, h, or m, or 'never' for a warning that never expires.",

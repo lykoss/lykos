@@ -206,7 +206,6 @@ def fstasis(var, wrapper, message):
     msg = None
 
     if data:
-        lusers = {k.lower(): v for k, v in var.USERS.items()}
         acc, hostmask = parse_warning_target(data[0], lower=True)
         cur = max(var.STASISED[hostmask], var.STASISED_ACCS[acc])
 
