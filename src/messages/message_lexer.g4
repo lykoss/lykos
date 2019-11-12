@@ -3,10 +3,10 @@ options { language = Python3; }
 
 TEXT : (
     ~[[\]{}]
-    | '{{' { setText("{") }
-    | '}}' { setText("}") }
-    | '[[' { setText("[") }
-    | ']]' { setText("]") }
+    | '{{' { self.text = "{" }
+    | '}}' { self.text = "}" }
+    | '[[' { self.text = "[" }
+    | ']]' { self.text = "]" }
     )+ ;
 OPEN_TAG : '[' -> pushMode(IN_TAG) ;
 OPEN_SUB : '{' -> pushMode(IN_SUB) ;
@@ -20,8 +20,8 @@ CLOSE_TAG : ']' -> popMode ;
 mode IN_TAG_PARAM;
 TAG_PARAM : (
     ~[[\]{}]
-    | '{{' { setText("{") }
-    | '}}' { setText("}") }
+    | '{{' { self.text = "{" }
+    | '}}' { self.text = "}" }
     )+ ;
 TAG_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
 TAG_PARAM_CLOSE : ']' -> popMode, type(CLOSE_TAG) ;
@@ -29,8 +29,8 @@ TAG_PARAM_CLOSE : ']' -> popMode, type(CLOSE_TAG) ;
 mode IN_SUB;
 SUB_FIELD : (
     ~[!:{}]
-    | '{{' { setText("{") }
-    | '}}' { setText("}") }
+    | '{{' { self.text = "{" }
+    | '}}' { self.text = "}" }
     )+ ;
 SUB_CONVERT : '!' -> mode(IN_CONV) ;
 SUB_SPEC : ':' -> mode(IN_SPEC) ;
@@ -45,9 +45,9 @@ CLOSE_CONV : '}' -> popMode, type(CLOSE_SUB) ;
 mode IN_SPEC;
 SPEC_VALUE : (
     ~[:{}()]
-    | '::' { setText(":") }
-    | '{{' { setText("{") }
-    | '}}' { setText("}") }
+    | '::' { self.text = ":" }
+    | '{{' { self.text = "{" }
+    | '}}' { self.text = "}" }
     )+ ;
 SPEC_SEP : ':' -> type(SUB_SPEC) ;
 SPEC_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
@@ -57,8 +57,8 @@ CLOSE_SPEC : '}' -> popMode, type(CLOSE_SUB) ;
 mode IN_ARGLIST;
 ARGLIST_VALUE : (
     ~[{}()]
-    | '{{' { setText("{") }
-    | '}}' { setText("}") }
+    | '{{' { self.text = "{" }
+    | '}}' { self.text = "}" }
     )+ ;
 ARGLIST_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;
 CLOSE_ARGLIST : ')' -> popMode ;

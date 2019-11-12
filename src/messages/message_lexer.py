@@ -189,59 +189,59 @@ class message_lexer(Lexer):
 
     def TEXT_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 0:
-             setText("{") 
+             self.text = "{" 
      
 
         if actionIndex == 1:
-             setText("}") 
+             self.text = "}" 
      
 
         if actionIndex == 2:
-             setText("[") 
+             self.text = "[" 
      
 
         if actionIndex == 3:
-             setText("]") 
+             self.text = "]" 
      
 
     def TAG_PARAM_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 4:
-             setText("{") 
+             self.text = "{" 
      
 
         if actionIndex == 5:
-             setText("}") 
+             self.text = "}" 
      
 
     def SUB_FIELD_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 6:
-             setText("{") 
+             self.text = "{" 
      
 
         if actionIndex == 7:
-             setText("}") 
+             self.text = "}" 
      
 
     def SPEC_VALUE_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 8:
-             setText(":") 
+             self.text = ":" 
      
 
         if actionIndex == 9:
-             setText("{") 
+             self.text = "{" 
      
 
         if actionIndex == 10:
-             setText("}") 
+             self.text = "}" 
      
 
     def ARGLIST_VALUE_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 11:
-             setText("{") 
+             self.text = "{" 
      
 
         if actionIndex == 12:
-             setText("}") 
+             self.text = "}" 
      
 
 
