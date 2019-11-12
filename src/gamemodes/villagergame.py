@@ -154,6 +154,7 @@ class VillagergameMode(GameMode):
                 channels.Main.send(messages["villagergame_win"])
                 from src.wolfgame import stop_game
                 stop_game(var, "everyone")
+                evt.stop_processing = True
             # we don't want to attempt to kill the bot, and we don't
             # want any votes on the bot to count for ending day
             votes.LYNCHED -= 1

@@ -46,6 +46,7 @@ class DefaultMode(GameMode):
                 channels.Main.send(messages["villagergame_nope"])
                 from src.wolfgame import stop_game
                 stop_game(var, "wolves")
+                evt.stop_processing = True
             # don't try to actually kill the bot and don't make bot lynches count for ending day
             votes.LYNCHED -= 1
             evt.prevent_default = True
