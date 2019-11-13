@@ -62,8 +62,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     kill1 = prots1 is None and add_dying(var, target1, killer_role="mad scientist", reason="mad_scientist")
     kill2 = prots2 is None and target1 is not target2 and add_dying(var, target2, killer_role="mad scientist", reason="mad_scientist")
 
-    role1 = get_reveal_role(target1)
-    role2 = get_reveal_role(target2)
+    role1 = kill1 and get_reveal_role(target1)
+    role2 = kill2 and get_reveal_role(target2)
     if kill1 and kill2:
         to_send = "mad_scientist_kill"
         debuglog(player.nick, "(mad scientist) KILL: {0} ({1}) - {2} ({3})".format(target1, get_main_role(target1), target2, get_main_role(target2)))
