@@ -73,13 +73,17 @@
         "wolf cub": ["wolf cub", "wolf cubs"],
         "wolf mystic": ["wolf mystic", "wolf mystics"],
         "wolf shaman": ["wolf shaman", "wolf shamans"],
+        "**": "The following items are names for the 'team reveal' role reveal option",
         "village member": ["village member", "village members"],
         "neutral player": ["neutral player", "neutral players"],
         "wolfteam player": ["wolfteam player", "wolfteam players"],
+        "***": "The following items are special keys used in player stats",
         "lover": ["lover", "lovers"],
         "vg activated": ["vg activated", "vgs activated"],
         "vg driven off": ["vg driven off", "vgs driven off"],
-        "entranced": ["entranced", "entranced"]
+        "entranced": ["entranced", "entranced"],
+        "****": "The following items are old roles that are no longer in use, but need to be here for legacy reasons",
+        "bureaucrat": ["bureaucrat", "bureaucrats"]
     },
     "_gamemodes": {
         "*": "For assistance in configuring this section, please see https://werewolf.chat/Translation#Gamemodes",
