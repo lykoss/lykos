@@ -91,7 +91,7 @@ def on_transition_night_end(evt, var):
         pl = get_players()
         target1, target2 = _get_targets(var, pl, ms)
 
-        ms.send(messages["mad_scientist_notify"], messages["mad_scientist_myrole_targets"].format(target1, target2), sep=" ")
+        ms.send(messages["mad_scientist_notify"].format(target1, target2))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
