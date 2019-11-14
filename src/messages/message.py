@@ -2,8 +2,8 @@ import random
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
 from antlr4.error.ErrorListener import ErrorListener
 from src.messages import message_formatter
-from src.messages.message_lexer import message_lexer
-from src.messages.message_parser import message_parser
+from src.messages.lexer import Lexer
+from src.messages.parser import Parser
 from src.messages.listener import Listener
 
 __all__ = ["Message"]
@@ -41,12 +41,10 @@ class Message:
         try:
             error_listener = MessageErrorListener()
             input_stream = InputStream(self.value)
-            lexer = message_lexer(input_stream)
-            lexer.message_key = self.key
+            lexer = Lexer(self.key, input_stream)
             lexer.addErrorListener(error_listener)
             token_stream = CommonTokenStream(lexer)
-            parser = message_parser(token_stream)
-            parser.message_key = self.key
+            parser = Parser(self.key, token_stream)
             parser.addErrorListener(error_listener)
             tree = parser.main()
             listener = Listener(self, args, kwargs)
