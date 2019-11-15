@@ -925,7 +925,7 @@
     "misdirection_totem": "If the player who is given the misdirection totem attempts to use a power the following day or night, they will target a player adjacent to their intended target instead of the player they targeted.",
     "deceit_totem": "If the player who is given the deceit totem is a seer or an oracle, or is seen by a seer or an oracle, the vision will be shifted: if the person would be seen as wolf, they are instead seen as a villager; otherwise, they are seen as a wolf.",
     "hunter_notify": "You are {=hunter!role:article} {=hunter!role:bold}. Once per game, you may kill another player with \"{=kill!command} <nick>\". If you do not wish to kill anyone tonight, use \"{=pass!command}\" instead.",
-    "mad_scientist_notify": "You are {=mad scientist!role:article} {=mad scientist!role:bold}. You win with the villagers, and should you die, you will let loose a potent chemical concoction that will kill {0:@} and {1:@} if they are still alive.",
+    "mad_scientist_notify": "You are {=mad scientist!role:article} {=mad scientist!role:bold}. You win with the villagers, and should you die, you will let loose a potent chemical concoction that will kill {0:@} and {1:@}.",
     "mad_scientist_myrole_targets": "Targets: {0:@} and {1:@}",
     "mad_scientist_revealroles_targets": "targeting {0:@} and {1:@}",
     "doctor_notify": "You are {=doctor!role:article} {=doctor!role:bold}. You can give out immunizations to villagers by using \"{=immunize!command} <nick>\" in PM during the daytime. An immunized villager will die instead of turning into a wolf due to the alpha wolf's or lycan's power.",
