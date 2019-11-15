@@ -10,7 +10,7 @@ from src.status import add_dying
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("sleepy", minp=10, maxp=24, likelihood=1)
+@game_mode("sleepy", minp=10, maxp=24, likelihood=5)
 class SleepyMode(GameMode):
     """A small village has become the playing ground for all sorts of supernatural beings."""
     def __init__(self, arg=""):

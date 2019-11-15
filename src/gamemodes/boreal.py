@@ -11,7 +11,7 @@ from src.cats import Wolfteam
 from src.decorators import command
 from src import channels, users
 
-@game_mode("boreal", minp=6, maxp=24, likelihood=1)
+@game_mode("boreal", minp=6, maxp=24, likelihood=5)
 class BorealMode(GameMode):
     """Some shamans are working against you. Exile them before you starve!"""
     def __init__(self, arg=""):

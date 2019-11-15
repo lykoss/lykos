@@ -2,7 +2,7 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-@game_mode("foolish", minp=8, maxp=24, likelihood=10)
+@game_mode("foolish", minp=8, maxp=24, likelihood=5)
 class FoolishMode(GameMode):
     """Contains the fool, be careful not to lynch them!"""
     def __init__(self, arg=""):
