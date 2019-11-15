@@ -64,6 +64,10 @@ class Formatter(string.Formatter):
             value = self._join_simple(value, specs["join_simple"])
             del specs["join_simple"]
 
+        if isinstance(value, dict) or isinstance(value, set):
+            # we were passed a set/dict, but we only support passing lists up. Convert it.
+            value = list(value)
+
         if isinstance(value, list):
             if flatten_lists:
                 # if value is a list by this point, retrieve the first element
