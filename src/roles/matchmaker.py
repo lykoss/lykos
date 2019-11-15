@@ -157,10 +157,7 @@ def on_player_win(evt, var, player, role, winner, survived):
     from src.roles.fool import VOTED
     if player in LOVERS:
         evt.data["special"].append("lover")
-    if winner == "lovers" and player in LOVERS:
-        evt.data["iwon"] = True
-
-    elif player in LOVERS and survived and LOVERS[player].intersection(get_players()):
+    if player in LOVERS and survived and LOVERS[player].intersection(get_players()):
         for lvr in LOVERS[player]:
             if lvr not in get_players():
                 # cannot win with dead lover (lover idled out)

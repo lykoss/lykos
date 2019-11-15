@@ -132,7 +132,6 @@ class GameMode:
 
         if len(lovers) == lpl:
             evt.data["winner"] = "lovers"
-            evt.data["additional_winners"] = lovers
             evt.data["message"] = messages["lovers_win"]
 
     def all_dead_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
