@@ -13,7 +13,6 @@ class RandomMode(GameMode):
         self.ROLE_REVEAL = random.choice(("on", "off", "team"))
         self.STATS_TYPE = "disabled" if self.ROLE_REVEAL == "off" else random.choice(("disabled", "team"))
         super().__init__(arg)
-        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         for role in self.SECONDARY_ROLES:
             self.SECONDARY_ROLES[role] = All
 

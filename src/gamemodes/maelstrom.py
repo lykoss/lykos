@@ -17,7 +17,6 @@ class MaelstromMode(GameMode):
         self.ROLE_REVEAL = "on"
         self.STATS_TYPE = "disabled"
         super().__init__(arg)
-        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0 # always make it happen
         self.ALWAYS_PM_ROLE = True
         # clone and wild child are pointless in this mode
         # monster and demoniac are nearly impossible to counter and don't add any interesting gameplay

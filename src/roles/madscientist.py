@@ -20,28 +20,23 @@ def _get_targets(var, pl, user):
     nick - nick of the mad scientist
 
     """
-    for index, player in enumerate(var.ALL_PLAYERS):
-        if player is user:
-            break
 
+    index = var.ALL_PLAYERS.index(user)
     num_players = len(var.ALL_PLAYERS)
-    target1 = var.ALL_PLAYERS[index - 1]
-    target2 = var.ALL_PLAYERS[(index + 1) % num_players]
-    if num_players >= var.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS:
-        # determine left player
-        i = index
-        while True:
-            i = (i - 1) % num_players
-            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-                target1 = var.ALL_PLAYERS[i]
-                break
-        # determine right player
-        i = index
-        while True:
-            i = (i + 1) % num_players
-            if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
-                target2 = var.ALL_PLAYERS[i]
-                break
+    # determine left player
+    i = index
+    while True:
+        i = (i - 1) % num_players
+        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
+            target1 = var.ALL_PLAYERS[i]
+            break
+    # determine right player
+    i = index
+    while True:
+        i = (i + 1) % num_players
+        if var.ALL_PLAYERS[i] in pl or var.ALL_PLAYERS[i] is user:
+            target2 = var.ALL_PLAYERS[i]
+            break
 
     return (target1, target2)
 
@@ -111,5 +106,3 @@ def on_revealroles(evt, var,  user, role):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["mad scientist"] = {"Village", "Cursed"}
-
-# vim: set sw=4 expandtab:

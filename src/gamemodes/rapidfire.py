@@ -12,7 +12,6 @@ class RapidFireMode(GameMode):
         self.DAY_TIME_WARN = 360
         self.SHORT_DAY_LIMIT = 240
         self.SHORT_DAY_WARN = 180
-        self.MAD_SCIENTIST_SKIPS_DEAD_PLAYERS = 0
         self.ROLE_GUIDE = {
             6:  ["wolf", "seer", "mad scientist", "cursed villager"],
             8:  ["wolf cub", "hunter", "assassin"],
