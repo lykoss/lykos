@@ -130,7 +130,8 @@ def on_player_protected(evt, var, target, attacker, attacker_role, protector, pr
 def on_remove_protection(evt, var, target, attacker, attacker_role, protector, protector_role, reason):
     if attacker_role == "fallen angel" and protector_role == "guardian angel":
         evt.data["remove"] = True
-        protector.send(messages[reason + "_success"].format(target))
+        if protector is not target:
+            protector.send(messages[reason + "_success"].format(target))
         target.send(messages[reason + "_deprotect"])
         if random.random() < var.FALLEN_ANGEL_KILLS_GUARDIAN_ANGEL_CHANCE:
             add_dying(var, protector, killer_role="fallen angel", reason=reason)
