@@ -1487,8 +1487,11 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                     game_options)
 
         # spit out the list of winners
-        winners = sorted(winners, key=lambda u: u.nick)
-        channels.Main.send(messages["winners"].format(winners))
+        if winners:
+            winners = sorted(winners, key=lambda u: u.nick)
+            channels.Main.send(messages["winners"].format(winners))
+        else:
+            channels.Main.send(messages["no_winners"])
 
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:

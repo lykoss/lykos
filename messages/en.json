@@ -596,6 +596,7 @@
     "endgame_stats": "Game lasted [b]{0:0>2}:{1:0>2}[/b]. [b]{2:0>2}:{3:0>2}[/b] was day. [b]{4:0>2}:{5:0>2}[/b] was night. ",
     "endgame_deadchat": "The game has ended, check {0} for the results.",
     "winners": "The {=winner,winners:plural({0})} {=is,are:plural({0})} {0:join(@)}.",
+    "no_winners": "Nobody wins.",
     "new_role": "You are now {0!role:article} {0!role:bold}.",
     "forever_aclone": "It appears that {0:@} was cloning you, so you are now stuck as a clone forever. How sad.",
     "clone_success": "You will now be cloning {0:@} if they die.",
