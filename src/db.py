@@ -513,9 +513,8 @@ def get_role_totals(mode=None):
     total_games = c.fetchone()[0]
     if not total_games:
         if mode is None:
-            return messages["db_rstats_nogame"]
-        else:
-            return messages["db_rstats_no_mode"].format(mode)
+            return (None, [messages["db_rstats_nogame"]])
+        return (None, [messages["db_rstats_no_mode"].format(mode)])
 
     if mode is None:
         c.execute("""SELECT
@@ -541,10 +540,8 @@ def get_role_totals(mode=None):
     for role, count in c:
         totals.append(messages["db_role_games"].format(role, count))
     if mode is None:
-        return messages["db_rstats_total"].format(total_games, totals)
-    else:
-        return messages["db_rstats_total_mode"].format(mode, total_games, totals)
-
+        return (messages["db_rstats_total"].format(total_games), totals)
+    return (messages["db_rstats_total_mode"].format(mode, total_games), totals)
 
 def get_warning_points(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)

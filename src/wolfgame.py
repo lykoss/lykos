@@ -3367,33 +3367,33 @@ def my_stats(var, wrapper, message):
     player_stats.func(var, wrapper, " ".join([wrapper.source.nick] + message))
 
 @command("rolestats", pm=True)
-def role_stats(var, wrapper, rest):
+def role_stats(var, wrapper, message):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
     # NOTE: Need to dynamically translate roles and gamemodes
-    if (wrapper.target != users.Bot and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
+    if (wrapper.public and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])
         return
 
-    if wrapper.target != users.Bot:
+    if wrapper.public:
         var.LAST_RSTATS = datetime.now()
     
     if var.PHASE not in ("none", "join") and wrapper.target is not channels.Main:
-            wrapper.pm(messages["stats_wait_for_game_end"])
-            return
-
-    params = rest.split()
-    
-    if len(params) == 0:
-        # this is a long message
-        wrapper.pm(db.get_role_totals())
+        wrapper.pm(messages["stats_wait_for_game_end"])
         return
 
-    roles = complete_role(var, rest)
+    params = message.split()
+    
+    if not params:
+        first, totals = db.get_role_totals()
+        wrapper.pm(*totals, sep=", ", first=first)
+        return
+
+    roles = complete_role(var, message)
     if params[-1] == "all" and len(roles) != 1:
         roles = complete_role(var, " ".join(params[:-1]))
     if len(roles) == 1:
-        wrapper.reply(db.get_role_stats(roles[0]))
+        wrapper.pm(db.get_role_stats(roles[0]))
         return
 
     gamemode = params[-1]
@@ -3411,7 +3411,8 @@ def role_stats(var, wrapper, rest):
             return
 
     if len(params) == 1:
-        wrapper.pm(db.get_role_totals(gamemode))
+        first, totals = db.get_role_totals(gamemode)
+        wrapper.pm(*totals, sep=", ", first=first)
         return
 
     role = " ".join(params[:-1])
@@ -3422,7 +3423,7 @@ def role_stats(var, wrapper, rest):
         else:
             wrapper.pm(messages["ambiguous_role"].format(roles))
         return
-    wrapper.reply(db.get_role_stats(roles[0], gamemode))
+    wrapper.pm(db.get_role_stats(roles[0], gamemode))
 
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
