@@ -1,6 +1,7 @@
 import random
 import threading
 import functools
+from collections import Counter
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.containers import UserList
@@ -188,19 +189,26 @@ class SleepyMode(GameMode):
             del self.having_nightmare[0]
 
     def happy_fun_times(self, evt, var, player, all_roles, death_triggers):
-        if death_triggers:
-            if evt.params.main_role == "priest":
-                turn_chance = 3/4
-                seers = [p for p in get_players(("seer",)) if random.random() < turn_chance]
-                harlots = [p for p in get_players(("harlot",)) if random.random() < turn_chance]
-                cultists = [p for p in get_players(("cultist",)) if random.random() < turn_chance]
-                channels.Main.send(messages["sleepy_priest_death"])
-                for seer in seers:
-                    change_role(var, seer, "seer", "doomsayer", message="sleepy_doomsayer_turn")
-                for harlot in harlots:
-                    change_role(var, harlot, "harlot", "succubus", message="sleepy_succubus_turn")
-                for cultist in cultists:
-                    change_role(var, cultist, "cultist", "demoniac", message="sleepy_demoniac_turn")
+        if death_triggers and evt.params.main_role == "priest":
+            channels.Main.send(messages["sleepy_priest_death"])
+
+            turn_chance = 3/4
+            mapping = {"seer": "doomsayer", "harlot": "succubus", "cultist": "demoniac"}
+            for old, new in mapping.items():
+                turn = [p for p in get_players((old,)) if random.random() < turn_chance]
+                for t in turn:
+                    # messages: sleepy_doomsayer_turn, sleepy_succubus_turn, sleepy_demoniac_turn
+                    change_role(var, t, old, new, message="sleepy_{0}_turn".format(new))
+
+                newstats = set()
+                for rs in var.ROLE_STATS:
+                    d = Counter(dict(rs))
+                    newstats.add(rs)
+                    if old in d and d[old] >= 1:
+                        d[old] -= 1
+                        d[new] += 1
+                        newstats.add(frozenset(d.items()))
+                var.ROLE_STATS = frozenset(newstats)
 
     def on_revealroles(self, evt, var):
         if self.having_nightmare:
