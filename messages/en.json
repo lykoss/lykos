@@ -936,7 +936,7 @@
     "monster_notify": "You are {=monster!role:article} {=monster!role:bold}. You cannot be killed by the wolves. If you survive until the end of the game, you win instead of the normal winners.",
     "lycan_notify": "You are {=lycan!role:article} {=lycan!role:bold}. You are currently on the side of the villagers, but will turn into a wolf instead of dying if you are targeted by the wolves during the night.",
     "wild_child_notify": "You are {=wild child!role:article} {=wild child!role:bold}. You must pick an idol with \"{=choose!command} <nick>\", and you will become a wolf if your idol dies. You are a villager as long as your idol is alive.",
-    "vengeful_ghost_notify": "You are {=vengeful ghost!role:article} {=vengeful ghost!role:bold}, sworn to take revenge on the {1!role:plural} that you believe killed you. You must kill one of them with \"{=kill!command} <nick>\" tonight. If you do not, one of them will be selected at random.",
+    "vengeful_ghost_notify": "You are {=vengeful ghost!role:article} {=vengeful ghost!role:bold}, sworn to take revenge on the {0!role:plural} that you believe killed you. You must kill one of them with \"{=kill!command} <nick>\" tonight. If you do not, one of them will be selected at random.",
     "vengeful_ghost_team": "{0!role:plural}: {1:join}",
     "drunken_assassin_notification": "You are {=assassin!role:article} {=assassin!role:bold}. In your drunken stupor you have selected {0:@} as your target. If you die you will take out your target with you.",
     "assassin_notify": "You are {=assassin!role:article} {=assassin!role:bold}. Choose a target with \"{=target!command} <nick>\". If you die you will take out your target with you. If your target dies you may choose another one.",
