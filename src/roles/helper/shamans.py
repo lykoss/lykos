@@ -250,7 +250,7 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
-        if not var.NIGHT_COUNT > 1 and get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
+        if var.NIGHT_COUNT > 1 and get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
 
     if knows_totem:

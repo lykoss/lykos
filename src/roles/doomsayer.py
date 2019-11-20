@@ -83,7 +83,7 @@ def on_transition_day(evt, var):
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
-    if get_all_players(("doomsayer",)):
+    if var.NIGHT_COUNT > 1 and get_all_players(("doomsayer",)):
         status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
