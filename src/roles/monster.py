@@ -27,7 +27,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if not lrealwolves and not traitors and monsters:
         evt.data["message"] = messages["monster_win"].format(lm)
         evt.data["winner"] = "monsters"
-    elif lrealwolves >= lpl / 2 and monsters:
+    elif lwolves >= lpl / 2 and monsters:
         evt.data["message"] = messages["monster_wolf_win"].format(lm)
         evt.data["winner"] = "monsters"
 

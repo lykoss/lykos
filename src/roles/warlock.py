@@ -101,9 +101,10 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
+    pl = get_players()
     wroles = get_wolfchat_roles(var)
     for warlock, target in CURSED.items():
-        if target in get_players() and get_main_role(target) not in wroles:
+        if target in pl and get_main_role(target) not in wroles:
             var.ROLES["cursed villager"].add(target)
 
     CURSED.clear()
