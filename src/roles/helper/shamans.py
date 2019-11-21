@@ -138,8 +138,8 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_day_begin", priority=7, listener_id="<{}>.transition_day_begin".format(rolename))
     def on_transition_day_begin2(evt, var):
+        LASTGIVEN.clear()
         for shaman, given in SHAMANS.items():
-            LASTGIVEN[shaman].clear()
             for totem, targets in given.items():
                 for target in targets:
                     victim = RETARGET[shaman].get(target, target)

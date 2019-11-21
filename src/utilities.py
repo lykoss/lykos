@@ -181,7 +181,7 @@ def get_victim(cli, nick, victim, in_chan, self_in_list=False, bot_in_list=False
     return pl[pll.index(tempvictims.pop())] #convert back to normal casing
 
 
-def complete_role(var, role: str, remove_spaces: bool = False) -> List[str]:
+def complete_role(var, role: str, remove_spaces: bool = False, allow_special: bool = True) -> List[str]:
     """ Match a partial role or alias name into the internal role key.
 
     :param var: Game state
@@ -189,6 +189,7 @@ def complete_role(var, role: str, remove_spaces: bool = False) -> List[str]:
     :param remove_spaces: Whether or not to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
         prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :param allow_special: Whether to allow special keys (lover, vg activated, etc.)
     :return: A list of 0 elements if the role didn't match anything.
         A list with 1 element containing the internal role key if the role matched unambiguously.
         A list with 2 or more elements containing localized role or alias names if the role had ambiguous matches.
@@ -202,9 +203,10 @@ def complete_role(var, role: str, remove_spaces: bool = False) -> List[str]:
     role_map = messages.get_role_mapping(reverse=True, remove_spaces=remove_spaces)
 
     special_keys = set()
-    evt = Event("get_role_metadata", {})
-    evt.dispatch(var, "special_keys")
-    special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+    if allow_special:
+        evt = Event("get_role_metadata", {})
+        evt.dispatch(var, "special_keys")
+        special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
 
     matches = complete_match(role, role_map.keys())
     if not matches:

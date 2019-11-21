@@ -28,7 +28,7 @@ def pray(var, wrapper, message):
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    matches = complete_role(var, what)
+    matches = complete_role(var, what, allow_special=False)
     if not matches:
         wrapper.pm(messages["no_such_role"].format(what))
         return
