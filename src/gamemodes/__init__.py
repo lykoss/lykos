@@ -34,6 +34,7 @@ class GameMode:
             "blessed villager"  : ["villager"],
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
+        self.NUM_TOTEMS = {}
 
         self.EVENTS = {}
 
@@ -51,6 +52,10 @@ class GameMode:
                 for role in shamans:
                     if role not in chances:
                         chances[role] = 0 # default to 0 for new totems/shamans
+
+        for role in shamans:
+            if role not in self.NUM_TOTEMS:
+                self.NUM_TOTEMS[role] = 1 # shamans get 1 totem per night by default
 
         if not arg:
             return

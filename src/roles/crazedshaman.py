@@ -102,15 +102,24 @@ def on_transition_night_end(evt, var):
             if given in pl:
                 pl.remove(given)
 
-        target = 0
-        rand = random.random() * max_totems
-        for t in chances:
-            target += chances[t]["crazed shaman"]
-            if rand <= target:
-                TOTEMS[shaman] = {t: 1}
-                break
-        event = Event("totem_assignment", {"totems": TOTEMS[shaman]})
-        event.dispatch(var, "crazed shaman")
+        event = Event("num_totems", {"num": var.CURRENT_GAMEMODE.NUM_TOTEMS["crazed shaman"]})
+        event.dispatch(var, shaman, "crazed shaman")
+        num_totems = event.data["num"]
+
+        totems = {}
+        for i in range(num_totems):
+            target = 0
+            rand = random.random() * max_totems
+            for t in chances:
+                target += chances[t]["crazed shaman"]
+                if rand <= target:
+                    if t in totems:
+                        totems[t] += 1
+                    else:
+                        totems[t] = 1
+                    break
+        event = Event("totem_assignment", {"totems": totems})
+        event.dispatch(var, shaman, "crazed shaman")
         TOTEMS[shaman] = event.data["totems"]
 
         num_totems = sum(TOTEMS[shaman].values())

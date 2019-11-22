@@ -1339,5 +1339,5 @@
     "boreal_feed_success": "You have given your totem of sustenance to the tribe.",
     "boreal_revealroles": "hunger level {0}",
     "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
-    "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation."
+    "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\"."
 }
