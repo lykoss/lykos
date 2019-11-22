@@ -244,14 +244,17 @@ class BorealMode(GameMode):
 
     def feed(self, var, wrapper, message):
         """Give your totem to the tribe members."""
-        from src.roles.shaman import TOTEMS, SHAMANS
+        from src.roles.shaman import TOTEMS as s_totems, SHAMANS as s_shamans
+        from src.roles.wolfshaman import TOTEMS as ws_totems, SHAMANS as ws_shamans
         valid = ("sustenance", "hunger")
-        for totem in valid:
-            if TOTEMS[wrapper.source].get(totem, 0) == 0:
-                continue # doesn't have a totem that can be used to feed tribe
+        state_vars = ((s_totems, s_shamans), (ws_totems, ws_shamans))
+        for TOTEMS, SHAMANS in state_vars:
+            for totem in valid:
+                if TOTEMS[wrapper.source].get(totem, 0) == 0:
+                    continue # doesn't have a totem that can be used to feed tribe
 
-            SHAMANS[wrapper.source][totem].append(users.Bot)
-            if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
-                SHAMANS[wrapper.source][totem].pop(0)
+                SHAMANS[wrapper.source][totem].append(users.Bot)
+                if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
+                    SHAMANS[wrapper.source][totem].pop(0)
 
-            wrapper.pm(messages["boreal_feed_success"])
+                wrapper.pm(messages["boreal_feed_success"])
