@@ -132,9 +132,8 @@ def setup_variables(rolename, *, knows_totem):
                 given = []
                 for totem, recips in LASTGIVEN[user].items():
                     for recip in recips:
-                        given.append((totem, recip))
-                    evt.data["special_case"].append(messages["shaman_revealroles_day"].format(
-                        messages["shaman_revealroles_day_totem"].format(totem, recip) for totem, recip in given))
+                        given.append(messages["shaman_revealroles_day_totem"].format(totem, recip))
+                evt.data["special_case"].append(messages["shaman_revealroles_day"].format(given))
 
     @event_listener("transition_day_begin", priority=7, listener_id="<{}>.transition_day_begin".format(rolename))
     def on_transition_day_begin2(evt, var):
