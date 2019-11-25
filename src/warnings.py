@@ -622,7 +622,7 @@ def fwarn(var, wrapper, message):
             if "tempban" in warning["sanctions"]:
                 sanctions.append(messages["fwarn_view_tempban"].format(warning["sanctions"]["tempban"]))
         if sanctions:
-            wrapper.pm(" ".join(sanctions))
+            wrapper.pm(*sanctions, sep=" ")
         return
 
     if command == "del":
