@@ -397,7 +397,7 @@ def warn(var, wrapper, message):
             if "deny" in warning["sanctions"]:
                 sanctions.append(messages["fwarn_view_deny"].format(", ".join(warning["sanctions"]["deny"])))
         if sanctions:
-            wrapper.pm(" ".join(sanctions))
+            wrapper.pm(*sanctions, sep=" ")
         return
 
     if command == "ack":
