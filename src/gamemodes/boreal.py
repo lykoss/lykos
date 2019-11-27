@@ -17,6 +17,7 @@ class BorealMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.LIMIT_ABSTAIN = False
+        self.SELF_LYNCH_ALLOWED = False
         self.DEFAULT_ROLE = "shaman"
         # If you add non-wolfteam, non-shaman roles, be sure to update update_stats to account for it!
         # otherwise !stats will break if they turn into VG.
@@ -49,7 +50,7 @@ class BorealMode(GameMode):
             for role in roles:
                 self.TOTEM_CHANCES[totem][role] = 0
         # custom totems
-        self.TOTEM_CHANCES["sustenance"] = {"shaman": 60, "wolf shaman": 0, "crazed shaman": 0}
+        self.TOTEM_CHANCES["sustenance"] = {"shaman": 60, "wolf shaman": 10, "crazed shaman": 0}
         self.TOTEM_CHANCES["hunger"] = {"shaman": 0, "wolf shaman": 40, "crazed shaman": 0}
         # extra shaman totems
         self.TOTEM_CHANCES["revealing"]["shaman"] = 10
@@ -62,7 +63,6 @@ class BorealMode(GameMode):
         self.TOTEM_CHANCES["luck"]["wolf shaman"] = 10
         self.TOTEM_CHANCES["silence"]["wolf shaman"] = 10
         self.TOTEM_CHANCES["pacifism"]["wolf shaman"] = 10
-        self.TOTEM_CHANCES["impatience"]["wolf shaman"] = 10
 
         self.hunger_levels = DefaultUserDict(int)
         self.totem_tracking = defaultdict(int) # no need to make a user container, this is only non-empty a very short time
@@ -121,7 +121,7 @@ class BorealMode(GameMode):
     def on_transition_night_begin(self, evt, var):
         num_s = len(get_players(("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
         num_ws = len(get_players(("wolf shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
-        self.ws_extra_totem = num_s * self.ws_num_totem_percent - num_ws
+        self.ws_extra_totem = int(num_s * self.ws_num_totem_percent) - num_ws
 
     def on_transition_night_end(self, evt, var):
         from src.roles import vengefulghost
@@ -218,14 +218,14 @@ class BorealMode(GameMode):
     def on_chk_win(self, evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         if self.village_starve == self.max_village_starve and var.PHASE == "day":
             # if village didn't feed the NPCs enough nights, the starving tribe members destroy themselves from within
-            if evt.data["winner"] is None:
-                evt.data["winner"] = "wolves"
-                evt.data["message"] = messages["boreal_village_starve"]
+            # this overrides built-in win conds (such as all wolves being dead)
+            evt.data["winner"] = "wolves"
+            evt.data["message"] = messages["boreal_village_starve"]
         elif var.NIGHT_COUNT == self.max_nights and var.PHASE == "day":
             # if village survived for N nights without losing, they outlast the storm and win
-            if evt.data["winner"] is None:
-                evt.data["winner"] = "villagers"
-                evt.data["message"] = messages["boreal_time_up"]
+            # this overrides built-in win conds (such as same number of wolves as villagers)
+            evt.data["winner"] = "villagers"
+            evt.data["message"] = messages["boreal_time_up"]
         elif evt.data["winner"] == "villagers":
             evt.data["message"] = messages["boreal_village_win"]
         elif evt.data["winner"] == "wolves":
@@ -244,6 +244,8 @@ class BorealMode(GameMode):
 
     def feed(self, var, wrapper, message):
         """Give your totem to the tribe members."""
+        # TODO FIXME: If wolf shaman gets both types of totem, they currently can't say which goes to tribe
+        # (and it's impossible for them to give hunger to tribe) -- need to disambiguate as with !give
         from src.roles.shaman import TOTEMS as s_totems, SHAMANS as s_shamans
         from src.roles.wolfshaman import TOTEMS as ws_totems, SHAMANS as ws_shamans
         valid = ("sustenance", "hunger")
@@ -258,3 +260,4 @@ class BorealMode(GameMode):
                     SHAMANS[wrapper.source][totem].pop(0)
 
                 wrapper.pm(messages["boreal_feed_success"])
+                break
