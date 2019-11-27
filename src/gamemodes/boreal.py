@@ -122,7 +122,8 @@ class BorealMode(GameMode):
 
     def on_transition_night_begin(self, evt, var):
         num_s = len(get_players(("shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
-        num_ws = len(get_players(("wolf shaman",), mainroles=var.ORIGINAL_MAIN_ROLES))
+        num_ws = len(get_players(("wolf shaman",)))
+        # as wolf shamans die, we want to pass some extras onto the remaining ones; each ws caps at 2 totems though
         self.ws_extra_totem = int(num_s * self.ws_num_totem_percent) - num_ws
 
     def on_transition_night_end(self, evt, var):
