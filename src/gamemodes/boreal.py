@@ -1,9 +1,11 @@
 import random
+import re
 from collections import defaultdict
 from typing import List, Tuple, Dict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role, change_role
+from src.utilities import complete_one_match
 from src.events import EventListener, find_listener
 from src.containers import DefaultUserDict
 from src.status import add_dying
@@ -244,20 +246,29 @@ class BorealMode(GameMode):
 
     def feed(self, var, wrapper, message):
         """Give your totem to the tribe members."""
-        # TODO FIXME: If wolf shaman gets both types of totem, they currently can't say which goes to tribe
-        # (and it's impossible for them to give hunger to tribe) -- need to disambiguate as with !give
         from src.roles.shaman import TOTEMS as s_totems, SHAMANS as s_shamans
         from src.roles.wolfshaman import TOTEMS as ws_totems, SHAMANS as ws_shamans
+
+        pieces = re.split(" +", message)
         valid = ("sustenance", "hunger")
         state_vars = ((s_totems, s_shamans), (ws_totems, ws_shamans))
         for TOTEMS, SHAMANS in state_vars:
+            if wrapper.source not in TOTEMS:
+                continue
+
+            totem_types = list(TOTEMS[wrapper.source].keys())
+            given = complete_one_match(pieces[0], totem_types)
+            if not given and TOTEMS[wrapper.source].get("sustenance", 0) + TOTEMS[wrapper.source].get("hunger", 0) > 1:
+                wrapper.send(messages["boreal_ambiguous_feed"])
+                return
+
             for totem in valid:
-                if TOTEMS[wrapper.source].get(totem, 0) == 0:
+                if (given and totem != given) or TOTEMS[wrapper.source].get(totem, 0) == 0:
                     continue # doesn't have a totem that can be used to feed tribe
 
                 SHAMANS[wrapper.source][totem].append(users.Bot)
                 if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
                     SHAMANS[wrapper.source][totem].pop(0)
 
-                wrapper.pm(messages["boreal_feed_success"])
-                break
+                wrapper.pm(messages["boreal_feed_success"].format(totem))
+                return
