@@ -161,6 +161,7 @@ class print_traceback:
         link = _tracebacks.get("\n".join(variables))
         if link is None:
             api_url = "https://ww.chat/submit"
+            data = None
             with _local.handler:
                 req = urllib.request.Request(api_url, json.dumps({
                         "c": "\n".join(variables),  # contents
