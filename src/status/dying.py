@@ -1,4 +1,5 @@
 import time
+from collections import Counter
 from typing import Tuple
 
 from src.containers import UserDict
@@ -89,6 +90,18 @@ def kill_players(var, *, end_game: bool = True) -> bool:
                         reason=reason)
             evt_death_triggers = death_triggers and var.PHASE in var.GAME_PHASES
             evt.dispatch(var, player, all_roles, evt_death_triggers)
+
+        # give roles/modes an opportunity to adjust !stats now that all deaths have resolved
+        evt = Event("reconfigure_stats", {"new": []})
+        newstats = set()
+        for rs in var.ROLE_STATS:
+            d = Counter(dict(rs))
+            evt.data["new"] = [d]
+            evt.dispatch(var, d, "del_player")
+            for v in evt.data["new"]:
+                if min(v.values()) >= 0:
+                    newstats.add(frozenset(v.items()))
+        var.ROLE_STATS = frozenset(newstats)
 
         # notify listeners that all deaths have resolved
         # FIXME: end_game is a temporary hack until we move state transitions into the event loop

@@ -1617,18 +1617,12 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
     # For every possible role this person is, try to deduct 1 from that role's count in our stat sets
     # if a stat set doesn't contain the role, then that would lead to an impossible condition and therefore
     # that set is not added to newstats to indicate that set is no longer possible
-    # The reconfigure_stats event can be used to shift things around (for example, it is used to reflect wolf cub growing up)
-    event = Event("reconfigure_stats", {"new": []})
     for p in possible:
         for rs in var.ROLE_STATS:
             d = Counter(dict(rs))
             if p in d and d[p] >= 1:
                 d[p] -= 1
-                event.data["new"] = [d]
-                event.dispatch(var, d, "del_player")
-                for v in event.data["new"]:
-                    if min(v.values()) >= 0:
-                        newstats.add(frozenset(v.items()))
+                newstats.add(frozenset(d.items()))
     var.ROLE_STATS = frozenset(newstats)
 
     if var.PHASE == "join":
