@@ -3589,12 +3589,12 @@ def _say(wrapper, rest, cmd, action=False):
 @command("fsay", flag="s", pm=True)
 def fsay(var, wrapper, message):
     """Talk through the bot as a normal message."""
-    _say(wrapper, message, "say")
+    _say(wrapper, message, "fsay")
 
 @command("fdo", flag="s", pm=True)
 def fdo(var, wrapper, message):
     """Act through the bot as an action."""
-    _say(wrapper, message, "act", action=True)
+    _say(wrapper, message, "fdo", action=True)
 
 def can_run_restricted_cmd(user):
     # if allowed in normal games, restrict it so that it can only be used by dead players and
