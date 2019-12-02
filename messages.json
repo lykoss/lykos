@@ -1,0 +1,153 @@
+{
+    "_roles": {
+        "liberal" : ["Liberal", "Liberals"],
+        "fascist" : ["Fascist", "Fascists"],
+        "hitler" : ["Hitler", "Hitlers"]
+    },
+    "_cards": {
+        "L" : "Liberal",
+        "F" : "Fascist"
+    },
+    "_commands": {
+        "nominate" : ["nominate", "nom"],
+        "vote" : ["vote", "v"],
+        "yes" : ["yes"],
+        "no" : ["no"],
+        "discard" : ["discard"],
+        "enact" : ["enact"],
+        "investigate" : ["investigate", "inv", "id"],
+        "elect" : ["elect", "call"],
+        "execute" : ["execute", "shoot"],
+        "status" : ["status", "time", "votes"],
+        "cards" : ["cards", "table", "showtable", "enacted"],
+        "showtrack" : ["showtrack"],
+        "veto" : ["veto"],
+        "approve" : ["approve"],
+        "reject" : ["reject"]
+    },
+    "_gamemodes": {
+        "shitler": "shitler"
+    },
+
+    "player_joined": {
+        "merge_strategy" : "replace",
+        "value" : [
+            "{0:@} is obsessed with fascism, and so decided to emigrate to Germany to study it. They raised the number of players to {1:bold}."
+        ]
+    },
+    "quit_no_reveal": {
+        "merge_strategy" : "replace",
+        "value" : [
+            "{0:@} is suddenly assassinated by an extremist."
+        ]
+    },
+
+    "new_game": "{0:@} has started a game of Secret Hitler. Type \"{=join!command:!}\" to join. Type \"{=start!command:!}\" to vote to start the game. Type \"{=wait!command:!}\" to increase the start wait time.",
+
+    "presidential_candidate" : "The presidential candidate is {0:@}. {1}, please discuss with everyone who you want to be chancellor, and when you're ready, nominate them with \"{=nominate!command:!} <player>\" in channel",
+    "chancellor_ineligible_c" : "The following players are ineligible to be nominated Chancellor, since they were the previously elected Chancellor: {0:join}",
+    "chancellor_ineligible_pc" : "The following players are ineligible to be nominated Chancellor, since they were either the previously elected President or Chancellor: {0:join}",
+    "chaos_warning" : "WARNING - If the next government is not elected, the government will be thrown into chaos! The top policy in the policy deck will be enacted, for better or for worse...",
+    "fascist_warning" : "WARNING - 3 or more Fascist policies have been enacted - if the Hitler is elected Chancellor, the Fascists win!",
+
+    "liberal_notify" : "You are a {=liberal!role:bold}. It is your job to figure out who the {=hitler!role} is! The Liberals win if five Liberal policies are enacted, OR the {=hitler!role} is assassinated.",
+    "fascist_notify" : "You are a {=fascist!role:bold}. It is your job to be manipulative, create confusion, and take control of the government! The fascists and the {=hitler!role} win if six Fascist policies are enacted, or if the {=hitler!role} is elected Chancellor any time after the third Fascist policy has been enacted.",
+    "hitler_notify" : "You are the {=hitler!role:bold}!  It is your job to not draw suspicion to yourself, and to be elected Chancellor! You and the Fascists win if six Fascist policies are enacted, or if you are elected Chancellor any time after the third Fascist policy has been enacted.",
+    "fascists_list" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}.",
+    "fascists_list_with_hitler" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}. The {2!role:plural({3})} {=is,are:plural({3})} {3:join}.",
+    "no_fascist_list" : "Because the game started with less than 7 players, you are not told who the fascists are.",
+    "hitler_unaware" : "Because the game started with 7 or more players, Hitler does not know who you are. Private messages to the Hitler are not allowed.",
+    "hitler_aware" : "Because the game started with less than 7 players, the Hitler is aware of the fascists. Private messages to the Hitler are still not allowed.",
+
+    "no_nom_self" : "You cannot nominate yourself",
+    "cannot_nom_c" : "You cannot nominate this player because they were chancellor in the previous government",
+    "cannot_nom_pc" : "You cannot nominate this player because they were president or chancellor in the previous government",
+    "already_nominated" : "You have already nominated a player to be your chancellor.",
+    "select_chancellor" : "{0:@} has selected {1:@} to be their chancellor. Please vote on this nomination by doing \"{=vote!command:!} yes\" or \"{=vote!command:!} no\" in PM.",
+    "cannot_vote_yet" : "Please wait for {0:@} to nominate someone for chancellor before voting.",
+    "vote_help" : "Invalid command. Please vote on this nomination using \"{=vote!command:!} yes\" or \"{=vote!command:!} no\"",
+    "confirm_vote" : "You have voted {0} on the ticket of {1:@} as president and {2:@} as chancellor",
+
+    "vote_complete" : "All players have now voted. On the matter of electing {0:@} to the office of President and {1:@} to the office of Chancellor, the Reichstag has voted: {2}!  The votes are as follows:",
+    "votes_for" : "Votes [b]\u000303For:\u0003 {0:join}[/b]",
+    "votes_against" : "Votes [b]\u000304Against:\u0003 {0:join}[/b]",
+    "chaos_government" : "Because three governments in a row have failed, the country is now in Chaos. The people, frustrated, rise up and enact the next policy in the deck, for better or for worse....",
+    "chaos_reveal" : "The people have enacted, by force, a {0:bold} policy.",
+    "chaos_reveal_noaction" : " Because the people enacted this policy, no Executive Action is granted.",
+
+    "president_list_policies" : "As president, it is now time for you to decide which policy to throw out. The following policies are under consideration: [b][[1]]:[/b] {0} [b][[2]]:[/b] {1} [b][[3]]:[/b] {2}",
+    "president_discard_info" : "You must pick one of these policies to discard and remove from consideration using \"{=discard!command:!} <number>\", where <number> is the number of the policy you wish to discard",
+    "president_communication_reminder" : "Reminder - you MAY NOT communicate with the Chancellor in ANY WAY during the legislative session, INCLUDING private messages!",
+    "president_discard_help" : "Usage: \"{=discard!command:!} <number>\" where <number> is the number of the policy you wish to discard",
+    "president_already_discarded" : "You have already discarded a policy and cannot do so again tonight",
+    "president_discard" : "Discarded policy {0}, which was a {1:bold} policy.",
+
+    "president_hasnt_discarded" : "Please wait for the president to send you the policy options.",
+    "president_hasnt_vetoed" : "Please wait for the president to respond to your veto request.",
+    "chancellor_wait" : "The legislative session has started. As chancellor, you will enact a policy, once the president presents you with your options. Please wait on the president to send you the potential policy options",
+    "chancellor_list_policies" : "The president has discarded a policy and presented you with the following policy options: [b][[1]]:[/b] {0} [b][[2]]:[/b] {1}",
+    "chancellor_enact_info" : "You must pick one of these policies to enact using \"{=enact!command:!} <number>\", where <number> is the number of the policy you wish to discard",
+    "chancellor_enact_help" : "Usage: \"{=enact!command:!} <number>\" where <number> is the number of the policy you wish to enact",
+    "chancellor_enact" : "Enacted policy {0}, which was a {1:bold} policy.",
+
+    "veto_allowed" : "Alternatively, since 5 Fascist policies have been enacted, you can exercise Veto Power by sending me the command \"{=veto!command:!}\" in PM. Vetoing will result in no policies being enacted, but only if the President concurs, and a veto will count as a failed government.",
+    "vetoed" : "You have chosen to veto this agenda. If the president rejects this, you will have to choose a policy anyway.",
+    "chancellor_wants_veto_priv" : "The Chancellor wishes to veto this agenda. Vetoing will result in the policies under consideration being discarded, and the next presidential candidate in line will get to form a new government. If you approve of this, use \"{=approve!command:!}\" in PM. Otherwise, use \"{=reject!command:!}\"",
+    "president_approves_veto_priv" : "You have approved this veto. The proposed policy options have all been discarded.",
+    "president_rejects_veto_priv" : "You hvae rejected this veto. The chancellor is now forced to pick a policy from the available options.",
+    "veto_rejected" : "The president has rejected this veto. You are now required to pick one of the available policy options.",
+    "chancellor_wants_veto_pub" : "The Chancellor wishes to veto this agenda.",
+    "president_approves_veto_pub" : "The President agrees to the veto. No policy is enacted.",
+    "president_rejects_veto_pub" : "The President has rejected the veto.",
+
+    "legislative_end1" : "The legislative session has ended. The president and chancellor have enacted a {0:bold} policy.",
+    "legislative_end2" : "So far, [b]{0} Liberal[/b] policies and [b]{1} Fascist[/b] policies have been enacted.",
+    "reshuffled" : "The policy desk has fewer than 3 cards. The remaining policies and discards have been reshuffled together",
+
+    "executive_action_granted" : "The just-enacted Fascist policy has unlocked a use of the executive action {0:bold}",
+    "policy_peek" : "The Abwehr has investigated what the next three policies in the Policy Deck are. They are, in this order: {0:bold}, {1:bold}, {2:bold}. The Abwehr reports to you alone, and you may do with this information as you wish...",
+    "investigate_instructions" : "You must instruct the Abwehr to investigate the player of your choice. It will be revealed to you privately whether they are a member of the Liberals or of the Fascists. Choose a player by giving the command \"{=investigate!command:!} <player>\"",
+    "no_inv_self" : "You already know your own allegiances ... you cannot investigate yourself.",
+    "inv_channel" : "The President has ordered the Abwehr to investigate which party {0:@} is loyal to...",
+    "inv_private" : "The Abwehr has investigated the loyalty of {0:@}, and revealed that they are a member of the {1} party. The Abwehr reports to you alone, and you may do with this information as you wish...",
+    "special_election_instructions" : "You must call a Special Election and select the next presidential candidate instead of proceeding down the player list sequentially. No players will be skipped; after the Special Election, the player after you will be the next Presidential candidate. To use this Power, use the command \"{=elect!command:!} <player>\"",
+    "no_select_self" : "You are already president, you cannot nominate yourself to be the next one.",
+    "call_special_election" : "The President has called a Special Election, and selected {0:@} as the next Presidential candidate. (Note: No players are skipped by this action, and after the next round, the player after the current President will be the Presidential Candidate)",
+    "execute_instructions" : "You must instruct the Abwehr to execute the player of your choice. If you execute the Hitler, the Liberals will win the game. Select the player to be executed by giving the command \"{=execute!command:!} <player>\"",
+    "no_execute_self" : "Are you suicidal? You cannot execute yourself",
+    "execute_order" : "The President has formally instructed the Abwehr to execute {0:@}",
+    "execute_result_not_hitler" : "Following a gruesome public execution, it is determined that {0:bold} was not the Hitler.",
+    "execute_result_hitler" : "The Abwehr march {0:bold} into the square and execute them by firing squad. After the gruesome event, it is determined that the executed player was the Hitler!",
+
+    "winner_by_hitler" : "Game over! After 3 or more Fascist policies were enacted, the Reichstag has elected the Hitler as their Chancellor and the Fascists seize power. Dark days lie ahead for Germany... the Fascists have won.",
+    "winner_by_fascism" : "Game over! Six Fascist policies have been enacted, allowing the Fascists to install the Hitler as the Chancellor by force. The coup is but a hint of things to come, for the Fascists have won the game.",
+    "winner_by_liberalism" : "Game over! Five Liberal policies have been enacted, causing the Liberals to secure their place as the rightful leaders of Germany. The Liberals win the game!",
+    "winner_by_execution" : "Game over! The Hitler has been executed, ensuring that the Fascists will never be able to seize power. The Liberals have won the game!",
+    "winner_by_idle" : "Game over! Hitler has unexpectedly choked to death. With no obvious leader to replace him, the Fascists fade into obscurity. The Liberals have won the game!",
+
+    "show_table" : "There are {0} cards left in the policy deck, and {1} in the discard pile. These policies have been previously enacted: {2:join}",
+    "show_track" : "The following executive actions unlock after the indicated number of fascist policies: {0:join}",
+    "show_track_policy" : "[[{0}]]: {1}",
+
+    "waiting_nomination" : "Waiting on {0:@} to nominate someone to be president.",
+    "waiting_votes" : "Waiting on {0:join} to vote on the nomination.",
+    "waiting_investigation" : "Waiting on {0:@} to investigate someone's party affiliation.",
+    "waiting_special_election" : "Waiting on {0:@} to pick a new president for a special election.",
+    "waiting_execution" : "Waiting on {0:@} to execute a player.",
+    "waiting_discard" : "Waiting on {0:@} to discard a policy.",
+    "waiting_enact" : "Waiting on {0:@} to enact a policy.",
+    "waiting_veto" : "Waiting on {0:@} to respond to the chancellor's veto request.",
+
+    "welcome_shitler" : "{0:join}: Welcome to Secret Hitler. Set in pre-WW2 Germany, you must fight to preserve a fragile Liberal government from the threat of expanded Fascism. One of the players among you may even be a secret Hitler.",
+    "welcome_commands" : "The following commands may be used to give information about the game: \"{=status!command:!}\" - Status on which players the game is waiting on; \"{=cards!command:!}\" - Lists previously enacted policies; \"{=showtrack!command:!}\" - Lists executive actions",
+    "day_lasted_shitler" : "Quiet please - All player communication - [b]including private messages[/b] - is forbidden while the Reichstag is in session.",
+    "first_night_begin_shitler" : "Your assigned roles have been sent out. All players check for PMs from me for instructions.",
+    "night_begin_shitler" : "President and Chancellor, please check your private messages for instructions. Everyone else, please wait for the Legislative Session to end.",
+    "endgame_stats_shitler": "Game lasted [b]{0:0>2}:{1:0>2}[/b]. [b]{2:0>2}:{3:0>2}[/b] was spent forming governments. [b]{4:0>2}:{5:0>2}[/b] was spent choosing policies. ",
+
+    "fascist_upgrade" : "After witnessing the assassination of your fascist colleague, you are overcome with hatred. You must stop the radical Liberals that did this! You shave off the edges of your moustache, and get to work. You are now the {=hitler!role:bold}.",
+    "president_idled_day" : "While campaigning, the president suffers a sudden stroke and dies. Play will now move onto the next president, and the chaos counter increases by 1.",
+    "chancellor_idled_day" : "While campaigning, the chancellor suffers a sudden stroke and dies. The president must now nominate a new chancellor.",
+    "president_idled_night" : "While on a hunting trip, the president is accidentally shot. Without a leader, the government falls into chaos, no policies are enacted, and a new president must be selected.",
+    "chancellor_idled_night" : "The chancellor has been assassinated in a terrorist plot. The government falls into chaos, no policies are enacted, and a new president must be selected."
+}
