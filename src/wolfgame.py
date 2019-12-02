@@ -55,7 +55,7 @@ from src.users import User
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, handle_error, event_listener, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.messages import messages
+from src.messages import messages, get_role_name
 from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
@@ -1122,22 +1122,16 @@ def parted_modes(evt, var, chan, user, reason):
 @command("stats", pm=True, phases=("join", "day", "night"))
 def stats(var, wrapper, message):
     """Displays the player statistics."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
+    pl = get_players()
 
-    pl = list_players()
-
-    if wrapper.public and (nick in pl or var.PHASE == "join"):
+    if wrapper.public and (wrapper.source in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
         if (var.LAST_STATS and
             var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
-            cli.notice(nick, messages["command_ratelimited"].format())
+            wrapper.pm(messages["command_ratelimited"])
             return
 
         var.LAST_STATS = datetime.now()
-
-    _nick = nick + ": "
-    if wrapper.private:
-        _nick = ""
 
     badguys = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
@@ -1147,37 +1141,45 @@ def stats(var, wrapper, message):
             badguys = Wolf | {"traitor"}
 
     role = None
-    if nick in pl:
-        role = get_role(nick)
+    if wrapper.source in pl:
+        role = get_main_role(wrapper.source)
+
     if wrapper.private and role in badguys | {"warlock"}:
-        ps = pl[:]
+        entries = []
+        cursed = get_all_players(("cursed villager",))
         if role in badguys:
-            cursed = [x.nick for x in get_all_players(("cursed villager",))] # FIXME
-            for i, player in enumerate(ps):
-                prole = get_role(player)
-                if prole in badguys: # FIXME: Move all this to proper message keys
+            for player in pl:
+                prole = get_main_role(player)
+                if prole in badguys:
                     if player in cursed:
-                        ps[i] = "\u0002{0}\u0002 (cursed, {1})".format(player, prole)
+                        entries.append(messages["players_list_entry"].format(
+                            player, "bold", [get_role_name("cursed villager"), get_role_name(prole)]))
+                    else:
+                        entries.append(messages["players_list_entry"].format(player, "bold", [get_role_name(prole)]))
                 elif player in cursed:
-                    ps[i] = "{0} (cursed)".format(player)
+                    entries.append(messages["players_list_entry"].format(player, "", [get_role_name("cursed villager")]))
         elif role == "warlock":
             # warlock not in wolfchat explicitly only sees cursed
-            for i, player in enumerate(pl):
-                if users._get(player) in get_all_players(("cursed villager",)): # FIXME
-                    ps[i] = player + " (cursed)"
-        msg = "\u0002{0}\u0002 players: {1}".format(len(pl), ", ".join(ps))
-    elif len(pl) > 1:
-        msg = "{0}\u0002{1}\u0002 players: {2}".format(_nick,
-            len(pl), ", ".join(pl))
+            for player in enumerate(pl):
+                if player in cursed:
+                    entries.append(messages["players_list_entry"].format(player, "", [get_role_name("cursed villager")]))
+        msg = messages["players_list_count"].format(len(pl), entries)
     else:
-        msg = "{0}\u00021\u0002 player: {1}".format(_nick, pl[0])
+        msg = messages["players_list_count"].format(len(pl), pl)
 
-    reply(cli, nick, chan, msg)
+    wrapper.reply(msg)
 
     if var.PHASE == "join" or var.STATS_TYPE == "disabled":
         return
 
-    message = []
+    entries = []
+    first_count = 0
+
+    start_roles = set()
+    for r, v in var.ORIGINAL_ROLES.items():
+        if len(v) == 0:
+            continue
+        start_roles.add(r)
 
     # Uses events in order to enable roles to modify logic
     # The events are fired off as part of transition_day and del_player, and are not calculated here
@@ -1191,34 +1193,27 @@ def stats(var, wrapper, message):
                 else:
                     mn, mx = role_stats[r]
                     role_stats[r] = (min(mn, a), max(mx, a))
-        start_roles = set()
-        for r, v in var.ORIGINAL_ROLES.items():
-            if len(v) == 0:
-                continue
-            start_roles.add(r)
         order = [r for r in role_order() if r in role_stats]
         if var.DEFAULT_ROLE in order:
             order.remove(var.DEFAULT_ROLE)
             order.append(var.DEFAULT_ROLE)
         first = role_stats[order[0]]
         if first[0] == first[1] == 1:
-            vb = "is"
-        else:
-            vb = "are"
+            first_count = 1
 
         for role in order:
             if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
                 continue
             count = role_stats.get(role, (0, 0))
             if count[0] == count[1]:
-                if count[0] != 1:
-                    if count[0] == 0 and role not in start_roles:
+                if count[0] == 0:
+                    if role not in start_roles:
                         continue
-                    message.append("\u0002{0}\u0002 {1}".format(count[0] if count[0] else "\u0002no\u0002", plural(role)))
+                    entries.append(messages["stats_reply_entry_none"].format(role))
                 else:
-                    message.append("\u0002{0}\u0002 {1}".format(count[0], role))
+                    entries.append(messages["stats_reply_entry_single"].format(role, count[0]))
             else:
-                message.append("\u0002{0}-{1}\u0002 {2}".format(count[0], count[1], plural(role)))
+                entries.append(messages["stats_reply_entry_range"].format(role, count[0], count[1]))
 
     # Show everything as-is, with no hidden information
     elif var.STATS_TYPE == "accurate":
@@ -1232,7 +1227,6 @@ def stats(var, wrapper, message):
             rs.remove(var.DEFAULT_ROLE)
         rs.append(var.DEFAULT_ROLE)
 
-        vb = "are"
         for role in rs:
             count = len(var.ROLES[role])
             # only show actual roles
@@ -1241,16 +1235,14 @@ def stats(var, wrapper, message):
 
             if role == rs[0]:
                 if count == 1:
-                    vb = "is"
-                else:
-                    vb = "are"
+                    first_count = 1
 
-            if count != 1:
-                if count == 0 and len(var.ORIGINAL_ROLES[role]) == 0:
+            if count == 0:
+                if role not in start_roles:
                     continue
-                message.append("\u0002{0}\u0002 {1}".format(count if count else "\u0002no\u0002", plural(role)))
+                entries.append(messages["stats_reply_entry_none"].format(role))
             else:
-                message.append("\u0002{0}\u0002 {1}".format(count, role))
+                entries.append(messages["stats_reply_entry_single"].format(role, count))
 
     # Only show team affiliation, this may be different than what mystics
     # and wolf mystics are told since neutrals are split off. Determination
@@ -1271,17 +1263,25 @@ def stats(var, wrapper, message):
             else:
                 villagers += len(players)
 
-        message.append("\u0002{0}\u0002 {1}".format(wolfteam if wolfteam else "\u0002no\u0002", "wolf" if wolfteam == 1 else "wolves"))
-        message.append("\u0002{0}\u0002 {1}".format(villagers if villagers else "\u0002no\u0002", "villager" if villagers == 1 else "villagers"))
-        message.append("\u0002{0}\u0002 {1}".format(neutral if neutral else "\u0002no\u0002", "neutral player" if neutral == 1 else "neutral players"))
-        vb = "is" if wolfteam == 1 else "are"
+        if wolfteam == 1:
+            first_count = 1
 
-    stats_mssg =  "{0}It is currently {4}. There {3} {1}, and {2}.".format(_nick,
-                                                        ", ".join(message[0:-1]),
-                                                        message[-1],
-                                                        vb,
-                                                        var.PHASE)
-    reply(cli, nick, chan, stats_mssg)
+        if wolfteam == 0:
+            entries.append(messages["stats_reply_entry_none"].format("wolfteam player"))
+        else:
+            entries.append(messages["stats_reply_entry_single"].format("wolfteam player", wolfteam))
+
+        if villagers == 0:
+            entries.append(messages["stats_reply_entry_none"].format("village member"))
+        else:
+            entries.append(messages["stats_reply_entry_single"].format("village member", villagers))
+
+        if neutral == 0:
+            entries.append(messages["stats_reply_entry_none"].format("neutral player"))
+        else:
+            entries.append(messages["stats_reply_entry_single"].format("neutral player", neutral))
+
+    wrapper.reply(messages["stats_reply"].format(var.PHASE, first_count, entries))
 
 @handle_error
 def hurry_up(gameid, change):

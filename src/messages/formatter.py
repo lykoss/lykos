@@ -120,6 +120,8 @@ class Formatter(string.Formatter):
             return messages.raw("_totems", value)
         if conversion == "cat":
             return messages.raw("_role_categories", value)
+        if conversion == "phase":
+            return messages.raw("_phases", value)
 
         # not one of our custom things
         return super().convert_field(value, conversion)
@@ -191,3 +193,6 @@ class Formatter(string.Formatter):
 
     def tag_b(self, content, param):
         return self._bold(content, param)
+
+    def tag_if(self, content, param):
+        return content if param else ""
