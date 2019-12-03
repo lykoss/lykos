@@ -21,16 +21,15 @@ import traceback
 import sys
 import os
 
-import botconfig
-
 ver = sys.version_info
-if ver < (3, 5):
-    print("Python 3.5 or newer is required to run the bot.")
+if ver < (3, 6):
+    print("Python 3.6 or newer is required to run the bot.")
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]))
     sys.exit(1)
 
 try: # need to manually add dependencies here
-    pass
+    import antlr4
+    import yaml
 except ImportError:
     command = "python3"
     if os.name == "nt":
@@ -53,6 +52,17 @@ from src.events import Event
 import src.settings as var
 
 def main():
+    with open("botconfig.yml") as f:
+        config = yaml.safe_load(f)
+
+    if not config["transports"]:
+        print("\n".join([
+            "botconfig.yml is not configured. If you have an old botconfig.py file,",
+            "it will no longer be loaded. Please copy all relevant configuration to botconfig.yml.",
+            "Please see comments in botconfig.yml or check https://ww.chat/config for help",
+            "on how to configure lykos."]))
+        sys.exit(1)
+
     evt = Event("init", {})
     evt.dispatch()
     src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
@@ -87,5 +97,3 @@ if __name__ == "__main__":
         main()
     except Exception:
         src.errlog(traceback.format_exc())
-
-# vim: set sw=4 expandtab:
