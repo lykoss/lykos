@@ -11,8 +11,8 @@
     "_commands": {
         "nominate" : ["nominate", "nom"],
         "vote" : ["vote", "v"],
-        "yes" : ["yes"],
-        "no" : ["no"],
+        "yes" : ["yes", "ja"],
+        "no" : ["no", "nein"],
         "discard" : ["discard"],
         "enact" : ["enact"],
         "investigate" : ["investigate", "inv", "id"],
@@ -55,7 +55,7 @@
     "hitler_notify" : "You are the {=hitler!role:bold}!  It is your job to not draw suspicion to yourself, and to be elected Chancellor! You and the Fascists win if six Fascist policies are enacted, or if you are elected Chancellor any time after the third Fascist policy has been enacted.",
     "fascists_list" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}.",
     "fascists_list_with_hitler" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}. The {2!role:plural({3})} {=is,are:plural({3})} {3:join}.",
-    "no_fascist_list" : "Because the game started with less than 7 players, you are not told who the fascists are.",
+    "no_fascist_list" : "Because the game started with at least 7 players, you are not told who the fascists are.",
     "hitler_unaware" : "Because the game started with 7 or more players, Hitler does not know who you are. Private messages to the Hitler are not allowed.",
     "hitler_aware" : "Because the game started with less than 7 players, the Hitler is aware of the fascists. Private messages to the Hitler are still not allowed.",
 

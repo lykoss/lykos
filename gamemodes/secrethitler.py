@@ -191,6 +191,7 @@ class SecretHitlerMode(GameMode):
 
     def reshuffle(self):
         self.cards.extend(self.discard)
+        self.discard = []
         random.shuffle(self.cards)
 
     def enact(self, policy):

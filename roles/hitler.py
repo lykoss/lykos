@@ -37,7 +37,7 @@ def on_transition_night_end(evt, var):
         if hitlers:
             fascists = get_players({"fascist"})
             for hitler in hitlers:
-                if num_players >= 7:
+                if num_players < 7:
                     # Preparing for all possibilities that will never actually happen :)
                     other_hitlers = copy.copy(hitlers)
                     other_hitlers.remove(hitler)
