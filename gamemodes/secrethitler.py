@@ -323,6 +323,7 @@ class SecretHitlerMode(GameMode):
                 command_required = self.handle_executive_action(action)
                 if command_required:
                     return
+                self.current_action = None
 
         self.to_enact = None
         # Don't change president on the fake first night
