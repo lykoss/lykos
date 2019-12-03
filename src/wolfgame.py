@@ -1126,44 +1126,16 @@ def stats(var, wrapper, message):
 
     if wrapper.public and (wrapper.source in pl or var.PHASE == "join"):
         # only do this rate-limiting stuff if the person is in game
-        if (var.LAST_STATS and
-            var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now()):
+        if var.LAST_STATS and var.LAST_STATS + timedelta(seconds=var.STATS_RATE_LIMIT) > datetime.now():
             wrapper.pm(messages["command_ratelimited"])
             return
 
         var.LAST_STATS = datetime.now()
 
-    badguys = Wolfchat
-    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-            badguys = Wolf
-        else:
-            badguys = Wolf | {"traitor"}
-
-    role = None
-    if wrapper.source in pl:
-        role = get_main_role(wrapper.source)
-
-    if wrapper.private and role in badguys | {"warlock"}:
-        entries = []
-        cursed = get_all_players(("cursed villager",))
-        if role in badguys:
-            for player in pl:
-                prole = get_main_role(player)
-                if prole in badguys:
-                    if player in cursed:
-                        entries.append(messages["players_list_entry"].format(
-                            player, "bold", [get_role_name("cursed villager"), get_role_name(prole)]))
-                    else:
-                        entries.append(messages["players_list_entry"].format(player, "bold", [get_role_name(prole)]))
-                elif player in cursed:
-                    entries.append(messages["players_list_entry"].format(player, "", [get_role_name("cursed villager")]))
-        elif role == "warlock":
-            # warlock not in wolfchat explicitly only sees cursed
-            for player in enumerate(pl):
-                if player in cursed:
-                    entries.append(messages["players_list_entry"].format(player, "", [get_role_name("cursed villager")]))
-        msg = messages["players_list_count"].format(len(pl), entries)
+    if wrapper.private and "src.roles.helper.wolves" in sys.modules:
+        from src.roles.helper.wolves import get_wolflist
+        msg = messages["players_list_count"].format(
+            len(pl), get_wolflist(var, wrapper.source, shuffle=False, remove_player=False))
     else:
         msg = messages["players_list_count"].format(len(pl), pl)
 
@@ -2480,7 +2452,11 @@ def relay(var, wrapper, message):
     if message.startswith(botconfig.CMD_CHAR):
         return
 
-    badguys = get_players(Wolfchat)
+    if "src.roles.helper.wolves" in sys.modules:
+        from src.roles.helper.wolves import get_talking_roles
+        badguys = get_talking_roles(var)
+    else:
+        badguys = get_players(Wolfchat)
     wolves = get_players(Wolf)
 
     if wrapper.source not in pl and var.ENABLE_DEADCHAT and wrapper.source in var.DEADCHAT_PLAYERS:

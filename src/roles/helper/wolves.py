@@ -3,19 +3,19 @@ import random
 import itertools
 import math
 from collections import defaultdict
+from typing import List
 
-from src.utilities import *
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import event_listener, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages
+from src.messages import messages, get_role_name
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
 from src import debuglog, users
 
-KILLS = UserDict() # type: Dict[users.User, List[users.User]]
-KNOWS_MINIONS = UserSet() # type: Set[users.User]
+KILLS = UserDict() # type: UserDict[users.User, UserList[users.User]]
+KNOWS_MINIONS = UserSet() # type: UserSet[users.User]
 
 def register_killer(rolename):
     @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=(rolename,))
@@ -169,29 +169,13 @@ def on_new_role(evt, var, player, old_role):
         wofls = get_players(wcroles)
         evt.data["in_wolfchat"] = True
         if wofls:
-            new_wolves = []
             for wofl in wofls:
                 wofl.queue_message(messages["wolfchat_new_member"].format(player, sayrole))
             wofl.send_messages()
         else:
             return # no other wolves, nothing else to do
 
-        pl = get_players()
-        if player in pl:
-            pl.remove(player)
-        random.shuffle(pl)
-        pt = []
-        cursed = get_all_players(("cursed villager",))
-        for p in pl:
-            prole = get_main_role(p) # FIXME: Use proper message keys
-            if prole in wcroles:
-                pt.append("\u0002{0}\u0002 ({1}{2})".format(p, "cursed, " if p in cursed else "", prole))
-            elif p in cursed:
-                pt.append("{0} (cursed)".format(p))
-            else:
-                pt.append(p.nick)
-
-        evt.data["messages"].append(messages["players_list"].format(pt))
+        evt.data["messages"].append(messages["players_list"].format(get_wolflist(var, player)))
 
         if var.PHASE == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
@@ -225,10 +209,7 @@ def on_chk_nightdone(evt, var):
 # TODO: Split this into each role's file
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    ps = get_players()
     wolves = get_players(Wolfchat)
-    # roles in wolfchat (including those that can only listen in but not speak)
-    wcroles = get_wolfchat_roles(var)
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles(var)
     # condition imposed on talking in wolfchat (only during day/night, or no talking)
@@ -265,30 +246,7 @@ def on_transition_night_end(evt, var):
                 wolf.send(messages["has_minions"].format(minions))
             KNOWS_MINIONS.add(wolf)
 
-        pl = ps[:]
-        random.shuffle(pl)
-        pl.remove(wolf)  # remove self from list
-        players = []
-        if role in wcroles:
-            cursed = get_all_players(("cursed villager",))
-            for player in pl:
-                prole = get_main_role(player)
-                if prole in wcroles:
-                    players.append("\u0002{0}\u0002 ({1}{2})".format(player, "cursed, " if player in cursed else "", prole))
-                elif player in cursed:
-                    players.append("{0} (cursed)".format(player))
-                else:
-                    players.append(player.nick)
-        elif role == "warlock":
-            # warlock specifically only sees cursed if they're not in wolfchat
-            for player in pl:
-                if player in var.ROLES["cursed villager"]:
-                    # FIXME: make i18n friendly (also there's some code duplication between here and warlock.py)
-                    players.append(player.nick + " (cursed)")
-                else:
-                    players.append(player.nick)
-
-        wolf.send(messages["players_list"].format(players))
+        wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
         nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
         nevt.dispatch(var)
         if role in Wolf & Killer and not nevt.data["numkills"] and nevt.data["message"]:
@@ -349,7 +307,7 @@ def get_wolfchat_roles(var):
 
 def get_talking_roles(var):
     roles = Wolfchat
-    if var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT:
+    if var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT or var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
         if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
             roles = Wolf
         else:
@@ -391,4 +349,57 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
     if player is not None:
         player.send_messages()
 
-# vim: set sw=4 expandtab:
+def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player: bool = True) -> List[str]:
+    """ Retrieve the list of players annotated for displaying to wolfteam members.
+
+    :param var: Game state
+    :param player: Player the wolf list will be displayed to
+    :param shuffle: Whether or not to randomize the player list being displayed
+    :param remove_player: Whether or not to exclude ``player`` from the returned list
+    :returns: List of localized message strings to pass into either players_list or players_list_count
+    """
+
+    pl = list(get_players())
+    if remove_player:
+        pl.remove(player)
+    if shuffle:
+        random.shuffle(pl)
+
+    badguys = Wolfchat
+    if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+            badguys = Wolf
+        else:
+            badguys = Wolf | {"traitor"}
+
+    role = None
+    if player in get_players():
+        role = get_main_role(player)
+
+    if role in badguys | {"warlock"}:
+        entries = []
+        cursed = get_all_players(("cursed villager",))
+        if role in badguys:
+            for p in pl:
+                prole = get_main_role(p)
+                if prole in badguys:
+                    if p in cursed:
+                        entries.append(messages["players_list_entry"].format(
+                            p, "bold", [get_role_name("cursed villager"), get_role_name(prole)]))
+                    else:
+                        entries.append(messages["players_list_entry"].format(p, "bold", [get_role_name(prole)]))
+                elif p in cursed:
+                    entries.append(messages["players_list_entry"].format(p, "", [get_role_name("cursed villager")]))
+                else:
+                    entries.append(messages["players_list_entry"].format(p, "", []))
+        elif role == "warlock":
+            # warlock not in wolfchat explicitly only sees cursed
+            for p in pl:
+                if p in cursed:
+                    entries.append(messages["players_list_entry"].format(p, "", [get_role_name("cursed villager")]))
+                else:
+                    entries.append(messages["players_list_entry"].format(p, "", []))
+    else:
+        entries = [messages["player_list_entry"].format(p, "", []) for p in pl]
+
+    return entries

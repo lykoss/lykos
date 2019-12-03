@@ -72,7 +72,11 @@ class Formatter(string.Formatter):
             if flatten_lists:
                 # if value is a list by this point, retrieve the first element
                 # this happens when using !role but expecting just the singular value
-                value = value[0]
+                # The list may be empty as well, in which case it flattens to an empty string
+                if value:
+                    value = value[0]
+                else:
+                    value = ""
             else:
                 # if we aren't supposed to be flattening lists, ensure we don't have any specs remaining
                 # which operate on strings. If we do, that's an error.
