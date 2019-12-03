@@ -214,6 +214,10 @@ class Channel(IRCContext):
         set_time = int(time.time()) # for list modes timestamp
         list_modes, all_set, only_set, no_set = Features["CHANMODES"]
         status_modes = Features["PREFIX"].values()
+        if self.state is not _States.Joined: # not joined, modes won't have the value
+            no_set += all_set + only_set
+            only_set = ""
+            all_set = ""
 
         i = 0
         for c in mode:
@@ -239,9 +243,9 @@ class Channel(IRCContext):
                     i += 1
 
                 else:
-                    if c in no_set: # everything else; e.g. +m, +i, +f, etc.
+                    if c in no_set: # everything else; e.g. +m, +i, etc.
                         targ = None
-                    else:
+                    else: # +f, +l, +j, +k
                         targ = targets[i]
                         i += 1
                     if c in only_set and targ.isdigit(): # +l/+j
@@ -321,6 +325,6 @@ class FakeChannel(Channel):
                 if target is not None:
                     targets.append(target)
 
-        self.update_modes(users.Bot.rawnick, "".join(modes), targets)
+        self.update_modes(users.Bot, "".join(modes), targets)
 
 # vim: set sw=4 expandtab:
