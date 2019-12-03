@@ -29,8 +29,6 @@ TAG_PARAM_CLOSE : ']' -> popMode, type(CLOSE_TAG) ;
 mode IN_SUB;
 SUB_FIELD : (
     ~[!:{}] { self.append_text() }
-    | '{{' { self.append_text("{") }
-    | '}}' { self.append_text("}") }
     )+ ;
 SUB_CONVERT : '!' -> mode(IN_CONV) ;
 SUB_SPEC : ':' -> mode(IN_SPEC) ;
@@ -45,9 +43,6 @@ CLOSE_CONV : '}' -> popMode, type(CLOSE_SUB) ;
 mode IN_SPEC;
 SPEC_VALUE : (
     ~[:{}()] { self.append_text() }
-    | '::' { self.append_text(":") }
-    | '{{' { self.append_text("{") }
-    | '}}' { self.append_text("}") }
     )+ ;
 SPEC_SEP : ':' -> type(SUB_SPEC) ;
 SPEC_OPEN_SUB : '{' -> pushMode(IN_SUB), type(OPEN_SUB) ;

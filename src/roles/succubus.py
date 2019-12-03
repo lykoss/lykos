@@ -77,6 +77,8 @@ def on_player_win(evt, var, user, role, winner, survived):
     if user in ENTRANCED:
         evt.data["special"].append("entranced")
         if winner != "succubi":
+            # Note: Should set iwon to False here too, or else the players may still win
+            # This isn't a big deal as long as people don't try to off the succ when entranced
             evt.data["won"] = False
         else:
             evt.data["iwon"] = True
@@ -166,7 +168,7 @@ def on_transition_night_end(evt, var):
                 succ.append("{0} ({1})".format(p, role_map["succubus"]))
             else:
                 succ.append(p.nick)
-        succubus.send(messages["succubus_notify"], messages["players_list"].format([succ]), sep="\n")
+        succubus.send(messages["succubus_notify"], messages["players_list"].format(succ), sep="\n")
 
 @event_listener("gun_shoot")
 def on_gun_shoot(evt, var, user, target):

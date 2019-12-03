@@ -3,7 +3,6 @@ import random
 import itertools
 from collections import defaultdict, deque
 
-from src.utilities import *
 from src import debuglog, errlog, plog, users, channels
 from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
 from src.decorators import command, event_listener
@@ -14,7 +13,7 @@ from src.events import Event
 from src.status import try_misdirection, try_exchange, is_silent
 
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
-from src.roles.helper.wolves import register_killer
+from src.roles.helper.wolves import register_killer, send_wolfchat_message
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
 
@@ -52,7 +51,7 @@ def wolf_shaman_totem(var, wrapper, message):
         if len(SHAMANS[wrapper.source][totem]) > TOTEMS[wrapper.source][totem]:
             SHAMANS[wrapper.source][totem].pop(0)
 
-    relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), is_wolf_command=True)
+    send_wolfchat_message(var, wrapper.source, messages["shaman_wolfchat"].format(wrapper.source, target), ("wolf shaman",), role="wolf shaman", command="totem")
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
@@ -78,7 +77,7 @@ def on_transition_day_begin(evt, var):
                     dispatcher = MessageDispatcher(shaman, shaman)
                     given = give_totem(var, dispatcher, target, totem, key="shaman_success_random_known", role="wolf shaman")
                     if given:
-                        relay_wolfchat_command(shaman.client, shaman.nick, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), is_wolf_command=True)
+                        send_wolfchat_message(var, shaman, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), role="wolf shaman", command="totem")
                         SHAMANS[shaman][totem].append(given[0])
 
 @event_listener("transition_night_end", priority=1.99)

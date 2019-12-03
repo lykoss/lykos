@@ -4,7 +4,7 @@ message_formatter = Formatter()
 
 from src.messages import messages as _messages
 
-__all__ = ["messages", "message_formatter"]
+__all__ = ["messages", "message_formatter", "get_role_name"]
 
 messages = _messages.Messages()
 
