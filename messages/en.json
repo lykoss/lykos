@@ -902,6 +902,7 @@
     "relay_message": "{0:@} says: {1}",
     "relay_message_wolfchat": "[[wolfchat]] {0:@} says: {1}",
     "relay_message_deadchat": "[[deadchat]] {0:@} says: {1}",
+    "relay_command_wolfchat": "[[wolfchat]] {0}",
     "cursed_notify": "You are [b]cursed[/b]. You will be seen by the {=seer!role} and {=oracle!role} as being {=wolf!role:article} {=wolf!role} rather than your normal role!",
     "seer_info_general": "You are {0!role:article} {0!role:bold}. It is your job to detect the wolves, you may have a vision once per night.",
     "seer_info": "Use \"{=see!command} <nick>\" to see the role of a player.",

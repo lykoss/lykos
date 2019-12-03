@@ -345,7 +345,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
     for player in wcwolves:
         player.queue_message(message)
     for player in var.SPECTATING_WOLFCHAT:
-        player.queue_message("[wolfchat] " + message)
+        player.queue_message(messages["relay_command_wolfchat"].format(message))
     if player is not None:
         player.send_messages()
 

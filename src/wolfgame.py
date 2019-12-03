@@ -2454,7 +2454,7 @@ def relay(var, wrapper, message):
 
     if "src.roles.helper.wolves" in sys.modules:
         from src.roles.helper.wolves import get_talking_roles
-        badguys = get_talking_roles(var)
+        badguys = get_players(get_talking_roles(var))
     else:
         badguys = get_players(Wolfchat)
     wolves = get_players(Wolf)
@@ -3622,7 +3622,10 @@ def spectate_chat(var, wrapper, message, *, is_fspectate):
         if what == "wolfchat":
             already_spectating = wrapper.source in var.SPECTATING_WOLFCHAT
             var.SPECTATING_WOLFCHAT.add(wrapper.source)
-            players = [p for p in get_players() if in_wolflist(p.nick, p.nick)]
+            players = list(get_players(Wolfchat))
+            if "src.roles.helper.wolves" in sys.modules:
+                from src.roles.helper.wolves import is_known_wolf_ally
+                players = [p for p in players if is_known_wolf_ally(var, p, p)]
             if not is_fspectate and not already_spectating and var.SPECTATE_NOTICE:
                 spectator = wrapper.source.nick if var.SPECTATE_NOTICE_USER else "Someone"
                 for player in players:

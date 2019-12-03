@@ -1,7 +1,6 @@
 import re
 import random
 
-from src.utilities import *
 from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
 from src.decorators import command, event_listener
@@ -10,7 +9,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import All
 
-from src.roles.helper.wolves import is_known_wolf_ally, register_killer
+from src.roles.helper.wolves import is_known_wolf_ally, register_killer, send_wolfchat_message
 
 register_killer("doomsayer")
 
@@ -46,7 +45,7 @@ def see(var, wrapper, message):
     mapping[wrapper.source] = target
 
     debuglog("{0} (doomsayer) SEE: {1} ({2}) - {3}".format(wrapper.source, target, targrole, mode.upper()))
-    relay_wolfchat_command(wrapper.client, wrapper.source.nick, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), is_wolf_command=True)
+    send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")
 
     SEEN.add(wrapper.source)
 

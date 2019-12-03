@@ -12,8 +12,7 @@ from src.events import Event
 from src.messages import messages
 
 __all__ = ["pm", "is_fake_nick", "mass_privmsg", "reply",
-           "in_wolflist", "complete_role",
-           "relay_wolfchat_command", "irc_lower",
+           "complete_role", "irc_lower",
            "is_owner", "is_admin", "plural", "singular", "list_players",
            "get_role", "role_order", "break_long_message",
            "complete_match", "complete_one_match", "get_victim"]
@@ -47,20 +46,6 @@ def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
         target = chan_get(chan)
     wrapper = MessageDispatcher(user, target)
     wrapper.reply(msg, prefix_nick=prefix_nick)
-
-# FIXME: Deprecated in favor of helper.wolves method
-def in_wolflist(nick, who):
-    from src.roles.helper.wolves import is_known_wolf_ally
-    from src import users
-    return is_known_wolf_ally(var, users._get(nick), users._get(who))
-
-# FIXME: Deprecated in favor of helper.wolves method
-def relay_wolfchat_command(cli, nick, message, roles, is_wolf_command=False, is_kill_command=False):
-    from src.roles.helper.wolves import send_wolfchat_message
-    from src import users
-    role = "wolf" if is_wolf_command else None
-    command = "kill" if is_kill_command else None
-    send_wolfchat_message(var, users._get(nick), message, roles, role=role, command=command)
 
 def irc_lower(nick):
     from src.context import lower
