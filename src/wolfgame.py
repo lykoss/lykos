@@ -1161,7 +1161,8 @@ def stats(var, wrapper, message):
         for stat_set in var.ROLE_STATS:
             for r, a in stat_set:
                 if r not in role_stats:
-                    role_stats[r] = (a, a)
+                    if r in start_roles:
+                        role_stats[r] = (a, a)
                 else:
                     mn, mx = role_stats[r]
                     role_stats[r] = (min(mn, a), max(mx, a))
