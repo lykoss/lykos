@@ -72,7 +72,11 @@ class Formatter(string.Formatter):
             if flatten_lists:
                 # if value is a list by this point, retrieve the first element
                 # this happens when using !role but expecting just the singular value
-                value = value[0]
+                # The list may be empty as well, in which case it flattens to an empty string
+                if value:
+                    value = value[0]
+                else:
+                    value = ""
             else:
                 # if we aren't supposed to be flattening lists, ensure we don't have any specs remaining
                 # which operate on strings. If we do, that's an error.
@@ -120,6 +124,8 @@ class Formatter(string.Formatter):
             return messages.raw("_totems", value)
         if conversion == "cat":
             return messages.raw("_role_categories", value)
+        if conversion == "phase":
+            return messages.raw("_phases", value)
 
         # not one of our custom things
         return super().convert_field(value, conversion)
@@ -191,3 +197,6 @@ class Formatter(string.Formatter):
 
     def tag_b(self, content, param):
         return self._bold(content, param)
+
+    def tag_if(self, content, param):
+        return content if param else ""
