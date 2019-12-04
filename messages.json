@@ -32,17 +32,23 @@
     "player_joined": {
         "merge_strategy" : "replace",
         "value" : [
-            "{0:@} is obsessed with fascism, and so decided to emigrate to Germany to study it. They raised the number of players to {1:bold}."
+            "{0:@} is obsessed with fascism, and so decided to emigrate to Germany to study it. They raised the number of players to {1:bold}.",
+            "{0:@} wishes to finally reunite the German people in Austria.",
+            "{0:@} was denied entry into art school, so migrated to Germany.",
+            "{0:@} enters politics, wishing to right the wrongs of the Treaty of Versailles."
         ]
     },
     "quit_no_reveal": {
         "merge_strategy" : "replace",
         "value" : [
-            "{0:@} is suddenly assassinated by an extremist."
+            "{0:@} is assassinated by an extremist.",
+            "{0:@} loses re-election to someone with a better-looking mustache.",
+            "{0:@} is killed during a boating accident.",
+            "{0:@} realizes the dangers of Fascism, and pursues a culinary career instead."
         ]
     },
 
-    "new_game": "{0:@} has started a game of Secret Hitler. Type \"{=join!command:!}\" to join. Type \"{=start!command:!}\" to vote to start the game. Type \"{=wait!command:!}\" to increase the start wait time.",
+    "new_game": "{0:@} has started a game of Secret Hitler. Type \"{=join!command:!}\" to join. Type \"{=start!command:!}\" to vote to start the game. Type \"{=wait!command:!}\" to increase the start wait time. For more information about the game, go to https://secrethitler.io/rules",
 
     "presidential_candidate" : "The presidential candidate is {0:@}. {1}, please discuss with everyone who you want to be chancellor, and when you're ready, nominate them with \"{=nominate!command:!} <player>\" in channel",
     "chancellor_ineligible_c" : "The following players are ineligible to be nominated Chancellor, since they were the previously elected Chancellor: {0:join}",
@@ -59,14 +65,14 @@
     "hitler_unaware" : "Because the game started with 7 or more players, Hitler does not know who you are. Private messages to the Hitler are not allowed.",
     "hitler_aware" : "Because the game started with less than 7 players, the Hitler is aware of the fascists. Private messages to the Hitler are still not allowed.",
 
-    "no_nom_self" : "You cannot nominate yourself",
-    "cannot_nom_c" : "You cannot nominate this player because they were chancellor in the previous government",
-    "cannot_nom_pc" : "You cannot nominate this player because they were president or chancellor in the previous government",
+    "no_nom_self" : "You cannot nominate yourself.",
+    "cannot_nom_c" : "You cannot nominate this player because they were chancellor in the previous government.",
+    "cannot_nom_pc" : "You cannot nominate this player because they were president or chancellor in the previous government.",
     "already_nominated" : "You have already nominated a player to be your chancellor.",
     "select_chancellor" : "{0:@} has selected {1:@} to be their chancellor. Please vote on this nomination by doing \"{=vote!command} yes\" or \"{=vote!command} no\" in PM.",
     "cannot_vote_yet" : "Please wait for {0:@} to nominate someone for chancellor before voting.",
     "vote_help" : "Invalid command. Please vote on this nomination using \"{=vote!command} yes\" or \"{=vote!command} no\"",
-    "confirm_vote" : "You have voted {0} on the ticket of {1:@} as president and {2:@} as chancellor",
+    "confirm_vote" : "You have voted {0} on the ticket of {1:@} as president and {2:@} as chancellor.",
 
     "vote_complete" : "All players have now voted. On the matter of electing {0:@} to the office of President and {1:@} to the office of Chancellor, the Reichstag has voted: {2}!  The votes are as follows:",
     "votes_for" : "Votes [b]\u000303For:\u0003 {0:join}[/b]",
@@ -76,18 +82,18 @@
     "chaos_reveal_noaction" : " Because the people enacted this policy, no Executive Action is granted.",
 
     "president_list_policies" : "As president, it is now time for you to decide which policy to throw out. The following policies are under consideration: [b][[1]]:[/b] {0} [b][[2]]:[/b] {1} [b][[3]]:[/b] {2}",
-    "president_discard_info" : "You must pick one of these policies to discard and remove from consideration using \"{=discard!command} <number>\", where <number> is the number of the policy you wish to discard",
+    "president_discard_info" : "You must pick one of these policies to discard and remove from consideration using \"{=discard!command} <number>\", where <number> is the number of the policy you wish to discard.",
     "president_communication_reminder" : "Reminder - you MAY NOT communicate with the Chancellor in ANY WAY during the legislative session, INCLUDING private messages!",
-    "president_discard_help" : "Usage: \"{=discard!command} <number>\" where <number> is the number of the policy you wish to discard",
-    "president_already_discarded" : "You have already discarded a policy and cannot do so again tonight",
+    "president_discard_help" : "Usage: \"{=discard!command} <number>\" where <number> is the number of the policy you wish to discard.",
+    "president_already_discarded" : "You have already discarded a policy and cannot do so again tonight.",
     "president_discard" : "Discarded policy {0}, which was a {1:bold} policy.",
 
     "president_hasnt_discarded" : "Please wait for the president to send you the policy options.",
     "president_hasnt_vetoed" : "Please wait for the president to respond to your veto request.",
-    "chancellor_wait" : "The legislative session has started. As chancellor, you will enact a policy, once the president presents you with your options. Please wait on the president to send you the potential policy options",
+    "chancellor_wait" : "The legislative session has started. As chancellor, you will enact a policy, once the president presents you with your options. Please wait on the president to send you the potential policy options.",
     "chancellor_list_policies" : "The president has discarded a policy and presented you with the following policy options: [b][[1]]:[/b] {0} [b][[2]]:[/b] {1}",
-    "chancellor_enact_info" : "You must pick one of these policies to enact using \"{=enact!command} <number>\", where <number> is the number of the policy you wish to discard",
-    "chancellor_enact_help" : "Usage: \"{=enact!command} <number>\" where <number> is the number of the policy you wish to enact",
+    "chancellor_enact_info" : "You must pick one of these policies to enact using \"{=enact!command} <number>\", where <number> is the number of the policy you wish to discard.",
+    "chancellor_enact_help" : "Usage: \"{=enact!command} <number>\" where <number> is the number of the policy you wish to enact.",
     "chancellor_enact" : "Enacted policy {0}, which was a {1:bold} policy.",
 
     "veto_allowed" : "Alternatively, since 5 Fascist policies have been enacted, you can exercise Veto Power by sending me the command \"{=veto!command}\" in PM. Vetoing will result in no policies being enacted, but only if the President concurs, and a veto will count as a failed government.",
@@ -102,9 +108,9 @@
 
     "legislative_end1" : "The legislative session has ended. The president and chancellor have enacted a {0:bold} policy.",
     "legislative_end2" : "So far, [b]{0} Liberal[/b] policies and [b]{1} Fascist[/b] policies have been enacted.",
-    "reshuffled" : "The policy desk has fewer than 3 cards. The remaining policies and discards have been reshuffled together",
+    "reshuffled" : "The policy desk has fewer than 3 cards. The remaining policies and discards have been reshuffled together.",
 
-    "executive_action_granted" : "The just-enacted Fascist policy has unlocked a use of the executive action {0:bold}",
+    "executive_action_granted" : "The just-enacted Fascist policy has unlocked a use of the executive action {0:bold}.",
     "policy_peek" : "The Abwehr has investigated what the next three policies in the Policy Deck are. They are, in this order: {0:bold}, {1:bold}, {2:bold}. The Abwehr reports to you alone, and you may do with this information as you wish...",
     "investigate_instructions" : "You must instruct the Abwehr to investigate the player of your choice. It will be revealed to you privately whether they are a member of the Liberals or of the Fascists. Choose a player by giving the command \"{=investigate!command:!} <player>\"",
     "no_inv_self" : "You already know your own allegiances ... you cannot investigate yourself.",
