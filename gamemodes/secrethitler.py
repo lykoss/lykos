@@ -19,6 +19,7 @@ class SecretHitlerMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         self.ROLE_REVEAL = "off"
+        self.STATS_TYPE = "disabled"
         #self.DEVOICE_DURING_NIGHT = True # This is now set during d1, because of the fake 0 second n1 (used to send out role PMs)
         self.DEFAULT_ROLE = "liberal"
         #self.START_WITH_DAY = True # Wish we could use this but role PMs don't get sent out
