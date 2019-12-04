@@ -1705,7 +1705,7 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
-                        add_warning(cli, nck, var.IDLE_PENALTY, users.Bot.nick, messages["idle_warning"], expires=var.IDLE_EXPIRY)
+                        add_warning(user, var.IDLE_PENALTY, users.Bot, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     add_dying(var, user, "bot", "idle", death_triggers=False)
                 pl = list_players()
                 x = [a for a in to_warn if a in pl]
@@ -1722,7 +1722,7 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["quit_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["quit_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "quit", death_triggers=False)
@@ -1732,7 +1732,7 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY) # FIXME
+                        add_warning(dcedplayer, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "part", death_triggers=False)
@@ -1742,7 +1742,7 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
-                        add_warning(cli, dcedplayer.nick, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY) # FIXME
+                        add_warning(dcedplayer, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "account", death_triggers=False)
@@ -2042,7 +2042,7 @@ def leave_game(var, wrapper, message):
     if var.PHASE != "join":
         var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
-            add_warning(wrapper.client, wrapper.source.nick, var.LEAVE_PENALTY, users.Bot.nick, messages["leave_warning"], expires=var.LEAVE_EXPIRY) # FIXME
+            add_warning(wrapper.source, var.LEAVE_PENALTY, users.Bot, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
         if wrapper.source.nick in var.PLAYERS:
             var.DCED_PLAYERS[wrapper.source.nick] = var.PLAYERS.pop(wrapper.source.nick)
 
