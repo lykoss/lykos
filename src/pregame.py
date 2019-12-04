@@ -461,8 +461,6 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.NIGHT_START_TIME = datetime.now()
     var.LAST_PING = None
 
-    var.PLAYERS = {plr:dict(var.USERS[plr.nick]) for plr in villagers if plr.nick in var.USERS} # FIXME: Please kill this
-
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night
     if not var.START_WITH_DAY:

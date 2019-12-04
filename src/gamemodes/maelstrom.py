@@ -85,8 +85,6 @@ class MaelstromMode(GameMode):
         var.MAIN_ROLES[wrapper.source] = role
         var.ORIGINAL_MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
-        if wrapper.source.nick in var.USERS:
-            var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
         for message in evt.data["messages"]:
             wrapper.pm(message)

@@ -85,9 +85,7 @@ var.LAST_GOAT = {}
 var.USERS = {}
 
 var.ADMIN_PINGING = False
-var.DCED_LOSERS = UserSet() # type: Set[users.User]
-var.PLAYERS = {}
-var.DCED_PLAYERS = {}
+var.DCED_LOSERS = UserSet()
 var.ADMIN_TO_PING = None
 var.AFTER_FLASTGAME = None
 var.PINGING_IFS = False
@@ -327,8 +325,6 @@ def reset():
     reset_settings()
 
     var.LAST_SAID_TIME.clear()
-    var.PLAYERS.clear()
-    var.DCED_PLAYERS.clear()
     var.DISCONNECTED.clear()
     var.DCED_LOSERS.clear()
     var.SPECTATING_WOLFCHAT.clear()
@@ -1064,8 +1060,7 @@ def fleave(var, wrapper, message):
             wrapper.send(*msg)
 
             if var.PHASE != "join":
-                if target.nick in var.PLAYERS:
-                    var.DCED_PLAYERS[target.nick] = var.PLAYERS.pop(target.nick)
+                var.DCED_LOSERS.add(target)
 
             add_dying(var, target, "bot", "fquit", death_triggers=False)
             kill_players(var)
@@ -1822,9 +1817,6 @@ def return_to_village(var, target, *, show_message, new_user=None):
             var.LAST_SAID_TIME[target.nick] = datetime.now()
             var.DCED_LOSERS.discard(target)
 
-            if target.nick in var.DCED_PLAYERS:
-                var.PLAYERS[target.nick] = var.DCED_PLAYERS.pop(target.nick)
-
             if new_user is not target:
                 # different users, perform a swap. This will clean up disconnected users.
                 target.swap(new_user)
@@ -1861,10 +1853,6 @@ def rename_player(var, user, prefix):
 
     if user in var.ALL_PLAYERS:
         if var.PHASE in var.GAME_PHASES:
-            for k,v in list(var.PLAYERS.items()):
-                if prefix == k:
-                    var.PLAYERS[nick] = var.PLAYERS.pop(k)
-
             for dictvar in (var.FINAL_ROLES,):
                 if prefix in dictvar.keys():
                     dictvar[nick] = dictvar.pop(prefix)
@@ -1948,9 +1936,8 @@ def leave(var, what, user, why=None):
 
     ps = get_players()
     # Only mark living players as disconnected, unless they were kicked
-    if user.nick in var.PLAYERS and (what == "kick" or user in ps): # FIXME: Convert var.PLAYERS
+    if user in ps or what == "kick":
         var.DCED_LOSERS.add(user)
-        var.DCED_PLAYERS[user.nick] = var.PLAYERS.pop(user.nick) # FIXME: Convert var.PLAYERS and var.DCED_PLAYERS
 
     if user not in ps or user in var.DISCONNECTED:
         return
@@ -2043,8 +2030,6 @@ def leave_game(var, wrapper, message):
         var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
             add_warning(wrapper.source, var.LEAVE_PENALTY, users.Bot, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
-        if wrapper.source.nick in var.PLAYERS:
-            var.DCED_PLAYERS[wrapper.source.nick] = var.PLAYERS.pop(wrapper.source.nick)
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
     kill_players(var)
