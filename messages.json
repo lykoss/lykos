@@ -59,8 +59,8 @@
     "liberal_notify" : "You are a {=liberal!role:bold}. It is your job to figure out who the {=hitler!role} is! The Liberals win if five Liberal policies are enacted, OR the {=hitler!role} is assassinated.",
     "fascist_notify" : "You are a {=fascist!role:bold}. It is your job to be manipulative, create confusion, and take control of the government! The fascists and the {=hitler!role} win if six Fascist policies are enacted, or if the {=hitler!role} is elected Chancellor any time after the third Fascist policy has been enacted.",
     "hitler_notify" : "You are the {=hitler!role:bold}!  It is your job to not draw suspicion to yourself, and to be elected Chancellor! You and the Fascists win if six Fascist policies are enacted, or if you are elected Chancellor any time after the third Fascist policy has been enacted.",
-    "fascists_list" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}.",
-    "fascists_list_with_hitler" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join}. The {2!role:plural({3})} {=is,are:plural({3})} {3:join}.",
+    "fascists_list" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join:bold}.",
+    "fascists_list_with_hitler" : "The {0!role:plural({1})} {=is,are:plural({1})} {1:join:bold}. The {2!role:plural({3})} {=is,are:plural({3})} {3:join:bold}.",
     "no_fascist_list" : "Because the game started with at least 7 players, you are not told who the fascists are.",
     "hitler_unaware" : "Because the game started with 7 or more players, Hitler does not know who you are. Private messages to the Hitler are not allowed.",
     "hitler_aware" : "Because the game started with less than 7 players, the Hitler is aware of the fascists. Private messages to the Hitler are still not allowed.",
@@ -134,6 +134,7 @@
     "show_table" : "There are {0} cards left in the policy deck, and {1} in the discard pile. These policies have been previously enacted: {2:join}",
     "show_track" : "The following executive actions unlock after the indicated number of fascist policies: {0:join}",
     "show_track_policy" : "[[{0}]]: {1}",
+    "revealroles_policy" : "Policies: {0:join}",
 
     "waiting_nomination" : "Waiting on {0:@} to nominate someone to be president.",
     "waiting_votes" : "Waiting on {0:join} to vote on the nomination.",

@@ -36,9 +36,10 @@ class SecretHitlerMode(GameMode):
             "chk_nightdone": EventListener(self.prolong_night),
             "transition_day_resolve_end": EventListener(self.on_transition_day_resolve_end, priority=2),
             "transition_day_end" : EventListener(self.on_transition_day_end),
-            "del_player": EventListener(self.on_del_player)
+            "del_player": EventListener(self.on_del_player),
+            "revealroles" : EventListener(self.on_revealroles)
         }
-            
+
     def startup(self):
         from src import decorators
         super().startup()
@@ -354,6 +355,10 @@ class SecretHitlerMode(GameMode):
 
     def on_transition_day_resolve_end(self, evt, var, victims):
         evt.data["novictmsg"] = False
+
+    def on_revealroles(self, evt, var):
+        if self.policies:
+            evt.data["output"].append(messages["revealroles_policy"].format(self.policies))
 
     def on_del_player(self, evt, var, player, all_roles, death_triggers):
         index = self.president_candidates.index(player)
