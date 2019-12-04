@@ -1,11 +1,13 @@
 import fnmatch
 import time
 import re
+from typing import Callable, Optional
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
 from src import db
 from src.events import EventListener
+from src.decorators import hook
 
 import botconfig
 
@@ -358,21 +360,13 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        flags = var.FLAGS[self.rawnick] + var.FLAGS_ACCS[self.account]
+        flags = var.FLAGS_ACCS[self.account]
 
         if "F" not in flags:
             try:
-                hosts = set(botconfig.ADMINS)
                 accounts = set(botconfig.ADMINS_ACCOUNTS)
-
-                if self.account is not None:
-                    for pattern in accounts:
-                        if fnmatch.fnmatch(lower(self.account), lower(pattern)):
-                            return True
-
-                for hostmask in hosts:
-                    if self.match_hostmask(hostmask):
-                        return True
+                if self.account is not None and self.account in accounts:
+                    return True
             except AttributeError:
                 pass
 
@@ -399,29 +393,12 @@ class User(IRCContext):
                 fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
-        temp = self.lower()
-
-        if temp.account in var.PREFER_NOTICE_ACCS:
-            return True
-
-        if not var.ACCOUNTS_ONLY:
-            for hostmask in var.PREFER_NOTICE:
-                if temp.match_hostmask(hostmask):
-                    return True
-
-        return False
+        return self.lower().account in var.PREFER_NOTICE_ACCS
 
     def get_pingif_count(self):
         temp = self.lower()
-
         if temp.account in var.PING_IF_PREFS_ACCS:
             return var.PING_IF_PREFS_ACCS[temp.account]
-
-        if not var.ACCOUNTS_ONLY:
-            for hostmask, pref in var.PING_IF_PREFS.items():
-                if temp.match_hostmask(hostmask):
-                    return pref
-
         return 0
 
     def set_pingif_count(self, value, old=None):
@@ -435,18 +412,6 @@ class User(IRCContext):
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(temp.account)
-
-            if not var.ACCOUNTS_ONLY:
-                for hostmask in list(var.PING_IF_PREFS):
-                    if temp.match_hostmask(hostmask):
-                        del var.PING_IF_PREFS[hostmask]
-                        db.set_pingif(0, None, hostmask)
-                        if old is not None:
-                            with var.WARNING_LOCK:
-                                if old in var.PING_IF_NUMS:
-                                    var.PING_IF_NUMS[old].discard(hostmask)
-                                    var.PING_IF_NUMS[old].discard(temp.host)
-
         else:
             if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
@@ -459,37 +424,54 @@ class User(IRCContext):
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(temp.account)
 
-            elif not var.ACCOUNTS_ONLY:
-                var.PING_IF_PREFS[temp.userhost] = value
-                db.set_pingif(value, None, temp.userhost)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS:
-                        var.PING_IF_NUMS[value] = set()
-                    var.PING_IF_NUMS[value].add(temp.userhost)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS:
-                            var.PING_IF_NUMS[old].discard(temp.host)
-                            var.PING_IF_NUMS[old].discard(temp.userhost)
-
     def wants_deadchat(self):
-        temp = self.lower()
-
-        if temp.account in var.DEADCHAT_PREFS_ACCS:
-            return False
-        elif var.ACCOUNTS_ONLY:
-            return True
-        elif temp.host in var.DEADCHAT_PREFS:
-            return False
-
-        return True
+        return self.lower().account not in var.DEADCHAT_PREFS_ACCS
 
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
-        temp = self.lower()
-        amount = var.STASISED_ACCS.get(temp.account, 0)
-        amount = max(amount, var.STASISED.get(temp.userhost, 0))
+        return var.STASISED_ACCS.get(self.lower().account, 0)
 
-        return amount
+    def update_account_data(self, callback: Callable):
+        """Refresh stale account data on networks that don't support certain features.
+
+        :param callback: Callback to execute when account data is fully updated
+        """
+        if self.account is not None and Features.get("account-notify", False):
+            # account-notify is enabled, so we're already up to date on our account name
+            callback()
+            return
+
+        listener_id = "update_account_data." + self.name
+        listener = None # type: Optional[EventListener]
+        found_account = None
+
+        def whox_listener(evt, var, chan, user):
+            if user is self:
+                listener.remove("who_reply")
+                callback()
+
+        def whoisaccount_listener(cli, server, nick, account):
+            nonlocal found_account
+            user = _get(nick) # FIXME
+            if user is self:
+                hook.unhook(listener_id + ".acc")
+                found_account = account
+
+        def endofwhois_listener(cli, server, nick):
+            user = _get(nick)  # FIXME
+            if user is self:
+                hook.unhook(listener_id + ".end")
+                self.account = found_account # will be None if the user is not logged in
+                callback()
+
+        if Features.get("WHOX", False):
+            # A WHOX query performs less network noise than WHOIS, so use that if available
+            EventListener(whox_listener, listener_id=listener_id).install("who_reply")
+            self.who()
+        else:
+            # Fallback to WHOIS
+            hook("whoisaccount", hookid=listener_id + ".acc")(whoisaccount_listener)
+            hook("endofwhois", hookid=listener_id + ".end")(endofwhois_listener)
 
     @property
     def nick(self): # name should be the same as nick (for length calculation)
@@ -543,7 +525,7 @@ class User(IRCContext):
 
     @account.setter
     def account(self, account):
-        if account in ("0", "*") or var.DISABLE_ACCOUNTS:
+        if account in ("0", "*"):
             account = None
         self._account = account
 
@@ -645,5 +627,3 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
-
-# vim: set sw=4 expandtab:

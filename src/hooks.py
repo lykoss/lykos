@@ -262,7 +262,7 @@ def get_features(cli, rawnick, *features):
                 Features[name] = data
 
         else:
-            Features[feature] = None
+            Features[feature] = True
 
 ### Channel and user MODE handling
 
@@ -693,5 +693,3 @@ def on_chghost(cli, rawnick, ident, host):
             chan.remove_user(user)
             chan.users.add(new)
         user.swap(new)
-
-# vim: set sw=4 expandtab:

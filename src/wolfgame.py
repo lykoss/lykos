@@ -179,12 +179,6 @@ def connect_callback():
 
     def who_end(event, var, request):
         if request is channels.Main:
-            if "WHOX" not in hooks.Features:
-                if not var.DISABLE_ACCOUNTS:
-                    plog("IRCd does not support WHOX, disabling account-related features.")
-                var.DISABLE_ACCOUNTS = True
-                var.ACCOUNTS_ONLY = False
-
             # Devoice all on connect
             mode = hooks.Features["PREFIX"]["+"]
             pending = []
@@ -598,7 +592,7 @@ def replace(var, wrapper, message):
 def altpinger(var, wrapper, message):
     """Pings you when the number of players reaches your preference. Usage: "pingif <players>". https://werewolf.chat/Pingif"""
 
-    if wrapper.source.account is None and var.ACCOUNTS_ONLY:
+    if wrapper.source.account is None:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -649,45 +643,32 @@ def join_timer_handler(var):
     with var.WARNING_LOCK:
         var.PINGING_IFS = True
         to_ping = []
-        pl = list_players()
+        pl = get_players()
 
-        checker = set()
         chk_acc = set()
 
         # Add accounts/hosts to the list of possible players to ping
-        if not var.DISABLE_ACCOUNTS:
-            for num in var.PING_IF_NUMS_ACCS:
-                if num <= len(pl):
-                    for acc in var.PING_IF_NUMS_ACCS[num]:
-                        if db.has_unacknowledged_warnings(acc, None):
-                            continue
-                        chk_acc.add(users.lower(acc))
-
-        if not var.ACCOUNTS_ONLY:
-            for num in var.PING_IF_NUMS:
-                if num <= len(pl):
-                    for hostmask in var.PING_IF_NUMS[num]:
-                        if db.has_unacknowledged_warnings(None, hostmask):
-                            continue
-                        checker.add(users.lower(hostmask, casemapping="ascii"))
+        for num in var.PING_IF_NUMS_ACCS:
+            if num <= len(pl):
+                for acc in var.PING_IF_NUMS_ACCS[num]:
+                    if db.has_unacknowledged_warnings(acc, None):
+                        continue
+                    chk_acc.add(users.lower(acc))
 
         # Don't ping alt connections of users that have already joined
-        if not var.DISABLE_ACCOUNTS:
-            for player in pl:
-                user = users._get(player) # FIXME
-                var.PINGED_ALREADY_ACCS.add(users.lower(user.account))
+        for player in pl:
+            var.PINGED_ALREADY_ACCS.add(users.lower(player.account))
 
         # Remove players who have already been pinged from the list of possible players to ping
         chk_acc -= var.PINGED_ALREADY_ACCS
-        checker -= var.PINGED_ALREADY
 
         # If there is nobody to ping, do nothing
-        if not chk_acc and not checker:
+        if not chk_acc:
             var.PINGING_IFS = False
             return
 
         def get_altpingers(event, var, chan, user):
-            if event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user.nick in pl: # FIXME: Fix this when list_players() returns User instances
+            if event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user in pl:
                 return
 
             temp = user.lower()
@@ -695,11 +676,6 @@ def join_timer_handler(var):
                 to_ping.append(temp)
                 var.PINGED_ALREADY_ACCS.add(temp.account)
                 return
-
-            if not var.ACCOUNTS_ONLY:
-                if temp.userhost in checker:
-                    to_ping.append(temp)
-                    var.PINGED_ALREADY.add(temp.userhost)
 
         def ping_altpingers(event, var, request):
             if request is channels.Main:
@@ -783,23 +759,15 @@ def deadchat_pref(var, wrapper, message):
     temp = wrapper.source.lower()
 
     if wrapper.source.account is None:
-        if var.ACCOUNTS_ONLY:
-            wrapper.pm(messages["not_logged_in"])
-            return
+        wrapper.pm(messages["not_logged_in"])
+        return
 
-        value = temp.host
-        variable = var.DEADCHAT_PREFS
-
-    else:
-        value = temp.account
-        variable = var.DEADCHAT_PREFS_ACCS
-
-    if value in variable:
+    if temp.account in var.DEADCHAT_PREFS_ACCS:
         wrapper.pm(messages["chat_on_death"])
-        variable.remove(value)
+        var.DEADCHAT_PREFS_ACCS.remove(temp.account)
     else:
         wrapper.pm(messages["no_chat_on_death"])
-        variable.add(value)
+        var.DEADCHAT_PREFS_ACCS.add(temp.account)
 
     db.toggle_deadchat(temp.account, temp.host)
 
@@ -832,9 +800,13 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     if who is None:
         who = wrapper.source
 
-    pl = list_players()
     if wrapper.target is not channels.Main:
         return False
+
+    wrapper.source.update_account_data(lambda: _join_player(var, wrapper, who, forced, sanity=sanity))
+
+def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
+    pl = get_players()
 
     stasis = wrapper.source.stasis_count()
 
@@ -888,7 +860,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             t.daemon = True
             t.start()
 
-    elif wrapper.source.nick in pl: # FIXME: To fix when everything returns Users
+    elif wrapper.source in pl:
         who.send(messages["already_playing"].format("You" if who is wrapper.source else "They"), notice=True)
         # if we're not doing insane stuff, return True so that one can use !join to vote for a game mode
         # even if they are already joined. If we ARE doing insane stuff, return False to indicate that
@@ -902,8 +874,8 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         return False
     else:
         if not botconfig.DEBUG_MODE:
-            for nick in pl:
-                if users.equals(users._get(nick).account, temp.account): # FIXME
+            for player in pl:
+                if users.equals(player.account, temp.account):
                     if who is wrapper.source:
                         who.send(messages["account_already_joined_self"].format(who), notice=True)
                     else:
@@ -2688,17 +2660,7 @@ def fflags(var, wrapper, message):
         for acc, flags in var.FLAGS_ACCS.items():
             if not flags:
                 continue
-            if var.ACCOUNTS_ONLY:
-                parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
-            else:
-                parts.append("{0} (Account) (+{1})".format(acc, "".join(sorted(flags))))
-        for hm, flags in var.FLAGS.items():
-            if not flags:
-                continue
-            if var.DISABLE_ACCOUNTS:
-                parts.append("{0} (+{1})".format(hm, "".join(sorted(flags))))
-            else:
-                parts.append("{0} (Host) (+{1})".format(hm, "".join(sorted(flags))))
+            parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
         if not parts:
             reply(cli, nick, chan, messages["no_access"])
         else:
@@ -2711,17 +2673,14 @@ def fflags(var, wrapper, message):
                 msg = messages["no_access_account"].format(acc)
             else:
                 msg = messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[acc])))
-        elif hm is not None:
-            if not var.FLAGS[hm]:
-                msg = messages["no_access_host"].format(hm)
-            else:
-                msg = messages["access_host"].format(hm, "".join(sorted(var.FLAGS[hm])))
+        else:
+            return
         reply(cli, nick, chan, msg)
     else:
         acc, hm = parse_warning_target(params[0])
         flags = params[1]
         lhm = hm.lower() if hm else hm
-        cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)] + var.FLAGS[lhm])
+        cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)])
 
         if flags[0] != "+" and flags[0] != "-":
             # flags is a template name
@@ -2772,7 +2731,7 @@ def fflags(var, wrapper, message):
                 else:
                     reply(cli, nick, chan, messages["access_deleted_host"].format(hm))
 
-        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        # re-init var.FLAGS_ACCS since it may have changed
         db.init_vars()
 
 @command("fstop", flag="S", phases=("join", "day", "night"))
@@ -3297,7 +3256,7 @@ def player_stats(var, wrapper, message):
     if luser in lusers:
         acc = irc_lower(lusers[luser]["account"])
         hostmask = luser + "!" + irc_lower(lusers[luser]["ident"]) + "@" + lusers[luser]["host"].lower()
-        if acc == "*" and var.ACCOUNTS_ONLY:
+        if acc == "*":
             if luser == nick.lower():
                 cli.notice(nick, messages["not_logged_in"].format())
             else:
@@ -3312,7 +3271,7 @@ def player_stats(var, wrapper, message):
         acc = irc_lower(user)
         hostmask = None
 
-    if acc == "*": #FIXME
+    if acc == "*": # FIXME
         acc = None
 
     # List the player's total games for all roles if no role is given
@@ -3586,10 +3545,7 @@ def can_run_restricted_cmd(user):
     if user in pl:
         return False
 
-    if not var.DISABLE_ACCOUNTS and user.account in {player.account for player in pl}:
-        return False
-
-    if user.userhost in {player.userhost for player in pl}:
+    if user.account in {player.account for player in pl}:
         return False
 
     return True
