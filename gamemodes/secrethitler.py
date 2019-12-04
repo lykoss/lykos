@@ -62,6 +62,7 @@ class SecretHitlerMode(GameMode):
         self.has_vetoed = False
         self.hitler_executed = False
         self.hitler_idled = False
+        self.hitler_elected = False
         self.reshuffle()
 
         # Can't do this stuff in here because if an admin uses !fgame shitler, startup() is called immediately
@@ -259,7 +260,7 @@ class SecretHitlerMode(GameMode):
         elif self.hitler_idled:
             evt.data["winner"] = "liberals"
             evt.data["message"] = messages["winner_by_idle"]
-        elif self.chancellor and self.enacted.count("F") >= 3 and get_main_role(self.chancellor) == "hitler":
+        elif self.hitler_elected:
             evt.data["winner"] = "fascists"
             evt.data["message"] = messages["winner_by_hitler"]
         elif self.enacted.count("F") >= 6:
@@ -407,6 +408,10 @@ class SecretHitlerMode(GameMode):
             self.votes = defaultdict(UserList)
 
             if votes_yes > votes_no:
+                if self.enacted.count("F") >= 3 and get_main_role(self.chancellor) == "hitler":
+                    self.hitler_elected = True
+                    from src.wolfgame import chk_win
+                    chk_win()
                 from src.wolfgame import transition_night
                 transition_night()
             else:
