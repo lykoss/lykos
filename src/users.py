@@ -326,17 +326,10 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        hosts = set(botconfig.OWNERS)
         accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-        if self.account is not None:
-            for pattern in accounts:
-                if fnmatch.fnmatch(lower(self.account), lower(pattern)):
-                    return True
-
-        for hostmask in hosts:
-            if self.match_hostmask(hostmask):
-                return True
+        if self.account is not None and self.account in accounts:
+            return True
 
         return False
 

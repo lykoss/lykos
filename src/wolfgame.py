@@ -60,7 +60,7 @@ from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
-from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden
+from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden, role_order
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -446,7 +446,7 @@ def restart_program(var, wrapper, message):
             return
 
     reset_modes_timers(var)
-    db.set_pre_restart_state(list_players())
+    db.set_pre_restart_state(p.nick for p in get_players())
     reset()
 
     msg = "{0} restart from {1}".format(
@@ -987,8 +987,8 @@ def fjoin(var, wrapper, message):
         if "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
-                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(list_players()):
-                    wrapper.send(messages["too_many_players_to_join"].format(wrapper.source.nick))
+                if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players()):
+                    wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
@@ -1026,7 +1026,7 @@ def fjoin(var, wrapper, message):
         else:
             wrapper.pm(messages["not_allowed"])
     if fake:
-        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(list_players())))
+        wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players())))
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
 def fleave(var, wrapper, message):
@@ -1050,7 +1050,7 @@ def fleave(var, wrapper, message):
             if get_main_role(target) != "person" and var.ROLE_REVEAL in ("on", "team"):
                 msg.append(messages["fquit_goodbye"].format(get_reveal_role(target)))
             if var.PHASE == "join":
-                player_count = len(list_players()) - 1
+                player_count = len(get_players()) - 1
                 to_say = "new_player_count"
                 if not player_count:
                     to_say = "no_players_remaining"
@@ -2510,19 +2510,18 @@ def on_error(cli, pfx, msg):
 
 @command("ftemplate", flag="F", pm=True)
 def ftemplate(var, wrapper, message):
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
-    params = re.split(" +", rest)
+    params = re.split(" +", message)
 
     if params[0] == "":
         # display a list of all templates
         tpls = db.get_templates()
         if not tpls:
-            reply(cli, nick, chan, messages["no_templates"])
+            wrapper.reply(messages["no_templates"])
         else:
             tpls = ["{0} (+{1})".format(name, "".join(sorted(flags))) for name, flags in tpls]
-            reply(cli, nick, chan, break_long_message(tpls, ", "))
+            wrapper.reply(tpls, sep=", ")
     elif len(params) == 1:
-        reply(cli, nick, chan, messages["not_enough_parameters"])
+        wrapper.reply(messages["not_enough_parameters"])
     else:
         name = params[0].upper()
         flags = params[1]
@@ -2534,11 +2533,11 @@ def ftemplate(var, wrapper, message):
             tpl_name = flags.upper()
             tpl_id, tpl_flags = db.get_template(tpl_name)
             if tpl_id is None:
-                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                wrapper.reply(messages["template_not_found"].format(tpl_name))
                 return
             tpl_flags = "".join(sorted(tpl_flags))
             db.update_template(name, tpl_flags)
-            reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+            wrapper.reply(messages["template_set"].format(name, tpl_flags))
         else:
             adding = True
             for flag in flags:
@@ -2555,7 +2554,7 @@ def ftemplate(var, wrapper, message):
                         cur_flags = set()
                     continue
                 elif flag not in var.ALL_FLAGS:
-                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
                     return
                 elif adding:
                     cur_flags.add(flag)
@@ -2564,20 +2563,19 @@ def ftemplate(var, wrapper, message):
             if cur_flags:
                 tpl_flags = "".join(sorted(cur_flags))
                 db.update_template(name, tpl_flags)
-                reply(cli, nick, chan, messages["template_set"].format(name, tpl_flags))
+                wrapper.reply(messages["template_set"].format(name, tpl_flags))
             elif tid is None:
-                reply(cli, nick, chan, messages["template_not_found"].format(name))
+                wrapper.reply(messages["template_not_found"].format(name))
             else:
                 db.delete_template(name)
-                reply(cli, nick, chan, messages["template_deleted"].format(name))
+                wrapper.reply(messages["template_deleted"].format(name))
 
-        # re-init var.FLAGS and var.FLAGS_ACCS since they may have changed
+        # re-init var.FLAGS_ACCS since it may have changed
         db.init_vars()
 
 @command("fflags", flag="F", pm=True)
 def fflags(var, wrapper, message):
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
-    params = re.split(" +", rest)
+    params = re.split(" +", message)
 
     if params[0] == "":
         # display a list of all access
@@ -2587,9 +2585,9 @@ def fflags(var, wrapper, message):
                 continue
             parts.append("{0} (+{1})".format(acc, "".join(sorted(flags))))
         if not parts:
-            reply(cli, nick, chan, messages["no_access"])
+            wrapper.reply(messages["no_access"])
         else:
-            reply(cli, nick, chan, break_long_message(parts, ", "))
+            wrapper.reply(parts, sep=", ")
     elif len(params) == 1:
         # display access for the given user
         acc, hm = parse_warning_target(params[0], lower=True)
@@ -2600,7 +2598,7 @@ def fflags(var, wrapper, message):
                 msg = messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[acc])))
         else:
             return
-        reply(cli, nick, chan, msg)
+        wrapper.reply(msg)
     else:
         acc, hm = parse_warning_target(params[0])
         flags = params[1]
@@ -2612,14 +2610,14 @@ def fflags(var, wrapper, message):
             tpl_name = flags.upper()
             tpl_id, tpl_flags = db.get_template(tpl_name)
             if tpl_id is None:
-                reply(cli, nick, chan, messages["template_not_found"].format(tpl_name))
+                wrapper.reply(messages["template_not_found"].format(tpl_name))
                 return
             tpl_flags = "".join(sorted(tpl_flags))
             db.set_access(acc, hm, tid=tpl_id)
             if acc is not None and acc != "*":
-                reply(cli, nick, chan, messages["access_set_account"].format(acc, tpl_flags))
+                wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
             else:
-                reply(cli, nick, chan, messages["access_set_host"].format(hm, tpl_flags))
+                wrapper.reply(messages["access_set_host"].format(hm, tpl_flags))
         else:
             adding = True
             for flag in flags:
@@ -2636,7 +2634,7 @@ def fflags(var, wrapper, message):
                         cur_flags = set()
                     continue
                 elif flag not in var.ALL_FLAGS:
-                    reply(cli, nick, chan, messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
                     return
                 elif adding:
                     cur_flags.add(flag)
@@ -2646,15 +2644,15 @@ def fflags(var, wrapper, message):
                 flags = "".join(sorted(cur_flags))
                 db.set_access(acc, hm, flags=flags)
                 if acc is not None:
-                    reply(cli, nick, chan, messages["access_set_account"].format(acc, flags))
+                    wrapper.reply(messages["access_set_account"].format(acc, flags))
                 else:
-                    reply(cli, nick, chan, messages["access_set_host"].format(hm, flags))
+                    wrapper.reply(messages["access_set_host"].format(hm, flags))
             else:
                 db.set_access(acc, hm, flags=None)
                 if acc is not None and acc != "*":
-                    reply(cli, nick, chan, messages["access_deleted_account"].format(acc))
+                    wrapper.reply(messages["access_deleted_account"].format(acc))
                 else:
-                    reply(cli, nick, chan, messages["access_deleted_host"].format(hm))
+                    wrapper.reply(messages["access_deleted_host"].format(hm))
 
         # re-init var.FLAGS_ACCS since it may have changed
         db.init_vars()
@@ -2675,70 +2673,31 @@ def reset_game(var, wrapper, message):
 @command("rules", pm=True)
 def show_rules(var, wrapper, message):
     """Displays the rules."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     if hasattr(botconfig, "RULES"):
         rules = botconfig.RULES
-
-        # Backwards-compatibility
-        pattern = re.compile(r"^\S+ channel rules: ")
-
-        if pattern.search(rules):
-            rules = pattern.sub("", rules)
-
-        reply(cli, nick, chan, messages["channel_rules"].format(botconfig.CHANNEL, rules))
+        wrapper.reply(messages["channel_rules"].format(channels.Main, rules))
     else:
-        reply(cli, nick, chan, messages["no_channel_rules"].format(botconfig.CHANNEL))
+        wrapper.reply(messages["no_channel_rules"].format(channels.Main))
 
 @command("help", pm=True)
 def get_help(var, wrapper, message):
     """Gets help."""
-    cli, rnick, chan, rest = wrapper.client, wrapper.source.rawnick, wrapper.target.name, message # FIXME: @cmd
-    nick, _, ident, host = parse_nick(rnick)
     fns = []
-
-    rest = rest.strip().replace(botconfig.CMD_CHAR, "", 1).lower()
-    splitted = re.split(" +", rest, 1)
-    cname = splitted.pop(0)
-    rest = splitted[0] if splitted else ""
-    if cname:
-        if cname in COMMANDS.keys():
-            got = False
-            for fn in COMMANDS[cname]:
-                if fn.__doc__:
-                    got = True
-                    if callable(fn.__doc__):
-                        msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__(rest)
-                    else:
-                        msg = botconfig.CMD_CHAR+cname+": "+fn.__doc__
-                    reply(cli, nick, chan, msg, private=True)
-                else:
-                    got = False
-                    continue
-            else:
-                if got:
-                    return
-                reply(cli, nick, chan, messages["documentation_unavailable"], private=True)
-
-        else:
-            reply(cli, nick, chan, messages["command_not_found"], private=True)
-        return
-
-    # if command was not found, or if no command was given:
     for name, fn in COMMANDS.items():
-        if (name and not fn[0].flag and not fn[0].owner_only and
-            name not in fn[0].aliases and fn[0].chan):
-            fns.append("{0}{1}{0}".format("\u0002", name))
+        if name and not fn[0].flag and not fn[0].owner_only and name not in fn[0].aliases and fn[0].chan:
+            fns.append(name)
     afns = []
-    if is_admin(nick, ident, host):
+    if wrapper.source.is_admin():
         for name, fn in COMMANDS.items():
             if fn[0].flag and name not in fn[0].aliases:
-                afns.append("{0}{1}{0}".format("\u0002", name))
+                afns.append(name)
     fns.sort() # Output commands in alphabetical order
-    reply(cli, nick, chan, messages["commands_list"].format(break_long_message(fns, ", ")), private=True)
+    wrapper.pm(messages["commands_list"].format(fns))
     if afns:
         afns.sort()
-        reply(cli, nick, chan, messages["admin_commands_list"].format(break_long_message(afns, ", ")), private=True)
+        wrapper.pm(messages["admin_commands_list"].format(afns))
+    wrapper.pm(messages["commands_further_help"])
 
 def get_wiki_page(URI):
     try:
@@ -2754,40 +2713,39 @@ def get_wiki_page(URI):
 
 @command("wiki", pm=True)
 def wiki(var, wrapper, message):
-    """Prints information on roles from the wiki."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
+    """Prints information from the wiki."""
 
     # no arguments, just print a link to the wiki
-    if not rest:
-        reply(cli, nick, chan, "https://werewolf.chat")
+    if not message:
+        wrapper.reply("https://werewolf.chat")
         return
-    rest = rest.replace(" ", "_").lower()
+    rest = message.replace(" ", "_").lower()
 
     # Get suggestions, for autocompletion
     URI = "https://werewolf.chat/w/api.php?action=opensearch&format=json&search={0}".format(rest)
     success, suggestionjson = get_wiki_page(URI)
     if not success:
-        reply(cli, nick, chan, suggestionjson, private=True)
+        wrapper.pm(suggestionjson)
         return
 
     # Parse suggested pages, take the first result
     try:
         suggestion = suggestionjson[1][0].replace(" ", "_")
     except IndexError:
-        reply(cli, nick, chan, messages["wiki_no_info"], private=True)
+        wrapper.pm(messages["wiki_no_info"])
         return
 
     # Fetch a page from the api, in json format
     URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&format=json".format(suggestion)
     success, pagejson = get_wiki_page(URI)
     if not success:
-        reply(cli, nick, chan, pagejson, private=True)
+        wrapper.pm(pagejson)
         return
 
     try:
         page = pagejson["query"]["pages"].popitem()[1]["extract"]
     except (KeyError, IndexError):
-        reply(cli, nick, chan, messages["wiki_no_info"], private=True)
+        wrapper.pm(messages["wiki_no_info"])
         return
 
     # We only want the first paragraph
@@ -2795,37 +2753,30 @@ def wiki(var, wrapper, message):
         page = page[:page.find("\n")]
 
     wikilink = "https://werewolf.chat/{0}".format(suggestion.capitalize())
-    if wrapper.private:
-        pm(cli, nick, wikilink)
-        pm(cli, nick, break_long_message(page.split()))
-    else:
-        cli.msg(chan, wikilink)
-        cli.notice(nick, break_long_message(page.split()))
+    wrapper.reply(wikilink)
+    wrapper.pm(page)
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
         return # No questions
-    (nick, _, ident, host) = parse_nick(raw_nick)
-    if is_admin(nick, ident, host):
+    user = users.get(raw_nick)
+    if user and user.is_admin():
         cli.join(chan) # Allows the bot to be present in any channel
-        debuglog(nick, "INVITE", chan, display=True)
+        debuglog(user.nick, "INVITE", chan, display=True)
 
 @command("admins", pm=True)
 def show_admins(var, wrapper, message):
     """Pings the admins that are available."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     admins = []
-    pl = list_players()
 
-    if (wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS +
-            timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"].format())
+    if wrapper.public and var.LAST_ADMINS and var.LAST_ADMINS + timedelta(seconds=var.ADMINS_RATE_LIMIT) > datetime.now():
+        wrapper.pm(messages["command_ratelimited"])
         return
 
-    if wrapper.public or (var.PHASE in var.GAME_PHASES or nick in pl):
+    if wrapper.public:
         var.LAST_ADMINS = datetime.now()
 
     if var.ADMIN_PINGING:
@@ -2837,24 +2788,19 @@ def show_admins(var, wrapper, message):
         if not var.ADMIN_PINGING or chan is not channels.Main:
             return
 
-        if is_admin(user.nick): # FIXME: Using the old interface for now; user.is_admin() is better
-            if user is not users.Bot and not event.params.away:
-                admins.append(user.nick) # FIXME
+        if user.is_admin() and user is not users.Bot and not event.params.away:
+            admins.append(user)
 
     def admin_endwho(event, var, target):
         if not var.ADMIN_PINGING or target is not channels.Main:
             return
 
-        admins.sort(key=str.lower)
-
-        msg = messages["available_admins"] + ", ".join(admins)
-
-        reply(cli, nick, chan, msg)
-
-        var.ADMIN_PINGING = False
-
         who_result.remove("who_result")
         who_end.remove("who_end")
+        admins.sort(key=lambda x: x.nick)
+        wrapper.reply(messages["available_admins"].format(admins))
+        var.ADMIN_PINGING = False
+
 
     who_result = EventListener(admin_whoreply)
     who_result.install("who_result")
@@ -2903,11 +2849,10 @@ def cat(var, wrapper, message):
 @command("time", pm=True, phases=("join", "day", "night"))
 def timeleft(var, wrapper, message):
     """Returns the time left until the next day/night transition."""
-    cli, nick, chan, rest = wrapper.client, wrapper.source.name, wrapper.target.name, message # FIXME: @cmd
 
     if (wrapper.public and var.LAST_TIME and
             var.LAST_TIME + timedelta(seconds=var.TIME_RATE_LIMIT) > datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"].format())
+        wrapper.pm(messages["command_ratelimited"].format())
         return
 
     if wrapper.public:
@@ -2920,11 +2865,11 @@ def timeleft(var, wrapper, message):
             msg = messages["start_timer"].format(dur)
 
         if msg is not None:
-            reply(cli, nick, chan, msg)
+            wrapper.reply(msg)
 
     if var.PHASE in var.TIMERS:
         if var.PHASE == "day":
-            what = "sunset"
+            what = "sunset" # FIXME: hardcoded english
         elif var.PHASE == "night":
             what = "sunrise"
         elif var.PHASE == "join":
@@ -2935,7 +2880,7 @@ def timeleft(var, wrapper, message):
     else:
         msg = messages["timers_disabled"].format(var.PHASE.capitalize())
 
-    reply(cli, nick, chan, msg)
+    wrapper.reply(msg)
 
 @command("roles", pm=True)
 def list_roles(var, wrapper, message):
@@ -3254,7 +3199,7 @@ def role_stats(var, wrapper, message):
             elif len(matches) > 0:
                 wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
             else:
-                wrapper.pm(messages["no_such_role"].format(rest))
+                wrapper.pm(messages["no_such_role"].format(message))
             return
 
     if len(params) == 1:
