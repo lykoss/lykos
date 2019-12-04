@@ -82,8 +82,6 @@ var.LAST_RSTATS = None
 var.LAST_TIME = None
 var.LAST_GOAT = {}
 
-var.USERS = {}
-
 var.ADMIN_PINGING = False
 var.DCED_LOSERS = UserSet()
 var.ADMIN_TO_PING = None
@@ -271,13 +269,6 @@ def check_for_modes(cli, rnick, chan, modeaction, *target):
                 keeptrg = True
             if change not in var.MODES_PREFIXES.values():
                 continue
-            if trgt in var.USERS:
-                if prefix == "+":
-                    var.USERS[trgt]["modes"].add(change)
-                    if change in var.USERS[trgt]["moded"]:
-                        var.USERS[trgt]["moded"].remove(change)
-                elif change in var.USERS[trgt]["modes"]:
-                    var.USERS[trgt]["modes"].remove(change)
 
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
@@ -981,7 +972,7 @@ def fjoin(var, wrapper, message):
         tojoin = tojoin.strip()
         # Allow joining single number fake users in debug mode
         if users.predicate(tojoin) and botconfig.DEBUG_MODE:
-            user = users._add(wrapper.client, nick=tojoin) # FIXME
+            user = users.add(wrapper.client, nick=tojoin)
             evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
             continue
         # Allow joining ranges of numbers as fake users in debug mode
@@ -993,7 +984,7 @@ def fjoin(var, wrapper, message):
                     break
                 fake = True
                 for i in range(int(first), int(last)+1):
-                    user = users._add(wrapper.client, nick=str(i)) # FIXME
+                    user = users.add(wrapper.client, nick=str(i))
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
                 continue
         if not tojoin:
@@ -1022,7 +1013,7 @@ def fjoin(var, wrapper, message):
 
         if maybe_user is not users.Bot:
             if maybe_user is None and users.predicate(tojoin) and botconfig.DEBUG_MODE:
-                maybe_user = users._add(wrapper.client, nick=tojoin) # FIXME
+                maybe_user = users.add(wrapper.client, nick=tojoin)
             evt.data["join_player"](var, type(wrapper)(maybe_user, wrapper.target), forced=True, who=wrapper.source)
         else:
             wrapper.pm(messages["not_allowed"])
@@ -1692,10 +1683,10 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                     if nck not in list_players():
                         continue
                     if var.ROLE_REVEAL in ("on", "team"):
-                        cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(users._get(nck)))) # FIXME
+                        cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(users.get(nck))))
                     else: # FIXME: Merge these two
                         cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
-                    user = users._get(nck) # FIXME
+                    user = users.get(nck)
                     user.disconnected = True
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
@@ -1755,17 +1746,6 @@ def update_last_said(var, wrapper, message):
 def on_join(evt, var, chan, user):
     if user is users.Bot:
         plog("Joined {0}".format(chan))
-    # FIXME: kill all of this off along with var.USERS
-    elif not users.exists(user.nick):
-        users.add(user.nick, ident=user.ident,host=user.host,account=user.account,inchan=(chan is channels.Main),modes=set(),moded=set())
-    else:
-        baduser = users.get(user.nick)
-        baduser.ident = user.ident
-        baduser.host = user.host
-        baduser.account = user.account
-        if not baduser.inchan:
-            # Will be True if the user joined the main channel, else False
-            baduser.inchan = (chan is channels.Main)
     if chan is not channels.Main:
         return
     return_to_village(var, user, show_message=True)
@@ -1838,9 +1818,9 @@ def return_to_village(var, target, *, show_message, new_user=None):
             # for example, and we want to mark them as back without requiring them to do
             # a !swap.
             if var.ACCOUNTS_ONLY or target.account:
-                userlist = users._get(account=target.account, allow_multiple=True) # FIXME
+                userlist = users.get(account=target.account, allow_multiple=True)
             else: # match host (hopefully the ircd uses vhosts to differentiate users)
-                userlist = users._get(host=target.host, allow_multiple=True)
+                userlist = users.get(host=target.host, allow_multiple=True)
             userlist = [u for u in userlist if u in var.DISCONNECTED]
             if len(userlist) == 1:
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
@@ -1907,12 +1887,6 @@ def nick_change(evt, var, user, old_rawnick):
 @event_listener("cleanup_user")
 def cleanup_user(evt, var, user):
     var.LAST_GOAT.pop(user, None)
-
-@event_listener("nick_change")
-def update_users(evt, var, user, old_rawnick): # FIXME: This is a temporary hack while var.USERS still exists
-    nick = users.parse_rawnick_as_dict(old_rawnick)["nick"]
-    if nick in var.USERS:
-        var.USERS[user.nick] = var.USERS.pop(nick)
 
 @event_listener("chan_part")
 def left_channel(evt, var, chan, user, reason):
@@ -1985,10 +1959,6 @@ def leave(var, what, user, why=None):
     var.SPECTATING_WOLFCHAT.discard(user)
     var.SPECTATING_DEADCHAT.discard(user)
     leave_deadchat(var, user)
-
-    if what not in ("badnick", "account") and user.nick in var.USERS: # FIXME: Need to move mode toggling somewhere saner
-        var.USERS[user.nick]["modes"] = set()
-        var.USERS[user.nick]["moded"] = set()
 
     if killplayer:
         add_dying(var, user, "bot", what, death_triggers=False)
@@ -3480,7 +3450,7 @@ def _say(wrapper, rest, cmd, action=False):
     if target.startswith(tuple(hooks.Features["CHANTYPES"])):
         targ = channels.get(target, allow_none=True)
     else:
-        targ = users._get(target, allow_multiple=True) # FIXME
+        targ = users.get(target, allow_multiple=True)
         if len(targ) == 1:
             targ = targ[0]
         else:

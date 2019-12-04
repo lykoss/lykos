@@ -229,7 +229,7 @@ class Channel(IRCContext):
                 if c in status_modes: # op/voice status; keep it here and update the user's registry too
                     if c not in self.modes:
                         self.modes[c] = set()
-                    user = users._get(targets[i], allow_bot=True) # FIXME
+                    user = users.get(targets[i], allow_bot=True)
                     self.modes[c].add(user)
                     user.channels[self].add(c)
                     if user in var.OLD_MODES:
@@ -255,7 +255,7 @@ class Channel(IRCContext):
             else:
                 if c in status_modes:
                     if c in self.modes:
-                        user = users._get(targets[i], allow_bot=True) # FIXME
+                        user = users.get(targets[i], allow_bot=True)
                         self.modes[c].discard(user)
                         user.channels[self].discard(c)
                         if not self.modes[c]:

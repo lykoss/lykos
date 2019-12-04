@@ -37,7 +37,7 @@ def parse_warning_target(target, lower=False):
         if lower:
             tacc = irc_lower(tacc)
     else:
-        user = users._get(target) # FIXME
+        user = users.get(target)
         tacc = user.account if user else target
         thm = None
         if lower:

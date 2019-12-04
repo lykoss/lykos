@@ -18,19 +18,12 @@ _ghosts = set()
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
 
-class _user:
-    def __init__(self, nick):
-        self.nick = nick
-
-    for name in ("ident", "host", "account", "inchan", "modes", "moded"):
-        locals()[name] = property(lambda self, name=name: var.USERS[self.nick][name], lambda self, value, name=name: var.USERS[self.nick].__setitem__(name, value))
-
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
     """Return the matching user(s) from the user list.
 
     This takes up to 5 positional arguments (nick, ident, host, realname,
@@ -85,11 +78,7 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
 
     return None
 
-def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as soon as possible!
-    var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
-    return _user(nick)
-
-def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
+def add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     """Create a new user, add it to the user list and return it.
 
     This function takes up to 5 keyword-only arguments (and one positional
@@ -116,13 +105,6 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
             _users.add(new)
 
     return new
-
-def add(nick, **blah): # backwards-compatible API
-    var.USERS[nick] = blah
-    return _user(nick)
-
-def exists(nick, *stuff, **morestuff): # backwards-compatible API
-    return nick in var.USERS
 
 def users():
     """Iterate over the users in the registry."""
@@ -454,13 +436,13 @@ class User(IRCContext):
 
         def whoisaccount_listener(cli, server, nick, account):
             nonlocal found_account
-            user = _get(nick) # FIXME
+            user = get(nick) # FIXME
             if user is self:
                 hook.unhook(listener_id + ".acc")
                 found_account = account
 
         def endofwhois_listener(cli, server, nick):
-            user = _get(nick)  # FIXME
+            user = get(nick)  # FIXME
             if user is self:
                 hook.unhook(listener_id + ".end")
                 self.account = found_account # will be None if the user is not logged in

@@ -46,7 +46,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
+    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
     ch = None
     if not channels.predicate(chan): # returns True if it's not a channel
         ch = channels.add(chan, cli)
@@ -61,9 +61,6 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
 
     event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
     event.dispatch(var, ch, user)
-
-    if ch is channels.Main and not users.exists(nick): # FIXME
-        users.add(nick, ident=ident, host=host, account="*", inchan=True, modes=modes, moded=set())
 
 @hook("whospcrpl")
 def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
@@ -111,7 +108,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
+    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
     user.account = account # set it here so it updates if the user already exists
 
     ch = None
@@ -127,9 +124,6 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
     event.dispatch(var, ch, user)
-
-    if ch is channels.Main and not users.exists(nick): # FIXME
-        users.add(nick, ident=ident, host=host, account=account, inchan=True, modes=modes, moded=set())
 
 @hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
@@ -153,7 +147,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
         target = channels.get(target)
     except KeyError:
         try:
-            target = users._get(target) # FIXME
+            target = users.get(target)
         except KeyError:
             target = None
     else:
@@ -334,7 +328,7 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         evt.dispatch(var)
         return
 
-    actor = users._get(rawnick, allow_none=True) # FIXME
+    actor = users.get(rawnick, allow_none=True)
     target = channels.add(chan, cli)
     target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
 
@@ -512,7 +506,7 @@ def on_nick_change(cli, old_rawnick, nick):
 
     """
 
-    user = users._get(old_rawnick, allow_bot=True) # FIXME
+    user = users.get(old_rawnick, allow_bot=True)
     user.nick = nick
 
     Event("nick_change", {}).dispatch(var, user, old_rawnick)
@@ -533,7 +527,7 @@ def on_account_change(cli, rawnick, account):
 
     """
 
-    user = users._get(rawnick) # FIXME
+    user = users.get(rawnick)
     user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
 
     Event("account_change", {}).dispatch(var, user)
@@ -568,7 +562,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch = channels.add(chan, cli)
     ch.state = channels._States.Joined
 
-    user = users._add(cli, nick=rawnick, realname=realname, account=account) # FIXME
+    user = users.add(cli, nick=rawnick, realname=realname, account=account)
     ch.users.add(user)
     user.channels[ch] = set()
     # mark the user as here, in case they used to be connected before but left
@@ -600,7 +594,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users._get(rawnick) # FIXME
+    user = users.get(rawnick)
     Event("chan_part", {}).dispatch(var, ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
@@ -625,8 +619,8 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     """
 
     ch = channels.add(chan, cli)
-    actor = users._get(rawnick, allow_none=True) # FIXME
-    user = users._get(target) # FIXME
+    actor = users.get(rawnick, allow_none=True)
+    user = users.get(target)
     Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
 
     if user is users.Bot:
@@ -660,7 +654,7 @@ def on_quit(cli, rawnick, reason):
 
     """
 
-    user = users._get(rawnick, allow_bot=True) # FIXME
+    user = users.get(rawnick, allow_bot=True)
     Event("server_quit", {}).dispatch(var, user, reason)
 
     for chan in set(user.channels):
@@ -684,8 +678,8 @@ def on_chghost(cli, rawnick, ident, host):
 
     """
 
-    user = users._get(rawnick) # FIXME
-    new = users._add(cli, nick=user.nick, ident=ident, host=host, realname=user.realname, account=user.account) # FIXME
+    user = users.get(rawnick)
+    new = users.add(cli, nick=user.nick, ident=ident, host=host, realname=user.realname, account=user.account)
 
     if user is not new:
         new.channels = user.channels.copy()

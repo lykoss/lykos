@@ -32,7 +32,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
-    user = users._get(rawnick, allow_none=True) # FIXME
+    user = users.get(rawnick, allow_none=True)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 

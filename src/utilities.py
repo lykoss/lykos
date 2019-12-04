@@ -19,16 +19,16 @@ __all__ = ["pm", "is_fake_nick", "mass_privmsg", "reply",
 
 # XXX: Replace with wrapper.pm instead
 def pm(cli, target, message):
-    from src.users import _get
-    user = _get(target)
+    from src.users import get
+    user = get(target)
     user.send(message)
 
 is_fake_nick = re.compile(r"^[0-9]+$").search
 
 # XXX: Replace with the queue_message and send_messages methods
 def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
-    from src.users import _get
-    targs = [_get(t) for t in targets]
+    from src.users import get
+    targs = [get(t) for t in targets]
     for user in targs:
         user.queue_message(msg)
     if targs:
@@ -36,7 +36,7 @@ def mass_privmsg(cli, targets, msg, notice=False, privmsg=False):
 
 # FIXME: Deprecated in favor of MessageDispatcher
 def reply(cli, nick, chan, msg, private=False, prefix_nick=False):
-    from src.users import Bot, _get as users_get
+    from src.users import Bot, get as users_get
     from src.channels import get as chan_get
     from src.dispatcher import MessageDispatcher
     user = users_get(nick)
@@ -52,13 +52,13 @@ def irc_lower(nick):
     return lower(nick)
 
 def is_owner(nick, ident=None, host=None, acc=None):
-    from src.users import _get
-    user = _get(nick=nick, ident=ident, host=host, account=acc)
+    from src.users import get
+    user = get(nick=nick, ident=ident, host=host, account=acc)
     return user.is_owner()
 
 def is_admin(nick, ident=None, host=None, acc=None):
-    from src.users import _get
-    user = _get(nick=nick, ident=ident, host=host, account=acc)
+    from src.users import get
+    user = get(nick=nick, ident=ident, host=host, account=acc)
     return user.is_admin()
 
 def plural(role, count=2):
@@ -103,7 +103,7 @@ def get_role(p):
     # TODO DEPRECATED: replace with get_main_role(user)
     from src import users
     from src.functions import get_main_role
-    return get_main_role(users._get(p))
+    return get_main_role(users.get(p))
 
 def role_order():
     # Deprecated in favour of cats.role_order()
