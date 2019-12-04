@@ -345,6 +345,8 @@ def connect_callback(cli):
 
             ping_server_timer(cli)
 
+        hook.unhook(294)
+
     def setup_handler(evt, var, target):
         from src import lagcheck
         if lagcheck: # we just got our own host back
