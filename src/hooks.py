@@ -111,7 +111,8 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname, account=account) # FIXME
+    user = users._add(cli, nick=nick, ident=ident, host=host, realname=realname) # FIXME
+    user.account = account # set it here so it updates if the user already exists
 
     ch = None
     if not channels.predicate(chan):
@@ -647,7 +648,7 @@ def quit(context, message=""):
     with cli:
         cli.send("QUIT :{0}".format(message))
 
-@hook("quit")
+@hook("quit") # FIXME: Host change will not properly swap out the person
 def on_quit(cli, rawnick, reason):
     """Handle a user quitting the IRC server.
 
