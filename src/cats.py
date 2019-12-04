@@ -77,7 +77,7 @@ def _register_roles(evt):
             raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Village, Neutral, Hidden}}, got {1}".format(role, cats))
         ROLES[role] = frozenset(cats)
         for cat in cats:
-            if cat not in ROLE_CATS or cat == "All":
+            if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
                 raise ValueError("{0!r} is not a valid role category".format(cat))
             ROLE_CATS[cat].roles.add(role)
         All.roles.add(role)
@@ -91,10 +91,11 @@ events.EventListener(_register_roles, priority=1).install("init")
 class Category:
     """Base class for role categories."""
 
-    def __init__(self, name):
-        if FROZEN:
-            raise RuntimeError("Fatal: Role categories have already been established")
-        ROLE_CATS[name] = self
+    def __init__(self, name, *, alias=None):
+        if not FROZEN:
+            ROLE_CATS[name] = self
+            if alias:
+                ROLE_CATS[alias] = self
         self.name = name
         self._roles = set()
 
@@ -184,7 +185,7 @@ class Category:
 
 # For proper auto-completion support in IDEs, please do not try to "save space" by turning this into a loop
 # and dynamically creating globals.
-All = Category("*")
+All = Category("All", alias="*")
 Wolf = Category("Wolf")
 Wolfchat = Category("Wolfchat")
 Wolfteam = Category("Wolfteam")
