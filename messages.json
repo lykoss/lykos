@@ -33,9 +33,9 @@
         "merge_strategy" : "replace",
         "value" : [
             "{0:@} is obsessed with fascism, and so decided to emigrate to Germany to study it. They raised the number of players to {1:bold}.",
-            "{0:@} wishes to finally reunite the German people in Austria.",
-            "{0:@} was denied entry into art school, so migrated to Germany.",
-            "{0:@} enters politics, wishing to right the wrongs of the Treaty of Versailles."
+            "{0:@} wishes to finally reunite the German people in Austria. They raised the number of players to {1:bold}.",
+            "{0:@} was denied entry into art school, so migrated to Germany. They raised the number of players to {1:bold}.",
+            "{0:@} enters politics, wishing to right the wrongs of the Treaty of Versailles. They raised the number of players to {1:bold}."
         ]
     },
     "quit_no_reveal": {
