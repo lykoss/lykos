@@ -3212,68 +3212,60 @@ def gamestats(var, wrapper, message):
 @command("playerstats", pm=True)
 def player_stats(var, wrapper, message):
     """Gets the stats for the given player and role or a list of role totals if no role is given."""
-    # NOTE: Need to dynamically translate roles and gamemodes
-    cli, nick, chan, rest = wrapper.client, wrapper.source.nick, wrapper.target.name, message # FIXME: @cmd
+    # NOTE: Need to dynamically translate gamemodes
     if (wrapper.public and var.LAST_PSTATS and var.PSTATS_RATE_LIMIT and
             var.LAST_PSTATS + timedelta(seconds=var.PSTATS_RATE_LIMIT) >
             datetime.now()):
-        cli.notice(nick, messages["command_ratelimited"].format())
+        wrapper.pm(messages["command_ratelimited"])
         return
 
     if wrapper.public and wrapper.target is channels.Main and var.PHASE not in ("none", "join"):
-        cli.notice(nick, messages["no_command_in_channel"].format())
+        wrapper.pm(messages["no_command_in_channel"])
         return
 
     if wrapper.public:
         var.LAST_PSTATS = datetime.now()
 
-    params = rest.split()
+    params = message.split()
 
     # Check if we have enough parameters
     if params:
-        user = params[0]
+        user, count = users.complete_match(params[0])
     else:
-        user = nick
+        user = wrapper.source
+        count = 1
 
-    # Find the player's account if possible
-    luser = user.lower()
-    lusers = {k.lower(): v for k, v in var.USERS.items()}
-    if luser in lusers:
-        acc = irc_lower(lusers[luser]["account"])
-        hostmask = luser + "!" + irc_lower(lusers[luser]["ident"]) + "@" + lusers[luser]["host"].lower()
-        if acc == "*":
-            if luser == nick.lower():
-                cli.notice(nick, messages["not_logged_in"].format())
-            else:
-                cli.notice(nick, messages["account_not_logged_in"].format(user))
-            return
-    elif "@" in user:
-        acc = None
-        hml, hmr = user.split("@", 1)
-        hostmask = irc_lower(hml) + "@" + hmr.lower()
-        luser = hostmask
-    else:
-        acc = irc_lower(user)
-        hostmask = None
+    if user is not None:
+        account = user.account
+    elif not count:
+        account = params[0]
 
-    if acc == "*": # FIXME
-        acc = None
+    if account is None:
+        key = "account_not_logged_in"
+        if user is wrapper.source:
+            key = "not_logged_in"
+        wrapper.pm(messages[key])
+        return
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        reply(cli, nick, chan, db.get_player_totals(acc, hostmask), private=True) # FIXME: Code still uses break_long_message
+        msg, totals = db.get_player_totals(account, None)
+        wrapper.pm(msg)
+        wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        matches = complete_role(var, role)
+        internal = messages.get_role_mapping(reverse=True)
+        matches = complete_match(role, internal)
+
         if not matches:
-            reply(cli, nick, chan, messages["no_such_role"].format(role))
+            wrapper.send(messages["no_such_role"].format(role))
             return
         if len(matches) > 1:
-            reply(cli, nick, chan, messages["ambiguous_role"].format(matches))
+            wrapper.send(messages["ambiguous_role"].format(matches))
             return
+
         role = matches[0]
-        # Attempt to find the player's stats
-        reply(cli, nick, chan, db.get_player_stats(acc, hostmask, role))
+        wrapper.send(db.get_player_stats(account, None, role))
 
 @command("mystats", pm=True)
 def my_stats(var, wrapper, message):

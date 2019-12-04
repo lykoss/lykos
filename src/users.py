@@ -132,7 +132,9 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(string, users):
+def complete_match(string, users=None):
+    if users is None:
+        users = _users
     matches = []
     string = lower(string)
     for user in users:

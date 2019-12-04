@@ -1228,7 +1228,7 @@
     "db_player_stats": "{0:bold} as {role!role:bold} | Team wins: {team} ({teamp:.0%}), Individual wins: {indiv} ({indivp:.0%}), Overall wins: {overall} ({overallp:.0%}), Total games: {total}.",
     "db_pstats_no_role": "No stats for {0:bold} as {1!role:bold}.",
     "db_role_games": "{0!role:bold}: {1}",
-    "db_total_games": "{0:bold}'s totals | {1:bold} games | Winrate: {2:.0%} | {3}",
+    "db_total_games": "{0:bold}'s totals | {1:bold} games | Winrate: {2:.0%}",
     "db_gstats_no_game": "No stats for {0:bold} player games.",
     "db_gstats_all": "{0:bold} player games | {2:join_simple}",
     "db_gstats_specific": "{0:bold} player games ({1!mode:bold}) | {2:join_simple}",
