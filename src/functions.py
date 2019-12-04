@@ -85,7 +85,7 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
     # only adjust MAIN_ROLES/FINAL_ROLES if we're changing the player's actual role
     if var.MAIN_ROLES[player] == oldrole:
         var.MAIN_ROLES[player] = newrole
-        var.FINAL_ROLES[player.nick] = newrole
+        var.FINAL_ROLES[player] = newrole
 
     sayrole = newrole
     if sayrole in Hidden:

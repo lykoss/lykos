@@ -81,7 +81,7 @@ class MaelstromMode(GameMode):
 
         var.ROLES[role].add(wrapper.source)
         var.ORIGINAL_ROLES[role].add(wrapper.source)
-        var.FINAL_ROLES[wrapper.source.nick] = role # FIXME: once FINAL_ROLES stores users
+        var.FINAL_ROLES[wrapper.source] = role
         var.MAIN_ROLES[wrapper.source] = role
         var.ORIGINAL_MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
@@ -134,7 +134,7 @@ class MaelstromMode(GameMode):
                         continue
                     var.ORIGINAL_ROLES[r].discard(p)
                 var.ORIGINAL_ROLES[role].add(p)
-                var.FINAL_ROLES[p.nick] = role # FIXME
+                var.FINAL_ROLES[p] = role
                 var.MAIN_ROLES[p] = role
                 var.ORIGINAL_MAIN_ROLES[p] = role
 

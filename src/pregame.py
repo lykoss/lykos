@@ -322,7 +322,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.FINAL_ROLES = {}
+    var.FINAL_ROLES.clear()
     var.EXTRA_WOLVES = 0
 
     var.DEADCHAT_PLAYERS.clear()

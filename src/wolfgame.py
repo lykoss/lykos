@@ -91,12 +91,16 @@ var.TIMERS = {}
 var.PHASE = "none"
 var.OLD_MODES = defaultdict(set)
 
-var.ROLES = UserDict() # type: Dict[str, Set[users.User]]
-var.ORIGINAL_ROLES = UserDict() # type: Dict[str, Set[users.User]]
-var.MAIN_ROLES = UserDict() # type: Dict[users.User, str]
-var.ORIGINAL_MAIN_ROLES = UserDict() # type: Dict[users.User, str]
+var.ROLES = UserDict() # type: UserDict[str, UserSet]
+var.ORIGINAL_ROLES = UserDict() # type: UserDict[str, UserSet]
+var.MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
+var.ORIGINAL_MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
+var.FINAL_ROLES = UserDict() # type: UserDict[users.User, str]
 var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
+
+var.IDLE_WARNED = UserSet()
+var.IDLE_WARNED_PM = UserSet()
 
 var.DEAD = UserSet()
 
@@ -106,8 +110,9 @@ var.SPECTATING_WOLFCHAT = UserSet()
 var.SPECTATING_DEADCHAT = UserSet()
 
 var.ORIGINAL_SETTINGS = {}
+var.GAMEMODE_VOTES = UserDict()
 
-var.LAST_SAID_TIME = {}
+var.LAST_SAID_TIME = UserDict()
 
 var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
@@ -310,7 +315,7 @@ def reset():
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
-    var.GAMEMODE_VOTES = {} #list of players who have used !game
+    var.GAMEMODE_VOTES.clear()
     var.ROLE_STATS = frozenset() # type: FrozenSet[FrozenSet[Tuple[str, int]]]
 
     reset_settings()
@@ -321,8 +326,12 @@ def reset():
     var.SPECTATING_WOLFCHAT.clear()
     var.SPECTATING_DEADCHAT.clear()
 
+    var.IDLE_WARNED.clear()
+    var.IDLE_WARNED_PM.clear()
+
     var.ROLES.clear()
     var.ORIGINAL_ROLES.clear()
+    var.FINAL_ROLES.clear()
     var.ROLES["person"] = UserSet()
     var.MAIN_ROLES.clear()
     var.ORIGINAL_MAIN_ROLES.clear()
@@ -498,7 +507,7 @@ def mark_prefer_notice(var, wrapper, message):
     account = temp.account
     userhost = temp.userhost
 
-    if account is None and var.ACCOUNTS_ONLY:
+    if account is None:
         wrapper.pm(messages["not_logged_in"])
         return
 
@@ -562,7 +571,6 @@ def replace(var, wrapper, message):
             return
 
     if users.equals(target.account, wrapper.source.account) and target is not wrapper.source:
-        rename_player(var, wrapper.source, target.nick)
         target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
             return_to_village(var, target, show_message=False)
@@ -1281,7 +1289,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
     for player, role in mainroles.items():
-        evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player.nick, role)})
+        evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
         evt.dispatch(var, player, role)
         if role != evt.data["role"]:
             rolemap[role].remove(player)
@@ -1557,8 +1565,8 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
     var.ROLE_STATS = frozenset(newstats)
 
     if var.PHASE == "join":
-        if player.nick in var.GAMEMODE_VOTES:
-            del var.GAMEMODE_VOTES[player.nick]
+        if player in var.GAMEMODE_VOTES:
+            del var.GAMEMODE_VOTES[player]
 
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
@@ -1614,12 +1622,8 @@ def on_kill_players(evt: Event, var, players: Set[User]):
         evt.prevent_default = True
 
 @handle_error
-def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to be fixed too (some still use :bold where :@ is needed)
+def reaper(cli, gameid):
     # check to see if idlers need to be killed.
-    var.IDLE_WARNED    = set()
-    var.IDLE_WARNED_PM = set()
-    chan = botconfig.CHANNEL
-
     last_day_id = var.DAY_COUNT
     num_night_iters = 0
     short = False
@@ -1646,59 +1650,57 @@ def reaper(cli, gameid): # FIXME: When we convert this, the message keys need to
                 elif var.PHASE == "day" and var.DAY_COUNT != last_day_id:
                     last_day_id = var.DAY_COUNT
                     num_night_iters += 1
-                    for nick in var.LAST_SAID_TIME:
-                        var.LAST_SAID_TIME[nick] += timedelta(seconds=10*num_night_iters)
+                    for user in var.LAST_SAID_TIME:
+                        var.LAST_SAID_TIME[user] += timedelta(seconds=10 * num_night_iters)
                     num_night_iters = 0
 
             if not skip and (var.WARN_IDLE_TIME or var.PM_WARN_IDLE_TIME or var.KILL_IDLE_TIME):  # only if enabled
-                to_warn    = []
-                to_warn_pm = []
-                to_kill    = []
-                for nick in list_players():
-                    if is_fake_nick(nick):
+                to_warn    = set() # type: Set[users.User]
+                to_warn_pm = set() # type: Set[users.User]
+                to_kill    = set() # type: Set[users.User]
+                for user in get_players():
+                    if user.is_fake:
                         continue
-                    lst = var.LAST_SAID_TIME.get(nick, var.GAME_START_TIME)
+                    lst = var.LAST_SAID_TIME.get(user, var.GAME_START_TIME)
                     tdiff = datetime.now() - lst
                     if var.WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.WARN_IDLE_TIME) and
-                                            nick not in var.IDLE_WARNED):
-                        to_warn.append(nick)
-                        var.IDLE_WARNED.add(nick)
-                        var.LAST_SAID_TIME[nick] = (datetime.now() -
-                            timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
+                                            user not in var.IDLE_WARNED):
+                        to_warn.add(user)
+                        var.IDLE_WARNED.add(user)
+                        var.LAST_SAID_TIME[user] = (datetime.now() - timedelta(seconds=var.WARN_IDLE_TIME))  # Give them a chance
                     elif var.PM_WARN_IDLE_TIME and (tdiff > timedelta(seconds=var.PM_WARN_IDLE_TIME) and
-                                            nick not in var.IDLE_WARNED_PM):
-                        to_warn_pm.append(nick)
-                        var.IDLE_WARNED_PM.add(nick)
-                        var.LAST_SAID_TIME[nick] = (datetime.now() -
-                            timedelta(seconds=var.PM_WARN_IDLE_TIME))
+                                            user not in var.IDLE_WARNED_PM):
+                        to_warn_pm.add(user)
+                        var.IDLE_WARNED_PM.add(user)
+                        var.LAST_SAID_TIME[user] = (datetime.now() - timedelta(seconds=var.PM_WARN_IDLE_TIME))
                     elif var.KILL_IDLE_TIME and (tdiff > timedelta(seconds=var.KILL_IDLE_TIME) and
-                                            (not var.WARN_IDLE_TIME or nick in var.IDLE_WARNED) and
-                                            (not var.PM_WARN_IDLE_TIME or nick in var.IDLE_WARNED_PM)):
-                        to_kill.append(nick)
+                                            (not var.WARN_IDLE_TIME or user in var.IDLE_WARNED) and
+                                            (not var.PM_WARN_IDLE_TIME or user in var.IDLE_WARNED_PM)):
+                        to_kill.add(user)
                     elif (tdiff < timedelta(seconds=var.WARN_IDLE_TIME) and
-                                            (nick in var.IDLE_WARNED or nick in var.IDLE_WARNED_PM)):
-                        var.IDLE_WARNED.discard(nick)  # player saved themselves from death
-                        var.IDLE_WARNED_PM.discard(nick)
-                for nck in to_kill:
-                    if nck not in list_players():
-                        continue
+                                            (user in var.IDLE_WARNED or user in var.IDLE_WARNED_PM)):
+                        var.IDLE_WARNED.discard(user)  # player saved themselves from death
+                        var.IDLE_WARNED_PM.discard(user)
+                for user in to_kill:
                     if var.ROLE_REVEAL in ("on", "team"):
-                        cli.msg(chan, messages["idle_death"].format(nck, get_reveal_role(users.get(nck))))
-                    else: # FIXME: Merge these two
-                        cli.msg(chan, (messages["idle_death_no_reveal"]).format(nck))
-                    user = users.get(nck)
+                        channels.Main.send(messages["idle_death"].format(user, get_reveal_role(user)))
+                    else:
+                        channels.Main.send(messages["idle_death_no_reveal"].format(user))
                     user.disconnected = True
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
                         add_warning(user, var.IDLE_PENALTY, users.Bot, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     add_dying(var, user, "bot", "idle", death_triggers=False)
-                pl = list_players()
+                pl = get_players()
                 x = [a for a in to_warn if a in pl]
                 if x:
-                    cli.msg(chan, messages["channel_idle_warning"].format(x))
+                    channels.Main.send(messages["channel_idle_warning"].format(x))
                 msg_targets = [p for p in to_warn_pm if p in pl]
-                mass_privmsg(cli, msg_targets, messages["player_idle_warning"].format(chan), privmsg=True)
+                for p in msg_targets:
+                    p.queue_message(messages["player_idle_warning"].format(channels.Main))
+                if msg_targets:
+                    p.send_messages()
             for dcedplayer, (timeofdc, what) in list(var.DISCONNECTED.items()):
                 mainrole = get_main_role(dcedplayer)
                 revealrole = get_reveal_role(dcedplayer)
@@ -1740,7 +1742,7 @@ def update_last_said(var, wrapper, message):
         return
 
     if var.PHASE not in ("join", "none"):
-        var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now() # FIXME
+        var.LAST_SAID_TIME[wrapper.source] = datetime.now()
 
 @event_listener("chan_join", priority=1)
 def on_join(evt, var, chan, user):
@@ -1794,16 +1796,12 @@ def return_to_village(var, target, *, show_message, new_user=None):
             if new_user is None:
                 new_user = target
 
-            var.LAST_SAID_TIME[target.nick] = datetime.now()
+            var.LAST_SAID_TIME[target] = datetime.now()
             var.DCED_LOSERS.discard(target)
 
             if new_user is not target:
                 # different users, perform a swap. This will clean up disconnected users.
                 target.swap(new_user)
-
-            if target.nick != new_user.nick:
-                # have a nickchange, update tracking vars
-                rename_player(var, new_user, target.nick)
 
             if show_message:
                 if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
@@ -1824,31 +1822,6 @@ def return_to_village(var, target, *, show_message, new_user=None):
             userlist = [u for u in userlist if u in var.DISCONNECTED]
             if len(userlist) == 1:
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
-
-def rename_player(var, user, prefix):
-    nick = user.nick
-
-    event = Event("rename_player", {})
-    event.dispatch(var, prefix, nick)
-
-    if user in var.ALL_PLAYERS:
-        if var.PHASE in var.GAME_PHASES:
-            for dictvar in (var.FINAL_ROLES,):
-                if prefix in dictvar.keys():
-                    dictvar[nick] = dictvar.pop(prefix)
-            with var.GRAVEYARD_LOCK:  # to be safe
-                if prefix in var.LAST_SAID_TIME.keys():
-                    var.LAST_SAID_TIME[nick] = var.LAST_SAID_TIME.pop(prefix)
-                if prefix in getattr(var, "IDLE_WARNED", ()):
-                    var.IDLE_WARNED.remove(prefix)
-                    var.IDLE_WARNED.add(nick)
-                if prefix in getattr(var, "IDLE_WARNED_PM", ()):
-                    var.IDLE_WARNED_PM.remove(prefix)
-                    var.IDLE_WARNED_PM.add(nick)
-
-        if var.PHASE == "join":
-            if prefix in var.GAMEMODE_VOTES:
-                var.GAMEMODE_VOTES[nick] = var.GAMEMODE_VOTES.pop(prefix)
 
 @event_listener("account_change")
 def account_change(evt, var, user):
@@ -1880,7 +1853,6 @@ def nick_change(evt, var, user, old_rawnick):
     if user not in channels.Main.users:
         return
 
-    rename_player(var, user, nick)
     # perhaps mark them as back
     return_to_village(var, user, show_message=True)
 
@@ -2372,10 +2344,8 @@ def relay(var, wrapper, message):
 
     pl = get_players()
 
-    # FIXME: this IDLE_WARNED_PM handling looks incredibly wrong and should be fixed
-    if wrapper.source in pl and wrapper.source.nick in getattr(var, "IDLE_WARNED_PM", ()):
+    if wrapper.source in pl and wrapper.source in var.IDLE_WARNED_PM:
         wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
-        var.IDLE_WARNED_PM.add(wrapper.source)
 
     if message.startswith(botconfig.CMD_CHAR):
         return
@@ -3323,10 +3293,10 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             gamemode = matches[0]
 
     if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
-        if var.GAMEMODE_VOTES.get(wrapper.source.nick) == gamemode:
+        if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
             wrapper.pm(messages["already_voted_game"].format(gamemode))
         else:
-            var.GAMEMODE_VOTES[wrapper.source.nick] = gamemode
+            var.GAMEMODE_VOTES[wrapper.source] = gamemode
             wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
     else:
         if doreply:
