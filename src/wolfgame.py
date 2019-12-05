@@ -2495,13 +2495,13 @@ def cgamemode(arg):
             channels.Main.send("Invalid mode: "+str(e))
             return False
     else:
-        cli.msg(chan, messages["game_mode_not_found"].format(modeargs[0]))
+        channels.Main.send(messages["game_mode_not_found"].format(modeargs[0]))
 
 @hook("error")
 def on_error(cli, pfx, msg):
-    if var.RESTARTING or msg.endswith("(Excess Flood)"):
+    if var.RESTARTING or msg.lower().endswith("(excess flood)"):
         _restart_program()
-    elif msg.startswith("Closing Link:"):
+    elif msg.lower().startswith("closing link:"):
         raise SystemExit
 
 @command("ftemplate", flag="F", pm=True)
