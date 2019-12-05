@@ -424,37 +424,22 @@ class User(IRCContext):
             callback()
             return
 
-        listener_id = "update_account_data." + self.name
-        listener = None # type: Optional[EventListener]
-        found_account = None
-
-        def whox_listener(evt, var, chan, user):
-            if user is self:
-                listener.remove("who_reply")
+        def whox_listener(evt, target):
+            if target is self:
+                # This is who_end because we don't care about the actual content
+                # If we got here, the account has been properly updated. Continue.
+                listener.remove("who_end")
                 callback()
 
-        def whoisaccount_listener(cli, server, nick, account):
-            nonlocal found_account
-            user = get(nick) # FIXME
-            if user is self:
-                hook.unhook(listener_id + ".acc")
-                found_account = account
-
-        def endofwhois_listener(cli, server, nick):
-            user = get(nick)  # FIXME
-            if user is self:
-                hook.unhook(listener_id + ".end")
-                self.account = found_account # will be None if the user is not logged in
-                callback()
+        listener = EventListener(whox_listener, listener_id="update_account_data." + self.name)
+        listener.install("who_end")
 
         if Features.get("WHOX", False):
             # A WHOX query performs less network noise than WHOIS, so use that if available
-            EventListener(whox_listener, listener_id=listener_id).install("who_reply")
             self.who()
         else:
             # Fallback to WHOIS
-            hook("whoisaccount", hookid=listener_id + ".acc")(whoisaccount_listener)
-            hook("endofwhois", hookid=listener_id + ".end")(endofwhois_listener)
+            self.client.send("WHOIS {0}".format(self))
 
     @property
     def nick(self): # name should be the same as nick (for length calculation)

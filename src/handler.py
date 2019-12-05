@@ -345,7 +345,7 @@ def connect_callback(cli):
 
         hook.unhook(294)
 
-    def setup_handler(evt, var, target):
+    def setup_handler(evt, target):
         from src import lagcheck
         if lagcheck: # we just got our own host back
             target.client.command_handler["privmsg"] = on_privmsg

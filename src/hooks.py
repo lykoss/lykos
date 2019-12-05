@@ -11,7 +11,7 @@ from src.context import Features
 from src.events import Event
 from src.logger import plog
 
-from src import channels, users, settings as var
+from src import channels, users
 
 ### WHO/WHOX responses handling
 
@@ -32,14 +32,13 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     8 - The status (H = Not away, G = Away, * = IRC operator, @ = Opped in the channel in 4, + = Voiced in the channel in 4)
     9 - The hop count and realname (gecos)
 
-    This fires off the "who_result" event, and dispatches it with three
-    arguments, the game state namespace, a Channel, and a User. Less
-    important attributes can be accessed via the event.params namespace.
+    This fires off the "who_result" event, and dispatches it with two
+    arguments, a Channel and a User. Less important attributes can be
+    accessed via the event.params namespace.
 
     """
 
     hop, realname = hopcount_gecos.split(" ", 1)
-    hop = int(hop)
     # We throw away the information about the operness of the user, but we probably don't need to care about that
     # We also don't directly pass which modes they have, since that's already on the channel/user
     is_away = ("G" in status)
@@ -59,8 +58,8 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
                     ch.modes[mode] = set()
                 ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=0, ip_address=None, server=server, hop_count=hop, idle_time=None, extended_who=False)
-    event.dispatch(var, ch, user)
+    event = Event("who_result", {}, away=is_away, data=0)
+    event.dispatch(ch, user)
 
 @hook("whospcrpl")
 def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
@@ -91,17 +90,15 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     13 - a - The services account name (or 0 if none/not logged in)
     14 - r - The realname (gecos)
 
-    This fires off the "who_result" event, and dispatches it with three
-    arguments, the game state namespace, a Channel, and a User. Less
-    important attributes can be accessed via the event.params namespace.
+    This fires off the "who_result" event, and dispatches it with two
+    arguments, a Channel and a User. Less important attributes can be
+    accessed via the event.params namespace.
 
     """
 
     if account == "0":
         account = None
 
-    hop = int(hop)
-    idle = int(idle)
     is_away = ("G" in status)
 
     data = int.from_bytes(data.encode(Features["CHARSET"]), "little")
@@ -122,8 +119,8 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
                     ch.modes[mode] = set()
                 ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=data, ip_address=ip_address, server=server, hop_count=hop, idle_time=idle, extended_who=True)
-    event.dispatch(var, ch, user)
+    event = Event("who_result", {}, away=is_away, data=data)
+    event.dispatch(ch, user)
 
 @hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
@@ -137,9 +134,9 @@ def end_who(cli, bot_server, bot_nick, target, rest):
     3 - The target the request was made against
     4 - A string containing some information; traditionally "End of /WHO list."
 
-    This fires off the "who_end" event, and dispatches it with two
-    arguments: The game state namespace and the channel or user the
-    request was made to, or None if it could not be resolved.
+    This fires off the "who_end" event, and dispatches it with one
+    argument: The channel or user the request was made to, or None
+    if it could not be resolved.
 
     """
 
@@ -156,7 +153,128 @@ def end_who(cli, bot_server, bot_nick, target, rest):
                 Event(name, params).dispatch(*args)
             target._pending = None
 
-    Event("who_end", {}).dispatch(var, target)
+    Event("who_end", {}).dispatch(target)
+
+### WHOIS Reponse Handling
+
+_whois_pending = {} # type: Dict[str, Dict[str, Any]]
+
+@hook("whoisuser")
+def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
+    """Set up the user for a WHOIS reply.
+
+    Ordering and meaning of arguments for a WHOIS user reply:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the requester (i.e. the bot) is on
+    2 - The nickname of the requester (i.e. the bot)
+    3 - The nickname of the target
+    4 - The ident of the target
+    5 - The host of the target
+    6 - The literal character '*'
+    7 - The realname of the target
+
+    This does not fire an event by itself, but sets up the proper data
+    for the "endofwhois" listener to fire an event. The nick is stored
+    in lowercase, as the request might not match case.
+
+    """
+
+    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
+    user.account = None # IMPORTANT! If the user is logged out, we won't know otherwise
+    _whois_pending[nick.lower()] = {"user": user, "away": False, "channels": set()}
+
+@hook("whoisaccount")
+def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
+    """Update the account of the user in a WHOIS reply.
+
+    Ordering and meaning of arguments for a WHOIS account reply:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the requester (i.e. the bot) is on
+    2 - The nickname of the requester (i.e. the bot)
+    3 - The nickname of the target
+    4 - The account of the target
+    5 - A human-friendly message, e.g. "is logged in as"
+
+    This does not fire an event by itself, but sets up the proper data
+    for the "endofwhois" listener to fire an event. The nick is stored
+    in lowercase, as the request might not match case.
+
+    """
+
+    _whois_pending[nick.lower()]["user"].account = account
+
+@hook("whoischannels")
+def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
+    """Handle WHOIS replies for the channels.
+
+    Ordering and meaning of arguments for a WHOIS channels reply:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the requester (i.e. the bot) is on
+    2 - The nickname of the requester (i.e. the bot)
+    3 - The nickname of the target
+    4 - A space-separated string of channels
+
+    This does not fire an event by itself, but sets up the proper data
+    for the "endofwhois" listener to fire an event. The nick is stored
+    in lowercase, as the request might not match case.
+
+    """
+
+    arg = "".join(Features["PREFIX"])
+    for chan in chan.split(" "):
+        ch = channels.get(chan.lstrip(arg), allow_none=True)
+        if ch is not None:
+            _whois_pending[nick.lower()].add(ch)
+
+@hook("away")
+def on_away(cli, bot_server, bot_nick, nick, message):
+    """Handle away replies for WHOIS.
+
+    Ordering and meaning of arguments for an AWAY reply:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the requester (i.e. the bot) is on
+    2 - The nickname of the requester (i.e. the bot)
+    3 - The nickname of the target
+    4 - The away message
+
+    This does not fire an event by itself, but sets up the proper data
+    for the "endofwhois" listener to fire an event. The nick is stored
+    in lowercase, as the request might not match case.
+
+    """
+
+    # This may be called even if we're not in the middle of a WHOIS
+    # In that case just ignore it; we only care about WHOIS
+    if nick.lower() in _whois_pending:
+        _whois_pending[nick.lower()]["away"] = True
+
+@hook("endofwhois")
+def on_whois_end(cli, bot_server, bot_nick, nick, message):
+    """Handle the end of WHOIS and fire events.
+
+    Ordering and meaning of arguments for an end of WHOIS reply:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the requester (i.e. the bot) is on
+    2 - The nickname of the requester (i.e. the bot)
+    3 - The nickname of the target
+    4 - A human-friendly message, usually "End of /WHOIS list."
+
+    This uses data accumulated from the above WHOIS listeners, and
+    fires the "who_result" event (once per shared channel with the bot)
+    and the "who_end" event with the relevant User instance as the arg.
+
+    """
+
+    values = _whois_pending.pop(nick.lower())
+    event = Event("who_result", {}, away=values["away"], data=0)
+    for chan in values["channels"]:
+        event.dispatch(chan, values["user"])
+    Event("who_end", {}).dispatch(values["user"])
 
 ### Host changing handling
 
@@ -220,7 +338,7 @@ def get_features(cli, rawnick, *features):
     # features which take multiple arguments separated by comma (but are not params)
     # Note: CMDS is specific to UnrealIRCD
     comma_list_features = ("CHANMODES", "EXTBAN", "CMDS")
-    # features which take multiple argumenst separated by semicolon (but are not params)
+    # features which take multiple arguments separated by semicolon (but are not params)
     # Note: SSL is specific to InspIRCD
     semi_list_features = ("SSL",)
 
@@ -325,15 +443,15 @@ def mode_change(cli, rawnick, chan, mode, *targets):
         # 2) other bots might start a fight over modes
         # 3) recursion; we see our own mode changes.
         evt = Event("sync_modes", {})
-        evt.dispatch(var)
+        evt.dispatch()
         return
 
     actor = users.get(rawnick, allow_none=True)
     target = channels.add(chan, cli)
-    target.queue("mode_change", {"mode": mode, "targets": targets}, (var, actor, target))
+    target.queue("mode_change", {"mode": mode, "targets": targets}, (actor, target))
 
 @event_listener("mode_change", 0) # This should fire before anything else!
-def apply_mode_changes(evt, var, actor, target):
+def apply_mode_changes(evt, actor, target):
     """Apply all mode changes before any other event."""
 
     target.update_modes(actor, evt.data.pop("mode"), evt.data.pop("targets"))
@@ -425,7 +543,7 @@ def handle_endlistmode(cli, chan, mode):
     """Handle the end of a list mode listing."""
 
     ch = channels.add(chan, cli)
-    ch.queue("end_listmode", {}, (var, ch, mode))
+    ch.queue("end_listmode", {}, (ch, mode))
 
 @hook("endofbanlist")
 def end_banlist(cli, server, bot_nick, chan, message):
@@ -509,7 +627,7 @@ def on_nick_change(cli, old_rawnick, nick):
     user = users.get(old_rawnick, allow_bot=True)
     user.nick = nick
 
-    Event("nick_change", {}).dispatch(var, user, old_rawnick)
+    Event("nick_change", {}).dispatch(user, old_rawnick)
 
 ### ACCOUNT handling
 
@@ -530,7 +648,7 @@ def on_account_change(cli, rawnick, account):
     user = users.get(rawnick)
     user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
 
-    Event("account_change", {}).dispatch(var, user)
+    Event("account_change", {}).dispatch(user)
 
 ### JOIN handling
 
@@ -573,7 +691,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         ch.mode(Features["CHANMODES"][0])
         ch.who()
 
-    Event("chan_join", {}).dispatch(var, ch, user)
+    Event("chan_join", {}).dispatch(ch, user)
 
 ### PART handling
 
@@ -595,7 +713,7 @@ def part_chan(cli, rawnick, chan, reason=""):
 
     ch = channels.add(chan, cli)
     user = users.get(rawnick)
-    Event("chan_part", {}).dispatch(var, ch, user, reason)
+    Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
         ch._clear()
@@ -621,7 +739,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     ch = channels.add(chan, cli)
     actor = users.get(rawnick, allow_none=True)
     user = users.get(target)
-    Event("chan_kick", {}).dispatch(var, ch, actor, user, reason)
+    Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
         ch._clear()
@@ -655,7 +773,7 @@ def on_quit(cli, rawnick, reason):
     """
 
     user = users.get(rawnick, allow_bot=True)
-    Event("server_quit", {}).dispatch(var, user, reason)
+    Event("server_quit", {}).dispatch(user, reason)
 
     for chan in set(user.channels):
         if user is users.Bot:

@@ -178,7 +178,7 @@ def connect_callback():
     if SIGUSR2:
         signal.signal(SIGUSR2, sighandler)
 
-    def who_end(event, var, request):
+    def who_end(event, request):
         if request is channels.Main:
             # Devoice all on connect
             mode = hooks.Features["PREFIX"]["+"]
@@ -201,7 +201,7 @@ def connect_callback():
 
             who_end_listener.remove("who_end")
 
-    def end_listmode(event, var, chan, mode):
+    def end_listmode(event, chan, mode):
         if chan is channels.Main and mode == var.QUIET_MODE:
             pending = []
             for quiet in chan.modes.get(mode, ()):
@@ -212,7 +212,7 @@ def connect_callback():
 
             end_listmode_listener.remove("end_listmode")
 
-    def mode_change(event, var, actor, target):
+    def mode_change(event, actor, target):
         if target is channels.Main: # we may or may not be opped; assume we are
             accumulator.send([])
             next(accumulator, None)
@@ -346,7 +346,7 @@ def fsync(var, wrapper, message):
     sync_modes(var)
 
 @event_listener("sync_modes")
-def on_sync_modes(evt, var):
+def on_sync_modes(evt): # FIXME: This uses var
     sync_modes(var)
 
 def sync_modes(var):
@@ -476,7 +476,7 @@ def restart_program(var, wrapper, message):
 
     hooks.quit(wrapper, msg.format(wrapper.source, message.strip()))
 
-    def restart_buffer(evt, var, user, reason):
+    def restart_buffer(evt, user, reason):
         # restart the bot once our quit message goes though to ensure entire IRC queue is sent
         if user is users.Bot:
             _restart_program(mode)
@@ -662,8 +662,9 @@ def join_timer_handler(var):
             var.PINGING_IFS = False
             return
 
-        def get_altpingers(event, var, chan, user):
-            if event.params.away or user.stasis_count() or not var.PINGING_IFS or user is users.Bot or user in pl:
+        def get_altpingers(event, chan, user):
+            if (event.params.away or user.stasis_count() or not var.PINGING_IFS or
+                chan is not channels.Main or user is users.Bot or user in pl):
                 return
 
             temp = user.lower()
@@ -672,7 +673,7 @@ def join_timer_handler(var):
                 var.PINGED_ALREADY_ACCS.add(temp.account)
                 return
 
-        def ping_altpingers(event, var, request):
+        def ping_altpingers(event, request):
             if request is channels.Main:
                 var.PINGING_IFS = False
                 if to_ping:
@@ -1073,13 +1074,13 @@ def fleave(var, wrapper, message):
             return
 
 @event_listener("chan_kick")
-def kicked_modes(evt, var, chan, actor, target, reason):
+def kicked_modes(evt, chan, actor, target, reason): # FIXME: This uses var
     if target is users.Bot and chan is channels.Main:
         chan.join()
     var.OLD_MODES.pop(target, None)
 
 @event_listener("chan_part")
-def parted_modes(evt, var, chan, user, reason):
+def parted_modes(evt, chan, user, reason): # FIXME: This uses var
     if user is users.Bot and chan is channels.Main:
         chan.join()
     var.OLD_MODES.pop(user, None)
@@ -1744,7 +1745,7 @@ def update_last_said(var, wrapper, message):
         var.LAST_SAID_TIME[wrapper.source] = datetime.now()
 
 @event_listener("chan_join", priority=1)
-def on_join(evt, var, chan, user):
+def on_join(evt, chan, user): # FIXME: This uses var
     if user is users.Bot:
         plog("Joined {0}".format(chan))
     if chan is not channels.Main:
@@ -1820,7 +1821,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 @event_listener("account_change")
-def account_change(evt, var, user):
+def account_change(evt, user): # FIXME: This uses var
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
@@ -1836,13 +1837,11 @@ def account_change(evt, var, user):
     return_to_village(var, user, show_message=True)
 
 @event_listener("nick_change")
-def nick_change(evt, var, user, old_rawnick):
-    nick = users.parse_rawnick_as_dict(old_rawnick)["nick"] # FIXME: We won't need that when all variables hold User instances
-
+def nick_change(evt, user, old_rawnick): # FIXME: This function needs some way to have var
     if user not in var.DISCONNECTED and user in get_players() and re.search(var.GUEST_NICK_PATTERN, user.nick):
         if var.PHASE != "join":
             channels.Main.mode(["-v", user.nick])
-        temp = users.FakeUser(None, nick, user.ident, user.host, user.realname, user.account)
+        temp = users.FakeUser(None, user.nick, user.ident, user.host, user.realname, user.account)
         leave(var, "badnick", temp) # pass in a fake user with the old nick (since the user holds the new nick)
         return # Don't do anything else; they're using a guest/away nick
 
@@ -1857,15 +1856,15 @@ def cleanup_user(evt, var, user):
     var.LAST_GOAT.pop(user, None)
 
 @event_listener("chan_part")
-def left_channel(evt, var, chan, user, reason):
+def left_channel(evt, chan, user, reason): # FIXME: This uses var
     leave(var, "part", user, chan)
 
-@event_listener("chan_kick")
-def channel_kicked(evt, var, chan, actor, user, reason):
+@event_listener("chan_kick") # FIXME: This uses var
+def channel_kicked(evt, chan, actor, user, reason):
     leave(var, "kick", user, chan)
 
 @event_listener("server_quit")
-def quit_server(evt, var, user, reason):
+def quit_server(evt, user, reason): # FIXME: This uses var
     leave(var, "quit", user, reason)
 
 def leave(var, what, user, why=None):
@@ -2780,14 +2779,14 @@ def show_admins(var, wrapper, message):
 
     var.ADMIN_PINGING = True
 
-    def admin_whoreply(event, var, chan, user):
+    def admin_whoreply(event, chan, user):
         if not var.ADMIN_PINGING or chan is not channels.Main:
             return
 
         if user.is_admin() and user is not users.Bot and not event.params.away:
             admins.append(user)
 
-    def admin_endwho(event, var, target):
+    def admin_endwho(event, target):
         if not var.ADMIN_PINGING or target is not channels.Main:
             return
 
