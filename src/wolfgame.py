@@ -780,10 +780,9 @@ def join(var, wrapper, message):
     if var.PHASE in ("none", "join"):
         if wrapper.private:
             return
-        if var.ACCOUNTS_ONLY:
-            if wrapper.source.account is None:
-                wrapper.pm(messages["not_logged_in"])
-                return
+        if wrapper.source.account is None:
+            wrapper.pm(messages["not_logged_in"])
+            return
         if evt.data["join_player"](var, wrapper) and message:
             evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
 
@@ -1012,7 +1011,7 @@ def fjoin(var, wrapper, message):
                 continue
 
         if maybe_user is not None:
-            if not botconfig.DEBUG_MODE and var.ACCOUNTS_ONLY:
+            if not botconfig.DEBUG_MODE:
                 if maybe_user.account is None:
                     wrapper.pm(messages["account_not_logged_in"].format(maybe_user))
                     return
@@ -1810,15 +1809,12 @@ def return_to_village(var, target, *, show_message, new_user=None):
                     channels.Main.send(messages["player_return"].format(new_user))
                 else:
                     channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
-        else:
+        elif target.account:
             # this particular user doesn't exist in var.DISCONNECTED, but that doesn't
             # mean that they aren't dced. They may have rejoined as a different nick,
             # for example, and we want to mark them as back without requiring them to do
             # a !swap.
-            if var.ACCOUNTS_ONLY or target.account:
-                userlist = users.get(account=target.account, allow_multiple=True)
-            else: # match host (hopefully the ircd uses vhosts to differentiate users)
-                userlist = users.get(host=target.host, allow_multiple=True)
+            userlist = users.get(account=target.account, allow_multiple=True)
             userlist = [u for u in userlist if u in var.DISCONNECTED]
             if len(userlist) == 1:
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
@@ -1828,7 +1824,7 @@ def account_change(evt, var, user):
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
-    if user.account is None and var.ACCOUNTS_ONLY and user in get_players():
+    if user.account is None and user in get_players():
         leave(var, "account", user)
         if var.PHASE == "join":
             user.send(messages["account_midgame_change"], notice=True)
