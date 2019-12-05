@@ -871,7 +871,7 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             for player in pl:
                 if users.equals(player.account, temp.account):
                     if who is wrapper.source:
-                        who.send(messages["account_already_joined_self"].format(who), notice=True)
+                        who.send(messages["account_already_joined_self"].format(player), notice=True)
                     else:
                         who.send(messages["account_already_joined_other"].format(who), notice=True)
                     return
@@ -1830,7 +1830,7 @@ def account_change(evt, var, user):
             user.send(messages["account_midgame_change"], notice=True)
         else:
             channels.Main.mode(["-v", user.nick])
-            user.send(messages["account_reidentify"].format(user.account), notice=True)
+            user.send(messages["account_reidentify"].format(user), notice=True)
 
     # if they were gone, maybe mark them as back
     return_to_village(var, user, show_message=True)
@@ -3120,12 +3120,14 @@ def player_stats(var, wrapper, message):
         account = user.account
     elif not count:
         account = params[0]
+    else:
+        account = None
 
     if account is None:
         key = "account_not_logged_in"
         if user is wrapper.source:
             key = "not_logged_in"
-        wrapper.pm(messages[key])
+        wrapper.pm(messages[key].format(params[0]))
         return
 
     # List the player's total games for all roles if no role is given

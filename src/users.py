@@ -413,6 +413,12 @@ class User(IRCContext):
 
         :param callback: Callback to execute when account data is fully updated
         """
+
+        # Nothing to update for fake nicks
+        if self.is_fake:
+            callback()
+            return
+
         if self.account is not None and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
             callback()
