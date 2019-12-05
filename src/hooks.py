@@ -175,14 +175,13 @@ def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
     7 - The realname of the target
 
     This does not fire an event by itself, but sets up the proper data
-    for the "endofwhois" listener to fire an event. The nick is stored
-    in lowercase, as the request might not match case.
+    for the "endofwhois" listener to fire an event.
 
     """
 
     user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
     user.account = None # IMPORTANT! If the user is logged out, we won't know otherwise
-    _whois_pending[nick.lower()] = {"user": user, "away": False, "channels": set()}
+    _whois_pending[nick] = {"user": user, "away": False, "channels": set()}
 
 @hook("whoisaccount")
 def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
@@ -198,12 +197,11 @@ def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
     5 - A human-friendly message, e.g. "is logged in as"
 
     This does not fire an event by itself, but sets up the proper data
-    for the "endofwhois" listener to fire an event. The nick is stored
-    in lowercase, as the request might not match case.
+    for the "endofwhois" listener to fire an event.
 
     """
 
-    _whois_pending[nick.lower()]["user"].account = account
+    _whois_pending[nick]["user"].account = account
 
 @hook("whoischannels")
 def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
@@ -218,16 +216,15 @@ def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
     4 - A space-separated string of channels
 
     This does not fire an event by itself, but sets up the proper data
-    for the "endofwhois" listener to fire an event. The nick is stored
-    in lowercase, as the request might not match case.
+    for the "endofwhois" listener to fire an event.
 
     """
 
     arg = "".join(Features["PREFIX"])
-    for chan in chan.split(" "):
+    for chan in chans.split(" "):
         ch = channels.get(chan.lstrip(arg), allow_none=True)
         if ch is not None:
-            _whois_pending[nick.lower()].add(ch)
+            _whois_pending[nick]["channels"].add(ch)
 
 @hook("away")
 def on_away(cli, bot_server, bot_nick, nick, message):
@@ -242,15 +239,14 @@ def on_away(cli, bot_server, bot_nick, nick, message):
     4 - The away message
 
     This does not fire an event by itself, but sets up the proper data
-    for the "endofwhois" listener to fire an event. The nick is stored
-    in lowercase, as the request might not match case.
+    for the "endofwhois" listener to fire an event.
 
     """
 
     # This may be called even if we're not in the middle of a WHOIS
     # In that case just ignore it; we only care about WHOIS
-    if nick.lower() in _whois_pending:
-        _whois_pending[nick.lower()]["away"] = True
+    if nick in _whois_pending:
+        _whois_pending[nick]["away"] = True
 
 @hook("endofwhois")
 def on_whois_end(cli, bot_server, bot_nick, nick, message):
@@ -270,7 +266,7 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
 
     """
 
-    values = _whois_pending.pop(nick.lower())
+    values = _whois_pending.pop(nick)
     event = Event("who_result", {}, away=values["away"], data=0)
     for chan in values["channels"]:
         event.dispatch(chan, values["user"])

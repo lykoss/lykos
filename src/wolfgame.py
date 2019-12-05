@@ -781,9 +781,6 @@ def join(var, wrapper, message):
     if var.PHASE in ("none", "join"):
         if wrapper.private:
             return
-        if wrapper.source.account is None:
-            wrapper.pm(messages["not_logged_in"])
-            return
         if evt.data["join_player"](var, wrapper) and message:
             evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
 
@@ -797,8 +794,12 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
 
     if wrapper.target is not channels.Main:
         return False
-
-    wrapper.source.update_account_data(lambda: _join_player(var, wrapper, who, forced, sanity=sanity))
+    def _join():
+        if not forced and wrapper.source.account is None:
+            wrapper.pm(messages["not_logged_in"])
+            return
+        _join_player(var, wrapper, who, forced, sanity=sanity)
+    wrapper.source.update_account_data(_join)
 
 def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     pl = get_players()
@@ -2514,7 +2515,7 @@ def ftemplate(var, wrapper, message):
             wrapper.reply(messages["no_templates"])
         else:
             tpls = ["{0} (+{1})".format(name, "".join(sorted(flags))) for name, flags in tpls]
-            wrapper.reply(tpls, sep=", ")
+            wrapper.reply(*tpls, sep=", ")
     elif len(params) == 1:
         wrapper.reply(messages["not_enough_parameters"])
     else:
@@ -2582,7 +2583,7 @@ def fflags(var, wrapper, message):
         if not parts:
             wrapper.reply(messages["no_access"])
         else:
-            wrapper.reply(parts, sep=", ")
+            wrapper.reply(*parts, sep=", ")
     elif len(params) == 1:
         # display access for the given user
         acc, hm = parse_warning_target(params[0], lower=True)
