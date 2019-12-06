@@ -11,7 +11,7 @@ from src.context import Features
 from src.events import Event
 from src.logger import plog
 
-from src import channels, users
+from src import context, channels, users
 
 ### WHO/WHOX responses handling
 
@@ -180,8 +180,7 @@ def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
     """
 
     user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
-    user.account = None # IMPORTANT! If the user is logged out, we won't know otherwise
-    _whois_pending[nick] = {"user": user, "away": False, "channels": set()}
+    _whois_pending[nick] = {"user": user, "account": None, "away": False, "channels": set()}
 
 @hook("whoisaccount")
 def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
@@ -201,7 +200,7 @@ def on_whois_account(cli, bot_server, bot_nick, nick, account, logged):
 
     """
 
-    _whois_pending[nick]["user"].account = account
+    _whois_pending[nick]["account"] = account
 
 @hook("whoischannels")
 def on_whois_channels(cli, bot_server, bot_nick, nick, chans):
@@ -267,6 +266,14 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
     """
 
     values = _whois_pending.pop(nick)
+    # check for account change
+    user = values["user"]
+    if {user.account, values["account"]} != {None} and not context.equals(user.account, values["account"]):
+        # first check tests if both are None, and skips over this if so
+        old_account = user.account
+        user.account = values["account"]
+        Event("account_change", {}).dispatch(user, old_account)
+
     event = Event("who_result", {}, away=values["away"], data=0)
     for chan in values["channels"]:
         event.dispatch(chan, values["user"])
@@ -289,9 +296,9 @@ def host_hidden(cli, server, nick, host, message):
     """
 
     # Either we get our own nick, or the nick is a UID
-    # If it's our nick, update ourself. Otherwise, ignore
+    # If it's our nick, update ourselves. Otherwise, ignore.
     # UnrealIRCd does some weird stuff where it sends our host twice,
-    # Once with our nick and once with our UID. We ignore the last one
+    # Once with our nick and once with our UID. We ignore the last one.
 
     if nick == users.Bot.nick:
         users.Bot = users.Bot.with_host(host)
@@ -621,9 +628,10 @@ def on_nick_change(cli, old_rawnick, nick):
     """
 
     user = users.get(old_rawnick, allow_bot=True)
+    old_nick = user.nick
     user.nick = nick
 
-    Event("nick_change", {}).dispatch(user, old_rawnick)
+    Event("nick_change", {}).dispatch(user, old_nick)
 
 ### ACCOUNT handling
 
@@ -642,9 +650,10 @@ def on_account_change(cli, rawnick, account):
     """
 
     user = users.get(rawnick)
-    user.account = account # We don't pass it to add(), since we want to grab the existing one (if any)
+    old_account = user.account
+    user.account = account
 
-    Event("account_change", {}).dispatch(user)
+    Event("account_change", {}).dispatch(user, old_account)
 
 ### JOIN handling
 
@@ -756,7 +765,7 @@ def quit(context, message=""):
     with cli:
         cli.send("QUIT :{0}".format(message))
 
-@hook("quit") # FIXME: Host change will not properly swap out the person
+@hook("quit")
 def on_quit(cli, rawnick, reason):
     """Handle a user quitting the IRC server.
 
@@ -793,12 +802,6 @@ def on_chghost(cli, rawnick, ident, host):
     """
 
     user = users.get(rawnick)
-    new = users.add(cli, nick=user.nick, ident=ident, host=host, realname=user.realname, account=user.account)
-
-    if user is not new:
-        new.channels = user.channels.copy()
-        new.timestamp = user.timestamp # We lie, but it's ok
-        for chan in set(user.channels):
-            chan.remove_user(user)
-            chan.users.add(new)
-        user.swap(new)
+    # we avoid multiple swaps if we change the rawnick instead of ident and host separately
+    new_rawnick = "{0}!{1}@{2}".format(user.nick, ident, host)
+    user.rawnick = new_rawnick

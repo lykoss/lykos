@@ -505,18 +505,16 @@ def mark_prefer_notice(var, wrapper, message):
     temp = wrapper.source.lower()
 
     account = temp.account
-    userhost = temp.userhost
 
     if account is None:
         wrapper.pm(messages["not_logged_in"])
         return
 
     notice = wrapper.source.prefers_notice()
-    notice_set, value = (var.PREFER_NOTICE, userhost) if account is None else (var.PREFER_NOTICE_ACCS, account)
-    action, toggle = (notice_set.discard, "off") if notice else (notice_set.add, "on")
+    action, toggle = (var.PREFER_NOTICE_ACCS.discard, "off") if notice else (var.PREFER_NOTICE_ACCS.add, "on")
 
-    action(value)
-    db.toggle_notice(account, userhost)
+    action(account)
+    db.toggle_notice(account, None)
     wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", pm=True, phases=("join", "day", "night"))
@@ -1802,7 +1800,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
 
 @event_listener("account_change")
-def account_change(evt, user): # FIXME: This uses var
+def account_change(evt, user, old_account): # FIXME: This uses var
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
@@ -1816,7 +1814,7 @@ def account_change(evt, user): # FIXME: This uses var
         return_to_village(var, user, show_message=True)
 
 @event_listener("nick_change")
-def nick_change(evt, user, old_rawnick): # FIXME: This function needs some way to have var
+def nick_change(evt, user, old_nick): # FIXME: This function needs some way to have var
     if user not in channels.Main.users:
         return
 

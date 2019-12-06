@@ -172,8 +172,8 @@ class User(IRCContext):
 
         self._ident = ident
         self._host = host
-        self.realname = realname
-        self.account = account
+        self._realname = realname
+        self._account = account
         self.channels = {}
         self.timestamp = time.time()
         self.sets = []
@@ -182,11 +182,13 @@ class User(IRCContext):
         self.dict_values = []
 
         if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
+            # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
+            # which store by hash. As such, mutating the properties is safe.
             self = Bot
-            self.ident = ident
-            self.host = host
-            self.realname = realname
-            self.account = account
+            self._ident = ident
+            self._host = host
+            self._realname = realname
+            self._account = account
             self.timestamp = time.time()
 
         elif ident is not None and host is not None:
@@ -194,7 +196,7 @@ class User(IRCContext):
             users.add(Bot)
             if self in users:
                 for user in users:
-                    if self == user:
+                    if self.partial_match(user):
                         self = user
                         break
 
@@ -204,8 +206,8 @@ class User(IRCContext):
             # and so the instance is hashable. Being hashable, it can be checked
             # for set containment, and exactly one instance in that set will be
             # equal (since the hash is based off of the ident and host, and the
-            # comparisons check for all non-None attributes, two instances cannot
-            # possibly be equal while having a different hash).
+            # comparisons check for all those two attributes among others, two
+            # instances cannot possibly be equal while having a different hash).
             #
             # In this case, however, at least the ident or the host is missing,
             # and so the hash cannot be calculated. This means that two instances
@@ -235,7 +237,7 @@ class User(IRCContext):
             users = set(_users)
             users.add(Bot)
             for user in users:
-                if self == user:
+                if self.partial_match(user):
                     if potential is None:
                         potential = user
                     else:
@@ -270,9 +272,17 @@ class User(IRCContext):
     def __hash__(self):
         if self.ident is None or self.host is None:
             raise ValueError("cannot hash a User with no ident or host")
-        return hash((self.ident, self.host))
+        return hash((self.nick, self.ident, self.host, self.realname, self.account))
 
     def __eq__(self, other):
+        return self is other
+
+    def partial_match(self, other):
+        """Test if our non-None properties match the non-None properties on the other object.
+
+        :param other: Object to compare with
+        :returns: True if `other` is a User object and the non-None properties match our non-None properties.
+        """
         return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
 
     # User objects are not copyable - this is a deliberate design decision
@@ -311,7 +321,7 @@ class User(IRCContext):
                 if dv[key] is self:
                     dv[key] = new
 
-        # It is the containers' reponsibility to properly remove themself from the users
+        # It is the containers' responsibility to properly remove themselves from the users
         # So if any list is non-empty, something went terribly wrong
         assert not self.lists + self.sets + self.dict_keys + self.dict_values
 
@@ -447,22 +457,31 @@ class User(IRCContext):
 
     @nick.setter
     def nick(self, nick):
-        self.name = nick
-        if self is Bot: # update the client's nickname as well
+        global Bot
+        is_bot = False
+        if self is Bot:
             self.client.nickname = nick
+            is_bot = True
+        new = User(self.client, nick, self.ident, self.host, self.realname, self.account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
-    def ident(self): # prevent changing ident and host after they were set (so hash remains the same)
+    def ident(self):
         return self._ident
 
     @ident.setter
     def ident(self, ident):
-        if self._ident is None:
-            self._ident = ident
-            if self is Bot:
-                self.client.ident = ident
-        elif self._ident != ident:
-            raise ValueError("may not change the ident of a live user")
+        global Bot
+        is_bot = False
+        if self is Bot:
+            self.client.ident = ident
+            is_bot = True
+        new = User(self.client, self.nick, ident, self.host, self.realname, self.account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
     def host(self):
@@ -470,12 +489,15 @@ class User(IRCContext):
 
     @host.setter
     def host(self, host):
-        if self._host is None:
-            self._host = host
-            if self is Bot:
-                self.client.hostmask = host
-        elif self._host != host:
-            raise ValueError("may not change the host of a live user")
+        global Bot
+        is_bot = False
+        if self is Bot:
+            self.client.hostmask = host
+            is_bot = True
+        new = User(self.client, self.nick, self.ident, host, self.realname, self.account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
     def realname(self):
@@ -483,9 +505,15 @@ class User(IRCContext):
 
     @realname.setter
     def realname(self, realname):
-        self._realname = realname
+        global Bot
+        is_bot = False
         if self is Bot:
             self.client.real_name = realname
+            is_bot = True
+        new = User(self.client, self.nick, self.ident, self.host, realname, self.account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
     def account(self): # automatically converts "0" and "*" to None
@@ -493,9 +521,14 @@ class User(IRCContext):
 
     @account.setter
     def account(self, account):
+        global Bot
         if account in ("0", "*"):
             account = None
-        self._account = account
+        is_bot = self is Bot
+        new = User(self.client, self.nick, self.ident, self.host, self.realname, account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
     def rawnick(self):
@@ -505,17 +538,18 @@ class User(IRCContext):
 
     @rawnick.setter
     def rawnick(self, rawnick):
-        self.nick, self.ident, self.host = parse_rawnick(rawnick)
-
-    @property
-    def userhost(self):
-        if self.ident is None or self.host is None:
-            return None
-        return "{self.ident}@{self.host}".format(self=self)
-
-    @userhost.setter
-    def userhost(self, userhost):
-        nick, self.ident, self.host = parse_rawnick(userhost)
+        global Bot
+        nick, ident, host = parse_rawnick(rawnick)
+        is_bot = False
+        if self is Bot:
+            self.client.nickname = nick
+            self.client.ident = ident
+            self.client.hostmask = host
+            is_bot = True
+        new = User(self.client, nick, ident, host, self.realname, self.account)
+        self.swap(new)
+        if is_bot:
+            Bot = new
 
     @property
     def disconnected(self):
