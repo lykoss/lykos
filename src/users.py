@@ -587,7 +587,7 @@ class FakeUser(User):
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
     def __new__(cls, cli, nick):
-        self = super().__new__(cls, cli, nick, None, None, None, None)
+        self = super().__new__(cls, cli, nick, None, None, None)
         self.modes = set()
         return self
 
