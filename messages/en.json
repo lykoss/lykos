@@ -1236,6 +1236,7 @@
     "db_gstats_win": "{0} wins: {1} ({2:.0%})",
     "db_gstats_total": "Total games: {0}",
     "db_gstats_gm_none": "No games have been played in the {0!mode} game mode.",
+    "db_gstats_gm_none_all": "No games have been played.",
     "db_gstats_gm_p": "{0:bold}p: {1}",
     "db_gstats_gm_all_total": "Total games: {0} | {1:join_simple}",
     "db_gstats_gm_specific_total": "Total games ({0!mode:bold}): {1} | {2:join_simple}",

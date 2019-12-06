@@ -430,6 +430,8 @@ def get_game_totals(mode):
 
     total_games = c.fetchone()[0]
     if not total_games:
+        if mode == "all":
+            return messages["db_gstats_gm_none_all"]
         return messages["db_gstats_gm_none"].format(mode)
 
     if mode == "all":
