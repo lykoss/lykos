@@ -45,7 +45,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
+    user = users.add(cli, nick=nick, ident=ident, host=host)
     ch = None
     if not channels.predicate(chan): # returns True if it's not a channel
         ch = channels.add(chan, cli)
@@ -105,7 +105,7 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
+    user = users.add(cli, nick=nick, ident=ident, host=host)
     user.account = account # set it here so it updates if the user already exists
 
     ch = None
@@ -179,7 +179,7 @@ def on_whois_user(cli, bot_server, bot_nick, nick, ident, host, sep, realname):
 
     """
 
-    user = users.add(cli, nick=nick, ident=ident, host=host, realname=realname)
+    user = users.add(cli, nick=nick, ident=ident, host=host)
     _whois_pending[nick] = {"user": user, "account": None, "away": False, "channels": set()}
 
 @hook("whoisaccount")
@@ -685,7 +685,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch = channels.add(chan, cli)
     ch.state = channels._States.Joined
 
-    user = users.add(cli, nick=rawnick, realname=realname, account=account)
+    user = users.add(cli, nick=rawnick, account=account)
     ch.users.add(user)
     user.channels[ch] = set()
     # mark the user as here, in case they used to be connected before but left

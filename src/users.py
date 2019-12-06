@@ -16,18 +16,18 @@ Bot = None # bot instance
 _users = set()
 _ghosts = set()
 
-_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
+_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
     """Return the matching user(s) from the user list.
 
-    This takes up to 5 positional arguments (nick, ident, host, realname,
-    account) and may take up to three keyword-only arguments:
+    This takes up to 4 positional arguments (nick, ident, host, account)
+    and may take up to three keyword-only arguments:
 
     - allow_multiple (defaulting to False) allows multiple matches,
       and returns a list, even if there's only one match;
@@ -55,7 +55,7 @@ def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_
 
     sentinel = object()
 
-    temp = User(sentinel, nick, ident, host, realname, account)
+    temp = User(sentinel, nick, ident, host, account)
     if temp.client is not sentinel: # actual client
         return [temp] if allow_multiple else temp
 
@@ -71,18 +71,18 @@ def get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_
 
     if len(potential) > 1:
         raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+              _arg_msg.format(nick, ident, host, account, allow_bot))
 
     if not allow_none:
-        raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
+        raise KeyError(_arg_msg.format(nick, ident, host, account, allow_bot))
 
     return None
 
-def add(cli, *, nick, ident=None, host=None, realname=None, account=None):
+def add(cli, *, nick, ident=None, host=None, account=None):
     """Create a new user, add it to the user list and return it.
 
-    This function takes up to 5 keyword-only arguments (and one positional
-    argument, cli): nick, ident, host, realname and account.
+    This function takes up to 4 keyword-only arguments (and one positional
+    argument, cli): nick, ident, host, and account.
     With the exception of the first one, any parameter can be omitted.
 
     """
@@ -94,7 +94,7 @@ def add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     if predicate(nick):
         cls = FakeUser
 
-    new = cls(cli, nick, ident, host, realname, account)
+    new = cls(cli, nick, ident, host, account)
 
     if new is not Bot:
         try:
@@ -166,13 +166,12 @@ class User(IRCContext):
 
     is_user = True
 
-    def __new__(cls, cli, nick, ident, host, realname, account):
+    def __new__(cls, cli, nick, ident, host, account):
         self = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
 
         self._ident = ident
         self._host = host
-        self._realname = realname
         self._account = account
         self.channels = {}
         self.timestamp = time.time()
@@ -181,13 +180,12 @@ class User(IRCContext):
         self.dict_keys = []
         self.dict_values = []
 
-        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
+        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.account} == {None}:
             # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
             # which store by hash. As such, mutating the properties is safe.
             self = Bot
             self._ident = ident
             self._host = host
-            self._realname = realname
             self._account = account
             self.timestamp = time.time()
 
@@ -252,10 +250,10 @@ class User(IRCContext):
         pass # everything that needed to be done was done in __new__
 
     def __str__(self):
-        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(self=self)
+        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}:{self.account}".format(self=self)
 
     def __repr__(self):
-        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(self=self)
+        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.account!r}, {self.channels!r})".format(self=self)
 
     def __format__(self, format_spec):
         if format_spec == "@":
@@ -270,9 +268,12 @@ class User(IRCContext):
         return super().__format__(format_spec)
 
     def __hash__(self):
+        # check intentionally omits nick and account: we allow those to be None and the object to still be hashable;
+        # nick may be None initially upon bot registration/connection until we know what nick we actually have.
+        # account may be None for normal operation for any user.
         if self.ident is None or self.host is None:
             raise ValueError("cannot hash a User with no ident or host")
-        return hash((self.nick, self.ident, self.host, self.realname, self.account))
+        return hash((self.nick, self.ident, self.host, self.account))
 
     def __eq__(self, other):
         return self is other
@@ -283,7 +284,7 @@ class User(IRCContext):
         :param other: Object to compare with
         :returns: True if `other` is a User object and the non-None properties match our non-None properties.
         """
-        return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
+        return self._compare(other, __class__, "nick", "ident", "host", "account")
 
     # User objects are not copyable - this is a deliberate design decision
     # Therefore, those two functions here only return the object itself
@@ -326,7 +327,7 @@ class User(IRCContext):
         assert not self.lists + self.sets + self.dict_keys + self.dict_values
 
     def lower(self):
-        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
+        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
@@ -462,7 +463,7 @@ class User(IRCContext):
         if self is Bot:
             self.client.nickname = nick
             is_bot = True
-        new = User(self.client, nick, self.ident, self.host, self.realname, self.account)
+        new = User(self.client, nick, self.ident, self.host, self.account)
         self.swap(new)
         if is_bot:
             Bot = new
@@ -478,7 +479,7 @@ class User(IRCContext):
         if self is Bot:
             self.client.ident = ident
             is_bot = True
-        new = User(self.client, self.nick, ident, self.host, self.realname, self.account)
+        new = User(self.client, self.nick, ident, self.host, self.account)
         self.swap(new)
         if is_bot:
             Bot = new
@@ -494,23 +495,7 @@ class User(IRCContext):
         if self is Bot:
             self.client.hostmask = host
             is_bot = True
-        new = User(self.client, self.nick, self.ident, host, self.realname, self.account)
-        self.swap(new)
-        if is_bot:
-            Bot = new
-
-    @property
-    def realname(self):
-        return self._realname
-
-    @realname.setter
-    def realname(self, realname):
-        global Bot
-        is_bot = False
-        if self is Bot:
-            self.client.real_name = realname
-            is_bot = True
-        new = User(self.client, self.nick, self.ident, self.host, realname, self.account)
+        new = User(self.client, self.nick, self.ident, host, self.account)
         self.swap(new)
         if is_bot:
             Bot = new
@@ -525,7 +510,7 @@ class User(IRCContext):
         if account in ("0", "*"):
             account = None
         is_bot = self is Bot
-        new = User(self.client, self.nick, self.ident, self.host, self.realname, account)
+        new = User(self.client, self.nick, self.ident, self.host, account)
         self.swap(new)
         if is_bot:
             Bot = new
@@ -546,7 +531,7 @@ class User(IRCContext):
             self.client.ident = ident
             self.client.hostmask = host
             is_bot = True
-        new = User(self.client, nick, ident, host, self.realname, self.account)
+        new = User(self.client, nick, ident, host, self.account)
         self.swap(new)
         if is_bot:
             Bot = new
@@ -612,14 +597,14 @@ class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, 
             # we don't have full details on our ident yet; setting host now causes bugs down the road since
             # ident will subsequently not update. We'll pick up the new host whenever we finish setting ourselves up
             return self
-        new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.realname, self.account)
+        new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.account)
         if new is not self:
             new.modes = set(self.modes)
             new.channels = {chan: set(modes) for chan, modes in self.channels.items()}
         return new
 
     def lower(self):
-        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
+        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
