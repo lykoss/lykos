@@ -498,7 +498,7 @@ def fwarn(var, wrapper, message):
         if target is not None:
             acc, hm = parse_warning_target(target)
             if acc is None:
-                wrapper.reply(messages["fwarn_nick_invalid"])
+                wrapper.reply(messages["fwarn_nick_invalid"].format(target))
                 return
             warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page-1)*10, show=11)
             points = db.get_warning_points(acc, hm)

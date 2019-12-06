@@ -98,6 +98,7 @@ var.ORIGINAL_MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: UserDict[users.User, str]
 var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
+var.JOINED_THIS_GAME_ACCS = set() # type: Set[str]
 
 var.IDLE_WARNED = UserSet()
 var.IDLE_WARNED_PM = UserSet()
@@ -310,8 +311,7 @@ def reset():
     var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
     var.DEAD.clear()
-    var.JOINED_THIS_GAME = set() # keeps track of who already joined this game at least once (hostmasks)
-    var.JOINED_THIS_GAME_ACCS = set() # same, except accounts
+    var.JOINED_THIS_GAME_ACCS.clear()
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
@@ -527,50 +527,30 @@ def replace(var, wrapper, message):
         return
 
     if wrapper.source in get_players():
-        wrapper.pm(messages["already_playing"].format("You"))
+        wrapper.pm(messages["you_already_playing"])
         return
 
     if wrapper.source.account is None:
         wrapper.pm(messages["not_logged_in"])
         return
 
-    rest = message.split()
+    pl = get_participants()
+    target = None
 
-    if not rest: # bare call
-        target = None
+    for user in var.ALL_PLAYERS:
+        if users.equals(user.account, wrapper.source.account):
+            if user is wrapper.source or user not in pl:
+                continue
+            elif target is None:
+                target = user
+            else:
+                wrapper.pm(messages["swap_notice"])
+                return
 
-        for user in var.ALL_PLAYERS:
-            if users.equals(user.account, wrapper.source.account):
-                if user is wrapper.source or user not in get_participants():
-                    continue
-                elif target is None:
-                    target = user
-                else:
-                    wrapper.pm(messages["swap_notice"])
-                    return
-
-        if target is None:
-            wrapper.pm(messages["account_not_playing"])
-            return
-
-    else:
-        pl = get_participants()
-
-        target, _ = users.complete_match(rest[0], pl)
-
-        if target is None:
-            wrapper.pm(messages["target_not_playing"])
-            return
-
-        if target not in pl:
-            wrapper.pm(messages["target_no_longer_playing" if target in var.DEAD else "target_not_playing"])
-            return
-
-        if target.account is None:
-            wrapper.pm(messages["target_not_logged_in"])
-            return
-
-    if users.equals(target.account, wrapper.source.account) and target is not wrapper.source:
+    if target is None:
+        wrapper.pm(messages["account_not_playing"])
+        return
+    elif target is not wrapper.source:
         target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
             return_to_village(var, target, show_message=False)
@@ -795,7 +775,7 @@ def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     if wrapper.target is not channels.Main:
         return False
     def _join():
-        if not forced and wrapper.source.account is None:
+        if not wrapper.source.is_fake and wrapper.source.account is None:
             wrapper.pm(messages["not_logged_in"])
             return
         _join_player(var, wrapper, who, forced, sanity=sanity)
@@ -842,8 +822,6 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         var.GAME_ID = time.time()
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
-        if wrapper.source.userhost:
-            var.JOINED_THIS_GAME.add(wrapper.source.userhost)
         if wrapper.source.account:
             var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
@@ -857,7 +835,8 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             t.start()
 
     elif wrapper.source in pl:
-        who.send(messages["already_playing"].format("You" if who is wrapper.source else "They"), notice=True)
+        key = "you_already_playing" if who is wrapper.source else "other_already_playing"
+        who.send(messages[key], notice=True)
         # if we're not doing insane stuff, return True so that one can use !join to vote for a game mode
         # even if they are already joined. If we ARE doing insane stuff, return False to indicate that
         # the player was not successfully joined by this call.
@@ -892,23 +871,21 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             return True
         var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
-        if not wrapper.source.is_fake:
-            if wrapper.source.userhost not in var.JOINED_THIS_GAME and wrapper.source.account not in var.JOINED_THIS_GAME_ACCS:
-                # make sure this only happens once
-                var.JOINED_THIS_GAME.add(wrapper.source.userhost)
-                if wrapper.source.account:
-                    var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
-                now = datetime.now()
+        if not wrapper.source.is_fake and wrapper.source.account not in var.JOINED_THIS_GAME_ACCS:
+            # make sure this only happens once
+            if wrapper.source.account:
+                var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
+            now = datetime.now()
 
-                # add var.EXTRA_WAIT_JOIN to wait time
-                if now > var.CAN_START_TIME:
-                    var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
-                else:
-                    var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
+            # add var.EXTRA_WAIT_JOIN to wait time
+            if now > var.CAN_START_TIME:
+                var.CAN_START_TIME = now + timedelta(seconds=var.EXTRA_WAIT_JOIN)
+            else:
+                var.CAN_START_TIME += timedelta(seconds=var.EXTRA_WAIT_JOIN)
 
-                # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
-                if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
-                    var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
+            # make sure there's at least var.WAIT_AFTER_JOIN seconds of wait time left, if not add them
+            if now + timedelta(seconds=var.WAIT_AFTER_JOIN) > var.CAN_START_TIME:
+                var.CAN_START_TIME = now + timedelta(seconds=var.WAIT_AFTER_JOIN)
 
         var.LAST_STATS = None # reset
         var.LAST_GSTATS = None
@@ -1705,7 +1682,7 @@ def reaper(cli, gameid):
             for dcedplayer, (timeofdc, what) in list(var.DISCONNECTED.items()):
                 mainrole = get_main_role(dcedplayer)
                 revealrole = get_reveal_role(dcedplayer)
-                if what in ("quit", "badnick") and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
+                if what == "quit" and (datetime.now() - timeofdc) > timedelta(seconds=var.QUIT_GRACE_TIME):
                     if mainrole != "person" and var.ROLE_REVEAL in ("on", "team"):
                         channels.Main.send(messages["quit_death"].format(dcedplayer, revealrole))
                     else: # FIXME: Merge those two
@@ -1792,6 +1769,9 @@ def return_to_village(var, target, *, show_message, new_user=None):
     # a different account or /parting the channel. If they were dced for real and
     # rejoined IRC, the join handler already took care of marking them no longer dced.
     with var.GRAVEYARD_LOCK:
+        if target.account not in var.JOINED_THIS_GAME_ACCS:
+            return
+
         if target in var.DISCONNECTED:
             del var.DISCONNECTED[target]
             if new_user is None:
@@ -1811,7 +1791,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
                     channels.Main.send(messages["player_return"].format(new_user))
                 else:
                     channels.Main.send(messages["player_return_nickchange"].format(new_user, target))
-        elif target.account:
+        else:
             # this particular user doesn't exist in var.DISCONNECTED, but that doesn't
             # mean that they aren't dced. They may have rejoined as a different nick,
             # for example, and we want to mark them as back without requiring them to do
@@ -1826,31 +1806,29 @@ def account_change(evt, user): # FIXME: This uses var
     if user not in channels.Main.users:
         return # We only care about game-related changes in this function
 
-    if user.account is None and user in get_players():
-        leave(var, "account", user)
-        if var.PHASE == "join":
-            user.send(messages["account_midgame_change"], notice=True)
-        else:
+    pl = get_participants()
+    if user in pl and user.account not in var.JOINED_THIS_GAME_ACCS:
+        leave(var, "account", user) # this also notifies the user to change their account back
+        if var.PHASE != "join":
             channels.Main.mode(["-v", user.nick])
-            user.send(messages["account_reidentify"].format(user), notice=True)
-
-    # if they were gone, maybe mark them as back
-    return_to_village(var, user, show_message=True)
+    elif (user not in pl or user in var.DISCONNECTED) and user.account in var.JOINED_THIS_GAME_ACCS:
+        # if they were gone, maybe mark them as back
+        return_to_village(var, user, show_message=True)
 
 @event_listener("nick_change")
 def nick_change(evt, user, old_rawnick): # FIXME: This function needs some way to have var
-    if user not in var.DISCONNECTED and user in get_players() and re.search(var.GUEST_NICK_PATTERN, user.nick):
-        if var.PHASE != "join":
-            channels.Main.mode(["-v", user.nick])
-        temp = users.FakeUser(None, user.nick, user.ident, user.host, user.realname, user.account)
-        leave(var, "badnick", temp) # pass in a fake user with the old nick (since the user holds the new nick)
-        return # Don't do anything else; they're using a guest/away nick
-
     if user not in channels.Main.users:
         return
 
-    # perhaps mark them as back
-    return_to_village(var, user, show_message=True)
+    pl = get_participants()
+    if user.account in var.JOINED_THIS_GAME_ACCS and user not in pl:
+        for other in pl:
+            if users.equals(user.account, other.account):
+                if re.search(var.GUEST_NICK_PATTERN, other.nick):
+                    # The user joined to the game is using a Guest nick, which is usually due to a connection issue.
+                    # Automatically swap in this user for that old one.
+                    replace(var, MessageDispatcher(user, users.Bot), "")
+                return
 
 @event_listener("cleanup_user")
 def cleanup_user(evt, var, user):
@@ -1908,9 +1886,7 @@ def leave(var, what, user, why=None):
     grace_times = {"part": var.PART_GRACE_TIME, "quit": var.QUIT_GRACE_TIME, "account": var.ACC_GRACE_TIME, "leave": 0}
 
     reason = what
-    if reason == "badnick":
-        reason = "quit"
-    elif reason == "kick":
+    if reason == "kick":
         reason = "leave"
 
     if reason in grace_times and (grace_times[reason] <= 0 or var.PHASE == "join"):
@@ -1918,7 +1894,10 @@ def leave(var, what, user, why=None):
         # "quit_death", "quit_death_no_reveal", "leave_death", "leave_death_no_reveal", "account_death", "account_death_no_reveal"
         msg = messages["{0}_death{1}".format(reason, reveal)]
     elif what != "kick": # There's time for the player to rejoin the game
-        user.send(messages["part_grace_time_notice"].format(botconfig.CHANNEL, var.PART_GRACE_TIME))
+        if reason != "quit":
+            # message keys: "part_grace_time_notice", "account_grace_time_notice"
+            # No message is sent for quit because the user won't be online to receive it...
+            user.send(messages["{0}_grace_time_notice".format(reason)].format(grace_times[reason], chan=channels.Main))
         msg = messages["player_missing"]
         population = ""
         killplayer = False
