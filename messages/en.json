@@ -599,7 +599,7 @@
     "players_list_count": "{0:bold} {=player,players:plural({0})}: {1:join}",
     "players_list_entry": "{0:{1}}[if={2}] ({2:join_simple})[/if]",
     "stats_reply": "It is currently {0!phase}. There {=is,are:plural({1})} {2:join}.",
-    "stats_reply_entry_none": "[b]no[/b] {0!role:plural(0)}",
+    "stats_reply_entry_none": "no {0!role:plural(0)}",
     "stats_reply_entry_single": "{1:bold} {0!role:plural({1})}",
     "stats_reply_entry_range": "[b]{1}-{2}[/b] {0!role:plural(2)}",
     "cub_grow_up": "You have grown up into a wolf and vowed to take revenge for your dead parents!",
