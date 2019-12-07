@@ -136,7 +136,7 @@
     "show_track_policy" : "[[{0}]]: {1}",
     "revealroles_policy" : "Policies: {0:join}",
 
-    "waiting_nomination" : "Waiting on {0:@} to nominate someone to be president.",
+    "waiting_nomination" : "Waiting on {0:@} to nominate someone to be chancellor.",
     "waiting_votes" : "Waiting on {0:join} to vote on the nomination.",
     "waiting_investigation" : "Waiting on {0:@} to investigate someone's party affiliation.",
     "waiting_special_election" : "Waiting on {0:@} to pick a new president for a special election.",
