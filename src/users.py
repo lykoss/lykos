@@ -548,7 +548,7 @@ class FakeUser(User):
 
     @classmethod
     def from_nick(cls, nick):
-        return FakeUser(None, nick, None, None, None, None)
+        return FakeUser(None, nick, None, None, None)
 
     @property
     def nick(self):
