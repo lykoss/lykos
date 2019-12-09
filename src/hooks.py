@@ -717,7 +717,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     """
 
     ch = channels.add(chan, cli)
-    user = users.get(rawnick)
+    user = users.get(rawnick, allow_bot=True)
     Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
@@ -743,7 +743,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
 
     ch = channels.add(chan, cli)
     actor = users.get(rawnick, allow_none=True)
-    user = users.get(target)
+    user = users.get(target, allow_none=True)
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
