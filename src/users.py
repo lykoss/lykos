@@ -189,7 +189,10 @@ class User(IRCContext):
             self._account = account
             self.timestamp = time.time()
 
-        elif ident is not None and host is not None:
+        elif False and ident is not None and host is not None:
+            # Currently broken: `in` checks for __eq__ which is an identity check
+            # It means self.partial_match is pointless, and we need to improve this
+            # The else: clause handles all cases gracefully
             users = set(_users)
             users.add(Bot)
             if self in users:
@@ -463,10 +466,14 @@ class User(IRCContext):
         if self is Bot:
             self.client.nickname = nick
             is_bot = True
+        _users.discard(self)
         new = User(self.client, nick, self.ident, self.host, self.account)
         self.swap(new)
+        new.channels = self.channels
         if is_bot:
             Bot = new
+        else:
+            _users.add(new)
 
     @property
     def ident(self):
@@ -479,10 +486,14 @@ class User(IRCContext):
         if self is Bot:
             self.client.ident = ident
             is_bot = True
+        _users.discard(self)
         new = User(self.client, self.nick, ident, self.host, self.account)
         self.swap(new)
+        new.channels = self.channels
         if is_bot:
             Bot = new
+        else:
+            _users.add(new)
 
     @property
     def host(self):
@@ -495,10 +506,14 @@ class User(IRCContext):
         if self is Bot:
             self.client.hostmask = host
             is_bot = True
+        _users.discard(self)
         new = User(self.client, self.nick, self.ident, host, self.account)
         self.swap(new)
+        new.channels = self.channels
         if is_bot:
             Bot = new
+        else:
+            _users.add(new)
 
     @property
     def account(self): # automatically converts "0" and "*" to None
@@ -510,10 +525,14 @@ class User(IRCContext):
         if account in ("0", "*"):
             account = None
         is_bot = self is Bot
+        _users.discard(self)
         new = User(self.client, self.nick, self.ident, self.host, account)
         self.swap(new)
+        new.channels = self.channels
         if is_bot:
             Bot = new
+        else:
+            _users.add(new)
 
     @property
     def rawnick(self):
@@ -531,10 +550,14 @@ class User(IRCContext):
             self.client.ident = ident
             self.client.hostmask = host
             is_bot = True
+        _users.discard(self)
         new = User(self.client, nick, ident, host, self.account)
         self.swap(new)
+        new.channels = self.channels
         if is_bot:
             Bot = new
+        else:
+            _users.add(new)
 
     @property
     def disconnected(self):
