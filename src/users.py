@@ -1,7 +1,7 @@
 import fnmatch
 import time
 import re
-from typing import Callable, Optional
+from typing import Callable, Optional, Set
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
@@ -13,8 +13,8 @@ import botconfig
 
 Bot = None # bot instance
 
-_users = set()
-_ghosts = set()
+_users = set() # type: Set[User]
+_ghosts = set() # Type: Set[User]
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 
@@ -60,7 +60,7 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
         return [temp] if allow_multiple else temp
 
     for user in users:
-        if user == temp:
+        if user.partial_match(temp):
             potential.append(user)
 
     if allow_multiple:
@@ -189,15 +189,12 @@ class User(IRCContext):
             self._account = account
             self.timestamp = time.time()
 
-        elif False and ident is not None and host is not None:
-            # Currently broken: `in` checks for __eq__ which is an identity check
-            # It means self.partial_match is pointless, and we need to improve this
-            # The else: clause handles all cases gracefully
+        elif nick is not None and ident is not None and host is not None:
             users = set(_users)
             users.add(Bot)
             if self in users:
                 for user in users:
-                    if self.partial_match(user):
+                    if self == user:
                         self = user
                         break
 
@@ -249,7 +246,7 @@ class User(IRCContext):
 
         return self
 
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass # everything that needed to be done was done in __new__
 
     def __str__(self):
@@ -271,15 +268,17 @@ class User(IRCContext):
         return super().__format__(format_spec)
 
     def __hash__(self):
-        # check intentionally omits nick and account: we allow those to be None and the object to still be hashable;
-        # nick may be None initially upon bot registration/connection until we know what nick we actually have.
-        # account may be None for normal operation for any user.
-        if self.ident is None or self.host is None:
-            raise ValueError("cannot hash a User with no ident or host")
+        # check intentionally omits account: account may be None for normal operation for any user.
+        if self.nick is None or self.ident is None or self.host is None:
+            raise ValueError("cannot hash a User with no nick, ident, or host")
         return hash((self.nick, self.ident, self.host, self.account))
 
     def __eq__(self, other):
-        return self is other
+        return (isinstance(other, User)
+                and self.nick == other.nick
+                and self.ident == other.ident
+                and self.host == other.host
+                and self.account == other.account)
 
     def partial_match(self, other):
         """Test if our non-None properties match the non-None properties on the other object.
@@ -300,13 +299,19 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    def swap(self, new):
-        """Swap yourself out with the new user everywhere."""
+    def swap(self, new, *, same_user=False):
+        """Swap yourself out with the new user everywhere.
+
+        :param new: New user to replace current one with.
+        :param same_user: If True, indicates `new` is the same user instance as `self`, just
+            with updated values. This performs some additional work to ensure that the hand-off
+            does not lose any data.
+        """
         if self is new:
             return # as far as the caller is aware, we've swapped
 
         _ghosts.discard(self)
-        if not self.channels:
+        if not self.channels or same_user:
             _users.discard(self) # Goodbye, my old friend
 
         for l in self.lists[:]:
@@ -324,6 +329,14 @@ class User(IRCContext):
             for key in dv:
                 if dv[key] is self:
                     dv[key] = new
+
+        if same_user:
+            global Bot
+            new.channels = self.channels
+            if not isinstance(new, BotUser):
+                _users.add(new)
+            elif self is Bot:
+                Bot = new
 
         # It is the containers' responsibility to properly remove themselves from the users
         # So if any list is non-empty, something went terribly wrong
@@ -460,79 +473,38 @@ class User(IRCContext):
         return self.name
 
     @nick.setter
-    def nick(self, nick):
-        global Bot
-        is_bot = False
-        if self is Bot:
-            self.client.nickname = nick
-            is_bot = True
-        _users.discard(self)
-        new = User(self.client, nick, self.ident, self.host, self.account)
-        self.swap(new)
-        new.channels = self.channels
-        if is_bot:
-            Bot = new
-        else:
-            _users.add(new)
+    def nick(self, value):
+        new = User(self.client, value, self.ident, self.host, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def ident(self):
         return self._ident
 
     @ident.setter
-    def ident(self, ident):
-        global Bot
-        is_bot = False
-        if self is Bot:
-            self.client.ident = ident
-            is_bot = True
-        _users.discard(self)
-        new = User(self.client, self.nick, ident, self.host, self.account)
-        self.swap(new)
-        new.channels = self.channels
-        if is_bot:
-            Bot = new
-        else:
-            _users.add(new)
+    def ident(self, value):
+        new = User(self.client, self.nick, value, self.host, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def host(self):
         return self._host
 
     @host.setter
-    def host(self, host):
-        global Bot
-        is_bot = False
-        if self is Bot:
-            self.client.hostmask = host
-            is_bot = True
-        _users.discard(self)
-        new = User(self.client, self.nick, self.ident, host, self.account)
-        self.swap(new)
-        new.channels = self.channels
-        if is_bot:
-            Bot = new
-        else:
-            _users.add(new)
+    def host(self, value):
+        new = User(self.client, self.nick, self.ident, value, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def account(self): # automatically converts "0" and "*" to None
         return self._account
 
     @account.setter
-    def account(self, account):
-        global Bot
-        if account in ("0", "*"):
-            account = None
-        is_bot = self is Bot
-        _users.discard(self)
-        new = User(self.client, self.nick, self.ident, self.host, account)
-        self.swap(new)
-        new.channels = self.channels
-        if is_bot:
-            Bot = new
-        else:
-            _users.add(new)
+    def account(self, value):
+        if value in ("0", "*"):
+            value = None
+        new = User(self.client, self.nick, self.ident, self.host, value)
+        self.swap(new, same_user=True)
 
     @property
     def rawnick(self):
@@ -541,31 +513,18 @@ class User(IRCContext):
         return "{self.nick}!{self.ident}@{self.host}".format(self=self)
 
     @rawnick.setter
-    def rawnick(self, rawnick):
-        global Bot
-        nick, ident, host = parse_rawnick(rawnick)
-        is_bot = False
-        if self is Bot:
-            self.client.nickname = nick
-            self.client.ident = ident
-            self.client.hostmask = host
-            is_bot = True
-        _users.discard(self)
+    def rawnick(self, value):
+        nick, ident, host = parse_rawnick(value)
         new = User(self.client, nick, ident, host, self.account)
-        self.swap(new)
-        new.channels = self.channels
-        if is_bot:
-            Bot = new
-        else:
-            _users.add(new)
+        self.swap(new, same_user=True)
 
     @property
     def disconnected(self):
         return self in _ghosts
 
     @disconnected.setter
-    def disconnected(self, disconnected):
-        if disconnected:
+    def disconnected(self, value):
+        if value:
             _ghosts.add(self)
         else:
             _ghosts.discard(self)
@@ -589,14 +548,14 @@ class FakeUser(User):
 
     @classmethod
     def from_nick(cls, nick):
-        return cls(None, nick, None, None, None, None)
+        return FakeUser(None, nick, None, None, None, None)
 
     @property
     def nick(self):
         return self.name
 
     @nick.setter
-    def nick(self, nick):
+    def nick(self, value):
         raise ValueError("may not change the nick of a fake user")
 
     @property
@@ -604,36 +563,81 @@ class FakeUser(User):
         return self.nick # we don't have a raw nick
 
     @rawnick.setter
-    def rawnick(self, rawnick):
+    def rawnick(self, value):
         raise ValueError("may not change the raw nick of a fake user")
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __new__(cls, cli, nick):
-        self = super().__new__(cls, cli, nick, None, None, None)
+    def __new__(cls, cli, nick, ident=None, host=None, account=None):
+        self = super().__new__(cls, cli, nick, ident, host, account)
         self.modes = set()
         return self
-
-    def with_host(self, host):
-        """Create a new bot instance with a new host."""
-        if self.ident is None and self.host is None:
-            # we don't have full details on our ident yet; setting host now causes bugs down the road since
-            # ident will subsequently not update. We'll pick up the new host whenever we finish setting ourselves up
-            return self
-        new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.account)
-        if new is not self:
-            new.modes = set(self.modes)
-            new.channels = {chan: set(modes) for chan, modes in self.channels.items()}
-        return new
-
-    def lower(self):
-        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.account))
-        if temp is not self: # If everything is already lowercase, we'll get back the same instance
-            temp.channels = self.channels
-            temp.ref = self.ref or self
-        return temp
 
     def change_nick(self, nick=None):
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
+
+    @property
+    def nick(self): # name should be the same as nick (for length calculation)
+        return self.name
+
+    @nick.setter
+    def nick(self, value):
+        self.client.nickname = value
+        new = BotUser(self.client, value, self.ident, self.host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def ident(self):
+        return self._ident
+
+    @ident.setter
+    def ident(self, value):
+        self.client.ident = value
+        new = BotUser(self.client, self.nick, value, self.host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def host(self):
+        return self._host
+
+    @host.setter
+    def host(self, value):
+        self.client.hostmask = value
+        new = BotUser(self.client, self.nick, self.ident, value, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def account(self): # automatically converts "0" and "*" to None
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        if value in ("0", "*"):
+            value = None
+        new = BotUser(self.client, self.nick, self.ident, self.host, value)
+        self.swap(new, same_user=True)
+
+    @property
+    def rawnick(self):
+        if self.nick is None or self.ident is None or self.host is None:
+            return None
+        return "{self.nick}!{self.ident}@{self.host}".format(self=self)
+
+    @rawnick.setter
+    def rawnick(self, value):
+        nick, ident, host = parse_rawnick(value)
+        self.client.nickname = nick
+        self.client.ident = ident
+        self.client.hostmask = host
+        new = BotUser(self.client, nick, ident, host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def disconnected(self):
+        return False
+
+    @disconnected.setter
+    def disconnected(self, value):
+        pass # no-op
