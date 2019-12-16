@@ -8,14 +8,14 @@ from src import settings as var
 from src import db
 from src.events import EventListener
 from src.decorators import hook
-from src.debug import CheckedDict
+from src.debug import CheckedDict, CheckedSet
 
 import botconfig
 
 Bot = None # bot instance
 
-_users = set() # type: Set[User]
-_ghosts = set() # Type: Set[User]
+_users = CheckedSet("users._users") # type: CheckedSet[User]
+_ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 

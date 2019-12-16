@@ -6,12 +6,13 @@ from src.context import IRCContext, Features, lower
 from src.events import Event
 from src import settings as var
 from src import users
+from src.debug import CheckedSet, CheckedDict
 
 Main = None # main channel
 Dummy = None # fake channel
 Dev = None # dev channel
 
-_channels = {}
+_channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
 class _States(Enum):
     NotJoined = "not yet joined"
@@ -74,7 +75,7 @@ class Channel(IRCContext):
 
     def __init__(self, name, client):
         super().__init__(name, client)
-        self.users = set()
+        self.users = CheckedSet("channels.Channel.users")
         self.modes = {}
         self.timestamp = None
         self.state = _States.NotJoined
