@@ -100,7 +100,7 @@
     "vetoed" : "You have chosen to veto this agenda. If the president rejects this, you will have to choose a policy anyway.",
     "chancellor_wants_veto_priv" : "The Chancellor wishes to veto this agenda. Vetoing will result in the policies under consideration being discarded, and the next presidential candidate in line will get to form a new government. If you approve of this, use \"{=approve!command}\" in PM. Otherwise, use \"{=reject!command}\"",
     "president_approves_veto_priv" : "You have approved this veto. The proposed policy options have all been discarded.",
-    "president_rejects_veto_priv" : "You hvae rejected this veto. The chancellor is now forced to pick a policy from the available options.",
+    "president_rejects_veto_priv" : "You have rejected this veto. The chancellor is now forced to pick a policy from the available options.",
     "veto_rejected" : "The president has rejected this veto. You are now required to pick one of the available policy options.",
     "chancellor_wants_veto_pub" : "The Chancellor wishes to veto this agenda.",
     "president_approves_veto_pub" : "The President agrees to the veto. No policy is enacted.",
