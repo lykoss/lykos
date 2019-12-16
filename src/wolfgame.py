@@ -3192,6 +3192,13 @@ def role_stats(var, wrapper, message):
         return
     wrapper.pm(db.get_role_stats(roles[0], gamemode))
 
+@command("whoami", pm=True)
+def whoami(var, wrapper, message):
+    if wrapper.source.account:
+        wrapper.pm(messages["whoami_loggedin"].format(wrapper.source.account))
+    else:
+        wrapper.pm(messages["whoami_loggedout"])
+
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
     if var.FGAMED:

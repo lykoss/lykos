@@ -210,6 +210,7 @@
         "votes": ["votes"],
         "wait": ["wait", "w"],
         "warn": ["warn"],
+        "whoami": ["whoami"],
         "wiki": ["wiki"],
 
         "north": ["north", "n"],
@@ -1225,6 +1226,8 @@
     "villagergame_nope": "Game over! The villagers decided incorrectly that there are actually no wolves, allowing the wolves to slaughter the remainder of them in their sleep with impunity.",
     "stop_bot_ingame_safeguard": "Warning: A game is currently running. If you want to {what} the bot anyway, use \"{cmd:!} -force\".",
     "invalid_restart_mode": "{0:bold} is not a valid mode. Valid modes are: {1:join}",
+    "whoami_loggedin": "You are logged into the account {0:bold}.",
+    "whoami_loggedout": "You are not logged into an account.",
     "db_pstats_no_game": "{0:bold} has not played any games.",
     "db_player_stats": "{0:bold} as {role!role:bold} | Team wins: {team} ({teamp:.0%}), Individual wins: {indiv} ({indivp:.0%}), Overall wins: {overall} ({overallp:.0%}), Total games: {total}.",
     "db_pstats_no_role": "No stats for {0:bold} as {1!role:bold}.",
