@@ -8,6 +8,7 @@ from src import settings as var
 from src import db
 from src.events import EventListener
 from src.decorators import hook
+from src.debug import CheckedDict
 
 import botconfig
 
@@ -173,7 +174,7 @@ class User(IRCContext):
         self._ident = ident
         self._host = host
         self._account = account
-        self.channels = {}
+        self.channels = CheckedDict("users.User.channels")
         self.timestamp = time.time()
         self.sets = []
         self.lists = []
