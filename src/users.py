@@ -52,7 +52,10 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
     potential = []
     users = set(_users)
     if allow_bot:
-        users.add(Bot)
+        try:
+            users.add(Bot)
+        except ValueError:
+            pass # Bot may not be hashable in early init; this is fine and User.__new__ handles this gracefully
 
     sentinel = object()
 
