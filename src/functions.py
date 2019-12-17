@@ -1,8 +1,9 @@
+from typing import Optional
+from collections import Counter
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolfteam, Neutral, Hidden
 from src import settings as var
-from src import users
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -50,6 +51,18 @@ def get_participants():
     return evt.data["players"]
 
 def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_self_message=None):
+    """Autocomplete a target for an in-game command.
+
+    :param var: Game state
+    :param MessageDispatcher wrapper: Message context
+    :param str message: Text to complete against
+    :param bool allow_self: Whether or not to allow the current player as the target
+    :param bool allow_bot: Whether or not to allow the bot as the target
+    :param str not_self_message: If allow_self is False, the message key to output if we matched ourselves
+    :returns: The matched target, or None if no matches
+    :rtype: Optional[User]
+    """
+    from src import users # FIXME: we should move get_target elsewhere to avoid circular imports
     if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
@@ -61,15 +74,30 @@ def get_target(var, wrapper, message, *, allow_self=False, allow_bot=False, not_
     if allow_bot:
         players.append(users.Bot)
 
-    match, count = users.complete_match(message, players)
-    if match is None:
-        if not count and users.lower(wrapper.source.nick).startswith(users.lower(message)):
+    match = users.complete_match(message, players)
+    if not match:
+        if not len(match) and users.lower(wrapper.source.nick).startswith(users.lower(message)):
             wrapper.pm(messages[not_self_message or "no_target_self"])
             return
-        wrapper.pm(messages["not_playing"].format(message))
+        if not len(match):
+            wrapper.pm(messages["not_playing"].format(message))
+        else:
+            # display some helpful suggestions, including account disambiguation if needed
+            nicks = Counter(users.lower(x.nick) for x in match)
+            suggestions = []
+            for nick, count in nicks.items():
+                if count == 1:
+                    suggestions.append(nick)
+                else:
+                    for user in match:
+                        luser = user.lower()
+                        if luser.nick == nick:
+                            suggestions.append("{0}:{1}".format(luser.nick, luser.account))
+            suggestions.sort()
+            wrapper.pm(messages["not_playing_suggestions"].format(message, suggestions))
         return
 
-    return match
+    return match.get()
 
 def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="new_role"):
     # in_wolfchat is filled as part of priority 4

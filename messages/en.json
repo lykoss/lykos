@@ -530,6 +530,7 @@
     "your_current_stasis": "You are currently in stasis for {0:bold} {=game,games:plural({0})}.",
     "you_not_in_stasis": "You are not currently in stasis.",
     "not_playing": "{0:bold} is not currently playing.",
+    "not_playing_suggestions": "{0:bold} is not currently playing. Perhaps you meant: {1:join_simple(bold)}",
     "ambiguous_mode": "{0:bold} is not a valid game mode. Valid modes are: {1:join}",
     "not_logged_in": "You are not logged in to NickServ.",
     "notice_off": "Gameplay interactions will now use PRIVMSG for you.",

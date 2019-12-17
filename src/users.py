@@ -9,6 +9,7 @@ from src import db
 from src.events import EventListener
 from src.decorators import hook
 from src.debug import CheckedDict, CheckedSet
+from src.match import Match
 
 import botconfig
 
@@ -24,26 +25,21 @@ _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False, allow_ghosts=False):
     """Return the matching user(s) from the user list.
 
-    This takes up to 4 positional arguments (nick, ident, host, account)
-    and may take up to three keyword-only arguments:
-
-    - allow_multiple (defaulting to False) allows multiple matches,
-      and returns a list, even if there's only one match;
-
-    - allow_none (defaulting to False) allows no match at all, and
-      returns None instead of raising an error; an empty list will be
-      returned if this is used with allow_multiple;
-
-    - allow_bot (defaulting to False) allows the bot to be matched and
-      returned;
-
-    If allow_multiple is not set and multiple users match, a ValueError
-    will be raised. If allow_none is not set and no users match, a KeyError
-    will be raised.
-
+    :param nick: Nickname or raw nick (nick!ident@host) to match.
+        If a raw nick is passed, the `ident` and `host` args must be None.
+    :param ident: Ident to match.
+    :param host: Host to match.
+    :param account: Account to match.
+    :param allow_multiple: Allow multiple matches, returning a list (even if only one match).
+    :param allow_none: Allow no matches, returning None if nothing found. Otherwise raises KeyError.
+    :param allow_bot: Allow the BotUser to be matched and returned.
+    :param allow_ghosts: Allow disconnected users to be matched and returned.
+    :returns: The matched user(s), if any.
+    :raises KeyError: If no users match and allow_none is False.
+    :raises ValueError: If multiple users match and allow_multiple is False.
     """
 
     if ident is None and host is None and nick is not None:
@@ -51,6 +47,8 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
 
     potential = []
     users = set(_users)
+    if not allow_ghosts:
+        users.difference_update(_ghosts)
     if allow_bot:
         try:
             users.add(Bot)
@@ -118,22 +116,56 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(string, users=None):
+def complete_match(pattern: str, users=None):
+    """ Find a user or users who match the given pattern.
+
+    :param pattern: Pattern to match on. The format is "[nick][:account]",
+        with [] denoting an optional field. Exact matches are tried, and then
+        prefix matches (stripping special characters as needed). If both a nick
+        and an account are specified, both must match.
+    :param Optional[Iterable[User]] users: Users to match pattern against. If None,
+        search against all users.
+    :returns: A Match object describing whether or not the match succeeded.
+    :rtype: Match[User]
+    """
     if users is None:
         users = _users
     matches = []
-    string = lower(string)
+    nick_search, _, acct_search = lower(pattern).partition(":")
+    if not nick_search and not acct_search:
+        return Match([])
+
+    direct_match = False
     for user in users:
         nick = lower(user.nick)
-        if nick == string:
-            return user, 1
-        elif nick.startswith(string) or nick.lstrip("[{\\^_`|}]").startswith(string):
+        stripped_nick = nick.lstrip("[{\\^_`|}]")
+        if nick_search:
+            if nick == nick_search:
+                if not direct_match:
+                    matches.clear()
+                    direct_match = True
+                matches.append(user)
+            elif not direct_match and (nick.startswith(nick_search) or stripped_nick.startswith(nick_search)):
+                matches.append(user)
+        else:
             matches.append(user)
 
-    if len(matches) != 1:
-        return None, len(matches)
+    if acct_search:
+        users = list(matches)
+        matches.clear()
+        direct_match = False
+        for user in users:
+            acct = lower(user.account)
+            stripped_acct = acct.lstrip("[{\\^_`|}]")
+            if acct == acct_search:
+                if not direct_match:
+                    matches.clear()
+                    direct_match = True
+                matches.append(user)
+            elif not direct_match and (acct.startswith(acct_search) or stripped_acct.startswith(acct_search)):
+                matches.append(user)
 
-    return matches[0], 1
+    return Match(matches)
 
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 

@@ -1013,11 +1013,12 @@ def fleave(var, wrapper, message):
         if not person:
             continue
 
-        target, _ = users.complete_match(person, get_players())
+        target = users.complete_match(person, get_players())
         dead_target = None
         if var.PHASE in var.GAME_PHASES:
-            dead_target, _ = users.complete_match(person, var.DEADCHAT_PLAYERS)
-        if target is not None:
+            dead_target = users.complete_match(person, var.DEADCHAT_PLAYERS)
+        if target:
+            target = target.get()
             if wrapper.target is not channels.Main:
                 wrapper.pm(messages["fquit_fail"])
                 return
@@ -1040,7 +1041,8 @@ def fleave(var, wrapper, message):
             add_dying(var, target, "bot", "fquit", death_triggers=False)
             kill_players(var)
 
-        elif dead_target is not None:
+        elif dead_target:
+            dead_target = dead_target.get()
             leave_deadchat(var, dead_target, force=wrapper.source)
             if wrapper.source not in var.DEADCHAT_PLAYERS:
                 wrapper.pm(messages["admin_fleave_deadchat"].format(dead_target))
@@ -1739,22 +1741,22 @@ def goat(var, wrapper, message):
     if not target:
         wrapper.pm(messages["not_enough_parameters"])
         return
-    victim, _ = users.complete_match(users.lower(target), wrapper.target.users)
+    victim = users.complete_match(users.lower(target), wrapper.target.users)
     if not victim:
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
 
     var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
-    wrapper.send(messages["goat_success"].format(wrapper.source, victim))
+    wrapper.send(messages["goat_success"].format(wrapper.source, victim.get()))
 
 @command("fgoat", flag="j")
 def fgoat(var, wrapper, message):
     """Forces a goat to interact with anyone or anything, without limitations."""
 
     nick = message.split(' ')[0].strip()
-    victim, _ = users.complete_match(users.lower(nick), wrapper.target.users)
+    victim = users.complete_match(users.lower(nick), wrapper.target.users)
     if victim:
-        togoat = victim
+        togoat = victim.get()
     else:
         togoat = message
 
@@ -1794,7 +1796,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
             # mean that they aren't dced. They may have rejoined as a different nick,
             # for example, and we want to mark them as back without requiring them to do
             # a !swap.
-            userlist = users.get(account=target.account, allow_multiple=True)
+            userlist = users.get(account=target.account, allow_multiple=True, allow_ghosts=True)
             userlist = [u for u in userlist if u in var.DISCONNECTED]
             if len(userlist) == 1:
                 return_to_village(var, userlist[0], show_message=show_message, new_user=target)
@@ -3088,17 +3090,19 @@ def player_stats(var, wrapper, message):
 
     # Check if we have enough parameters
     if params:
-        user, count = users.complete_match(params[0])
+        match = users.complete_match(params[0])
+        if len(match) == 0:
+            user = None
+            account = params[0]
+        elif not match:
+            user = None
+            account = None
+        else:
+            user = match.get()
+            account = user.account
     else:
         user = wrapper.source
-        count = 1
-
-    if user is not None:
         account = user.account
-    elif not count:
-        account = params[0]
-    else:
-        account = None
 
     if account is None:
         key = "account_not_logged_in"
@@ -3569,14 +3573,14 @@ def force(var, wrapper, message):
         return
 
     target = msg.pop(0).strip()
-    match, _ = users.complete_match(target, get_participants())
+    match = users.complete_match(target, get_participants())
     if target == "*":
         players = get_players()
-    elif match is None:
+    elif not match:
         wrapper.send(messages["invalid_target"])
         return
     else:
-        players = [match]
+        players = [match.get()]
 
     _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
 
@@ -3612,15 +3616,15 @@ def frole(var, wrapper, message):
         except ValueError:
             wrapper.send(messages["frole_incorrect"].format(part))
             return
-        user, _ = users.complete_match(name.strip(), pl)
-        matches = complete_role(var, role.strip())
+        umatch = users.complete_match(name.strip(), pl)
+        rmatch = complete_role(var, role.strip())
         role = None
-        if len(matches) == 1:
-            role = matches[0]
-        if user is None or role not in role_order() or role == var.DEFAULT_ROLE:
+        if len(rmatch) == 1:
+            role = rmatch[0]
+        if not umatch or role not in role_order() or role == var.DEFAULT_ROLE:
             wrapper.send(messages["frole_incorrect"].format(part))
             return
-        var.FORCE_ROLES[role].add(user)
+        var.FORCE_ROLES[role].add(umatch.get())
 
     wrapper.send(messages["operation_successful"])
 
@@ -3633,18 +3637,16 @@ def ftotem(var, wrapper, message):
         return
 
     target = msg.pop(0).strip()
-    match, _ = users.complete_match(target, get_players())
-    if match is None:
+    match = users.complete_match(target, get_players())
+    if not match:
         wrapper.send(messages["invalid_target"])
         return
 
     from src.roles.helper.shamans import change_totem
     try:
-        change_totem(var, match, " ".join(msg))
+        change_totem(var, match.get(), " ".join(msg))
     except ValueError as e:
         wrapper.send(str(e))
         return
 
     wrapper.send(messages["operation_successful"])
-
-# vim: set sw=4 expandtab:
