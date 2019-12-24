@@ -19,7 +19,7 @@
         "elect" : ["elect", "call"],
         "execute" : ["execute", "shoot"],
         "status" : ["status", "time", "votes"],
-        "cards" : ["cards", "table", "showtable", "enacted"],
+        "cards" : ["cards", "table", "showtable", "enacted", "deck"],
         "showtrack" : ["showtrack"],
         "veto" : ["veto"],
         "approve" : ["approve"],
