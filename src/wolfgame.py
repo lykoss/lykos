@@ -680,7 +680,7 @@ def join_deadchat(var, *all_users):
     pl = get_participants()
 
     for user in all_users:
-        if user.stasis_count() or user in pl or user in var.DEADCHAT_PLAYERS:
+        if user.stasis_count() or user in pl or user in var.DEADCHAT_PLAYERS or user not in channels.Main.users:
             continue
         to_join.append(user)
 
@@ -1861,6 +1861,10 @@ def leave(var, what, user, why=None):
     # Only mark living players as disconnected, unless they were kicked
     if user in ps or what == "kick":
         var.DCED_LOSERS.add(user)
+
+    # leaving the game channel means you leave deadchat
+    if user in var.DEADCHAT_PLAYERS:
+        leave_deadchat(var, user)
 
     if user not in ps or user in var.DISCONNECTED:
         return

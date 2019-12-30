@@ -374,6 +374,10 @@ class User(IRCContext):
             for channel in self.channels:
                 channel.users.discard(self)
                 channel.users.add(new)
+                for mode in Features["PREFIX"].values():
+                    if self in channel.modes.get(mode, ()):
+                        channel.modes[mode].discard(self)
+                        channel.modes[mode].add(self)
             if not isinstance(new, BotUser):
                 _users.add(new)
             elif self is Bot:
