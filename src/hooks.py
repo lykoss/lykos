@@ -67,7 +67,7 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
 def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address, host, server, nick, status, hop, idle, account, realname):
     """Handle WHOX responses for servers that support it.
 
-    An extended WHO (WHOX) is caracterised by a second parameter to the request
+    An extended WHO (WHOX) is characterised by a second parameter to the request
     That parameter must be '%' followed by at least one of 'tcuihsnfdlar'
     If the 't' specifier is present, the specifiers must be followed by a comma and at most 3 bytes
     This is the ordering if all parameters are present, but not all of them are required

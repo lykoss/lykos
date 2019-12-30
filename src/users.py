@@ -116,27 +116,27 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(pattern: str, users=None):
+def complete_match(pattern: str, scope=None):
     """ Find a user or users who match the given pattern.
 
     :param pattern: Pattern to match on. The format is "[nick][:account]",
         with [] denoting an optional field. Exact matches are tried, and then
         prefix matches (stripping special characters as needed). If both a nick
         and an account are specified, both must match.
-    :param Optional[Iterable[User]] users: Users to match pattern against. If None,
+    :param Optional[Iterable[User]] scope: Users to match pattern against. If None,
         search against all users.
     :returns: A Match object describing whether or not the match succeeded.
     :rtype: Match[User]
     """
-    if users is None:
-        users = _users
+    if scope is None:
+        scope = _users
     matches = []
     nick_search, _, acct_search = lower(pattern).partition(":")
     if not nick_search and not acct_search:
         return Match([])
 
     direct_match = False
-    for user in users:
+    for user in scope:
         nick = lower(user.nick)
         stripped_nick = nick.lstrip("[{\\^_`|}]")
         if nick_search:
@@ -151,10 +151,12 @@ def complete_match(pattern: str, users=None):
             matches.append(user)
 
     if acct_search:
-        users = list(matches)
+        scope = list(matches)
         matches.clear()
         direct_match = False
-        for user in users:
+        for user in scope:
+            if not user.account:
+                continue # fakes don't have accounts, so this search won't be able to find them
             acct = lower(user.account)
             stripped_acct = acct.lstrip("[{\\^_`|}]")
             if acct == acct_search:
@@ -369,6 +371,9 @@ class User(IRCContext):
         if same_user:
             global Bot
             new.channels = self.channels
+            for channel in self.channels:
+                channel.users.discard(self)
+                channel.users.add(new)
             if not isinstance(new, BotUser):
                 _users.add(new)
             elif self is Bot:

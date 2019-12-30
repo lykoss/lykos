@@ -41,7 +41,7 @@ import urllib.request
 
 from collections import defaultdict, deque, Counter
 from datetime import datetime, timedelta
-from typing import Set
+from typing import Set, Optional, Callable
 
 from oyoyo.parse import parse_nick
 
@@ -759,24 +759,48 @@ def join(var, wrapper, message):
     if var.PHASE in ("none", "join"):
         if wrapper.private:
             return
-        if evt.data["join_player"](var, wrapper) and message:
-            evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
+
+        def _cb():
+            if message:
+                evt.data["vote_gamemode"](var, wrapper, message.lower().split()[0], doreply=False)
+        evt.data["join_player"](var, wrapper, callback=_cb)
 
     else: # join deadchat
         if wrapper.private and wrapper.source is not wrapper.target:
             evt.data["join_deadchat"](var, wrapper.source)
 
-def join_player(var, wrapper, who=None, forced=False, *, sanity=True):
+def join_player(var,
+                wrapper: MessageDispatcher,
+                who: Optional[User] = None,
+                forced: bool = False,
+                *,
+                sanity: bool = True,
+                callback: Optional[Callable] = None) -> None:
+    """Join a player to the game.
+
+    :param var: Game state
+    :param wrapper: Player being joined
+    :param who: User who executed the join or fjoin command
+    :param forced: True if this was a forced join
+    :param sanity: False if this is a non-standard join (i.e. mid-game join in maelstrom).
+        If False, the caller is responsible for re-implementing much of the join logic to keep game state consistent.
+    :param callback: A callback that is fired upon a successful join.
+    """
     if who is None:
         who = wrapper.source
 
     if wrapper.target is not channels.Main:
-        return False
+        return
+
     def _join():
         if not wrapper.source.is_fake and wrapper.source.account is None:
-            wrapper.pm(messages["not_logged_in"])
+            if forced:
+                who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
+            else:
+                wrapper.source.send(messages["not_logged_in"], notice=True)
             return
-        _join_player(var, wrapper, who, forced, sanity=sanity)
+        if _join_player(var, wrapper, who, forced, sanity=sanity) and callback:
+            callback() # FIXME: join_player should be async and return bool; caller can await it for result
     wrapper.source.update_account_data(_join)
 
 def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
@@ -922,8 +946,13 @@ def kill_join(var, wrapper):
         var.AFTER_FLASTGAME = None
 
 @command("fjoin", flag="A")
-def fjoin(var, wrapper, message):
-    """Forces someone to join a game."""
+def fjoin(var, wrapper: MessageDispatcher, message: str):
+    """Force someone to join a game.
+
+    :param var: Game state
+    :param wrapper: Dispatcher
+    :param message: Command text. If empty, we join ourselves
+    """
     # keep this and the event in def join() in sync
     evt = Event("join", {
         "join_player": join_player,
@@ -933,75 +962,49 @@ def fjoin(var, wrapper, message):
 
     if not evt.dispatch(var, wrapper, message, forced=True):
         return
-    noticed = False
-    fake = False
+    success = False
     if not message.strip():
         evt.data["join_player"](var, wrapper, forced=True)
+        return
 
     parts = re.split(" +", message)
-    possible_users = {u.lower().nick for u in wrapper.target.users}
     to_join = []
     if not botconfig.DEBUG_MODE:
-        match = complete_one_match(users.lower(parts[0]), possible_users)
+        match = users.complete_match(parts[0], wrapper.target.users)
         if match:
-            to_join.append(match)
+            to_join.append(match.get())
     else:
-        for i, s in enumerate(parts):
-            match = complete_one_match(users.lower(s), possible_users)
+        for s in parts:
+            match = users.complete_match(s, wrapper.target.users)
             if match:
-                to_join.append(match)
-            else:
+                to_join.append(match.get())
+            elif botconfig.DEBUG_MODE and re.fullmatch(r"[0-9+](?:-[0-9]+)?", s):
+                # in debug mode, allow joining fake nicks
                 to_join.append(s)
     for tojoin in to_join:
-        tojoin = tojoin.strip()
+        if isinstance(tojoin, users.User):
+            if tojoin is users.Bot:
+                wrapper.pm(messages["not_allowed"])
+            else:
+                evt.data["join_player"](var, type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
+                success = True
         # Allow joining single number fake users in debug mode
-        if users.predicate(tojoin) and botconfig.DEBUG_MODE:
+        elif users.predicate(tojoin) and botconfig.DEBUG_MODE:
             user = users.add(wrapper.client, nick=tojoin)
             evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
-            continue
+            success = True
         # Allow joining ranges of numbers as fake users in debug mode
-        if "-" in tojoin and botconfig.DEBUG_MODE:
+        elif "-" in tojoin and botconfig.DEBUG_MODE:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players()):
                     wrapper.send(messages["too_many_players_to_join"].format(wrapper.source))
                     break
-                fake = True
+                success = True
                 for i in range(int(first), int(last)+1):
                     user = users.add(wrapper.client, nick=str(i))
                     evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
-                continue
-        if not tojoin:
-            continue
-
-        maybe_user = None
-
-        for user in wrapper.target.users:
-            if users.equals(user.nick, tojoin):
-                maybe_user = user
-                break
-        else:
-            if not users.predicate(tojoin) or botconfig.DEBUG_MODE:
-                if not noticed: # important
-                    wrapper.send("{0}{1}".format(wrapper.source, messages["fjoin_in_chan"]))
-                    noticed = True
-                continue
-
-        if maybe_user is not None:
-            if not botconfig.DEBUG_MODE:
-                if maybe_user.account is None:
-                    wrapper.pm(messages["account_not_logged_in"].format(maybe_user))
-                    return
-        elif botconfig.DEBUG_MODE:
-            fake = True
-
-        if maybe_user is not users.Bot:
-            if maybe_user is None and users.predicate(tojoin) and botconfig.DEBUG_MODE:
-                maybe_user = users.add(wrapper.client, nick=tojoin)
-            evt.data["join_player"](var, type(wrapper)(maybe_user, wrapper.target), forced=True, who=wrapper.source)
-        else:
-            wrapper.pm(messages["not_allowed"])
-    if fake:
+    if success:
         wrapper.send(messages["fjoin_success"].format(wrapper.source, len(get_players())))
 
 @command("fleave", flag="A", pm=True, phases=("join", "day", "night"))
