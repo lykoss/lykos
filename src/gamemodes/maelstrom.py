@@ -29,7 +29,6 @@ class MaelstromMode(GameMode):
             "join": EventListener(self.on_join)
         }
         self.DEAD_ACCOUNTS = set()
-        self.DEAD_HOSTS = set()
 
     def on_del_player(self, evt, var, player, all_roles, death_triggers):
         if player.is_fake:
@@ -38,16 +37,11 @@ class MaelstromMode(GameMode):
         if player.account is not None:
             self.DEAD_ACCOUNTS.add(player.lower().account)
 
-        if not var.ACCOUNTS_ONLY:
-            self.DEAD_HOSTS.add(player.lower().host)
-
     def on_join(self, evt, var, wrapper, message, forced=False):
         if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):
             return
         temp = wrapper.source.lower()
-        if (wrapper.source in var.ALL_PLAYERS or
-                temp.account in self.DEAD_ACCOUNTS or
-                temp.host in self.DEAD_HOSTS):
+        if wrapper.source in var.ALL_PLAYERS or temp.account in self.DEAD_ACCOUNTS:
             wrapper.pm(messages["maelstrom_dead"])
             return
         if not forced and evt.data["join_player"](var, type(wrapper)(wrapper.source, channels.Main), sanity=False):
@@ -81,12 +75,10 @@ class MaelstromMode(GameMode):
 
         var.ROLES[role].add(wrapper.source)
         var.ORIGINAL_ROLES[role].add(wrapper.source)
-        var.FINAL_ROLES[wrapper.source.nick] = role # FIXME: once FINAL_ROLES stores users
+        var.FINAL_ROLES[wrapper.source] = role
         var.MAIN_ROLES[wrapper.source] = role
         var.ORIGINAL_MAIN_ROLES[wrapper.source] = role
         var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
-        if wrapper.source.nick in var.USERS:
-            var.PLAYERS[wrapper.source.nick] = var.USERS[wrapper.source.nick]
 
         for message in evt.data["messages"]:
             wrapper.pm(message)
@@ -136,7 +128,7 @@ class MaelstromMode(GameMode):
                         continue
                     var.ORIGINAL_ROLES[r].discard(p)
                 var.ORIGINAL_ROLES[role].add(p)
-                var.FINAL_ROLES[p.nick] = role # FIXME
+                var.FINAL_ROLES[p] = role
                 var.MAIN_ROLES[p] = role
                 var.ORIGINAL_MAIN_ROLES[p] = role
 

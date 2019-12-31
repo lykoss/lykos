@@ -322,7 +322,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.FINAL_ROLES = {}
+    var.FINAL_ROLES.clear()
     var.EXTRA_WOLVES = 0
 
     var.DEADCHAT_PLAYERS.clear()
@@ -460,8 +460,6 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.DAY_START_TIME = datetime.now()
     var.NIGHT_START_TIME = datetime.now()
     var.LAST_PING = None
-
-    var.PLAYERS = {plr:dict(var.USERS[plr.nick]) for plr in villagers if plr.nick in var.USERS} # FIXME: Please kill this
 
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night

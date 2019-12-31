@@ -1,3 +1,5 @@
+from typing import Union
+
 from src import channels, users
 from src import settings as var
 
@@ -6,7 +8,7 @@ from src.functions import get_players
 class MessageDispatcher:
     """Dispatcher class for raw IRC messages."""
 
-    def __init__(self, source, target):
+    def __init__(self, source: users.User, target: Union[channels.Channel, users.BotUser]):
         self.source = source
         self.target = target
         self.client = source.client
@@ -48,5 +50,3 @@ class MessageDispatcher:
         else:
             kwargs.setdefault("first", first)
             self.target.send(*messages, **kwargs)
-
-# vim: set sw=4 expandtab:

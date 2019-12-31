@@ -1,53 +1,45 @@
 import fnmatch
 import time
 import re
+from typing import Callable, Optional, Set
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
 from src import db
 from src.events import EventListener
+from src.decorators import hook
+from src.debug import CheckedDict, CheckedSet
+from src.match import Match
 
 import botconfig
 
 Bot = None # bot instance
 
-_users = set()
-_ghosts = set()
+_users = CheckedSet("users._users") # type: CheckedSet[User]
+_ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
 
-_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, realname={3!r}, account={4!r}, allow_bot={5})"
-
-class _user:
-    def __init__(self, nick):
-        self.nick = nick
-
-    for name in ("ident", "host", "account", "inchan", "modes", "moded"):
-        locals()[name] = property(lambda self, name=name: var.USERS[self.nick][name], lambda self, value, name=name: var.USERS[self.nick].__setitem__(name, value))
+_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
 # testing, where we might want everyone to be fake nicks.
 predicate = re.compile(r"^[0-9]+$").search
 
-def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False):
+def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False, allow_none=False, allow_bot=False, allow_ghosts=False):
     """Return the matching user(s) from the user list.
 
-    This takes up to 5 positional arguments (nick, ident, host, realname,
-    account) and may take up to three keyword-only arguments:
-
-    - allow_multiple (defaulting to False) allows multiple matches,
-      and returns a list, even if there's only one match;
-
-    - allow_none (defaulting to False) allows no match at all, and
-      returns None instead of raising an error; an empty list will be
-      returned if this is used with allow_multiple;
-
-    - allow_bot (defaulting to False) allows the bot to be matched and
-      returned;
-
-    If allow_multiple is not set and multiple users match, a ValueError
-    will be raised. If allow_none is not set and no users match, a KeyError
-    will be raised.
-
+    :param nick: Nickname or raw nick (nick!ident@host) to match.
+        If a raw nick is passed, the `ident` and `host` args must be None.
+    :param ident: Ident to match.
+    :param host: Host to match.
+    :param account: Account to match.
+    :param allow_multiple: Allow multiple matches, returning a list (even if only one match).
+    :param allow_none: Allow no matches, returning None if nothing found. Otherwise raises KeyError.
+    :param allow_bot: Allow the BotUser to be matched and returned.
+    :param allow_ghosts: Allow disconnected users to be matched and returned.
+    :returns: The matched user(s), if any.
+    :raises KeyError: If no users match and allow_none is False.
+    :raises ValueError: If multiple users match and allow_multiple is False.
     """
 
     if ident is None and host is None and nick is not None:
@@ -55,17 +47,22 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
 
     potential = []
     users = set(_users)
+    if not allow_ghosts:
+        users.difference_update(_ghosts)
     if allow_bot:
-        users.add(Bot)
+        try:
+            users.add(Bot)
+        except ValueError:
+            pass # Bot may not be hashable in early init; this is fine and User.__new__ handles this gracefully
 
     sentinel = object()
 
-    temp = User(sentinel, nick, ident, host, realname, account)
+    temp = User(sentinel, nick, ident, host, account)
     if temp.client is not sentinel: # actual client
         return [temp] if allow_multiple else temp
 
     for user in users:
-        if user == temp:
+        if user.partial_match(temp):
             potential.append(user)
 
     if allow_multiple:
@@ -76,22 +73,18 @@ def _get(nick=None, ident=None, host=None, realname=None, account=None, *, allow
 
     if len(potential) > 1:
         raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, realname, account, allow_bot))
+              _arg_msg.format(nick, ident, host, account, allow_bot))
 
     if not allow_none:
-        raise KeyError(_arg_msg.format(nick, ident, host, realname, account, allow_bot))
+        raise KeyError(_arg_msg.format(nick, ident, host, account, allow_bot))
 
     return None
 
-def get(nick, *stuff, **morestuff): # backwards-compatible API - kill this as soon as possible!
-    var.USERS[nick] # _user(nick) evaluates lazily, so check eagerly if the nick exists
-    return _user(nick)
-
-def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
+def add(cli, *, nick, ident=None, host=None, account=None):
     """Create a new user, add it to the user list and return it.
 
-    This function takes up to 5 keyword-only arguments (and one positional
-    argument, cli): nick, ident, host, realname and account.
+    This function takes up to 4 keyword-only arguments (and one positional
+    argument, cli): nick, ident, host, and account.
     With the exception of the first one, any parameter can be omitted.
 
     """
@@ -103,7 +96,7 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
     if predicate(nick):
         cls = FakeUser
 
-    new = cls(cli, nick, ident, host, realname, account)
+    new = cls(cli, nick, ident, host, account)
 
     if new is not Bot:
         try:
@@ -115,13 +108,6 @@ def _add(cli, *, nick, ident=None, host=None, realname=None, account=None):
 
     return new
 
-def add(nick, **blah): # backwards-compatible API
-    var.USERS[nick] = blah
-    return _user(nick)
-
-def exists(nick, *stuff, **morestuff): # backwards-compatible API
-    return nick in var.USERS
-
 def users():
     """Iterate over the users in the registry."""
     yield from _users
@@ -130,20 +116,58 @@ def disconnected():
     """Iterate over the users who are in-game but disconnected."""
     yield from _ghosts
 
-def complete_match(string, users):
+def complete_match(pattern: str, scope=None):
+    """ Find a user or users who match the given pattern.
+
+    :param pattern: Pattern to match on. The format is "[nick][:account]",
+        with [] denoting an optional field. Exact matches are tried, and then
+        prefix matches (stripping special characters as needed). If both a nick
+        and an account are specified, both must match.
+    :param Optional[Iterable[User]] scope: Users to match pattern against. If None,
+        search against all users.
+    :returns: A Match object describing whether or not the match succeeded.
+    :rtype: Match[User]
+    """
+    if scope is None:
+        scope = _users
     matches = []
-    string = lower(string)
-    for user in users:
+    nick_search, _, acct_search = lower(pattern).partition(":")
+    if not nick_search and not acct_search:
+        return Match([])
+
+    direct_match = False
+    for user in scope:
         nick = lower(user.nick)
-        if nick == string:
-            return user, 1
-        elif nick.startswith(string) or nick.lstrip("[{\\^_`|}]").startswith(string):
+        stripped_nick = nick.lstrip("[{\\^_`|}]")
+        if nick_search:
+            if nick == nick_search:
+                if not direct_match:
+                    matches.clear()
+                    direct_match = True
+                matches.append(user)
+            elif not direct_match and (nick.startswith(nick_search) or stripped_nick.startswith(nick_search)):
+                matches.append(user)
+        else:
             matches.append(user)
 
-    if len(matches) != 1:
-        return None, len(matches)
+    if acct_search:
+        scope = list(matches)
+        matches.clear()
+        direct_match = False
+        for user in scope:
+            if not user.account:
+                continue # fakes don't have accounts, so this search won't be able to find them
+            acct = lower(user.account)
+            stripped_acct = acct.lstrip("[{\\^_`|}]")
+            if acct == acct_search:
+                if not direct_match:
+                    matches.clear()
+                    direct_match = True
+                matches.append(user)
+            elif not direct_match and (acct.startswith(acct_search) or stripped_acct.startswith(acct_search)):
+                matches.append(user)
 
-    return matches[0], 1
+    return Match(matches)
 
 _raw_nick_pattern = re.compile(r"^(?P<nick>.+?)(?:!(?P<ident>.+?)@(?P<host>.+))?$")
 
@@ -180,30 +204,30 @@ class User(IRCContext):
 
     is_user = True
 
-    def __new__(cls, cli, nick, ident, host, realname, account):
+    def __new__(cls, cli, nick, ident, host, account):
         self = super().__new__(cls)
         super(__class__, self).__init__(nick, cli)
 
         self._ident = ident
         self._host = host
-        self.realname = realname
-        self.account = account
-        self.channels = {}
+        self._account = account
+        self.channels = CheckedDict("users.User.channels")
         self.timestamp = time.time()
         self.sets = []
         self.lists = []
         self.dict_keys = []
         self.dict_values = []
 
-        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.realname, Bot.account} == {None}:
+        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.account} == {None}:
+            # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
+            # which store by hash. As such, mutating the properties is safe.
             self = Bot
-            self.ident = ident
-            self.host = host
-            self.realname = realname
-            self.account = account
+            self._ident = ident
+            self._host = host
+            self._account = account
             self.timestamp = time.time()
 
-        elif ident is not None and host is not None:
+        elif nick is not None and ident is not None and host is not None:
             users = set(_users)
             users.add(Bot)
             if self in users:
@@ -218,8 +242,8 @@ class User(IRCContext):
             # and so the instance is hashable. Being hashable, it can be checked
             # for set containment, and exactly one instance in that set will be
             # equal (since the hash is based off of the ident and host, and the
-            # comparisons check for all non-None attributes, two instances cannot
-            # possibly be equal while having a different hash).
+            # comparisons check for all those two attributes among others, two
+            # instances cannot possibly be equal while having a different hash).
             #
             # In this case, however, at least the ident or the host is missing,
             # and so the hash cannot be calculated. This means that two instances
@@ -249,7 +273,7 @@ class User(IRCContext):
             users = set(_users)
             users.add(Bot)
             for user in users:
-                if self == user:
+                if self.partial_match(user):
                     if potential is None:
                         potential = user
                     else:
@@ -260,14 +284,14 @@ class User(IRCContext):
 
         return self
 
-    def __init__(*args, **kwargs):
+    def __init__(self, *args, **kwargs):
         pass # everything that needed to be done was done in __new__
 
     def __str__(self):
-        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}#{self.realname}:{self.account}".format(self=self)
+        return "{self.__class__.__name__}: {self.nick}!{self.ident}@{self.host}:{self.account}".format(self=self)
 
     def __repr__(self):
-        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.realname!r}, {self.account!r}, {self.channels!r})".format(self=self)
+        return "{self.__class__.__name__}({self.nick!r}, {self.ident!r}, {self.host!r}, {self.account!r}, {self.channels!r})".format(self=self)
 
     def __format__(self, format_spec):
         if format_spec == "@":
@@ -282,12 +306,25 @@ class User(IRCContext):
         return super().__format__(format_spec)
 
     def __hash__(self):
-        if self.ident is None or self.host is None:
-            raise ValueError("cannot hash a User with no ident or host")
-        return hash((self.ident, self.host))
+        # check intentionally omits account: account may be None for normal operation for any user.
+        if self.nick is None or self.ident is None or self.host is None:
+            raise ValueError("cannot hash a User with no nick, ident, or host")
+        return hash((self.nick, self.ident, self.host, self.account))
 
     def __eq__(self, other):
-        return self._compare(other, __class__, "nick", "ident", "host", "realname", "account")
+        return (isinstance(other, User)
+                and self.nick == other.nick
+                and self.ident == other.ident
+                and self.host == other.host
+                and self.account == other.account)
+
+    def partial_match(self, other):
+        """Test if our non-None properties match the non-None properties on the other object.
+
+        :param other: Object to compare with
+        :returns: True if `other` is a User object and the non-None properties match our non-None properties.
+        """
+        return self._compare(other, __class__, "nick", "ident", "host", "account")
 
     # User objects are not copyable - this is a deliberate design decision
     # Therefore, those two functions here only return the object itself
@@ -300,13 +337,19 @@ class User(IRCContext):
     def __deepcopy__(self, memo):
         return self
 
-    def swap(self, new):
-        """Swap yourself out with the new user everywhere."""
+    def swap(self, new, *, same_user=False):
+        """Swap yourself out with the new user everywhere.
+
+        :param new: New user to replace current one with.
+        :param same_user: If True, indicates `new` is the same user instance as `self`, just
+            with updated values. This performs some additional work to ensure that the hand-off
+            does not lose any data.
+        """
         if self is new:
             return # as far as the caller is aware, we've swapped
 
         _ghosts.discard(self)
-        if not self.channels:
+        if not self.channels or same_user:
             _users.discard(self) # Goodbye, my old friend
 
         for l in self.lists[:]:
@@ -325,12 +368,27 @@ class User(IRCContext):
                 if dv[key] is self:
                     dv[key] = new
 
-        # It is the containers' reponsibility to properly remove themself from the users
+        if same_user:
+            global Bot
+            new.channels = self.channels
+            for channel in self.channels:
+                channel.users.discard(self)
+                channel.users.add(new)
+                for mode in Features["PREFIX"].values():
+                    if self in channel.modes.get(mode, ()):
+                        channel.modes[mode].discard(self)
+                        channel.modes[mode].add(self)
+            if not isinstance(new, BotUser):
+                _users.add(new)
+            elif self is Bot:
+                Bot = new
+
+        # It is the containers' responsibility to properly remove themselves from the users
         # So if any list is non-empty, something went terribly wrong
         assert not self.lists + self.sets + self.dict_keys + self.dict_values
 
     def lower(self):
-        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
+        temp = type(self)(self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.account))
         if temp is not self: # If everything is already lowercase, we'll get back the same instance
             temp.channels = self.channels
             temp.ref = self.ref or self
@@ -340,17 +398,10 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        hosts = set(botconfig.OWNERS)
         accounts = set(botconfig.OWNERS_ACCOUNTS)
 
-        if self.account is not None:
-            for pattern in accounts:
-                if fnmatch.fnmatch(lower(self.account), lower(pattern)):
-                    return True
-
-        for hostmask in hosts:
-            if self.match_hostmask(hostmask):
-                return True
+        if self.account is not None and self.account in accounts:
+            return True
 
         return False
 
@@ -358,21 +409,13 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        flags = var.FLAGS[self.rawnick] + var.FLAGS_ACCS[self.account]
+        flags = var.FLAGS_ACCS[self.account]
 
         if "F" not in flags:
             try:
-                hosts = set(botconfig.ADMINS)
                 accounts = set(botconfig.ADMINS_ACCOUNTS)
-
-                if self.account is not None:
-                    for pattern in accounts:
-                        if fnmatch.fnmatch(lower(self.account), lower(pattern)):
-                            return True
-
-                for hostmask in hosts:
-                    if self.match_hostmask(hostmask):
-                        return True
+                if self.account is not None and self.account in accounts:
+                    return True
             except AttributeError:
                 pass
 
@@ -399,29 +442,12 @@ class User(IRCContext):
                 fnmatch.fnmatch(temp.host, lower(host, casemapping="ascii")))
 
     def prefers_notice(self):
-        temp = self.lower()
-
-        if temp.account in var.PREFER_NOTICE_ACCS:
-            return True
-
-        if not var.ACCOUNTS_ONLY:
-            for hostmask in var.PREFER_NOTICE:
-                if temp.match_hostmask(hostmask):
-                    return True
-
-        return False
+        return self.lower().account in var.PREFER_NOTICE_ACCS
 
     def get_pingif_count(self):
         temp = self.lower()
-
         if temp.account in var.PING_IF_PREFS_ACCS:
             return var.PING_IF_PREFS_ACCS[temp.account]
-
-        if not var.ACCOUNTS_ONLY:
-            for hostmask, pref in var.PING_IF_PREFS.items():
-                if temp.match_hostmask(hostmask):
-                    return pref
-
         return 0
 
     def set_pingif_count(self, value, old=None):
@@ -435,18 +461,6 @@ class User(IRCContext):
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(temp.account)
-
-            if not var.ACCOUNTS_ONLY:
-                for hostmask in list(var.PING_IF_PREFS):
-                    if temp.match_hostmask(hostmask):
-                        del var.PING_IF_PREFS[hostmask]
-                        db.set_pingif(0, None, hostmask)
-                        if old is not None:
-                            with var.WARNING_LOCK:
-                                if old in var.PING_IF_NUMS:
-                                    var.PING_IF_NUMS[old].discard(hostmask)
-                                    var.PING_IF_NUMS[old].discard(temp.host)
-
         else:
             if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
@@ -459,93 +473,83 @@ class User(IRCContext):
                         if old in var.PING_IF_NUMS_ACCS:
                             var.PING_IF_NUMS_ACCS[old].discard(temp.account)
 
-            elif not var.ACCOUNTS_ONLY:
-                var.PING_IF_PREFS[temp.userhost] = value
-                db.set_pingif(value, None, temp.userhost)
-                with var.WARNING_LOCK:
-                    if value not in var.PING_IF_NUMS:
-                        var.PING_IF_NUMS[value] = set()
-                    var.PING_IF_NUMS[value].add(temp.userhost)
-                    if old is not None:
-                        if old in var.PING_IF_NUMS:
-                            var.PING_IF_NUMS[old].discard(temp.host)
-                            var.PING_IF_NUMS[old].discard(temp.userhost)
-
     def wants_deadchat(self):
-        temp = self.lower()
-
-        if temp.account in var.DEADCHAT_PREFS_ACCS:
-            return False
-        elif var.ACCOUNTS_ONLY:
-            return True
-        elif temp.host in var.DEADCHAT_PREFS:
-            return False
-
-        return True
+        return self.lower().account not in var.DEADCHAT_PREFS_ACCS
 
     def stasis_count(self):
         """Return the number of games the user is in stasis for."""
-        temp = self.lower()
-        amount = var.STASISED_ACCS.get(temp.account, 0)
-        amount = max(amount, var.STASISED.get(temp.userhost, 0))
+        return var.STASISED_ACCS.get(self.lower().account, 0)
 
-        return amount
+    def update_account_data(self, callback: Callable):
+        """Refresh stale account data on networks that don't support certain features.
+
+        :param callback: Callback to execute when account data is fully updated
+        """
+
+        # Nothing to update for fake nicks
+        if self.is_fake:
+            callback()
+            return
+
+        if self.account is not None and Features.get("account-notify", False):
+            # account-notify is enabled, so we're already up to date on our account name
+            callback()
+            return
+
+        def whox_listener(evt, target):
+            if target is self:
+                # This is who_end because we don't care about the actual content
+                # If we got here, the account has been properly updated. Continue.
+                listener.remove("who_end")
+                callback()
+
+        listener = EventListener(whox_listener, listener_id="update_account_data." + self.name)
+        listener.install("who_end")
+
+        if Features.get("WHOX", False):
+            # A WHOX query performs less network noise than WHOIS, so use that if available
+            self.who()
+        else:
+            # Fallback to WHOIS
+            self.client.send("WHOIS {0}".format(self))
 
     @property
     def nick(self): # name should be the same as nick (for length calculation)
         return self.name
 
     @nick.setter
-    def nick(self, nick):
-        self.name = nick
-        if self is Bot: # update the client's nickname as well
-            self.client.nickname = nick
+    def nick(self, value):
+        new = User(self.client, value, self.ident, self.host, self.account)
+        self.swap(new, same_user=True)
 
     @property
-    def ident(self): # prevent changing ident and host after they were set (so hash remains the same)
+    def ident(self):
         return self._ident
 
     @ident.setter
-    def ident(self, ident):
-        if self._ident is None:
-            self._ident = ident
-            if self is Bot:
-                self.client.ident = ident
-        elif self._ident != ident:
-            raise ValueError("may not change the ident of a live user")
+    def ident(self, value):
+        new = User(self.client, self.nick, value, self.host, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def host(self):
         return self._host
 
     @host.setter
-    def host(self, host):
-        if self._host is None:
-            self._host = host
-            if self is Bot:
-                self.client.hostmask = host
-        elif self._host != host:
-            raise ValueError("may not change the host of a live user")
-
-    @property
-    def realname(self):
-        return self._realname
-
-    @realname.setter
-    def realname(self, realname):
-        self._realname = realname
-        if self is Bot:
-            self.client.real_name = realname
+    def host(self, value):
+        new = User(self.client, self.nick, self.ident, value, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def account(self): # automatically converts "0" and "*" to None
         return self._account
 
     @account.setter
-    def account(self, account):
-        if account in ("0", "*") or var.DISABLE_ACCOUNTS:
-            account = None
-        self._account = account
+    def account(self, value):
+        if value in ("0", "*"):
+            value = None
+        new = User(self.client, self.nick, self.ident, self.host, value)
+        self.swap(new, same_user=True)
 
     @property
     def rawnick(self):
@@ -554,26 +558,18 @@ class User(IRCContext):
         return "{self.nick}!{self.ident}@{self.host}".format(self=self)
 
     @rawnick.setter
-    def rawnick(self, rawnick):
-        self.nick, self.ident, self.host = parse_rawnick(rawnick)
-
-    @property
-    def userhost(self):
-        if self.ident is None or self.host is None:
-            return None
-        return "{self.ident}@{self.host}".format(self=self)
-
-    @userhost.setter
-    def userhost(self, userhost):
-        nick, self.ident, self.host = parse_rawnick(userhost)
+    def rawnick(self, value):
+        nick, ident, host = parse_rawnick(value)
+        new = User(self.client, nick, ident, host, self.account)
+        self.swap(new, same_user=True)
 
     @property
     def disconnected(self):
         return self in _ghosts
 
     @disconnected.setter
-    def disconnected(self, disconnected):
-        if disconnected:
+    def disconnected(self, value):
+        if value:
             _ghosts.add(self)
         else:
             _ghosts.discard(self)
@@ -597,14 +593,14 @@ class FakeUser(User):
 
     @classmethod
     def from_nick(cls, nick):
-        return cls(None, nick, None, None, None, None)
+        return FakeUser(None, nick, None, None, None)
 
     @property
     def nick(self):
         return self.name
 
     @nick.setter
-    def nick(self, nick):
+    def nick(self, value):
         raise ValueError("may not change the nick of a fake user")
 
     @property
@@ -612,38 +608,81 @@ class FakeUser(User):
         return self.nick # we don't have a raw nick
 
     @rawnick.setter
-    def rawnick(self, rawnick):
+    def rawnick(self, value):
         raise ValueError("may not change the raw nick of a fake user")
 
 class BotUser(User): # TODO: change all the 'if x is Bot' for 'if isinstance(x, BotUser)'
 
-    def __new__(cls, cli, nick):
-        self = super().__new__(cls, cli, nick, None, None, None, None)
+    def __new__(cls, cli, nick, ident=None, host=None, account=None):
+        self = super().__new__(cls, cli, nick, ident, host, account)
         self.modes = set()
         return self
-
-    def with_host(self, host):
-        """Create a new bot instance with a new host."""
-        if self.ident is None and self.host is None:
-            # we don't have full details on our ident yet; setting host now causes bugs down the road since
-            # ident will subsequently not update. We'll pick up the new host whenever we finish setting ourselves up
-            return self
-        new = super().__new__(type(self), self.client, self.nick, self.ident, host, self.realname, self.account)
-        if new is not self:
-            new.modes = set(self.modes)
-            new.channels = {chan: set(modes) for chan, modes in self.channels.items()}
-        return new
-
-    def lower(self):
-        temp = super().__new__(type(self), self.client, lower(self.nick), lower(self.ident), lower(self.host, casemapping="ascii"), lower(self.realname), lower(self.account))
-        if temp is not self: # If everything is already lowercase, we'll get back the same instance
-            temp.channels = self.channels
-            temp.ref = self.ref or self
-        return temp
 
     def change_nick(self, nick=None):
         if nick is None:
             nick = self.nick
         self.client.send("NICK", nick)
 
-# vim: set sw=4 expandtab:
+    @property
+    def nick(self): # name should be the same as nick (for length calculation)
+        return self.name
+
+    @nick.setter
+    def nick(self, value):
+        self.client.nickname = value
+        new = BotUser(self.client, value, self.ident, self.host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def ident(self):
+        return self._ident
+
+    @ident.setter
+    def ident(self, value):
+        self.client.ident = value
+        new = BotUser(self.client, self.nick, value, self.host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def host(self):
+        return self._host
+
+    @host.setter
+    def host(self, value):
+        self.client.hostmask = value
+        new = BotUser(self.client, self.nick, self.ident, value, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def account(self): # automatically converts "0" and "*" to None
+        return self._account
+
+    @account.setter
+    def account(self, value):
+        if value in ("0", "*"):
+            value = None
+        new = BotUser(self.client, self.nick, self.ident, self.host, value)
+        self.swap(new, same_user=True)
+
+    @property
+    def rawnick(self):
+        if self.nick is None or self.ident is None or self.host is None:
+            return None
+        return "{self.nick}!{self.ident}@{self.host}".format(self=self)
+
+    @rawnick.setter
+    def rawnick(self, value):
+        nick, ident, host = parse_rawnick(value)
+        self.client.nickname = nick
+        self.client.ident = ident
+        self.client.hostmask = host
+        new = BotUser(self.client, nick, ident, host, self.account)
+        self.swap(new, same_user=True)
+
+    @property
+    def disconnected(self):
+        return False
+
+    @disconnected.setter
+    def disconnected(self, value):
+        pass # no-op

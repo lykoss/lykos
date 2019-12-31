@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Union
 import re
 
 import botconfig
@@ -16,9 +17,6 @@ def decrement_stasis(user=None):
         # decrement account stasis even if accounts are disabled
         if user.account in var.STASISED_ACCS:
             db.decrement_stasis(acc=user.account)
-        for hostmask in var.STASISED:
-            if user.match_hostmask(hostmask):
-                db.decrement_stasis(hostmask=hostmask)
     else:
         db.decrement_stasis()
     # Also expire any expired stasis and tempbans and update our tracking vars
@@ -30,8 +28,6 @@ def expire_tempbans():
     cmodes = []
     for acc in acclist:
         cmodes.append(("-b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
-    for hm in hmlist:
-        cmodes.append(("-b", "*!*@{0}".format(hm.split("@")[1])))
     channels.Main.mode(*cmodes)
 
 def parse_warning_target(target, lower=False):
@@ -40,24 +36,9 @@ def parse_warning_target(target, lower=False):
         thm = None
         if lower:
             tacc = irc_lower(tacc)
-    elif target in var.USERS:
-        tacc = var.USERS[target]["account"]
-        ident = var.USERS[target]["ident"]
-        host = var.USERS[target]["host"]
-        if lower:
-            tacc = irc_lower(tacc)
-            ident = irc_lower(ident)
-            host = host.lower()
-            target = irc_lower(target)
-        thm = target + "!" + ident + "@" + host
-    elif "@" in target:
-        tacc = None
-        thm = target
-        if lower:
-            hml, hmr = thm.split("@", 1)
-            thm = irc_lower(hml) + "@" + hmr.lower()
     else:
-        tacc = target
+        user = users.get(target, allow_none=True)
+        tacc = user.account if user else target
         thm = None
         if lower:
             tacc = irc_lower(tacc)
@@ -116,19 +97,19 @@ def _get_auto_sanctions(sanctions, prev, cur):
                     sanctions["tempban"] = exp
     
 
-def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sanctions=None):
-    tacc, thm = parse_warning_target(target)
-    if tacc is None and thm is None:
+def add_warning(target: Union[str, users.User], amount: int, actor: users.User, reason: str, notes=None, expires=None, sanctions=None):
+    if isinstance(target, users.User):
+        tacc = target.account
+        thm = None
+    else:
+        tacc, thm = parse_warning_target(target)
+
+    if tacc is None:
         return False
 
-    if actor not in var.USERS and actor != users.Bot.nick:
-        return False
     reason = reason.format()
-    sacc = None
     shm = None
-    if actor in var.USERS:
-        sacc = var.USERS[actor]["account"]
-        shm = actor + "!" + var.USERS[actor]["ident"] + "@" + var.USERS[actor]["host"]
+    sacc = actor.account
 
     # Turn expires into a datetime if we were passed a string; note that no error checking is performed here
     if isinstance(expires, str):
@@ -174,13 +155,9 @@ def add_warning(cli, target, amount, actor, reason, notes=None, expires=None, sa
         cmodes = []
         for acc in acclist:
             cmodes.append(("+b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
-        for hm in hmlist:
-            cmodes.append(("+b", "*!*@{0}".format(hm.split("@")[1])))
         channels.Main.mode(*cmodes)
         for user in channels.Main.users:
             if user.account in acclist:
-                channels.Main.kick(user, messages["tempban_kick"].format(nick=user, botnick=users.Bot.nick, reason=reason))
-            elif user.host in hmlist:
                 channels.Main.kick(user, messages["tempban_kick"].format(nick=user, botnick=users.Bot.nick, reason=reason))
 
     # Update any tracking vars that may have changed due to this
@@ -207,17 +184,13 @@ def fstasis(var, wrapper, message):
 
     if data:
         acc, hostmask = parse_warning_target(data[0], lower=True)
-        cur = max(var.STASISED[hostmask], var.STASISED_ACCS[acc])
+        cur = var.STASISED_ACCS[acc]
 
         if len(data) == 1:
-            if acc is not None and var.STASISED_ACCS[acc] == cur and cur > 0:
+            if var.STASISED_ACCS[acc] == cur and cur > 0:
                 wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
-            elif hostmask is not None and var.STASISED[hostmask] == cur and cur > 0:
-                wrapper.reply(messages["hostmask_in_stasis"].format(data[0], hostmask, cur))
-            elif acc is not None:
-                wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
             else:
-                wrapper.reply(messages["hostmask_not_in_stasis"].format(data[0], hostmask))
+                wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
         else:
             try:
                 amt = int(data[1])
@@ -232,32 +205,20 @@ def fstasis(var, wrapper, message):
                 wrapper.reply(messages["stasis_cannot_increase"])
                 return
             elif cur == 0:
-                if acc is not None:
-                    wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
-                    return
-                else:
-                    wrapper.reply(messages["hostmask_not_in_stasis"].format(data[0], hostmask))
-                    return
+                wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
+                return
 
             db.set_stasis(amt, acc, hostmask)
             db.init_vars()
             if amt > 0:
-                if acc is not None:
-                    wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt))
-                else:
-                    wrapper.reply(messages["fstasis_hostmask_add"].format(data[0], hostmask, amt))
-            elif acc is not None:
-                wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
+                wrapper.reply(messages["fstasis_account_add"].format(data[0], acc, amt))
             else:
-                wrapper.reply(messages["fstasis_hostmask_remove"].format(data[0], hostmask))
+                wrapper.reply(messages["fstasis_account_remove"].format(data[0], acc))
     else:
         stasised = {}
-        for hostmask in var.STASISED:
-            if var.STASISED[hostmask] > 0:
-                stasised[hostmask+" (Host)"] = var.STASISED[hostmask]
         for acc in var.STASISED_ACCS:
             if var.STASISED_ACCS[acc] > 0:
-                stasised[acc+" (Account)"] = var.STASISED_ACCS[acc]
+                stasised[acc] = var.STASISED_ACCS[acc]
 
         if stasised:
             msg = messages["currently_stasised"].format(", ".join(
@@ -322,7 +283,9 @@ def warn(var, wrapper, message):
             wrapper.reply(messages["fwarn_page_invalid"])
             return
 
-        acc, hm = parse_warning_target(wrapper.source.nick)
+        acc, hm = wrapper.source.account, None
+        if not acc:
+            return
         warnings = db.list_warnings(acc, hm, expired=list_all, skip=(page-1)*10, show=11)
         points = db.get_warning_points(acc, hm)
         wrapper.pm(messages["warn_list_header"].format(points, "" if points == 1 else "s"))
@@ -369,7 +332,9 @@ def warn(var, wrapper, message):
             wrapper.reply(messages["warn_view_syntax"])
             return
 
-        acc, hm = parse_warning_target(wrapper.source.nick)
+        acc, hm = wrapper.source.account, None
+        if not acc:
+            return
         warning = db.get_warning(warn_id, acc, hm)
         if warning is None:
             wrapper.reply(messages["fwarn_invalid_warning"])
@@ -410,7 +375,9 @@ def warn(var, wrapper, message):
             wrapper.reply(messages["warn_ack_syntax"])
             return
 
-        acc, hm = parse_warning_target(wrapper.source.nick)
+        acc, hm = wrapper.source.account, None
+        if not acc:
+            return
         warning = db.get_warning(warn_id, acc, hm)
         if warning is None:
             wrapper.reply(messages["fwarn_invalid_warning"])
@@ -530,8 +497,8 @@ def fwarn(var, wrapper, message):
 
         if target is not None:
             acc, hm = parse_warning_target(target)
-            if acc is None and hm is None:
-                wrapper.reply(messages["fwarn_nick_invalid"])
+            if acc is None:
+                wrapper.reply(messages["fwarn_nick_invalid"].format(target))
                 return
             warnings = db.list_warnings(acc, hm, expired=list_all, deleted=list_all, skip=(page-1)*10, show=11)
             points = db.get_warning_points(acc, hm)
@@ -847,7 +814,7 @@ def fwarn(var, wrapper, message):
         expires = None
 
     try:
-        warn_id = add_warning(wrapper.client, target, points, wrapper.source.nick, reason, notes, expires, sanctions) # FIXME
+        warn_id = add_warning(target, points, wrapper.source, reason, notes, expires, sanctions)
     except ValueError:
         wrapper.reply(messages["fwarn_expiry_invalid"])
         return
@@ -868,5 +835,3 @@ def fwarn(var, wrapper, message):
             log_msg = messages["fwarn_log_add"].format(warn_id, target, wrapper.source.nick, log_reason, points,
                                                        "" if points == 1 else "s", log_length)
             channels.get(var.LOG_CHANNEL).send(log_msg, prefix=var.LOG_PREFIX)
-
-# vim: set sw=4 expandtab:

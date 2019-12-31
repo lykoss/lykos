@@ -86,6 +86,7 @@ numeric_events = {
     b"323": "listend",
     b"324": "channelmodeis",
     b"329": "channelcreate",
+    b"330": "whoisaccount",
     b"331": "notopic",
     b"332": "currenttopic",
     b"333": "topicinfo",

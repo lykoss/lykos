@@ -6,12 +6,13 @@ from src.context import IRCContext, Features, lower
 from src.events import Event
 from src import settings as var
 from src import users
+from src.debug import CheckedSet, CheckedDict
 
 Main = None # main channel
 Dummy = None # fake channel
 Dev = None # dev channel
 
-_channels = {}
+_channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
 class _States(Enum):
     NotJoined = "not yet joined"
@@ -74,7 +75,7 @@ class Channel(IRCContext):
 
     def __init__(self, name, client):
         super().__init__(name, client)
-        self.users = set()
+        self.users = CheckedSet("channels.Channel.users")
         self.modes = {}
         self.timestamp = None
         self.state = _States.NotJoined
@@ -229,7 +230,7 @@ class Channel(IRCContext):
                 if c in status_modes: # op/voice status; keep it here and update the user's registry too
                     if c not in self.modes:
                         self.modes[c] = set()
-                    user = users._get(targets[i], allow_bot=True) # FIXME
+                    user = users.get(targets[i], allow_bot=True)
                     self.modes[c].add(user)
                     user.channels[self].add(c)
                     if user in var.OLD_MODES:
@@ -255,7 +256,7 @@ class Channel(IRCContext):
             else:
                 if c in status_modes:
                     if c in self.modes:
-                        user = users._get(targets[i], allow_bot=True) # FIXME
+                        user = users.get(targets[i], allow_bot=True)
                         self.modes[c].discard(user)
                         user.channels[self].discard(c)
                         if not self.modes[c]:
