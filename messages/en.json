@@ -649,7 +649,7 @@
     "wild_child_idol": "Your idol is {0:@}.",
     "idle_death": "{0:@} didn't get out of bed for a very long time and has been found dead. The survivors bury the {1!role:bold}'s body.",
     "idle_death_no_reveal": "{0:@} didn't get out of bed for a very long time and has been found dead.",
-    "channel_idle_warning": "{0:join_simple(@)}: [b]You have been idling for a while. Please say something soon or you might be declared dead.[/b]",
+    "channel_idle_warning": "{0:join_simple}: [b]You have been idling for a while. Please say something soon or you might be declared dead.[/b]",
     "player_idle_warning": "[b]You have been idling in {0:#} for a while. Please say something in {0:#} or you will be declared dead.[/b]",
     "quit_death": "{0:@} was mauled by wild animals and has died. It seems that {1!role:bold} meat is tasty.",
     "quit_death_no_reveal": "{0:@} was mauled by wild animals and has died.",
