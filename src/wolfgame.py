@@ -1099,6 +1099,13 @@ def stats(var, wrapper, message):
         if len(v) == 0:
             continue
         start_roles.add(r)
+    for roleset, amount in var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS.items():
+        if amount == 0:
+            continue
+        for role, count in var.CURRENT_GAMEMODE.ROLE_SETS[roleset].items():
+            if count == 0:
+                continue
+            start_roles.add(role)
 
     # Uses events in order to enable roles to modify logic
     # The events are fired off as part of transition_day and del_player, and are not calculated here
