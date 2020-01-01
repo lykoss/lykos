@@ -99,11 +99,9 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    wolves = get_players(get_wolfchat_roles(var))
     for child in get_all_players(("wild child",)):
-        if child in wolves:
-            continue
-        child.send(messages["wild_child_notify"])
+        if child not in IDOLS:
+            child.send(messages["wild_child_notify"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
