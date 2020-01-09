@@ -194,7 +194,7 @@ class SecretHitlerMode(GameMode):
 
     @property
     def president(self):
-        if len(self._president):
+        if self._president:
             return self._president[0]
         else:
             return None
@@ -206,7 +206,7 @@ class SecretHitlerMode(GameMode):
 
     @property
     def chancellor(self):
-        if len(self._chancellor):
+        if self._chancellor:
             return self._chancellor[0]
         else:
             return None
