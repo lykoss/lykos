@@ -1,4 +1,3 @@
-import copy
 import random
 import re
 import threading
@@ -13,7 +12,7 @@ from src.status import add_dying, kill_players
 from src.events import EventListener
 from src import channels, users
 
-@game_mode("shitler", minp=5, maxp=10, likelihood=5)
+@game_mode("shitler", minp=5, maxp=10, likelihood=1)
 class SecretHitlerMode(GameMode):
     """A group of students denied entry into art school get into politics instead."""
     def __init__(self, arg=""):
@@ -75,7 +74,8 @@ class SecretHitlerMode(GameMode):
         #self.presidential_index = pl.index(self.president)
 
         self.cannot_nominate = UserList()
-        self.chancellor = None
+        self._chancellor = UserList()
+        self._president = UserList()
         self.votes = defaultdict(UserList)
         self.chaos_counter = 0
 
@@ -150,7 +150,7 @@ class SecretHitlerMode(GameMode):
         pl = get_players()
 
         self.president_ineligible = len(pl) >= 7
-        self.president_candidates = copy.copy(pl)
+        self.president_candidates = UserList(pl)
         self.president = random.choice(self.president_candidates)
         self.presidential_index = pl.index(self.president)
         self.can_nominate.append(self.president)
@@ -191,6 +191,31 @@ class SecretHitlerMode(GameMode):
         # Restore werewolf-specific commands
         for key, value in self.saved_commands.items():
             decorators.COMMANDS[key] = value
+
+    @property
+    def president(self):
+        if len(self._president):
+            return self._president[0]
+        else:
+            return None
+
+    @president.setter
+    def president(self, president):
+        self._president.clear()
+        self._president.append(president)
+
+    @property
+    def chancellor(self):
+        if len(self._chancellor):
+            return self._chancellor[0]
+        else:
+            return None
+
+    @chancellor.setter
+    def chancellor(self, chancellor):
+        self._chancellor.clear()
+        if chancellor:
+            self._chancellor.append(chancellor)
 
     def reshuffle(self):
         self.cards.extend(self.discard)
