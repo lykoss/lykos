@@ -1708,7 +1708,7 @@ def reaper(cli, gameid):
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
-                        add_warning(dcedplayer, var.PART_PENALTY, users.Bot.nick, messages["part_warning"], expires=var.PART_EXPIRY)
+                        add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["part_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "part", death_triggers=False)
@@ -1718,7 +1718,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
-                        add_warning(dcedplayer, var.ACC_PENALTY, users.Bot.nick, messages["acc_warning"], expires=var.ACC_EXPIRY)
+                        add_warning(dcedplayer, var.ACC_PENALTY, users.Bot, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
                     add_dying(var, dcedplayer, "bot", "account", death_triggers=False)
