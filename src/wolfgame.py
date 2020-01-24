@@ -3132,8 +3132,8 @@ def player_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        internal = messages.get_role_mapping(reverse=True)
-        matches = complete_match(role, internal)
+        role_map = messages.get_role_mapping(reverse=True)
+        matches = complete_match(role, role_map.keys())
 
         if not matches:
             wrapper.send(messages["no_such_role"].format(role))
@@ -3142,7 +3142,7 @@ def player_stats(var, wrapper, message):
             wrapper.send(messages["ambiguous_role"].format(matches))
             return
 
-        role = matches[0]
+        role = role_map[matches[0]]
         wrapper.send(db.get_player_stats(account, None, role))
 
 @command("mystats", pm=True)
