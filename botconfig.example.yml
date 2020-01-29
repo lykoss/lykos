@@ -69,6 +69,14 @@ transports:
         # Private key to connect with, in PEM format, if it was not already specified in client_certificate.
         # This may be either a filename containing the key or directly embedded in this configuration file.
         client_key: ~
+  # The following transport does not establish any connections for gameplay, but is used as an output target
+  # for logging.
+  - type: file
+    # Name of the transport. Can be anything, but must be defined and unique across all transports in this file.
+    name: adminlog
+    # The path relative to the bot's root directory where the file is opened.
+    # An absolute path may be specified as well. The file will be opened for writing in append mode.
+    path: admin.log
 
 # Bot access. Access entries specified here cannot be modified or removed via the fflags command.
 # However, that command may add additional access entries.
@@ -90,10 +98,7 @@ access:
 # debug => logs all exception reports
 logging:
   logs:
-    # A log can be sent to a file, relative to the bot root. The file will be opened in append mode.
-    - group: admin-commands
-      file: admin.log
-    # Or a log can be sent to a destination on a transport. Exactly how this works depends on the transport in use.
+    # A log can be sent to a destination on a transport. Exactly how this works depends on the transport in use.
     # For IRC, the destination must be either the main channel or an alternate channel in the transport config.
     - group: warnings
       transport: mynetwork
@@ -101,6 +106,9 @@ logging:
     - group: debug
       transport: mynetwork
       destination: "#channel3"
+    # For File transports, the destination is ignored and can be omitted.
+    - group: admin-commands
+      transport: adminlog
 
 # Telemetry. lykos sends error details to the developers to help provide a better and more stable bot.
 # To help preserve the privacy of your users, we anonymize data by default. However, opting in to sending us
@@ -134,8 +142,6 @@ gameplay:
     only_same_command: n
     # If set, non-wolves cannot participate in wolfchat (commands are still relayed)
     wolves_only_chat: n
-    # If set, do not relay commands to/from non-wolves
-    no_interaction: n
     # Remove non-wolves from wolfchat entirely (can be killed, do not count towards wolf win condition, do not show in wolflist, etc.)
     remove_non_wolves: n
     # Consider traitor as a non-wolf for the purposes of the above restrictions (if unset, traitor is treated the same as wolf cub)
