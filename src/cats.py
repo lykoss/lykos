@@ -1,21 +1,12 @@
-from collections import defaultdict
-import itertools
-
-from src import events
-
-__all__ = ["get", "role_order"]
-
-_dict_keys = type(dict().keys())
-
 # role categories; roles return a subset of these categories when fetching their metadata
-# Wolf: Defines the role as a true wolf role (usually can kill, usually dies when shot, usually kills visiting harlots, etc.)
+# Wolf: Defines the role as a true wolf role (usually can kill, dies when shot, kills visiting harlots, etc.)
 #    The village needs to kill every true wolf role to win
 # Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
 #    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
 # Wolfteam: Defines the role as wolfteam for determining winners
 # Killer: Roles which can kill other roles during the game. Roles which kill upon or after death (ms, vg) don't belong in here
 # Village: Defines the role as village for determining winners
-# Neutral: Defines the role as neutral (seen as grey by augur, not members of any particular team) and also for determining winner
+# Neutral: Defines the role as neutral (seen as grey by augur) and not in village or wolfteam when determining winners
 # Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
 #    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
 # Hidden: Players with hidden roles do not know that they have that role (told they are default role instead, and win with that team)
@@ -25,7 +16,24 @@ _dict_keys = type(dict().keys())
 # Cursed: Seer sees these roles as wolf
 # Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
 # Team Switcher: Roles which may change teams during gameplay
-ROLE_CATS = frozenset({"Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win Stealer", "Hidden", "Safe", "Spy", "Intuitive", "Cursed", "Innocent", "Team Switcher"})
+
+from collections import defaultdict
+from typing import Dict
+import itertools
+
+from src import events
+
+__all__ = [
+    "get", "role_order",
+    "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
+    "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "All"
+]
+
+_dict_keys = type(dict().keys())
+
+# Mapping of category names to the categories themselves; populated in Category.__init__
+ROLE_CATS = {} # type: Dict[str, Category]
+
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
 # Roles which are always secondary roles in a particular game mode are always listed last (after everything else is done)
@@ -38,11 +46,9 @@ ROLES = {}
 def get(cat):
     if not FROZEN:
         raise RuntimeError("Fatal: Role categories are not ready")
-    if cat == "*":
-        return All
     if cat not in ROLE_CATS:
         raise ValueError("{0!r} is not a valid role category".format(cat))
-    return globals()[cat.replace(" ", "_")]
+    return ROLE_CATS[cat]
 
 def role_order():
     if not FROZEN:
@@ -62,7 +68,7 @@ def role_order():
     buckets["Village"].append("villager")
     return itertools.chain.from_iterable([buckets[tag] for tag in ROLE_ORDER])
 
-def register_roles(evt):
+def _register_roles(evt):
     global FROZEN
     mevt = events.Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")
@@ -71,23 +77,25 @@ def register_roles(evt):
             raise RuntimeError("Invalid categories for {0}: Must have exactly one of {{Wolfteam, Village, Neutral, Hidden}}, got {1}".format(role, cats))
         ROLES[role] = frozenset(cats)
         for cat in cats:
-            if cat not in ROLE_CATS:
+            if cat not in ROLE_CATS or ROLE_CATS[cat] is All:
                 raise ValueError("{0!r} is not a valid role category".format(cat))
-            globals()[cat.replace(" ", "_")]._roles.add(role)
-        All._roles.add(role)
+            ROLE_CATS[cat].roles.add(role)
+        All.roles.add(role)
 
-    for cat in ROLE_CATS:
-        cls = globals()[cat.replace(" ", "_")]
-        cls._roles = frozenset(cls._roles)
-    All._roles = frozenset(All._roles)
+    for cat in ROLE_CATS.values():
+        cat.freeze()
     FROZEN = True
 
-events.EventListener(register_roles, priority=1).install("init")
+events.EventListener(_register_roles, priority=1).install("init")
 
 class Category:
     """Base class for role categories."""
 
-    def __init__(self, name):
+    def __init__(self, name, *, alias=None):
+        if not FROZEN:
+            ROLE_CATS[name] = self
+            if alias:
+                ROLE_CATS[alias] = self
         self.name = name
         self._roles = set()
 
@@ -109,6 +117,15 @@ class Category:
     @property
     def roles(self):
         return self._roles
+
+    @roles.setter
+    def roles(self, value):
+        if FROZEN:
+            raise RuntimeError("Fatal: Role categories have already been established")
+        self._roles = value
+
+    def freeze(self):
+        self._roles = frozenset(self._roles)
 
     def __eq__(self, other):
         if not FROZEN:
@@ -166,12 +183,21 @@ class Category:
     __sub__             = lambda self, other: self.from_combination(self, other, "-", set.difference_update)
     __rsub__            = lambda self, other: self.from_combination(other, self, "-", set.difference_update)
 
-All = Category("*")
-for cat in ROLE_CATS:
-    name = cat.replace(" ", "_")
-    globals()[name] = Category(cat)
-    __all__.append(name)
-
-del cat, name, register_roles
-
-# vim: set sw=4 expandtab:
+# For proper auto-completion support in IDEs, please do not try to "save space" by turning this into a loop
+# and dynamically creating globals.
+All = Category("All", alias="*")
+Wolf = Category("Wolf")
+Wolfchat = Category("Wolfchat")
+Wolfteam = Category("Wolfteam")
+Killer = Category("Killer")
+Village = Category("Village")
+Nocturnal = Category("Nocturnal")
+Neutral = Category("Neutral")
+Win_Stealer = Category("Win Stealer")
+Hidden = Category("Hidden")
+Safe = Category("Safe")
+Spy = Category("Spy")
+Intuitive = Category("Intuitive")
+Cursed = Category("Cursed")
+Innocent = Category("Innocent")
+Team_Switcher = Category("Team Switcher")

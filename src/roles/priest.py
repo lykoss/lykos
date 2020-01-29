@@ -46,10 +46,11 @@ def consecrate(var, wrapper, message):
         return
 
     dead = set(var.ALL_PLAYERS) - set(alive)
-    target, _ = users.complete_match(targ, dead)
-    if target is None:
+    target = users.complete_match(targ, dead)
+    if not target:
         wrapper.pm(messages["consecrate_fail"].format(targ))
         return
+    target = target.get()
 
     # we have a target, so mark them as consecrated, right now all this does is silence a VG for a night
     # but other roles that do stuff after death or impact dead players should have functionality here as well

@@ -99,11 +99,9 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
-    wolves = get_players(get_wolfchat_roles(var))
     for child in get_all_players(("wild child",)):
-        if child in wolves:
-            continue
-        child.send(messages["wild_child_notify"])
+        if child not in IDOLS:
+            child.send(messages["wild_child_notify"])
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
@@ -118,6 +116,12 @@ def on_get_reveal_role(evt, var, user):
     if evt.data["role"] == "wolf" and user in get_all_players(("wild child",)):
         evt.data["role"] = "wild child"
 
+@event_listener("update_stats")
+def on_update_stats(evt, var, player, main_role, reveal_role, all_roles):
+    if reveal_role == "wild child":
+        # wild children always die as such even if their main_role is a wolf role
+        evt.data["possible"] = {"wild child"}
+
 @event_listener("reset")
 def on_reset(evt, var):
     IDOLS.clear()
@@ -127,4 +131,3 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wild child"] = {"Village", "Team Switcher"}
 
-# vim: set sw=4 expandtab:

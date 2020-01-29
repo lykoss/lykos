@@ -266,6 +266,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     # convert roleset aliases into the appropriate roles
     possible_rolesets = [Counter()]
     roleset_roles = defaultdict(int)
+    var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS = {}
     for role, amt in list(addroles.items()):
         # not a roleset? add a fixed amount of them
         if role not in var.CURRENT_GAMEMODE.ROLE_SETS:
@@ -273,6 +274,8 @@ def start(var, wrapper, *, forced=False, restart=""):
                 pr[role] += amt
             continue
         # if a roleset, ensure we don't try to expose the roleset name in !stats or future attribution
+        # but do keep track of the sets in use so we can have !stats reflect proper information
+        var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS[role] = amt
         del addroles[role]
         # init !stats with all 0s so that it can number things properly; the keys need to exist in the Counter
         # across every possible roleset so that !stats works right
@@ -322,7 +325,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.MAIN_ROLES.clear()
     var.NIGHT_COUNT = 0
     var.DAY_COUNT = 0
-    var.FINAL_ROLES = {}
+    var.FINAL_ROLES.clear()
     var.EXTRA_WOLVES = 0
 
     var.DEADCHAT_PLAYERS.clear()
@@ -460,8 +463,6 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.DAY_START_TIME = datetime.now()
     var.NIGHT_START_TIME = datetime.now()
     var.LAST_PING = None
-
-    var.PLAYERS = {plr:dict(var.USERS[plr.nick]) for plr in villagers if plr.nick in var.USERS} # FIXME: Please kill this
 
     if restart:
         var.PHASE = "join" # allow transition_* to run properly if game was restarted on first night

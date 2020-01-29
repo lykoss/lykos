@@ -75,7 +75,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
             mainroles[traitor] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:
-                var.FINAL_ROLES[traitor.nick] = "wolf" # FIXME
+                var.FINAL_ROLES[traitor] = "wolf"
                 traitor.send(messages["traitor_turn"])
                 debuglog(traitor, "(traitor) TURNING")
     if did_something:

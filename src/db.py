@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 import botconfig
 import src.settings as var
-from src.utilities import break_long_message, singular
+from src.utilities import singular
 from src.messages import messages, get_role_name
 from src.context import lower as irc_lower
 from src.cats import role_order
@@ -326,7 +326,7 @@ def get_player_totals(acc, hostmask):
     peid, plid = _get_ids(acc, hostmask)
     total_games = _total_games(peid)
     if not total_games:
-        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
+        return (messages["db_pstats_no_game"].format(acc if acc else hostmask), [])
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -359,7 +359,7 @@ def get_player_totals(acc, hostmask):
     totals = [messages["db_role_games"].format(r, tmp[r]) for r in order if r in tmp]
     #lover or any other special stats
     totals += [messages["db_role_games"].format(r, t) for r, t in tmp.items() if r not in order]
-    return messages["db_total_games"].format(name, total_games, won_games / total_games, break_long_message(totals, ", ")) # FIXME: Remove break_long_message
+    return (messages["db_total_games"].format(name, total_games, won_games / total_games), totals)
 
 def get_game_stats(mode, size):
     conn = _conn()
@@ -430,6 +430,8 @@ def get_game_totals(mode):
 
     total_games = c.fetchone()[0]
     if not total_games:
+        if mode == "all":
+            return messages["db_gstats_gm_none_all"]
         return messages["db_gstats_gm_none"].format(mode)
 
     if mode == "all":

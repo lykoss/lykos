@@ -163,10 +163,6 @@ DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 
-ACCOUNTS_ONLY = False # If True, will use only accounts for everything
-DISABLE_ACCOUNTS = False # If True, all account-related features are disabled. Automatically set if we discover we do not have proper ircd support for accounts
-                        # This will override ACCOUNTS_ONLY if it is set
-
 SSL_VERIFY = True
 SSL_CERTFP = ()
 # Tracking Mozilla's "intermediate" compatibility list -- https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29

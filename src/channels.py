@@ -6,12 +6,13 @@ from src.context import IRCContext, Features, lower
 from src.events import Event
 from src import settings as var
 from src import users
+from src.debug import CheckedSet, CheckedDict
 
 Main = None # main channel
 Dummy = None # fake channel
 Dev = None # dev channel
 
-_channels = {}
+_channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
 class _States(Enum):
     NotJoined = "not yet joined"
@@ -74,7 +75,7 @@ class Channel(IRCContext):
 
     def __init__(self, name, client):
         super().__init__(name, client)
-        self.users = set()
+        self.users = CheckedSet("channels.Channel.users")
         self.modes = {}
         self.timestamp = None
         self.state = _States.NotJoined
@@ -214,6 +215,10 @@ class Channel(IRCContext):
         set_time = int(time.time()) # for list modes timestamp
         list_modes, all_set, only_set, no_set = Features["CHANMODES"]
         status_modes = Features["PREFIX"].values()
+        if self.state is not _States.Joined: # not joined, modes won't have the value
+            no_set += all_set + only_set
+            only_set = ""
+            all_set = ""
 
         i = 0
         for c in mode:
@@ -225,7 +230,7 @@ class Channel(IRCContext):
                 if c in status_modes: # op/voice status; keep it here and update the user's registry too
                     if c not in self.modes:
                         self.modes[c] = set()
-                    user = users._get(targets[i], allow_bot=True) # FIXME
+                    user = users.get(targets[i], allow_bot=True)
                     self.modes[c].add(user)
                     user.channels[self].add(c)
                     if user in var.OLD_MODES:
@@ -239,9 +244,9 @@ class Channel(IRCContext):
                     i += 1
 
                 else:
-                    if c in no_set: # everything else; e.g. +m, +i, +f, etc.
+                    if c in no_set: # everything else; e.g. +m, +i, etc.
                         targ = None
-                    else:
+                    else: # +f, +l, +j, +k
                         targ = targets[i]
                         i += 1
                     if c in only_set and targ.isdigit(): # +l/+j
@@ -251,7 +256,7 @@ class Channel(IRCContext):
             else:
                 if c in status_modes:
                     if c in self.modes:
-                        user = users._get(targets[i], allow_bot=True) # FIXME
+                        user = users.get(targets[i], allow_bot=True)
                         self.modes[c].discard(user)
                         user.channels[self].discard(c)
                         if not self.modes[c]:
@@ -321,6 +326,6 @@ class FakeChannel(Channel):
                 if target is not None:
                     targets.append(target)
 
-        self.update_modes(users.Bot.rawnick, "".join(modes), targets)
+        self.update_modes(users.Bot, "".join(modes), targets)
 
 # vim: set sw=4 expandtab:

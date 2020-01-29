@@ -13,12 +13,13 @@ from typing import Optional
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, channels, hooks, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, channels, users, errlog as log, stream_handler as alog
 from src.messages import messages
 from src.functions import get_participants, get_all_roles
 from src.utilities import complete_role
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
+from src.context import Features
 from src.users import User
 from src.events import EventListener
 
@@ -31,9 +32,9 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
-    user = users._get(rawnick, allow_none=True) # FIXME
+    user = users.get(rawnick, allow_none=True)
 
-    ch = chan.lstrip("".join(hooks.Features["PREFIX"]))
+    ch = chan.lstrip("".join(Features["PREFIX"]))
 
     if users.equals(chan, users.Bot.nick): # PM
         target = users.Bot
@@ -45,7 +46,7 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     wrapper = MessageDispatcher(user, target)
 
-    if wrapper.public and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(hooks.Features["CHANTYPES"])):
+    if wrapper.public and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(Features["CHANTYPES"])):
         return
 
     if (notice and ((wrapper.public and not botconfig.ALLOW_NOTICE_COMMANDS) or
@@ -330,9 +331,6 @@ def connect_callback(cli):
             # if we ARE doing a lagcheck, we need at least our own host or things break
             users.Bot.who()
 
-        #if var.CHANSERV_OP_COMMAND: # TODO: Add somewhere else if needed
-        #    cli.msg(var.CHANSERV, var.CHANSERV_OP_COMMAND.format(channel=botconfig.CHANNEL))
-
         users.Bot.change_nick(botconfig.NICK)
 
         if var.SERVER_PING_INTERVAL > 0:
@@ -345,7 +343,9 @@ def connect_callback(cli):
 
             ping_server_timer(cli)
 
-    def setup_handler(evt, var, target):
+        hook.unhook(294)
+
+    def setup_handler(evt, target):
         from src import lagcheck
         if lagcheck: # we just got our own host back
             target.client.command_handler["privmsg"] = on_privmsg
@@ -435,7 +435,15 @@ def connect_callback(cli):
                 cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
 
         elif cmd == "ACK":
-            if "sasl" in caps[0]:
+            acked_caps = caps[0].split()
+            for c in acked_caps:
+                enabled = True
+                if c[0] == "-":
+                    enabled = False
+                    c = c[1:]
+                Features[c] = enabled
+
+            if Features.get("sasl", False):
                 if var.SSL_CERTFILE:
                     mech = "EXTERNAL"
                 else:
@@ -469,6 +477,8 @@ def connect_callback(cli):
 
         @hook("903")
         def on_successful_auth(cli, blah, blahh, blahhh):
+            nonlocal selected_sasl
+            Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
         @hook("904")
@@ -488,5 +498,3 @@ def connect_callback(cli):
                 cli.quit()
 
     users.Bot = users.BotUser(cli, botconfig.NICK)
-
-# vim: set sw=4 expandtab:

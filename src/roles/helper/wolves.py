@@ -400,6 +400,6 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
                 else:
                     entries.append(messages["players_list_entry"].format(p, "", []))
     else:
-        entries = [messages["player_list_entry"].format(p, "", []) for p in pl]
+        entries = [messages["players_list_entry"].format(p, "", []) for p in pl]
 
     return entries
