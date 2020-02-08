@@ -425,6 +425,8 @@ class SecretHitlerMode(GameMode):
             elif var.PHASE == "night":
                 channels.Main.send(messages["president_idled_night"])
                 self.agenda_vetoed()
+        elif var.PHASE == "day":
+        	self.count_votes()
 
     def count_votes(self):
         registered_voters = len(get_players())
