@@ -68,7 +68,7 @@ class SecretHitlerMode(GameMode):
 
         # Can't do this stuff in here because if an admin uses !fgame shitler, startup() is called immediately
         #pl = get_players()
-        #self.president_ineligible = len(pl) >= 7
+        #self.president_ineligible = len(pl) >= 6
         #self.president_candidates = copy.copy(pl)
         #self.president = random.choice(self.president_candidates)
         #self.presidential_index = pl.index(self.president)
@@ -149,7 +149,7 @@ class SecretHitlerMode(GameMode):
     def startup_hack_PLS_IGNORE(self, evt, var, chk_win_conditions, villagers):
         pl = get_players()
 
-        self.president_ineligible = len(pl) >= 7
+        self.president_ineligible = len(pl) >= 6
         self.president_candidates = UserList(pl)
         self.president = random.choice(self.president_candidates)
         self.presidential_index = pl.index(self.president)
@@ -390,6 +390,8 @@ class SecretHitlerMode(GameMode):
         if index <= self.presidential_index:
             self.presidential_index = self.presidential_index - 1
         self.president_candidates.remove(player)
+        
+        self.president_ineligible = len(get_players()) >= 6
 
         # Things past this point are only for handling idlers and people who leave mid-game
         if death_triggers:
