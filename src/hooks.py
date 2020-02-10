@@ -307,7 +307,25 @@ def host_hidden(cli, server, nick, host, message):
     # Once with our nick and once with our UID. We ignore the last one.
 
     if nick == users.Bot.nick:
-        users.Bot = users.Bot.with_host(host)
+        users.Bot.host = host
+
+@hook("loggedin")
+def on_loggedin(cli, server, nick, rawnick, account, message):
+    """Update our own rawnick with proper info.
+
+    Ordering and meaning of arguments for a logged-in event:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the bot is on
+    2 - The requester's nick (us)
+    3 - The full rawnick post-authentication
+    4 - The account we're now logged into
+    5 - A human-readable message (e.g. "You are now logged in as lykos.")
+
+    """
+
+    users.Bot.rawnick = rawnick
+    users.Bot.account = account
 
 ### Server PING handling
 

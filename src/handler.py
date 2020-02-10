@@ -475,16 +475,15 @@ def connect_callback(cli):
                     auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
-        @hook("903")
+        @hook("saslsuccess")
         def on_successful_auth(cli, blah, blahh, blahhh):
             nonlocal selected_sasl
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
-        @hook("904")
-        @hook("905")
-        @hook("906")
-        @hook("907")
+        @hook("saslfail")
+        @hook("sasltoolong")
+        @hook("saslaborted")
         def on_failure_auth(cli, *etc):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
