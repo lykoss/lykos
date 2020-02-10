@@ -101,7 +101,10 @@ def on_transition_day_begin(evt, var):
 def on_transition_night_end(evt, var):
     for child in get_all_players(("wild child",)):
         if child not in IDOLS:
-            child.send(messages["wild_child_notify"])
+            pl = list(get_players())
+            pl.remove(child)
+            random.shuffle(pl)
+            child.send(messages["wild_child_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
@@ -130,4 +133,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wild child"] = {"Village", "Team Switcher"}
-
