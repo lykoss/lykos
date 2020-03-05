@@ -100,7 +100,9 @@ class MaelstromMode(GameMode):
         addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
-        for rs in var.ROLES.values():
+        for role, rs in var.ROLES.items():
+            if role in self.SECONDARY_ROLES:
+                continue
             rs.clear()
         # prevent wolf.py from sending messages about a new wolf to soon-to-be former wolves
         # (note that None doesn't work, so "player" works fine)
