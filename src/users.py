@@ -45,6 +45,12 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
     if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
+    sentinel = object()
+
+    temp = User(sentinel, nick, ident, host, account)
+    if temp.client is not sentinel:  # actual client
+        return [temp] if allow_multiple else temp
+
     potential = []
     users = set(_users)
     if not allow_ghosts:
@@ -54,12 +60,6 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
             users.add(Bot)
         except ValueError:
             pass # Bot may not be hashable in early init; this is fine and User.__new__ handles this gracefully
-
-    sentinel = object()
-
-    temp = User(sentinel, nick, ident, host, account)
-    if temp.client is not sentinel: # actual client
-        return [temp] if allow_multiple else temp
 
     for user in users:
         if user.partial_match(temp):
@@ -226,6 +226,18 @@ class User(IRCContext):
             self._host = host
             self._account = account
             self.timestamp = time.time()
+
+        elif (cls.__name__ == "User" and Bot is not None
+              and Bot.nick == nick and ident is not None and host is not None
+              and "~" + Bot.ident == ident and Bot.host == host and Bot.account == account):
+            # Messages sent in early init may still be pending an identd response, so the bot's ident
+            # may be lacking the ~ prefix if no identd is running at that time, which is saved in BotUser.
+            # a later message may inform us that we actually have the ~ prefix, so we need to account for this
+            # and update the BotUser accordingly.
+            # Since Bot.ident attempts to create a new BotUser, we guard against recursion by only following this
+            # branch if we're constructing a top-level User object (such as via users.get)
+            Bot.ident = ident
+            self = Bot
 
         elif nick is not None and ident is not None and host is not None:
             users = set(_users)
