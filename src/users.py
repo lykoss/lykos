@@ -218,22 +218,22 @@ class User(IRCContext):
         self.dict_keys = []
         self.dict_values = []
 
-        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.account} == {None}:
+        if Bot is not None and Bot.nick == nick and None in {Bot.ident, Bot.host}:
             # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
             # which store by hash. As such, mutating the properties is safe.
             self = Bot
-            self._ident = ident
-            self._host = host
+            if ident is not None:
+                self._ident = ident
+            if host is not None:
+                self._host = host
             self._account = account
             self.timestamp = time.time()
 
         elif (cls.__name__ == "User" and Bot is not None
               and Bot.nick == nick and ident is not None and host is not None
               and Bot.ident != ident and Bot.host == host and Bot.account == account):
-            # Messages sent in early init may give us no ident or an incorrect ident (such as because we're waiting for
-            # a response from identd, or there is some *line which overrides the ident for the bot). Other times
-            # we initialize some bot details like hostname from a hosthidden event which doesn't tell us our current
-            # ident. In any case, we need to update our ident whenever it's wrong.
+            # Messages sent in early init may give us an incorrect ident (such as because we're waiting for
+            # a response from identd, or there is some *line which overrides the ident for the bot).
             # Since Bot.ident attempts to create a new BotUser, we guard against recursion by only following this
             # branch if we're constructing a top-level User object (such as via users.get)
             Bot.ident = ident
