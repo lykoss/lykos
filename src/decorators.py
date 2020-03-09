@@ -293,7 +293,7 @@ class command:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        wrapper.source.update_account_data(self.name, functools.partial(self._caller, var, wrapper, message))
+        wrapper.source.update_account_data(self.key, functools.partial(self._caller, var, wrapper, message))
 
     @handle_error
     def _caller(self, var, wrapper: MessageDispatcher, message: str):
