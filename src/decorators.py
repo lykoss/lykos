@@ -5,22 +5,21 @@ import random
 import json
 import re
 import os.path
-from typing import Optional
+import functools
+from typing import Optional, Iterable
 
 import urllib.request, urllib.parse
 
 from collections import defaultdict
 
-from oyoyo.client import IRCClient
-from oyoyo.parse import parse_nick
-
 import botconfig
 import src.settings as var
 import src
-from src.utilities import *
 from src.functions import get_players
 from src.messages import messages
 from src import channels, users, logger, errlog, events
+from src.users import User
+from src.dispatcher import MessageDispatcher
 
 adminlog = logger.logger("audit.log")
 
@@ -219,8 +218,9 @@ class handle_error:
             return self.func(*args, **kwargs)
 
 class command:
-    def __init__(self, command, *, flag=None, owner_only=False, chan=True, pm=False,
-                 playing=False, silenced=False, phases=(), roles=(), users=None):
+    def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,
+                 chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
+                 phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not botconfig.DEBUG_MODE:
@@ -242,6 +242,7 @@ class command:
         self.func = None
         self.aftergame = False
         self.name = commands[0]
+        self.key = command
         self.alt_allowed = bool(flag or owner_only)
 
         alias = False
@@ -276,7 +277,7 @@ class command:
         return self
 
     @handle_error
-    def caller(self, var, wrapper, message):
+    def caller(self, var, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
         if (not self.pm and wrapper.private) or (not self.chan and wrapper.public):
             return # channel or PM command that we don't allow
@@ -291,6 +292,12 @@ class command:
 
         if self.phases and var.PHASE not in self.phases:
             return
+
+        wrapper.source.update_account_data(self.name, functools.partial(self._caller, var, wrapper, message))
+
+    @handle_error
+    def _caller(self, var, wrapper: MessageDispatcher, message: str):
+        _ignore_locals_ = True
 
         if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
             return

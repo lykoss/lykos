@@ -7,16 +7,19 @@ from src.context import IRCContext, Features, lower, equals
 from src import settings as var
 from src import db
 from src.events import EventListener
-from src.decorators import hook
 from src.debug import CheckedDict, CheckedSet
 from src.match import Match
 
 import botconfig
 
+__all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
+           "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
+
 Bot = None # bot instance
 
 _users = CheckedSet("users._users") # type: CheckedSet[User]
 _ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
+_pending_account_updates = CheckedDict("users._pending_account_updates") # type: CheckedDict[User, CheckedDict[str, Callable]]
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 
@@ -195,10 +198,19 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
+def _update_account(evt, user):
+    """Updates account data of a user for networks which don't support certain features."""
+    user.account_timestamp = time.time()
+    if user in _pending_account_updates:
+        for command, callback in list(_pending_account_updates[user].items()):
+            del _pending_account_updates[user][command]
+            callback()
+
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 EventListener(_cleanup_user).install("cleanup_user")
 EventListener(_reset).install("reset")
+EventListener(_update_account).install("who_end")
 
 class User(IRCContext):
 
@@ -217,6 +229,7 @@ class User(IRCContext):
         self.lists = []
         self.dict_keys = []
         self.dict_values = []
+        self.account_timestamp = time.time()
 
         if Bot is not None and Bot.nick == nick and None in {Bot.ident, Bot.host}:
             # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
@@ -228,6 +241,7 @@ class User(IRCContext):
                 self._host = host
             self._account = account
             self.timestamp = time.time()
+            self.account_timestamp = time.time()
 
         elif (cls.__name__ == "User" and Bot is not None
               and Bot.nick == nick and ident is not None and host is not None
@@ -492,9 +506,13 @@ class User(IRCContext):
         """Return the number of games the user is in stasis for."""
         return var.STASISED_ACCS.get(self.lower().account, 0)
 
-    def update_account_data(self, callback: Callable):
+    def update_account_data(self, command: str, callback: Callable):
         """Refresh stale account data on networks that don't support certain features.
 
+        :param command: Command name that prompted the call to update_account_data.
+            Used to handle cases where the user executes multiple commands before
+            account data can be updated, so they can all be queued. If the same command
+            is given multiple times, we honor the most recent one given.
         :param callback: Callback to execute when account data is fully updated
         """
 
@@ -508,15 +526,20 @@ class User(IRCContext):
             callback()
             return
 
-        def whox_listener(evt, target):
-            if target is self:
-                # This is who_end because we don't care about the actual content
-                # If we got here, the account has been properly updated. Continue.
-                listener.remove("who_end")
-                callback()
+        if self.account is not None and self.account_timestamp > time.time() - 900:
+            # account data is less than 15 minutes old, use existing data instead of refreshing
+            callback()
+            return
 
-        listener = EventListener(whox_listener, listener_id="update_account_data." + self.name)
-        listener.install("who_end")
+        if self not in _pending_account_updates:
+            _pending_account_updates[self] = CheckedDict("users.User.update_account_data")
+
+        _pending_account_updates[self][command] = callback
+
+        if len(_pending_account_updates[self].keys()) > 1:
+            # already have a pending WHO/WHOIS for this user, don't send multiple to the server to avoid hitting
+            # rate limits (if we are ratelimited, that can be handled by re-sending the request at a lower layer)
+            return
 
         if Features.get("WHOX", False):
             # A WHOX query performs less network noise than WHOIS, so use that if available
@@ -561,6 +584,7 @@ class User(IRCContext):
         if value in ("0", "*"):
             value = None
         new = User(self.client, self.nick, self.ident, self.host, value)
+        new.account_timestamp = time.time()
         self.swap(new, same_user=True)
 
     @property

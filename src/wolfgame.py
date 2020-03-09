@@ -792,16 +792,15 @@ def join_player(var,
     if wrapper.target is not channels.Main:
         return
 
-    def _join():
-        if not wrapper.source.is_fake and wrapper.source.account is None:
-            if forced:
-                who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
-            else:
-                wrapper.source.send(messages["not_logged_in"], notice=True)
-            return
-        if _join_player(var, wrapper, who, forced, sanity=sanity) and callback:
-            callback() # FIXME: join_player should be async and return bool; caller can await it for result
-    wrapper.source.update_account_data(_join)
+    if not wrapper.source.is_fake and wrapper.source.account is None:
+        if forced:
+            who.send(messages["account_not_logged_in"].format(wrapper.source), notice=True)
+        else:
+            wrapper.source.send(messages["not_logged_in"], notice=True)
+        return
+
+    if _join_player(var, wrapper, who, forced, sanity=sanity) and callback:
+        callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
 def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     pl = get_players()
