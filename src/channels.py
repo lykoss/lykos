@@ -129,6 +129,12 @@ class Channel(IRCContext):
         else:
             self._pending.append((name, params, args))
 
+    def dispatch_queue(self):
+        if self._pending is not None:
+            for name, params, args in self._pending:
+                Event(name, params).dispatch(*args)
+            self._pending = None
+
     def join(self, key=None):
         if self.state in (_States.NotJoined, _States.Left):
             if key is None:

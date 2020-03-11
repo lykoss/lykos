@@ -6,6 +6,8 @@ further in the relevant hook functions.
 
 """
 
+from typing import Dict, Any
+
 from src.decorators import event_listener, hook
 from src.context import Features
 from src.events import Event
@@ -110,7 +112,12 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
     user = users.get(nick, ident, host, account, allow_bot=True, allow_none=True)
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host, account=account)
-    user.account = account # set it here so it updates if the user already exists
+
+    if {user.account, account} != {None} and not context.equals(user.account, account):
+        # first check tests if both are None, and skips over this if so
+        old_account = user.account
+        user.account = account
+        Event("account_change", {}).dispatch(user, old_account)
 
     ch = None
     if not channels.predicate(chan):
@@ -152,10 +159,7 @@ def end_who(cli, bot_server, bot_nick, target, rest):
         except KeyError:
             target = None
     else:
-        if target._pending is not None:
-            for name, params, args in target._pending:
-                Event(name, params).dispatch(*args)
-            target._pending = None
+        target.dispatch_queue()
 
     Event("who_end", {}).dispatch(target)
 
