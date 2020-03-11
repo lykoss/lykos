@@ -200,11 +200,15 @@ def _reset(evt, var):
 
 def _update_account(evt, user):
     """Updates account data of a user for networks which don't support certain features."""
+    from src.decorators import handle_error
     user.account_timestamp = time.time()
     if user in _pending_account_updates:
-        for command, callback in list(_pending_account_updates[user].items()):
-            del _pending_account_updates[user][command]
-            callback()
+        updates = list(_pending_account_updates[user].items())
+        _pending_account_updates[user].clear()
+        for command, callback in updates:
+            # handle_error swallows exceptions so that a callback raising an exception
+            # does not prevent other registered callbacks from running
+            handle_error(callback)()
 
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
