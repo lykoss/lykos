@@ -50,17 +50,15 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     user = users.get(nick, ident, host, allow_bot=True, allow_none=True)
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host)
-    ch = None
-    if not channels.predicate(chan): # returns True if it's not a channel
-        ch = channels.add(chan, cli)
 
-        if ch not in user.channels:
-            user.channels[ch] = modes
-            ch.users.add(user)
-            for mode in modes:
-                if mode not in ch.modes:
-                    ch.modes[mode] = set()
-                ch.modes[mode].add(user)
+    ch = channels.get(chan, allow_none=True)
+    if ch is not None and ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=0)
     event.dispatch(ch, user)
@@ -119,16 +117,14 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
         user.account = account
         Event("account_change", {}).dispatch(user, old_account)
 
-    ch = None
-    if not channels.predicate(chan):
-        ch = channels.add(chan, cli)
-        if ch not in user.channels:
-            user.channels[ch] = modes
-            ch.users.add(user)
-            for mode in modes:
-                if mode not in ch.modes:
-                    ch.modes[mode] = set()
-                ch.modes[mode].add(user)
+    ch = channels.get(chan, allow_none=True)
+    if ch is not None and ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
 
     event = Event("who_result", {}, away=is_away, data=data)
     event.dispatch(ch, user)
