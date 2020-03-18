@@ -1865,7 +1865,7 @@ def leave(var, what, user, why=None):
 
     ps = get_players()
     # Only mark living players as disconnected, unless they were kicked
-    if user in ps or what == "kick":
+    if (user in ps or what == "kick") and var.PHASE in var.GAME_PHASES:
         var.DCED_LOSERS.add(user)
 
     # leaving the game channel means you leave deadchat
