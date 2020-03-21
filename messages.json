@@ -92,7 +92,7 @@
     "president_hasnt_vetoed" : "Please wait for the president to respond to your veto request.",
     "chancellor_wait" : "The legislative session has started. As chancellor, you will enact a policy, once the president presents you with your options. Please wait on the president to send you the potential policy options.",
     "chancellor_list_policies" : "The president has discarded a policy and presented you with the following policy options: [b][[1]]:[/b] {0} [b][[2]]:[/b] {1}",
-    "chancellor_enact_info" : "You must pick one of these policies to enact using \"{=enact!command} <number>\", where <number> is the number of the policy you wish to discard.",
+    "chancellor_enact_info" : "You must pick one of these policies to enact using \"{=enact!command} <number>\", where <number> is the number of the policy you wish to enact.",
     "chancellor_enact_help" : "Usage: \"{=enact!command} <number>\" where <number> is the number of the policy you wish to enact.",
     "chancellor_enact" : "Enacted policy {0}, which was a {1:bold} policy.",
 
