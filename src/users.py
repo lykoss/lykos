@@ -486,7 +486,7 @@ class User(IRCContext):
         if not value:
             if temp.account in var.PING_IF_PREFS_ACCS:
                 del var.PING_IF_PREFS_ACCS[temp.account]
-                db.set_pingif(0, temp.account, None)
+                db.set_pingif(0, temp.account)
                 if old is not None:
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
@@ -494,7 +494,7 @@ class User(IRCContext):
         else:
             if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
-                db.set_pingif(value, temp.account, None)
+                db.set_pingif(value, temp.account)
                 with var.WARNING_LOCK:
                     if value not in var.PING_IF_NUMS_ACCS:
                         var.PING_IF_NUMS_ACCS[value] = set()

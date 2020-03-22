@@ -27,7 +27,6 @@ def init_vars():
         c = conn.cursor()
         c.execute("""SELECT
                        pl.account,
-                       pl.hostmask,
                        pe.notice,
                        pe.deadchat,
                        pe.pingif,
@@ -58,7 +57,7 @@ def init_vars():
         var.DENY = defaultdict(set)
         var.DENY_ACCS = defaultdict(set)
 
-        for acc, host, notice, dc, pi, stasis, stasisexp, flags in c:
+        for acc, notice, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
                 acc = irc_lower(acc)
                 if notice == 1:
@@ -72,28 +71,9 @@ def init_vars():
                     var.DEADCHAT_PREFS_ACCS.add(acc)
                 if flags:
                     var.FLAGS_ACCS[acc] = flags
-            elif host is not None:
-                # nick!ident lowercased per irc conventions, host uses normal casing
-                try:
-                    hl, hr = host.split("@", 1)
-                    host = irc_lower(hl) + "@" + hr.lower()
-                except ValueError:
-                    host = host.lower()
-                if notice == 1:
-                    var.PREFER_NOTICE.add(host)
-                if stasis > 0:
-                    var.STASISED[host] = stasis
-                if pi is not None and pi > 0:
-                    var.PING_IF_PREFS[host] = pi
-                    var.PING_IF_NUMS[pi].add(host)
-                if dc == 1:
-                    var.DEADCHAT_PREFS.add(host)
-                if flags:
-                    var.FLAGS[host] = flags
 
         c.execute("""SELECT
                        pl.account,
-                       pl.hostmask,
                        ws.data
                      FROM warning w
                      JOIN warning_sanction ws
@@ -109,17 +89,14 @@ def init_vars():
                          w.expires IS NULL
                          OR w.expires > datetime('now')
                        )""")
-        for acc, host, command in c:
+        for acc, command in c:
             if acc is not None:
                 acc = irc_lower(acc)
                 var.DENY_ACCS[acc].add(command)
-            if host is not None:
-                host = irc_lower(host)
-                var.DENY[host].add(command)
 
-def decrement_stasis(acc=None, hostmask=None):
-    peid, plid = _get_ids(acc, hostmask)
-    if (acc is not None or hostmask is not None) and peid is None:
+def decrement_stasis(acc=None):
+    peid, plid = _get_ids(acc)
+    if acc is not None and peid is None:
         return
     sql = "UPDATE person SET stasis_amount = MAX(0, stasis_amount - 1)"
     params = ()
@@ -132,8 +109,8 @@ def decrement_stasis(acc=None, hostmask=None):
         c = conn.cursor()
         c.execute(sql, params)
 
-def set_stasis(newamt, acc=None, hostmask=None, relative=False):
-    peid, plid = _get_ids(acc, hostmask, add=True)
+def set_stasis(newamt, acc=None, relative=False):
+    peid, plid = _get_ids(acc, add=True)
     _set_stasis(int(newamt), peid, relative)
 
 def _set_stasis(newamt, peid, relative=False):
@@ -213,8 +190,8 @@ def delete_template(name):
             c.execute("DELETE FROM access WHERE template = ?", (tid,))
             c.execute("DELETE FROM access_template WHERE id = ?", (tid,))
 
-def set_access(acc, hostmask, flags=None, tid=None):
-    peid, plid = _get_ids(acc, hostmask, add=True)
+def set_access(acc, flags=None, tid=None):
+    peid, plid = _get_ids(acc, add=True)
     if peid is None:
         return
     conn = _conn()
@@ -231,14 +208,14 @@ def set_access(acc, hostmask, flags=None, tid=None):
                          (person, template, flags)
                          VALUES (?, NULL, ?)""", (peid, flags))
 
-def toggle_notice(acc, hostmask):
-    _toggle_thing("notice", acc, hostmask)
+def toggle_notice(acc):
+    _toggle_thing("notice", acc)
 
-def toggle_deadchat(acc, hostmask):
-    _toggle_thing("deadchat", acc, hostmask)
+def toggle_deadchat(acc):
+    _toggle_thing("deadchat", acc)
 
-def set_pingif(val, acc, hostmask):
-    _set_thing("pingif", val, acc, hostmask, raw=False)
+def set_pingif(val, acc):
+    _set_thing("pingif", val, acc, raw=False)
 
 def add_game(mode, size, started, finished, winner, players, options):
     """ Adds a game record to the database.
@@ -274,9 +251,8 @@ def add_game(mode, size, started, finished, winner, players, options):
     for p in players:
         if p["account"] == "*":
             p["account"] = None
-        p["hostmask"] = "{0}!{1}@{2}".format(p["nick"], p["ident"], p["host"])
         c = conn.cursor()
-        p["personid"], p["playerid"] = _get_ids(p["account"], p["hostmask"], add=True)
+        p["personid"], p["playerid"] = _get_ids(p["account"], None, add=True)
     with conn:
         c = conn.cursor()
         c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)
@@ -293,10 +269,10 @@ def add_game(mode, size, started, finished, winner, players, options):
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
                              VALUES (?, ?, 1)""", (gpid, sq))
 
-def get_player_stats(acc, hostmask, role):
-    peid, plid = _get_ids(acc, hostmask)
+def get_player_stats(acc, role):
+    peid, plid = _get_ids(acc)
     if not _total_games(peid):
-        return messages["db_pstats_no_game"].format(acc if acc else hostmask)
+        return messages["db_pstats_no_game"].format(acc)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -322,11 +298,11 @@ def get_player_stats(acc, hostmask, role):
         return messages["db_player_stats"].format(name, role=role, team=team, teamp=team/total, indiv=indiv, indivp=indiv/total, overall=overall, overallp=overall/total, total=total)
     return messages["db_pstats_no_role"].format(name, role)
 
-def get_player_totals(acc, hostmask):
-    peid, plid = _get_ids(acc, hostmask)
+def get_player_totals(acc):
+    peid, plid = _get_ids(acc)
     total_games = _total_games(peid)
     if not total_games:
-        return (messages["db_pstats_no_game"].format(acc if acc else hostmask), [])
+        return (messages["db_pstats_no_game"].format(acc), [])
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT
@@ -545,8 +521,8 @@ def get_role_totals(mode=None):
         return (messages["db_rstats_total"].format(total_games), totals)
     return (messages["db_rstats_total_mode"].format(mode, total_games), totals)
 
-def get_warning_points(acc, hostmask):
-    peid, plid = _get_ids(acc, hostmask)
+def get_warning_points(acc):
+    peid, plid = _get_ids(acc)
     conn = _conn()
     c = conn.cursor()
     c.execute("""SELECT COALESCE(SUM(amount), 0)
@@ -561,8 +537,8 @@ def get_warning_points(acc, hostmask):
     row = c.fetchone()
     return row[0]
 
-def has_unacknowledged_warnings(acc, hostmask):
-    peid, plid = _get_ids(acc, hostmask)
+def has_unacknowledged_warnings(acc):
+    peid, plid = _get_ids(acc)
     if peid is None:
         return False
     conn = _conn()
@@ -584,8 +560,8 @@ def list_all_warnings(list_all=False, skip=0, show=0):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               COALESCE(plt.account, plt.hostmask) AS target,
-               COALESCE(pls.account, pls.hostmask, ?) AS sender,
+               plt.account AS target,
+               COALESCE(pls.account, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -636,14 +612,14 @@ def list_all_warnings(list_all=False, skip=0, show=0):
                          "reason": row[9]})
     return warnings
 
-def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
-    peid, plid = _get_ids(acc, hostmask)
+def list_warnings(acc, expired=False, deleted=False, skip=0, show=0):
+    peid, plid = _get_ids(acc)
     conn = _conn()
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               COALESCE(plt.account, plt.hostmask) AS target,
-               COALESCE(pls.account, pls.hostmask, ?) AS sender,
+               plt.account AS target,
+               COALESCE(pls.account, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -695,14 +671,13 @@ def list_warnings(acc, hostmask, expired=False, deleted=False, skip=0, show=0):
                          "reason": row[9]})
     return warnings
 
-def get_warning(warn_id, acc=None, hm=None):
-    peid, plid = _get_ids(acc, hm)
+def get_warning(warn_id, acc=None):
     conn = _conn()
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               COALESCE(plt.account, plt.hostmask) AS target,
-               COALESCE(pls.account, pls.hostmask, ?) AS sender,
+               plt.account AS target,
+               COALESCE(pls.account, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -712,7 +687,7 @@ def get_warning(warn_id, acc=None, hm=None):
                warning.deleted,
                warning.reason,
                warning.notes,
-               COALESCE(pld.account, pld.hostmask) AS deleted_by,
+               pld.account AS deleted_by,
                warning.deleted_on
              FROM warning
              JOIN person pet
@@ -731,7 +706,11 @@ def get_warning(warn_id, acc=None, hm=None):
                warning.id = ?
              """
     params = (botconfig.NICK, warn_id)
-    if acc is not None and hm is not None:
+    if acc is not None:
+        peid, plid = _get_ids(acc)
+        if peid is None:
+            return None
+
         sql += """  AND warning.target = ?
                     AND warning.deleted = 0"""
         params = (botconfig.NICK, warn_id, peid)
@@ -771,9 +750,9 @@ def get_warning_sanctions(warn_id):
 
     return sanctions
 
-def add_warning(tacc, thm, sacc, shm, amount, reason, notes, expires):
-    teid, tlid = _get_ids(tacc, thm, add=True)
-    seid, slid = _get_ids(sacc, shm)
+def add_warning(tacc, sacc, amount, reason, notes, expires):
+    teid, tlid = _get_ids(tacc, add=True)
+    seid, slid = _get_ids(sacc)
     conn = _conn()
     with conn:
         c = conn.cursor()
@@ -824,8 +803,8 @@ def add_warning_sanction(warning, sanction, data):
                 c.execute(sql, (plid, data))
             return (acclist, hmlist)
 
-def del_warning(warning, acc, hm):
-    peid, plid = _get_ids(acc, hm)
+def del_warning(warning, acc):
+    peid, plid = _get_ids(acc)
     conn = _conn()
     with conn:
         c = conn.cursor()
@@ -858,12 +837,10 @@ def expire_tempbans():
     with conn:
         idlist = set()
         acclist = set()
-        hmlist = set()
         c = conn.cursor()
         c.execute("""SELECT
                        bt.player,
-                       pl.account,
-                       pl.hostmask
+                       pl.account
                      FROM bantrack bt
                      JOIN player pl
                        ON pl.id = bt.player
@@ -885,13 +862,11 @@ def expire_tempbans():
                        )""")
         for row in c:
             idlist.add(row[0])
-            if row[1] is None:
-                hmlist.add(row[2])
-            else:
+            if row[1] is not None:
                 acclist.add(row[1])
         for plid in idlist:
             c.execute("DELETE FROM bantrack WHERE player = ?", (plid,))
-        return (acclist, hmlist)
+        return acclist
 
 def get_pre_restart_state():
     conn = _conn()
@@ -1005,32 +980,22 @@ def _install():
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
 
-def _get_ids(acc, hostmask, add=False):
+def _get_ids(acc, add=False):
     conn = _conn()
     c = conn.cursor()
     if acc == "*":
         acc = None
-    if acc is None and hostmask is None:
+    if acc is None:
         return (None, None)
-    elif acc is None:
-        c.execute("""SELECT pe.id, pl.id
-                     FROM player pl
-                     JOIN person pe
-                       ON pe.id = pl.person
-                     WHERE
-                       pl.account IS NULL
-                       AND pl.hostmask = ?
-                       AND pl.active = 1""", (hostmask,))
-    else:
-        hostmask = None
-        c.execute("""SELECT pe.id, pl.id
-                     FROM player pl
-                     JOIN person pe
-                       ON pe.id = pl.person
-                     WHERE
-                       pl.account = ?
-                       AND pl.hostmask IS NULL
-                       AND pl.active = 1""", (acc,))
+
+    c.execute("""SELECT pe.id, pl.id
+                 FROM player pl
+                 JOIN person pe
+                   ON pe.id = pl.person
+                 WHERE
+                   pl.account = ?
+                   AND pl.hostmask IS NULL
+                   AND pl.active = 1""", (acc,))
     row = c.fetchone()
     peid = None
     plid = None
@@ -1038,7 +1003,7 @@ def _get_ids(acc, hostmask, add=False):
         peid, plid = row
     elif add:
         with conn:
-            c.execute("INSERT INTO player (account, hostmask) VALUES (?, ?)", (acc, hostmask))
+            c.execute("INSERT INTO player (account, hostmask) VALUES (?, NULL)", (acc,))
             plid = c.lastrowid
             c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
             peid = c.lastrowid
@@ -1050,7 +1015,7 @@ def _get_display_name(peid):
         return None
     conn = _conn()
     c = conn.cursor()
-    c.execute("""SELECT COALESCE(pp.account, pp.hostmask)
+    c.execute("""SELECT pp.account
                  FROM person pe
                  JOIN player pp
                    ON pp.id = pe.primary_player
@@ -1074,11 +1039,11 @@ def _total_games(peid):
     # so no need to check for None here
     return c.fetchone()[0]
 
-def _set_thing(thing, val, acc, hostmask, raw=False):
+def _set_thing(thing, val, acc, raw=False):
     conn = _conn()
     with conn:
         c = conn.cursor()
-        peid, plid = _get_ids(acc, hostmask, add=True)
+        peid, plid = _get_ids(acc, add=True)
         if raw:
             params = (peid,)
         else:
@@ -1086,8 +1051,8 @@ def _set_thing(thing, val, acc, hostmask, raw=False):
             val = "?"
         c.execute("""UPDATE person SET {0} = {1} WHERE id = ?""".format(thing, val), params)
 
-def _toggle_thing(thing, acc, hostmask):
-    _set_thing(thing, "CASE {0} WHEN 1 THEN 0 ELSE 1 END".format(thing), acc, hostmask, raw=True)
+def _toggle_thing(thing, acc):
+    _set_thing(thing, "CASE {0} WHEN 1 THEN 0 ELSE 1 END".format(thing), acc, raw=True)
 
 def _conn():
     try:
@@ -1145,5 +1110,3 @@ elif ver < SCHEMA_VERSION:
     _upgrade(ver)
 
 del need_install, conn, c, ver
-
-# vim: set expandtab:sw=4:ts=4:

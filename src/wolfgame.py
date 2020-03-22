@@ -514,7 +514,7 @@ def mark_prefer_notice(var, wrapper, message):
     action, toggle = (var.PREFER_NOTICE_ACCS.discard, "off") if notice else (var.PREFER_NOTICE_ACCS.add, "on")
 
     action(account)
-    db.toggle_notice(account, None)
+    db.toggle_notice(account)
     wrapper.pm(messages["notice_" + toggle])
 
 @command("swap", pm=True, phases=("join", "day", "night"))
@@ -624,7 +624,7 @@ def join_timer_handler(var):
         for num in var.PING_IF_NUMS_ACCS:
             if num <= len(pl):
                 for acc in var.PING_IF_NUMS_ACCS[num]:
-                    if db.has_unacknowledged_warnings(acc, None):
+                    if db.has_unacknowledged_warnings(acc):
                         continue
                     chk_acc.add(users.lower(acc))
 
@@ -743,7 +743,7 @@ def deadchat_pref(var, wrapper, message):
         wrapper.pm(messages["no_chat_on_death"])
         var.DEADCHAT_PREFS_ACCS.add(temp.account)
 
-    db.toggle_deadchat(temp.account, temp.host)
+    db.toggle_deadchat(temp.account)
 
 @command("join", pm=True)
 def join(var, wrapper, message):
@@ -820,7 +820,7 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     temp = wrapper.source.lower()
 
     # don't check unacked warnings on fjoin
-    if wrapper.source is who and db.has_unacknowledged_warnings(temp.account, temp.rawnick):
+    if wrapper.source is who and db.has_unacknowledged_warnings(temp.account):
         wrapper.pm(messages["warn_unacked"])
         return False
 
@@ -2578,7 +2578,7 @@ def fflags(var, wrapper, message):
             wrapper.reply(*parts, sep=", ")
     elif len(params) == 1:
         # display access for the given user
-        acc, hm = parse_warning_target(params[0], lower=True)
+        acc = parse_warning_target(params[0], lower=True)
         if acc is not None and acc != "*":
             if not var.FLAGS_ACCS[acc]:
                 msg = messages["no_access_account"].format(acc)
@@ -2588,9 +2588,8 @@ def fflags(var, wrapper, message):
             return
         wrapper.reply(msg)
     else:
-        acc, hm = parse_warning_target(params[0])
+        acc = parse_warning_target(params[0])
         flags = params[1]
-        lhm = hm.lower() if hm else hm
         cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)])
 
         if flags[0] != "+" and flags[0] != "-":
@@ -2601,7 +2600,7 @@ def fflags(var, wrapper, message):
                 wrapper.reply(messages["template_not_found"].format(tpl_name))
                 return
             tpl_flags = "".join(sorted(tpl_flags))
-            db.set_access(acc, hm, tid=tpl_id)
+            db.set_access(acc, tid=tpl_id)
             if acc is not None and acc != "*":
                 wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
             else:
@@ -2630,13 +2629,13 @@ def fflags(var, wrapper, message):
                     cur_flags.discard(flag)
             if cur_flags:
                 flags = "".join(sorted(cur_flags))
-                db.set_access(acc, hm, flags=flags)
+                db.set_access(acc, flags=flags)
                 if acc is not None:
                     wrapper.reply(messages["access_set_account"].format(acc, flags))
                 else:
                     wrapper.reply(messages["access_set_host"].format(hm, flags))
             else:
-                db.set_access(acc, hm, flags=None)
+                db.set_access(acc, flags=None)
                 if acc is not None and acc != "*":
                     wrapper.reply(messages["access_deleted_account"].format(acc))
                 else:
@@ -3126,7 +3125,7 @@ def player_stats(var, wrapper, message):
 
     # List the player's total games for all roles if no role is given
     if len(params) < 2:
-        msg, totals = db.get_player_totals(account, None)
+        msg, totals = db.get_player_totals(account)
         wrapper.pm(msg)
         wrapper.pm(*totals, sep=", ")
     else:
@@ -3142,7 +3141,7 @@ def player_stats(var, wrapper, message):
             return
 
         role = role_map[matches[0]]
-        wrapper.send(db.get_player_stats(account, None, role))
+        wrapper.send(db.get_player_stats(account, role))
 
 @command("mystats", pm=True)
 def my_stats(var, wrapper, message):
