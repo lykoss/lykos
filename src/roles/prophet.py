@@ -22,15 +22,14 @@ def pray(var, wrapper, message):
         wrapper.pm(messages["already_prayed"])
         return
 
-    what = re.split(" +", message)[0]
-    if not what:
+    if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    matches = complete_role(var, what, allow_special=False)
+    matches = complete_role(var, message, allow_special=False)
     if not matches:
-        wrapper.pm(messages["no_such_role"].format(what))
+        wrapper.pm(messages["no_such_role"].format(message))
         return
     elif len(matches) > 1:
         wrapper.pm(messages["ambiguous_role"].format(matches))
