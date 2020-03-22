@@ -188,8 +188,7 @@ def on_transition_night_end(evt, var):
 
         random.shuffle(pl)
 
-        msg = messages["vengeful_ghost_team"].format(who).capitalize() # get the role name, capitalized
-        v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_join"].format(msg, pl), sep="\n")
+        v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
         debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")

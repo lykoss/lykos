@@ -98,6 +98,9 @@ class Formatter(string.Formatter):
         if "bold" in specs:
             value = self._bold(value, specs["bold"])
             del specs["bold"]
+        if "capitalize" in specs:
+            value = self._capitalize(value, specs["capitalize"])
+            del specs["capitalize"]
 
         # let __format__ and default specs handle anything that's left. This means we need to recombine
         # anything that we didn't handle back into a single spec string, reintroducing : where necessary
@@ -194,6 +197,9 @@ class Formatter(string.Formatter):
     def _bold(self, value, arg):
         # FIXME make this transport-agnostic
         return "\u0002{0}\u0002".format(value)
+
+    def _capitalize(self, value, arg):
+        return value.capitalize()
 
     def tag_b(self, content, param):
         return self._bold(content, param)
