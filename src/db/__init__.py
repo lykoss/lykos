@@ -980,7 +980,7 @@ def _migrate():
         pass
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db", "db.sql"), "rt") as f1, open(os.path.join(dn, "db", "migrate.sql"), "rt") as f2:
+    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1, open(os.path.join(dn, "migrate.sql"), "rt") as f2:
         c = conn.cursor()
         #######################################################
         # Step 1: install the new schema (from db.sql script) #
@@ -1000,7 +1000,7 @@ def _migrate():
 def _install():
     dn = os.path.dirname(__file__)
     conn = _conn()
-    with conn, open(os.path.join(dn, "db", "db.sql"), "rt") as f1:
+    with conn, open(os.path.join(dn, "db.sql"), "rt") as f1:
         c = conn.cursor()
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
