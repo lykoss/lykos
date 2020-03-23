@@ -252,7 +252,7 @@ def add_game(mode, size, started, finished, winner, players, options):
         if p["account"] == "*":
             p["account"] = None
         c = conn.cursor()
-        p["personid"], p["playerid"] = _get_ids(p["account"], None, add=True)
+        p["personid"], p["playerid"] = _get_ids(p["account"], add=True)
     with conn:
         c = conn.cursor()
         c.execute("""INSERT INTO game (gamemode, options, started, finished, gamesize, winner)

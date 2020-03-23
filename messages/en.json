@@ -1296,7 +1296,7 @@
     "fwarn_list": "{0}{1}[[#{2} {3}]] to {4} by {5} - {6} ({7} point{8}, {9}){10}",
     "warn_list": "[nif={ack}][b]![/b][/nif][[#{id} {issued}]] {reason} ({amount} {=point,points:plural({amount})}, [if={expires}][if={expired}]expired[/if][nif={expired}]expires[/nif] on {expires}[/if][nif={expires}]never expires[/nif])[if={expired}] [b][[expired]][/b][/if]",
     "fwarn_list_footer": "More results are available, use {=fwarn!command} list {0} to view them.",
-    "warn_list_footer": "More results are available, use {=warn!command} {=warn list!command} {0} to view them.",
+    "warn_list_footer": "More results are available, use {=warn!command} {=warn list!command} {0:join_space} to view them.",
     "fwarn_list_empty": "No results.",
     "fwarn_invalid_warning": "The specified warning id does not exist or you do not have permission to view it.",
     "fwarn_view_header": "Warning #{0}, given to {1} on {2} by {3}. {4} point{5}. {6}.",

@@ -244,7 +244,7 @@ def warn_list(var, wrapper, args):
             if args.all:
                 parts.append(_wall[0])
             parts.append(str(args.page + 1))
-            wrapper.pm(messages["warn_list_footer"].format(" ".join(parts)))
+            wrapper.pm(messages["warn_list_footer"].format(parts))
             break
         wrapper.pm(messages["warn_list"].format(**warning))
 
@@ -341,6 +341,10 @@ _wh = messages.raw("_commands", "warn help") # type: List[str]
 _warn_help = warn_subparsers.add_parser(_wh[0], aliases=_wh[1:])
 _warn_help.add_argument("command", default="help")
 _warn_help.set_defaults(func=warn_help)
+
+fwarn_parser = LineParser()
+fwarn_subparsers = fwarn_parser.add_subparsers()
+
 
 @command("warn", pm=True)
 def warn(var, wrapper, message):
@@ -483,7 +487,7 @@ def fwarn(var, wrapper, message):
                 if target is not None:
                     parts.append(target)
                 parts.append(str(page + 1))
-                wrapper.pm(messages["fwarn_list_footer"].format(" ".join(parts)))
+                wrapper.pm(messages["fwarn_list_footer"].format(parts))
                 break
             start = ""
             end = ""
