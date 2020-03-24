@@ -1,18 +1,42 @@
-from argparse import ArgumentParser, Namespace
-from typing import Optional, Sequence, List, Tuple, IO, NoReturn
+from argparse import ArgumentParser, Namespace, Action
+from typing import Optional, Sequence, IO, NoReturn
+
+__all__ = ["LineParseError", "LineParser", "WantsHelp"]
 
 class LineParseError(Exception):
-    def __init__(self, code=0, message=None):
+    def __init__(self, parser, code=0, message=None):
+        self.parser = parser
         self.code = code
         self.message = message
+
+class RaiseHelp(Action):
+    def __init__(self, option_strings, dest):
+        super().__init__(option_strings=option_strings,
+                         dest=dest,
+                         default=False,
+                         required=False,
+                         const=True,
+                         nargs=0)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, self.const)
+        raise WantsHelp(parser, namespace, values, option_string)
+
+class WantsHelp(Exception):
+    def __init__(self, parser, namespace, values, option_string):
+        self.parser = parser
+        self.namespace = namespace
+        self.values = values
+        self.option_string = option_string
 
 # ArgumentParser that doesn't print to stdout/stderr and doesn't call sys.exit()
 # The class using this is responsible for implementing its own help methods
 class LineParser(ArgumentParser):
     def __init__(self, *args, **kwargs):
         kwargs["add_help"] = False
-        self.allow_intermixed = kwargs.get("allow_intermixed", True)
         super().__init__(*args, **kwargs)
+        self.allow_intermixed = kwargs.get("allow_intermixed", True)
+        self.register("action", "help", RaiseHelp)
 
     def print_help(self, file: Optional[IO[str]] = None) -> None:
         pass
@@ -24,7 +48,7 @@ class LineParser(ArgumentParser):
         pass
 
     def exit(self, status: int = 0, message: Optional[str] = None) -> NoReturn:
-        raise LineParseError(status, message)
+        raise LineParseError(self, status, message)
 
     def error(self, message: str) -> NoReturn:
         self.exit(2, message)
@@ -46,6 +70,7 @@ class LineParser(ArgumentParser):
         else:
             parse = self.parse_known_args
         args, argv = parse(args, namespace)
+        # allow the help option to work even if all required positionals aren't there
         if argv:
             self.error("unrecognized arguments: {}".format(" ".join(argv)))
 
