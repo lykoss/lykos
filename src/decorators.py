@@ -313,8 +313,8 @@ class command:
             wrapper.pm(messages["silenced"])
             return
 
-        if self.roles or (self.users is not None and wrapper.source in self.users):
-            self.func(var, wrapper, message) # don't check restrictions for role commands
+        if self.playing or self.roles or self.users:
+            self.func(var, wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
                 from src.wolfgame import chk_nightdone
@@ -332,13 +332,13 @@ class command:
 
         temp = wrapper.source.lower()
 
-        flags = var.FLAGS[temp.rawnick] + var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
+        flags = var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
             return self.func(var, wrapper, message)
 
-        denied_commands = var.DENY[temp.rawnick] | var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
+        denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
 
         if self.commands & denied_commands:
             wrapper.pm(messages["invalid_permissions"])

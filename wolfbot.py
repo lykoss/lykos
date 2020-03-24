@@ -24,8 +24,8 @@ import os
 import botconfig
 
 ver = sys.version_info
-if ver < (3, 5):
-    print("Python 3.5 or newer is required to run the bot.")
+if ver < (3, 7):
+    print("Python 3.7 or newer is required to run the bot.")
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]))
     sys.exit(1)
 

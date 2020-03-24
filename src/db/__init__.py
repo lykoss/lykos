@@ -52,9 +52,7 @@ def init_vars():
         var.PING_IF_NUMS_ACCS = defaultdict(set)
         var.DEADCHAT_PREFS = set()
         var.DEADCHAT_PREFS_ACCS = set()
-        var.FLAGS = defaultdict(str)
         var.FLAGS_ACCS = defaultdict(str)
-        var.DENY = defaultdict(set)
         var.DENY_ACCS = defaultdict(set)
 
         for acc, notice, dc, pi, stasis, stasisexp, flags in c:
