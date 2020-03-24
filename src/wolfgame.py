@@ -1114,11 +1114,12 @@ def stats(var, wrapper, message):
         for stat_set in var.ROLE_STATS:
             for r, a in stat_set:
                 if r not in role_stats:
-                    if r in start_roles:
-                        role_stats[r] = (a, a)
+                    role_stats[r] = (a, a)
                 else:
                     mn, mx = role_stats[r]
                     role_stats[r] = (min(mn, a), max(mx, a))
+        # remove any 0/0 entries if they weren't starting roles, otherwise we may have bad grammar in !stats
+        role_stats = {r: v for r, v in role_stats.items() if r in start_roles or v != (0, 0)}
         order = [r for r in role_order() if r in role_stats]
         if var.DEFAULT_ROLE in order:
             order.remove(var.DEFAULT_ROLE)

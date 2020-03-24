@@ -88,7 +88,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                 # traitor count of 0 is not possible since we for-sure turned traitors into wolves earlier
                 # as such, exclude such cases from newstats entirely.
                 if d["traitor"] >= 1:
-                    d["wolf"] += d["traitor"]
+                    d["wolf"] = d.get("wolf", 0) + d["traitor"]
                     d["traitor"] = 0
                     newstats.add(frozenset(d.items()))
             var.ROLE_STATS = frozenset(newstats)
@@ -100,5 +100,3 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["traitor"] = {"Wolfchat", "Wolfteam"}
-
-# vim: set sw=4 expandtab:
