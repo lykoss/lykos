@@ -133,7 +133,7 @@ def add_warning(target: Union[str, users.User], amount: int, actor: users.User, 
 def stasis(var, wrapper, message):
     st = wrapper.source.stasis_count()
     if st:
-        msg = messages["your_current_stasis"].format(st, "" if st == 1 else "s")
+        msg = messages["your_current_stasis"].format(st)
     else:
         msg = messages["you_not_in_stasis"]
 

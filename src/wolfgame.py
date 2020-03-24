@@ -1940,7 +1940,8 @@ def leave_game(var, wrapper, message):
             else:
                 population = " " + messages["new_player_count"].format(lpl)
         else:
-            if not message.startswith("-force"):
+            args = re.split(" +", message)
+            if args[0] not in messages.raw("_commands", "leave opt force"):
                 wrapper.pm(messages["leave_game_ingame_safeguard"])
                 return
             population = ""

@@ -688,7 +688,7 @@
     "player_missing": "{0:@} has gone missing.",
     "leave_death": "{0:@} died due to falling off a cliff. The {1!role:bold} is lost to the ravine forever.",
     "leave_death_no_reveal": "{0:@} died due to falling off a cliff.",
-    "leave_game_ingame_safeguard": "The game already started! If you still want to quit, use \"{=leave!command:!} -force\".",
+    "leave_game_ingame_safeguard": "The game already started! If you still want to quit, use \"{=leave!command:!} {=leave opt force!command}\".",
     "villagers_lynch": "The villagers must now vote for whom to lynch. Use \"{=lynch!command:!} <nick>\" to cast your vote. {0} votes are required to lynch.",
     "random_clone": "Because you forgot to select someone to clone at night, you are now cloning {0:@}.",
     "random_matchmaker": "Because you forgot to choose lovers at night, two lovers have been selected for you.",
