@@ -44,7 +44,6 @@ def init_vars():
 
         var.PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
         var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
-        var.STASISED = defaultdict(int)
         var.STASISED_ACCS = defaultdict(int)
         var.PING_IF_PREFS = {}
         var.PING_IF_PREFS_ACCS = {}

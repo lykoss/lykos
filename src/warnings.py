@@ -148,13 +148,13 @@ def fstasis(var, wrapper, message):
     if data:
         m = users.complete_match(data[0])
         if m:
-            acc = data[0]
-        else:
             acc = m.get().account
-        cur = var.STASISED_ACCS[acc]
+        else:
+            acc = data[0]
+        cur = var.STASISED_ACCS[irc_lower(acc)]
 
         if len(data) == 1:
-            if var.STASISED_ACCS[acc] == cur and cur > 0:
+            if var.STASISED_ACCS[irc_lower(acc)] == cur and cur > 0:
                 wrapper.reply(messages["account_in_stasis"].format(data[0], acc, cur))
             else:
                 wrapper.reply(messages["account_not_in_stasis"].format(data[0], acc))
@@ -245,7 +245,7 @@ def warn_list(var, wrapper, args):
     wrapper.pm(messages["warn_list_header"].format(points))
 
     for i, warning in enumerate(warnings):
-        if i == 11:
+        if i == 10:
             parts = []
             if args.all:
                 parts.append(_wall[0])
@@ -340,7 +340,7 @@ def fwarn_add(var, wrapper, args):
     try:
         expires = _parse_expires(args.expires)
     except ValueError:
-        wrapper.reply(messages["fwarns_expiry_invalid"])
+        wrapper.reply(messages["fwarn_expiry_invalid"])
         return
 
     sanctions = {}
@@ -455,7 +455,7 @@ def fwarn_list(var, wrapper, args):
         wrapper.pm(messages["fwarn_list_header"].format(acc, points))
 
     for i, warning in enumerate(warnings):
-        if i == 11:
+        if i == 10:
             parts = []
             if args.all:
                 parts.append(_wall[0])
