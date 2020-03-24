@@ -3347,9 +3347,9 @@ def update(var, wrapper, message):
     if ret:
         restart_program.func(var, wrapper, "Updating bot")
 
-@command("fsend", flag="F", pm=True)
+@command("fsend", owner_only=True, pm=True)
 def fsend(var, wrapper, message):
-    """Forcibly send raw IRC commands to the server."""
+    """Send raw IRC commands to the server."""
     wrapper.source.client.send(message)
 
 def _say(wrapper, rest, cmd, action=False):
@@ -3373,10 +3373,9 @@ def _say(wrapper, rest, cmd, action=False):
     if targ is None:
         targ = IRCContext(target, wrapper.source.client)
 
-    if not wrapper.source.is_admin():
-        if targ is not channels.Main:
-            wrapper.pm(messages["invalid_fsend_permissions"])
-            return
+    if not wrapper.source.is_owner() and targ is not channels.Main:
+        wrapper.pm(messages["invalid_fsend_permissions"])
+        return
 
     if action:
         message = "\u0001ACTION {0}\u0001".format(message)
