@@ -254,13 +254,14 @@ class IRCClient:
 
             self.send("CAP LS 302")
 
-            if (self.server_pass and "{password}" in self.server_pass
-                    and self.password and not self.sasl_auth):
+            if self.server_pass and "{password}" in self.server_pass and self.password and not self.sasl_auth:
+                # If not using SASL, try to send the NickServ password during connect via PASS
                 message = "PASS :{0}".format(self.server_pass).format(
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
                 self.send(message, log="PASS :[redacted]")
-            elif self.server_pass:
+            elif self.server_pass and "{password}" not in self.server_pass:
+                # If {password} isn't present, then we likely have a connect password, so send that regardless of SASL
                 message = "PASS :{0}".format(self.server_pass)
                 self.send(message, log="PASS :[redacted]")
 
