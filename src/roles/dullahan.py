@@ -142,12 +142,13 @@ def on_transition_night_end(evt, var):
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
         dullahan.send(messages["dullahan_notify"], t.format(targets), sep="\n")
 
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    succubi = get_all_players(("succubus",))
-    if target in TARGETS and TARGETS[target].intersection(succubi):
-        TARGETS[target].difference_update(succubi)
-        target.send(messages["dullahan_no_kill_succubus"])
+@event_listener("visit")
+def on_visit(evt, var, visitor_role, visitor, visited):
+    if visitor_role == "succubus":
+        succubi = get_all_players(("succubus",))
+        if visited in TARGETS and TARGETS[visited].intersection(succubi):
+            TARGETS[visited].difference_update(succubi)
+            visited.send(messages["dullahan_no_kill_succubus"])
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
@@ -197,5 +198,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["dullahan"] = num
     elif kind == "role_categories":
         evt.data["dullahan"] = {"Killer", "Nocturnal", "Neutral"}
-
-# vim: set sw=4 expandtab:

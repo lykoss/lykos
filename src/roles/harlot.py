@@ -14,16 +14,21 @@ from src.status import try_misdirection, try_exchange
 from src.events import Event
 from src.cats import Wolf, Wolfchat
 
-VISITED = UserDict() # type: Dict[users.User, users.User]
-PASSED = UserSet() # type: Set[users.User]
+VISITED = UserDict() # type: UserDict[users.User, users.User]
+PASSED = UserSet()
+FORCE_PASSED = UserSet()
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("harlot",))
 def hvisit(var, wrapper, message):
     """Visit a player. You will die if you visit a wolf or a target of the wolves."""
-
     if VISITED.get(wrapper.source):
         wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
         return
+
+    if wrapper.source in FORCE_PASSED:
+        wrapper.pm(messages["already_being_visited"])
+        return
+
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="harlot_not_self")
     if not target:
         return
@@ -40,8 +45,8 @@ def hvisit(var, wrapper, message):
     wrapper.pm(messages["harlot_success"].format(target))
     if target is not wrapper.source:
         target.send(messages["harlot_success"].format(wrapper.source))
-        revt = Event("harlot_visit", {})
-        revt.dispatch(var, wrapper.source, target)
+        revt = Event("visit", {})
+        revt.dispatch(var, "harlot", wrapper.source, target)
 
     debuglog("{0} (harlot) VISIT: {1} ({2})".format(wrapper.source, target, vrole))
 
@@ -51,9 +56,19 @@ def pass_cmd(var, wrapper, message):
     if VISITED.get(wrapper.source):
         wrapper.pm(messages["harlot_already_visited"].format(VISITED[wrapper.source]))
         return
+
     PASSED.add(wrapper.source)
     wrapper.pm(messages["no_visit"])
     debuglog("{0} (harlot) PASS".format(wrapper.source))
+
+@event_listener("visit")
+def on_visit(evt, var, visitor_role, visitor, visited):
+    if visited in get_all_players(("harlot",)):
+        # if we're being visited by anyone and we haven't visited yet, we have to stay home with them
+        if visited not in VISITED:
+            FORCE_PASSED.add(visited)
+            PASSED.add(visited)
+            visited.send(messages["already_being_visited"])
 
 @event_listener("transition_day_resolve", priority=1)
 def on_transition_day_resolve(evt, var, victim):
@@ -92,6 +107,7 @@ def on_chk_nightdone(evt, var):
 def on_new_role(evt, var, player, old_role):
     if old_role == "harlot" and evt.data["role"] != "harlot":
         PASSED.discard(player)
+        FORCE_PASSED.discard(player)
         if player in VISITED:
             VISITED.pop(player).send(messages["harlot_disappeared"].format(player))
 
@@ -107,6 +123,7 @@ def on_transition_night_end(evt, var):
 def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
+    FORCE_PASSED.clear()
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -114,11 +131,13 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
         return
     del VISITED[:player:]
     PASSED.discard(player)
+    FORCE_PASSED.discard(player)
 
 @event_listener("reset")
 def on_reset(evt, var):
     VISITED.clear()
     PASSED.clear()
+    FORCE_PASSED.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
@@ -126,5 +145,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["harlot"] = {"Village", "Safe", "Nocturnal"}
     elif kind == "lycanthropy_role":
         evt.data["harlot"] = {"prefix": "harlot"}
-
-# vim: set sw=4 expandtab:

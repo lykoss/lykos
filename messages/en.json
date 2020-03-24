@@ -814,6 +814,7 @@
     "investigator_results_same": "Your investigation has revealed that {0:@} and {1:@} are friends.",
     "investigator_results_different": "Your investigation has revealed that {0:@} and {1:@} do not trust each other.",
     "harlot_already_visited": "You are already spending the night with {0:@}.",
+    "already_being_visited": "You are being visited by someone so you must stay home.",
     "harlot_success": "You are spending the night with {0:@}. Have a good time!",
     "harlot_not_self": "You may not visit yourself. Use \"{=pass!command}\" to choose to not visit anyone tonight.",
     "seer_fail": "You may only have one vision per round.",
