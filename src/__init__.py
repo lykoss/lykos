@@ -12,7 +12,7 @@ import botconfig
 # we continue on to import other files
 import src.settings as var
 from src.logger import stream, stream_handler, debuglog, errlog, plog
-from src import debug, events, match
+from src import debug, events, lineparse, match
 
 # Handle launch parameters
 

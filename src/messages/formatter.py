@@ -204,5 +204,14 @@ class Formatter(string.Formatter):
     def tag_b(self, content, param):
         return self._bold(content, param)
 
+    def _truthy(self, value):
+        # when evaluating if/nif the value is usually already coerced to string,
+        # so we can't rely on python's if/if not to correctly evaluate things.
+        falsy = {"False", "None", "0", "0.0", "[]", "{}", "()", "set()"}
+        return value and value not in falsy
+
     def tag_if(self, content, param):
-        return content if param else ""
+        return content if self._truthy(param) else ""
+
+    def tag_nif(self, content, param):
+        return content if not self._truthy(param) else ""
