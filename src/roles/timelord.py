@@ -40,33 +40,41 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
     TRIGGERED = True
     channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
 
+    from src.wolfgame import hurry_up, night_warn, night_timeout
     if var.GAMEPHASE == "day":
         time_limit = var.DAY_TIME_LIMIT
+        limit_cb = hurry_up
+        limit_args = [var.DAY_ID, True]
         time_warn = var.DAY_TIME_WARN
-        phase_id = "DAY_ID"
+        warn_cb = hurry_up
+        warn_args = [var.DAY_ID, False]
         timer_name = "day_warn"
     elif var.GAMEPHASE == "night":
         time_limit = var.NIGHT_TIME_LIMIT
+        limit_cb = night_timeout
+        limit_args = [var.NIGHT_ID]
         time_warn = var.NIGHT_TIME_WARN
-        phase_id = "NIGHT_ID"
+        warn_cb = night_warn
+        warn_args = [var.NIGHT_ID]
         timer_name = "night_warn"
+    else:
+        return
 
     if var.GAMEPHASE in var.TIMERS:
         time_left = int((var.TIMERS[var.GAMEPHASE][1] + var.TIMERS[var.GAMEPHASE][2]) - time.time())
 
         if time_left > time_limit > 0:
-            from src.wolfgame import hurry_up
-            t = threading.Timer(time_limit, hurry_up, [phase_id, True])
+            t = threading.Timer(time_limit, limit_cb, limit_args)
             var.TIMERS[var.GAMEPHASE] = (t, time.time(), time_limit)
             t.daemon = True
             t.start()
 
             # Don't duplicate warnings, i.e. only set the warning timer if a warning was not already given
-            if timer_name in var.TIMERS:
+            if timer_name in var.TIMERS and time_warn > 0:
                 timer = var.TIMERS[timer_name][0]
                 if timer.isAlive():
                     timer.cancel()
-                    t = threading.Timer(time_warn, hurry_up, [phase_id, False])
+                    t = threading.Timer(time_warn, warn_cb, warn_args)
                     var.TIMERS[timer_name] = (t, time.time(), time_warn)
                     t.daemon = True
                     t.start()

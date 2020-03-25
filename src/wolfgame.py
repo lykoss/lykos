@@ -1432,6 +1432,8 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     # Add warnings for people that idled out night
     if var.IDLE_PENALTY:
         for player in var.NIGHT_IDLED:
+            if player.is_fake:
+                continue
             add_warning(player, var.IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.IDLE_EXPIRY)
 
     reset_modes_timers(var)
@@ -2019,13 +2021,23 @@ def begin_day():
 
 @handle_error
 def night_warn(gameid):
-    if gameid != var.NIGHT_ID:
-        return
-
-    if var.PHASE != "night":
+    if gameid != var.NIGHT_ID or var.PHASE != "night":
         return
 
     channels.Main.send(messages["twilight_warning"])
+
+    # determine who hasn't acted yet and remind them to act
+    event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
+    event.dispatch(var)
+    idling = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
+    if not idling:
+        return
+    for player, count in idling.items():
+        if player.is_fake or count == 0:
+            continue
+        player.queue_message(messages["night_idle_notice"])
+    User.send_messages()
+
 
 @handle_error
 def night_timeout(gameid):
@@ -2042,7 +2054,9 @@ def night_timeout(gameid):
         return
 
     idled = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
-    for player in idled:
+    for player, count in idled.items():
+        if player.is_fake or count == 0:
+            continue
         # some circumstances may excuse a player from getting an idle warning
         # for example, if time lord is active or they have a nightmare in sleepy
         # these can block the player from getting a warning by setting prevent_default
