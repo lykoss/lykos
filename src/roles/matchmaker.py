@@ -179,7 +179,7 @@ def on_player_win(evt, var, player, role, winner, survived):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     mms = (get_all_players(("matchmaker",)) - MATCHMAKERS) | ACTED
-    evt.data["actedcount"] += len(ACTED)
+    evt.data["acted"].extend(ACTED)
     evt.data["nightroles"].extend(mms)
 
 @event_listener("get_team_affiliation")
@@ -231,5 +231,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["matchmaker"] = {"Village", "Safe"}
     elif kind == "special_keys":
         evt.data["matchmaker"] = {"lover"}
-
-# vim: set sw=4 expandtab:

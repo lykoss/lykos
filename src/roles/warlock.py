@@ -72,7 +72,8 @@ def retract(var, wrapper, message):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(CURSED) + len(PASSED)
+    evt.data["acted"].extend(CURSED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("warlock",)))
 
 @event_listener("del_player")

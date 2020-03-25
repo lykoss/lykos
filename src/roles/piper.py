@@ -12,9 +12,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
-CHARMED = UserSet() # type: Set[users.User]
-PASSED = UserSet() # type: Set[users.User]
+TOBECHARMED = UserDict() # type: UserDict[users.User, UserSet]
+CHARMED = UserSet()
+PASSED = UserSet()
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
@@ -155,7 +155,8 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(TOBECHARMED) + len(PASSED)
+    evt.data["acted"].extend(TOBECHARMED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("piper",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -197,5 +198,3 @@ def on_revealroles_role(evt, var, user, role):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["piper"] = {"Neutral", "Win Stealer", "Nocturnal"}
-
-# vim: set sw=4 expandtab:

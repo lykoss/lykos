@@ -100,7 +100,8 @@ def on_transition_day_resolve_end3(evt, var, victims):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(VISITED) + len(PASSED)
+    evt.data["acted"].extend(VISITED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("harlot",)))
 
 @event_listener("new_role")

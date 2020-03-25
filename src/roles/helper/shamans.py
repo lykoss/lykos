@@ -59,22 +59,22 @@ from src.cats import Cursed, Safe, Innocent, Wolf, All
 # It is generally unneeded to modify this file to add new totems or shaman roles    #
 #####################################################################################
 
-DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
-PROTECTION = UserList()     # type: List[users.User]
-REVEALING = UserSet()       # type: Set[users.User]
-NARCOLEPSY = UserSet()      # type: Set[users.User]
-SILENCE = UserSet()         # type: Set[users.User]
-DESPERATION = UserSet()     # type: Set[users.User]
-IMPATIENCE = UserList()     # type: List[users.User]
-PACIFISM = UserList()       # type: List[users.User]
-INFLUENCE = UserSet()       # type: Set[users.User]
-EXCHANGE = UserSet()        # type: Set[users.User]
-LYCANTHROPY = UserSet()     # type: Set[users.User]
-LUCK = UserSet()            # type: Set[users.User]
-PESTILENCE = UserSet()      # type: Set[users.User]
-RETRIBUTION = UserSet()     # type: Set[users.User]
-MISDIRECTION = UserSet()    # type: Set[users.User]
-DECEIT = UserSet()          # type: Set[users.User]
+DEATH = UserDict() # type: UserDict[users.User, UserList]
+PROTECTION = UserList()
+REVEALING = UserSet()
+NARCOLEPSY = UserSet()
+SILENCE = UserSet()
+DESPERATION = UserSet()
+IMPATIENCE = UserList()
+PACIFISM = UserList()
+INFLUENCE = UserSet()
+EXCHANGE = UserSet()
+LYCANTHROPY = UserSet()
+LUCK = UserSet()
+PESTILENCE = UserSet()
+RETRIBUTION = UserSet()
+MISDIRECTION = UserSet()
+DECEIT = UserSet()
 
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
@@ -209,7 +209,7 @@ def setup_variables(rolename, *, knows_totem):
             totemcount = sum(TOTEMS[shaman].values())
             given = len(list(itertools.chain.from_iterable(SHAMANS[shaman].values())))
             if given == totemcount:
-                evt.data["actedcount"] += 1
+                evt.data["acted"].append(shaman)
         evt.data["nightroles"].extend(get_players((rolename,)))
 
     @event_listener("get_role_metadata", listener_id="<{}>.get_role_metadata".format(rolename))

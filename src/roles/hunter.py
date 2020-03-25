@@ -10,7 +10,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
 HUNTERS = UserSet()
 PASSED = UserSet()
 
@@ -92,7 +92,8 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(KILLS) + len(PASSED)
+    evt.data["acted"].extend(KILLS)
+    evt.data["acted"].extend(PASSED)
     hunter_users = get_all_players(("hunter",))
     evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
@@ -127,5 +128,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["hunter"] = len(hunters)
     elif kind == "role_categories":
         evt.data["hunter"] = {"Village", "Killer", "Safe"}
-
-# vim: set sw=4 expandtab:

@@ -11,11 +11,11 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent, is_silent
 from src.cats import All, Wolfteam
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
-GHOSTS = UserDict() # type: Dict[users.User, str]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
+GHOSTS = UserDict() # type: UserDict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
-drivenoff = UserDict() # type: Dict[users.User, str]
+drivenoff = UserDict() # type: UserDict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(var, wrapper, message):
@@ -170,7 +170,7 @@ def on_get_participant_role(evt, var, user):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(KILLS)
+    evt.data["acted"].extend(KILLS)
     evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
 @event_listener("transition_night_end", priority=2)
@@ -228,5 +228,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["vengeful ghost"] = {"vg activated", "vg driven off"}
     elif kind == "role_categories":
         evt.data["vengeful ghost"] = {"Hidden"}
-
-# vim: set sw=4 expandtab:

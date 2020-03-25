@@ -14,7 +14,9 @@ from src.status import try_misdirection, try_exchange
 from src.cats import Win_Stealer
 from src.events import EventListener
 
-CLONED = UserDict() # type: Dict[users.User, users.User]
+CLONED = UserDict() # type: UserDict[users.User, users.User]
+CAN_ACT = UserSet()
+ACTED = UserSet()
 CLONE_ENABLED = False # becomes True if at least one person died and there are clones
 
 @command("clone", chan=False, pm=True, playing=True, phases=("night",), roles=("clone",))
@@ -30,6 +32,7 @@ def clone(var, wrapper, message):
         return
 
     CLONED[wrapper.source] = target
+    ACTED.add(wrapper.source)
     wrapper.pm(messages["clone_target_success"].format(target))
 
     debuglog("{0} (clone) CLONE: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
@@ -67,10 +70,13 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 debuglog("{0} (clone) CLONE DEAD PLAYER: {1} ({2})".format(clone, target, mainrole))
 
     del CLONED[:player:]
+    CAN_ACT.discard(player)
+    ACTED.discard(player)
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):
     ps = get_players()
+    CAN_ACT.update(get_all_players(("clone",)) - CLONED.keys())
     for clone in get_all_players(("clone",)):
         if clone in CLONED and not var.ALWAYS_PM_ROLE:
             continue
@@ -82,8 +88,8 @@ def on_transition_night_end(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(CLONED)
-    evt.data["nightroles"].extend(get_all_players(("clone",)))
+    evt.data["acted"].extend(ACTED)
+    evt.data["nightroles"].extend(CAN_ACT)
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -135,11 +141,18 @@ def on_revealroles_role(evt, var, user, role):
     if role == "clone" and user in CLONED:
         evt.data["special_case"].append(messages["clone_revealroles"].format(CLONED[user]))
 
+@event_listener("begin_day")
+def on_begin_day(evt, var):
+    CAN_ACT.clear()
+    ACTED.clear()
+
 @event_listener("reset")
 def on_reset(evt, var):
     global CLONE_ENABLED
     CLONE_ENABLED = False
     CLONED.clear()
+    CAN_ACT.clear()
+    ACTED.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

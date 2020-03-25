@@ -23,8 +23,11 @@ TIME_ATTRIBUTES = (
     ("NIGHT_TIME_WARN", "TIME_LORD_NIGHT_WARN"),
 )
 
+TRIGGERED = False
+
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
+    global TRIGGERED
     if not death_triggers or "time lord" not in all_roles:
         return
 
@@ -34,6 +37,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
         setattr(var, attr, getattr(var, new_attr))
 
+    TRIGGERED = True
     channels.Main.send(messages["time_lord_dead"].format(var.TIME_LORD_DAY_LIMIT, var.TIME_LORD_NIGHT_LIMIT))
 
     if var.GAMEPHASE == "day":
@@ -69,9 +73,18 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
     debuglog("{0} (time lord) TRIGGER".format(player))
 
+@event_listener("night_idled")
+def on_night_idled(evt, var, player):
+    # don't give people warning points on night idle when time lord is active
+    if TRIGGERED:
+        evt.prevent_default = True
+
+@event_listener("reset")
+def on_reset(evt, var):
+    global TRIGGERED
+    TRIGGERED = False
+
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["time lord"] = {"Hidden"}
-
-# vim: set sw=4 expandtab:

@@ -53,7 +53,7 @@ def observe(var, wrapper, message):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(OBSERVED)
+    evt.data["acted"].extend(OBSERVED)
     evt.data["nightroles"].extend(get_all_players(("sorcerer",)))
 
 @event_listener("del_player")

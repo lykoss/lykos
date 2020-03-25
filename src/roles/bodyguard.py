@@ -14,8 +14,8 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
 
-GUARDED = UserDict() # type: Dict[User, User]
-PASSED = UserSet() # type: Set[User]
+GUARDED = UserDict() # type: UserDict[users.User, users.User]
+PASSED = UserSet()
 DYING = set()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard",))
@@ -69,7 +69,8 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(GUARDED) + len(PASSED)
+    evt.data["acted"].extend(GUARDED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(("bodyguard",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
@@ -148,5 +149,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["bodyguard"] = {"Village", "Safe", "Nocturnal"}
-
-# vim: set sw=4 expandtab:

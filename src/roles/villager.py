@@ -31,5 +31,3 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["villager"] = {"Village"}
-
-# vim: set sw=4 expandtab:

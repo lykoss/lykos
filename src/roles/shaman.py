@@ -142,5 +142,3 @@ def set_shaman_totems(evt, chances):
     chances["impatience"]   ["shaman"] = 1
     chances["pacifism"]     ["shaman"] = 1
     chances["influence"]    ["shaman"] = 1
-
-# vim: set sw=4 expandtab:

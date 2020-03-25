@@ -17,9 +17,9 @@ from src.status import try_misdirection, try_exchange
 # Instead of using list, set or dict, please use UserList, UserSet or UserDict respectively
 # Please refer to the notes in src/containers.py for proper use
 
-# Add to evt.data["actedcount"] and evt.data["nightroles"] if this role can act during night
+# Add to evt.data["acted"] and evt.data["nightroles"] if this role can act during night
 # nightroles lists all Users who have this role and are capable of acting tonight
-# actedcount should be added to (via +=) with everyone who has this role and has already acted
+# acted lists all Users who have this role and have already acted tonight
 # Used to determine when all roles have acted (and therefore night should end)
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -73,5 +73,3 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     pass
-
-# vim: set sw=4 expandtab:
