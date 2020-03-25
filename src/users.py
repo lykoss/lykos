@@ -235,7 +235,7 @@ class User(IRCContext):
         self.dict_values = []
         self.account_timestamp = time.time()
 
-        if Bot is not None and Bot.nick.rstrip("_") == nick.rstrip("_") and None in {Bot.ident, Bot.host}:
+        if Bot is not None and nick is not None and Bot.nick.rstrip("_") == nick.rstrip("_") and None in {Bot.ident, Bot.host}:
             # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
             # which store by hash. As such, mutating the properties is safe.
             self = Bot
