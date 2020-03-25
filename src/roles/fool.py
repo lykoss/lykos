@@ -3,6 +3,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
+from typing import Optional
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog

@@ -24,7 +24,7 @@ def setup_variables(rolename):
 
     @event_listener("chk_nightdone", listener_id="<{}>.on_chk_nightdone".format(rolename))
     def on_chk_nightdone(evt, var):
-        evt.data["actedcount"] += len(SEEN)
+        evt.data["acted"].extend(SEEN)
         evt.data["nightroles"].extend(get_all_players((rolename,)))
 
     @event_listener("transition_night_end", priority=2, listener_id="<{}>.on_transition_night_end".format(rolename))

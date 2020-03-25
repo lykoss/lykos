@@ -14,8 +14,8 @@ from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
 from src import debuglog, users
 
-KILLS = UserDict() # type: UserDict[users.User, UserList[users.User]]
-KNOWS_MINIONS = UserSet() # type: UserSet[users.User]
+KILLS = UserDict() # type: UserDict[users.User, UserList]
+KNOWS_MINIONS = UserSet()
 
 def register_killer(rolename):
     @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=(rolename,))
@@ -193,18 +193,17 @@ def on_chk_nightdone(evt, var):
     if not num_kills or not wofls:
         return
 
+    fake = users.FakeUser.from_nick("@WolvesAgree@")
     evt.data["nightroles"].extend(wofls)
-    evt.data["actedcount"] += len(KILLS)
-    evt.data["nightroles"].append(users.FakeUser.from_nick("@WolvesAgree@"))
-    # check if wolves are actually agreeing or not;
-    # only add to count if they actually agree
-    # (this is *slighty* less hacky than deducting 1 from actedcount as we did previously)
+    evt.data["acted"].extend(KILLS)
+    evt.data["nightroles"].append(fake)
+
     kills = set()
     for ls in KILLS.values():
         kills.update(ls)
     # check if wolves are actually agreeing
     if len(kills) == num_kills:
-        evt.data["actedcount"] += 1
+        evt.data["acted"].append(fake)
 
 # TODO: Split this into each role's file
 @event_listener("transition_night_end", priority=2)

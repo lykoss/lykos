@@ -90,13 +90,14 @@ def on_player_win(evt, var, user, role, winner, survived):
     if user in ENTRANCED:
         evt.data["special"].append("entranced")
         if winner != "succubi":
-            # Note: Should set iwon to False here too, or else the players may still win
-            # This isn't a big deal as long as people don't try to off the succ when entranced
             evt.data["won"] = False
+            evt.data["iwon"] = False
         else:
             evt.data["iwon"] = True
     if role == "succubus" and winner == "succubi":
         evt.data["won"] = True
+        if survived:
+            evt.data["iwon"] = True
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -168,7 +169,8 @@ def on_transition_day_resolve_end(evt, var, victims):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(VISITED) + len(PASSED)
+    evt.data["acted"].extend(VISITED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("succubus",)))
 
 @event_listener("transition_night_end", priority=2)

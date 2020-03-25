@@ -58,7 +58,7 @@ def on_reset(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(OBSERVED)
+    evt.data["acted"].extend(OBSERVED)
     evt.data["nightroles"].extend(get_all_players(("werecrow",)))
 
 @event_listener("new_role")
@@ -71,5 +71,3 @@ def on_new_role(evt, var, player, oldrole):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy"}
-
-# vim: set sw=4 expandtab:

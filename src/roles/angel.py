@@ -14,9 +14,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection, add_dying
 from src.cats import Wolf
 
-GUARDED = UserDict() # type: Dict[User, User]
-LASTGUARDED = UserDict() # type: Dict[User, User]
-PASSED = UserSet() # type: Set[User]
+GUARDED = UserDict() # type: UserDict[users.User, users.User]
+LASTGUARDED = UserDict() # type: UserDict[users.User, users.User]
+PASSED = UserSet()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("guardian angel",))
 def guard(var, wrapper, message):
@@ -80,7 +80,8 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(GUARDED) + len(PASSED)
+    evt.data["acted"].extend(GUARDED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_players(("guardian angel",)))
 
 @event_listener("transition_day_resolve_end", priority=3)
@@ -156,5 +157,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["guardian angel"] = {"Village", "Safe", "Nocturnal"}
     elif kind == "lycanthropy_role":
         evt.data["guardian angel"] = {"role": "fallen angel", "prefix": "fallen_angel", "secondary_roles": {"assassin"}}
-
-# vim: set sw=4 expandtab:

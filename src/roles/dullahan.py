@@ -12,8 +12,8 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
-TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
+TARGETS = UserDict() # type: UserDict[users.User, UserSet]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(var, wrapper, message):
@@ -124,7 +124,7 @@ def on_swap_role_state(evt, var, actor, target, role):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     spl = set(get_players())
-    evt.data["actedcount"] += len(KILLS)
+    evt.data["acted"].extend(KILLS)
     for dullahan, targets in TARGETS.items():
         if targets & spl and dullahan in spl:
             evt.data["nightroles"].append(dullahan)

@@ -54,7 +54,7 @@ def on_del_player(evt, var, player, allroles, death_triggers):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(HEXED)
+    evt.data["acted"].extend(HEXED)
     evt.data["nightroles"].extend(get_all_players(("hag",)))
 
 @event_listener("transition_night_begin")

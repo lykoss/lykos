@@ -28,5 +28,3 @@ def on_myrole(evt, var, user):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["blessed villager"] = {"Village"}
-
-# vim: set sw=4 expandtab:

@@ -17,5 +17,3 @@ register_mystic("mystic", send_role=True, types=("Wolfteam",))
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["mystic"] = {"Village", "Safe", "Intuitive"}
-
-# vim: set sw=4 expandtab:

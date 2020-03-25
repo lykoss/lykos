@@ -12,7 +12,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-PRAYED = UserSet()  # type: Set[users.User]
+PRAYED = UserSet()
 
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
@@ -69,7 +69,7 @@ def on_transition_night_end(evt, var):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("prophet",)))
-    evt.data["actedcount"] += len(PRAYED)
+    evt.data["acted"].extend(PRAYED)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

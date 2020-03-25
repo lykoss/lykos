@@ -102,6 +102,7 @@ var.JOINED_THIS_GAME_ACCS = set() # type: Set[str]
 
 var.IDLE_WARNED = UserSet()
 var.IDLE_WARNED_PM = UserSet()
+var.NIGHT_IDLED = UserSet()
 
 var.DEAD = UserSet()
 
@@ -328,6 +329,7 @@ def reset():
 
     var.IDLE_WARNED.clear()
     var.IDLE_WARNED_PM.clear()
+    var.NIGHT_IDLED.clear()
 
     var.ROLES.clear()
     var.ORIGINAL_ROLES.clear()
@@ -1427,6 +1429,13 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
 
         user.send_messages()
 
+    # Add warnings for people that idled out night
+    if var.IDLE_PENALTY:
+        for player in var.NIGHT_IDLED:
+            if player.is_fake:
+                continue
+            add_warning(player, var.IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.IDLE_EXPIRY)
+
     reset_modes_timers(var)
     reset()
     expire_tempbans()
@@ -1678,6 +1687,7 @@ def reaper(cli, gameid):
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
+                        var.NIGHT_IDLED.discard(user) # don't double-dip if they idled out night as well
                         add_warning(user, var.IDLE_PENALTY, users.Bot, messages["idle_warning"], expires=var.IDLE_EXPIRY)
                     add_dying(var, user, "bot", "idle", death_triggers=False)
                 pl = get_players()
@@ -2011,13 +2021,53 @@ def begin_day():
 
 @handle_error
 def night_warn(gameid):
-    if gameid != var.NIGHT_ID:
-        return
-
-    if var.PHASE != "night":
+    if gameid != var.NIGHT_ID or var.PHASE != "night":
         return
 
     channels.Main.send(messages["twilight_warning"])
+
+    # determine who hasn't acted yet and remind them to act
+    event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
+    event.dispatch(var)
+    idling = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
+    if not idling:
+        return
+    for player, count in idling.items():
+        if player.is_fake or count == 0:
+            continue
+        player.queue_message(messages["night_idle_notice"])
+    User.send_messages()
+
+
+@handle_error
+def night_timeout(gameid):
+    if gameid != var.NIGHT_ID or var.PHASE != "night":
+        return
+
+    # determine which roles idled out night and give them warnings
+    event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
+    event.dispatch(var)
+
+    # if idle warnings are disabled, head straight to day
+    if not var.IDLE_PENALTY:
+        event.data["transition_day"](gameid)
+        return
+
+    idled = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
+    for player, count in idled.items():
+        if player.is_fake or count == 0:
+            continue
+        # some circumstances may excuse a player from getting an idle warning
+        # for example, if time lord is active or they have a nightmare in sleepy
+        # these can block the player from getting a warning by setting prevent_default
+        idle_event = Event("night_idled", {})
+        if idle_event.dispatch(var, player):
+            # don't give the warning right away:
+            # 1. they may idle out entirely, in which case that replaces this warning
+            # 2. warning is deferred to end of game so admins can't !fwarn list to cheat and determine who idled
+            var.NIGHT_IDLED.add(player)
+
+    event.data["transition_day"](gameid)
 
 @handle_error
 def transition_day(gameid=0):
@@ -2231,9 +2281,9 @@ def chk_nightdone():
     if var.PHASE != "night":
         return
 
-    event = Event("chk_nightdone", {"actedcount": 0, "nightroles": [], "transition_day": transition_day})
+    event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
     event.dispatch(var)
-    actedcount = event.data["actedcount"]
+    actedcount = len(event.data["acted"])
 
     # remove all instances of them if they are silenced (makes implementing the event easier)
     nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
@@ -2426,7 +2476,7 @@ def transition_night():
 
     var.NIGHT_ID = time.time()
     if var.NIGHT_TIME_LIMIT > 0:
-        t = threading.Timer(var.NIGHT_TIME_LIMIT, transition_day, kwargs={"gameid": var.NIGHT_ID})
+        t = threading.Timer(var.NIGHT_TIME_LIMIT, night_timeout, kwargs={"gameid": var.NIGHT_ID})
         var.TIMERS["night"] = (t, var.NIGHT_ID, var.NIGHT_TIME_LIMIT)
         t.daemon = True
         t.start()

@@ -96,7 +96,7 @@ def on_chk_nightdone(evt, var):
     if not ENABLED:
         return
     can_act = get_all_players(("alpha wolf",)) - ALPHAS
-    evt.data["actedcount"] += len(BITTEN)
+    evt.data["acted"].extend(BITTEN)
     evt.data["nightroles"].extend(can_act)
 
 @event_listener("new_role")
@@ -126,5 +126,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["alpha wolf"] = len(can_bite)
     elif kind == "role_categories":
         evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
-
-# vim: set sw=4 expandtab:

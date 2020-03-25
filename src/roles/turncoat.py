@@ -3,6 +3,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
+from typing import Tuple
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -12,8 +13,8 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages, get_role_name
 from src.status import try_misdirection, try_exchange
 
-TURNCOATS = UserDict() # type: Dict[users.User, Tuple[str, int]]
-PASSED = UserSet() # type: Set[users.User]
+TURNCOATS = UserDict() # type: UserDict[users.User, Tuple[str, int]]
+PASSED = UserSet()
 
 @command("side", chan=False, pm=True, playing=True, phases=("night",), roles=("turncoat",))
 def change_sides(var, wrapper, message, sendmsg=True):
@@ -64,7 +65,12 @@ def on_transition_night_end(evt, var):
             message = messages["turncoat_current_team"].format(TURNCOATS[turncoat][0])
         else:
             message = messages["turncoat_no_team"]
-        turncoat.send(messages["turncoat_notify"], message)
+
+        if TURNCOATS[turncoat][1] < var.NIGHT_COUNT - 1:
+            # they can act tonight
+            turncoat.send(messages["turncoat_notify"], message)
+        else:
+            turncoat.send(messages["turncoat_notify_no_act"], message)
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
@@ -72,13 +78,13 @@ def on_chk_nightdone(evt, var):
     # but if they can act they're in TURNCOATS where the second tuple item is the current night
     # (if said tuple item is the previous night, then they are not allowed to act tonight)
     pl = get_players()
-    evt.data["actedcount"] += len(PASSED)
+    evt.data["acted"].extend(PASSED)
     for turncoat, (team, night) in TURNCOATS.items():
         if turncoat not in pl:
             continue
         if night == var.NIGHT_COUNT:
             evt.data["nightroles"].append(turncoat)
-            evt.data["actedcount"] += 1
+            evt.data["acted"].append(turncoat)
         elif night < var.NIGHT_COUNT - 1:
             evt.data["nightroles"].append(turncoat)
 
@@ -134,5 +140,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["turncoat"] = {"Neutral", "Team Switcher"}
-
-# vim: set sw=4 expandtab:

@@ -19,5 +19,3 @@ register_killer("wolf mystic")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wolf mystic"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Intuitive"}
-
-# vim: set sw=4 expandtab:
