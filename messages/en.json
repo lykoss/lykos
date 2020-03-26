@@ -1100,7 +1100,7 @@
     "vision_none": "You receive a vision that there are no {0!role:bold:plural(0)}.",
     "succubus_already_visited": "You are already entrancing {0:@} tonight.",
     "succubus_not_self": "You may not entrance yourself. Use \"{=pass!command}\" to not entrance anyone tonight.",
-    "notify_succubus_target": "You have become entranced by {0:@}. From this point on, you must vote along with them or risk dying. You [b]cannot win with your own team[/b], but you will win should all alive players become entranced.",
+    "notify_succubus_target": "You have become entranced by {0:@}. Your win conditions have changed, so you [b]cannot win with your own team[/b], but you will win should all alive players become entranced.",
     "succubus_harlot_success": "You have entranced {0:@}.",
     "succubus_target_success": "You are entrancing {0:@} tonight.",
     "no_kill_succubus": "You discover that {0:@} is a succubus and have retracted your kill as a result.",
