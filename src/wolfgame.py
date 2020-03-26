@@ -2029,7 +2029,10 @@ def night_warn(gameid):
     # determine who hasn't acted yet and remind them to act
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
     event.dispatch(var)
-    idling = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
+
+    # remove all instances of them if they are silenced (makes implementing the event easier)
+    nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    idling = Counter(nightroles) - Counter(event.data["acted"])
     if not idling:
         return
     for player, count in idling.items():
@@ -2053,7 +2056,9 @@ def night_timeout(gameid):
         event.data["transition_day"](gameid)
         return
 
-    idled = Counter(event.data["nightroles"]) - Counter(event.data["acted"])
+    # remove all instances of them if they are silenced (makes implementing the event easier)
+    nightroles = [p for p in event.data["nightroles"] if not is_silent(var, p)]
+    idled = Counter(nightroles) - Counter(event.data["acted"])
     for player, count in idled.items():
         if player.is_fake or count == 0:
             continue
