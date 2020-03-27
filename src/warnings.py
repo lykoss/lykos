@@ -654,8 +654,10 @@ def warn(var, wrapper, message):
     if not message:
         message = _wl[0]
 
+    params = re.split(" +", message)
+    params = [p for p in params if p]
     try:
-        args = warn_parser.parse_args(re.split(" +", message))
+        args = warn_parser.parse_args(params)
         args.func(var, wrapper, args)
     except LineParseError as e:
         if botconfig.DEBUG_MODE:
@@ -688,8 +690,10 @@ def fwarn(var, wrapper, message):
     # reason => Reason, required
     # -notes => Secret notes, not shown to the user (only shown if viewing the warning in PM)
 
+    params = re.split(" +", message)
+    params = [p for p in params if p]
     try:
-        args = fwarn_parser.parse_args(re.split(" +", message))
+        args = fwarn_parser.parse_args(params)
         args.func(var, wrapper, args)
     except WantsHelp as e:
         args = e.namespace

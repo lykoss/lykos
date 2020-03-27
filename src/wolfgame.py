@@ -52,6 +52,7 @@ from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats, handler
 from src.users import User
 
+from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, handle_error, event_listener, COMMANDS
 from src.dispatcher import MessageDispatcher
@@ -2621,8 +2622,29 @@ def ftemplate(var, wrapper, message):
 @command("fflags", flag="F", pm=True)
 def fflags(var, wrapper, message):
     params = re.split(" +", message)
+    params = [p for p in params if p]
 
-    if params[0] == "":
+    _fa = messages.raw("_commands", "warn opt account")
+    _fh = messages.raw("_commands", "warn opt help")
+    if not params or params[0] in _fh:
+        wrapper.reply(messages["fflags_usage"])
+        return
+
+    account = False
+    if params[0] in _fa:
+        params.pop(0)
+        account = True
+
+    if not params:
+        wrapper.reply(messages["fflags_usage"])
+        return
+
+    nick = params.pop(0)
+    flags = None
+    if params:
+        flags = params.pop(0)
+
+    if nick == "*":
         # display a list of all access
         parts = []
         for acc, flags in var.FLAGS_ACCS.items():
@@ -2633,70 +2655,68 @@ def fflags(var, wrapper, message):
             wrapper.reply(messages["no_access"])
         else:
             wrapper.reply(*parts, sep=", ")
-    elif len(params) == 1:
-        # display access for the given user
-        acc = parse_warning_target(params[0], lower=True)
-        if acc is not None and acc != "*":
-            if not var.FLAGS_ACCS[acc]:
-                msg = messages["no_access_account"].format(acc)
-            else:
-                msg = messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[acc])))
-        else:
-            return
-        wrapper.reply(msg)
-    else:
-        acc = parse_warning_target(params[0])
-        flags = params[1]
-        cur_flags = set(var.FLAGS_ACCS[irc_lower(acc)])
+        return
 
-        if flags[0] != "+" and flags[0] != "-":
-            # flags is a template name
-            tpl_name = flags.upper()
-            tpl_id, tpl_flags = db.get_template(tpl_name)
-            if tpl_id is None:
-                wrapper.reply(messages["template_not_found"].format(tpl_name))
-                return
-            tpl_flags = "".join(sorted(tpl_flags))
-            db.set_access(acc, tid=tpl_id)
-            if acc is not None and acc != "*":
-                wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
-            else:
-                wrapper.reply(messages["access_set_host"].format(hm, tpl_flags))
+    if account:
+        acc = nick
+    else:
+        m = users.complete_match(nick)
+        if m:
+            acc = m.get().account
         else:
-            adding = True
-            for flag in flags:
-                if flag == "+":
-                    adding = True
-                    continue
-                elif flag == "-":
-                    adding = False
-                    continue
-                elif flag == "*":
-                    if adding:
-                        cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
-                    else:
-                        cur_flags = set()
-                    continue
-                elif flag not in var.ALL_FLAGS:
-                    wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
-                    return
-                elif adding:
-                    cur_flags.add(flag)
+            acc = nick
+
+    # var.FLAGS_ACC stores lowercased accounts, ensure acc is lowercased as well
+    lacc = irc_lower(acc)
+
+    if not flags:
+        # display access for the given user
+        if not var.FLAGS_ACCS[lacc]:
+            wrapper.reply(messages["no_access_account"].format(acc))
+        else:
+            wrapper.reply(messages["access_account"].format(acc, "".join(sorted(var.FLAGS_ACCS[lacc]))))
+        return
+
+    cur_flags = set(var.FLAGS_ACCS[lacc])
+    if flags[0] != "+" and flags[0] != "-":
+        # flags is a template name
+        tpl_name = flags.upper()
+        tpl_id, tpl_flags = db.get_template(tpl_name)
+        if tpl_id is None:
+            wrapper.reply(messages["template_not_found"].format(tpl_name))
+            return
+        tpl_flags = "".join(sorted(tpl_flags))
+        db.set_access(acc, tid=tpl_id)
+        wrapper.reply(messages["access_set_account"].format(acc, tpl_flags))
+    else:
+        adding = True
+        for flag in flags:
+            if flag == "+":
+                adding = True
+                continue
+            elif flag == "-":
+                adding = False
+                continue
+            elif flag == "*":
+                if adding:
+                    cur_flags = cur_flags | (var.ALL_FLAGS - {"F"})
                 else:
-                    cur_flags.discard(flag)
-            if cur_flags:
-                flags = "".join(sorted(cur_flags))
-                db.set_access(acc, flags=flags)
-                if acc is not None:
-                    wrapper.reply(messages["access_set_account"].format(acc, flags))
-                else:
-                    wrapper.reply(messages["access_set_host"].format(hm, flags))
+                    cur_flags = set()
+                continue
+            elif flag not in var.ALL_FLAGS:
+                wrapper.reply(messages["invalid_flag"].format(flag, "".join(sorted(var.ALL_FLAGS))))
+                return
+            elif adding:
+                cur_flags.add(flag)
             else:
-                db.set_access(acc, flags=None)
-                if acc is not None and acc != "*":
-                    wrapper.reply(messages["access_deleted_account"].format(acc))
-                else:
-                    wrapper.reply(messages["access_deleted_host"].format(hm))
+                cur_flags.discard(flag)
+        if cur_flags:
+            flags = "".join(sorted(cur_flags))
+            db.set_access(acc, flags=flags)
+            wrapper.reply(messages["access_set_account"].format(acc, flags))
+        else:
+            db.set_access(acc, flags=None)
+            wrapper.reply(messages["access_deleted_account"].format(acc))
 
         # re-init var.FLAGS_ACCS since it may have changed
         db.init_vars()

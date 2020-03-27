@@ -32,10 +32,10 @@ class WantsHelp(Exception):
 # ArgumentParser that doesn't print to stdout/stderr and doesn't call sys.exit()
 # The class using this is responsible for implementing its own help methods
 class LineParser(ArgumentParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, allow_intermixed: bool = False, **kwargs):
         kwargs["add_help"] = False
         super().__init__(*args, **kwargs)
-        self.allow_intermixed = kwargs.get("allow_intermixed", True)
+        self.allow_intermixed = allow_intermixed
         self.register("action", "help", RaiseHelp)
 
     def print_help(self, file: Optional[IO[str]] = None) -> None:
