@@ -61,7 +61,7 @@ def on_player_win(evt, var, user, role, winner, survived):
 def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
-    for shaman in get_players(("crazed shaman",)):
+    for shaman in get_all_players(("crazed shaman",)):
         if is_silent(var, shaman):
             continue
 
@@ -88,7 +88,7 @@ def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["crazed shaman"] for x in chances.values())
     ps = get_players()
-    shamans = get_players(("crazed shaman",))
+    shamans = get_all_players(("crazed shaman",))
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]

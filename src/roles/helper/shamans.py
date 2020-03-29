@@ -210,7 +210,7 @@ def setup_variables(rolename, *, knows_totem):
             given = len(list(itertools.chain.from_iterable(SHAMANS[shaman].values())))
             if given == totemcount:
                 evt.data["acted"].append(shaman)
-        evt.data["nightroles"].extend(get_players((rolename,)))
+        evt.data["nightroles"].extend(get_all_players((rolename,)))
 
     @event_listener("get_role_metadata", listener_id="<{}>.get_role_metadata".format(rolename))
     def on_get_role_metadata(evt, var, kind):
