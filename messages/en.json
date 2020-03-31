@@ -202,7 +202,7 @@
         "swap": ["swap", "replace"],
         "sync": ["sync", "fsync"],
         "target": ["target"],
-        "time": ["time"],
+        "time": ["time", "t"],
         "totem": ["give", "totem"],
         "update": ["update"],
         "visit": ["visit"],
