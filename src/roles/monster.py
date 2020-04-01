@@ -13,10 +13,10 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_protection
 from src.cats import Wolf
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, mainrole, winner, survived):
-    if winner == "monsters" and mainrole == "monster":
-        evt.data["won"] = True
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if winner == "monsters" and main_role == "monster":
+        evt.data["team_win"] = True
 
 @event_listener("chk_win", priority=4)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):

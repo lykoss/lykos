@@ -111,13 +111,10 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["winner"] = "pipers"
         evt.data["message"] = messages["piper_win"].format(lp)
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, mainrole, winner, survived):
-    if winner != "pipers":
-        return
-
-    if mainrole == "piper":
-        evt.data["won"] = True
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if winner == "pipers" and main_role == "piper":
+        evt.data["team_win"] = True
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

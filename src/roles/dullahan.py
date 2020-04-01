@@ -46,12 +46,12 @@ def dullahan_retract(var, wrapper, message):
         debuglog("{0} (dullahan) RETRACT".format(wrapper.source))
 
 @event_listener("player_win")
-def on_player_win(evt, var, user, role, winner, survived):
-    if role != "dullahan":
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if main_role != "dullahan":
         return
     alive = set(get_players())
-    if not TARGETS[user] & alive:
-        evt.data["iwon"] = True
+    if not TARGETS[player] & alive:
+        evt.data["individual_win"] = True
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

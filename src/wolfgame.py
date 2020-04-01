@@ -61,7 +61,7 @@ from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
-from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Neutral, Hidden, role_order
+from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, role_order
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -1321,95 +1321,85 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         channels.Main.send(*roles_msg)
 
     # map player: all roles of that player (for below)
-    allroles = {player: {role for role, players in rolemap.items() if player in players} for player in mainroles}
+    allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
 
     # "" indicates everyone died or abnormal game stop
+    winners = set()
+    player_list = []
+
     if winner != "" or log:
-        winners = set()
-        player_list = []
         if additional_winners is not None:
             winners.update(additional_winners)
-        for plr, rol in mainroles.items():
-            pentry = {"version": 2,
-                      "nick": None,
-                      "account": None,
-                      "ident": None,
-                      "host": None,
-                      "role": None,
-                      "templates": [],
-                      "special": [],
-                      "won": False,
-                      "iwon": False,
-                      "dced": False}
-            if plr in var.DCED_LOSERS:
-                pentry["dced"] = True
-            pentry["account"] = plr.account
-            pentry["nick"] = plr.nick
-            pentry["ident"] = plr.ident
-            pentry["host"] = plr.host
 
-            pentry["mainrole"] = rol
-            pentry["allroles"] = allroles[plr]
-
+        team_wins = set()
+        for player, role in mainroles.items():
+            if player in var.DCED_LOSERS or winner == "":
+                continue
             won = False
-            iwon = False
-            survived = get_players()
-            if not pentry["dced"]:
-                # determine default win status (event can override)
-                if rol in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
-                    if winner == "wolves":
-                        won = True
-                        iwon = plr in survived
-                elif rol not in Neutral and winner == "villagers":
+            # determine default team win for wolves/village
+            if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
+                if winner == "wolves":
                     won = True
-                    iwon = plr in survived
-                # true neutral roles are handled via the event below
+            elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
+                if winner == "villagers":
+                    won = True
+            # Let events modify this as necessary.
+            # Neutral roles will need to listen in on this to determine team wins
+            event = Event("team_win", {"team_win": won})
+            event.dispatch(var, player, role, allroles[player], winner)
+            if event.data["team_win"]:
+                team_wins.add(player)
 
-                evt = Event("player_win", {"won": won, "iwon": iwon, "special": pentry["special"]})
-                evt.dispatch(var, plr, rol, winner, plr in survived)
-                won = evt.data["won"]
-                iwon = evt.data["iwon"]
+        # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
+        team_wins = frozenset(team_wins)
+        for player, role in mainroles.items():
+            entry = {"version": 3,
+                     "account": player.account,
+                     "main_role": role,
+                     "all_roles": list(allroles[player]),
+                     "special": [],
+                     "team_win": player in team_wins,
+                     "individual_win": False,
+                     "dced": player in var.DCED_LOSERS
+                     }
+
+            survived = player in get_players()
+            if not entry["dced"] and winner != "":
+                # by default, get an individual win if the team won and they survived
+                won = entry["team_win"] and survived
+
+                # let events modify this default and also add special tags/pseudo-roles to the stats
+                event = Event("player_win", {"individual_win": won, "special": []},
+                              team_wins=team_wins)
+                event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
+                won = event.data["individual_win"]
                 # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
-                pentry["special"] = list(evt.data["special"])
+                entry["special"] = list(event.data["special"])
 
                 # special-case everyone for after the event
                 if winner == "everyone":
-                    iwon = True
+                    won = True
 
-            if pentry["dced"]:
-                # You get NOTHING! You LOSE! Good DAY, sir!
-                won = False
-                iwon = False
-            elif not iwon:
-                iwon = won and plr in survived  # survived, team won = individual win
+                entry["individual_win"] = won
 
-            if winner == "":
-                pentry["won"] = False
-                pentry["iwon"] = False
-            else:
-                pentry["won"] = won
-                pentry["iwon"] = iwon
-                if won or iwon:
-                    winners.add(plr)
+            if entry["team_win"] or entry["individual_win"]:
+                winners.add(player)
 
-            if not plr.is_fake:
-                # don't record fjoined fakes
-                player_list.append(pentry)
-
-    if winner == "":
-        winners = set()
+            if not player.is_fake:
+                # don't record fakes to the database
+                player_list.append(entry)
 
     if log:
         game_options = {"role reveal": var.ROLE_REVEAL,
                         "stats": var.STATS_TYPE,
                         "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
                         "roles": {}}
-        for role,pl in var.ORIGINAL_ROLES.items():
+        for role, pl in var.ORIGINAL_ROLES.items():
             if len(pl) > 0:
                 game_options["roles"][role] = len(pl)
 
         db.add_game(var.CURRENT_GAMEMODE.name,
-                    len(survived) + len(var.DEAD),
+                    len(get_players()) + len(var.DEAD),
                     time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
                     time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
                     winner,

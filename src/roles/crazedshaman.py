@@ -53,9 +53,9 @@ def crazed_shaman_totem(var, wrapper, message):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt, var, user, role, winner, survived):
-    if role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
-        evt.data["iwon"] = True
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if main_role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
+        evt.data["individual_win"] = True
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):

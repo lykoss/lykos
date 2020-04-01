@@ -20,9 +20,9 @@ def on_lynch(evt, var, votee, voters):
         JESTERS.add(votee)
 
 @event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if player in JESTERS:
-        evt.data["iwon"] = True
+        evt.data["individual_win"] = True
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):

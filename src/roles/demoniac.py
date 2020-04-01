@@ -28,10 +28,10 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["message"] = messages["demoniac_win"].format(demoniacs)
         evt.data["winner"] = "demoniacs"
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
-    if role == "demoniac" and winner == "demoniacs":
-        evt.data["won"] = True
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if main_role == "demoniac" and winner == "demoniacs":
+        evt.data["team_win"] = True
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

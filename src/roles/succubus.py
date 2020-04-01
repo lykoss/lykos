@@ -85,19 +85,18 @@ def on_visit(evt, var, visitor_role, visitor, visited):
             ENTRANCED.add(visitor)
 
 # entranced logic should run after team wins have already been determined (aka run last)
-@event_listener("player_win", priority=6)
-def on_player_win(evt, var, user, role, winner, survived):
-    if user in ENTRANCED:
+# FIXME: I hate event priorities and want them to die in a fire
+@event_listener("team_win", priority=7)
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if player in ENTRANCED and winner != "succubi":
+        evt.data["team_win"] = False
+    if main_role == "succubus" and winner == "succubi":
+        evt.data["team_win"] = True
+
+@event_listener("player_win")
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if player in ENTRANCED:
         evt.data["special"].append("entranced")
-        if winner != "succubi":
-            evt.data["won"] = False
-            evt.data["iwon"] = False
-        else:
-            evt.data["iwon"] = True
-    if role == "succubus" and winner == "succubi":
-        evt.data["won"] = True
-        if survived:
-            evt.data["iwon"] = True
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):

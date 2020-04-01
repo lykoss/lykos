@@ -112,10 +112,10 @@ def on_swap_role_state(evt, var, actor, target, role):
         evt.data["actor_messages"].append(messages["clone_target"].format(CLONED[actor]))
 
 @event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     # this means they ended game while being clone and not some other role
-    if role == "clone" and survived and singular(winner) not in Win_Stealer:
-        evt.data["iwon"] = True
+    if main_role == "clone" and survived and singular(winner) not in Win_Stealer:
+        evt.data["individual_win"] = True
 
 @event_listener("del_player", priority=1)
 def first_death_occured(evt, var, player, all_roles, death_triggers):

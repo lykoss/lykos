@@ -88,11 +88,11 @@ def on_chk_nightdone(evt, var):
         elif night < var.NIGHT_COUNT - 1:
             evt.data["nightroles"].append(turncoat)
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
-    if role == "turncoat" and player in TURNCOATS and TURNCOATS[player][0] != "none":
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if main_role == "turncoat" and player in TURNCOATS and TURNCOATS[player][0] != "none":
         team = "villagers" if TURNCOATS[player][0] == "villager" else "wolves"
-        evt.data["won"] = (winner == team)
+        evt.data["team_win"] = (winner == team)
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
