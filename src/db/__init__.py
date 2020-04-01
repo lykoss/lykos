@@ -227,18 +227,13 @@ def add_game(mode, size, started, finished, winner, players, options):
 
     Players dict format:
     {
-        version: 2 (key is omitted for v1)
-        nick: "Nickname"
-        account: "Account name" (or None, "*" is converted to None)
-        ident: "Ident"
-        host: "Host"
-        mainrole: "role name" (v2+)
-        allroles: {"role name", ...} (v2+)
-        role: "role name" (v1 only)
-        templates: ["template names", ...] (v1 only)
+        version: 3
+        account: "Account name"
+        main_role: "role name"
+        all_roles: ["role name", ...]
         special: ["special qualities", ... (lover, entranced, etc.)]
-        won: True/False
-        iwon: True/False
+        team_win: True/False
+        individual_win: True/False
         dced: True/False
     }
     """
@@ -246,8 +241,6 @@ def add_game(mode, size, started, finished, winner, players, options):
     # Normalize players dict
     conn = _conn()
     for p in players:
-        if p["account"] == "*":
-            p["account"] = None
         c = conn.cursor()
         p["personid"], p["playerid"] = _get_ids(p["account"], add=True)
     with conn:
@@ -257,9 +250,9 @@ def add_game(mode, size, started, finished, winner, players, options):
         gameid = c.lastrowid
         for p in players:
             c.execute("""INSERT INTO game_player (game, player, team_win, indiv_win, dced)
-                         VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["won"], p["iwon"], p["dced"]))
+                         VALUES (?, ?, ?, ?, ?)""", (gameid, p["playerid"], p["team_win"], p["individual_win"], p["dced"]))
             gpid = c.lastrowid
-            for role in p["allroles"]:
+            for role in p["all_roles"]:
                 c.execute("""INSERT INTO game_player_role (game_player, role, special)
                              VALUES (?, ?, 0)""", (gpid, role))
             for sq in p["special"]:
