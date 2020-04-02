@@ -293,12 +293,17 @@ class command:
         if self.phases and var.PHASE not in self.phases:
             return
 
-        wrapper.source.update_account_data(self.key, functools.partial(self._caller, var, wrapper, message))
+        wrapper.source.update_account_data(self.key, functools.partial(self._thunk, var, wrapper, message))
+
+    @handle_error
+    def _thunk(self, var, wrapper: MessageDispatcher, message: str, user: User):
+        _ignore_locals_ = True
+        wrapper.source = user
+        self._caller(var, wrapper, message)
 
     @handle_error
     def _caller(self, var, wrapper: MessageDispatcher, message: str):
         _ignore_locals_ = True
-
         if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
             return
 

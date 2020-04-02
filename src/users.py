@@ -201,14 +201,13 @@ def _reset(evt, var):
 def _update_account(evt, user):
     """Updates account data of a user for networks which don't support certain features."""
     from src.decorators import handle_error
-    user.account_timestamp = time.time()
-    if user in _pending_account_updates:
-        updates = list(_pending_account_updates[user].items())
-        _pending_account_updates[user].clear()
+    if evt.params.old in _pending_account_updates:
+        updates = list(_pending_account_updates[evt.params.old].items())
+        del _pending_account_updates[evt.params.old]
         for command, callback in updates:
             # handle_error swallows exceptions so that a callback raising an exception
             # does not prevent other registered callbacks from running
-            handle_error(callback)()
+            handle_error(callback)(user)
 
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
@@ -518,22 +517,23 @@ class User(IRCContext):
             Used to handle cases where the user executes multiple commands before
             account data can be updated, so they can all be queued. If the same command
             is given multiple times, we honor the most recent one given.
-        :param callback: Callback to execute when account data is fully updated
+        :param callback: Callback to execute when account data is fully updated,
+            passed in the updated user with an accurate account
         """
 
         # Nothing to update for fake nicks
         if self.is_fake:
-            callback()
+            callback(self)
             return
 
         if self.account is not None and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
-            callback()
+            callback(self)
             return
 
         if self.account is not None and self.account_timestamp > time.time() - 900:
             # account data is less than 15 minutes old, use existing data instead of refreshing
-            callback()
+            callback(self)
             return
 
         if self not in _pending_account_updates:

@@ -17,6 +17,8 @@ from src import context, channels, users
 
 ### WHO/WHOX responses handling
 
+_who_old = {} # type: Dict[str, users.User]
+
 @hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
     """Handle WHO replies for servers without WHOX support.
@@ -60,7 +62,8 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
                 ch.modes[mode] = set()
             ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=0)
+    _who_old[user.nick] = user
+    event = Event("who_result", {}, away=is_away, data=0, old=user)
     event.dispatch(ch, user)
 
 @hook("whospcrpl")
@@ -107,15 +110,19 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users.get(nick, ident, host, account, allow_bot=True, allow_none=True)
+    # WHOX may be issued to retrieve updated account info so exclude account from users.get()
+    # we handle the account change differently below and don't want to add duplicate users
+    user = users.get(nick, ident, host, allow_bot=True, allow_none=True)
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host, account=account)
 
+    new_user = user
     if {user.account, account} != {None} and not context.equals(user.account, account):
         # first check tests if both are None, and skips over this if so
         old_account = user.account
         user.account = account
-        Event("account_change", {}).dispatch(user, old_account)
+        new_user = users.get(nick, ident, host, account, allow_bot=True)
+        Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
     ch = channels.get(chan, allow_none=True)
     if ch is not None and ch not in user.channels:
@@ -126,8 +133,9 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
                 ch.modes[mode] = set()
             ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=data)
-    event.dispatch(ch, user)
+    _who_old[new_user.nick] = user
+    event = Event("who_result", {}, away=is_away, data=data, old=user)
+    event.dispatch(ch, new_user)
 
 @hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
@@ -157,7 +165,9 @@ def end_who(cli, bot_server, bot_nick, target, rest):
     else:
         target.dispatch_queue()
 
-    Event("who_end", {}).dispatch(target)
+    old = _who_old.get(target.name, target)
+    _who_old.clear()
+    Event("who_end", {}, old=old).dispatch(target)
 
 ### WHOIS Reponse Handling
 
@@ -273,17 +283,18 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
 
     values = _whois_pending.pop(nick)
     # check for account change
-    user = values["user"]
+    new_user = user = values["user"]
     if {user.account, values["account"]} != {None} and not context.equals(user.account, values["account"]):
         # first check tests if both are None, and skips over this if so
         old_account = user.account
         user.account = values["account"]
-        Event("account_change", {}).dispatch(user, old_account)
+        new_user = users.get(user.nick, user.ident, user.host, values["account"], allow_bot=True)
+        Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
-    event = Event("who_result", {}, away=values["away"], data=0)
+    event = Event("who_result", {}, away=values["away"], data=0, old=user)
     for chan in values["channels"]:
-        event.dispatch(chan, values["user"])
-    Event("who_end", {}).dispatch(values["user"])
+        event.dispatch(chan, new_user)
+    Event("who_end", {}, old=user).dispatch(new_user)
 
 ### Host changing handling
 
@@ -654,8 +665,9 @@ def on_nick_change(cli, old_rawnick, nick):
     user = users.get(old_rawnick, allow_bot=True)
     old_nick = user.nick
     user.nick = nick
+    new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
 
-    Event("nick_change", {}).dispatch(user, old_nick)
+    Event("nick_change", {}, old=user).dispatch(new_user, old_nick)
 
 ### ACCOUNT handling
 
@@ -676,8 +688,9 @@ def on_account_change(cli, rawnick, account):
     user = users.get(rawnick)
     old_account = user.account
     user.account = account
+    new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
 
-    Event("account_change", {}).dispatch(user, old_account)
+    Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
 ### JOIN handling
 
@@ -828,6 +841,11 @@ def on_chghost(cli, rawnick, ident, host):
     """
 
     user = users.get(rawnick)
+    old_ident = user.ident
+    old_host = user.host
     # we avoid multiple swaps if we change the rawnick instead of ident and host separately
     new_rawnick = "{0}!{1}@{2}".format(user.nick, ident, host)
     user.rawnick = new_rawnick
+    new_user = users.get(new_rawnick)
+
+    Event("host_change", {}, old=user).dispatch(new_user, old_ident, old_host)
