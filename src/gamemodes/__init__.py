@@ -5,7 +5,7 @@ import importlib
 import src.settings as var
 from src.messages import messages
 from src.events import Event, EventListener
-from src.cats import All, Cursed, Wolf, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
+from src.cats import All, Cursed, Wolf, Wolfchat, Innocent, Village, Neutral, Hidden, Team_Switcher, Win_Stealer, Nocturnal, Killer, Spy
 
 __all__ = ["InvalidModeException", "game_mode", "GameMode"]
 
@@ -30,7 +30,7 @@ class GameMode:
             "gunner"            : Village + Neutral + Hidden - Innocent - Team_Switcher,
             "sharpshooter"      : Village + Neutral + Hidden - Innocent - Team_Switcher,
             "mayor"             : All - Innocent - Win_Stealer,
-            "assassin"          : All - Nocturnal + Killer - Wolf - Innocent - Spy - Team_Switcher - {"traitor"}, # inaccurate, but best bet for now
+            "assassin"          : All - Nocturnal + Killer - Spy + Wolfchat - Wolf - Innocent - Team_Switcher - {"traitor"},
             "blessed villager"  : ["villager"],
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}

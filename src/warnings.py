@@ -689,6 +689,8 @@ def fwarn(var, wrapper, message):
     # -tempban => Temporarily bans the user for either a period of time or until warning points expire
     # reason => Reason, required
     # -notes => Secret notes, not shown to the user (only shown if viewing the warning in PM)
+    if not message:
+        message = _fh[0]
 
     params = re.split(" +", message)
     params = [p for p in params if p]
