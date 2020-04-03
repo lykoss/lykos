@@ -221,7 +221,7 @@ class Channel(IRCContext):
         set_time = int(time.time()) # for list modes timestamp
         list_modes, all_set, only_set, no_set = Features["CHANMODES"]
         status_modes = Features["PREFIX"].values()
-        all_modes = list_modes + all_set + only_set + no_set
+        all_modes = list_modes + all_set + only_set + no_set + status_modes
         if self.state is not _States.Joined: # not joined, modes won't have the value
             no_set += all_set + only_set
             only_set = ""
