@@ -5,7 +5,7 @@ from enum import Enum
 from src.context import IRCContext, Features, lower
 from src.events import Event
 from src import settings as var
-from src import users
+from src import users, stream
 from src.debug import CheckedSet, CheckedDict
 
 Main = None # main channel
@@ -221,15 +221,22 @@ class Channel(IRCContext):
         set_time = int(time.time()) # for list modes timestamp
         list_modes, all_set, only_set, no_set = Features["CHANMODES"]
         status_modes = Features["PREFIX"].values()
+        all_modes = list_modes + all_set + only_set + no_set
         if self.state is not _States.Joined: # not joined, modes won't have the value
             no_set += all_set + only_set
             only_set = ""
             all_set = ""
 
         i = 0
+        prefix = None
         for c in mode:
             if c in ("+", "-"):
                 prefix = c
+                continue
+            elif c not in all_modes:
+                # some broken ircds have modes without telling us about them in ISUPPORT
+                # ignore such modes but emit a warning
+                stream("Broken ircd detected: unrecognized channel mode +{}".format(c), level="warning")
                 continue
 
             if prefix == "+":
@@ -259,7 +266,7 @@ class Channel(IRCContext):
                         targ = int(targ)
                     self.modes[c] = targ
 
-            else:
+            elif prefix == "-":
                 if c in status_modes:
                     if c in self.modes:
                         user = users.get(targets[i], allow_bot=True)
