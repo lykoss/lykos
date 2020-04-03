@@ -242,42 +242,6 @@ def connect_callback():
     accumulator = accumulate_cmodes(3)
     accumulator.send(None)
 
-@hook("mode") # XXX Get rid of this when the user/channel refactor is done
-def check_for_modes(cli, rnick, chan, modeaction, *target):
-    nick = parse_nick(rnick)[0]
-    if chan != botconfig.CHANNEL:
-        return
-    oldpref = ""
-    trgt = ""
-    keeptrg = False
-    target = list(target)
-    if target and target != [users.Bot.nick]:
-        while modeaction:
-            if len(modeaction) > 1:
-                prefix = modeaction[0]
-                change = modeaction[1]
-            else:
-                prefix = oldpref
-                change = modeaction[0]
-            if not keeptrg:
-                if target:
-                    trgt = target.pop(0)
-                else:
-                    trgt = "" # Last item, no target
-            keeptrg = False
-            if not prefix in ("-", "+"):
-                change = prefix
-                prefix = oldpref
-            else:
-                oldpref = prefix
-            modeaction = modeaction[modeaction.index(change)+1:]
-            if change in var.MODES_NOSET:
-                keeptrg = True
-            if prefix == "-" and change in var.MODES_ONLYSET:
-                keeptrg = True
-            if change not in var.MODES_PREFIXES.values():
-                continue
-
 def reset_settings():
     var.CURRENT_GAMEMODE.teardown()
     var.CURRENT_GAMEMODE = var.GAME_MODES["default"][0]()
@@ -2815,7 +2779,7 @@ def on_invite(cli, raw_nick, something, chan):
     if chan == botconfig.CHANNEL:
         cli.join(chan)
         return # No questions
-    user = users.get(raw_nick)
+    user = users.get(raw_nick, allow_none=True)
     if user and user.is_admin():
         cli.join(chan) # Allows the bot to be present in any channel
         debuglog(user.nick, "INVITE", chan, display=True)

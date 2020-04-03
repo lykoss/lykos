@@ -30,7 +30,7 @@ if ver < (3, 7):
     sys.exit(1)
 
 try: # need to manually add dependencies here
-    pass
+    import antlr4
 except ImportError:
     command = "python3"
     if os.name == "nt":
@@ -87,5 +87,3 @@ if __name__ == "__main__":
         main()
     except Exception:
         src.errlog(traceback.format_exc())
-
-# vim: set sw=4 expandtab:

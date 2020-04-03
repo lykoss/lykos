@@ -16,14 +16,6 @@ ENABLED_NAMES.update(getattr(botconfig, "DEBUG_HISTORY_NAMES", set()))
 
 HISTORY_LIMIT = getattr(botconfig, "DEBUG_HISTORY_LIMIT", 50) # type: int
 
-try:
-    assert breakpoint # assert is there just to make code inspection shut up about "statements not having an effect"
-except NameError:
-    # Python 3.5 and 3.6 compat
-    def breakpoint(*args, **kwargs):
-        import pdb
-        pdb.set_trace()
-
 class History:
     def __init__(self, name: str):
         self.name = name
