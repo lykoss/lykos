@@ -162,11 +162,11 @@ def fstasis(var, wrapper, message):
             try:
                 amt = int(data[1])
             except ValueError:
-                wrapper.reply(messages["stasis_not_negative"])
+                wrapper.reply(messages["stasis_non_negative"])
                 return
 
             if amt < 0:
-                wrapper.reply(messages["stasis_not_negative"])
+                wrapper.reply(messages["stasis_non_negative"])
                 return
             elif amt > cur and var.RESTRICT_FSTASIS:
                 wrapper.reply(messages["stasis_cannot_increase"])
