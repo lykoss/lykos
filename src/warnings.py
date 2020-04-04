@@ -145,7 +145,7 @@ def fstasis(var, wrapper, message):
 
     data = re.split(" +", message)
 
-    if data:
+    if data[0]:
         m = users.complete_match(data[0])
         if m:
             acc = m.get().account
