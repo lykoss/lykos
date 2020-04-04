@@ -79,6 +79,8 @@ def on_team_win(evt, var, player, main_role, all_roles, winner):
             evt.data["team_win"] = True
         elif against == "wolf" and winner == "villagers":
             evt.data["team_win"] = True
+        else:
+            evt.data["team_win"] = False
 
 @event_listener("player_win")
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
