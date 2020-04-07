@@ -10,10 +10,10 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
 from src.roles.helper.mystics import register_mystic
-from src.roles.helper.wolves import register_killer
+from src.roles.helper.wolves import register_wolf
 
 register_mystic("wolf mystic", send_role=False, types=("Safe", "Win Stealer"))
-register_killer("wolf mystic")
+register_wolf("wolf mystic")
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

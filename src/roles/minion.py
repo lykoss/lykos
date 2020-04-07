@@ -15,6 +15,7 @@ from src.status import try_misdirection, try_exchange
 from src.cats import Wolf
 
 RECEIVED_INFO = UserSet()
+KNOWS_MINIONS = UserSet()
 
 def wolf_list(var):
     wolves = [wolf.nick for wolf in get_all_players(Wolf)]
@@ -22,13 +23,23 @@ def wolf_list(var):
     return messages["wolves_list"].format(", ".join(wolves))
 
 @event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+def on_transition_night_end2(evt, var):
     for minion in get_all_players(("minion",)):
         if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
             continue
         minion.send(messages["minion_notify"])
         minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
+
+@event_listener("transition_night_end", priority=3)
+def on_transition_night_end3(evt, var):
+    minions = len(get_all_players(("minion",)))
+    if minions == 0:
+        return
+    wolves = get_all_players(Wolf) - KNOWS_MINIONS
+    for wolf in wolves:
+        wolf.send(messages["has_minions"].format(minions))
+        KNOWS_MINIONS.add(wolf)
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -48,6 +59,7 @@ def on_myrole(evt, var, user):
 @event_listener("reset")
 def on_reset(evt, var):
     RECEIVED_INFO.clear()
+    KNOWS_MINIONS.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

@@ -12,8 +12,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Spy
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message
+register_wolf("sorcerer")
 
 OBSERVED = UserSet() # type: UserSet[users.User]
 

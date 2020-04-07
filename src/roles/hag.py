@@ -12,7 +12,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent
 
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
+
+register_wolf("hag")
 
 HEXED = UserDict() # type: UserDict[users.User, users.User]
 LASTHEXED = UserDict() # type: UserDict[users.User, users.User]

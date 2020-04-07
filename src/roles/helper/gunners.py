@@ -1,5 +1,7 @@
 import random
 import re
+import math
+from typing import Dict, Any
 
 from src import users
 from src.decorators import command, event_listener
@@ -8,10 +10,15 @@ from src.functions import get_players, get_all_players, get_target, get_main_rol
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying, kill_players, add_absent
 from src.events import Event
-from src.cats import Wolf, Wolfchat
+from src.cats import Wolf, Killer
+
+_rolestate = {} # type: Dict[str, Dict[str, Any]]
 
 def setup_variables(rolename):
     GUNNERS = UserDict() # type: UserDict[users.User, int]
+    _rolestate[rolename] = {
+        "GUNNERS": GUNNERS
+    }
 
     @command("shoot", playing=True, silenced=True, phases=("day",), roles=(rolename,))
     def shoot(var, wrapper, message):
@@ -36,7 +43,7 @@ def setup_variables(rolename):
         rand = random.random() # need to save it
 
         shoot_evt = Event("gun_shoot", {"hit": rand <= gun_evt.data["hit"], "kill": random.random() <= gun_evt.data["headshot"]})
-        shoot_evt.dispatch(var, wrapper.source, target)
+        shoot_evt.dispatch(var, wrapper.source, target, rolename)
 
         realrole = get_main_role(target)
         targrole = get_reveal_role(target)
@@ -80,31 +87,40 @@ def setup_variables(rolename):
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
-    @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
+    @event_listener("transition_night_end", listener_id="gunners.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
         for gunner in get_all_players((rolename,)):
-            if GUNNERS[gunner]:
+            if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))
 
-    @event_listener("transition_day_resolve_end", priority=4, listener_id="<{}>.on_transition_day_resolve_end".format(rolename))
+    @event_listener("transition_day_resolve_end", priority=4, listener_id="gunners.<{}>.on_transition_day_resolve_end".format(rolename))
     def on_transition_day_resolve_end(evt, var, victims):
         for victim in list(evt.data["dead"]):
             if GUNNERS.get(victim) and "@wolves" in evt.data["killers"][victim]:
                 if random.random() < var.GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE:
                     # pick a random wolf to be shot
-                    wolfset = [wolf for wolf in get_players(Wolf) if wolf not in evt.data["dead"]]
-                    if wolfset:
-                        deadwolf = random.choice(wolfset)
-                        to_send = "gunner_killed_wolf_overnight_no_reveal"
-                        if var.ROLE_REVEAL in ("on", "team"):
-                            to_send = "gunner_killed_wolf_overnight"
-                        evt.data["message"][victim].append(messages[to_send].format(victim, deadwolf, get_reveal_role(deadwolf)))
-                        evt.data["dead"].append(deadwolf)
-                        evt.data["killers"][deadwolf].append(victim)
-                        GUNNERS[victim] -= 1 # deduct the used bullet
+                    wolves = [wolf for wolf in get_players(Wolf & Killer) if wolf not in evt.data["dead"]]
+                    if wolves:
+                        shot = random.choice(wolves)
+                        event = Event("gun_shoot", {"hit": True, "kill": True})
+                        event.dispatch(var, victim, shot, rolename)
+                        GUNNERS[victim] -= 1  # deduct the used bullet
+                        if event.data["hit"]: # bullets always kill wolves so no reason to check event.data["kill"]
+                            to_send = "gunner_killed_wolf_overnight_no_reveal"
+                            if var.ROLE_REVEAL in ("on", "team"):
+                                to_send = "gunner_killed_wolf_overnight"
+                            evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(shot)))
+                            evt.data["dead"].append(shot)
+                            evt.data["killers"][shot].append(victim)
+                        else:
+                            # shot was fired and missed
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"])
 
-                if var.WOLF_STEALS_GUN and GUNNERS[victim]: # might have used up the last bullet or something
-                    possible = get_players(Wolfchat)
+                # let wolf steal gun if the gunner has any bullets remaining
+                # this gives the looter the "wolf gunner" secondary role
+                # if the wolf gunner role isn't loaded, guns cannot be stolen regardless of var.WOLF_STEALS_GUN
+                if var.WOLF_STEALS_GUN and GUNNERS[victim] and "wolf gunner" in _rolestate:
+                    possible = get_players(Wolf & Killer)
                     random.shuffle(possible)
                     for looter in possible:
                         if looter not in evt.data["dead"]:
@@ -112,23 +128,43 @@ def setup_variables(rolename):
                     else:
                         return # no live wolf, nothing to do here
 
-                    GUNNERS[looter] = GUNNERS.get(looter, 0) + 1
+                    _rolestate["wolf gunner"]["GUNNERS"][looter] = _rolestate["wolf gunner"]["GUNNERS"].get(looter, 0) + 1
                     del GUNNERS[victim]
-                    var.ROLES[rolename].add(looter)
+                    var.ROLES["wolf gunner"].add(looter)
                     looter.send(messages["wolf_gunner"].format(victim))
 
-    @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
+    @event_listener("myrole", listener_id="gunners.<{}>.on_myrole".format(rolename))
     def on_myrole(evt, var, user):
         if GUNNERS.get(user):
             evt.data["messages"].append(messages["gunner_myrole"].format(rolename, GUNNERS[user]))
 
-    @event_listener("revealroles_role", listener_id="<{}>.on_revealroles_role".format(rolename))
+    @event_listener("revealroles_role", listener_id="gunners.<{}>.on_revealroles_role".format(rolename))
     def on_revealroles_role(evt, var, user, role):
         if role == rolename and user in GUNNERS:
             evt.data["special_case"].append(messages["gunner_revealroles"].format(GUNNERS[user]))
 
-    @event_listener("reset", listener_id="<{}>.on_reset".format(rolename))
+    @event_listener("reset", listener_id="gunners.<{}>.on_reset".format(rolename))
     def on_reset(evt, var):
         GUNNERS.clear()
 
+    @event_listener("new_role", listener_id="gunners.<{}>.on_new_role".format(rolename))
+    def on_new_role(evt, var, user, old_role):
+        if old_role == rolename:
+            if evt.data["role"] != rolename:
+                del GUNNERS[user]
+
+        elif evt.data["role"] == rolename:
+            bullets = math.ceil(var.SHOTS_MULTIPLIER[rolename] * len(get_players()))
+            event = Event("gun_bullets", {"bullets": bullets})
+            event.dispatch(var, user, rolename)
+            GUNNERS[user] = event.data["bullets"]
+
     return GUNNERS
+
+@event_listener("gun_chances")
+def on_gun_chances(evt, var, user, role):
+    if role in var.GUN_CHANCES:
+        hit, miss, headshot = var.GUN_CHANCES[role]
+        evt.data["hit"] += hit
+        evt.data["miss"] += miss
+        evt.data["headshot"] += headshot

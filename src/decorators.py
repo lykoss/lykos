@@ -405,9 +405,9 @@ class event_listener:
                 func = func.func
             if self.listener_id is None:
                 self.listener_id = func.__qualname__
-            # always prefix with module for disambiguation if possible
-            if func.__module__ is not None:
-                self.listener_id = func.__module__ + "." + self.listener_id
+                # always prefix with module for disambiguation if possible
+                if func.__module__ is not None:
+                    self.listener_id = func.__module__ + "." + self.listener_id
             self.func = handle_error(func)
             self.listener = events.EventListener(self.func, priority=self.priority, listener_id=self.listener_id)
             self.listener.install(self.event)

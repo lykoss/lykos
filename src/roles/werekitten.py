@@ -11,12 +11,12 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
-from src.roles.helper.wolves import register_killer
+from src.roles.helper.wolves import register_wolf
 
-register_killer("werekitten")
+register_wolf("werekitten")
 
 @event_listener("gun_shoot")
-def on_gun_shoot(evt, var, user, target):
+def on_gun_shoot(evt, var, user, target, role):
     if get_main_role(target) == "werekitten":
         evt.data["hit"] = False
 
