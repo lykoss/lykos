@@ -97,6 +97,8 @@ def on_team_win(evt, var, player, main_role, all_roles, winner):
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if player in ENTRANCED:
         evt.data["special"].append("entranced")
+        if winner == "succubi":
+            evt.data["individual_win"] = True
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
