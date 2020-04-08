@@ -41,7 +41,7 @@ import urllib.request
 
 from collections import defaultdict, deque, Counter
 from datetime import datetime, timedelta
-from typing import Set, Optional, Callable
+from typing import Set, Optional, Callable, Tuple
 
 from oyoyo.parse import parse_nick
 
@@ -121,7 +121,7 @@ var.GAME_START_TIME = datetime.now()  # for idle checker only
 var.CAN_START_TIME = 0
 var.STARTED_DAY_PLAYERS = 0
 
-var.DISCONNECTED = {}  # players who are still alive but disconnected
+var.DISCONNECTED = UserDict() # type: UserDict[User, Tuple[datetime, str]]
 
 var.RESTARTING = False
 
@@ -1782,7 +1782,7 @@ def account_change(evt, user, old_account): # FIXME: This uses var
         return # We only care about game-related changes in this function
 
     pl = get_participants()
-    if user in pl and user.account not in var.JOINED_THIS_GAME_ACCS:
+    if user in pl and user.account not in var.JOINED_THIS_GAME_ACCS and user not in var.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.PHASE != "join":
             channels.Main.mode(["-v", user.nick])
