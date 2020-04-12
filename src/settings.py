@@ -76,6 +76,9 @@ PART_PENALTY = 1
 PART_EXPIRY = "30d"
 ACC_PENALTY = 1
 ACC_EXPIRY = "30d"
+# Give penalties if idling night. Uses IDLE_PENALTY for the number of warning points.
+# All other penalties take precidence over night penalties. Only one penalty will be given per game.
+NIGHT_IDLE_PENALTIES = True
 
 # If True, disallows adding stasis via !fstasis (requires warnings instead)
 RESTRICT_FSTASIS = True

@@ -1663,6 +1663,7 @@ def reaper(cli, gameid):
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["quit_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
+                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["quit_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1673,6 +1674,7 @@ def reaper(cli, gameid):
                     else: # FIXME: Merge those two
                         channels.Main.send(messages["part_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.PART_PENALTY:
+                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.PART_PENALTY, users.Bot, messages["part_warning"], expires=var.PART_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1683,6 +1685,7 @@ def reaper(cli, gameid):
                     else:
                         channels.Main.send(messages["account_death_no_reveal"].format(dcedplayer))
                     if var.PHASE != "join" and var.ACC_PENALTY:
+                        var.NIGHT_IDLED.discard(dcedplayer) # don't double-dip if they idled out night as well
                         add_warning(dcedplayer, var.ACC_PENALTY, users.Bot, messages["acc_warning"], expires=var.ACC_EXPIRY)
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(dcedplayer)
@@ -1926,6 +1929,7 @@ def leave_game(var, wrapper, message):
     if var.PHASE != "join":
         var.DCED_LOSERS.add(wrapper.source)
         if var.LEAVE_PENALTY:
+            var.NIGHT_IDLED.discard(wrapper.source) # don't double-dip if they idled out night as well
             add_warning(wrapper.source, var.LEAVE_PENALTY, users.Bot, messages["leave_warning"], expires=var.LEAVE_EXPIRY)
 
     add_dying(var, wrapper.source, "bot", "quit", death_triggers=False)
@@ -2007,7 +2011,7 @@ def night_timeout(gameid):
     event.dispatch(var)
 
     # if idle warnings are disabled, head straight to day
-    if not var.IDLE_PENALTY:
+    if not var.IDLE_PENALTY or not var.NIGHT_IDLE_PENALTIES:
         event.data["transition_day"](gameid)
         return
 
