@@ -99,7 +99,7 @@ var.ORIGINAL_MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
 var.FINAL_ROLES = UserDict() # type: UserDict[users.User, str]
 var.ALL_PLAYERS = UserList()
 var.FORCE_ROLES = DefaultUserDict(UserSet)
-var.JOINED_THIS_GAME_ACCS = set() # type: Set[str]
+var.ORIGINAL_ACCS = UserDict() # type: UserDict[users.User, str]
 
 var.IDLE_WARNED = UserSet()
 var.IDLE_WARNED_PM = UserSet()
@@ -277,7 +277,7 @@ def reset():
     var.ALL_PLAYERS.clear()
     var.RESTART_TRIES = 0
     var.DEAD.clear()
-    var.JOINED_THIS_GAME_ACCS.clear()
+    var.ORIGINAL_ACCS.clear()
     var.PINGED_ALREADY = set()
     var.PINGED_ALREADY_ACCS = set()
     var.FGAMED = False
@@ -811,7 +811,7 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
         var.PINGED_ALREADY_ACCS = set()
         var.PINGED_ALREADY = set()
         if wrapper.source.account:
-            var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
+            var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
         var.CAN_START_TIME = datetime.now() + timedelta(seconds=var.MINIMUM_WAIT)
         wrapper.send(messages["new_game"].format(wrapper.source))
 
@@ -859,10 +859,11 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
             return True
         var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
-        if not wrapper.source.is_fake and wrapper.source.account not in var.JOINED_THIS_GAME_ACCS:
-            # make sure this only happens once
+        # ORIGINAL_ACCS is only cleared on reset(), so can be used to determine if a player has previously joined
+        # The logic in this if statement should only run once per account
+        if not wrapper.source.is_fake and wrapper.source.account not in var.ORIGINAL_ACCS.values():
             if wrapper.source.account:
-                var.JOINED_THIS_GAME_ACCS.add(wrapper.source.account)
+                var.ORIGINAL_ACCS[wrapper.source] = wrapper.source.account
             now = datetime.now()
 
             # add var.EXTRA_WAIT_JOIN to wait time
@@ -1326,6 +1327,9 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
                      "individual_win": False,
                      "dced": player in var.DCED_LOSERS
                      }
+            # player.account could be None if they disconnected during the game. Use original tracked account name
+            if entry["account"] is None and player in var.ORIGINAL_ACCS:
+                entry["account"] = var.ORIGINAL_ACCS[player]
 
             survived = player in get_players()
             if not entry["dced"] and winner != "":
@@ -1747,7 +1751,7 @@ def return_to_village(var, target, *, show_message, new_user=None):
     # a different account or /parting the channel. If they were dced for real and
     # rejoined IRC, the join handler already took care of marking them no longer dced.
     with var.GRAVEYARD_LOCK:
-        if target.account not in var.JOINED_THIS_GAME_ACCS:
+        if target.account not in var.ORIGINAL_ACCS.values():
             return
 
         if target in var.DISCONNECTED:
@@ -1785,11 +1789,11 @@ def account_change(evt, user, old_account): # FIXME: This uses var
         return # We only care about game-related changes in this function
 
     pl = get_participants()
-    if user in pl and user.account not in var.JOINED_THIS_GAME_ACCS and user not in var.DISCONNECTED:
+    if user in pl and user.account not in var.ORIGINAL_ACCS.values() and user not in var.DISCONNECTED:
         leave(var, "account", user) # this also notifies the user to change their account back
         if var.PHASE != "join":
             channels.Main.mode(["-v", user.nick])
-    elif (user not in pl or user in var.DISCONNECTED) and user.account in var.JOINED_THIS_GAME_ACCS:
+    elif (user not in pl or user in var.DISCONNECTED) and user.account in var.ORIGINAL_ACCS.values():
         # if they were gone, maybe mark them as back
         return_to_village(var, user, show_message=True)
 
@@ -1799,7 +1803,7 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
         return
 
     pl = get_participants()
-    if user.account in var.JOINED_THIS_GAME_ACCS and user not in pl:
+    if user.account in var.ORIGINAL_ACCS.values() and user not in pl:
         for other in pl:
             if users.equals(user.account, other.account):
                 if re.search(var.GUEST_NICK_PATTERN, other.nick):
