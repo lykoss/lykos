@@ -600,7 +600,7 @@ def end_banlist(cli, server, bot_nick, chan, message):
     handle_endlistmode(cli, chan, "b")
 
 @hook("quietlistend")
-def end_quietlist(cli, server, bot_nick, chan, mode, message):
+def end_quietlist(cli, server, bot_nick, chan, mode, message=None):
     """Handle the end of the quiet listing.
 
     Ordering and meaning of arguments for the end of quiet list:
@@ -613,6 +613,11 @@ def end_quietlist(cli, server, bot_nick, chan, mode, message):
     5 - A string containing some information; traditionally "End of Channel Quiet List."
 
     """
+
+    if not message:
+        # charybdis includes a 'q' token before "End of Channel Quiet List", but
+        # some IRCds (such as ircd-yeti) don't. This is a workaround to make it work.
+        mode = "q"
 
     handle_endlistmode(cli, chan, mode)
 
