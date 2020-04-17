@@ -249,8 +249,14 @@ def setup_variables(rolename, *, knows_totem):
 
     @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
-        if var.NIGHT_COUNT > 1 and get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
+        if var.NIGHT_COUNT == 0 or not get_all_players((rolename,)):
+            return
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["luck"][rolename] > 0:
+            status.add_misdirection_scope(var, All, as_target=True)
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["misdirection"][rolename] > 0:
+            status.add_misdirection_scope(var, All, as_actor=True)
 
     if knows_totem:
         @event_listener("myrole", listener_id="shamans.<{}>.on_myrole".format(rolename))

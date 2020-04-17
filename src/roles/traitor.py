@@ -8,9 +8,10 @@ from src import debuglog, errlog, plog, users, channels
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
-from src.status import try_misdirection, try_exchange
+from src.status import in_misdirection_scope
 from src.events import Event
-from src.roles.helper.wolves import register_wolf
+from src.roles.helper.wolves import register_wolf, get_wolfchat_roles
+from src.cats import All, Wolf
 
 register_wolf("traitor")
 
@@ -39,17 +40,25 @@ def on_update_stats1(evt, var, player, mainrole, revealrole, allroles):
 def on_update_stats3(evt, var, player, mainrole, revealrole, allroles):
     # if this is a night death and we know for sure that wolves (and only wolves)
     # killed, then that kill cannot be traitor as long as they're in wolfchat.
-    # check if the reason == "night_death", otherwise it's probably a chained death which
-    # can be traitor even if only wolves killed, so we short-circuit there as well
-    # TODO: luck/misdirection totem can leak info due to our short-circuit below this comment.
-    # If traitor dies due to one of these totems, both traitor count and villager count is reduced by
-    # 1. If traitor does not die, and no other roles can kill (no death totems), then traitor count is unchanged
-    # and villager count is reduced by 1. We should make it so that both counts are reduced when
-    # luck/misdirection are potentially in play.
-    # FIXME: this doesn't check RESTRICT_WOLFCHAT to see if traitor was removed from wolfchat. If
-    # they've been removed, they can be killed like normal so all this logic is meaningless.
-    if "traitor" not in evt.data["possible"] or evt.params.reason != "night_death" or mainrole == "traitor":
+    wolfchat = get_wolfchat_roles(var)
+    if evt.params.reason != "night_death":
+        # a chained death, someone dying during day, or someone idling out
+        # either way, traitor can die here
         return
+    if "traitor" not in wolfchat:
+        # wolves can kill traitor normally in this configuration
+        return
+    if "traitor" not in evt.data["possible"]:
+        # not under consideration
+        return
+    if mainrole == "traitor":
+        # definitely dying, so we shouldn't remove them from consideration
+        # this may lead to info leaks, but info leaks are better than !stats just entirely breaking
+        return
+    if in_misdirection_scope(var, Wolf, as_actor=True) or in_misdirection_scope(var, All - wolfchat, as_target=True):
+        # luck/misdirection totems are in play, a wolf kill could have bounced to traitor anyway
+        return
+
     if var.PHASE == "day" and var.GAMEPHASE == "night":
         mevt = Event("get_role_metadata", {})
         mevt.dispatch(var, "night_kills")
@@ -73,7 +82,8 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         for traitor in list(rolemap["traitor"]):
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
-            rolemap["cursed villager"].discard(traitor)
+            if "cursed villager" in rolemap:
+                rolemap["cursed villager"].discard(traitor)
             mainroles[traitor] = "wolf"
             did_something = True
             if var.PHASE in var.GAME_PHASES:

@@ -11,7 +11,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages, get_role_name
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
 from src import debuglog, users
 
 KILLS = UserDict() # type: UserDict[users.User, UserList]
@@ -278,7 +278,7 @@ def wolf_can_kill(var, wolf):
 def get_wolfchat_roles(var):
     wolves = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             wolves = Wolf
         else:
             wolves = Wolf | {"traitor"}
@@ -287,7 +287,7 @@ def get_wolfchat_roles(var):
 def get_talking_roles(var):
     roles = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT or var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             roles = Wolf
         else:
             roles = Wolf | {"traitor"}
@@ -346,7 +346,7 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
 
     badguys = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             badguys = Wolf
         else:
             badguys = Wolf | {"traitor"}
@@ -357,7 +357,10 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
 
     if role in badguys | {"warlock"}:
         entries = []
-        cursed = get_all_players(("cursed villager",))
+        if "cursed villager" in All:
+            cursed = get_all_players(("cursed villager",))
+        else:
+            cursed = set()
         if role in badguys:
             for p in pl:
                 prole = get_main_role(p)
