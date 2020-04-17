@@ -139,11 +139,6 @@ DISABLE_DEBUG_MODE_REAPER = True
 DISABLE_DEBUG_MODE_STASIS = True
 DEBUG_MODE_NOTHROW_MESSAGES = True
 
-# How likely a default game is replaced by a villagergame game, 1 = 100% 0 = 0%
-# villagergame has no wolves, the bot kills someone each night
-# village wins if and only if they can unanimously !vote the bot during the day
-VILLAGERGAME_CHANCE = 0
-
 # number of bullets a gunner role gets when the role is assigned or swapped in
 SHOTS_MULTIPLIER = {
     "gunner": 0.12,

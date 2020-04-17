@@ -303,7 +303,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         wvs = sum(addroles[r] for r in Wolfchat)
         if len(villagers) < (sum(addroles.values()) - sum(addroles[r] for r in var.CURRENT_GAMEMODE.SECONDARY_ROLES)):
             wrapper.send(messages["too_few_players_custom"])
-        elif not wvs and var.CURRENT_GAMEMODE.name != "villagergame":
+        elif not wvs:
             wrapper.send(messages["need_one_wolf"])
         elif wvs > (len(villagers) / 2):
             wrapper.send(messages["too_many_wolves"])
@@ -428,8 +428,6 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
-        if gamemode == "villagergame":
-            gamemode = "default"
 
         # Alert the players to option changes they may not be aware of
         # All keys begin with gso_* (game start options)

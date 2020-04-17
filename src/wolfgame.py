@@ -744,7 +744,6 @@ def join_player(var,
                 who: Optional[User] = None,
                 forced: bool = False,
                 *,
-                sanity: bool = True,
                 callback: Optional[Callable] = None) -> None:
     """Join a player to the game.
 
@@ -752,8 +751,6 @@ def join_player(var,
     :param wrapper: Player being joined
     :param who: User who executed the join or fjoin command
     :param forced: True if this was a forced join
-    :param sanity: False if this is a non-standard join (i.e. mid-game join in maelstrom).
-        If False, the caller is responsible for re-implementing much of the join logic to keep game state consistent.
     :param callback: A callback that is fired upon a successful join.
     """
     if who is None:
@@ -769,10 +766,10 @@ def join_player(var,
             wrapper.source.send(messages["not_logged_in"], notice=True)
         return
 
-    if _join_player(var, wrapper, who, forced, sanity=sanity) and callback:
+    if _join_player(var, wrapper, who, forced) and callback:
         callback() # FIXME: join_player should be async and return bool; caller can await it for result
 
-def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
+def _join_player(var, wrapper, who=None, forced=False):
     pl = get_players()
 
     stasis = wrapper.source.stasis_count()
@@ -828,14 +825,11 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
     elif wrapper.source in pl:
         key = "you_already_playing" if who is wrapper.source else "other_already_playing"
         who.send(messages[key], notice=True)
-        # if we're not doing insane stuff, return True so that one can use !join to vote for a game mode
-        # even if they are already joined. If we ARE doing insane stuff, return False to indicate that
-        # the player was not successfully joined by this call.
-        return sanity
+        return True # returning True lets them use !j mode to vote for a gamemode while already joined
     elif len(pl) >= var.MAX_PLAYERS:
         who.send(messages["too_many_players"], notice=True)
         return False
-    elif sanity and var.PHASE != "join":
+    elif var.PHASE != "join":
         who.send(messages["game_already_running"], notice=True)
         return False
     else:
@@ -854,12 +848,7 @@ def _join_player(var, wrapper, who=None, forced=False, *, sanity=True):
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
             wrapper.send(messages["player_joined"].format(wrapper.source, len(pl) + 1))
-        if not sanity:
-            # Abandon Hope All Ye Who Enter Here
-            leave_deadchat(var, wrapper.source)
-            var.SPECTATING_DEADCHAT.discard(wrapper.source)
-            var.SPECTATING_WOLFCHAT.discard(wrapper.source)
-            return True
+
         var.ROLES["person"].add(wrapper.source)
         var.MAIN_ROLES[wrapper.source] = "person"
         # ORIGINAL_ACCS is only cleared on reset(), so can be used to determine if a player has previously joined
@@ -2498,9 +2487,6 @@ def cgamemode(arg):
         from src.gamemodes import InvalidModeException
         md = modeargs.pop(0)
         try:
-            vilgame = var.GAME_MODES.get("villagergame")
-            if vilgame is not None and md == "default" and vilgame[1] <= len(var.ALL_PLAYERS) <= vilgame[2] and random.random() < var.VILLAGERGAME_CHANCE:
-                md = "villagergame"
             gm = var.GAME_MODES[md][0](*modeargs)
             gm.startup()
             for attr in dir(gm):
@@ -2925,8 +2911,6 @@ def list_roles(var, wrapper, message):
 
     pieces = re.split(" +", message.strip())
     gamemode = var.CURRENT_GAMEMODE
-    if gamemode.name == "villagergame":
-        gamemode = var.GAME_MODES["default"][0]()
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
         wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
@@ -2941,7 +2925,7 @@ def list_roles(var, wrapper, message):
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
-        valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles", "villagergame"}
+        valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
         mode = pieces.pop(0)
         if mode not in valid:
             matches = complete_match(mode, valid)
@@ -3270,7 +3254,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
         return
 
     if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys() - {"roles", "villagergame"} - var.DISABLED_GAMEMODES)
+        matches = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES)
         if not matches:
             if doreply:
                 wrapper.pm(messages["invalid_mode"].format(gamemode))
@@ -3282,7 +3266,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
         if len(matches) == 1:
             gamemode = matches[0]
 
-    if gamemode != "roles" and gamemode != "villagergame" and gamemode not in var.DISABLED_GAMEMODES:
+    if gamemode != "roles" and gamemode not in var.DISABLED_GAMEMODES:
         if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
             wrapper.pm(messages["already_voted_game"].format(gamemode))
         else:
@@ -3295,7 +3279,7 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
 def _get_gamemodes(var):
     gamemodes = []
     for gm, (cls, min, max, chance) in var.GAME_MODES.items():
-        if gm in {"roles", "villagergame"} or gm in var.DISABLED_GAMEMODES:
+        if gm == "roles" or gm in var.DISABLED_GAMEMODES:
             continue
         if min <= len(get_players()) <= max:
             gm = messages["bold"].format(gm)

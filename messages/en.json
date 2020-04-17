@@ -108,6 +108,7 @@
         "roles": "roles",
         "sleepy": "sleepy",
         "valentines": "valentines",
+        "**": "The following items are old modes that are no longer in use, but need to be here for legacy reasons",
         "villagergame": "villagergame"
     },
     "_role_aliases": {
@@ -1250,10 +1251,6 @@
     "fspectate_on": "You are now spectating {0}.",
     "fspectate_off": "You are no longer spectating {0}.",
     "fspectate_notice": "{0} is now spectating {1}.",
-    "maelstrom_dead": "You are dead and cannot join again.",
-    "villagergame_lose": "Game over! The villagers realize too late that there are actually no wolves, and never manage to rebuild to what they had before this fiasco. Nobody wins. (Hint: next time if you suspect there are no wolves, have everyone {=vote!command:!} {0}.)",
-    "villagergame_win": "Game over! The villagers come to their senses and realize there are actually no wolves, the previous deaths having been freak accidents. Everybody wins.",
-    "villagergame_nope": "Game over! The villagers decided incorrectly that there are actually no wolves, allowing the wolves to slaughter the remainder of them in their sleep with impunity.",
     "stop_bot_ingame_safeguard": "Warning: A game is currently running. If you want to {what} the bot anyway, use \"{cmd:!} -force\".",
     "invalid_restart_mode": "{0:bold} is not a valid mode. Valid modes are: {1:join}",
     "whoami_loggedin": "You are logged into the account {0:bold}.",
