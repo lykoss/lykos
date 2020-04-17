@@ -13,11 +13,11 @@ from src.events import Event
 from src.status import try_misdirection, try_exchange, is_silent
 
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
-from src.roles.helper.wolves import register_killer, send_wolfchat_message
+from src.roles.helper.wolves import register_wolf, send_wolfchat_message
 
 TOTEMS, LASTGIVEN, SHAMANS, RETARGET = setup_variables("wolf shaman", knows_totem=True)
 
-register_killer("wolf shaman")
+register_wolf("wolf shaman")
 
 @command("totem", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("wolf shaman",))
 def wolf_shaman_totem(var, wrapper, message):

@@ -191,7 +191,7 @@ def on_transition_night_end(evt, var):
         succubus.send(messages["succubus_notify"], messages["players_list"].format(succ), sep="\n")
 
 @event_listener("gun_shoot")
-def on_gun_shoot(evt, var, user, target):
+def on_gun_shoot(evt, var, user, target, role):
     if target in get_all_players(("succubus",)):
         evt.data["kill"] = False
 

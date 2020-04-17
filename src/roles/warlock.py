@@ -11,8 +11,9 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist, register_wolf
 
-from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist
+register_wolf("warlock")
 
 CURSED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet() # type: UserSet[users.Set]

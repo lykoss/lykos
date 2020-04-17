@@ -9,9 +9,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lycanthropy_scope
 from src.cats import Wolf, All
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, get_wolfchat_roles, register_killer
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
-register_killer("alpha wolf")
+register_wolf("alpha wolf")
 
 ENABLED = False
 ALPHAS = UserSet() # type: UserSet[users.User]

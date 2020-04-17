@@ -23,14 +23,18 @@ def on_assassin_target(evt, var, assassin, players):
         evt.data["target"] = random.choice(players)
         assassin.send(messages["drunken_assassin_notification"].format(evt.data["target"]))
 
-@event_listener("gun_shoot")
+@event_listener("gun_chances")
 def on_gun_chances(evt, var, user, role):
-    if role != "sharpshooter" and user in get_all_players(("village drunk",)):
+    if user in get_all_players(("village drunk",)):
         hit, miss, headshot = var.DRUNK_GUN_CHANCES
-        evt.data["hit"] = hit
-        evt.data["miss"] = miss
-        evt.data["headshot"] = headshot
-        evt.stop_processing = True
+        evt.data["hit"] += hit
+        evt.data["miss"] += miss
+        evt.data["headshot"] += headshot
+
+@event_listener("gun_bullets")
+def on_gun_bullets(evt, var, user, role):
+    if user in get_all_players(("village drunk",)):
+        evt.data["bullets"] *= var.DRUNK_SHOTS_MULTIPLIER
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

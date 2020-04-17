@@ -13,9 +13,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Wolf
 
-from src.roles.helper.wolves import register_killer
+from src.roles.helper.wolves import register_wolf
 
-register_killer("fallen angel")
+register_wolf("fallen angel")
 
 @event_listener("try_protection")
 def on_try_protection(evt, var, target, attacker, attacker_role, reason):

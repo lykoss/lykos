@@ -9,9 +9,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import All
 
-from src.roles.helper.wolves import is_known_wolf_ally, register_killer, send_wolfchat_message
+from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
 
-register_killer("doomsayer")
+register_wolf("doomsayer")
 
 SEEN = UserSet()
 KILLS = UserDict()

@@ -11,8 +11,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Wolf, Killer
 
-from src.roles.helper.wolves import wolf_can_kill
+from src.roles.helper.wolves import wolf_can_kill, register_wolf
 
+register_wolf("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")

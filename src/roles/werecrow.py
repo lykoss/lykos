@@ -9,9 +9,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Nocturnal
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_killer
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
-register_killer("werecrow")
+register_wolf("werecrow")
 
 OBSERVED = UserDict() # type: UserDict[users.User, users.User]
 

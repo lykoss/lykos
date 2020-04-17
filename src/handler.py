@@ -132,19 +132,32 @@ def parse_and_dispatch(var,
         common_roles = set(roles)  # roles shared by every eligible role command
         # A user can be a participant but not have a role, for example, dead vengeful ghost
         has_roles = len(roles) != 0
-        if role_prefix is not None:
-            roles &= {role_prefix}  # only fire off role commands for the user-specified role
     else:
         roles = set()
         common_roles = set()
         has_roles = False
 
-    for fn in decorators.COMMANDS.get(key, []):
-        if not fn.roles:
-            cmds.append(fn)
-        elif roles.intersection(fn.roles):
-            cmds.append(fn)
-            common_roles.intersection_update(fn.roles)
+    for i in range(2):
+        cmds.clear()
+        # if we execute this loop twice, it means we had an ambiguity the first time around
+        # only fire off role commands for the user-specified role in that event, if one was provided
+        # doing it this way ensures we only look at the role prefix if it's actually required,
+        # meaning that prefixing a role for public commands doesn't "prove" the user has that role
+        # in the vast majority of cases
+        if i == 1 and role_prefix is not None:
+            roles &= {role_prefix}
+
+        for fn in decorators.COMMANDS.get(key, []):
+            if not fn.roles:
+                cmds.append(fn)
+            elif roles.intersection(fn.roles):
+                cmds.append(fn)
+                common_roles.intersection_update(fn.roles)
+
+        # if this isn't a role command or the command is unambiguous, continue logic instead of
+        # making use of role_prefix
+        if not has_roles or common_roles:
+            break
 
     if has_roles and not common_roles:
         # getting here means that at least one of the role_cmds is disjoint
