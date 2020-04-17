@@ -8,8 +8,11 @@ class MadMode(GameMode):
     def __init__(self, arg=""):
         super().__init__(arg)
         # gunner and sharpshooter always get 1 bullet
-        self.SHOTS_MULTIPLIER = 0.0001
-        self.SHARPSHOOTER_MULTIPLIER = 0.0001
+        self.SHOTS_MULTIPLIER = {
+            "gunner": 0.0001,
+            "sharpshooter": 0.0001,
+            "wolf gunner": 0.0001
+        }
         self.ROLE_GUIDE = {
             7:  ["seer", "mad scientist", "wolf", "cultist"],
             8:  ["traitor", "-cultist", "gunner/sharpshooter"],
