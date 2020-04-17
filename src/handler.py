@@ -139,6 +139,7 @@ def parse_and_dispatch(var,
 
     for i in range(2):
         cmds.clear()
+        common_roles = set(roles)
         # if we execute this loop twice, it means we had an ambiguity the first time around
         # only fire off role commands for the user-specified role in that event, if one was provided
         # doing it this way ensures we only look at the role prefix if it's actually required,
