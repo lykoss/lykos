@@ -142,6 +142,7 @@ if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER:
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS:
     var.LEAVE_PENALTY = 0
     var.IDLE_PENALTY = 0
+    var.NIGHT_IDLE_PENALTY = 0
     var.PART_PENALTY = 0
     var.ACC_PENALTY = 0
 
@@ -1393,7 +1394,7 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
         for player in var.NIGHT_IDLED:
             if player.is_fake:
                 continue
-            add_warning(player, var.IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.IDLE_EXPIRY)
+            add_warning(player, var.NIGHT_IDLE_PENALTY, users.Bot, messages["night_idle_warning"], expires=var.NIGHT_IDLE_EXPIRY)
 
     reset_modes_timers(var)
     reset()
@@ -2014,8 +2015,8 @@ def night_timeout(gameid):
     event = Event("chk_nightdone", {"acted": [], "nightroles": [], "transition_day": transition_day})
     event.dispatch(var)
 
-    # if idle warnings are disabled, head straight to day
-    if not var.IDLE_PENALTY or not var.NIGHT_IDLE_PENALTIES:
+    # if night idle warnings are disabled, head straight to day
+    if not var.NIGHT_IDLE_PENALTY:
         event.data["transition_day"](gameid)
         return
 

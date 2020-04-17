@@ -37,7 +37,11 @@ for setting, value in botconfig.__dict__.items():
         verbose = value
     if setting == "NORMAL_MODE":
         normal = value
-    if not setting in var.__dict__.keys():
+    if setting == "NIGHT_IDLE_PENALTIES":
+        # backwards compat
+        setting = "NIGHT_IDLE_PENALTY"
+        value = var.IDLE_PENALTY if value else 0
+    if setting not in var.__dict__.keys():
         continue # Don't carry over config-only settings
 
     # If we got that far, it's valid

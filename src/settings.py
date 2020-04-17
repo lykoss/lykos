@@ -73,9 +73,10 @@ PART_PENALTY = 1
 PART_EXPIRY = "30d"
 ACC_PENALTY = 1
 ACC_EXPIRY = "30d"
-# Give penalties if idling night. Uses IDLE_PENALTY for the number of warning points.
-# All other penalties take precidence over night penalties. Only one penalty will be given per game.
-NIGHT_IDLE_PENALTIES = True
+# Give penalties if idling night.
+# All other penalties take precedence over night penalties; only one penalty will be given per game.
+NIGHT_IDLE_PENALTY = 1
+NIGHT_IDLE_EXPIRY = "14d"
 
 # If True, disallows adding stasis via !fstasis (requires warnings instead)
 RESTRICT_FSTASIS = True
@@ -89,9 +90,9 @@ RESTRICT_FSTASIS = True
 # warning points fall below that threshold.
 AUTO_SANCTION = (
         #min max sanctions
-        (4, 6, {"stasis": 1}),
-        (7, 11, {"scalestasis": (0, 1, -4)}),
-        (12, 12, {"tempban": 6})
+        (6, 10, {"stasis": 1}),
+        (11, 15, {"scalestasis": (0, 1, -8)}),
+        (16, 16, {"tempban": 8})
         )
 
 # Send a message to deadchat or wolfchat when a user spectates them
