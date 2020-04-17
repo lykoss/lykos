@@ -727,7 +727,7 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
     ch = channels.add(chan, cli)
     ch.state = channels._States.Joined
 
-    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True)
+    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True)
     if user is None:
         user = users.add(cli, nick=rawnick, account=account)
     ch.users.add(user)
@@ -822,6 +822,7 @@ def on_quit(cli, rawnick, reason):
     """
 
     user = users.get(rawnick, allow_bot=True)
+    user.disconnected = True
     Event("server_quit", {}).dispatch(user, reason)
 
     for chan in set(user.channels):

@@ -80,6 +80,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for traitor in list(rolemap["traitor"]):
+            var.NIGHT_IDLE_EXEMPT.add(traitor) # if they turn during night, don't give them idle warnings
             rolemap["wolf"].add(traitor)
             rolemap["traitor"].remove(traitor)
             if "cursed villager" in rolemap:

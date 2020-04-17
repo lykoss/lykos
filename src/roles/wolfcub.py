@@ -51,6 +51,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
+            var.NIGHT_IDLE_EXEMPT.add(wc) # if they grow up during night, don't give them idle warnings
             rolemap["wolf"].add(wc)
             rolemap["wolf cub"].remove(wc)
             if mainroles[wc] == "wolf cub":

@@ -104,6 +104,7 @@ var.ORIGINAL_ACCS = UserDict() # type: UserDict[users.User, str]
 var.IDLE_WARNED = UserSet()
 var.IDLE_WARNED_PM = UserSet()
 var.NIGHT_IDLED = UserSet()
+var.NIGHT_IDLE_EXEMPT = UserSet()
 
 var.DEAD = UserSet()
 
@@ -296,6 +297,7 @@ def reset():
     var.IDLE_WARNED.clear()
     var.IDLE_WARNED_PM.clear()
     var.NIGHT_IDLED.clear()
+    var.NIGHT_IDLE_EXEMPT.clear()
 
     var.ROLES.clear()
     var.ORIGINAL_ROLES.clear()
@@ -1643,7 +1645,6 @@ def reaper(cli, gameid):
                         channels.Main.send(messages["idle_death"].format(user, get_reveal_role(user)))
                     else:
                         channels.Main.send(messages["idle_death_no_reveal"].format(user))
-                    user.disconnected = True
                     if var.PHASE in var.GAME_PHASES:
                         var.DCED_LOSERS.add(user)
                     if var.IDLE_PENALTY:
@@ -2038,6 +2039,11 @@ def night_timeout(gameid):
 
     event.data["transition_day"](gameid)
 
+@event_listener("night_idled")
+def on_night_idled(evt, var, player):
+    if player in var.NIGHT_IDLE_EXEMPT:
+        evt.prevent_default = True
+
 @handle_error
 def transition_day(gameid=0):
     if gameid:
@@ -2419,6 +2425,7 @@ def transition_night():
 
     var.NIGHT_START_TIME = datetime.now()
     var.NIGHT_COUNT += 1
+    var.NIGHT_IDLE_EXEMPT.clear()
 
     event_begin = Event("transition_night_begin", {})
     event_begin.dispatch(var)
