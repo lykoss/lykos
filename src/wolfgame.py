@@ -3347,7 +3347,7 @@ def _call_command(wrapper, command, no_out=False):
 
         wrapper.pm(messages["process_exited"].format(command, cause, ret))
 
-    return (ret, out)
+    return ret, out
 
 def _git_pull(wrapper):
     (ret, _) = _call_command(wrapper, "git fetch")
@@ -3363,9 +3363,8 @@ def _git_pull(wrapper):
         wrapper.pm(messages["already_up_to_date"])
         return False
 
-    (ret, _) = _call_command(wrapper, "git rebase --stat --preserve-merges")
-    return (ret == 0)
-
+    (ret, _) = _call_command(wrapper, "git pull --stat --ff-only")
+    return ret == 0
 
 @command("fpull", flag="D", pm=True)
 def fpull(var, wrapper, message):
