@@ -126,7 +126,7 @@ var.DISCONNECTED = UserDict() # type: UserDict[User, Tuple[datetime, str]]
 
 var.RESTARTING = False
 
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
+if var.DISABLE_TIMERS or (botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS):
     var.NIGHT_TIME_LIMIT = 0 # 120
     var.NIGHT_TIME_WARN = 0 # 90
     var.DAY_TIME_LIMIT = 0 # 720
@@ -134,20 +134,20 @@ if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.SHORT_DAY_LIMIT = 0 # 520
     var.SHORT_DAY_WARN = 0 # 400
 
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER:
+if var.DISABLE_REAPER or (botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER):
     var.KILL_IDLE_TIME = 0 # 300
     var.WARN_IDLE_TIME = 0 # 180
     var.PM_WARN_IDLE_TIME = 0 # 240
     var.JOIN_TIME_LIMIT = 0 # 3600
 
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS:
+if var.DISABLE_STASIS or (botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS):
     var.LEAVE_PENALTY = 0
     var.IDLE_PENALTY = 0
     var.NIGHT_IDLE_PENALTY = 0
     var.PART_PENALTY = 0
     var.ACC_PENALTY = 0
 
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIME_LORD:
+if var.DISABLE_TIME_LORD or (botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIME_LORD):
     var.TIME_LORD_DAY_LIMIT = 0 # 60
     var.TIME_LORD_DAY_WARN = 0 # 45
     var.TIME_LORD_NIGHT_LIMIT = 0 # 30

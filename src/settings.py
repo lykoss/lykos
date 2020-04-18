@@ -132,6 +132,12 @@ STATS_TYPE = "default" # default/accurate/team/disabled - what role information 
 START_VOTES_SCALE = 0.3
 START_VOTES_MAX = 4
 
+# Custom settings to disable auto bot moderating
+DISABLE_TIMERS = False
+DISABLE_TIME_LORD = False
+DISABLE_REAPER = False
+DISABLE_STASIS = False
+
 # Debug mode settings, whether or not timers and stasis should apply during debug mode
 DISABLE_DEBUG_MODE_TIMERS = True
 DISABLE_DEBUG_MODE_TIME_LORD = False
