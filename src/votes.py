@@ -246,6 +246,9 @@ def chk_decision(var, *, timeout=False):
                         to_vote.extend(voting)
                 else:
                     abstaining = True
+            elif len(ABSTAINS | get_forced_abstains(var)) + len(VOTES) == avail:
+                # all people had voted and no conclusion can be made
+                abstaining = True
 
         if abstaining:
             for forced_abstainer in get_forced_abstains(var):
