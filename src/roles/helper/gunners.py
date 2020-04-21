@@ -50,7 +50,7 @@ def setup_variables(rolename):
 
         if shoot_evt.data["hit"]:
             wrapper.send(messages["shoot_success"].format(wrapper.source, target))
-            if realrole in Wolf:
+            if realrole in Wolf and shoot_evt.data["kill"]:
                 to_send = "gunner_victim_wolf_death_no_reveal"
                 if var.ROLE_REVEAL == "on":
                     to_send = "gunner_victim_wolf_death"
@@ -105,13 +105,17 @@ def setup_variables(rolename):
                         event = Event("gun_shoot", {"hit": True, "kill": True})
                         event.dispatch(var, victim, shot, rolename)
                         GUNNERS[victim] -= 1  # deduct the used bullet
-                        if event.data["hit"]: # bullets always kill wolves so no reason to check event.data["kill"]
+                        if event.data["hit"] and event.data["kill"]:
                             to_send = "gunner_killed_wolf_overnight_no_reveal"
                             if var.ROLE_REVEAL in ("on", "team"):
                                 to_send = "gunner_killed_wolf_overnight"
                             evt.data["message"][victim].append(messages[to_send].format(victim, shot, get_reveal_role(shot)))
                             evt.data["dead"].append(shot)
                             evt.data["killers"][shot].append(victim)
+                        elif event.data["hit"]:
+                            # shot hit, but didn't kill
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"])
+                            add_absent(var, shot, "wounded")
                         else:
                             # shot was fired and missed
                             evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"])

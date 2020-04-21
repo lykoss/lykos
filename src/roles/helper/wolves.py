@@ -255,6 +255,13 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     KILLS.clear()
 
+@event_listener("gun_shoot", priority=3)
+def on_gun_shoot(evt, var, user, target, role):
+    if evt.data["hit"] and get_main_role(target) in Wolf:
+        # wolves (as a main role) always die when shot
+        # don't auto-kill wolves if they're only secondary roles
+        evt.data["kill"] = True
+
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
