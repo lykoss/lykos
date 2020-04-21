@@ -10,14 +10,14 @@ class AlphaMode(GameMode):
         self.ROLE_GUIDE = {
             10: ["alpha wolf", "traitor", "oracle", "harlot", "doctor", "amnesiac", "lycan", "lycan(2)", "cursed villager"],
             12: ["werecrow", "guardian angel"],
-            13: ["matchmaker", "mayor"],
+            13: ["vigilante", "mayor"],
             14: ["wolf"],
-            16: ["crazed shaman", "lycan(3)", "cursed villager(2)"],
+            16: ["crazed shaman", "matchmaker", "cursed villager(2)"],
             17: ["augur"],
             18: ["wolf(2)"],
             19: ["assassin"],
-            20: ["clone", "lycan(4)"],
-            21: ["vigilante"],
+            20: ["clone", "lycan(3)"],
+            21: ["vengeful ghost"],
             22: ["wolf(3)", "cursed villager(3)"],
             24: ["wolf(4)", "guardian angel(2)"],
         }
