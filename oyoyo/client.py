@@ -97,6 +97,7 @@ class IRCClient:
         self.real_name = ""
         self.host = None
         self.port = None
+        self.bindhost = ""
         self.password = ""
         self.authname = ""
         self.connect_cb = None
@@ -176,7 +177,9 @@ class IRCClient:
             retries = 0
             while True:
                 try:
-                    self.socket = socket.create_connection(("{0}".format(self.host), self.port))
+                    self.socket = socket.create_connection(
+                        ("{0}".format(self.host), self.port),
+                        source_address=("{0}".format(self.bindhost), 0))
                     break
                 except socket.error as e:
                     retries += 1

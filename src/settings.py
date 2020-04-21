@@ -173,6 +173,9 @@ DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 
+# IP address to bind to before connecting, or empty string to use OS default
+BINDHOST = ""
+
 SSL_VERIFY = True
 SSL_CERTFP = ()
 # Tracking Mozilla's "intermediate" compatibility list -- https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29

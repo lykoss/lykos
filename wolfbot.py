@@ -62,6 +62,7 @@ def main():
                        "": handler.unhandled},
                      host=botconfig.HOST,
                      port=botconfig.PORT,
+                     bindhost=var.BINDHOST,
                      authname=botconfig.USERNAME,
                      password=botconfig.PASS,
                      nickname=botconfig.NICK,
