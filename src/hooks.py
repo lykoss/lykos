@@ -765,7 +765,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
-        ch._clear()
+        ch.clear()
     else:
         ch.remove_user(user)
 
@@ -791,7 +791,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
-        ch._clear()
+        ch.clear()
     else:
         ch.remove_user(user)
 
@@ -827,7 +827,7 @@ def on_quit(cli, rawnick, reason):
 
     for chan in set(user.channels):
         if user is users.Bot:
-            chan._clear()
+            chan.clear()
         else:
             chan.remove_user(user)
 

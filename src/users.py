@@ -186,9 +186,10 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
 def _cleanup_user(evt, var, user):
     """Removes a user from our global tracking set once it has left all channels."""
-    if var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
-        _ghosts.add(user)
-    else:
+    if var.PHASE not in var.GAME_PHASES and user not in var.ALL_PLAYERS:
+        # if user is in-game, keep them around so that other players can act on them
+        # and so that they can return to the village
+        _ghosts.discard(user)
         _users.discard(user)
 
 def _reset(evt, var):

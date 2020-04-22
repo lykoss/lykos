@@ -81,7 +81,7 @@ var.LAST_GSTATS = None
 var.LAST_PSTATS = None
 var.LAST_RSTATS = None
 var.LAST_TIME = None
-var.LAST_GOAT = {}
+var.LAST_GOAT = UserDict() # type: UserDict[users.User, datetime]
 
 var.ADMIN_PINGING = False
 var.DCED_LOSERS = UserSet()
@@ -288,6 +288,7 @@ def reset():
 
     reset_settings()
 
+    var.LAST_GOAT.clear()
     var.LAST_SAID_TIME.clear()
     var.DISCONNECTED.clear()
     var.DCED_LOSERS.clear()
@@ -1707,10 +1708,10 @@ def on_join(evt, chan, user): # FIXME: This uses var
 def goat(var, wrapper, message):
     """Use a goat to interact with anyone in the channel during the day."""
 
-    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source][0] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
+    if wrapper.source in var.LAST_GOAT and var.LAST_GOAT[wrapper.source] + timedelta(seconds=var.GOAT_RATE_LIMIT) > datetime.now():
         wrapper.pm(messages["command_ratelimited"])
         return
-    target = re.split(" +",message)[0]
+    target = re.split(" +", message)[0]
     if not target:
         wrapper.pm(messages["not_enough_parameters"])
         return
@@ -1719,7 +1720,7 @@ def goat(var, wrapper, message):
         wrapper.pm(messages["goat_target_not_in_channel"].format(target))
         return
 
-    var.LAST_GOAT[wrapper.source] = [datetime.now(), 1]
+    var.LAST_GOAT[wrapper.source] = datetime.now()
     wrapper.send(messages["goat_success"].format(wrapper.source, victim.get()))
 
 @command("fgoat", flag="j")
@@ -1802,10 +1803,6 @@ def nick_change(evt, user, old_nick): # FIXME: This function needs some way to h
                     # Automatically swap in this user for that old one.
                     replace(var, MessageDispatcher(user, users.Bot), "")
                 return
-
-@event_listener("cleanup_user")
-def cleanup_user(evt, var, user):
-    var.LAST_GOAT.pop(user, None)
 
 @event_listener("chan_part")
 def left_channel(evt, chan, user, reason): # FIXME: This uses var
@@ -3580,7 +3577,7 @@ def fgame_help(args=""):
 
 fgame.__doc__ = fgame_help
 
-# eval/exec are owner-only but also marked with "d" flag
+# eval/exec/freceive are owner-only but also marked with "d" flag
 # to disable them outside of debug mode
 @command("eval", owner_only=True, flag="d", pm=True)
 def pyeval(var, wrapper, message):
@@ -3598,12 +3595,26 @@ def py(var, wrapper, message):
     except Exception as e:
         wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
+@command("freceive", owner_only=True, flag="d", pm=True)
+def freceive(var, wrapper: MessageDispatcher, message: str):
+    from oyoyo.parse import parse_raw_irc_command
+    try:
+        line = message.encode("utf-8")
+        prefix, cmd, args = parse_raw_irc_command(line)
+        prefix = prefix.decode("utf-8")
+        args = [arg.decode("utf-8") for arg in args if isinstance(arg, bytes)]
+        if cmd in ("privmsg", "notice"):
+            is_notice = cmd == "notice"
+            handler.on_privmsg(wrapper.client, prefix, *args, notice=is_notice)
+        else:
+            handler.unhandled(wrapper.client, prefix, cmd, *args)
+    except Exception as e:
+        wrapper.send("{e.__class__.__name__}: {e}".format(e=e))
 
 def _force_command(var, wrapper, name, players, message):
     for user in players:
         handler.parse_and_dispatch(var, wrapper, name, message, force=user)
     wrapper.send(messages["operation_successful"])
-
 
 @command("force", flag="d")
 def force(var, wrapper, message):

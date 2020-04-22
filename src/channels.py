@@ -303,7 +303,7 @@ class Channel(IRCContext):
             event = Event("cleanup_user", {})
             event.dispatch(var, user)
 
-    def _clear(self):
+    def clear(self):
         for user in self.users:
             del user.channels[self]
         self.users.clear()
