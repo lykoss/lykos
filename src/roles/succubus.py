@@ -167,6 +167,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                         to_send = "visited_victim"
                     evt.data["message"][succubus].append(messages[to_send].format(succubus, role))
                     evt.data["dead"].append(succubus)
+                    evt.data["killers"][succubus].append("@wolves")
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):

@@ -90,6 +90,7 @@ def on_transition_day_resolve_end(evt, var, victims):
                         to_send = "visited_victim"
                     evt.data["message"][hlt].append(messages[to_send].format(hlt, role))
                     evt.data["dead"].append(hlt)
+                    evt.data["killers"][hlt].append("@wolves")
 
 @event_listener("transition_day_resolve_end", priority=3)
 def on_transition_day_resolve_end3(evt, var, victims):
@@ -97,6 +98,7 @@ def on_transition_day_resolve_end3(evt, var, victims):
         if VISITED.get(harlot) in get_players(Wolf) and harlot not in evt.data["dead"]:
             evt.data["message"][harlot].append(messages["harlot_visited_wolf"].format(harlot))
             evt.data["dead"].append(harlot)
+            evt.data["killers"][harlot].append("@wolves")
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
