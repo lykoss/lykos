@@ -11,74 +11,91 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages, get_role_name
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
 from src import debuglog, users
 
-KILLS = UserDict() # type: UserDict[users.User, UserList[users.User]]
-KNOWS_MINIONS = UserSet() # type: UserSet[users.User]
+KILLS = UserDict() # type: UserDict[users.User, UserList]
 
-def register_killer(rolename):
-    @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=(rolename,))
-    def wolf_kill(var, wrapper, message):
-        """Kill one or more players as a wolf."""
-        pieces = re.split(" +", message)
-        targets = []
-        orig = []
+def register_wolf(rolename):
+    @event_listener("transition_night_end", priority=2, listener_id="wolves.<{}>.on_transition_night_end".format(rolename))
+    def on_transition_night_end(evt, var):
+        wolves = get_all_players((rolename,))
+        for wolf in wolves:
+            msg = "{0}_notify".format(rolename.replace(" ", "_"))
+            wolf.send(messages[msg])
+            wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
+            nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
+            nevt.dispatch(var)
+            if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:
+                wolf.send(messages[nevt.data["message"]])
 
-        nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-        nevt.dispatch(var)
-        num_kills = nevt.data["numkills"]
+@command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=Wolf)
+def wolf_kill(var, wrapper, message):
+    """Kill one or more players as a wolf."""
+    # verify this user can actually kill
+    if not get_all_roles(wrapper.source) & Wolf & Killer:
+        return
 
-        if not num_kills:
-            if nevt.data["message"]:
-                wrapper.pm(messages[nevt.data["message"]])
+    pieces = re.split(" +", message)
+    targets = []
+    orig = []
+
+    nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
+    nevt.dispatch(var)
+    num_kills = nevt.data["numkills"]
+
+    if not num_kills:
+        if nevt.data["message"]:
+            wrapper.pm(messages[nevt.data["message"]])
+        return
+
+    if len(pieces) < num_kills:
+        wrapper.pm(messages["wolf_must_target_multiple"])
+        return
+
+    for targ in pieces[:num_kills]:
+        target = get_target(var, wrapper, targ, not_self_message="no_suicide")
+        if target is None:
             return
 
-        if len(pieces) < num_kills:
+        if is_known_wolf_ally(var, wrapper.source, target):
+            wrapper.pm(messages["wolf_no_target_wolf"])
+            return
+
+        if target in orig:
             wrapper.pm(messages["wolf_must_target_multiple"])
             return
 
-        for targ in pieces[:num_kills]:
-            target = get_target(var, wrapper, targ, not_self_message="no_suicide")
-            if target is None:
-                return
+        orig.append(target)
+        target = try_misdirection(var, wrapper.source, target)
+        if try_exchange(var, wrapper.source, target):
+            return
 
-            if is_known_wolf_ally(var, wrapper.source, target):
-                wrapper.pm(messages["wolf_no_target_wolf"])
-                return
+        targets.append(target)
 
-            if target in orig:
-                wrapper.pm(messages["wolf_must_target_multiple"])
-                return
+    KILLS[wrapper.source] = UserList(targets)
 
-            orig.append(target)
-            target = try_misdirection(var, wrapper.source, target)
-            if try_exchange(var, wrapper.source, target):
-                return
+    if len(orig) > 1:
+        wrapper.pm(messages["player_kill_multiple"].format(orig))
+        msg = messages["wolfchat_kill_multiple"].format(wrapper.source, orig)
+        debuglog("{0} KILL: {1} ({3}) and {2} ({4})".format(wrapper.source, targets[0], targets[1], get_main_role(targets[0]), get_main_role(targets[1])))
+    else:
+        wrapper.pm(messages["player_kill"].format(orig[0]))
+        msg = messages["wolfchat_kill"].format(wrapper.source, orig[0])
+        debuglog("{0} KILL: {1} ({2})".format(wrapper.source, targets[0], get_main_role(targets[0])))
 
-            targets.append(target)
+    send_wolfchat_message(var, wrapper.source, msg, Wolf, role="wolf", command="kill")
 
-        KILLS[wrapper.source] = UserList(targets)
+@command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=Wolf)
+def wolf_retract(var, wrapper, message):
+    """Removes a wolf's kill selection."""
+    if not get_all_roles(wrapper.source) & Wolf & Killer:
+        return
 
-        if len(orig) > 1:
-            # TODO: Expand this so we can support arbitrarily many kills (instead of just one or two)
-            wrapper.pm(messages["player_kill_multiple"].format(*orig))
-            msg = messages["wolfchat_kill_multiple"].format(wrapper.source, *orig)
-            debuglog("{0} ({1}) KILL: {2} ({4}) and {3} ({5})".format(wrapper.source, rolename, *targets, get_main_role(targets[0]), get_main_role(targets[1])))
-        else:
-            wrapper.pm(messages["player_kill"].format(orig[0]))
-            msg = messages["wolfchat_kill"].format(wrapper.source, orig[0])
-            debuglog("{0} ({1}) KILL: {2} ({3})".format(wrapper.source, rolename, targets[0], get_main_role(targets[0])))
-
-        send_wolfchat_message(var, wrapper.source, msg, Wolf, role=rolename, command="kill")
-
-    @command("retract", chan=False, pm=True, playing=True, phases=("night",), roles=(rolename,))
-    def wolf_retract(var, wrapper, message):
-        """Removes a wolf's kill selection."""
-        if wrapper.source in KILLS:
-            del KILLS[wrapper.source]
-            wrapper.pm(messages["retracted_kill"])
-            send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role=rolename, command="retract")
+    if wrapper.source in KILLS:
+        del KILLS[wrapper.source]
+        wrapper.pm(messages["retracted_kill"])
+        send_wolfchat_message(var, wrapper.source, messages["wolfchat_retracted_kill"].format(wrapper.source), Wolf, role="wolf", command="retract")
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -189,27 +206,25 @@ def on_chk_nightdone(evt, var):
     nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
     nevt.dispatch(var)
     num_kills = nevt.data["numkills"]
-    wofls = [x for x in get_players(Wolf & Killer) if not is_silent(var, x)]
+    wofls = [x for x in get_all_players(Wolf & Killer) if not is_silent(var, x)]
     if not num_kills or not wofls:
         return
 
+    fake = users.FakeUser.from_nick("@WolvesAgree@")
     evt.data["nightroles"].extend(wofls)
-    evt.data["actedcount"] += len(KILLS)
-    evt.data["nightroles"].append(users.FakeUser.from_nick("@WolvesAgree@"))
-    # check if wolves are actually agreeing or not;
-    # only add to count if they actually agree
-    # (this is *slighty* less hacky than deducting 1 from actedcount as we did previously)
+    evt.data["acted"].extend(KILLS)
+    evt.data["nightroles"].append(fake)
+
     kills = set()
     for ls in KILLS.values():
         kills.update(ls)
     # check if wolves are actually agreeing
     if len(kills) == num_kills:
-        evt.data["actedcount"] += 1
+        evt.data["acted"].append(fake)
 
-# TODO: Split this into each role's file
-@event_listener("transition_night_end", priority=2)
+@event_listener("transition_night_end", priority=3)
 def on_transition_night_end(evt, var):
-    wolves = get_players(Wolfchat)
+    wolves = get_all_players(Wolfchat)
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles(var)
     # condition imposed on talking in wolfchat (only during day/night, or no talking)
@@ -227,45 +242,10 @@ def on_transition_night_end(evt, var):
     elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
         wccond = 3
 
-    cursed = get_all_players(("cursed villager",))
     for wolf in wolves:
-        role = get_main_role(wolf)
-        msg = "{0}_notify".format(role.replace(" ", "_")) # FIXME: Split into each role file
-
-        wolf.send(messages[msg])
-
-        if len(wolves) > 1 and role in talkroles:
+        can_talk = len(get_all_roles(wolf) & talkroles) > 0
+        if len(wolves) > 1 and can_talk and wccond > 0:
             wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
-
-        if wolf in cursed:
-            wolf.send(messages["cursed_notify"])
-
-        if wolf not in KNOWS_MINIONS:
-            minions = len(get_all_players(("minion",)))
-            if minions > 0:
-                wolf.send(messages["has_minions"].format(minions))
-            KNOWS_MINIONS.add(wolf)
-
-        wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
-        nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-        nevt.dispatch(var)
-        if role in Wolf & Killer and not nevt.data["numkills"] and nevt.data["message"]:
-            wolf.send(messages[nevt.data["message"]])
-
-@event_listener("gun_chances")
-def on_gun_chances(evt, var, user, role):
-    if user in get_players(get_wolfchat_roles(var)):
-        hit, miss, headshot = var.WOLF_GUN_CHANCES
-        evt.data["hit"] = hit
-        evt.data["miss"] = miss
-        evt.data["headshot"] = headshot
-        evt.stop_processing = True
-
-@event_listener("gun_shoot")
-def on_gun_shoot(evt, var, user, target):
-    wolves = get_players(get_wolfchat_roles(var))
-    if user in wolves and target in wolves:
-        evt.data["hit"] = False
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
@@ -274,7 +254,13 @@ def on_begin_day(evt, var):
 @event_listener("reset")
 def on_reset(evt, var):
     KILLS.clear()
-    KNOWS_MINIONS.clear()
+
+@event_listener("gun_shoot", priority=3)
+def on_gun_shoot(evt, var, user, target, role):
+    if evt.data["hit"] and get_main_role(target) in Wolf:
+        # wolves (as a main role) always die when shot
+        # don't auto-kill wolves if they're only secondary roles
+        evt.data["kill"] = True
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
@@ -299,7 +285,7 @@ def wolf_can_kill(var, wolf):
 def get_wolfchat_roles(var):
     wolves = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             wolves = Wolf
         else:
             wolves = Wolf | {"traitor"}
@@ -308,17 +294,17 @@ def get_wolfchat_roles(var):
 def get_talking_roles(var):
     roles = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_WOLVES_ONLY_CHAT or var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             roles = Wolf
         else:
             roles = Wolf | {"traitor"}
     return roles
 
 def is_known_wolf_ally(var, actor, target):
-    actor_role = get_main_role(actor)
-    target_role = get_main_role(target)
+    actor_roles = get_all_roles(actor)
+    target_roles = get_all_roles(target)
     wolves = get_wolfchat_roles(var)
-    return actor_role in wolves and target_role in wolves
+    return actor_roles & wolves and target_roles & wolves
 
 def send_wolfchat_message(var, user, message, roles, *, role=None, command=None):
     if role not in Wolf & Killer and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
@@ -338,7 +324,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
         if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
             wcroles = roles
 
-    wcwolves = get_players(wcroles)
+    wcwolves = get_all_players(wcroles)
     wcwolves.remove(user)
 
     player = None
@@ -367,7 +353,7 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
 
     badguys = Wolfchat
     if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
+        if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF or "traitor" not in All:
             badguys = Wolf
         else:
             badguys = Wolf | {"traitor"}
@@ -378,7 +364,10 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
 
     if role in badguys | {"warlock"}:
         entries = []
-        cursed = get_all_players(("cursed villager",))
+        if "cursed villager" in All:
+            cursed = get_all_players(("cursed villager",))
+        else:
+            cursed = set()
         if role in badguys:
             for p in pl:
                 prole = get_main_role(p)

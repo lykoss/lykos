@@ -153,33 +153,24 @@ def on_game_end_messages(evt, var):
         evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
 @event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
-    from src.roles.fool import VOTED
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if player in LOVERS:
         evt.data["special"].append("lover")
-    if player in LOVERS and survived and LOVERS[player].intersection(get_players()):
-        for lvr in LOVERS[player]:
-            if lvr not in get_players():
+    pl = get_players()
+    if player in LOVERS and survived and LOVERS[player].intersection(pl):
+        for lover in LOVERS[player]:
+            if lover not in pl:
                 # cannot win with dead lover (lover idled out)
                 continue
-
-            lover_role = get_main_role(lvr)
-
-            if singular(winner) not in Win_Stealer:
-                evt.data["iwon"] = True
-                break
-            elif winner == "fool":
-                if lvr is VOTED:
-                    evt.data["iwon"] = True
-                    break
-            elif singular(winner) in Win_Stealer and lover_role == singular(winner):
-                evt.data["iwon"] = True
+            if team_win or lover in evt.params.team_wins:
+                # lovers only win this way if one of them got a team win
+                evt.data["individual_win"] = True
                 break
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     mms = (get_all_players(("matchmaker",)) - MATCHMAKERS) | ACTED
-    evt.data["actedcount"] += len(ACTED)
+    evt.data["acted"].extend(ACTED)
     evt.data["nightroles"].extend(mms)
 
 @event_listener("get_team_affiliation")
@@ -231,5 +222,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["matchmaker"] = {"Village", "Safe"}
     elif kind == "special_keys":
         evt.data["matchmaker"] = {"lover"}
-
-# vim: set sw=4 expandtab:

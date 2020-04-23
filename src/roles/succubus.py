@@ -13,9 +13,10 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.events import Event
 
-ENTRANCED = UserSet() # type: Set[users.User]
-VISITED = UserDict() # type: Dict[users.User, users.User]
-PASSED = UserSet() # type: Set[users.User]
+ENTRANCED = UserSet()
+VISITED = UserDict() # type: UserDict[users.User, users.User]
+PASSED = UserSet()
+FORCE_PASSED = UserSet()
 ALL_SUCC_IDLE = True
 
 @command("visit", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("succubus",))
@@ -23,6 +24,10 @@ def hvisit(var, wrapper, message):
     """Entrance a player, converting them to your team."""
     if VISITED.get(wrapper.source):
         wrapper.send(messages["succubus_already_visited"].format(VISITED[wrapper.source]))
+        return
+
+    if wrapper.source in FORCE_PASSED:
+        wrapper.send(messages["already_being_visited"])
         return
 
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="succubus_not_self")
@@ -48,8 +53,8 @@ def hvisit(var, wrapper, message):
         else:
             target.send(messages["harlot_success"].format(wrapper.source))
 
-        revt = Event("succubus_visit", {})
-        revt.dispatch(var, wrapper.source, target)
+        revt = Event("visit", {})
+        revt.dispatch(var, "succubus", wrapper.source, target)
 
     debuglog("{0} (succubus) VISIT: {1} ({2})".format(wrapper.source, target, get_main_role(target)))
 
@@ -64,26 +69,36 @@ def pass_cmd(var, wrapper, message):
     wrapper.send(messages["succubus_pass"])
     debuglog("{0} (succubus) PASS".format(wrapper.source))
 
-@event_listener("harlot_visit")
-def on_harlot_visit(evt, var, harlot, victim):
-    if victim in get_all_players(("succubus",)):
-        harlot.send(messages["notify_succubus_target"].format(victim))
-        victim.send(messages["succubus_harlot_success"].format(harlot))
-        ENTRANCED.add(harlot)
+@event_listener("visit")
+def on_visit(evt, var, visitor_role, visitor, visited):
+    if visited in get_all_players(("succubus",)):
+        # if we're being visited by anyone and we haven't visited yet, we have to stay home with them
+        if visited not in VISITED:
+            FORCE_PASSED.add(visited)
+            PASSED.add(visited)
+            visited.send(messages["already_being_visited"])
+
+        # if we're being visited by a non-succubus, entrance them
+        if visitor_role != "succubus":
+            visitor.send(messages["notify_succubus_target"].format(visited))
+            visited.send(messages["succubus_harlot_success"].format(visitor))
+            ENTRANCED.add(visitor)
 
 # entranced logic should run after team wins have already been determined (aka run last)
-@event_listener("player_win", priority=6)
-def on_player_win(evt, var, user, role, winner, survived):
-    if user in ENTRANCED:
+# FIXME: I hate event priorities and want them to die in a fire
+@event_listener("team_win", priority=7)
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if player in ENTRANCED and winner != "succubi":
+        evt.data["team_win"] = False
+    if main_role == "succubus" and winner == "succubi":
+        evt.data["team_win"] = True
+
+@event_listener("player_win")
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if player in ENTRANCED:
         evt.data["special"].append("entranced")
-        if winner != "succubi":
-            # Note: Should set iwon to False here too, or else the players may still win
-            # This isn't a big deal as long as people don't try to off the succ when entranced
-            evt.data["won"] = False
-        else:
-            evt.data["iwon"] = True
-    if role == "succubus" and winner == "succubi":
-        evt.data["won"] = True
+        if winner == "succubi":
+            evt.data["individual_win"] = True
 
 @event_listener("chk_win", priority=2)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -101,6 +116,7 @@ def on_new_role(evt, var, player, old_role):
     if old_role == "succubus" and evt.data["role"] != "succubus":
         del VISITED[:player:]
         PASSED.discard(player)
+        FORCE_PASSED.discard(player)
 
     if evt.data["role"] == "succubus" and player in ENTRANCED:
         ENTRANCED.remove(player)
@@ -118,6 +134,9 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
                 ENTRANCED.discard(VISITED[player])
                 VISITED[player].send(messages["entranced_revert_win"])
         del VISITED[player]
+
+    PASSED.discard(player)
+    FORCE_PASSED.discard(player)
 
     # if all succubi idled out (every last one of them), un-entrance people
     # death_triggers is False for an idle-out, so we use that to determine which it is
@@ -148,10 +167,12 @@ def on_transition_day_resolve_end(evt, var, victims):
                         to_send = "visited_victim"
                     evt.data["message"][succubus].append(messages[to_send].format(succubus, role))
                     evt.data["dead"].append(succubus)
+                    evt.data["killers"][succubus].append("@wolves")
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(VISITED) + len(PASSED)
+    evt.data["acted"].extend(VISITED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("succubus",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -171,7 +192,7 @@ def on_transition_night_end(evt, var):
         succubus.send(messages["succubus_notify"], messages["players_list"].format(succ), sep="\n")
 
 @event_listener("gun_shoot")
-def on_gun_shoot(evt, var, user, target):
+def on_gun_shoot(evt, var, user, target, role):
     if target in get_all_players(("succubus",)):
         evt.data["kill"] = False
 
@@ -179,6 +200,7 @@ def on_gun_shoot(evt, var, user, target):
 def on_begin_day(evt, var):
     VISITED.clear()
     PASSED.clear()
+    FORCE_PASSED.clear()
 
 @event_listener("reset")
 def on_reset(evt, var):
@@ -187,6 +209,7 @@ def on_reset(evt, var):
     ENTRANCED.clear()
     VISITED.clear()
     PASSED.clear()
+    FORCE_PASSED.clear()
 
 @event_listener("revealroles")
 def on_revealroles(evt, var):
@@ -197,5 +220,3 @@ def on_revealroles(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["succubus"] = {"Neutral", "Win Stealer", "Cursed", "Nocturnal"}
-
-# vim: set sw=4 expandtab:

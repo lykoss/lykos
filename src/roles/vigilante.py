@@ -11,8 +11,8 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Wolf, Win_Stealer
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
-PASSED = UserSet() # type: Set[users.User]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
+PASSED = UserSet()
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("vigilante",))
 def vigilante_kill(var, wrapper, message):
@@ -79,7 +79,8 @@ def on_new_role(evt, var, user, old_role):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(KILLS) + len(PASSED)
+    evt.data["acted"].extend(KILLS)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("vigilante",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -107,5 +108,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["vigilante"] = len(var.ROLES["vigilante"])
     elif kind == "role_categories":
         evt.data["vigilante"] = {"Village", "Killer", "Nocturnal", "Safe"}
-
-# vim: set sw=4 expandtab:

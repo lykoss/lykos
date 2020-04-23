@@ -5,10 +5,12 @@ from src.containers import UserSet
 from src.functions import get_players
 from src.messages import messages
 
-__all__ = ["add_misdirection", "try_misdirection"]
+__all__ = ["add_misdirection", "try_misdirection", "add_misdirection_scope", "in_misdirection_scope"]
 
-AS_ACTOR = UserSet() # type: Set[users.User]
-AS_TARGET = UserSet() # type: Set[users.User]
+AS_ACTOR = UserSet()
+AS_TARGET = UserSet()
+ACTOR_SCOPE = set()
+TARGET_SCOPE = set()
 
 def _get_target(target):
     """Internal helper for try_misdirection. Return one target over."""
@@ -35,6 +37,22 @@ def try_misdirection(var, actor, target):
         if target in AS_TARGET:
             target = _get_target(target)
     return target
+
+def add_misdirection_scope(var, scope, *, as_actor=False, as_target=False):
+    if as_actor:
+        ACTOR_SCOPE.update(scope)
+    if as_target:
+        TARGET_SCOPE.update(scope)
+
+def in_misdirection_scope(var, roles, *, as_actor=False, as_target=False):
+    assert as_actor or as_target, "in_misdirection_scope requires specifying which scope to check"
+    if isinstance(roles, str):
+        roles = {roles}
+    if as_actor and not roles & ACTOR_SCOPE:
+        return False
+    if as_target and not roles & TARGET_SCOPE:
+        return False
+    return True
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):

@@ -44,7 +44,7 @@ class EventListener:
     def id(self, value):
         raise ValueError("Cannot modify id attribute")
 
-def find_listener(event: str, listener_id: str) -> Optional[EventListener]:
+def find_listener(event: str, listener_id: str) -> EventListener:
     for evt in EVENT_CALLBACKS[event]:
         if evt.id == listener_id:
             return evt

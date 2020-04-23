@@ -178,7 +178,16 @@ numeric_events = {
     b"501": "umodeunknownflag",
     b"502": "usersdontmatch",
     b"728": "quietlist",
-    b"729": "quietlistend"
+    b"729": "quietlistend",
+    b"900": "loggedin",
+    b"901": "loggedout",
+    b"902": "nicklocked",
+    b"903": "saslsuccess",
+    b"904": "saslfail",
+    b"905": "sasltoolong",
+    b"906": "saslaborted",
+    b"907": "saslalready",
+    b"908": "saslmechs"
 }
 
 generated_events = [

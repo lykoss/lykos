@@ -6,6 +6,8 @@ further in the relevant hook functions.
 
 """
 
+from typing import Dict, Any
+
 from src.decorators import event_listener, hook
 from src.context import Features
 from src.events import Event
@@ -14,6 +16,8 @@ from src.logger import plog
 from src import context, channels, users
 
 ### WHO/WHOX responses handling
+
+_who_old = {} # type: Dict[str, users.User]
 
 @hook("whoreply")
 def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status, hopcount_gecos):
@@ -48,19 +52,18 @@ def who_reply(cli, bot_server, bot_nick, chan, ident, host, server, nick, status
     user = users.get(nick, ident, host, allow_bot=True, allow_none=True)
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host)
-    ch = None
-    if not channels.predicate(chan): # returns True if it's not a channel
-        ch = channels.add(chan, cli)
 
-        if ch not in user.channels:
-            user.channels[ch] = modes
-            ch.users.add(user)
-            for mode in modes:
-                if mode not in ch.modes:
-                    ch.modes[mode] = set()
-                ch.modes[mode].add(user)
+    ch = channels.get(chan, allow_none=True)
+    if ch is not None and ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
 
-    event = Event("who_result", {}, away=is_away, data=0)
+    _who_old[user.nick] = user
+    event = Event("who_result", {}, away=is_away, data=0, old=user)
     event.dispatch(ch, user)
 
 @hook("whospcrpl")
@@ -107,24 +110,32 @@ def extended_who_reply(cli, bot_server, bot_nick, data, chan, ident, ip_address,
 
     modes = {Features["PREFIX"].get(s) for s in status} - {None}
 
-    user = users.get(nick, ident, host, account, allow_bot=True, allow_none=True)
+    # WHOX may be issued to retrieve updated account info so exclude account from users.get()
+    # we handle the account change differently below and don't want to add duplicate users
+    user = users.get(nick, ident, host, allow_bot=True, allow_none=True)
     if user is None:
         user = users.add(cli, nick=nick, ident=ident, host=host, account=account)
-    user.account = account # set it here so it updates if the user already exists
 
-    ch = None
-    if not channels.predicate(chan):
-        ch = channels.add(chan, cli)
-        if ch not in user.channels:
-            user.channels[ch] = modes
-            ch.users.add(user)
-            for mode in modes:
-                if mode not in ch.modes:
-                    ch.modes[mode] = set()
-                ch.modes[mode].add(user)
+    new_user = user
+    if {user.account, account} != {None} and not context.equals(user.account, account):
+        # first check tests if both are None, and skips over this if so
+        old_account = user.account
+        user.account = account
+        new_user = users.get(nick, ident, host, account, allow_bot=True)
+        Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
-    event = Event("who_result", {}, away=is_away, data=data)
-    event.dispatch(ch, user)
+    ch = channels.get(chan, allow_none=True)
+    if ch is not None and ch not in user.channels:
+        user.channels[ch] = modes
+        ch.users.add(user)
+        for mode in modes:
+            if mode not in ch.modes:
+                ch.modes[mode] = set()
+            ch.modes[mode].add(user)
+
+    _who_old[new_user.nick] = user
+    event = Event("who_result", {}, away=is_away, data=data, old=user)
+    event.dispatch(ch, new_user)
 
 @hook("endofwho")
 def end_who(cli, bot_server, bot_nick, target, rest):
@@ -152,12 +163,11 @@ def end_who(cli, bot_server, bot_nick, target, rest):
         except KeyError:
             target = None
     else:
-        if target._pending is not None:
-            for name, params, args in target._pending:
-                Event(name, params).dispatch(*args)
-            target._pending = None
+        target.dispatch_queue()
 
-    Event("who_end", {}).dispatch(target)
+    old = _who_old.get(target.name, target)
+    _who_old.clear()
+    Event("who_end", {}, old=old).dispatch(target)
 
 ### WHOIS Reponse Handling
 
@@ -273,17 +283,18 @@ def on_whois_end(cli, bot_server, bot_nick, nick, message):
 
     values = _whois_pending.pop(nick)
     # check for account change
-    user = values["user"]
+    new_user = user = values["user"]
     if {user.account, values["account"]} != {None} and not context.equals(user.account, values["account"]):
         # first check tests if both are None, and skips over this if so
         old_account = user.account
         user.account = values["account"]
-        Event("account_change", {}).dispatch(user, old_account)
+        new_user = users.get(user.nick, user.ident, user.host, values["account"], allow_bot=True)
+        Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
-    event = Event("who_result", {}, away=values["away"], data=0)
+    event = Event("who_result", {}, away=values["away"], data=0, old=user)
     for chan in values["channels"]:
-        event.dispatch(chan, values["user"])
-    Event("who_end", {}).dispatch(values["user"])
+        event.dispatch(chan, new_user)
+    Event("who_end", {}, old=user).dispatch(new_user)
 
 ### Host changing handling
 
@@ -307,7 +318,25 @@ def host_hidden(cli, server, nick, host, message):
     # Once with our nick and once with our UID. We ignore the last one.
 
     if nick == users.Bot.nick:
-        users.Bot = users.Bot.with_host(host)
+        users.Bot.host = host
+
+@hook("loggedin")
+def on_loggedin(cli, server, nick, rawnick, account, message):
+    """Update our own rawnick with proper info.
+
+    Ordering and meaning of arguments for a logged-in event:
+
+    0 - The IRCClient instance (like everywhere else)
+    1 - The server the bot is on
+    2 - The requester's nick (us)
+    3 - The full rawnick post-authentication
+    4 - The account we're now logged into
+    5 - A human-readable message (e.g. "You are now logged in as lykos.")
+
+    """
+
+    users.Bot.rawnick = rawnick
+    users.Bot.account = account
 
 ### Server PING handling
 
@@ -329,62 +358,30 @@ def on_ping(cli, prefix, server):
 ### Fetch and store server information
 
 @hook("featurelist")
-def get_features(cli, rawnick, *features):
+def get_features(cli, server, nick, *features):
     """Fetch and store the IRC server features.
 
     Ordering and meaning of arguments for a feature listing:
 
     0 - The IRCClient instance(like everywhere else)
-    1 - The raw nick (nick!ident@host) of the requester (i.e. the bot)
+    1 - Server the requestor is on
+    2 - Bot's nick
     * - A variable number of arguments, one per available feature
 
     """
 
-    # features with params (key:value, possibly multiple separated by comma)
-    comma_param_features = ("CHANLIMIT", "MAXLIST", "TARGMAX", "IDCHAN")
-    # features with a prefix in parens
-    prefix_features = ("PREFIX",)
-    # features which take multiple arguments separated by comma (but are not params)
-    # Note: CMDS is specific to UnrealIRCD
-    comma_list_features = ("CHANMODES", "EXTBAN", "CMDS")
-    # features which take multiple arguments separated by semicolon (but are not params)
-    # Note: SSL is specific to InspIRCD
-    semi_list_features = ("SSL",)
+    # final thing in each feature listing is the text "are supported by this server" -- discard it
+    features = features[:-1]
 
     for feature in features:
-        if "=" in feature:
-            name, data = feature.split("=")
-            if name in comma_param_features:
-                Features[name] = {}
-                for param in data.split(","):
-                    param, value = param.split(":")
-                    if value.isdigit():
-                        value = int(value)
-                    elif not value:
-                        value = None
-                    Features[name][param] = value
-
-            elif name in prefix_features:
-                gen = (x for y in data.split("(") for x in y.split(")") if x)
-                # Reverse the order
-                value = next(gen)
-                Features[name] = dict(zip(next(gen), value))
-
-            elif name in comma_list_features:
-                Features[name] = data.split(",")
-
-            elif name in semi_list_features:
-                Features[name] = data.split(";")
-
-            else:
-                if data.isdigit():
-                    data = int(data)
-                elif not data.isalnum() and "." not in data:
-                    data = frozenset(data)
-                Features[name] = data
-
+        if feature[0] == "-":
+            # removing a feature
+            Features.unset(feature[1:])
+        elif "=" in feature:
+            name, data = feature.split("=", maxsplit=1)
+            Features.set(name, data)
         else:
-            Features[feature] = True
+            Features.set(feature, "")
 
 ### Channel and user MODE handling
 
@@ -571,7 +568,7 @@ def end_banlist(cli, server, bot_nick, chan, message):
     handle_endlistmode(cli, chan, "b")
 
 @hook("quietlistend")
-def end_quietlist(cli, server, bot_nick, chan, mode, message):
+def end_quietlist(cli, server, bot_nick, chan, mode, message=None):
     """Handle the end of the quiet listing.
 
     Ordering and meaning of arguments for the end of quiet list:
@@ -584,6 +581,11 @@ def end_quietlist(cli, server, bot_nick, chan, mode, message):
     5 - A string containing some information; traditionally "End of Channel Quiet List."
 
     """
+
+    if not message:
+        # charybdis includes a 'q' token before "End of Channel Quiet List", but
+        # some IRCds (such as ircd-yeti) don't. This is a workaround to make it work.
+        mode = "q"
 
     handle_endlistmode(cli, chan, mode)
 
@@ -636,8 +638,9 @@ def on_nick_change(cli, old_rawnick, nick):
     user = users.get(old_rawnick, allow_bot=True)
     old_nick = user.nick
     user.nick = nick
+    new_user = users.get(nick, user.ident, user.host, user.account, allow_bot=True)
 
-    Event("nick_change", {}).dispatch(user, old_nick)
+    Event("nick_change", {}, old=user).dispatch(new_user, old_nick)
 
 ### ACCOUNT handling
 
@@ -658,8 +661,9 @@ def on_account_change(cli, rawnick, account):
     user = users.get(rawnick)
     old_account = user.account
     user.account = account
+    new_user = users.get(user.nick, user.ident, user.host, account, allow_bot=True)
 
-    Event("account_change", {}).dispatch(user, old_account)
+    Event("account_change", {}, old=user).dispatch(new_user, old_account)
 
 ### JOIN handling
 
@@ -689,22 +693,25 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         realname = None
 
     ch = channels.add(chan, cli)
-    ch.state = channels._States.Joined
 
-    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True)
+    user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True)
     if user is None:
         user = users.add(cli, nick=rawnick, account=account)
+    if account:
+        # ensure we work for the case when user left, changed accounts, then rejoined as a different account
+        user.account = account
+        user = users.get(nick=rawnick, account=account)
     ch.users.add(user)
     user.channels[ch] = set()
     # mark the user as here, in case they used to be connected before but left
     user.disconnected = False
 
+    Event("chan_join", {}).dispatch(ch, user)
+
     if user is users.Bot:
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
         ch.who()
-
-    Event("chan_join", {}).dispatch(ch, user)
 
 ### PART handling
 
@@ -729,7 +736,7 @@ def part_chan(cli, rawnick, chan, reason=""):
     Event("chan_part", {}).dispatch(ch, user, reason)
 
     if user is users.Bot: # oh snap! we're no longer in the channel!
-        ch._clear()
+        ch.clear()
     else:
         ch.remove_user(user)
 
@@ -755,7 +762,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
-        ch._clear()
+        ch.clear()
     else:
         ch.remove_user(user)
 
@@ -786,11 +793,12 @@ def on_quit(cli, rawnick, reason):
     """
 
     user = users.get(rawnick, allow_bot=True)
+    user.disconnected = True
     Event("server_quit", {}).dispatch(user, reason)
 
     for chan in set(user.channels):
         if user is users.Bot:
-            chan._clear()
+            chan.clear()
         else:
             chan.remove_user(user)
 
@@ -810,6 +818,11 @@ def on_chghost(cli, rawnick, ident, host):
     """
 
     user = users.get(rawnick)
+    old_ident = user.ident
+    old_host = user.host
     # we avoid multiple swaps if we change the rawnick instead of ident and host separately
     new_rawnick = "{0}!{1}@{2}".format(user.nick, ident, host)
     user.rawnick = new_rawnick
+    new_user = users.get(new_rawnick)
+
+    Event("host_change", {}, old=user).dispatch(new_user, old_ident, old_host)

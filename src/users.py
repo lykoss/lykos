@@ -7,16 +7,19 @@ from src.context import IRCContext, Features, lower, equals
 from src import settings as var
 from src import db
 from src.events import EventListener
-from src.decorators import hook
 from src.debug import CheckedDict, CheckedSet
 from src.match import Match
 
 import botconfig
 
+__all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
+           "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
+
 Bot = None # bot instance
 
 _users = CheckedSet("users._users") # type: CheckedSet[User]
 _ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
+_pending_account_updates = CheckedDict("users._pending_account_updates") # type: CheckedDict[User, CheckedDict[str, Callable]]
 
 _arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
 
@@ -45,6 +48,12 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
     if ident is None and host is None and nick is not None:
         nick, ident, host = parse_rawnick(nick)
 
+    sentinel = object()
+
+    temp = User(sentinel, nick, ident, host, account)
+    if temp.client is not sentinel:  # actual client
+        return [temp] if allow_multiple else temp
+
     potential = []
     users = set(_users)
     if not allow_ghosts:
@@ -54,12 +63,6 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
             users.add(Bot)
         except ValueError:
             pass # Bot may not be hashable in early init; this is fine and User.__new__ handles this gracefully
-
-    sentinel = object()
-
-    temp = User(sentinel, nick, ident, host, account)
-    if temp.client is not sentinel: # actual client
-        return [temp] if allow_multiple else temp
 
     for user in users:
         if user.partial_match(temp):
@@ -183,9 +186,13 @@ def parse_rawnick_as_dict(rawnick, *, default=None):
 
 def _cleanup_user(evt, var, user):
     """Removes a user from our global tracking set once it has left all channels."""
+    # if user is in-game, keep them around so that other players can act on them
+    # and so that they can return to the village. If they aren't in game, erase
+    # all memory of them from the bot.
     if var.PHASE in var.GAME_PHASES and user in var.ALL_PLAYERS:
-        _ghosts.add(user)
+        user.disconnected = True
     else:
+        user.disconnected = False
         _users.discard(user)
 
 def _reset(evt, var):
@@ -195,10 +202,22 @@ def _reset(evt, var):
             _users.discard(user)
     _ghosts.clear()
 
+def _update_account(evt, user):
+    """Updates account data of a user for networks which don't support certain features."""
+    from src.decorators import handle_error
+    if evt.params.old in _pending_account_updates:
+        updates = list(_pending_account_updates[evt.params.old].items())
+        del _pending_account_updates[evt.params.old]
+        for command, callback in updates:
+            # handle_error swallows exceptions so that a callback raising an exception
+            # does not prevent other registered callbacks from running
+            handle_error(callback)(user)
+
 # Can't use @event_listener decorator since src/decorators.py imports us
 # (meaning decorator isn't defined at the point in time we are run)
 EventListener(_cleanup_user).install("cleanup_user")
 EventListener(_reset).install("reset")
+EventListener(_update_account).install("who_end")
 
 class User(IRCContext):
 
@@ -217,15 +236,30 @@ class User(IRCContext):
         self.lists = []
         self.dict_keys = []
         self.dict_values = []
+        self.account_timestamp = time.time()
 
-        if Bot is not None and Bot.nick == nick and {Bot.ident, Bot.host, Bot.account} == {None}:
+        if Bot is not None and nick is not None and Bot.nick.rstrip("_") == nick.rstrip("_") and None in {Bot.ident, Bot.host}:
             # Bot ident/host being None means that this user isn't hashable, so it cannot be in any containers
             # which store by hash. As such, mutating the properties is safe.
             self = Bot
-            self._ident = ident
-            self._host = host
+            self.name = nick
+            if ident is not None:
+                self._ident = ident
+            if host is not None:
+                self._host = host
             self._account = account
             self.timestamp = time.time()
+            self.account_timestamp = time.time()
+
+        elif (cls.__name__ == "User" and Bot is not None
+              and Bot.nick == nick and ident is not None and host is not None
+              and Bot.ident != ident and Bot.host == host and Bot.account == account):
+            # Messages sent in early init may give us an incorrect ident (such as because we're waiting for
+            # a response from identd, or there is some *line which overrides the ident for the bot).
+            # Since Bot.ident attempts to create a new BotUser, we guard against recursion by only following this
+            # branch if we're constructing a top-level User object (such as via users.get)
+            Bot.ident = ident
+            self = Bot
 
         elif nick is not None and ident is not None and host is not None:
             users = set(_users)
@@ -456,7 +490,7 @@ class User(IRCContext):
         if not value:
             if temp.account in var.PING_IF_PREFS_ACCS:
                 del var.PING_IF_PREFS_ACCS[temp.account]
-                db.set_pingif(0, temp.account, None)
+                db.set_pingif(0, temp.account)
                 if old is not None:
                     with var.WARNING_LOCK:
                         if old in var.PING_IF_NUMS_ACCS:
@@ -464,7 +498,7 @@ class User(IRCContext):
         else:
             if temp.account is not None:
                 var.PING_IF_PREFS_ACCS[temp.account] = value
-                db.set_pingif(value, temp.account, None)
+                db.set_pingif(value, temp.account)
                 with var.WARNING_LOCK:
                     if value not in var.PING_IF_NUMS_ACCS:
                         var.PING_IF_NUMS_ACCS[value] = set()
@@ -480,31 +514,41 @@ class User(IRCContext):
         """Return the number of games the user is in stasis for."""
         return var.STASISED_ACCS.get(self.lower().account, 0)
 
-    def update_account_data(self, callback: Callable):
+    def update_account_data(self, command: str, callback: Callable):
         """Refresh stale account data on networks that don't support certain features.
 
-        :param callback: Callback to execute when account data is fully updated
+        :param command: Command name that prompted the call to update_account_data.
+            Used to handle cases where the user executes multiple commands before
+            account data can be updated, so they can all be queued. If the same command
+            is given multiple times, we honor the most recent one given.
+        :param callback: Callback to execute when account data is fully updated,
+            passed in the updated user with an accurate account
         """
 
         # Nothing to update for fake nicks
         if self.is_fake:
-            callback()
+            callback(self)
             return
 
         if self.account is not None and Features.get("account-notify", False):
             # account-notify is enabled, so we're already up to date on our account name
-            callback()
+            callback(self)
             return
 
-        def whox_listener(evt, target):
-            if target is self:
-                # This is who_end because we don't care about the actual content
-                # If we got here, the account has been properly updated. Continue.
-                listener.remove("who_end")
-                callback()
+        if self.account is not None and self.account_timestamp > time.time() - 900:
+            # account data is less than 15 minutes old, use existing data instead of refreshing
+            callback(self)
+            return
 
-        listener = EventListener(whox_listener, listener_id="update_account_data." + self.name)
-        listener.install("who_end")
+        if self not in _pending_account_updates:
+            _pending_account_updates[self] = CheckedDict("users.User.update_account_data")
+
+        _pending_account_updates[self][command] = callback
+
+        if len(_pending_account_updates[self].keys()) > 1:
+            # already have a pending WHO/WHOIS for this user, don't send multiple to the server to avoid hitting
+            # rate limits (if we are ratelimited, that can be handled by re-sending the request at a lower layer)
+            return
 
         if Features.get("WHOX", False):
             # A WHOX query performs less network noise than WHOIS, so use that if available
@@ -549,6 +593,7 @@ class User(IRCContext):
         if value in ("0", "*"):
             value = None
         new = User(self.client, self.nick, self.ident, self.host, value)
+        new.account_timestamp = time.time()
         self.swap(new, same_user=True)
 
     @property

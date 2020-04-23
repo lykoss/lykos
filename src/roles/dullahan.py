@@ -12,8 +12,8 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, try_protection, add_dying
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
-TARGETS = UserDict() # type: Dict[users.User, Set[users.User]]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
+TARGETS = UserDict() # type: UserDict[users.User, UserSet]
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("dullahan",))
 def dullahan_kill(var, wrapper, message):
@@ -46,12 +46,12 @@ def dullahan_retract(var, wrapper, message):
         debuglog("{0} (dullahan) RETRACT".format(wrapper.source))
 
 @event_listener("player_win")
-def on_player_win(evt, var, user, role, winner, survived):
-    if role != "dullahan":
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if main_role != "dullahan":
         return
     alive = set(get_players())
-    if not TARGETS[user] & alive:
-        evt.data["iwon"] = True
+    if not TARGETS[player] & alive:
+        evt.data["individual_win"] = True
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -124,7 +124,7 @@ def on_swap_role_state(evt, var, actor, target, role):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     spl = set(get_players())
-    evt.data["actedcount"] += len(KILLS)
+    evt.data["acted"].extend(KILLS)
     for dullahan, targets in TARGETS.items():
         if targets & spl and dullahan in spl:
             evt.data["nightroles"].append(dullahan)
@@ -142,12 +142,13 @@ def on_transition_night_end(evt, var):
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
         dullahan.send(messages["dullahan_notify"], t.format(targets), sep="\n")
 
-@event_listener("succubus_visit")
-def on_succubus_visit(evt, var, succubus, target):
-    succubi = get_all_players(("succubus",))
-    if target in TARGETS and TARGETS[target].intersection(succubi):
-        TARGETS[target].difference_update(succubi)
-        target.send(messages["dullahan_no_kill_succubus"])
+@event_listener("visit")
+def on_visit(evt, var, visitor_role, visitor, visited):
+    if visitor_role == "succubus":
+        succubi = get_all_players(("succubus",))
+        if visited in TARGETS and TARGETS[visited].intersection(succubi):
+            TARGETS[visited].difference_update(succubi)
+            visited.send(messages["dullahan_no_kill_succubus"])
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):
@@ -197,5 +198,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["dullahan"] = num
     elif kind == "role_categories":
         evt.data["dullahan"] = {"Killer", "Nocturnal", "Neutral"}
-
-# vim: set sw=4 expandtab:

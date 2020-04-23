@@ -11,8 +11,9 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
+from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist, register_wolf
 
-from src.roles.helper.wolves import get_wolfchat_roles, is_known_wolf_ally, send_wolfchat_message, get_wolflist
+register_wolf("warlock")
 
 CURSED = UserDict() # type: UserDict[users.User, users.User]
 PASSED = UserSet() # type: UserSet[users.Set]
@@ -72,7 +73,8 @@ def retract(var, wrapper, message):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(CURSED) + len(PASSED)
+    evt.data["acted"].extend(CURSED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("warlock",)))
 
 @event_listener("del_player")

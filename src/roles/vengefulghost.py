@@ -11,11 +11,11 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_silent, is_silent
 from src.cats import All, Wolfteam
 
-KILLS = UserDict() # type: Dict[users.User, users.User]
-GHOSTS = UserDict() # type: Dict[users.User, str]
+KILLS = UserDict() # type: UserDict[users.User, users.User]
+GHOSTS = UserDict() # type: UserDict[users.User, str]
 
 # temporary holding variable, only non-empty during transition_day
-drivenoff = UserDict() # type: Dict[users.User, str]
+drivenoff = UserDict() # type: UserDict[users.User, str]
 
 @command("kill", chan=False, pm=True, playing=False, silenced=True, phases=("night",), users=GHOSTS)
 def vg_kill(var, wrapper, message):
@@ -69,27 +69,28 @@ def on_consecrate(evt, var, actor, target):
     if target in GHOSTS:
         add_silent(var, target)
 
-@event_listener("player_win", priority=1)
-def on_player_win(evt, var, user, role, winner, survived):
-    # alive VG winning is handled in villager.py
-    # extending VG to work with new teams can be done by registering
-    # a listener at priority > 1, importing src.roles.vengefulghost,
-    # and checking if the user is in GHOSTS.
-    if user in GHOSTS:
-        evt.data["special"].append("vg activated")
-        against = GHOSTS[user]
-        if against[0] == "!":
-            evt.data["special"].append("vg driven off")
-            against = against[1:]
+# needs to happen after regular team win is determined, but before succubus
+# FIXME: I hate priorities, did I mention that?
+@event_listener("team_win", priority=6)
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if player in GHOSTS:
+        against = GHOSTS[player].lstrip("!")
         if against == "villager" and winner == "wolves":
-            evt.data["won"] = True
-            evt.data["iwon"] = True
+            evt.data["team_win"] = True
         elif against == "wolf" and winner == "villagers":
-            evt.data["won"] = True
-            evt.data["iwon"] = True
+            evt.data["team_win"] = True
         else:
-            evt.data["won"] = False
-            evt.data["iwon"] = False
+            evt.data["team_win"] = False
+
+@event_listener("player_win")
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if player in GHOSTS:
+        evt.data["special"].append("vg activated")
+        if GHOSTS[player][0] == "!":
+            evt.data["special"].append("vg driven off")
+        elif team_win:
+            # VG gets an individual win while dead if they haven't been driven off and their team wins
+            evt.data["individual_win"] = True
 
 @event_listener("del_player", priority=6)
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -170,7 +171,7 @@ def on_get_participant_role(evt, var, user):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(KILLS)
+    evt.data["acted"].extend(KILLS)
     evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
 @event_listener("transition_night_end", priority=2)
@@ -188,7 +189,7 @@ def on_transition_night_end(evt, var):
 
         random.shuffle(pl)
 
-        v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl).capitalize(), sep="\n")
+        v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
         debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")
@@ -228,5 +229,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["vengeful ghost"] = {"vg activated", "vg driven off"}
     elif kind == "role_categories":
         evt.data["vengeful ghost"] = {"Hidden"}
-
-# vim: set sw=4 expandtab:

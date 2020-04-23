@@ -13,7 +13,7 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, try_protection, add_dying, is_silent
 
-TARGETED = UserDict() # type: Dict[users.User, users.User]
+TARGETED = UserDict() # type: UserDict[users.User, users.User]
 PREV_ACTED = UserSet()
 
 @command("target", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("assassin",))
@@ -41,7 +41,7 @@ def target(var, wrapper, message):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("assassin",)) - PREV_ACTED)
-    evt.data["actedcount"] += len(TARGETED) - len(PREV_ACTED)
+    evt.data["acted"].extend(TARGETED.keys() - PREV_ACTED)
 
 @event_listener("transition_day", priority=7)
 def on_transition_day(evt, var):
@@ -126,5 +126,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["assassin"] = {"Village"}
-
-# vim: set sw=4 expandtab:

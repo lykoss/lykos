@@ -47,4 +47,4 @@ class ChangedRolesMode(GameMode):
                 else:
                     raise InvalidModeException(messages["specific_invalid_role"].format(role))
             except ValueError:
-                raise InvalidModeException(messages["bad_role_value"])
+                raise InvalidModeException(messages["bad_role_value"].format(role, num))

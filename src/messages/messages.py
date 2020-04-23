@@ -86,7 +86,7 @@ class Messages:
             seen.add(fallback)
             with open(os.path.join(MESSAGES_DIR, fallback + ".json"), encoding="utf-8") as f:
                 fallback_msgs = json.load(f)
-                fallback = self.messages["_metadata"]["fallback"]
+                fallback = fallback_msgs["_metadata"]["fallback"]
                 for key, message in fallback_msgs.items():
                     if key not in self.messages:
                         self.messages[key] = message

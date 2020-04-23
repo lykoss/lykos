@@ -3,6 +3,7 @@ import random
 import itertools
 import math
 from collections import defaultdict
+from typing import Optional
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -35,11 +36,16 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     if evt.data["winner"] == "fool":
         evt.data["message"] = messages["fool_win"]
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, role, winner, survived):
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
     if winner == "fool" and player is VOTED:
-        evt.data["won"] = True
-        evt.data["iwon"] = True
+        # giving voted fool a team win means that lover can win with them if they're voted
+        evt.data["team_win"] = True
+
+@event_listener("player_win")
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if winner == "fool" and player is VOTED:
+        evt.data["individual_win"] = True
 
 @event_listener("transition_night_end")
 def on_transition_night_end(evt, var):

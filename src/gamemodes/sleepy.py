@@ -33,7 +33,8 @@ class SleepyMode(GameMode):
             "chk_nightdone": EventListener(self.prolong_night),
             "transition_day_begin": EventListener(self.nightmare_kill),
             "del_player": EventListener(self.happy_fun_times),
-            "revealroles": EventListener(self.on_revealroles)
+            "revealroles": EventListener(self.on_revealroles),
+            "night_idled": EventListener(self.on_night_idled)
         }
 
     def startup(self):
@@ -179,8 +180,12 @@ class SleepyMode(GameMode):
         self.nightmare_step()
 
     def prolong_night(self, evt, var):
-        if self.having_nightmare:
-            evt.data["actedcount"] = -1
+        evt.data["nightroles"].extend(self.having_nightmare)
+
+    def on_night_idled(self, evt, var, player):
+        # don't give warning points if the person having a nightmare idled out night
+        if player in self.having_nightmare:
+            evt.prevent_default = True
 
     def nightmare_kill(self, evt, var):
         if self.having_nightmare and self.having_nightmare[0] in get_players():

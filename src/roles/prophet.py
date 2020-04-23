@@ -12,7 +12,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-PRAYED = UserSet()  # type: Set[users.User]
+PRAYED = UserSet()
 
 
 @command("pray", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("prophet",))
@@ -22,15 +22,14 @@ def pray(var, wrapper, message):
         wrapper.pm(messages["already_prayed"])
         return
 
-    what = re.split(" +", message)[0]
-    if not what:
+    if not message:
         wrapper.pm(messages["not_enough_parameters"])
         return
 
     # complete this as a match with other roles (so "cursed" can match "cursed villager" for instance)
-    matches = complete_role(var, what, allow_special=False)
+    matches = complete_role(var, message, allow_special=False)
     if not matches:
-        wrapper.pm(messages["no_such_role"].format(what))
+        wrapper.pm(messages["no_such_role"].format(message))
         return
     elif len(matches) > 1:
         wrapper.pm(messages["ambiguous_role"].format(matches))
@@ -70,7 +69,7 @@ def on_transition_night_end(evt, var):
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
     evt.data["nightroles"].extend(get_all_players(("prophet",)))
-    evt.data["actedcount"] += len(PRAYED)
+    evt.data["acted"].extend(PRAYED)
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

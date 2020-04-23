@@ -97,6 +97,7 @@ class IRCClient:
         self.real_name = ""
         self.host = None
         self.port = None
+        self.bindhost = ""
         self.password = ""
         self.authname = ""
         self.connect_cb = None
@@ -176,7 +177,9 @@ class IRCClient:
             retries = 0
             while True:
                 try:
-                    self.socket = socket.create_connection(("{0}".format(self.host), self.port))
+                    self.socket = socket.create_connection(
+                        ("{0}".format(self.host), self.port),
+                        source_address=("{0}".format(self.bindhost), 0))
                     break
                 except socket.error as e:
                     retries += 1
@@ -203,9 +206,8 @@ class IRCClient:
                 # explicitly disable compression (CRIME attack)
                 ctx.options |= ssl.OP_NO_COMPRESSION
 
-                if sys.version_info >= (3, 6):
-                    # TLS session tickets harm forward secrecy (this symbol is only defined in 3.6 and later)
-                    ctx.options |= ssl.OP_NO_TICKET
+                # TLS session tickets harm forward secrecy
+                ctx.options |= ssl.OP_NO_TICKET
 
                 if self.cert_verify and not self.cert_fp:
                     ctx.verify_mode = ssl.CERT_REQUIRED
@@ -254,13 +256,14 @@ class IRCClient:
 
             self.send("CAP LS 302")
 
-            if (self.server_pass and "{password}" in self.server_pass
-                    and self.password and not self.sasl_auth):
+            if self.server_pass and "{password}" in self.server_pass and self.password and not self.sasl_auth:
+                # If not using SASL, try to send the NickServ password during connect via PASS
                 message = "PASS :{0}".format(self.server_pass).format(
                     account=self.authname if self.authname else self.nickname,
                     password=self.password)
                 self.send(message, log="PASS :[redacted]")
-            elif self.server_pass:
+            elif self.server_pass and "{password}" not in self.server_pass:
+                # If {password} isn't present, then we likely have a connect password, so send that regardless of SASL
                 message = "PASS :{0}".format(self.server_pass)
                 self.send(message, log="PASS :[redacted]")
 

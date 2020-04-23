@@ -24,67 +24,8 @@ class MaelstromMode(GameMode):
         self.roles = All - Team_Switcher - Win_Stealer + {"fool", "lycan", "turncoat"} - self.SECONDARY_ROLES.keys()
         self.EVENTS = {
             "role_attribution": EventListener(self.role_attribution),
-            "transition_night_begin": EventListener(self.transition_night_begin),
-            "del_player": EventListener(self.on_del_player),
-            "join": EventListener(self.on_join)
+            "transition_night_begin": EventListener(self.transition_night_begin)
         }
-        self.DEAD_ACCOUNTS = set()
-
-    def on_del_player(self, evt, var, player, all_roles, death_triggers):
-        if player.is_fake:
-            return
-
-        if player.account is not None:
-            self.DEAD_ACCOUNTS.add(player.lower().account)
-
-    def on_join(self, evt, var, wrapper, message, forced=False):
-        if var.PHASE != "day" or (wrapper.public and wrapper.target is not channels.Main):
-            return
-        temp = wrapper.source.lower()
-        if wrapper.source in var.ALL_PLAYERS or temp.account in self.DEAD_ACCOUNTS:
-            wrapper.pm(messages["maelstrom_dead"])
-            return
-        if not forced and evt.data["join_player"](var, type(wrapper)(wrapper.source, channels.Main), sanity=False):
-            self._on_join(var, wrapper)
-            evt.prevent_default = True
-        elif forced:
-            # in fjoin, handle this differently
-            jp = evt.data["join_player"]
-            evt.data["join_player"] = lambda var, wrapper, who=None, forced=False: jp(var, wrapper, who=who, forced=forced, sanity=False) and self._on_join(var, wrapper)
-
-    def _on_join(self, var, wrapper):
-        from src import hooks
-        role = random.choice(list(self.roles))
-        with copy.deepcopy(var.ROLES) as rolemap, copy.deepcopy(var.MAIN_ROLES) as mainroles:
-            rolemap[role].add(wrapper.source)
-            mainroles[wrapper.source] = role
-
-            if self.chk_win_conditions(rolemap, mainroles, end_game=False):
-                return self._on_join(var, wrapper)
-
-        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
-            cmodes = [("+v", wrapper.source)]
-            for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
-                cmodes.append(("-" + mode, wrapper.source))
-                var.OLD_MODES[wrapper.source].add(mode)
-            channels.Main.mode(*cmodes)
-        evt = Event("new_role", {"messages": [], "role": role, "in_wolfchat": False}, inherit_from=None)
-        # Use "player" as old role, to force wolf event to send "new wolf" messages
-        evt.dispatch(var, wrapper.source, "player")
-        role = evt.data["role"]
-
-        var.ROLES[role].add(wrapper.source)
-        var.ORIGINAL_ROLES[role].add(wrapper.source)
-        var.FINAL_ROLES[wrapper.source] = role
-        var.MAIN_ROLES[wrapper.source] = role
-        var.ORIGINAL_MAIN_ROLES[wrapper.source] = role
-        var.LAST_SAID_TIME[wrapper.source.nick] = datetime.now()
-
-        for message in evt.data["messages"]:
-            wrapper.pm(message)
-
-        from src.decorators import COMMANDS
-        COMMANDS["myrole"][0].caller(var, wrapper, "")
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
         self.chk_win_conditions = chk_win_conditions
@@ -100,7 +41,9 @@ class MaelstromMode(GameMode):
         addroles = self._role_attribution(var, villagers, False)
 
         # shameless copy/paste of regular role attribution
-        for rs in var.ROLES.values():
+        for role, rs in var.ROLES.items():
+            if role in self.SECONDARY_ROLES:
+                continue
             rs.clear()
         # prevent wolf.py from sending messages about a new wolf to soon-to-be former wolves
         # (note that None doesn't work, so "player" works fine)

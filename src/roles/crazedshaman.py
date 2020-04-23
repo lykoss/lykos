@@ -53,15 +53,15 @@ def crazed_shaman_totem(var, wrapper, message):
             SHAMANS[wrapper.source][totem].pop(0)
 
 @event_listener("player_win")
-def on_player_win(evt, var, user, role, winner, survived):
-    if role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
-        evt.data["iwon"] = True
+def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
+    if main_role == "crazed shaman" and survived and singular(winner) not in Win_Stealer:
+        evt.data["individual_win"] = True
 
 @event_listener("transition_day_begin", priority=4)
 def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
-    for shaman in get_players(("crazed shaman",)):
+    for shaman in get_all_players(("crazed shaman",)):
         if is_silent(var, shaman):
             continue
 
@@ -88,7 +88,7 @@ def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["crazed shaman"] for x in chances.values())
     ps = get_players()
-    shamans = get_players(("crazed shaman",))
+    shamans = get_all_players(("crazed shaman",))
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]

@@ -28,11 +28,8 @@ TIME_RATE_LIMIT = 10
 START_RATE_LIMIT = 10 # (per-user)
 WAIT_RATE_LIMIT = 10  # (per-user)
 GOAT_RATE_LIMIT = 300 # (per-user)
-SHOTS_MULTIPLIER = .12  # ceil(shots_multiplier * len_players) = bullets given
-SHARPSHOOTER_MULTIPLIER = 0.06
 MIN_PLAYERS = 4
 MAX_PLAYERS = 24
-DRUNK_SHOTS_MULTIPLIER = 3
 NIGHT_TIME_LIMIT = 120
 NIGHT_TIME_WARN = 90  # should be less than NIGHT_TIME_LIMIT
 DAY_TIME_LIMIT = 720
@@ -46,7 +43,7 @@ SHORT_DAY_WARN = 400
 TIME_LORD_DAY_LIMIT = 60
 TIME_LORD_DAY_WARN = 45
 TIME_LORD_NIGHT_LIMIT = 30
-TIME_LORD_NIGHT_WARN = 20
+TIME_LORD_NIGHT_WARN = 0
 KILL_IDLE_TIME = 300
 WARN_IDLE_TIME = 180
 PM_WARN_IDLE_TIME = 240
@@ -76,6 +73,10 @@ PART_PENALTY = 1
 PART_EXPIRY = "30d"
 ACC_PENALTY = 1
 ACC_EXPIRY = "30d"
+# Give penalties if idling night.
+# All other penalties take precedence over night penalties; only one penalty will be given per game.
+NIGHT_IDLE_PENALTY = 1
+NIGHT_IDLE_EXPIRY = "14d"
 
 # If True, disallows adding stasis via !fstasis (requires warnings instead)
 RESTRICT_FSTASIS = True
@@ -89,9 +90,9 @@ RESTRICT_FSTASIS = True
 # warning points fall below that threshold.
 AUTO_SANCTION = (
         #min max sanctions
-        (4, 6, {"stasis": 1}),
-        (7, 11, {"scalestasis": (0, 1, -4)}),
-        (12, 12, {"tempban": 6})
+        (6, 10, {"stasis": 1}),
+        (11, 15, {"scalestasis": (0, 1, -8)}),
+        (16, 16, {"tempban": 8})
         )
 
 # Send a message to deadchat or wolfchat when a user spectates them
@@ -125,7 +126,6 @@ HIDDEN_AMNESIAC = False # amnesiac still shows as amnesiac if killed even after 
 HIDDEN_CLONE = False
 GUARDIAN_ANGEL_CAN_GUARD_SELF = True
 START_WITH_DAY = False
-WOLF_STEALS_GUN = True  # at night, the wolf can steal steal the victim's bullets
 ROLE_REVEAL = "on" # on/off/team - what role information is shown on death
 STATS_TYPE = "default" # default/accurate/team/disabled - what role information is shown when doing !stats
 
@@ -139,18 +139,28 @@ DISABLE_DEBUG_MODE_REAPER = True
 DISABLE_DEBUG_MODE_STASIS = True
 DEBUG_MODE_NOTHROW_MESSAGES = True
 
-# How likely a default game is replaced by a villagergame game, 1 = 100% 0 = 0%
-# villagergame has no wolves, the bot kills someone each night
-# village wins if and only if they can unanimously !vote the bot during the day
-VILLAGERGAME_CHANCE = 0
+# number of bullets a gunner role gets when the role is assigned or swapped in
+SHOTS_MULTIPLIER = {
+    "gunner": 0.12,
+    "sharpshooter": 0.06,
+    "wolf gunner": 0.06
+}
 
-                         #       HIT    MISS    HEADSHOT
-GUN_CHANCES              =   (   5/7  ,  1/7  ,   2/5   )
-WOLF_GUN_CHANCES         =   (   5/7  ,  1/7  ,   2/5   )
-DRUNK_GUN_CHANCES        =   (   2/7  ,  3/7  ,   2/5   )
-SHARPSHOOTER_GUN_CHANCES =   (    1   ,   0   ,    1    )
+# hit, miss, and headshot chances for each gunner role (explode = 1 - hit - miss)
+GUN_CHANCES = {
+    "gunner": (15/20, 4/20, 4/20), # 75% hit, 20% miss, 5% explode, 20% headshot
+    "sharpshooter": (1, 0, 1), # 100% hit, 0% miss, 0% explode, 100% headshot
+    "wolf gunner": (14/20, 6/20, 12/20) # 70% hit, 30% miss, 0% explode, 60% headshot
+}
 
+# modifier applied to regular gun chances if the user is also drunk
+DRUNK_GUN_CHANCES = (-5/20, 4/20, -3/20) # -25% hit, +20% miss, +5% explode, -15% headshot
+DRUNK_SHOTS_MULTIPLIER = 3
 GUNNER_KILLS_WOLF_AT_NIGHT_CHANCE = 1/4
+# at night, the wolf can steal 1 bullet from the victim and become a wolf gunner
+# (will always be 1 bullet regardless of SHOTS_MULTIPLIER setting for wolf gunner above)
+WOLF_STEALS_GUN = True
+
 GUARDIAN_ANGEL_DIES_CHANCE = 0
 BODYGUARD_DIES_CHANCE = 0
 DETECTIVE_REVEALED_CHANCE = 2/5
@@ -162,6 +172,13 @@ DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number
 
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
+
+# IP address to bind to before connecting, or empty string to use OS default
+BINDHOST = ""
+
+# Disable CPRIVMSG/CNOTICE -- some ircds implicitly treat regular PRIVMSG and NOTICE as such, and support more
+# targets per message the normal way than with the explicit command
+DISABLE_CPRIVMSG = False
 
 SSL_VERIFY = True
 SSL_CERTFP = ()

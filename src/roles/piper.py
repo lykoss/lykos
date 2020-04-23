@@ -12,9 +12,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-TOBECHARMED = UserDict() # type: Dict[users.User, Set[users.User]]
-CHARMED = UserSet() # type: Set[users.User]
-PASSED = UserSet() # type: Set[users.User]
+TOBECHARMED = UserDict() # type: UserDict[users.User, UserSet]
+CHARMED = UserSet()
+PASSED = UserSet()
 
 @command("charm", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("piper",))
 def charm(var, wrapper, message):
@@ -111,13 +111,10 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
         evt.data["winner"] = "pipers"
         evt.data["message"] = messages["piper_win"].format(lp)
 
-@event_listener("player_win")
-def on_player_win(evt, var, player, mainrole, winner, survived):
-    if winner != "pipers":
-        return
-
-    if mainrole == "piper":
-        evt.data["won"] = True
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, all_roles, winner):
+    if winner == "pipers" and main_role == "piper":
+        evt.data["team_win"] = True
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
@@ -155,7 +152,8 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(TOBECHARMED) + len(PASSED)
+    evt.data["acted"].extend(TOBECHARMED)
+    evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("piper",)))
 
 @event_listener("transition_night_end", priority=2)
@@ -197,5 +195,3 @@ def on_revealroles_role(evt, var, user, role):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["piper"] = {"Neutral", "Win Stealer", "Nocturnal"}
-
-# vim: set sw=4 expandtab:

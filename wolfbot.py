@@ -22,8 +22,8 @@ import sys
 import os
 
 ver = sys.version_info
-if ver < (3, 6):
-    print("Python 3.6 or newer is required to run the bot.")
+if ver < (3, 7):
+    print("Python 3.7 or newer is required to run the bot.")
     print("You are currently using {0}.{1}.{2}".format(ver[0], ver[1], ver[2]))
     sys.exit(1)
 
@@ -72,6 +72,7 @@ def main():
                        "": handler.unhandled},
                      host=botconfig.HOST,
                      port=botconfig.PORT,
+                     bindhost=var.BINDHOST,
                      authname=botconfig.USERNAME,
                      password=botconfig.PASS,
                      nickname=botconfig.NICK,

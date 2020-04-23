@@ -9,9 +9,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Nocturnal
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_killer
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
-register_killer("werecrow")
+register_wolf("werecrow")
 
 OBSERVED = UserDict() # type: UserDict[users.User, users.User]
 
@@ -58,7 +58,7 @@ def on_reset(evt, var):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(OBSERVED)
+    evt.data["acted"].extend(OBSERVED)
     evt.data["nightroles"].extend(get_all_players(("werecrow",)))
 
 @event_listener("new_role")
@@ -71,5 +71,3 @@ def on_new_role(evt, var, player, oldrole):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["werecrow"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Spy"}
-
-# vim: set sw=4 expandtab:

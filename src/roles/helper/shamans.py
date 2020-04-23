@@ -59,22 +59,22 @@ from src.cats import Cursed, Safe, Innocent, Wolf, All
 # It is generally unneeded to modify this file to add new totems or shaman roles    #
 #####################################################################################
 
-DEATH = UserDict()          # type: Dict[users.User, List[users.User]]
-PROTECTION = UserList()     # type: List[users.User]
-REVEALING = UserSet()       # type: Set[users.User]
-NARCOLEPSY = UserSet()      # type: Set[users.User]
-SILENCE = UserSet()         # type: Set[users.User]
-DESPERATION = UserSet()     # type: Set[users.User]
-IMPATIENCE = UserList()     # type: List[users.User]
-PACIFISM = UserList()       # type: List[users.User]
-INFLUENCE = UserSet()       # type: Set[users.User]
-EXCHANGE = UserSet()        # type: Set[users.User]
-LYCANTHROPY = UserSet()     # type: Set[users.User]
-LUCK = UserSet()            # type: Set[users.User]
-PESTILENCE = UserSet()      # type: Set[users.User]
-RETRIBUTION = UserSet()     # type: Set[users.User]
-MISDIRECTION = UserSet()    # type: Set[users.User]
-DECEIT = UserSet()          # type: Set[users.User]
+DEATH = UserDict() # type: UserDict[users.User, UserList]
+PROTECTION = UserList()
+REVEALING = UserSet()
+NARCOLEPSY = UserSet()
+SILENCE = UserSet()
+DESPERATION = UserSet()
+IMPATIENCE = UserList()
+PACIFISM = UserList()
+INFLUENCE = UserSet()
+EXCHANGE = UserSet()
+LYCANTHROPY = UserSet()
+LUCK = UserSet()
+PESTILENCE = UserSet()
+RETRIBUTION = UserSet()
+MISDIRECTION = UserSet()
+DECEIT = UserSet()
 
 # holding vars that don't persist long enough to need special attention in
 # reset/exchange/nickchange
@@ -108,19 +108,19 @@ def setup_variables(rolename, *, knows_totem):
         "RETARGET": RETARGET
     }
 
-    @event_listener("reset", listener_id="<{}>.on_reset".format(rolename))
+    @event_listener("reset", listener_id="shamans.<{}>.on_reset".format(rolename))
     def on_reset(evt, var):
         TOTEMS.clear()
         LASTGIVEN.clear()
         SHAMANS.clear()
         RETARGET.clear()
 
-    @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))
+    @event_listener("begin_day", listener_id="shamans.<{}>.on_begin_day".format(rolename))
     def on_begin_day(evt, var):
         SHAMANS.clear()
         RETARGET.clear()
 
-    @event_listener("revealroles_role", listener_id="<{}>.revealroles_role".format(rolename))
+    @event_listener("revealroles_role", listener_id="shamans.<{}>.revealroles_role".format(rolename))
     def on_revealroles(evt, var, user, role):
         if role == rolename and user in TOTEMS:
             if var.PHASE == "night":
@@ -135,7 +135,7 @@ def setup_variables(rolename, *, knows_totem):
                         given.append(messages["shaman_revealroles_day_totem"].format(totem, recip))
                 evt.data["special_case"].append(messages["shaman_revealroles_day"].format(given))
 
-    @event_listener("transition_day_begin", priority=7, listener_id="<{}>.transition_day_begin".format(rolename))
+    @event_listener("transition_day_begin", priority=7, listener_id="shamans.<{}>.transition_day_begin".format(rolename))
     def on_transition_day_begin2(evt, var):
         LASTGIVEN.clear()
         for shaman, given in SHAMANS.items():
@@ -187,7 +187,7 @@ def setup_variables(rolename, *, knows_totem):
                     LASTGIVEN[shaman][totem].append(victim)
                     havetotem.append(victim)
 
-    @event_listener("del_player", listener_id="<{}>.del_player".format(rolename))
+    @event_listener("del_player", listener_id="shamans.<{}>.del_player".format(rolename))
     def on_del_player(evt, var, player, all_roles, death_triggers):
         for a, b in list(SHAMANS.items()):
             if player is a:
@@ -202,24 +202,24 @@ def setup_variables(rolename, *, knows_totem):
                 if player in (c, d):
                     del RETARGET[a][c]
 
-    @event_listener("chk_nightdone", listener_id="<{}>.chk_nightdone".format(rolename))
+    @event_listener("chk_nightdone", listener_id="shamans.<{}>.chk_nightdone".format(rolename))
     def on_chk_nightdone(evt, var):
         # only count shaman as acted if they've given out all of their totems
         for shaman in SHAMANS:
             totemcount = sum(TOTEMS[shaman].values())
             given = len(list(itertools.chain.from_iterable(SHAMANS[shaman].values())))
             if given == totemcount:
-                evt.data["actedcount"] += 1
-        evt.data["nightroles"].extend(get_players((rolename,)))
+                evt.data["acted"].append(shaman)
+        evt.data["nightroles"].extend(get_all_players((rolename,)))
 
-    @event_listener("get_role_metadata", listener_id="<{}>.get_role_metadata".format(rolename))
+    @event_listener("get_role_metadata", listener_id="shamans.<{}>.get_role_metadata".format(rolename))
     def on_get_role_metadata(evt, var, kind):
         if kind == "night_kills":
             # only add shamans here if they were given a death totem
             # even though retribution kills, it is given a special kill message
             evt.data[rolename] = list(itertools.chain.from_iterable(TOTEMS.values())).count("death")
 
-    @event_listener("new_role", listener_id="<{}>.new_role".format(rolename))
+    @event_listener("new_role", listener_id="shamans.<{}>.new_role".format(rolename))
     def on_new_role(evt, var, player, old_role):
         if evt.params.inherit_from in TOTEMS and old_role != rolename and evt.data["role"] == rolename:
             totems = TOTEMS.pop(evt.params.inherit_from)
@@ -230,7 +230,7 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["messages"].append(totem_message(totems))
             TOTEMS[player] = totems
 
-    @event_listener("swap_role_state", listener_id="<{}>.swap_role_state".format(rolename))
+    @event_listener("swap_role_state", listener_id="shamans.<{}>.swap_role_state".format(rolename))
     def on_swap_role_state(evt, var, actor, target, role):
         if role == rolename and actor in TOTEMS and target in TOTEMS:
             TOTEMS[actor], TOTEMS[target] = TOTEMS[target], TOTEMS[actor]
@@ -243,17 +243,23 @@ def setup_variables(rolename, *, knows_totem):
                 evt.data["actor_messages"].append(totem_message(TOTEMS[actor]))
                 evt.data["target_messages"].append(totem_message(TOTEMS[target]))
 
-    @event_listener("default_totems", priority=3, listener_id="<{}>.default_totems".format(rolename))
+    @event_listener("default_totems", priority=3, listener_id="shamans.<{}>.default_totems".format(rolename))
     def add_shaman(evt, chances):
         evt.data["shaman_roles"].add(rolename)
 
-    @event_listener("transition_night_end", listener_id="<{}>.on_transition_night_end".format(rolename))
+    @event_listener("transition_night_end", listener_id="shamans.<{}>.on_transition_night_end".format(rolename))
     def on_transition_night_end(evt, var):
-        if var.NIGHT_COUNT > 1 and get_all_players((rolename,)) and var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
+        if var.NIGHT_COUNT == 0 or not get_all_players((rolename,)):
+            return
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["lycanthropy"][rolename] > 0:
             status.add_lycanthropy_scope(var, All)
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["luck"][rolename] > 0:
+            status.add_misdirection_scope(var, All, as_target=True)
+        if var.CURRENT_GAMEMODE.TOTEM_CHANCES["misdirection"][rolename] > 0:
+            status.add_misdirection_scope(var, All, as_actor=True)
 
     if knows_totem:
-        @event_listener("myrole", listener_id="<{}>.on_myrole".format(rolename))
+        @event_listener("myrole", listener_id="shamans.<{}>.on_myrole".format(rolename))
         def on_myrole(evt, var, user):
             if evt.data["role"] == rolename and var.PHASE == "night" and user not in SHAMANS:
                 evt.data["messages"].append(totem_message(TOTEMS[user]))

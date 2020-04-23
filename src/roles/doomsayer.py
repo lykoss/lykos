@@ -9,9 +9,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import All
 
-from src.roles.helper.wolves import is_known_wolf_ally, register_killer, send_wolfchat_message
+from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
 
-register_killer("doomsayer")
+register_wolf("doomsayer")
 
 SEEN = UserSet()
 KILLS = UserDict()
@@ -64,7 +64,7 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(SEEN)
+    evt.data["acted"].extend(SEEN)
     evt.data["nightroles"].extend(get_all_players(("doomsayer",)))
 
 @event_listener("transition_day_begin")

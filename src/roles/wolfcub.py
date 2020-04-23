@@ -11,8 +11,9 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Wolf, Killer
 
-from src.roles.helper.wolves import wolf_can_kill
+from src.roles.helper.wolves import wolf_can_kill, register_wolf
 
+register_wolf("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
@@ -50,6 +51,7 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
     did_something = False
     if lrealwolves == 0:
         for wc in list(rolemap["wolf cub"]):
+            var.NIGHT_IDLE_EXEMPT.add(wc) # if they grow up during night, don't give them idle warnings
             rolemap["wolf"].add(wc)
             rolemap["wolf cub"].remove(wc)
             if mainroles[wc] == "wolf cub":
@@ -90,5 +92,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam"}
-
-# vim: set sw=4 expandtab:

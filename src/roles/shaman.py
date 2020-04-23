@@ -53,7 +53,7 @@ def shaman_totem(var, wrapper, message):
 def on_transition_day_begin(evt, var):
     # Select random totem recipients if shamans didn't act
     pl = get_players()
-    for shaman in get_players(("shaman",)):
+    for shaman in get_all_players(("shaman",)):
         if is_silent(var, shaman):
             continue
 
@@ -80,7 +80,7 @@ def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["shaman"] for x in chances.values())
     ps = get_players()
-    shamans = get_players(("shaman",))
+    shamans = get_all_players(("shaman",))
     for s in list(LASTGIVEN):
         if s not in shamans:
             del LASTGIVEN[s]
@@ -142,5 +142,3 @@ def set_shaman_totems(evt, chances):
     chances["impatience"]   ["shaman"] = 1
     chances["pacifism"]     ["shaman"] = 1
     chances["influence"]    ["shaman"] = 1
-
-# vim: set sw=4 expandtab:

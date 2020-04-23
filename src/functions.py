@@ -115,6 +115,9 @@ def change_role(var, player, oldrole, newrole, *, inherit_from=None, message="ne
         var.MAIN_ROLES[player] = newrole
         var.FINAL_ROLES[player] = newrole
 
+    # if giving the player a new role during night, don't warn them for not acting
+    var.NIGHT_IDLE_EXEMPT.add(player)
+
     sayrole = newrole
     if sayrole in Hidden:
         sayrole = var.HIDDEN_ROLE

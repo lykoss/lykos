@@ -81,7 +81,9 @@ def kill_players(var, *, end_game: bool = True) -> bool:
             for role in all_roles:
                 var.ROLES[role].remove(player)
             dead.add(player)
-            var.DEAD.add(player)
+            # Don't track players that quit before the game started
+            if var.PHASE != "join":
+	            var.DEAD.add(player)
             # notify listeners that the player died for possibility of chained deaths
             evt = Event("del_player", {},
                         killer_role=killer_role,

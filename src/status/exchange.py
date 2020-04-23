@@ -6,7 +6,7 @@ from src.events import Event
 
 __all__ = ["add_exchange", "try_exchange"]
 
-EXCHANGE = UserSet() # type: Set[users.User]
+EXCHANGE = UserSet()
 
 def add_exchange(var, user):
     if user not in get_players():

@@ -34,7 +34,7 @@ Lykos has a host of commands which can be used for various purposes. [You can vi
 
 The bot requires some setup before it can be up and running. Here are the required steps:
 
-- You need to have Python 3.5 or above installed on your machine or the server on which the bot will be running. Steps on how to install Python on your machine will not be covered here, although if you are using Windows, then you can simply download and install the [official Python binaries][pydownload].
+- You need to have Python 3.7 or above installed on your machine or the server on which the bot will be running. Steps on how to install Python on your machine will not be covered here, although if you are using Windows, then you can simply download and install the [official Python binaries][pydownload].
 - If building Python from source, you will need to include SQLite3 as part of the building process, as the bot uses it.
 - To enable the ability to update the bot with the changes that we bring to it, you will need to [download and install Git][git].
 - If your network supports it, create an account for your bot and give it automatic op upon joining your channel via your channel management service (typically the `+O` flag if using `ChanServ`).

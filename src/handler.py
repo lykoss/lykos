@@ -21,7 +21,7 @@ from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
 from src.context import Features
 from src.users import User
-from src.events import EventListener
+from src.events import Event, EventListener
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
@@ -132,19 +132,33 @@ def parse_and_dispatch(var,
         common_roles = set(roles)  # roles shared by every eligible role command
         # A user can be a participant but not have a role, for example, dead vengeful ghost
         has_roles = len(roles) != 0
-        if role_prefix is not None:
-            roles &= {role_prefix}  # only fire off role commands for the user-specified role
     else:
         roles = set()
         common_roles = set()
         has_roles = False
 
-    for fn in decorators.COMMANDS.get(key, []):
-        if not fn.roles:
-            cmds.append(fn)
-        elif roles.intersection(fn.roles):
-            cmds.append(fn)
-            common_roles.intersection_update(fn.roles)
+    for i in range(2):
+        cmds.clear()
+        common_roles = set(roles)
+        # if we execute this loop twice, it means we had an ambiguity the first time around
+        # only fire off role commands for the user-specified role in that event, if one was provided
+        # doing it this way ensures we only look at the role prefix if it's actually required,
+        # meaning that prefixing a role for public commands doesn't "prove" the user has that role
+        # in the vast majority of cases
+        if i == 1 and role_prefix is not None:
+            roles &= {role_prefix}
+
+        for fn in decorators.COMMANDS.get(key, []):
+            if not fn.roles:
+                cmds.append(fn)
+            elif roles.intersection(fn.roles):
+                cmds.append(fn)
+                common_roles.intersection_update(fn.roles)
+
+        # if this isn't a role command or the command is unambiguous, continue logic instead of
+        # making use of role_prefix
+        if not has_roles or common_roles:
+            break
 
     if has_roles and not common_roles:
         # getting here means that at least one of the role_cmds is disjoint
@@ -312,6 +326,10 @@ def connect_callback(cli):
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
+        # give bot operators an opportunity to do some custom stuff here if they wish
+        event = Event("irc_connected", {})
+        event.dispatch(var, cli)
+
         # don't join any channels if we're just doing a lag check
         if not lagcheck:
             channels.Main = channels.add(botconfig.CHANNEL, cli)
@@ -397,7 +415,7 @@ def connect_callback(cli):
         hook("unavailresource", hookid=240)(mustrelease)
         hook("nicknameinuse", hookid=241)(mustregain)
 
-    request_caps = {"account-notify", "extended-join", "multi-prefix", "chghost"}
+    request_caps = {"account-notify", "chghost", "extended-join", "multi-prefix"}
 
     if botconfig.SASL_AUTHENTICATION:
         request_caps.add("sasl")
@@ -432,7 +450,7 @@ def connect_callback(cli):
             common_caps = request_caps & supported_caps
 
             if common_caps:
-                cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
+                cli.send("CAP REQ :{0}".format(" ".join(common_caps)))
 
         elif cmd == "ACK":
             acked_caps = caps[0].split()
@@ -463,6 +481,29 @@ def connect_callback(cli):
             # capability but now claims otherwise.
             alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
+        elif cmd == "NEW":
+            # New capability advertised by the server, see if we want to enable it
+            new_caps = caps[0].split()
+            req_new_caps = set()
+            for item in new_caps:
+                try:
+                    key, value = item.split("=", 1)
+                except ValueError:
+                    key = item
+                    value = None
+                if key not in supported_caps and key in request_caps and key != "sasl":
+                    req_new_caps.add(key)
+                supported_caps.add(key)
+            if req_new_caps:
+                cli.send("CAP REQ :{0}".format(" ".join(req_new_caps)))
+
+        elif cmd == "DEL":
+            # Server no longer supports these capabilities
+            rem_caps = caps[0].split()
+            for item in rem_caps:
+                supported_caps.discard(item)
+                Features.unset(item)
+
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")
         def auth_plus(cli, something, plus):
@@ -475,16 +516,15 @@ def connect_callback(cli):
                     auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
-        @hook("903")
+        @hook("saslsuccess")
         def on_successful_auth(cli, blah, blahh, blahhh):
             nonlocal selected_sasl
             Features["sasl"] = selected_sasl
             cli.send("CAP END")
 
-        @hook("904")
-        @hook("905")
-        @hook("906")
-        @hook("907")
+        @hook("saslfail")
+        @hook("sasltoolong")
+        @hook("saslaborted")
         def on_failure_auth(cli, *etc):
             nonlocal selected_sasl
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):

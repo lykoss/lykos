@@ -62,5 +62,3 @@ def on_get_role_metadata(evt, var, kind):
         evt.data["seer"] = {"Village", "Nocturnal", "Spy", "Safe"}
     elif kind == "lycanthropy_role":
         evt.data["seer"] = {"role": "doomsayer", "prefix": "seer"}
-
-# vim: set sw=4 expandtab:

@@ -12,8 +12,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Spy
+from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
-from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message
+register_wolf("sorcerer")
 
 OBSERVED = UserSet() # type: UserSet[users.User]
 
@@ -53,7 +54,7 @@ def observe(var, wrapper, message):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(OBSERVED)
+    evt.data["acted"].extend(OBSERVED)
     evt.data["nightroles"].extend(get_all_players(("sorcerer",)))
 
 @event_listener("del_player")

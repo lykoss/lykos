@@ -15,6 +15,8 @@ from src.status import try_misdirection, try_exchange
 from src.roles.helper.wolves import get_wolfchat_roles
 
 IDOLS = UserDict()
+CAN_ACT = UserSet()
+ACTED = UserSet()
 
 @command("choose", chan=False, pm=True, playing=True, phases=("night",), roles=("wild child",))
 def choose_idol(var, wrapper, message):
@@ -28,6 +30,7 @@ def choose_idol(var, wrapper, message):
         return
 
     IDOLS[wrapper.source] = idol
+    ACTED.add(wrapper.source)
     wrapper.send(messages["wild_child_success"].format(idol))
     debuglog("{0} (wild child) IDOLIZE: {1} ({2})".format(wrapper.source, idol, get_main_role(idol)))
 
@@ -69,6 +72,8 @@ def on_myrole(evt, var, user):
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):
     del IDOLS[:player:]
+    CAN_ACT.discard(player)
+    ACTED.discard(player)
     if not death_triggers:
         return
 
@@ -80,8 +85,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
-    evt.data["actedcount"] += len(IDOLS)
-    evt.data["nightroles"].extend(get_all_players(("wild child",)))
+    evt.data["acted"].extend(ACTED)
+    evt.data["nightroles"].extend(CAN_ACT)
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
@@ -99,9 +104,13 @@ def on_transition_day_begin(evt, var):
 
 @event_listener("transition_night_end", priority=2)
 def on_transition_night_end(evt, var):
+    CAN_ACT.update(get_all_players(("wild child",)) - IDOLS.keys())
     for child in get_all_players(("wild child",)):
         if child not in IDOLS:
-            child.send(messages["wild_child_notify"])
+            pl = list(get_players())
+            pl.remove(child)
+            random.shuffle(pl)
+            child.send(messages["wild_child_notify"], messages["players_list"].format(pl), sep="\n")
 
 @event_listener("revealroles_role")
 def on_revealroles_role(evt, var, user, role):
@@ -122,12 +131,18 @@ def on_update_stats(evt, var, player, main_role, reveal_role, all_roles):
         # wild children always die as such even if their main_role is a wolf role
         evt.data["possible"] = {"wild child"}
 
+@event_listener("begin_day")
+def on_begin_day(evt, var):
+    CAN_ACT.clear()
+    ACTED.clear()
+
 @event_listener("reset")
 def on_reset(evt, var):
     IDOLS.clear()
+    CAN_ACT.clear()
+    ACTED.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["wild child"] = {"Village", "Team Switcher"}
-

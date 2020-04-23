@@ -113,5 +113,3 @@ def on_reset(evt, var):
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["investigator"] = {"Village", "Spy", "Safe"}
-
-# vim: set sw=4 expandtab:
