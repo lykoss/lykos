@@ -176,6 +176,10 @@ GAME_PHASES = ("night", "day") # all phases that constitute "in game", game mode
 # IP address to bind to before connecting, or empty string to use OS default
 BINDHOST = ""
 
+# Disable CPRIVMSG/CNOTICE -- some ircds implicitly treat regular PRIVMSG and NOTICE as such, and support more
+# targets per message the normal way than with the explicit command
+DISABLE_CPRIVMSG = False
+
 SSL_VERIFY = True
 SSL_CERTFP = ()
 # Tracking Mozilla's "intermediate" compatibility list -- https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29

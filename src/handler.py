@@ -21,7 +21,7 @@ from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
 from src.context import Features
 from src.users import User
-from src.events import EventListener
+from src.events import Event, EventListener
 
 @handle_error
 def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
@@ -326,6 +326,10 @@ def connect_callback(cli):
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
+        # give bot operators an opportunity to do some custom stuff here if they wish
+        event = Event("irc_connected", {})
+        event.dispatch(var, cli)
+
         # don't join any channels if we're just doing a lag check
         if not lagcheck:
             channels.Main = channels.add(botconfig.CHANNEL, cli)
@@ -411,7 +415,7 @@ def connect_callback(cli):
         hook("unavailresource", hookid=240)(mustrelease)
         hook("nicknameinuse", hookid=241)(mustregain)
 
-    request_caps = {"account-notify", "extended-join", "multi-prefix", "chghost"}
+    request_caps = {"account-notify", "chghost", "extended-join", "multi-prefix"}
 
     if botconfig.SASL_AUTHENTICATION:
         request_caps.add("sasl")
@@ -446,7 +450,7 @@ def connect_callback(cli):
             common_caps = request_caps & supported_caps
 
             if common_caps:
-                cli.send("CAP REQ " ":{0}".format(" ".join(common_caps)))
+                cli.send("CAP REQ :{0}".format(" ".join(common_caps)))
 
         elif cmd == "ACK":
             acked_caps = caps[0].split()
@@ -476,6 +480,29 @@ def connect_callback(cli):
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
             alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
+
+        elif cmd == "NEW":
+            # New capability advertised by the server, see if we want to enable it
+            new_caps = caps[0].split()
+            req_new_caps = set()
+            for item in new_caps:
+                try:
+                    key, value = item.split("=", 1)
+                except ValueError:
+                    key = item
+                    value = None
+                if key not in supported_caps and key in request_caps and key != "sasl":
+                    req_new_caps.add(key)
+                supported_caps.add(key)
+            if req_new_caps:
+                cli.send("CAP REQ :{0}".format(" ".join(req_new_caps)))
+
+        elif cmd == "DEL":
+            # Server no longer supports these capabilities
+            rem_caps = caps[0].split()
+            for item in rem_caps:
+                supported_caps.discard(item)
+                Features.unset(item)
 
     if botconfig.SASL_AUTHENTICATION:
         @hook("authenticate")

@@ -358,62 +358,30 @@ def on_ping(cli, prefix, server):
 ### Fetch and store server information
 
 @hook("featurelist")
-def get_features(cli, rawnick, *features):
+def get_features(cli, server, nick, *features):
     """Fetch and store the IRC server features.
 
     Ordering and meaning of arguments for a feature listing:
 
     0 - The IRCClient instance(like everywhere else)
-    1 - The raw nick (nick!ident@host) of the requester (i.e. the bot)
+    1 - Server the requestor is on
+    2 - Bot's nick
     * - A variable number of arguments, one per available feature
 
     """
 
-    # features with params (key:value, possibly multiple separated by comma)
-    comma_param_features = ("CHANLIMIT", "MAXLIST", "TARGMAX", "IDCHAN")
-    # features with a prefix in parens
-    prefix_features = ("PREFIX",)
-    # features which take multiple arguments separated by comma (but are not params)
-    # Note: CMDS is specific to UnrealIRCD
-    comma_list_features = ("CHANMODES", "EXTBAN", "CMDS")
-    # features which take multiple arguments separated by semicolon (but are not params)
-    # Note: SSL is specific to InspIRCD
-    semi_list_features = ("SSL",)
+    # final thing in each feature listing is the text "are supported by this server" -- discard it
+    features = features[:-1]
 
     for feature in features:
-        if "=" in feature:
-            name, data = feature.split("=")
-            if name in comma_param_features:
-                Features[name] = {}
-                for param in data.split(","):
-                    param, value = param.split(":")
-                    if value.isdigit():
-                        value = int(value)
-                    elif not value:
-                        value = None
-                    Features[name][param] = value
-
-            elif name in prefix_features:
-                gen = (x for y in data.split("(") for x in y.split(")") if x)
-                # Reverse the order
-                value = next(gen)
-                Features[name] = dict(zip(next(gen), value))
-
-            elif name in comma_list_features:
-                Features[name] = data.split(",")
-
-            elif name in semi_list_features:
-                Features[name] = data.split(";")
-
-            else:
-                if data.isdigit():
-                    data = int(data)
-                elif not data.isalnum() and "." not in data:
-                    data = frozenset(data)
-                Features[name] = data
-
+        if feature[0] == "-":
+            # removing a feature
+            Features.unset(feature[1:])
+        elif "=" in feature:
+            name, data = feature.split("=", maxsplit=1)
+            Features.set(name, data)
         else:
-            Features[feature] = True
+            Features.set(feature, "")
 
 ### Channel and user MODE handling
 

@@ -206,9 +206,8 @@ class IRCClient:
                 # explicitly disable compression (CRIME attack)
                 ctx.options |= ssl.OP_NO_COMPRESSION
 
-                if sys.version_info >= (3, 6):
-                    # TLS session tickets harm forward secrecy (this symbol is only defined in 3.6 and later)
-                    ctx.options |= ssl.OP_NO_TICKET
+                # TLS session tickets harm forward secrecy
+                ctx.options |= ssl.OP_NO_TICKET
 
                 if self.cert_verify and not self.cert_fp:
                     ctx.verify_mode = ssl.CERT_REQUIRED
