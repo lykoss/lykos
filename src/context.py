@@ -551,7 +551,10 @@ class IRCFeatures:
     # General-purpose methods to view and manipulate data
 
     def __getitem__(self, item: str) -> Any:
-        return getattr(self, item, self._features[item])
+        try:
+            return getattr(self, item)
+        except AttributeError:
+            return self._features[item]
 
     def __setitem__(self, key: str, value: str):
         if hasattr(self, key):
