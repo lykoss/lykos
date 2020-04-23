@@ -1702,7 +1702,7 @@ def on_join(evt, chan, user): # FIXME: This uses var
         plog("Joined {0}".format(chan))
     if chan is not channels.Main:
         return
-    return_to_village(var, user, show_message=True)
+    user.update_account_data("<chan_join>", lambda new_user: return_to_village(var, new_user, show_message=True))
 
 @command("goat")
 def goat(var, wrapper, message):
@@ -1738,11 +1738,11 @@ def fgoat(var, wrapper, message):
 
 @handle_error
 def return_to_village(var, target, *, show_message, new_user=None):
-    # Note: we do not manipulate or check target.disconnected, as that property
-    # is used to determine if they are entirely dc'ed rather than just maybe using
-    # a different account or /parting the channel. If they were dced for real and
-    # rejoined IRC, the join handler already took care of marking them no longer dced.
     with var.GRAVEYARD_LOCK:
+        if channels.Main not in target.channels:
+            # managed to leave the channel in between the time return_to_village was scheduled and called
+            return
+
         if target.account not in var.ORIGINAL_ACCS.values():
             return
 
@@ -1885,7 +1885,6 @@ def leave(var, what, user, why=None):
         add_dying(var, user, "bot", what, death_triggers=False)
         kill_players(var)
     else:
-        temp = user.lower()
         var.DISCONNECTED[user] = (datetime.now(), what)
 
 @command("leave", pm=True, phases=("join", "day", "night"))

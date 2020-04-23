@@ -725,22 +725,25 @@ def join_chan(cli, rawnick, chan, account=None, realname=None):
         realname = None
 
     ch = channels.add(chan, cli)
-    ch.state = channels._States.Joined
 
     user = users.get(nick=rawnick, account=account, allow_bot=True, allow_none=True, allow_ghosts=True)
     if user is None:
         user = users.add(cli, nick=rawnick, account=account)
+    if account:
+        # ensure we work for the case when user left, changed accounts, then rejoined as a different account
+        user.account = account
+        user = users.get(nick=rawnick, account=account)
     ch.users.add(user)
     user.channels[ch] = set()
     # mark the user as here, in case they used to be connected before but left
     user.disconnected = False
 
+    Event("chan_join", {}).dispatch(ch, user)
+
     if user is users.Bot:
         ch.mode()
         ch.mode(Features["CHANMODES"][0])
         ch.who()
-
-    Event("chan_join", {}).dispatch(ch, user)
 
 ### PART handling
 

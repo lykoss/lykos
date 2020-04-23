@@ -3,7 +3,7 @@ import time
 from enum import Enum
 
 from src.context import IRCContext, Features, lower
-from src.events import Event
+from src.events import Event, EventListener
 from src import settings as var
 from src import users, stream
 from src.debug import CheckedSet, CheckedDict
@@ -68,6 +68,12 @@ def exists(name):
 def channels():
     """Iterate over all the current channels."""
     yield from _channels.values()
+
+def _chan_join(evt, channel, user):
+    if user is users.Bot:
+        channel.state = _States.Joined
+
+EventListener(_chan_join).install("chan_join")
 
 class Channel(IRCContext):
 
