@@ -244,6 +244,7 @@ class IRCContext:
                 return "CPRIVMSG", cprivmsg_eligible.name
             elif send_type == "NOTICE" and Features.CNOTICE:
                 return "CNOTICE", cprivmsg_eligible.name
+        return send_type, None
 
     def send(self, *data, first=None, sep=None, notice=False, privmsg=False, prefix=None):
         new = []
