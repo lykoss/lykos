@@ -1,6 +1,6 @@
 from typing import Iterator, TypeVar, Union, Set, Dict, Mapping, Iterable
 import collections.abc
-import botconfig
+from src import config
 from src.debug.history import History
 
 __all__ = ["CheckedDict"]
@@ -19,7 +19,7 @@ class CheckedDict(collections.abc.MutableMapping):
     """
 
     def __new__(cls, name: str, arg: Union[None, Mapping, Iterable] = None, **kwargs):
-        if not botconfig.DEBUG_MODE:
+        if not config.Main.get("debug.enabled"):
             if arg is None:
                 return dict(**kwargs)
             else:

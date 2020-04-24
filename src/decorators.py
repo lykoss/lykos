@@ -17,7 +17,7 @@ import src.settings as var
 import src
 from src.functions import get_players
 from src.messages import messages
-from src import channels, users, logger, errlog, events
+from src import config, channels, users, logger, errlog, events
 from src.users import User
 from src.dispatcher import MessageDispatcher
 
@@ -223,7 +223,7 @@ class command:
                  phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None):
 
         # the "d" flag indicates it should only be enabled in debug mode
-        if flag == "d" and not botconfig.DEBUG_MODE:
+        if flag == "d" and not config.Main.get("debug.enabled"):
             return
 
         # handle command localizations

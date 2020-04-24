@@ -1,6 +1,6 @@
 import traceback
 from typing import Set, List, Tuple, Dict, Optional
-import botconfig
+from src import config
 
 __all__ = ["History", "enable_history", "disable_history"]
 
@@ -12,9 +12,8 @@ def enable_history(name: str) -> None:
 def disable_history(name: str) -> None:
     ENABLED_NAMES.discard(name)
 
-ENABLED_NAMES.update(getattr(botconfig, "DEBUG_HISTORY_NAMES", set()))
-
-HISTORY_LIMIT = getattr(botconfig, "DEBUG_HISTORY_LIMIT", 50) # type: int
+ENABLED_NAMES.update(config.Main.get("debug.containers.names"))
+HISTORY_LIMIT = config.Main.get("debug.containers.limit") # type: int
 
 class History:
     def __init__(self, name: str):

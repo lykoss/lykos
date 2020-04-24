@@ -19,49 +19,38 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import copy
-import fnmatch
-import functools
 import itertools
 import json
-import math
 import os
 import platform
 import random
 import re
 import signal
 import socket
-import string
 import subprocess
 import sys
 import threading
 import time
-import traceback
 import urllib.request
 
-from collections import defaultdict, deque, Counter
+from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import Set, Optional, Callable, Tuple
 
-from oyoyo.parse import parse_nick
-
-import botconfig
-import src
 import src.settings as var
 from src.utilities import *
-from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats, handler
+from src import db, config, events, dispatcher, channels, users, hooks, debuglog, errlog, plog, handler
 from src.users import User
 
-from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, handle_error, event_listener, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.messages import messages, get_role_name
+from src.messages import messages
 from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
-from src.cats import All, Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, role_order
+from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, role_order
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -125,35 +114,6 @@ var.STARTED_DAY_PLAYERS = 0
 var.DISCONNECTED = UserDict() # type: UserDict[User, Tuple[datetime, str]]
 
 var.RESTARTING = False
-
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
-    var.NIGHT_TIME_LIMIT = 0 # 120
-    var.NIGHT_TIME_WARN = 0 # 90
-    var.DAY_TIME_LIMIT = 0 # 720
-    var.DAY_TIME_WARN = 0 # 600
-    var.SHORT_DAY_LIMIT = 0 # 520
-    var.SHORT_DAY_WARN = 0 # 400
-
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER:
-    var.KILL_IDLE_TIME = 0 # 300
-    var.WARN_IDLE_TIME = 0 # 180
-    var.PM_WARN_IDLE_TIME = 0 # 240
-    var.JOIN_TIME_LIMIT = 0 # 3600
-
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_STASIS:
-    var.LEAVE_PENALTY = 0
-    var.IDLE_PENALTY = 0
-    var.NIGHT_IDLE_PENALTY = 0
-    var.PART_PENALTY = 0
-    var.ACC_PENALTY = 0
-
-if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIME_LORD:
-    var.TIME_LORD_DAY_LIMIT = 0 # 60
-    var.TIME_LORD_DAY_WARN = 0 # 45
-    var.TIME_LORD_NIGHT_LIMIT = 0 # 30
-    var.TIME_LORD_NIGHT_WARN = 0 # 20
-
-plog("Loading Werewolf IRC bot")
 
 def connect_callback():
     db.init_vars()
@@ -356,7 +316,7 @@ def forced_exit(var, wrapper, message):
     args = message.split()
 
     # Force in debug mode by default
-    force = botconfig.DEBUG_MODE
+    force = config.Main.get("debug.enabled")
 
     if args and args[0] == "-dirty":
         # use as a last resort
@@ -403,7 +363,7 @@ def restart_program(var, wrapper, message):
     args = message.split()
 
     # Force in debug mode by default
-    force = botconfig.DEBUG_MODE
+    force = config.Main.get("debug.enabled")
 
     if args and args[0] == "-force":
         force = True
@@ -834,7 +794,7 @@ def _join_player(var, wrapper, who=None, forced=False):
         who.send(messages["game_already_running"], notice=True)
         return False
     else:
-        if not botconfig.DEBUG_MODE:
+        if not config.Main.get("debug.enabled"):
             for player in pl:
                 if users.equals(player.account, temp.account):
                     if who is wrapper.source:
@@ -844,7 +804,7 @@ def _join_player(var, wrapper, who=None, forced=False):
                     return
 
         var.ALL_PLAYERS.append(wrapper.source)
-        if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+        if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
             for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
                 cmodes.append(("-" + mode, wrapper.source))
                 var.OLD_MODES[wrapper.source].add(mode)
@@ -884,7 +844,7 @@ def _join_player(var, wrapper, who=None, forced=False):
         t.daemon = True
         t.start()
 
-    if not wrapper.source.is_fake or not botconfig.DEBUG_MODE:
+    if not wrapper.source.is_fake or not config.Main.get("debug.enabled"):
         channels.Main.mode(*cmodes)
 
     return True
@@ -929,7 +889,8 @@ def fjoin(var, wrapper: MessageDispatcher, message: str):
 
     parts = re.split(" +", message)
     to_join = []
-    if not botconfig.DEBUG_MODE:
+    debug_mode = config.Main.get("debug.enabled")
+    if not debug_mode:
         match = users.complete_match(parts[0], wrapper.target.users)
         if match:
             to_join.append(match.get())
@@ -938,7 +899,7 @@ def fjoin(var, wrapper: MessageDispatcher, message: str):
             match = users.complete_match(s, wrapper.target.users)
             if match:
                 to_join.append(match.get())
-            elif botconfig.DEBUG_MODE and re.fullmatch(r"[0-9+](?:-[0-9]+)?", s):
+            elif debug_mode and re.fullmatch(r"[0-9+](?:-[0-9]+)?", s):
                 # in debug mode, allow joining fake nicks
                 to_join.append(s)
     for tojoin in to_join:
@@ -949,12 +910,12 @@ def fjoin(var, wrapper: MessageDispatcher, message: str):
                 evt.data["join_player"](var, type(wrapper)(tojoin, wrapper.target), forced=True, who=wrapper.source)
                 success = True
         # Allow joining single number fake users in debug mode
-        elif users.predicate(tojoin) and botconfig.DEBUG_MODE:
+        elif users.predicate(tojoin) and debug_mode:
             user = users.add(wrapper.client, nick=tojoin)
             evt.data["join_player"](var, type(wrapper)(user, wrapper.target), forced=True, who=wrapper.source)
             success = True
         # Allow joining ranges of numbers as fake users in debug mode
-        elif "-" in tojoin and botconfig.DEBUG_MODE:
+        elif "-" in tojoin and debug_mode:
             first, hyphen, last = tojoin.partition("-")
             if first.isdigit() and last.isdigit():
                 if int(last)+1 - int(first) > var.MAX_PLAYERS - len(get_players()):
@@ -1819,7 +1780,7 @@ def quit_server(evt, user, reason): # FIXME: This uses var
 def leave(var, what, user, why=None):
     if what in ("part", "kick") and why is not channels.Main:
         return
-    if why and why == botconfig.CHANGING_HOST_QUIT_MESSAGE:
+    if why and why == var.CHANGING_HOST_QUIT_MESSAGE:
         return
     if var.PHASE == "none":
         return
@@ -2347,7 +2308,7 @@ def relay(var, wrapper, message):
     if wrapper.source in pl and wrapper.source in var.IDLE_WARNED_PM:
         wrapper.pm(messages["privmsg_idle_warning"].format(channels.Main))
 
-    if message.startswith(botconfig.CMD_CHAR):
+    if message.startswith(var.CMD_CHAR):
         return
 
     if "src.roles.helper.wolves" in sys.modules:
@@ -2690,8 +2651,8 @@ def reset_game(var, wrapper, message):
 def show_rules(var, wrapper, message):
     """Displays the rules."""
 
-    if hasattr(botconfig, "RULES"):
-        rules = botconfig.RULES
+    if hasattr(var, "RULES"):
+        rules = var.RULES
         wrapper.reply(messages["channel_rules"].format(channels.Main, rules))
     else:
         wrapper.reply(messages["no_channel_rules"].format(channels.Main))
@@ -2774,7 +2735,7 @@ def wiki(var, wrapper, message):
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
-    if chan == botconfig.CHANNEL:
+    if chan == var.CHANNEL:
         cli.join(chan)
         return # No questions
     user = users.get(raw_nick, allow_none=True)
@@ -2909,7 +2870,7 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+        wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, var.CMD_CHAR, gamemode.name), prefix_nick=True)
         return
 
     msg = []
@@ -2939,7 +2900,7 @@ def list_roles(var, wrapper, message):
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+            wrapper.reply("{0}roles is disabled for the {1} game mode.".format(var.CMD_CHAR, gamemode.name), prefix_nick=True)
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
@@ -3019,7 +2980,7 @@ def aftergame(var, wrapper, message):
         return
 
     args = re.split(" +", message)
-    before, prefix, after = args.pop(0).lower().partition(botconfig.CMD_CHAR)
+    before, prefix, after = args.pop(0).lower().partition(var.CMD_CHAR)
     if not prefix: # the prefix was not in the string
         cmd = before
     elif after and not before: # message was prefixed
@@ -3422,7 +3383,7 @@ def can_run_restricted_cmd(user):
     # non-players (don't allow active vengeful ghosts either).
     # also don't allow in-channel (e.g. make it pm only)
 
-    if botconfig.DEBUG_MODE:
+    if config.Main.get("debug.enabled"):
         return True
 
     pl = get_participants()
@@ -3531,7 +3492,7 @@ def revealroles(var, wrapper, message):
     evt = Event("revealroles", {"output": output})
     evt.dispatch(var)
 
-    if botconfig.DEBUG_MODE:
+    if config.Main.get("debug.enabled"):
         wrapper.send(*output, sep=" | ")
     else:
         wrapper.pm(*output, sep=" | ")

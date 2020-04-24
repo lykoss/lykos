@@ -1,16 +1,15 @@
 import datetime
 import time
 
-import botconfig
+from src import config
 
 def logger(file, write=True, display=True):
     if file is not None:
         open(file, "a").close() # create the file if it doesn't exist
     def log(*output, write=write, display=display):
         output = " ".join([str(x) for x in output]).replace("\u0002", "").replace("\\x02", "") # remove bold
-        if botconfig.DEBUG_MODE:
+        if config.Main.get("debug.enabled"):
             write = True
-        if botconfig.DEBUG_MODE or botconfig.VERBOSE_MODE:
             display = True
         timestamp = get_timestamp()
         if display:
@@ -34,9 +33,9 @@ utf8stdout = open(1, 'w', errors="replace", closefd=False) # stdout
 def get_timestamp(use_utc=None, ts_format=None):
     """Return a timestamp with timezone + offset from UTC."""
     if use_utc is None:
-        use_utc = botconfig.USE_UTC
+        use_utc = True # FIXME: botconfig
     if ts_format is None:
-        ts_format = botconfig.TIMESTAMP_FORMAT
+        ts_format = "[%Y-%m-%d %H:%M:%S{tzoffset}]" # FIXME: botconfig
     if use_utc:
         tmf = datetime.datetime.utcnow().strftime(ts_format)
         tz = "UTC"
@@ -51,10 +50,7 @@ def get_timestamp(use_utc=None, ts_format=None):
     return tmf.format(tzname=tz, tzoffset=offset).strip().upper() + " "
 
 def stream(output, level="normal"):
-    if botconfig.VERBOSE_MODE or botconfig.DEBUG_MODE:
+    if config.Main.get("debug.enabled"):
         plog(output)
     elif level in ("warning", "error"):
         plog(output)
-
-
-# vim: set sw=4 expandtab:

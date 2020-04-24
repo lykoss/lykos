@@ -1,6 +1,6 @@
 from typing import Iterator, TypeVar, Optional, Set
 import collections.abc
-import botconfig
+from src import config
 from src.debug.history import History
 
 __all__ = ["CheckedSet"]
@@ -17,7 +17,7 @@ class CheckedSet(collections.abc.MutableSet):
     """
 
     def __new__(cls, name: str, iterable: Optional[Iterator[T_co]] = None):
-        if not botconfig.DEBUG_MODE:
+        if not config.Main.get("debug.enabled"):
             if iterable is None:
                 return set()
             else:
