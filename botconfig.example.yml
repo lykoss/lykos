@@ -7,6 +7,11 @@
 # If you need additional assistance with formatting for this file, look up YAML syntax on your favorite search engine
 # or come talk to us on chat.freenode.net #lykos
 
+# The file named botconfig.yml is always loaded. A secondary file can be loaded as well which will
+# overwrite settings in the main botconfig.yml file, based on command line switches.
+# Running `wolfbot.py --config foo` will attempt to load botconfig.foo.yml if it exists.
+# For convenience, the --debug switch implies --config debug as well
+
 # The transports section defines all of the connections your bot will make.
 # At least one transport must be defined for the bot to successfully run.
 # An example transport is provided below; you can tweak it for your own network.
@@ -17,7 +22,7 @@ transports:
     # defined here.
     name: mynetwork
     # What IRCd the remote is running. Configuring this wrong will have disastrous consequences.
-    module: seven
+    module: ircd-seven
     user:
       nick: mywolfbot
       # We only respond to commands in-channel if they begin with this prefix.
@@ -45,9 +50,6 @@ transports:
       ssl:
         # If y, use SSL for this connection
         use_ssl: y
-        # If y, either the server's certificate must chain to a trusted CA, or the server's certificate
-        # must have a fingerprint listed in trusted_fingerprints
-        verify_peer: y
     authentication:
       server:
         # If the IRC server requires authentication via the PASS command, specify the password here

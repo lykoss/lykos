@@ -26,15 +26,17 @@ transports.irc:
     module:
       _desc: |
         What IRCd the remote is running. Configuring this wrong may have disastrous consequences.
-        If you do not see a module for your ircd, please use "generic"; some lykos features will be disabled.
+        If you do not see a module for your ircd, please use "generic"; some lykos features may be disabled.
         If you notice bugs with the generic module with your ircd, please contact the lykos developers.
       _type: enum
       _default: generic
       _values:
-        - hybrid
+        - inspircd
+        - ircd-hybrid
+        - ircd-seven
+        - ircu
         - generic
-        - seven
-        - unreal
+        - unrealircd
     user:
       _desc: Configures the bot user for this connection.
       _type: dict
@@ -93,6 +95,14 @@ transports.irc:
           _desc: Port number that the server is listening on.
           _type: int
           _default: 6697
+        source:
+          _desc: |
+            IP address to use as our source IP for the outbound connection.
+            If unset, uses the default logic of the OS to determine source IP.
+          _type:
+            - str
+            - null
+          _default: ~
         ssl:
           _desc: |
             Settings controlling whether or not encrypted connections are used, and server-specific
@@ -108,7 +118,8 @@ transports.irc:
                 If set, try to verify the server certificate of the remote side to ensure it is valid and
                 chains to a trusted Certificate Authority (CA). Certificates whose fingerprints are listed in
                 trusted_fingerprints will also verify successfully even if they don't chain to a trusted CA
-                so long as they pass all other validation checks (e.g. not revoked or expired).
+                so long as they pass all other validation checks (e.g. not revoked or expired). Disabling
+                this can have disastrous consequences.
               _type: bool
               _default: y
             trusted_fingerprints:
@@ -159,11 +170,15 @@ transports.irc:
               _desc: |
                 What services package is in use by the network. We may vary how we send authentication details
                 and how we recover an in-use nickname based on this selection. Configuring this wrong may have
-                disastrous consequences.
+                disastrous consequences. If none of the modules listed fit your connection, try using
+                "generic" if your services package has NickServ with the IDENTIFY and GHOST commands.
+                Otherwise, use "none" to disable services integration.
               _type: enum
               _values:
                 - anope
                 - atheme
+                - generic
+                - none
                 - undernet
             username:
               _desc: |
@@ -280,7 +295,7 @@ access:
         - name: admin
           flags: AaDdfgjmNpSsw
         - name: moderator
-          flags: AadfgjmNpSsw
+          flags: AadgjmNpSsw
       _items:
         _type: access.template
     entries:
@@ -580,14 +595,30 @@ timers:
   _desc: This section defines the various timers that drive gameplay. Numbers are in seconds.
   _type: dict
   _default:
+    enabled:
+      _desc: Whether or not gameplay timers are enabled. It is recommend to leave these enabled.
+      _type: bool
+      _default: y
     join:
-      _desc: The time limit before a game is cancelled due to being in the join phase too long.
-      _type: int
-      _default: 3600
-    night:
-      _desc: Time limits related to the night phase. Either both must be positive or both must be 0.
+      _desc: Time limits related to the join phase.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not join limit timers are enabled.
+          _type: bool
+          _default: y
+        limit:
+          _desc: The time limit before a game is cancelled due to being in the join phase too long.
+          _type: int
+          _default: 1800
+    night:
+      _desc: Time limits related to the night phase.
+      _type: dict
+      _default:
+        enabled:
+          _desc: Whether or not night timers are enabled.
+          _type: bool
+          _default: y
         limit:
           _desc: The time limit for night phase.
           _type: int
@@ -595,13 +626,17 @@ timers:
         warn:
           _desc: |
             A warning is printed to channel that night is almost over at this time.
-            Must be less than timers.night.limit if that is not 0.
+            Must be less than timers.night.limit.
           _type: int
           _default: 60
     day:
-      _desc: Time limits related to the day phase. Either both must be positive or both must be 0.
+      _desc: Time limits related to the day phase.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not day timers are enabled.
+          _type: bool
+          _default: y
         limit:
           _desc: The time limit for day phase.
           _type: int
@@ -609,7 +644,7 @@ timers:
         warn:
           _desc: |
             A warning is printed to channel that day is almost over at this time.
-            Must be less than timers.day.limit if that is not 0.
+            Must be less than timers.day.limit.
           _type: int
           _default: 600
     shortday:
@@ -618,11 +653,16 @@ timers:
         to some threshold.
       _type: dict
       _default:
+        enabled:
+          _desc: |
+            Whether or not short day timers are enabled. If disabled, the regular day timer section will apply
+            regardless of player count.
+          _type: bool
+          _default: y
         players:
           _desc: |
             Player threshold for number of alive players. If the number of alive players is less than or equal
-            to this number, the timers for short days will be used instead of the normal day timers. Set to 0
-            to disable short days.
+            to this number, the timers for short days will be used instead of the normal day timers.
           _type: int
           _default: 6
         limit:
@@ -632,13 +672,17 @@ timers:
         warn:
           _desc: |
             A warning is printed to channel that day is almost over at this time.
-            Must be less than timers.shortday.limit if that is not 0.
+            Must be less than timers.shortday.limit.
           _type: int
           _default: 400
     wait:
       _desc: Settings for the amount of time added after certain events before the game may be started.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not wait timers are enabled. If disabled, !wait has no effect.
+          _type: bool
+          _default: y
         initial:
           _desc: The initial timer that prevents games being started too quickly after the start of join phase.
           _type: int
@@ -684,6 +728,10 @@ reaper:
     warning points.
   _type: dict
   _default:
+    enabled:
+      _desc: Whether or not the reaper is enabled. If disabled, nobody will idle out or get automatic warnings.
+      _type: bool
+      _default: y
     idle:
       _desc: |
         Idle time is defined as how long it has been since the user has spoken in channel. If gameplay.nightchat
@@ -691,6 +739,10 @@ reaper:
         private at certain thresholds to let them know that they need to speak in the channel.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not idle warnings are enabled.
+          _type: bool
+          _default: y
         warn:
           _desc: How long to wait before warning the user that they are idling.
           _type: dict
@@ -715,6 +767,24 @@ reaper:
           _desc: Expiration time for the warning applied to the user when they idle out.
           _type: str
           _default: 30d
+    night_idle:
+      _desc: |
+        Whether or not to warn users who fail to act at night. All other warning types from the reaper
+        will override this, so that they do not stack. A user will get a maximum of one warning per game.
+      _type: dict
+      _default:
+        enabled:
+          _desc: Whether or not night idle warnings are enabled.
+          _type: bool
+          _default: y
+        points:
+          _desc: Number of warning points to apply to the user if they fail to act at night.
+          _type: int
+          _default: 1
+        expiration:
+          _desc: Expiration time for the warning applied to the user when they fail to act at night.
+          _type: str
+          _default: 14d
     part:
       _desc: |
         If a user leaves the game channel, this defines the grace time they have to rejoin it.
@@ -722,6 +792,10 @@ reaper:
         Kicking the user out of a channel immediately gives them a warning and kills them.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not part warnings are enabled.
+          _type: bool
+          _default: y
         grace:
           _desc: How long can a user stay out of the channel and still remain alive?
           _type: int
@@ -741,6 +815,10 @@ reaper:
         Kicking the user out of a server immediately gives them a warning and kills them.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not quit warnings are enabled.
+          _type: bool
+          _default: y
         grace:
           _desc: How long can a user stay out of the server and still remain alive?
           _type: int
@@ -760,6 +838,10 @@ reaper:
         a user is logged into.
       _type: dict
       _default:
+        enabled:
+          _desc: Whether or not account warnings are enabled.
+          _type: bool
+          _default: y
         grace:
           _desc: How long can a user stay logged into a different account and still remain alive?
           _type: int
@@ -791,18 +873,18 @@ warnings:
       _type: list
       _merge: replace
       _default:
-        - min: 4
-          max: 6
+        - min: 6
+          max: 10
           stasis: 1
-        - min: 7
-          max: 11
+        - min: 11
+          max: 15
           scalestasis:
             a: 0
             b: 1
-            c: -4
-        - min: 12
-          max: 12
-          tempban: 6
+            c: -8
+        - min: 16
+          max: 16
+          tempban: 8
       _items:
         _type: warnings.sanction
 
@@ -868,45 +950,6 @@ warnings.sanction.scalestasis:
     c:
       _type: int
       _default: 0
-
-debug:
-  _desc: This section defines various settings useful when debugging the bot.
-  _type: dict
-  _default:
-    disable:
-      _desc: Allows you to disable various gameplay aspects while running the bot in debug mode.
-      _type: dict
-      _default:
-        timers:
-          _desc: If set, disables all timers while in debug mode.
-          _type: bool
-          _default: y
-        timelord:
-          _desc: |
-            If set, disables the functionality of time lord role while in debug mode. The role itself remains
-            enabled and can be used, but it will have no mechanical effect when the time lord dies. If unset,
-            the time lord will re-enable night and day timers even if they were disabled by debug.disable.timers
-            once the time lord dies.
-          _type: bool
-          _default: n
-        reaper:
-          _desc: If set, disables the reaper while in debug mode.
-          _type: bool
-          _default: y
-        warnings:
-          _desc: If set, disables automatic warnings while in debug mode.
-          _type: bool
-          _default: y
-    messages:
-      _desc: Makes the message localization system operate differently while running the bot in debug mode.
-      _type: dict
-      _default:
-        nothrow:
-          _desc: |
-            If set, errors with messages will be sent to the recipient instead of raising an exception
-            while in debug mode.
-          _type: bool
-          _default: y
 
 telemetry:
   _desc: This section defines what data is sent to the lykos developers to help us improve the bot.

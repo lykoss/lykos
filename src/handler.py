@@ -214,98 +214,6 @@ def latency(var, wrapper, message):
         wrapper.reply(messages["latency"].format(lat))
         hook.unhook(300)
 
-def run_lagcheck(cli):
-    from oyoyo.client import TokenBucket
-    cli.tokenbucket = TokenBucket(100, 0.1)
-    print("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
-
-    # set up initial variables
-    timings = []
-
-    @command("", pm=True)
-    def on_pm(var, wrapper, message):
-        if wrapper.source is not users.Bot:
-            return
-
-        cur = time.perf_counter()
-        phase, clock = message.split(" ")
-        phase = int(phase)
-        clock = float(clock)
-        if phase > 0:
-            # timing data for current phase
-            timings.append((phase, cur - clock))
-        elif clock < 5:
-            # run another batch
-            _lagcheck_1(cli, int(clock) + 1)
-        else:
-            # process data
-            _lagcheck_2(cli, timings)
-
-    # we still have startup lag at this point, so delay our check until we receive this message successfully
-    users.Bot.send("0 0")
-
-def _lagcheck_1(cli, phase=1):
-    # Burst some messages and time how long it takes for them to get back to us
-    # This is a bit conservative in order to establish a baseline (so that we don't flood ourselves out)
-    for i in range(12):
-        users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
-    # signal that we're done
-    users.Bot.send("0 {0}".format(phase))
-
-def _lagcheck_2(cli, timings):
-    # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
-    # for the server. We use this to normalize all the other timings, as since we bursted N messages
-    # at once, message N will have around N*RTT of delay even if there is no throttling going on.
-    if timings:
-        rtt = timings[0][1]
-        fixed = [0] * len(timings)
-    else:
-        rtt = 0
-        fixed = []
-    counter = 0
-    prev_phase = 0
-    threshold = 0
-    for i, (phase, diff) in enumerate(timings):
-        if phase != prev_phase:
-            prev_phase = phase
-            counter = 0
-        counter += 1
-        fixed[i] = diff - (counter * rtt)
-
-        if i < 4: # wait for a handful of data points
-            continue
-        avg = statistics.mean(fixed[0:i])
-        stdev = statistics.pstdev(fixed[0:i], mu=avg)
-        if stdev == 0: # need a positive std dev
-            continue
-        # if our current measurement varies more than 3 standard deviations from the mean,
-        # then we probably started getting fakelag
-        if threshold == 0 and fixed[i] > avg + 3 * stdev:
-            # we've detected that we've hit fakelag; set threshold to i (technically it happens a while
-            # before i, but i is a decent overestimate of when it happens)
-            threshold = i
-
-    print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
-    delay = max(0.8 * fixed[threshold], 0.1)
-    burst = int(4 * threshold)
-    if burst < 12: # we know we can successfully burst at least 12 messages at once
-        burst = 12
-
-    if threshold == 0:
-        print("IRC_TB_INIT = 30", "IRC_TB_BURST = 30", "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
-    else:
-        print("IRC_TB_INIT = {0}".format(burst), "IRC_TB_BURST = {0}".format(burst), "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")
-
-    if burst < 20 and delay > 1.5:
-        # recommend turning off deadchat if we can't push out messages fast enough
-        print("ENABLE_DEADCHAT = False")
-
-    if burst == 12 and delay > 2:
-        # if things are really bad, recommend turning off wolfchat too
-        print("RESTRICT_WOLFCHAT = 0x0b")
-
-    cli.quit()
-
 def connect_callback(cli):
     regaincount = 0
     releasecount = 0
@@ -313,7 +221,6 @@ def connect_callback(cli):
     @hook("endofmotd", hookid=294)
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
-        from src import lagcheck
         alog("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
@@ -330,24 +237,18 @@ def connect_callback(cli):
         event = Event("irc_connected", {})
         event.dispatch(var, cli)
 
-        # don't join any channels if we're just doing a lag check
-        if not lagcheck:
-            channels.Main = channels.add(botconfig.CHANNEL, cli)
-            channels.Dummy = channels.add("*", cli)
+        channels.Main = channels.add(botconfig.CHANNEL, cli)
+        channels.Dummy = channels.add("*", cli)
 
-            if botconfig.ALT_CHANNELS:
-                for chan in botconfig.ALT_CHANNELS.split(","):
-                    channels.add(chan, cli)
+        if botconfig.ALT_CHANNELS:
+            for chan in botconfig.ALT_CHANNELS.split(","):
+                channels.add(chan, cli)
 
-            if botconfig.DEV_CHANNEL:
-                channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
+        if botconfig.DEV_CHANNEL:
+            channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
 
-            if var.LOG_CHANNEL:
-                channels.add(var.LOG_CHANNEL, cli)
-        else:
-            alog("Preparing lag check")
-            # if we ARE doing a lagcheck, we need at least our own host or things break
-            users.Bot.who()
+        if var.LOG_CHANNEL:
+            channels.add(var.LOG_CHANNEL, cli)
 
         users.Bot.change_nick(botconfig.NICK)
 
@@ -364,14 +265,8 @@ def connect_callback(cli):
         hook.unhook(294)
 
     def setup_handler(evt, target):
-        from src import lagcheck
-        if lagcheck: # we just got our own host back
-            target.client.command_handler["privmsg"] = on_privmsg
-            run_lagcheck(target.client)
-        else:
-            target.client.command_handler["privmsg"] = on_privmsg
-            target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
-
+        target.client.command_handler["privmsg"] = on_privmsg
+        target.client.command_handler["notice"] = functools.partial(on_privmsg, notice=True)
         who_end.remove("who_end")
 
     who_end = EventListener(setup_handler)

@@ -1,67 +1,39 @@
 import argparse
-import datetime
-import time
-
-import botconfig
 
 # Enforce a strict import ordering to ensure things are properly defined when they need to be
+
+# Parse command line args
+# Argument --debug means start in debug mode (implies --config debug as well)
+#          --config <name> Means to load settings from the configuration file botconfig.name.yml, overriding
+#              whatever is present in botconfig.yml. If specified alongside --debug, this takes precedence
+#              over the implicit --config debug.
+# Settings can be defined in the config, but launch arguments override it
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', action='store_true', help="Run bot in debug mode. Loads botconfig.debug.yml if it exists, unless --config is specified.")
+parser.add_argument('--config', help="Configuration file to load in addition to botconfig.yml. Ex: --config foo loads botconfig.foo.yml")
+
+args = parser.parse_args()
+
+# Bootstrap our configuration
+from src import config
+config.init()
+
+if args.config:
+    config.load(args.config)
+elif args.debug:
+    config.load("debug")
+
+if args.debug:
+    config.set_debug_mode(True)
+
+config.finalize()
 
 # Files with NO OTHER DEPENDENCIES on src
 # This "bootstraps" the bot in preparation for importing the bulk of the code. Some imports
 # change behavior based on whether or not we're in debug mode, so that must be established before
 # we continue on to import other files
-import src.settings as var
 from src.logger import stream, stream_handler, debuglog, errlog, plog
 from src import debug, events, lineparse, match
-
-# Handle launch parameters
-
-# Argument --debug means start in debug mode
-#          --verbose means to print a lot of stuff (when not in debug mode)
-#          --normal means to override the above and use nothing
-# Settings can be defined in the config, but launch arguments override it
-
-debug_mode = False
-verbose = False
-normal = False
-lagcheck = False
-
-# Carry over settings from botconfig into settings.py
-
-for setting, value in botconfig.__dict__.items():
-    if not setting.isupper():
-        continue # Not a setting
-    if setting == "DEBUG_MODE":
-        debug_mode = value
-    if setting == "VERBOSE_MODE":
-        verbose = value
-    if setting == "NORMAL_MODE":
-        normal = value
-    if setting == "NIGHT_IDLE_PENALTIES":
-        # backwards compat
-        setting = "NIGHT_IDLE_PENALTY"
-        value = var.IDLE_PENALTY if value else 0
-    if setting not in var.__dict__.keys():
-        continue # Don't carry over config-only settings
-
-    # If we got that far, it's valid
-    setattr(var, setting, value)
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--debug', action='store_true')
-parser.add_argument('--verbose', action='store_true')
-parser.add_argument('--normal', action='store_true')
-parser.add_argument('--lagcheck', action='store_true')
-
-args = parser.parse_args()
-
-if args.debug: debug_mode = True
-if args.verbose: verbose = True
-if args.normal: normal = True
-if args.lagcheck: lagcheck = True
-
-botconfig.DEBUG_MODE = debug_mode if not normal else False
-botconfig.VERBOSE_MODE = verbose if not normal else False
 
 # Files with dependencies only on things imported in previous lines, in order
 # The top line must only depend on things imported above in our "no dependencies" block

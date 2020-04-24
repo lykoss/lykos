@@ -906,11 +906,11 @@ def _upgrade(oldversion):
                 # Update FKs to be deferrable, update collations to nocase where it makes sense,
                 # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
                 # player id as a string). When nocasing players, this may cause some records to be merged.
-                with open(os.path.join(dn, "db", "upgrade2.sql"), "rt") as f:
+                with open(os.path.join(dn, "upgrade2.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 3:
                 print("Upgrade from version 2 to 3...", file=sys.stderr)
-                with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
+                with open(os.path.join(dn, "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 4:
                 print("Upgrade from version 3 to 4...", file=sys.stderr)
