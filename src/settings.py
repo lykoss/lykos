@@ -173,9 +173,6 @@ DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number
 GAME_MODES = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 
-# IP address to bind to before connecting, or empty string to use OS default
-BINDHOST = ""
-
 # Disable CPRIVMSG/CNOTICE -- some ircds implicitly treat regular PRIVMSG and NOTICE as such, and support more
 # targets per message the normal way than with the explicit command
 DISABLE_CPRIVMSG = False
@@ -239,5 +236,3 @@ ALL_FLAGS = frozenset("AaDdFgjmNpSsw")
 
 GRAVEYARD_LOCK = threading.RLock()
 WARNING_LOCK = threading.RLock()
-
-# vim: set sw=4 expandtab:

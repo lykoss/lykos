@@ -1,12 +1,9 @@
 # Enforce a strict import ordering to ensure things are properly defined when they need to be
 
-# Files with NO OTHER DEPENDENCIES on src
 # This "bootstraps" the bot in preparation for importing the bulk of the code. Some imports
 # change behavior based on whether or not we're in debug mode, so that must be established before
 # we continue on to import other files
-from src import config
-from src.logger import stream, stream_handler, debuglog, errlog, plog
-from src import events, lineparse, match
+from src import config, events, lineparse, match
 
 # Initialize config.Main
 from pathlib import Path
@@ -40,7 +37,7 @@ del _bp
 
 # Files with dependencies only on things imported in previous lines, in order
 # The top line must only depend on things imported above in our "no dependencies" block
-
+from src.logger import stream, stream_handler, debuglog, errlog, plog
 from src import debug
 from src import cats, messages
 from src import context, functions, utilities

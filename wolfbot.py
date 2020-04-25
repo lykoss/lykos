@@ -73,10 +73,11 @@ from oyoyo.client import IRCClient, TokenBucket
 import src
 from src import handler, config
 from src.events import Event
-import src.settings as var
 
 def main():
-    if not config.get("transports"):
+    # fetch IRC transport
+    irc = config.Main.get("transports[0].type", None)
+    if irc != "irc":
         print("\n".join([
             "botconfig.yml is not configured. If you have an old botconfig.py file,",
             "it will no longer be loaded. Please copy all relevant configuration to botconfig.yml.",
@@ -87,33 +88,51 @@ def main():
     src.plog("Loading Werewolf IRC bot")
     evt = Event("init", {})
     evt.dispatch()
-    src.plog("Connecting to {0}:{1}{2}".format(botconfig.HOST, "+" if botconfig.USE_SSL else "", botconfig.PORT))
+
+    host = config.Main.get("transports[0].connection.host")
+    port = config.Main.get("transports[0].connection.port")
+    bindhost = config.Main.get("transports[0].connection.source")
+    use_ssl = config.Main.get("transports[0].connection.ssl.use_ssl")
+    nick = config.Main.get("transports[0].user.nick")
+    ident = config.Main.get("transports[0].user.ident")
+    if not ident:
+        ident = nick
+    real_name = config.Main.get("transports[0].user.realname")
+    if not real_name:
+        real_name = nick
+    username = config.Main.get("transports[0].authentication.services.username")
+    if not username:
+        username = nick
+
+    src.plog("Connecting to {0}:{1}{2}".format(host, "+" if use_ssl else "", port))
     cli = IRCClient(
                       {"privmsg": lambda *s: None,
                        "notice": lambda *s: None,
                        "": handler.unhandled},
-                     host=botconfig.HOST,
-                     port=botconfig.PORT,
-                     bindhost=var.BINDHOST,
-                     authname=botconfig.USERNAME,
-                     password=botconfig.PASS,
-                     nickname=botconfig.NICK,
-                     ident=botconfig.IDENT,
-                     real_name=botconfig.REALNAME,
-                     sasl_auth=botconfig.SASL_AUTHENTICATION,
-                     server_pass=botconfig.SERVER_PASS,
-                     use_ssl=botconfig.USE_SSL,
-                     cert_verify=var.SSL_VERIFY,
-                     cert_fp=var.SSL_CERTFP,
-                     client_certfile=var.SSL_CERTFILE,
-                     client_keyfile=var.SSL_KEYFILE,
-                     cipher_list=var.SSL_CIPHERS,
-                     tokenbucket=TokenBucket(var.IRC_TB_BURST, var.IRC_TB_DELAY, init=var.IRC_TB_INIT),
+                     host=host,
+                     port=port,
+                     bindhost=bindhost,
+                     authname=username,
+                     password=config.Main.get("transports[0].authentication.services.password"),
+                     nickname=nick,
+                     ident=ident,
+                     real_name=real_name,
+                     sasl_auth=config.Main.get("transports[0].authentication.services.use_sasl"),
+                     server_pass=config.Main.get("transports[0].authentication.server.password"),
+                     use_ssl=use_ssl,
+                     cert_verify=config.Main.get("transports[0].connection.ssl.verify_peer"),
+                     cert_fp=config.Main.get("transports[0].connection.ssl.trusted_fingerprints"),
+                     client_certfile=config.Main.get("transports[0].authentication.services.client_certificate"),
+                     client_keyfile=config.Main.get("transports[0].authentication.services.client_key"),
+                     cipher_list=config.Main.get("ssl.ciphers"),
+                     tokenbucket=TokenBucket(
+                         config.Main.get("transports[0].flood.max_burst"),
+                         config.Main.get("transports[0].flood.sustained_rate"),
+                         init=config.Main.get("transports[0].flood.initial_burst")),
                      connect_cb=handler.connect_callback,
                      stream_handler=src.stream,
     )
     cli.mainLoop()
-
 
 if __name__ == "__main__":
     try:

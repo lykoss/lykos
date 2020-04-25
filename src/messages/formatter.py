@@ -3,6 +3,8 @@ import random
 import re
 import fnmatch
 
+from src import config
+
 class Formatter(string.Formatter):
     """ Custom formatter for message strings.
 
@@ -90,8 +92,7 @@ class Formatter(string.Formatter):
             value = self._article(value, specs["article"])
             del specs["article"]
         if "!" in specs:
-            from botconfig import CMD_CHAR
-            value = CMD_CHAR + value
+            value = config.Main.get("transports[0].user.command_prefix") + value
             del specs["!"]
 
         # Combining these is supported, and these specs work on strings

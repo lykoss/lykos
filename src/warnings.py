@@ -2,9 +2,8 @@ from datetime import datetime, timedelta
 from typing import Union, List, Optional
 import re
 
-import botconfig
 import src.settings as var
-from src import channels, db, users
+from src import config, channels, db, users
 from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.utilities import *
 from src.decorators import command, COMMANDS
@@ -660,7 +659,7 @@ def warn(var, wrapper, message):
         args = warn_parser.parse_args(params)
         args.func(var, wrapper, args)
     except LineParseError as e:
-        if botconfig.DEBUG_MODE:
+        if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?
             wrapper.reply(e.message)
         try:
@@ -701,7 +700,7 @@ def fwarn(var, wrapper, message):
         args = e.namespace
         args.func(var, wrapper, args)
     except LineParseError as e:
-        if botconfig.DEBUG_MODE:
+        if config.Main.get("debug.enabled"):
             # this isn't translated so debug mode only for now?
             wrapper.reply(e.message)
         try:

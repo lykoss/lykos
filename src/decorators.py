@@ -1,10 +1,7 @@
 import traceback
 import threading
-import string
-import random
 import json
 import re
-import os.path
 import functools
 from typing import Optional, Iterable
 
@@ -12,7 +9,6 @@ import urllib.request, urllib.parse
 
 from collections import defaultdict
 
-import botconfig
 import src.settings as var
 import src
 from src.functions import get_players
@@ -181,8 +177,9 @@ class print_traceback:
         else:
             message.append(link)
 
+        # FIXME: use logging config more directly
         if channels.Dev is not None:
-            channels.Dev.send(" ".join(message), prefix=botconfig.DEV_PREFIX)
+            channels.Dev.send(" ".join(message), prefix=var.DEV_PREFIX)
 
         _local.level -= 1
         if not _local.level: # outermost caller; we're done here
@@ -220,7 +217,8 @@ class handle_error:
 class command:
     def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,
                  chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
-                 phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None):
+                 phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None,
+                 allow_alt: Optional[bool] = None):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not config.Main.get("debug.enabled"):
@@ -243,7 +241,10 @@ class command:
         self.aftergame = False
         self.name = commands[0]
         self.key = command
-        self.alt_allowed = bool(flag or owner_only)
+        if allow_alt is not None:
+            self.alt_allowed = allow_alt
+        else:
+            self.alt_allowed = bool(flag or owner_only or not phases)
 
         alias = False
         self.aliases = []
@@ -257,10 +258,6 @@ class command:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
 
             COMMANDS[name].append(self)
-            if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
-                self.alt_allowed = True
-            if name in getattr(botconfig, "OWNERS_ONLY_COMMANDS", ()):
-                self.owner_only = True
             if alias:
                 self.aliases.append(name)
             alias = True

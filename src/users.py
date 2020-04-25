@@ -5,12 +5,10 @@ from typing import Callable, Optional, Set
 
 from src.context import IRCContext, Features, lower, equals
 from src import settings as var
-from src import db
+from src import config, db
 from src.events import EventListener
 from src.debug import CheckedDict, CheckedSet
 from src.match import Match
-
-import botconfig
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
@@ -432,7 +430,9 @@ class User(IRCContext):
         if self.is_fake:
             return False
 
-        accounts = set(botconfig.OWNERS_ACCOUNTS)
+        # FIXME: needs to be transport aware
+        acls = config.Main.get("access.entries")
+        accounts = set(e["account"] for e in acls if e["template"] == "owner")
 
         if self.account is not None and self.account in accounts:
             return True
@@ -447,7 +447,9 @@ class User(IRCContext):
 
         if "F" not in flags:
             try:
-                accounts = set(botconfig.ADMINS_ACCOUNTS)
+                # FIXME: needs to be transport aware
+                acls = config.Main.get("access.entries")
+                accounts = set(e["account"] for e in acls if e["template"] in ("admin", "owner"))
                 if self.account is not None and self.account in accounts:
                     return True
             except AttributeError:

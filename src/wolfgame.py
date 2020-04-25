@@ -676,7 +676,7 @@ def deadchat_pref(var, wrapper, message):
 
     db.toggle_deadchat(temp.account)
 
-@command("join", pm=True)
+@command("join", pm=True, allow_alt=False)
 def join(var, wrapper, message):
     """Either starts a new game of Werewolf or joins an existing game that has not started yet."""
     # keep this and the event in fjoin() in sync

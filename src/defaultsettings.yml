@@ -16,18 +16,14 @@ transports.irc.channel: &transports.irc.channel
       _type: str
     key:
       _desc: Channel key, if the channel is password protected (channel mode +k).
-      _type:
-        - str
-        - null
-      _default: null
+      _type: str
+      _default: ""
     prefix:
       _desc: |
         If specified, messages will be sent to this prefix for this channel (e.g. "voice message").
         This typically requires that STATUSMSG be supported by the ircd.
-      _type:
-        - str
-        - null
-      _default: null
+      _type: str
+      _default: ""
 
 transports.irc: &transports.irc
   _name: transports.irc
@@ -64,13 +60,13 @@ transports.irc: &transports.irc
           _desc: The bot's ident. If unset, defaults to the bot's nickname.
           _type:
             - str
-            - null
+            - "null"
           _default: null
         realname:
           _desc: The bot's realname (gecos). If unset, defaults to the bot's nickname.
           _type:
             - str
-            - null
+            - "null"
           _default: null
         command_prefix:
           _desc: |
@@ -79,6 +75,22 @@ transports.irc: &transports.irc
             Use quotes around the character to prevent YAML from interpreting it as something special.
           _type: str
           _default: "!"
+        ignore:
+          _desc: Certain categories of commands can be ignored by the bot.
+          _type: dict
+          _default:
+            hidden:
+              _desc: Ignore commands sent to a channel prefix (STATUSMSG), e.g. @#channel or +#channel.
+              _type: bool
+              _default: true
+            channel_notice:
+              _desc: Ignore /notices sent to the channel.
+              _type: bool
+              _default: true
+            private_notice:
+              _desc: Ignore /notices sent directly to the bot.
+              _type: bool
+              _default: false
     channels:
       _desc: Channels that the bot will join upon startup.
       _type: dict
@@ -112,11 +124,9 @@ transports.irc: &transports.irc
         source:
           _desc: |
             IP address to use as our source IP for the outbound connection.
-            If unset, uses the default logic of the OS to determine source IP.
-          _type:
-            - str
-            - null
-          _default: null
+            If the empty string, uses the default logic of the OS to determine source IP.
+          _type: str
+          _default: ""
         ssl:
           _desc: |
             Settings controlling whether or not encrypted connections are used, and server-specific
@@ -172,7 +182,7 @@ transports.irc: &transports.irc
               _desc: Server connection password.
               _type:
                 - str
-                - null
+                - "null"
               _default: null
         services:
           _desc: |
@@ -200,13 +210,13 @@ transports.irc: &transports.irc
                 current nick. If unset, uses the configured nick in the user settings.
               _type:
                 - str
-                - null
+                - "null"
               _default: null
             password:
               _desc: Password to log into services with. Leave unset if using client certificate authentication.
               _type:
                 - str
-                - null
+                - "null"
               _default: null
             use_sasl:
               _desc: |
@@ -222,7 +232,7 @@ transports.irc: &transports.irc
                 password authentication.
               _type:
                 - str
-                - null
+                - "null"
               _default: null
             client_key:
               _desc: |
@@ -232,8 +242,29 @@ transports.irc: &transports.irc
                 is already present as part of the client_certificate configuration value.
               _type:
                 - str
-                - null
+                - "null"
               _default: null
+    flood:
+      _desc: |
+        Settings to control how quickly the bot will send messages to IRC. The bot can send an initial burst
+        of messages, but will slow down after a short period. This is represented using a token bucket: each
+        message sent consumes 1 token. The bucket starts with some number of tokens (initial burst amount), and
+        replenishes 1 token every so often (sustained rate). If no messages are sent for a while, it can accumulate
+        up to some maximum number of tokens (max burst).
+      _type: dict
+      _default:
+        initial_burst:
+          _desc: Initial message burst amount when bot starts (starting number of tokens).
+          _type: int
+          _default: 23
+        sustained_rate:
+          _desc: Once we can't burst anymore, we can send 1 message per this many seconds (token replenish rate).
+          _type: float
+          _default: 1.73
+        max_burst:
+          _desc: Maximum number of messages we can burst at any point in time (maximum number of tokens).
+          _type: int
+          _default: 23
 
 transports.file: &transports.file
   _name: transports.file
@@ -269,7 +300,7 @@ ssl: &ssl
       _desc: Path to a file containing all trusted Certificate Authorities (CAs). If unset, use system default.
       _type:
         - str
-        - null
+        - "null"
       _default: null
     ciphers:
       _desc: |
@@ -379,6 +410,37 @@ logging.log: &logging.log
     transport:
       _desc: The name of the transport to write the log to.
       _type: str
+    format:
+      _desc: |
+        How data sent to the log is formatted.
+        * The string formatter writes a single log line (ending in newline) to the log,
+        optionally with a timestamp in front.
+        * The structured formatter sends a JSON string to the log representing an object. Exactly which fields
+        are present in the object will vary based on the type of thing being logged. This format is useful when
+        ingesting logs into something capable of processing the metadata and doing things with it.
+      _type: enum
+      _default: string
+      _values:
+        - string
+        - structured
+    timestamp:
+      _desc: |
+        How the timestamp is presented in the logs. It will be prepended to string logs and available as a
+        "timestamp" field in structured logs.
+      _type: dict
+      _default:
+        utc:
+          _desc: If true, the timestamp will be in UTC. If false, it will use the current system's time.
+          _type: bool
+          _default: true
+        format:
+          _desc: |
+            How the timestamp is formatted. %Y is the year, %m is the month, %d is the day,
+            %H = hour, %M = minute, and %S = seconds. {tzname} and {tzoffset} can both be used -
+            the timezone name (like UTC) and offset (+0000), respectively. It is recommended to use quotes
+            around this field to prevent YAML from interpreting any special characters.
+          _type: str
+          _default: "%Y-%m-%d %H:%M:%S{tzoffset}"
     destination:
       _desc: |
         An optional location in the transport to write the log. Each transport interprets this differently.
@@ -386,7 +448,7 @@ logging.log: &logging.log
         * For the file transport, this is ignored and should be omitted.
       _type:
         - str
-        - null
+        - "null"
       _default: null
 
 logging: &logging
@@ -431,6 +493,14 @@ gameplay: &gameplay
       _desc: The language the bot uses in messages and when processing incoming commands.
       _type: str
       _default: en
+    rules:
+      _desc: |
+        The rules for this bot, either as an embedded string or a URL, returned by the !rules command.
+        If null, the !rules command will display that no rules have been configured.
+      _type:
+        - str
+        - "null"
+      _default: null
     gif_chance:
       _desc: |
         The chance that a gif is displayed after all night deaths have been printed.
@@ -902,7 +972,7 @@ warnings.sanction: &warnings.sanction
       _desc: If defined, adds this many games of stasis to the user.
       _type:
         - int
-        - null
+        - "null"
       _default: null
     scalestasis:
       _desc: |
@@ -910,7 +980,7 @@ warnings.sanction: &warnings.sanction
         which is passed the total number of active warning points the user has as input.
       _type:
         - *warnings.sanction.scalestasis
-        - null
+        - "null"
       _default: null
     tempban:
       _desc: |
@@ -921,7 +991,7 @@ warnings.sanction: &warnings.sanction
       _type:
         - int
         - str
-        - null
+        - "null"
       _default: null
     deny:
       _desc: |
@@ -930,7 +1000,7 @@ warnings.sanction: &warnings.sanction
         that command.
       _type:
         - list
-        - null
+        - "null"
       _default: null
       _items:
         _type: str
@@ -1007,6 +1077,27 @@ telemetry: &telemetry
             * 1 or more: Expose the channel's name.
           _type: int
           _default: 0
+    usage:
+      _desc: |
+        Send data about various aspects of the bot's usage, to help lykos developers better understand
+        how various bots are being used in the wild. This data helps focus efforts for feature development
+        and environment support.
+      _type: dict
+      _default:
+        game_data:
+          _desc: |
+            If true, sends information about game mode, game size, winner, and settings that impact
+            gameplay. No data about the players themselves is sent. This data helps the developers
+            better evaluate and tweak balance for game modes.
+          _type: bool
+          _default: false
+        environment_data:
+          _desc: |
+            If true, sends information about the environment the bot is running on, including OS version,
+            python version, and versions of all pip dependencies. This data helps the developers better
+            evaluate what versions of things will be supported and when to drop support for older things.
+          _type: bool
+          _default: false
 
 debug: &debug
   _name: debug

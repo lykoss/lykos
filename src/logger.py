@@ -21,6 +21,7 @@ def logger(file, write=True, display=True):
 
     return log
 
+# FIXME: read the logging section of the config instead of hardcoding this
 stream_handler = logger(None)
 debuglog = logger("debug.log", write=False, display=False)
 errlog = logger("errors.log")

@@ -97,6 +97,10 @@ class Config:
                     raise KeyError("configuration key not found")
                 cur = cur[idx_part]
                 meta = meta["_items"]
+            if meta["_type"] == "tagged":
+                new_meta = copy.deepcopy(meta["_tags"][cur["type"]])
+                new_meta["_default"]["type"] = {"_type": "enum", "_values": list(meta["_tags"].keys())}
+                meta = new_meta
 
         return cur, meta
 
@@ -116,6 +120,7 @@ class Config:
             Ex: foo.bar[0].baz
         :param default: If the configuration key is not found, this is the returned value.
             If set to config.Empty (the default), a KeyError is raised if the key is not found.
+            Generally this should only ever be set for backwards compatibility purposes.
         :returns: The value of the configuration key, or the default value if one
             was specified.
         :raises KeyError: If default is not specified and the key is not found.
@@ -199,6 +204,7 @@ def merge(metadata: Dict[str, Any], base, settings, *path: str,
         path = ["<root>"]
 
     settings_type = metadata["_type"]
+    assert settings_type is not None
     if type_override is not None:
         settings_type = type_override
 
@@ -476,6 +482,7 @@ def merge(metadata: Dict[str, Any], base, settings, *path: str,
         # union type
         e1 = None
         for t in settings_type:
+            assert t is not None
             try:
                 return merge(metadata, base, settings, *path, type_override=t)
             except TypeError as e2:
@@ -484,3 +491,6 @@ def merge(metadata: Dict[str, Any], base, settings, *path: str,
         else:
             raise TypeError(("None of the candidate types for path '{}' matched actual type {}.".format(".".join(path), type(settings))
                              + " See inner exceptions for more details on each candidate tried.")) from e1
+
+    else:
+        assert False, "Unknown settings type {}".format(settings_type)

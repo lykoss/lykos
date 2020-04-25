@@ -217,7 +217,7 @@ class IRCClient:
 
                     ctx.load_default_certs()
                 elif not self.cert_verify and not self.cert_fp:
-                    self.stream_handler("**NOT** validating the server's TLS certificate! Set SSL_VERIFY or SSL_CERTFP in botconfig.py.", level="warning")
+                    self.stream_handler("**NOT** validating the server's TLS certificate! Check SSL settings in botconfig.yml!", level="warning")
 
                 if self.client_certfile:
                     # if client_keyfile is not specified, the ssl module will look to the client_certfile for it.

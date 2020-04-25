@@ -1,13 +1,6 @@
-import itertools
 import functools
-import fnmatch
-import re
-from collections import defaultdict
 from typing import List
 
-import botconfig
-import src.settings as var
-from src import debuglog
 from src.events import Event
 from src.messages import messages
 

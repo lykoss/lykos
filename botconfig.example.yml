@@ -9,12 +9,16 @@
 
 # The file named botconfig.yml is always loaded. A secondary file can be loaded as well which will
 # overwrite settings in the main botconfig.yml file, based on command line switches.
-# Running `wolfbot.py --config foo` will attempt to load botconfig.foo.yml if it exists.
-# For convenience, the --debug switch implies --config debug as well
+# Running `wolfbot.py --config botconfig.foo.yml` will attempt to load botconfig.foo.yml.
+# When run with --debug, the file botconfig.debug.yml will be loaded if it exists.
+# This is loaded after the file specified by --config, if any.
+# Instead of command line params, you can also use the environment variable BOTCONFIG to point to a configuration
+# file (will be loaded if --config is not specified) and the environment variable DEBUG to enable debug mode.
 
 # The transports section defines all of the connections your bot will make.
 # At least one transport must be defined for the bot to successfully run.
 # An example transport is provided below; you can tweak it for your own network.
+# Currently, the irc transport *must* be defined first, otherwise the bot will error.
 transports:
   - type: irc
     # Name of this transport. Can be anything, but must be defined and unique across all transports in this file.
@@ -48,29 +52,29 @@ transports:
       host: example.org
       port: 6697
       ssl:
-        # If y, use SSL for this connection
-        use_ssl: y
+        # If true, use SSL for this connection
+        use_ssl: true
     authentication:
       server:
         # If the IRC server requires authentication via the PASS command, specify the password here
-        password: ~
+        password: null
       services:
         # Services module in use, e.g. atheme or anope. Configuring this wrong will have disastrous consequences.
         module: atheme
         # Username to authenticate to services with (e.g. NickServ).
-        # If unset (~), defaults to the nickname set in user.nick
-        username: ~
-        # Password to authenticate to services with. If using client certificate authentication, leave this unset.
-        password: ~
-        # If y, use SASL to authenticate. The network must support SASL.
-        use_sasl: y
+        # If null, defaults to the nickname set in user.nick
+        username: null
+        # Password to authenticate to services with. If using client certificate authentication, leave this null.
+        password: null
+        # If true, use SASL to authenticate. The network must support SASL.
+        use_sasl: true
         # Client certificate to connect with, in PEM format. You may either have this be a filename containing
         # the certificate or directly embed the certificate in this configuration file (use the "|" multiline format).
         # The private key may be optionally present in PEM format after the certificate.
-        client_certificate: ~
+        client_certificate: null
         # Private key to connect with, in PEM format, if it was not already specified in client_certificate.
         # This may be either a filename containing the key or directly embedded in this configuration file.
-        client_key: ~
+        client_key: null
   # The following transport does not establish any connections for gameplay, but is used as an output target
   # for logging.
   - type: file
@@ -84,7 +88,7 @@ transports:
 # However, that command may add additional access entries.
 # By default, the following templates are defined:
 # owner => full access to the bot and can execute every command
-# admins => access to manage moderators and execute commands which can update the bot's code or cause it to restart
+# admin => access to manage moderators and execute commands which can update the bot's code or cause it to restart
 # moderator => manage games in progress and warn users, but cannot manage access entries or cause the bot to restart
 access:
   entries:
@@ -122,34 +126,34 @@ logging:
 #    user_data_level: 2
 #    channel_data_level: 2
 #  usage:
-#    game_data: y
-#    environment_data: y
+#    game_data: true
+#    environment_data: true
 
 # Gameplay. This lets you modify certain aspects of the game to better customize the bot for your community.
 gameplay:
   language: en
   # Whether or not to allow nightchat, which lets players speak in the main channel during night.
   # If disabled, nobody can speak at night, but idle timers are also paused during the night.
-  nightchat: y
+  nightchat: true
   # Whether or not to allow deadchat, which lets dead players and non-players to talk through the bot to each other.
-  deadchat: y
+  deadchat: true
   wolfchat:
-    # If set, disables wolfchat during the day (commands are still relayed)
-    disable_day: n
-    # If set, disables wolfchat during the night (commands are still relayed)
-    disable_night: n
+    # If true, disables wolfchat during the day (commands are still relayed)
+    disable_day: false
+    # If true, disables wolfchat during the night (commands are still relayed)
+    disable_night: false
     # Only relay kill commands instead of all commands
-    only_kill_command: n
+    only_kill_command: false
     # Only relay a command to someone else if they can use the same command themselves
-    only_same_command: n
-    # If set, non-wolves cannot participate in wolfchat (commands are still relayed)
-    wolves_only_chat: n
+    only_same_command: false
+    # If true, non-wolves cannot participate in wolfchat (commands are still relayed)
+    wolves_only_chat: false
     # Remove non-wolves from wolfchat entirely (can be killed, do not count towards wolf win condition, do not show in wolflist, etc.)
-    remove_non_wolves: n
-    # Consider traitor as a non-wolf for the purposes of the above restrictions (if unset, traitor is treated the same as wolf cub)
-    traitor_non_wolf: n
+    remove_non_wolves: false
+    # Consider traitor as a non-wolf for the purposes of the above restrictions (if false, traitor is treated the same as wolf cub)
+    traitor_non_wolf: false
   spectate:
     # Alert wolfchat that someone is spectating them whenever the spectate command is used
-    notice: y
+    notice: true
     # Include which user is spectating in the above alert, if enabled.
-    include_user: n
+    include_user: false

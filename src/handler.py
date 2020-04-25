@@ -11,9 +11,8 @@ import statistics
 import math
 from typing import Optional
 
-import botconfig
 import src.settings as var
-from src import decorators, wolfgame, channels, users, errlog as log, stream_handler as alog
+from src import config, decorators, wolfgame, channels, users, stream_handler as alog
 from src.messages import messages
 from src.functions import get_participants, get_all_roles
 from src.utilities import complete_role
@@ -46,11 +45,11 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     wrapper = MessageDispatcher(user, target)
 
-    if wrapper.public and botconfig.IGNORE_HIDDEN_COMMANDS and not chan.startswith(tuple(Features["CHANTYPES"])):
+    if wrapper.public and config.Main.get("transports[0].user.ignore.hidden") and not chan.startswith(tuple(Features["CHANTYPES"])):
         return
 
-    if (notice and ((wrapper.public and not botconfig.ALLOW_NOTICE_COMMANDS) or
-                    (wrapper.private and not botconfig.ALLOW_PRIVATE_NOTICE_COMMANDS))):
+    if (notice and ((wrapper.public and config.Main.get("transports[0].user.ignore.channel_notice")) or
+                    (wrapper.private and config.Main.get("transports[0].user.ignore.private_notice")))):
         return  # not allowed in settings
 
     for fn in decorators.COMMANDS[""]:
@@ -63,10 +62,9 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     else:
         message = ""
 
-    if wrapper.public and not key.startswith(botconfig.CMD_CHAR):
+    if wrapper.public and not key.startswith(config.Main.get("transports[0].user.command_prefix")):
         return  # channel message but no prefix; ignore
     parse_and_dispatch(var, wrapper, key, message)
-
 
 def parse_and_dispatch(var,
                      wrapper: MessageDispatcher,
@@ -88,8 +86,9 @@ def parse_and_dispatch(var,
     :return:
     """
     _ignore_locals_ = True
-    if key.startswith(botconfig.CMD_CHAR):
-        key = key[len(botconfig.CMD_CHAR):]
+    cmd_prefix = config.Main.get("transports[0].user.command_prefix")
+    if key.startswith(cmd_prefix):
+        key = key[len(cmd_prefix):]
 
     # check for role prefix
     parts = key.split(sep=":", maxsplit=1)
@@ -227,9 +226,15 @@ def connect_callback(cli):
         wolfgame.connect_callback()
 
         # just in case we haven't managed to successfully auth yet
-        if botconfig.PASS and not botconfig.SASL_AUTHENTICATION:
-            cli.ns_identify(botconfig.USERNAME or botconfig.NICK,
-                            botconfig.PASS,
+        nick = config.Main.get("transports[0].user.nick")
+        username = config.Main.get("transports[0].authentication.services.username")
+        if not username:
+            username = nick
+        password = config.Main.get("transports[0].authentication.services.password")
+        use_sasl = config.Main.get("transports[0].authentication.services.use_sasl")
+        if password and not use_sasl:
+            cli.ns_identify(username,
+                            password,
                             nickserv=var.NICKSERV,
                             command=var.NICKSERV_IDENTIFY_COMMAND)
 
@@ -237,20 +242,34 @@ def connect_callback(cli):
         event = Event("irc_connected", {})
         event.dispatch(var, cli)
 
-        channels.Main = channels.add(botconfig.CHANNEL, cli)
+        main_channel = config.Main.get("transports[0].channels.main")
+        if isinstance(main_channel, str):
+            main_channel = {"name": main_channel, "prefix": "", "key": ""}
+        channels.Main = channels.add(main_channel["name"], cli, key=main_channel["key"])
         channels.Dummy = channels.add("*", cli)
 
-        if botconfig.ALT_CHANNELS:
-            for chan in botconfig.ALT_CHANNELS.split(","):
-                channels.add(chan, cli)
+        alt_channels = config.Main.get("transports[0].channels.alternate")
+        transport_name = config.Main.get("transports[0].name")
+        debug_chan = None
+        log_chan = None
+        for log in config.Main.get("logging.logs"):
+            if log["transport"] != transport_name:
+                continue
+            if log["group"] == "debug":
+                debug_chan = log["destination"]
+            elif log["group"] == "warnings":
+                log_chan = log["destination"]
+        for chan in alt_channels:
+            if isinstance(chan, str):
+                chan = {"name": chan, "prefix": "", "key": ""}
+            c = channels.add(chan["name"], cli, key=chan["key"])
+            if chan == debug_chan:
+                channels.Dev = c
+                var.DEV_PREFIX = chan["prefix"]
+            if chan == log_chan:
+                var.LOG_PREFIX = chan["prefix"]
 
-        if botconfig.DEV_CHANNEL:
-            channels.Dev = channels.add(botconfig.DEV_CHANNEL, cli)
-
-        if var.LOG_CHANNEL:
-            channels.add(var.LOG_CHANNEL, cli)
-
-        users.Bot.change_nick(botconfig.NICK)
+        users.Bot.change_nick(nick)
 
         if var.SERVER_PING_INTERVAL > 0:
             def ping_server_timer(cli):
@@ -275,36 +294,39 @@ def connect_callback(cli):
     def mustregain(cli, server, bot_nick, nick, msg):
         nonlocal regaincount
 
-        if not botconfig.PASS or bot_nick == nick or regaincount > 3:
+        config_nick = config.Main.get("transports[0].user.nick")
+        password = config.Main.get("transports[0].authentication.services.password")
+        if not password or bot_nick == nick or regaincount > 3:
             return
         if var.NICKSERV_REGAIN_COMMAND:
-            cli.ns_regain(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
+            cli.ns_regain(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_REGAIN_COMMAND)
         else:
-            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
         # it is possible (though unlikely) that regaining the nick fails for some reason and we would loop infinitely
         # as such, keep track of a count of how many times we regain, and after 3 times we no longer attempt to regain nicks
         # Since we'd only be regaining on initial connect, this should be safe. The same trick is used below for release as well
         regaincount += 1
-        users.Bot.change_nick(botconfig.NICK)
+        users.Bot.change_nick(config_nick)
 
     def mustrelease(cli, server, bot_nick, nick, msg):
         nonlocal releasecount
 
-        if not botconfig.PASS or bot_nick == nick or releasecount > 3:
+        config_nick = config.Main.get("transports[0].user.nick")
+        password = config.Main.get("transports[0].authentication.services.password")
+        if not password or bot_nick == nick or releasecount > 3:
             return # prevents the bot from trying to release without a password
         if var.NICKSERV_RELEASE_COMMAND:
-            cli.ns_release(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_release(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
         else:
-            cli.ns_ghost(nick=botconfig.NICK, password=botconfig.PASS, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
+            cli.ns_ghost(nick=config_nick, password=password, nickserv=var.NICKSERV, command=var.NICKSERV_GHOST_COMMAND)
         releasecount += 1
-        users.Bot.change_nick(botconfig.NICK)
+        users.Bot.change_nick(config_nick)
 
     @hook("unavailresource", hookid=239)
     @hook("nicknameinuse", hookid=239)
     def must_use_temp_nick(cli, *etc):
         users.Bot.nick += "_"
         users.Bot.change_nick()
-        cli.user(botconfig.NICK, "") # TODO: can we remove this?
 
         hook.unhook(239)
         hook("unavailresource", hookid=240)(mustrelease)
@@ -312,7 +334,7 @@ def connect_callback(cli):
 
     request_caps = {"account-notify", "chghost", "extended-join", "multi-prefix"}
 
-    if botconfig.SASL_AUTHENTICATION:
+    if config.Main.get("transports[0].authentication.services.use_sasl"):
         request_caps.add("sasl")
 
     supported_caps = set()
@@ -337,7 +359,7 @@ def connect_callback(cli):
             if caps[0] == "*": # Multiline, don't continue yet
                 return
 
-            if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
+            if config.Main.get("transports[0].authentication.services.use_sasl") and "sasl" not in supported_caps:
                 alog("Server does not support SASL authentication")
                 cli.quit()
                 raise ValueError("Server does not support SASL authentication")
@@ -399,15 +421,19 @@ def connect_callback(cli):
                 supported_caps.discard(item)
                 Features.unset(item)
 
-    if botconfig.SASL_AUTHENTICATION:
+    if config.Main.get("transports[0].authentication.services.use_sasl"):
         @hook("authenticate")
         def auth_plus(cli, something, plus):
+            username = config.Main.get("transports[0].authentication.services.username")
+            if not username:
+                username = config.Main.get("transports[0].user.nick")
+            password = config.Main.get("transports[0].authentication.services.password")
             if plus == "+":
                 if selected_sasl == "EXTERNAL":
                     cli.send("AUTHENTICATE +")
                 elif selected_sasl == "PLAIN":
-                    account = (botconfig.USERNAME or botconfig.NICK).encode("utf-8")
-                    password = botconfig.PASS.encode("utf-8")
+                    account = username.encode("utf-8")
+                    password = password.encode("utf-8")
                     auth_token = base64.b64encode(b"\0".join((account, account, password))).decode("utf-8")
                     cli.send("AUTHENTICATE " + auth_token, log="AUTHENTICATE [redacted]")
 
@@ -429,7 +455,7 @@ def connect_callback(cli):
                 cli.send("AUTHENTICATE PLAIN")
             else:
                 alog("Authentication failed.  Did you fill the account name "
-                     "in botconfig.USERNAME if it's different from the bot nick?")
+                     "in transport.authentication.services.username if it's different from the bot nick?")
                 cli.quit()
 
-    users.Bot = users.BotUser(cli, botconfig.NICK)
+    users.Bot = users.BotUser(cli, config.Main.get("transports[0].user.nick"))

@@ -15,9 +15,7 @@ from src.warnings import decrement_stasis
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolfchat, All
-from src import channels
-
-import botconfig
+from src import config, channels
 
 WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
@@ -476,7 +474,7 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     decrement_stasis()
 
-    if not (botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_REAPER):
+    if config.Main.get("reaper.enabled"):
         # DEATH TO IDLERS!
         from src.wolfgame import reaper
         reapertimer = threading.Thread(None, reaper, args=(wrapper.client, var.GAME_ID))

@@ -1362,7 +1362,7 @@
     "error_log": "An error has occurred and has been logged.",
     "error_pastebin": "(Unable to pastebin traceback; please check the console)",
     "channel_rules": "{0:#} channel rules: {1}",
-    "no_channel_rules": "No rules are defined for {0:#}. Set RULES in botconfig.py to configure this.",
+    "no_channel_rules": "No rules are defined for {0:#}. Set gameplay.rules in botconfig.yml to configure this.",
     "ambiguous_command": "Ambiguous command; more than one role you belong to has a \"{0}\" command. Please prefix this command with a role name, for example \"{1}:{0} ...\" or \"{2}:{0} ...\".",
     "boreal_hungry": "Your stomach is rumbling when you wake up and you feel weak. You feel like you are on the verge of starvation!",
     "boreal_turn": "You wake up in the middle of the snow, confused. You thought you died, but here you are, clearly alive and very, very hungry. You look down upon your monstrous claws and gaunt frame, and realize that you have become a wendigo! Your mind focuses on one thing only, consuming the members of your tribe that did this to you.",

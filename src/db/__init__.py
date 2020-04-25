@@ -8,8 +8,8 @@ from collections import defaultdict
 import threading
 from datetime import datetime, timedelta
 
-import botconfig
 import src.settings as var
+from src import users
 from src.utilities import singular
 from src.messages import messages, get_role_name
 from src.context import lower as irc_lower
@@ -379,7 +379,7 @@ def get_game_stats(mode, size):
         winner = singular(row[0])
         winner = get_role_name(winner, number=None).title()
         if not winner:
-            winner = botconfig.NICK.title()
+            winner = users.Bot.name.title()
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))
 
@@ -587,7 +587,7 @@ def list_all_warnings(list_all=False, skip=0, show=0):
     if show > 0:
         sql += "LIMIT {0} OFFSET {1}".format(show, skip)
 
-    c.execute(sql, (botconfig.NICK,))
+    c.execute(sql, (users.Bot.name,))
     warnings = []
     for row in c:
         warnings.append({"id": row[0],
@@ -646,7 +646,7 @@ def list_warnings(acc, expired=False, deleted=False, skip=0, show=0):
     if show > 0:
         sql += " LIMIT {0} OFFSET {1}".format(show, skip)
 
-    c.execute(sql, (botconfig.NICK, peid))
+    c.execute(sql, (users.Bot.name, peid))
     warnings = []
     for row in c:
         warnings.append({"id": row[0],
@@ -695,7 +695,7 @@ def get_warning(warn_id, acc=None):
              WHERE
                warning.id = ?
              """
-    params = (botconfig.NICK, warn_id)
+    params = (users.Bot.name, warn_id)
     if acc is not None:
         peid, plid = _get_ids(acc)
         if peid is None:
@@ -703,7 +703,7 @@ def get_warning(warn_id, acc=None):
 
         sql += """  AND warning.target = ?
                     AND warning.deleted = 0"""
-        params = (botconfig.NICK, warn_id, peid)
+        params = (users.Bot.name, warn_id, peid)
 
     c.execute(sql, params)
     row = c.fetchone()
