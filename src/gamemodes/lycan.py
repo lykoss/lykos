@@ -18,5 +18,5 @@ class LycanMode(GameMode):
             17: ["lycan(3)", "gunner/sharpshooter"],
             19: ["seer(2)"],
             20: ["lycan(4)"],
-            22: ["wolf shaman(2), hunter(4)"]
+            22: ["wolf shaman(2)", "hunter(4)"]
         }
