@@ -484,8 +484,19 @@ def replace(var, wrapper, message):
         if var.PHASE in var.GAME_PHASES:
             return_to_village(var, target, show_message=False)
 
+        cmodes = []
+
         if not var.DEVOICE_DURING_NIGHT or var.PHASE != "night":
-            channels.Main.mode(("-v", target), ("+v", wrapper.source))
+            cmodes += [("-v", target), ("+v", wrapper.source)]
+
+        for mode in var.AUTO_TOGGLE_MODES & wrapper.source.channels[channels.Main]:
+            cmodes.append(("-" + mode, wrapper.source))
+            var.OLD_MODES[wrapper.source].add(mode)
+
+        for mode in var.OLD_MODES[target]:
+            cmodes.append(("+" + mode, target))
+
+        channels.Main.mode(*cmodes)
 
         channels.Main.send(messages["player_swap"].format(wrapper.source, target))
         if var.PHASE in var.GAME_PHASES:

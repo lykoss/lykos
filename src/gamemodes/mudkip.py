@@ -4,7 +4,7 @@ from src.events import EventListener
 from src import channels, users
 
 # someone let woffle commit while drunk again... tsk tsk
-@game_mode("mudkip", minp=5, maxp=15, likelihood=5)
+@game_mode("mudkip", minp=5, maxp=17, likelihood=5)
 class MudkipMode(GameMode):
     """Why are all the professors named after trees?"""
     def __init__(self, arg=""):
@@ -39,12 +39,14 @@ class MudkipMode(GameMode):
             7:  ["jester"],
             8:  ["shaman"],
             9:  ["doomsayer", "-minion"],
-            10: ["vengeful ghost", "assassin"],
+            10: ["vengeful ghost"],
             11: ["wolf(2)"],
             12: ["priest"],
             13: ["wolf shaman"],
             14: ["amnesiac"],
             15: ["succubus"],
+            16: ["assassin"],
+            17: ["dullahan"]
         }
 
         self.EVENTS = {
