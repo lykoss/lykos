@@ -1,0 +1,118 @@
+# lykos configuration file
+# Common values are commented below, but not every valid configuration is present in this file.
+# For documentation on all valid configuration elements, see https://ww.chat/config
+# To configure your bot, COPY this file to "botconfig.yml" and customize it to your liking.
+# When adding additional lines to this file, ONLY USE SPACES TO INDENT, NEVER TABS;
+# our configuration reader is picky and indenting with tabs or not matching surrounding indents will cause errors.
+# If you need additional assistance with formatting for this file, look up YAML syntax on your favorite search engine
+# or come talk to us on chat.freenode.net #lykos
+
+# The file named botconfig.yml is always loaded. A secondary file can be loaded as well which will
+# overwrite settings in the main botconfig.yml file, based on command line switches.
+# Running `wolfbot.py --config botconfig.foo.yml` will attempt to load botconfig.foo.yml.
+# When run with --debug, the file botconfig.debug.yml will be loaded if it exists.
+# This is loaded after the file specified by --config, if any.
+# Instead of command line params, you can also use the environment variable BOTCONFIG to point to a configuration
+# file (will be loaded if --config is not specified) and the environment variable DEBUG to enable debug mode.
+
+# The transports section defines all of the connections your bot will make.
+# At least one transport must be defined for the bot to successfully run.
+# An example transport is provided below; you can tweak it for your own network.
+transports:
+  - type: irc
+    # Name of this transport. Can be anything, but must be defined and unique across all transports in this file.
+    # Many other config sections let you specify a transport for something; those must match the name of a transport
+    # defined here.
+    name: freenode
+    # What IRCd the remote is running. Configuring this wrong will have disastrous consequences.
+    module: ircd-seven
+    user:
+      nick: rolebot
+      realname: Bot bot bot
+      # We only respond to commands in-channel if they begin with this prefix.
+      # Commands in private with this prefix are not relayed to other players in wolfchat, deadchat, etc.
+      # Use quotes around the character to prevent YAML from interpreting it as something special.
+      command_prefix: "$"
+    channels:
+      # Main game channel. Be sure to use quotes around the name so it is not treated as a comment!
+      # In addition to a simple string, both the main channel and alt channels may be configured as objects
+      main: "##werewolf-optest"
+    connection:
+      host: chat.freenode.net
+      port: 6697
+      ssl:
+        # If true, use SSL for this connection
+        use_ssl: true
+    authentication:
+      server:
+        # If the IRC server requires authentication via the PASS command, specify the password here
+        password: null
+      services:
+        # Services module in use, e.g. atheme or anope. Configuring this wrong will have disastrous consequences.
+        module: atheme
+        # Username to authenticate to services with (e.g. NickServ).
+        # If null, defaults to the nickname set in user.nick
+        username: rolebot
+        # Password to authenticate to services with. If using client certificate authentication, leave this null.
+        password: suchroleverybotwow
+        # If true, use SASL to authenticate. The network must support SASL.
+        use_sasl: true
+  # The following transport does not establish any connections for gameplay, but is used as an output target
+  # for logging.
+  - type: file
+    # Name of the transport. Can be anything, but must be defined and unique across all transports in this file.
+    name: adminlog
+    # The path relative to the bot's root directory where the file is opened.
+    # An absolute path may be specified as well. The file will be opened for writing in append mode.
+    path: admin.log
+
+# Bot access. Access entries specified here cannot be modified or removed via the fflags command.
+# However, that command may add additional access entries.
+# By default, the following templates are defined:
+# owner => full access to the bot and can execute every command
+# admin => access to manage moderators and execute commands which can update the bot's code or cause it to restart
+# moderator => manage games in progress and warn users, but cannot manage access entries or cause the bot to restart
+access:
+  entries:
+    - transport: freenode
+      account: Skizzerz
+      template: owner
+    - transport: freenode
+      account: Vgr255
+      template: owner
+    - transport: freenode
+      account: jacob1
+      template: owner
+    - transport: freenode
+      account: Iciloo
+      template: admin
+
+# Logging. The bot can log data to files as well as to destinations on transports (such as IRC channels).
+# This section configures what gets logged and to where the logs are sent.
+# By default, the following groups are defined:
+# admin-commands => logs all usages of all admin commands
+# warnings => logs all usages of the fwarn commands which add/delete/modify warnings
+# debug => logs all exception reports
+logging:
+  logs:
+    # A log can be sent to a destination on a transport. Exactly how this works depends on the transport in use.
+    # For IRC, the destination must be either the main channel or an alternate channel in the transport config.
+    - group: debug
+      transport: freenode
+      destination: "##werewolf-optest"
+    # For File transports, the destination is ignored and can be omitted.
+    - group: admin-commands
+      transport: adminlog
+
+# Telemetry. lykos sends error details to the developers to help provide a better and more stable bot.
+# To help preserve the privacy of your users, we anonymize data by default. However, opting in to sending us
+# more data can help us solve errors faster or know how to prioritize development efforts.
+# To send more data to the lykos developers, uncomment the following block:
+telemetry:
+  errors:
+    traceback_verbosity: 2
+    user_data_level: 2
+    channel_data_level: 2
+  usage:
+    game_data: true
+    environment_data: true

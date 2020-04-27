@@ -31,7 +31,6 @@ class GameMode:
             "sharpshooter"      : Village + Neutral + Hidden - Innocent - Team_Switcher,
             "mayor"             : All - Innocent - Win_Stealer,
             "assassin"          : All - Nocturnal + Killer - Spy + Wolfchat - Wolf - Innocent - Team_Switcher - {"traitor"},
-            "blessed villager"  : ["villager"],
         }
         self.DEFAULT_TOTEM_CHANCES = self.TOTEM_CHANCES = {}
         self.NUM_TOTEMS = {}

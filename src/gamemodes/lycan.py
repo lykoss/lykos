@@ -2,7 +2,7 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src import events, channels, users
 
-@game_mode("lycan", minp=7, maxp=21, likelihood=5)
+@game_mode("lycan", minp=7, maxp=24, likelihood=5)
 class LycanMode(GameMode):
     """Many lycans will turn into wolves. Hunt them down before the wolves overpower the village."""
     def __init__(self, arg=""):
@@ -14,8 +14,9 @@ class LycanMode(GameMode):
             10: ["wolf shaman", "hunter(2)"],
             11: ["bodyguard", "mayor"],
             12: ["lycan(2)", "cursed villager(2)"],
-            15: ["matchmaker", "lycan(3)"],
-            17: ["clone(2)", "gunner/sharpshooter"],
+            15: ["tough wolf", "hunter(3)"],
+            17: ["lycan(3)", "gunner/sharpshooter"],
             19: ["seer(2)"],
             20: ["lycan(4)"],
+            22: ["wolf shaman(2), hunter(4)"]
         }

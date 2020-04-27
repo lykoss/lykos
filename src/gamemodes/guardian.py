@@ -5,18 +5,24 @@ from src.events import EventListener
 from src import channels, users
 
 # original idea by Rossweisse, implemented by Vgr with help from woffle and jacob1
-@game_mode("guardian", minp=8, maxp=16, likelihood=5)
+@game_mode("guardian", minp=7, maxp=24, likelihood=5)
 class GuardianMode(GameMode):
     """Game mode full of guardian angels, wolves need to pick them apart!"""
     def __init__(self, arg=""):
         self.LIMIT_ABSTAIN = False
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            8:  ["wolf", "werekitten", "seer", "guardian angel", "village drunk", "cursed villager"],
+            7:  ["werekitten", "seer", "guardian angel", "cursed villager(2)"],
+            8:  ["wolf", "village drunk"],
             10: ["werecrow", "shaman"],
-            12: ["alpha wolf", "guardian angel(2)", "cursed villager(2)"],
+            12: ["alpha wolf", "guardian angel(2)", "cursed villager(3)"],
             13: ["jester", "gunner"],
             15: ["wolf(2)", "bodyguard"],
+            17: ["amnesiac", "demoniac"],
+            19: ["wolf gunner", "investigator"],
+            21: ["amnesiac(2)"],
+            22: ["minion"],
+            23: ["vigilante"]
         }
         self.TOTEM_CHANCES = {
             "death"         : {"shaman": 4},
