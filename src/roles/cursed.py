@@ -27,5 +27,5 @@ def on_transition_night_end(evt, var):
     cursed = get_all_players(("cursed villager",))
     wolves = get_all_players(Wolfchat)
     for player in cursed:
-        if get_main_role(player) == "cursed villager" or cursed in wolves:
-            cursed.send(messages["cursed_notify"])
+        if get_main_role(player) == "cursed villager" or player in wolves:
+            player.send(messages["cursed_notify"])
