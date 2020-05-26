@@ -112,4 +112,4 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["traitor"] = {"Wolfchat", "Wolfteam"}
+        evt.data["traitor"] = {"Wolfchat", "Wolfteam", "Wolf Objective"}

@@ -1,11 +1,10 @@
 # role categories; roles return a subset of these categories when fetching their metadata
 # Wolf: Defines the role as a true wolf role (usually can kill, dies when shot, kills visiting harlots, etc.)
-#    The village needs to kill every true wolf role to win
 # Wolfchat: Defines the role as having access to wolfchat (depending on var.RESTRICT_WOLFCHAT settings)
-#    The wolfteam wins if the number of wolfchat roles is greater than or equal to the number of other roles alive
 # Wolfteam: Defines the role as wolfteam for determining winners
 # Killer: Roles which can kill other roles during the game. Roles which kill upon or after death (ms, vg) don't belong in here
 # Village: Defines the role as village for determining winners
+# Nocturnal: Defines the role as being awake at night (usually due to having commands which work at night)
 # Neutral: Defines the role as neutral (seen as grey by augur) and not in village or wolfteam when determining winners
 # Win Stealer: Defines the role as a win stealer (do not win with a built-in team, vigilante can kill them without issue, etc.).
 #    Also seen as grey by augur and win as a separate team if not in neutral (e.g. all monsters win together, whereas fools win individually)
@@ -16,6 +15,10 @@
 # Cursed: Seer sees these roles as wolf
 # Innocent: Seer sees these roles as the default role even if they would otherwise be seen as wolf
 # Team Switcher: Roles which may change teams during gameplay
+# Wolf Objective: If the number of alive players with this role is greater than or equal to the other players,
+#    the wolfteam wins. Only main roles are considered for this.
+# Village Objective: If all of the players with this cat are dead, the village wins.
+#    Only main roles are considered for this.
 
 from collections import defaultdict
 from typing import Dict
@@ -26,7 +29,7 @@ from src import events
 __all__ = [
     "get", "role_order",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
-    "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "All"
+    "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
 ]
 
 _dict_keys = type(dict().keys())
@@ -201,3 +204,5 @@ Intuitive = Category("Intuitive")
 Cursed = Category("Cursed")
 Innocent = Category("Innocent")
 Team_Switcher = Category("Team Switcher")
+Village_Objective = Category("Village Objective")
+Wolf_Objective = Category("Wolf Objective")
