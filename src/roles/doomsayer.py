@@ -86,6 +86,8 @@ def on_transition_night_end(evt, var):
         status.add_lycanthropy_scope(var, All) # any role can transform if ds is in play
     for lycan in LYCANS.values():
         status.add_lycanthropy(var, lycan)
+    for sick in SICK.values():
+        status.add_disease(var, sick)
 
     LYCANS.clear()
     SICK.clear()
@@ -93,7 +95,6 @@ def on_transition_night_end(evt, var):
 @event_listener("begin_day")
 def on_begin_day(evt, var):
     for sick in SICK.values():
-        status.add_disease(var, sick)
         status.add_absent(var, sick, "illness")
         status.add_silent(var, sick)
 
