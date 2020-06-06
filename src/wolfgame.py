@@ -50,7 +50,10 @@ from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
 from src.votes import chk_decision
-from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, role_order
+from src.cats import (
+    Wolf, Wolfchat, Wolfteam, Killer, Village, Neutral, Hidden, Wolf_Objective, Village_Objective,
+    role_order
+    )
 
 from src.functions import (
     get_players, get_all_players, get_participants,
@@ -1407,17 +1410,9 @@ def chk_win_conditions(rolemap, mainroles, end_game=True, winner=None):
             pl = set(get_players(mainroles=mainroles))
             lpl = len(pl)
 
-        if var.RESTRICT_WOLFCHAT & var.RW_REM_NON_WOLVES:
-            if var.RESTRICT_WOLFCHAT & var.RW_TRAITOR_NON_WOLF:
-                wcroles = Wolf
-            else:
-                wcroles = Wolf | {"traitor"}
-        else:
-            wcroles = Wolfchat
-
-        wolves = set(get_players(wcroles, mainroles=mainroles))
+        wolves = set(get_players(Wolf_Objective, mainroles=mainroles))
         lwolves = len(wolves & pl)
-        lrealwolves = len(get_players(Wolf & Killer, mainroles=mainroles))
+        lrealwolves = len(get_players(Village_Objective, mainroles=mainroles))
 
         message = ""
         if lpl < 1:

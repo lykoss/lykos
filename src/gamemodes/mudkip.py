@@ -34,11 +34,11 @@ class MudkipMode(GameMode):
         self.set_default_totem_chances()
 
         self.ROLE_GUIDE = {
-            5:  ["wolf", "minion", "investigator"],
+            5:  ["wolf", "cult leader", "insomniac", "investigator"],
             6:  ["guardian angel"],
             7:  ["jester"],
             8:  ["shaman"],
-            9:  ["doomsayer", "-minion"],
+            9:  ["doomsayer"],
             10: ["vengeful ghost"],
             11: ["wolf(2)"],
             12: ["priest"],

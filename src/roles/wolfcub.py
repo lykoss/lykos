@@ -91,4 +91,4 @@ def on_reset(evt, var):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
-        evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam"}
+        evt.data["wolf cub"] = {"Wolf", "Wolfchat", "Wolfteam", "Wolf Objective"}

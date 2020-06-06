@@ -125,4 +125,4 @@ def on_get_role_metadata(evt, var, kind):
         can_bite = get_all_players(("alpha wolf",)) - ALPHAS
         evt.data["alpha wolf"] = len(can_bite)
     elif kind == "role_categories":
-        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal"}
+        evt.data["alpha wolf"] = {"Wolf", "Wolfchat", "Wolfteam", "Killer", "Nocturnal", "Village Objective", "Wolf Objective"}

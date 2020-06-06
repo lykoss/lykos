@@ -5,7 +5,7 @@ from src.events import Event
 
 __all__ = ["add_disease", "remove_disease", "wolves_diseased"]
 
-DISEASED = UserSet() # type: Set[users.User]
+DISEASED = UserSet()
 DISEASED_WOLVES = False
 
 def add_disease(var, target):
@@ -34,7 +34,7 @@ def on_transition_day_resolve(evt, var, victims):
     else:
         DISEASED_WOLVES = False
 
-@event_listener("transition_day_begin")
+@event_listener("begin_day")
 def on_begin_day(evt, var):
     DISEASED.clear()
 
@@ -50,5 +50,3 @@ def on_wolf_numkills(evt, var):
         evt.data["numkills"] = 0
         evt.data["message"] = "ill_wolves"
         evt.stop_processing = True
-
-# vim: set sw=4 expandtab:
