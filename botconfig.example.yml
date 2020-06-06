@@ -75,14 +75,6 @@ transports:
         # Private key to connect with, in PEM format, if it was not already specified in client_certificate.
         # This may be either a filename containing the key or directly embedded in this configuration file.
         client_key: null
-  # The following transport does not establish any connections for gameplay, but is used as an output target
-  # for logging.
-  - type: file
-    # Name of the transport. Can be anything, but must be defined and unique across all transports in this file.
-    name: adminlog
-    # The path relative to the bot's root directory where the file is opened.
-    # An absolute path may be specified as well. The file will be opened for writing in append mode.
-    path: admin.log
 
 # Bot access. Access entries specified here cannot be modified or removed via the fflags command.
 # However, that command may add additional access entries.
@@ -99,22 +91,37 @@ access:
 # Logging. The bot can log data to files as well as to destinations on transports (such as IRC channels).
 # This section configures what gets logged and to where the logs are sent.
 # By default, the following groups are defined:
+# main => logs everything except gameplay details
 # admin-commands => logs all usages of all admin commands
 # warnings => logs all usages of the fwarn commands which add/delete/modify warnings
 # debug => logs all exception reports
 logging:
   logs:
-    # A log can be sent to a destination on a transport. Exactly how this works depends on the transport in use.
-    # For IRC, the destination must be either the main channel or an alternate channel in the transport config.
+    - group: main
+      handler:
+        # Stream handlers can log to either stdout or stderr.
+        # If a logger is not defined to emit to stdout, nothing will be produced there.
+        # Startup errors are always sent to stderr and ignore logging config.
+        type: stream
+        stream: stdout
     - group: warnings
-      transport: mynetwork
-      destination: "#channel2"
-    - group: debug
-      transport: mynetwork
-      destination: "#channel3"
-    # For File transports, the destination is ignored and can be omitted.
+      handler:
+        # A log can be sent to a destination on a transport.
+        # Exactly how this works depends on the transport in use.
+        # For IRC, the destination must be either the main channel
+        # or an alternate channel in the transport config.
+        type: transport
+        transport: mynetwork
+        destination: "#channel2"
+      timestamp:
+        # when logging to IRC, it's not necessary to add timestamps to log messages
+        # since most clients will add timestamps anyway
+        enabled: false
     - group: admin-commands
-      transport: adminlog
+      handler:
+        # Files can be absolute paths or relative to the bot root, and are opened in append mode.
+        type: file
+        file: admin.log
 
 # Telemetry. lykos sends error details to the developers to help provide a better and more stable bot.
 # To help preserve the privacy of your users, we anonymize data by default. However, opting in to sending us

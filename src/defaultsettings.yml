@@ -18,12 +18,6 @@ transports.irc.channel: &transports.irc.channel
       _desc: Channel key, if the channel is password protected (channel mode +k).
       _type: str
       _default: ""
-    prefix:
-      _desc: |
-        If specified, messages will be sent to this prefix for this channel (e.g. "voice message").
-        This typically requires that STATUSMSG be supported by the ircd.
-      _type: str
-      _default: ""
 
 transports.irc: &transports.irc
   _name: transports.irc
@@ -266,18 +260,6 @@ transports.irc: &transports.irc
           _type: int
           _default: 23
 
-transports.file: &transports.file
-  _name: transports.file
-  _desc: An output-only transport used as a target in the logging section.
-  _type: dict
-  _default:
-    name:
-      _desc: Name of this transport. Can be anything, but must be defined and unique across all transports in this file.
-      _type: str
-    path:
-      _desc: Path to the file, which will be opened in append mode.
-      _type: str
-
 transports: &transports
   _name: transports
   _desc: |
@@ -289,7 +271,6 @@ transports: &transports
     _type: tagged
     _tags:
       irc: *transports.irc
-      file: *transports.file
 
 ssl: &ssl
   _name: ssl
@@ -380,24 +361,152 @@ logging.group: &logging.group
     name:
       _desc: The name of the group, must be unique.
       _type: str
-    commands:
+    filters:
       _desc: |
-        Restricted commands that the group logs, or the string "*" to indicate all commands.
-        Commands without restrictions will never be logged.
-      _type:
-        - list
-        - str
+        Only log events whose types match one of the specified filters. Leave empty to log everything.
+        * command: The commands filter logs restricted commands. Specific commands and sub-commands
+        can be used instead via command.commandname (e.g. command.fsay or command.fwarn.add).
+        * exception: The exception filter logs exceptions. Specific exception types can be used
+        via exception.type (e.g. exception.TypeError).
+        * general: The general filter logs events that do not fit under any more specific filter.
+        This is generally used by messages that are expected to be printed to stdout.
+        * transport: The transport filter logs traffic sent to and received from transports. Specific
+        transports can be used via transport.name.
+        * game: The game filter logs game events, such as all executed commands and other game details.
+        Currently unused.
+        * Additional filters may be defined by Python itself and are outside the scope of this documentation.
+      _type: list
       _default: []
       _items:
         _type: str
-    exceptions:
-      _desc: Exception types to log, or the string "*" to log all exceptions.
+
+logging.log.handler.file.rotate.bytes: &logging.log.handler.file.rotate.bytes
+  _name: logging.log.handler.file.rotate.bytes
+  _desc: |
+    Rotate the file after it reaches a certain size in bytes.
+    See https://docs.python.org/3/library/logging.handlers.html#rotatingfilehandler
+    for more information.
+  _type: dict
+  _default:
+    max_bytes:
+      _desc: When this threshold is about to be met, rotate the file.
+      _type: int
+    backup_count:
+      _desc: How many old files are saved before the oldest is deleted.
+      _type: int
+
+logging.log.handler.file.rotate.timed: &logging.log.handler.file.rotate.timed
+  _name: logging.log.handler.file.rotate.timed
+  _desc: |
+    Rotate the file on timed intervals.
+    See https://docs.python.org/3/library/logging.handlers.html#timedrotatingfilehandler
+    for more information.
+  _type: dict
+  _default:
+    when:
+      _desc: Specifies the type of interval.
+      _type: enum
+      _values:
+        - S
+        - M
+        - H
+        - D
+        - W0
+        - W1
+        - W2
+        - W3
+        - W4
+        - W5
+        - W6
+        - midnight
+    interval:
+      _desc: |
+        Combined with when to determine when to rotate the file.
+        If when is W0-W6, interval is ignored and can be omitted.
+      _type: int
+      _default: 1
+    at_time:
+      _desc: |
+        If when is W0-W6 or midnight, this computes the initial rollover time.
+        The value specified here should be of the format HH:MM or HH:MM:SS
+      _type: str
+    backup_count:
+      _desc: How many old files are saved before the oldest is deleted.
+      _type: int
+    utc:
+      _desc: Whether or not times are interpreted to be in UTC.
+      _type: bool
+      _default: false
+
+logging.log.handler.file: &logging.log.handler.file
+  _name: logging.log.handler.file
+  _desc: Writes the log to a file on the disk.
+  _type: dict
+  _default:
+    file:
+      _desc: |
+        The path to the file to write. Can be either a relative or absolute path.
+        If a relative path is given, it is relative to the bot root.
+      _type: str
+    rotate:
+      _desc: |
+        Whether or not the files should rotate. Files can rotate when they've reached
+        a maximum byte count or after a certain time interval has passed (but not both).
       _type:
-        - list
+        - *logging.log.handler.file.rotate.bytes
+        - *logging.log.handler.file.rotate.timed
+        - "null"
+      _default: null
+
+logging.log.handler.stream: &logging.log.handler.stream
+  _name: logging.log.handler.stream
+  _desc: Writes the log to a stream (stdout or stderr).
+  _type: dict
+  _default:
+    stream:
+      _desc: Which stream to write the log to.
+      _type: enum
+      _values:
+        - stdout
+        - stderr
+
+logging.log.handler.transport: &logging.log.handler.transport
+  _name: logging.log.handler.transport
+  _desc: Defines a transport and a location in that transport to send log messages.
+  _type: dict
+  _default:
+    transport:
+      _desc: The name of the transport to write the log to.
+      _type: str
+    destination:
+      _desc: |
+        An optional location in the transport to write the log. Each transport interprets this differently.
+        * For the irc transport, this should be a channel name (remember to surround it in quotes). If the
+        irc server supports STATUSMSG, you may add a prefix to the channel name, e.g. "+#werewolf-ops".
+      _type:
         - str
-      _default: []
-      _items:
-        _type: str
+        - "null"
+      _default: null
+
+logging.log.handler.custom: &logging.log.handler.custom
+  _name: logging.log.handler.custom
+  _desc: A custom handler defined via user-specified code.
+  _type: dict
+  _default:
+    module:
+      _desc: Module name that contains the custom handler class.
+      _type: str
+    class:
+      _desc: |
+        Class name of the custom handler class, should derive from src.logger.UnionFilterMixin and
+        logging.Handler (or one of its subclasses), in that order. Subclassing one of the built-in
+        handlers from src.logger will meet this criteria.
+      _type: str
+    args:
+      _desc: Keyword arguments passed to the class constructor.
+      _type: dict
+      _default: {}
+      _extra: true
 
 logging.log: &logging.log
   _name: logging.log
@@ -407,9 +516,24 @@ logging.log: &logging.log
     group:
       _desc: Group name to log.
       _type: str
-    transport:
-      _desc: The name of the transport to write the log to.
-      _type: str
+    handler:
+      _desc: Defines how and where the log is written.
+      _type: tagged
+      _tags:
+        file: *logging.log.handler.file
+        stream: *logging.log.handler.stream
+        transport: *logging.log.handler.transport
+        custom: *logging.log.handler.custom
+    level:
+      _desc: Only logging events of this level or more severe are sent to this log.
+      _type: enum
+      _default: info
+      _values:
+        - critical
+        - error
+        - warning
+        - info
+        - debug
     format:
       _desc: |
         How data sent to the log is formatted.
@@ -429,27 +553,21 @@ logging.log: &logging.log
         "timestamp" field in structured logs.
       _type: dict
       _default:
+        enabled:
+          _desc: If true, a timestamp is added to the log record.
+          _type: bool
+          _default: true
         utc:
           _desc: If true, the timestamp will be in UTC. If false, it will use the current system's time.
           _type: bool
           _default: true
         format:
           _desc: |
-            How the timestamp is formatted. %Y is the year, %m is the month, %d is the day,
-            %H = hour, %M = minute, and %S = seconds. {tzname} and {tzoffset} can both be used -
-            the timezone name (like UTC) and offset (+0000), respectively. It is recommended to use quotes
+            See https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+            for more information on how to configure this. It is recommended to use quotes
             around this field to prevent YAML from interpreting any special characters.
           _type: str
-          _default: "%Y-%m-%d %H:%M:%S{tzoffset}"
-    destination:
-      _desc: |
-        An optional location in the transport to write the log. Each transport interprets this differently.
-        * For the irc transport, this should be a channel name (remember to surround it in quotes).
-        * For the file transport, this is ignored and should be omitted.
-      _type:
-        - str
-        - "null"
-      _default: null
+          _default: "%Y-%m-%d %H:%M:%S%z"
 
 logging: &logging
   _name: logging
@@ -462,20 +580,29 @@ logging: &logging
     groups:
       _desc: |
         Logging groups. By default, the following groups are defined:
+        * main: log code issues and restricted commands to stdout
         * admin-commands: log all usages of restricted commands
         * warnings: log the usages of fwarn add, fwarn set, and fwarn del
         * debug: log all exceptions that occur
       _type: list
       _default:
+        - name: main
+          filters:
+            - general
+            - command
+            - exception
+            - transport
         - name: admin-commands
-          commands: "*"
+          filters:
+            - command
         - name: warnings
-          commands:
-            - fwarn add
-            - fwarn set
-            - fwarn del
+          filters:
+            - command.fwarn.add
+            - command.fwarn.set
+            - command.fwarn.del
         - name: debug
-          exceptions: "*"
+          filters:
+            - exception
       _items:
         _type: *logging.group
     logs:

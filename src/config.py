@@ -432,7 +432,7 @@ def merge(metadata: Dict[str, Any], base, settings, *path: str,
             extra = list(settings.keys() - metadata["_default"].keys())
             if tagged and "type" in extra:
                 extra.remove("type")
-            if extra:
+            if extra and not metadata.get("_extra", False):
                 raise TypeError("Value on path '{}' has unrecognized key {}".format(".".join(path), extra[0]))
 
         # dict supports two merge types: merge (default), replace

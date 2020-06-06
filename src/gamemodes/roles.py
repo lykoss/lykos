@@ -41,7 +41,7 @@ class ChangedRolesMode(GameMode):
                     self.DEFAULT_ROLE = num
                 elif role.lower() == "hidden" and num in ("villager", "cultist"):
                     self.HIDDEN_ROLE = num
-                elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain", "lover wins with fool"):
+                elif role.lower() in ("role reveal", "reveal roles", "stats type", "stats", "abstain"):
                     # handled in parent constructor
                     pass
                 else:

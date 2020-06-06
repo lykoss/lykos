@@ -1,6 +1,7 @@
+from __future__ import annotations
 import time
-
 from enum import Enum
+from typing import Optional
 
 from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
@@ -29,7 +30,7 @@ class _States(Enum):
 def predicate(name):
     return not name.startswith(tuple(Features["CHANTYPES"]))
 
-def get(name, *, allow_none=False):
+def get(name: str, *, allow_none: bool = False) -> Optional[Channel]:
     try:
         return _channels[lower(name)]
     except KeyError:

@@ -35,9 +35,12 @@ if os.environ.get("DEBUG", False):
 
 del _bp
 
+# Initialize logging framework
+from src import logger
+logger.init()
+
 # Files with dependencies only on things imported in previous lines, in order
 # The top line must only depend on things imported above in our "no dependencies" block
-from src.logger import stream, stream_handler, debuglog, errlog, plog
 from src import debug
 from src import cats, messages
 from src import context, functions, utilities

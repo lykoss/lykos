@@ -37,7 +37,6 @@ from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import Set, Optional, Callable, Tuple
 
-import src.settings as var
 from src.utilities import *
 from src import db, config, events, dispatcher, channels, users, hooks, debuglog, errlog, plog, handler
 from src.users import User
