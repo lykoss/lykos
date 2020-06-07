@@ -2965,7 +2965,7 @@ def list_roles(var, wrapper, message):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        if new:
+        if new and specific <= var.MAX_PLAYERS:
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
