@@ -21,6 +21,7 @@ import traceback
 import sys
 import os
 import argparse
+import logging
 from pathlib import Path
 
 ver = sys.version_info
@@ -70,7 +71,6 @@ if args.config:
 
 from oyoyo.client import IRCClient, TokenBucket
 
-import src
 from src import handler, config
 from src.events import Event
 
@@ -85,7 +85,8 @@ def main():
             "on how to configure lykos."]))
         sys.exit(1)
 
-    src.plog("Loading Werewolf IRC bot")
+    general_logger = logging.getLogger("general")
+    general_logger.info("Loading Werewolf IRC bot")
     evt = Event("init", {})
     evt.dispatch()
 
@@ -104,33 +105,38 @@ def main():
     if not username:
         username = nick
 
-    src.plog("Connecting to {0}:{1}{2}".format(host, "+" if use_ssl else "", port))
+    transport_name = config.Main.get("transports[0].name")
+    transport_logger = logging.getLogger("transport.{}".format(transport_name))
+    transport_logger.info("Connecting to {0}:{1}{2}".format(host, "+" if use_ssl else "", port))
+    cmd_handler = {
+        "privmsg": lambda *s: None,
+        "notice": lambda *s: None,
+        "": handler.unhandled
+    }
     cli = IRCClient(
-                      {"privmsg": lambda *s: None,
-                       "notice": lambda *s: None,
-                       "": handler.unhandled},
-                     host=host,
-                     port=port,
-                     bindhost=bindhost,
-                     authname=username,
-                     password=config.Main.get("transports[0].authentication.services.password"),
-                     nickname=nick,
-                     ident=ident,
-                     real_name=real_name,
-                     sasl_auth=config.Main.get("transports[0].authentication.services.use_sasl"),
-                     server_pass=config.Main.get("transports[0].authentication.server.password"),
-                     use_ssl=use_ssl,
-                     cert_verify=config.Main.get("transports[0].connection.ssl.verify_peer"),
-                     cert_fp=config.Main.get("transports[0].connection.ssl.trusted_fingerprints"),
-                     client_certfile=config.Main.get("transports[0].authentication.services.client_certificate"),
-                     client_keyfile=config.Main.get("transports[0].authentication.services.client_key"),
-                     cipher_list=config.Main.get("ssl.ciphers"),
-                     tokenbucket=TokenBucket(
-                         config.Main.get("transports[0].flood.max_burst"),
-                         config.Main.get("transports[0].flood.sustained_rate"),
-                         init=config.Main.get("transports[0].flood.initial_burst")),
-                     connect_cb=handler.connect_callback,
-                     stream_handler=src.stream,
+        cmd_handler,
+        host=host,
+        port=port,
+        bindhost=bindhost,
+        authname=username,
+        password=config.Main.get("transports[0].authentication.services.password"),
+        nickname=nick,
+        ident=ident,
+        real_name=real_name,
+        sasl_auth=config.Main.get("transports[0].authentication.services.use_sasl"),
+        server_pass=config.Main.get("transports[0].authentication.server.password"),
+        use_ssl=use_ssl,
+        cert_verify=config.Main.get("transports[0].connection.ssl.verify_peer"),
+        cert_fp=config.Main.get("transports[0].connection.ssl.trusted_fingerprints"),
+        client_certfile=config.Main.get("transports[0].authentication.services.client_certificate"),
+        client_keyfile=config.Main.get("transports[0].authentication.services.client_key"),
+        cipher_list=config.Main.get("ssl.ciphers"),
+        tokenbucket=TokenBucket(
+            config.Main.get("transports[0].flood.max_burst"),
+            config.Main.get("transports[0].flood.sustained_rate"),
+            init=config.Main.get("transports[0].flood.initial_burst")),
+        connect_cb=handler.connect_callback,
+        stream_handler=transport_logger.info,
     )
     cli.mainLoop()
 
@@ -138,4 +144,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception:
-        src.errlog(traceback.format_exc())
+        # can't rely on logging utilities here, they might be broken or closed already
+        traceback.print_exc()

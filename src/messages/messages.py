@@ -1,17 +1,16 @@
 import json
 import os
-from typing import Dict, Set
+from typing import Dict
 
-import src.settings as var
+from src import config
 from src.messages.message import Message
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "messages")
 ROOT_DIR = os.path.join(os.path.dirname(__file__), "..", "..")
 
-
 class Messages:
     def __init__(self):
-        self.lang = var.LANGUAGE
+        self.lang = config.Main.get("gameplay.language")
         self.cache = {}
         self._load_messages()
 

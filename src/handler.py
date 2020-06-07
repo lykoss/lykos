@@ -1,18 +1,14 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
 import base64
-import socket
-import sys
 import threading
 import time
-import traceback
 import functools
-import statistics
-import math
+import logging
 from typing import Optional
 
 import src.settings as var
-from src import config, decorators, wolfgame, channels, users, stream_handler as alog
+from src import config, decorators, wolfgame, channels, users
 from src.messages import messages
 from src.functions import get_participants, get_all_roles
 from src.utilities import complete_role

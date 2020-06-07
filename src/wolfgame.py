@@ -38,11 +38,13 @@ from datetime import datetime, timedelta
 from typing import Set, Optional, Callable, Tuple
 
 from src.utilities import *
-from src import db, config, events, dispatcher, channels, users, hooks, debuglog, errlog, plog, handler
+from src import db, config, events, dispatcher, channels, users, hooks, handler
 from src.users import User
 
+from src.debug import handle_error
+from src.events import Event, EventListener, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.decorators import command, hook, handle_error, event_listener, COMMANDS
+from src.decorators import command, hook, COMMANDS
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
 from src.warnings import *
@@ -59,10 +61,6 @@ from src.functions import (
     get_main_role, get_all_roles, get_reveal_role,
     get_target, change_role
    )
-
-# done this way so that events is accessible in !eval (useful for debugging)
-Event = events.Event
-EventListener = events.EventListener
 
 # Game Logic Begins:
 

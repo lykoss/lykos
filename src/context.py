@@ -3,10 +3,10 @@ import sys
 from collections import defaultdict, OrderedDict
 from operator import attrgetter
 from typing import Dict, Any, List, Set, Optional, Tuple
+import logging
 
-import src.settings as var # FIXME
 from src.messages.message import Message
-from src.logger import debuglog
+from src import config
 
 def _who(cli, target, data=b""):
     """Handle WHO requests."""
@@ -224,7 +224,7 @@ class IRCContext:
         return _who(self.client, self.name, data)
 
     def use_cprivmsg(self, send_type):
-        if not self.is_user or var.DISABLE_CPRIVMSG: # FIXME: uses var
+        if not self.is_user or config.Main.get("transports[0].features.cprivmsg") is False:
             return send_type, None
 
         # check if bot is opped in any channels shared with this user
@@ -254,7 +254,9 @@ class IRCContext:
             new.append(line)
         if self.is_fake:
             # Leave out 'fake' from the message; get_context_type() takes care of that
-            debuglog("Would message {0} {1}: {2!r}".format(self.get_context_type(), self.name, " ".join(new)))
+            transport_name = config.Main.get("transports[0].name")
+            logger = logging.getLogger("transport.{}.fake".format(transport_name))
+            logger.debug("Would message {0} {1}: {2!r}", self.get_context_type(), self.name, " ".join(new))
             return
 
         send_type = self.get_send_type(is_notice=notice, is_privmsg=privmsg)

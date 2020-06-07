@@ -1,7 +1,6 @@
 from typing import Union
 
 from src import channels, users
-from src import settings as var
 
 from src.functions import get_players
 

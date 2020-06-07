@@ -1,5 +1,6 @@
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
+from typing import List
 
 import threading
 import itertools
@@ -9,13 +10,14 @@ import math
 import re
 
 from src.containers import UserDict, UserSet
-from src.decorators import COMMANDS, command, event_listener, handle_error
+from src.debug import handle_error
+from src.decorators import COMMANDS, command
 from src.functions import get_players
 from src.warnings import decrement_stasis
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Wolfchat, All
-from src import config, channels
+from src import config, channels, users
 
 WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
@@ -133,8 +135,8 @@ def start(var, wrapper, *, forced=False, restart=""):
         wrapper.source.send(messages["command_ratelimited"])
         return
 
+    global RESTART_TRIES
     if restart:
-        global RESTART_TRIES
         RESTART_TRIES += 1
     if RESTART_TRIES > MAX_RETRIES:
         from src.wolfgame import stop_game

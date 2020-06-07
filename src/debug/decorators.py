@@ -3,8 +3,13 @@ import re
 import threading
 import traceback
 import urllib.request
+import logging
+from typing import Optional
+from types import TracebackType
 
 from src import config
+
+__all__ = ["handle_error"]
 
 class _local(threading.local):
     handler = None
@@ -46,7 +51,7 @@ class print_traceback:
         _local.level += 1
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type: Optional[type], exc_value: Optional[BaseException], tb: Optional[TracebackType]):
         if exc_type is exc_value is tb is None:
             _local.level -= 1
             return False
@@ -59,6 +64,9 @@ class print_traceback:
             _local.level -= 1
             return False # the outermost caller should handle this
 
+        from src import channels
+        from src.messages import messages
+        exc_log = logging.getLogger("exception.{}".format(exc_type.__name__))
         variables = ["", None]
 
         if _local.handler is None:
@@ -120,7 +128,7 @@ class print_traceback:
                 variables[2] = "No local variables found in all frames."
 
         variables[1] = _local.handler.traceback
-        errlog("\n".join(variables))
+        extra_data = {"variables": "\n".join(variables)}
 
         # sanitize paths in tb: convert backslash to forward slash and remove prefixes from src and library paths
         variables[1] = variables[1].replace("\\", "/")
@@ -132,8 +140,7 @@ class print_traceback:
                 # strip filenames out of module printouts
                 variables[i] = re.sub(r"<(module .*?) from .*?>", r"<\1>", variables[i])
 
-        if channels.Main is not channels.Dev:
-            channels.Main.send(messages["error_log"])
+        channels.Main.send(messages["error_log"])
         message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))
@@ -152,7 +159,7 @@ class print_traceback:
 
             if data is None:  # couldn't fetch the link
                 message.append(messages["error_pastebin"])
-                errlog(_local.handler.traceback)
+                extra_data["paste_error"] = _local.handler.traceback
             else:
                 link = _tracebacks["\n".join(variables)] = data["url"]
                 message.append(link)
@@ -160,9 +167,7 @@ class print_traceback:
         else:
             message.append(link)
 
-        # FIXME: use logging config more directly
-        if channels.Dev is not None:
-            channels.Dev.send(" ".join(message), prefix=var.DEV_PREFIX)
+        exc_log.error(" ".join(message), exc_info=(exc_type, exc_value, tb), extra=extra_data)
 
         _local.level -= 1
         if not _local.level: # outermost caller; we're done here
@@ -173,16 +178,17 @@ class print_traceback:
 class handle_error:
 
     def __new__(cls, func=None, *, instance=None):
-        if isinstance(func, cls) and instance is func.instance: # already decorated
+        if isinstance(func, type(cls)) and instance is func.instance: # already decorated
             return func
 
-        if isinstance(func, cls):
-            func = func.func
-
         self = super().__new__(cls)
+        return self
+
+    def __init__(self, func=None, *, instance=None):
+        if isinstance(func, self.__class__):
+            func = func.func
         self.instance = instance
         self.func = func
-        return self
 
     def __get__(self, instance, owner):
         if instance is not self.instance:

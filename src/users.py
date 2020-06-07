@@ -4,10 +4,9 @@ import re
 from typing import Callable, Optional, Set
 
 from src.context import IRCContext, Features, lower, equals
-from src import settings as var
 from src import config, db
 from src.events import EventListener
-from src.debug import CheckedDict, CheckedSet
+from src.debug import CheckedDict, CheckedSet, handle_error
 from src.match import Match
 
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
@@ -202,7 +201,6 @@ def _reset(evt, var):
 
 def _update_account(evt, user):
     """Updates account data of a user for networks which don't support certain features."""
-    from src.decorators import handle_error
     if evt.params.old in _pending_account_updates:
         updates = list(_pending_account_updates[evt.params.old].items())
         del _pending_account_updates[evt.params.old]
@@ -329,9 +327,10 @@ class User(IRCContext):
         if format_spec == "@":
             return "\u0002{0}\u0002".format(self.name)
         elif format_spec == "for_tb":
-            if var.USER_DATA_LEVEL == 0:
+            user_data_level = config.Main.get("telemetry.errors.user_data_level")
+            if user_data_level == 0:
                 return "{self.__class__.__name__}({0:x})".format(id(self), self=self)
-            elif var.USER_DATA_LEVEL == 1:
+            elif user_data_level == 1:
                 return "{self.__class__.__name__}({self.nick!r})".format(self=self)
             else:
                 return repr(self)

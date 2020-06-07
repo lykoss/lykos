@@ -8,7 +8,6 @@ from collections import defaultdict
 import threading
 from datetime import datetime, timedelta
 
-import src.settings as var
 from src import users
 from src.utilities import singular
 from src.messages import messages, get_role_name

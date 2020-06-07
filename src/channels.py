@@ -2,11 +2,11 @@ from __future__ import annotations
 import time
 from enum import Enum
 from typing import Optional
+import logging
 
 from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
-from src import settings as var
-from src import users, stream
+from src import users, config
 from src.debug import CheckedSet, CheckedDict
 
 Main = None # main channel
@@ -105,7 +105,8 @@ class Channel(IRCContext):
         if format_spec == "#":
             return self.name
         elif format_spec == "for_tb":
-            if var.CHANNEL_DATA_LEVEL == 0:
+            channel_data_level = config.Main.get("telemetry.errors.channel_data_level")
+            if channel_data_level == 0:
                 if self is Main:
                     value = "Main"
                 elif self is Dummy:
@@ -347,5 +348,3 @@ class FakeChannel(Channel):
                     targets.append(target)
 
         self.update_modes(users.Bot, "".join(modes), targets)
-
-# vim: set sw=4 expandtab:

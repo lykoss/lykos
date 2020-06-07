@@ -62,6 +62,9 @@ class Container:
 
     copy = __copy__
 
+    def clear(self):
+        raise NotImplemented
+
 class UserList(Container, list):
     def __init__(self, iterable=()):
         super().__init__()

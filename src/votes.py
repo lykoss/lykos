@@ -6,18 +6,18 @@ import math
 import re
 
 from src.containers import UserDict, UserList, UserSet
-from src.decorators import command, event_listener
+from src.decorators import command
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
 from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
-from src.events import Event
-from src import channels, pregame
+from src.events import Event, event_listener
+from src import channels, pregame, users
 
 VOTES = UserDict() # type: UserDict[users.User, UserList[users.User]]
-ABSTAINS = UserSet() # type: UserList[users.User]
+ABSTAINS = UserSet()
 ABSTAINED = False
 LAST_VOTES = None
-LYNCHED = 0 # type: int
+LYNCHED = 0
 
 @command("lynch", playing=True, pm=True, phases=("day",))
 def lynch(var, wrapper, message):

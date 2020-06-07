@@ -259,6 +259,19 @@ transports.irc: &transports.irc
           _desc: Maximum number of messages we can burst at any point in time (maximum number of tokens).
           _type: int
           _default: 23
+    features:
+      _desc: |
+        Enables fine-grained control over what ircd features we use. This can be used to further customize
+        behavior enabled or disabled by the module selection. Please use with care, as lykos may break if
+        you enable things that the ircd does not support.
+      _type: dict
+      _default:
+        cprivmsg:
+          _desc: Whether or not CPRIVMSG is enabled. If null, use the setting determined by the module in use.
+          _type:
+            - bool
+            - "null"
+          _default: null
 
 transports: &transports
   _name: transports

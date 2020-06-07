@@ -2,9 +2,11 @@
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import Callable, Optional
-EVENT_CALLBACKS = defaultdict(set)
+from src.debug import handle_error
 
-__all__ = ["find_listener", "Event", "EventListener"]
+__all__ = ["find_listener", "event_listener", "Event", "EventListener"]
+
+EVENT_CALLBACKS = defaultdict(set)
 
 class EventListener:
     def __init__(self, callback: Callable, *, listener_id: Optional[str] = None, priority: float = 5):
@@ -49,6 +51,35 @@ def find_listener(event: str, listener_id: str) -> EventListener:
         if evt.id == listener_id:
             return evt
     raise Exception("Could not find listener with id {0}".format(listener_id))
+
+class event_listener:
+    def __init__(self, event, priority=5, listener_id=None):
+        self.event = event
+        self.priority = priority
+        self.func = None # type: Optional[Callable]
+        self.listener_id = listener_id
+        self.listener = None # type: Optional[EventListener]
+
+    def __call__(self, *args, **kwargs):
+        if self.func is None:
+            func = args[0]
+            if isinstance(func, event_listener):
+                func = func.func
+            if self.listener_id is None:
+                self.listener_id = func.__qualname__
+                # always prefix with module for disambiguation if possible
+                if func.__module__ is not None:
+                    self.listener_id = func.__module__ + "." + self.listener_id
+            self.func = handle_error(func)
+            self.listener = EventListener(self.func, priority=self.priority, listener_id=self.listener_id)
+            self.listener.install(self.event)
+            self.__doc__ = self.func.__doc__
+            return self
+        else:
+            return self.func(*args, **kwargs)
+
+    def remove(self):
+        self.listener.remove(self.event)
 
 class Event:
     def __init__(self, _name, _data, **kwargs):

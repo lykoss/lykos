@@ -1,8 +1,11 @@
 import copy
+from pathlib import Path
+import os
+import sys
 from typing import List, Optional, Dict, Any, Tuple
 from ruamel.yaml import YAML
 
-__all__ = ["Main", "Config", "Empty", "merge"]
+__all__ = ["Main", "Config", "Empty", "merge", "init"]
 
 # Empty is meant to be used as a singleton, so EmptyType is *not* in __all__
 class EmptyType:
@@ -13,6 +16,31 @@ class EmptyType:
         return self
 
 Empty = EmptyType()
+
+def init():
+    bp = Path(__file__).parent
+    Main.load_metadata(bp / "defaultsettings.yml")
+
+    p = bp.parent / "botconfig.yml"
+    if p.is_file():
+        Main.load_config(bp.parent / "botconfig.yml")
+
+    if os.environ.get("BOTCONFIG", False):
+        cp = Path(os.environ["BOTCONFIG"])
+        if not cp.is_file():
+            print("BOTCONFIG environment variable does not point to a valid file", file=sys.stderr)
+            sys.exit(1)
+        Main.load_config(cp)
+
+    if os.environ.get("DEBUG", False):
+        Main.set("debug.enabled", True)
+        logs = Main.get("logging.logs")
+        for i, log in enumerate(logs):
+            if log["group"] == "main":
+                Main.set("logging.logs[{}].level".format(i), "debug")
+        dp = bp.parent / "botconfig.debug.yml"
+        if dp.is_file():
+            Main.load_config(dp)
 
 class Config:
     def __init__(self):

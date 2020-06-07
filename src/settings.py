@@ -1,7 +1,4 @@
-import fnmatch
-import re
-import threading
-from collections import OrderedDict
+raise RuntimeError("src.settings incorrectly loaded")
 
 LANGUAGE = 'en'
 

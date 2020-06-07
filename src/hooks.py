@@ -6,14 +6,15 @@ further in the relevant hook functions.
 
 """
 
+import logging
+import sys
 from typing import Dict, Any
 
-from src.decorators import event_listener, hook
+from src.decorators import hook
 from src.context import Features
-from src.events import Event
-from src.logger import plog
+from src.events import Event, event_listener
 
-from src import context, channels, users
+from src import config, context, channels, users
 
 ### WHO/WHOX responses handling
 
@@ -774,8 +775,10 @@ def quit(context, message=""):
     cli = context.client
 
     if cli is None or cli.socket.fileno() < 0:
-        plog("Socket is already closed. Exiting.")
-        raise SystemExit
+        transport_name = config.Main.get("transports[0].name")
+        logger = logging.getLogger("transport.{}".format(transport_name))
+        logger.warning("Socket is already closed. Exiting.")
+        sys.exit(0)
 
     with cli:
         cli.send("QUIT :{0}".format(message))

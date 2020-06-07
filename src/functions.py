@@ -3,7 +3,6 @@ from collections import Counter
 from src.messages import messages
 from src.events import Event
 from src.cats import Wolfteam, Neutral, Hidden
-from src import settings as var
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
@@ -158,5 +157,3 @@ def get_reveal_role(user):
         return "neutral player"
     else:
         return "village member"
-
-# vim: set sw=4 expandtab:

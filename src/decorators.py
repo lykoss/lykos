@@ -1,22 +1,16 @@
-import traceback
-import threading
-import json
-import re
 import functools
+import logging
 from typing import Optional, Iterable, Callable
-
-import urllib.request, urllib.parse
 
 from collections import defaultdict
 
 import src
 from src.functions import get_players
 from src.messages import messages
-from src import config, channels, logger, errlog, events
+from src import config, channels
 from src.users import User
 from src.dispatcher import MessageDispatcher
-
-adminlog = logger.logger("audit.log")
+from src.debug import handle_error
 
 COMMANDS = defaultdict(list)
 HOOKS = defaultdict(list)
@@ -62,7 +56,7 @@ class command:
         for name in commands:
             for func in COMMANDS[name]:
                 if func.owner_only != owner_only or func.flag != flag:
-                    raise ValueError("unmatching access levels for {0}".format(func.name))
+                    raise ValueError("mismatched access levels for {0}".format(func.name))
 
             COMMANDS[name].append(self)
             if alias:
@@ -111,6 +105,8 @@ class command:
         if self.playing and (wrapper.source not in get_players() or wrapper.source in var.DISCONNECTED):
             return
 
+        logger = logging.getLogger("command.{}".format(self.key))
+
         for role in self.roles:
             if wrapper.source in var.ROLES[role]:
                 break
@@ -132,7 +128,7 @@ class command:
 
         if self.owner_only:
             if wrapper.source.is_owner():
-                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
                 self.func(var, wrapper, message)
                 return
 
@@ -144,7 +140,7 @@ class command:
         flags = var.FLAGS_ACCS[temp.account] # TODO: add flags handling to User
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
-            adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+            logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
             return self.func(var, wrapper, message)
 
         denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
@@ -155,7 +151,7 @@ class command:
 
         if self.flag:
             if self.flag in flags:
-                adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                logger.info("{0} {1} {2} {3}", wrapper.target.name, wrapper.source.rawnick, self.name, message)
                 self.func(var, wrapper, message)
                 return
 
@@ -193,32 +189,3 @@ class hook:
                     HOOKS[each].remove(inner)
             if not HOOKS[each]:
                 del HOOKS[each]
-
-class event_listener:
-    def __init__(self, event, priority=5, listener_id=None):
-        self.event = event
-        self.priority = priority
-        self.func = None # type: Optional[Callable]
-        self.listener_id = listener_id
-        self.listener = None # type: Optional[events.EventListener]
-
-    def __call__(self, *args, **kwargs):
-        if self.func is None:
-            func = args[0]
-            if isinstance(func, event_listener):
-                func = func.func
-            if self.listener_id is None:
-                self.listener_id = func.__qualname__
-                # always prefix with module for disambiguation if possible
-                if func.__module__ is not None:
-                    self.listener_id = func.__module__ + "." + self.listener_id
-            self.func = handle_error(func)
-            self.listener = events.EventListener(self.func, priority=self.priority, listener_id=self.listener_id)
-            self.listener.install(self.event)
-            self.__doc__ = self.func.__doc__
-            return self
-        else:
-            return self.func(*args, **kwargs)
-
-    def remove(self):
-        self.listener.remove(self.event)
