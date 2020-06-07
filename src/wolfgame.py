@@ -2965,8 +2965,11 @@ def list_roles(var, wrapper, message):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        msg.append("[{0}]".format(specific))
-        msg.append(", ".join(new))
+        if new:
+            msg.append("[{0}]".format(specific))
+            msg.append(", ".join(new))
+        else:
+            msg.append("No roles are defined for {0}p games.".format(specific))
 
     else:
         final = []
