@@ -196,7 +196,8 @@ def vote(var, wrapper, message):
     return show_votes.caller(var, wrapper, message)
 
 # Specify timeout=True to force a lynch and end of day even if there is no majority
-def chk_decision(var, *, timeout=False):
+# admin_forced=True will make it not count towards village's abstain limit if nobody is voted
+def chk_decision(var, *, timeout=False, admin_forced=False):
     with var.GRAVEYARD_LOCK:
         players = set(get_players()) - get_absent(var)
         avail = len(players)
@@ -244,7 +245,7 @@ def chk_decision(var, *, timeout=False):
                         abstaining = True
                     else:
                         to_vote.extend(voting)
-                else:
+                elif not admin_forced:
                     abstaining = True
 
         if abstaining:
