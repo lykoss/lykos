@@ -1186,7 +1186,7 @@ def stats(var, wrapper, message):
     wrapper.reply(messages["stats_reply"].format(var.PHASE, first_count, entries))
 
 @handle_error
-def hurry_up(gameid, change):
+def hurry_up(gameid, change, *, admin_forced=False):
     if var.PHASE != "day":
         return
     if gameid and gameid != var.DAY_ID:
@@ -1199,7 +1199,7 @@ def hurry_up(gameid, change):
         return
 
     var.DAY_ID = 0
-    chk_decision(var, timeout=True)
+    chk_decision(var, timeout=True, admin_forced=admin_forced)
 
 @command("fnight", flag="N")
 def fnight(var, wrapper, message):
@@ -1207,7 +1207,7 @@ def fnight(var, wrapper, message):
     if var.PHASE != "day":
         wrapper.pm(messages["not_daytime"])
     else:
-        hurry_up(0, True)
+        hurry_up(0, True, admin_forced=True)
 
 @command("fday", flag="N")
 def fday(var, wrapper, message):
@@ -1552,7 +1552,8 @@ def on_kill_players(evt: Event, var, players: Set[User]):
                 deadchat.append(player)
 
     # attempt to devoice all dead players
-    channels.Main.mode(*cmode)
+    if cmode:
+        channels.Main.mode(*cmode)
 
     if not evt.params.end_game:
         join_deadchat(var, *deadchat)

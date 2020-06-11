@@ -9,7 +9,7 @@ from src.containers import UserDict, UserList, UserSet
 from src.decorators import command, event_listener
 from src.functions import get_players, get_target, get_reveal_role
 from src.messages import messages
-from src.status import try_absent, get_absent, get_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
+from src.status import try_absent, get_absent, get_forced_votes, get_all_forced_votes, get_forced_abstains, get_vote_weight, try_lynch_immunity, add_dying, kill_players
 from src.events import Event
 from src import channels, pregame
 
@@ -196,7 +196,8 @@ def vote(var, wrapper, message):
     return show_votes.caller(var, wrapper, message)
 
 # Specify timeout=True to force a lynch and end of day even if there is no majority
-def chk_decision(var, *, timeout=False):
+# admin_forced=True will make it not count towards village's abstain limit if nobody is voted
+def chk_decision(var, *, timeout=False, admin_forced=False):
     with var.GRAVEYARD_LOCK:
         players = set(get_players()) - get_absent(var)
         avail = len(players)
@@ -219,7 +220,7 @@ def chk_decision(var, *, timeout=False):
 
         abstaining = False
         if not to_vote:
-            if len(ABSTAINS | get_forced_abstains(var)) >= avail / 2:
+            if len((ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var)) >= avail / 2:
                 abstaining = True
             elif force:
                 voting = []
@@ -244,7 +245,7 @@ def chk_decision(var, *, timeout=False):
                         abstaining = True
                     else:
                         to_vote.extend(voting)
-                else:
+                elif not admin_forced:
                     abstaining = True
 
         if abstaining:
@@ -253,7 +254,7 @@ def chk_decision(var, *, timeout=False):
                     channels.Main.send(messages["player_meek_abstain"].format(forced_abstainer))
 
             abstain_evt = Event("abstain", {})
-            abstain_evt.dispatch(var, ABSTAINS | get_forced_abstains(var))
+            abstain_evt.dispatch(var, (ABSTAINS | get_forced_abstains(var)) - get_all_forced_votes(var))
 
             global ABSTAINED
             ABSTAINED = True

@@ -7,7 +7,7 @@ from src.messages import messages
 from src.events import Event
 from src import channels, users
 
-__all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes", "get_forced_abstains"]
+__all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "get_forced_votes", "get_all_forced_votes", "get_forced_abstains"]
 
 # FORCED_COUNTS is incremented whenever we're forcing someone to vote for someone else
 # A positive number indicates that their vote is being forced towards any number of targets
@@ -55,6 +55,10 @@ def can_abstain(var, votee : users.User) -> bool:
 def get_forced_votes(var, target : users.User) -> Set[users.User]:
     """Retrieve the players who are being forced to vote target."""
     return {votee for votee, targets in FORCED_TARGETS.items() if target in targets}
+
+def get_all_forced_votes(var) -> Set[users.User]:
+    """Retrieve the players who are being forced to vote."""
+    return {player for player, count in FORCED_COUNTS.items() if count > 0}
 
 def get_forced_abstains(var) -> Set[users.User]:
     """Retrieve the players who are being forced to abstain."""
