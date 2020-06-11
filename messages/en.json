@@ -1246,7 +1246,7 @@
     "assassin_no_target": "You are {=assassin!role:article} {=assassin!role:bold} and do not currently have a target.",
     "assassin_revealroles": "targeting {0}",
     "matched_info": "You are [b]in love[/b] with {0:join}.",
-    "no_command_in_channel": "You cannot use this command in channel right now",
+    "no_command_in_channel": "You cannot use this command in channel right now.",
     "no_such_role": "No such role: {0}",
     "ambiguous_role": "Ambiguous role. Possible matches are: {0:join}.",
     "available_modes": "Available game modes: {0:join}",
