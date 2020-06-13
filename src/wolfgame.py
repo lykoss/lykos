@@ -3559,6 +3559,12 @@ def fgame(var, wrapper, message):
             gamemode = parts[0]
             modeargs = None
 
+        if gamemode == "reset":
+            reset_settings()
+            channels.Main.send(messages["fgame_success"].format(wrapper.source))
+            var.FGAMED = False
+            return
+
         if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
             gamemode = gamemode.split()[0]
             gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
