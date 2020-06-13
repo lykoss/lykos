@@ -242,7 +242,9 @@
         "warn opt help": ["-help", "--help", "-h", "-?"],
         "warn opt notes": ["-notes", "--notes", "-n"],
         "warn opt reason": ["-reason", "--reason", "-r"],
-        "warn opt stasis": ["-stasis", "--stasis", "-s"]
+        "warn opt stasis": ["-stasis", "--stasis", "-s"],
+
+        "fgame opt reset": ["-reset", "--reset", "-r"]
     },
     "_totems": {
         "*": "For assistance in configuring this section, please see https://werewolf.chat/Translation#Totems",

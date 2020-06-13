@@ -3559,7 +3559,8 @@ def fgame(var, wrapper, message):
             gamemode = parts[0]
             modeargs = None
 
-        if gamemode == "reset":
+        _fr = messages.raw("_commands", "fgame opt reset")
+        if gamemode in _fr:
             reset_settings()
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
             var.FGAMED = False
