@@ -17,7 +17,7 @@ from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 _ts = threading.local()
 
@@ -918,6 +918,9 @@ def _upgrade(oldversion):
             if oldversion < 5:
                 print("Upgrade from version 4 to 5...", file=sys.stderr)
                 c.execute("CREATE INDEX game_gamesize_idx ON game (gamesize)")
+            if oldversion < 6:
+                print("Upgrade from version 5 to 6...", file=sys.stderr)
+                # no actual upgrades, need to force an index rebuild due to removing custom collation
 
             print("Rebuilding indexes...", file=sys.stderr)
             c.execute("REINDEX")
@@ -1052,30 +1055,7 @@ def _conn():
         with _ts.conn:
             c = _ts.conn.cursor()
             c.execute("PRAGMA foreign_keys = ON")
-        # remap NOCASE to be IRC casing
-        _ts.conn.create_collation("NOCASE", _collate_irc)
         return _ts.conn
-
-def _collate_irc(s1, s2):
-    # treat hostmasks specially, otherwise call irc_lower on stuff
-    if "@" in s1:
-        hl, hr = s1.split("@", 1)
-        s1 = irc_lower(hl) + "@" + hr.lower()
-    else:
-        s1 = irc_lower(s1)
-
-    if "@" in s2:
-        hl, hr = s2.split("@", 1)
-        s2 = irc_lower(hl) + "@" + hr.lower()
-    else:
-        s2 = irc_lower(s2)
-
-    if s1 == s2:
-        return 0
-    elif s1 < s2:
-        return -1
-    else:
-        return 1
 
 need_install = not os.path.isfile("data.sqlite3")
 conn = _conn()
