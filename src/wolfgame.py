@@ -2759,23 +2759,31 @@ def wiki(var, wrapper, message):
         return
 
     # Fetch a page from the api, in json format
-    URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&format=json".format(suggestion)
+    URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&redirects&format=json".format(suggestion)
     success, pagejson = get_wiki_page(URI)
     if not success:
         wrapper.pm(pagejson)
         return
 
     try:
-        page = pagejson["query"]["pages"].popitem()[1]["extract"]
+        p = pagejson["query"]["pages"].popitem()[1]
+        suggestion = p["title"]
+        page = p["extract"]
     except (KeyError, IndexError):
         wrapper.pm(messages["wiki_no_info"])
         return
+
+    try:
+        fragment = pagejson["query"]["redirects"][0]["tofragment"]
+        suggestion += "#{0}".format(fragment)
+    except (KeyError, IndexError):
+        pass
 
     # We only want the first paragraph
     if page.find("\n") >= 0:
         page = page[:page.find("\n")]
 
-    wikilink = "https://werewolf.chat/{0}".format(suggestion.capitalize())
+    wikilink = "https://werewolf.chat/{0}".format(suggestion.replace(" ", "_"))
     wrapper.reply(wikilink)
     wrapper.pm(page)
 
