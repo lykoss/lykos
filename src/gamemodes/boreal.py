@@ -272,5 +272,5 @@ class BorealMode(GameMode):
 
                 wrapper.pm(messages["boreal_feed_success"].format(totem))
                 # send_wolfchat_message already takes care of checking whether the player has access to wolfchat, so this will only be sent for wolf shamans
-                send_wolfchat_message(var, wrapper.source, messages["boreal_wolfchat_feed"].format(wrapper.source, totem), {"wolf shaman"}, role="wolf shaman", command="feed")
+                send_wolfchat_message(var, wrapper.source, messages["boreal_wolfchat_feed"].format(wrapper.source), {"wolf shaman"}, role="wolf shaman", command="feed")
                 return
