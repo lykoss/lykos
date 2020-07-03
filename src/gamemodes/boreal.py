@@ -3,6 +3,7 @@ import re
 from collections import defaultdict
 from typing import List, Tuple, Dict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
+from src.roles.helper.wolves import send_wolfchat_message
 from src.messages import messages
 from src.functions import get_players, get_all_players, get_main_role, change_role
 from src.utilities import complete_one_match
@@ -270,4 +271,6 @@ class BorealMode(GameMode):
                     SHAMANS[wrapper.source][totem].pop(0)
 
                 wrapper.pm(messages["boreal_feed_success"].format(totem))
+                # send_wolfchat_message already takes care of checking whether the player has access to wolfchat, so this will only be sent for wolf shamans
+                send_wolfchat_message(var, wrapper.source, messages["boreal_wolfchat_feed"].format(wrapper.source, totem), {"wolf shaman"}, role="wolf shaman", command="feed")
                 return
