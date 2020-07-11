@@ -2924,15 +2924,16 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name)))
+        wrapper.reply(msg, prefix_nick=True)
         return
 
     msg = []
 
     if not pieces[0] and lpl:
-        msg.append("There {0} \u0002{1}\u0002 playing.".format("is" if lpl == 1 else "are", lpl))
+        msg.append(messages["roles_players"].format(lpl))
         if var.PHASE in var.GAME_PHASES:
-            msg.append("Using the {0} game mode.".format(gamemode.name))
+            msg.append(msg["roles_gamemode"].format(gamemode.name))
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
@@ -2954,7 +2955,7 @@ def list_roles(var, wrapper, message):
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            wrapper.reply("{0}roles is disabled for the {1} game mode.".format(botconfig.CMD_CHAR, gamemode.name), prefix_nick=True)
+            wrapper.reply(messages["roles_disabled"].format(gamemode.name), prefix_nick=True)
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
@@ -2978,7 +2979,7 @@ def list_roles(var, wrapper, message):
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
-            msg.append("No roles are defined for {0}p games.".format(specific))
+            msg.append(messages["roles_undefined"].format(specific))
 
     else:
         final = []
@@ -3003,7 +3004,7 @@ def list_roles(var, wrapper, message):
         msg.append(" ".join(final))
 
     if not msg:
-        msg.append("No roles are defined for {0}p games.".format(specific or lpl))
+        msg.append(messages["roles_undefined"].format(specific or lpl))
 
     wrapper.send(*msg)
 
