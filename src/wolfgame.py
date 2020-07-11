@@ -2955,7 +2955,8 @@ def list_roles(var, wrapper, message):
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            wrapper.reply(messages["roles_disabled"].format(gamemode.name), prefix_nick=True)
+            minp = var.GAME_MODES[mode][1]
+            wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
