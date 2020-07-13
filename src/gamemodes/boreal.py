@@ -194,7 +194,11 @@ class BorealMode(GameMode):
     def on_lynch(self, evt, var, votee, voters):
         if get_main_role(votee) not in Wolfteam:
             # if there are less VGs than alive wolf shamans, they become a wendigo as well
-            self.maybe_make_wendigo(var, votee)
+            from src.roles import vengefulghost
+            num_wendigos = len(vengefulghost.GHOSTS)
+            num_wolf_shamans = len(get_players(("wolf shaman",)))
+            if num_wendigos < num_wolf_shamans:
+                change_role(var, votee, get_main_role(votee), "vengeful ghost", message=None)
 
     def on_del_player(self, evt, var, player, all_roles, death_triggers):
         for a, b in list(self.hunger_levels.items()):
