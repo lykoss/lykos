@@ -2933,7 +2933,7 @@ def list_roles(var, wrapper, message):
     if not pieces[0] and lpl:
         msg.append(messages["roles_players"].format(lpl))
         if var.PHASE in var.GAME_PHASES:
-            msg.append(msg["roles_gamemode"].format(gamemode.name))
+            msg.append(messages["roles_gamemode"].format(gamemode.name))
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
