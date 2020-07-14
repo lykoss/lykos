@@ -520,7 +520,9 @@ class User(IRCContext):
         :param command: Command name that prompted the call to update_account_data.
             Used to handle cases where the user executes multiple commands before
             account data can be updated, so they can all be queued. If the same command
-            is given multiple times, we honor the most recent one given.
+            is given multiple times, we honor the most recent one given. The command
+            has a unique suffix so that distinct commands that share names (e.g. wolf kill
+            and vg kill) do not cause collisions.
         :param callback: Callback to execute when account data is fully updated,
             passed in the updated user with an accurate account
         """

@@ -242,7 +242,7 @@ class command:
         self.func = None
         self.aftergame = False
         self.name = commands[0]
-        self.key = command
+        self.key = "{0}_{1}".format(command, id(self))
         self.alt_allowed = bool(flag or owner_only)
 
         alias = False
