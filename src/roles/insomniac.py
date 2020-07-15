@@ -36,9 +36,13 @@ def on_transition_day_begin(evt, var):
         p1, p2 = _get_targets(var, pl, insomniac)
         p1_roles = get_all_roles(p1)
         p2_roles = get_all_roles(p2)
-        if p1_roles & Nocturnal or p2_roles & Nocturnal:
-            # one or both of the players next to the insomniac were awake last night
-            insomniac.send(messages["insomniac_awake"].format(p1, p2))
+        if p1_roles & Nocturnal and p2_roles & Nocturnal:
+            # both of the players next to the insomniac were awake last night
+            insomniac.send(messages["insomniac_both_awake"].format(p1, p2))
+        elif p1_roles & Nocturnal:
+            insomniac.send(messages["insomniac_awake"].format(p1))
+        elif p2_roles & Nocturnal:
+            insomniac.send(messages["insomniac_awake"].format(p2))
         else:
             # both players next to the insomniac were asleep all night
             insomniac.send(messages["insomniac_asleep"].format(p1, p2))
