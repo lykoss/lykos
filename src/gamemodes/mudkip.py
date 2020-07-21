@@ -36,14 +36,14 @@ class MudkipMode(GameMode):
         self.SECONDARY_ROLES.pop("assassin", None)
 
         self.ROLE_GUIDE = {
-            5:  ["wolf", "cult leader", "insomniac", "investigator"],
-            6:  ["guardian angel"],
+            5:  ["wolf", "cult leader", "insomniac", "insomniac(2)"],
+            6:  ["investigator"],
             7:  ["jester"],
             8:  ["assassin"],
             9:  ["-jester", "doomsayer"],
-            10: ["vengeful ghost"],
+            10: ["priest"],
             11: ["crazed shaman"],
-            12: ["priest"],
+            12: ["vengeful ghost"],
             13: ["wolf shaman"],
             14: ["amnesiac"],
             15: ["succubus"],
