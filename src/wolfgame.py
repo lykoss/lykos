@@ -2924,7 +2924,8 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name)))
+        minp = var.GAME_MODES[gamemode.name][1]
+        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
         return
 
