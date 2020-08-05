@@ -1,0 +1,19 @@
+name: Update wiki metadata
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  wiki:
+    name: Update wiki metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: pip install -r requirements.txt
