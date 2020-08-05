@@ -1,10 +1,8 @@
-from src.decorators import event_listener
 from src.containers import UserDict
-from src.functions import get_players, get_all_players, get_main_role, change_role
+from src.functions import get_players, get_main_role, change_role
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 from src.cats import Wolf
-from src import debuglog
 
 __all__ = ["add_lycanthropy", "remove_lycanthropy", "add_lycanthropy_scope"]
 
@@ -91,8 +89,6 @@ def on_transition_day_resolve_end(evt, var, victims):
                 evt.data["killers"][victim].remove("@wolves")
                 del evt.data["message"][victim]
 
-                debuglog("{0} ({1}) TURN {2}".format(victim, vrole, new_role))
-
 @event_listener("revealroles")
 def on_revealroles(evt, var):
     if LYCANTHROPES:
@@ -107,5 +103,3 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     LYCANTHROPES.clear()
     SCOPE.clear()
-
-# vim: set sw=4 expandtab:

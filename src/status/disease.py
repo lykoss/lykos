@@ -1,7 +1,6 @@
-from src.decorators import event_listener
 from src.containers import UserSet
 from src.functions import get_players
-from src.events import Event
+from src.events import Event, event_listener
 
 __all__ = ["add_disease", "remove_disease", "wolves_diseased"]
 

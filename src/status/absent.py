@@ -1,7 +1,8 @@
-from src.decorators import event_listener
+from src.events import event_listener
 from src.containers import UserDict
 from src.functions import get_players
 from src.messages import messages
+from src import users
 
 __all__ = ["add_absent", "try_absent", "get_absent"]
 

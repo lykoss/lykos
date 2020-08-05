@@ -3,10 +3,9 @@ from collections import Counter
 from typing import Tuple
 
 from src.containers import UserDict
-from src.decorators import event_listener
 from src.functions import get_players, get_main_role, get_all_roles, get_reveal_role
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 from src.users import User
 
 __all__ = ["add_dying", "is_dying", "kill_players"]

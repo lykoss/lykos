@@ -1,8 +1,7 @@
 from src.containers import UserSet
-from src.decorators import event_listener
 from src.functions import get_main_role, change_role, get_players
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
 
 __all__ = ["add_exchange", "try_exchange"]
 

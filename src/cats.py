@@ -27,7 +27,7 @@ import itertools
 from src import events
 
 __all__ = [
-    "get", "role_order",
+    "get", "role_order", "Category",
     "Wolf", "Wolfchat", "Wolfteam", "Killer", "Village", "Nocturnal", "Neutral", "Win_Stealer", "Hidden", "Safe",
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
 ]

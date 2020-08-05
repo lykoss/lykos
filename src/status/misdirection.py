@@ -1,6 +1,6 @@
 import random
 
-from src.decorators import event_listener
+from src.events import event_listener
 from src.containers import UserSet
 from src.functions import get_players
 from src.messages import messages

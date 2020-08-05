@@ -1,12 +1,12 @@
 from src.containers import DefaultUserDict
-from src.decorators import event_listener
 from src.functions import get_players
 from src.messages import messages
-from src.events import Event
+from src.events import Event, event_listener
+from src.users import User
 
 __all__ = ["add_lynch_immunity", "try_lynch_immunity"]
 
-IMMUNITY = DefaultUserDict(set) # type: UserDict[User, set]
+IMMUNITY = DefaultUserDict(set) # type: DefaultUserDict[User, set]
 
 def add_lynch_immunity(var, user, reason):
     """Make user immune to lynching for one day."""
