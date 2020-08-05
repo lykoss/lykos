@@ -14,6 +14,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolf
 register_wolf("doomsayer")
 
 SEEN = UserSet()
+LASTSEEN = UserDict() # type: UserDict[users.User, users.User]
 KILLS = UserDict()
 SICK = UserDict()
 LYCANS = UserDict()
@@ -34,6 +35,10 @@ def see(var, wrapper, message):
         wrapper.send(messages["no_see_wolf"])
         return
 
+    if LASTSEEN.get(wrapper.source) is target:
+        wrapper.send(messages["no_see_same"])
+        return
+
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):
         return
@@ -48,6 +53,7 @@ def see(var, wrapper, message):
     send_wolfchat_message(var, wrapper.source, messages["doomsayer_wolfchat"].format(wrapper.source, target), ("doomsayer",), role="doomsayer", command="see")
 
     SEEN.add(wrapper.source)
+    LASTSEEN[wrapper.source] = target
 
 @event_listener("new_role")
 def on_new_role(evt, var, player, old_role):
@@ -97,6 +103,11 @@ def on_begin_day(evt, var):
     for sick in SICK.values():
         status.add_absent(var, sick, "illness")
         status.add_silent(var, sick)
+
+    # clear out LASTSEEN for people that didn't see last night
+    for doom in list(LASTSEEN.keys()):
+        if doom not in SEEN:
+            del LASTSEEN[doom]
 
     SEEN.clear()
     KILLS.clear()

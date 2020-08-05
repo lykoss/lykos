@@ -242,7 +242,9 @@
         "warn opt help": ["-help", "--help", "-h", "-?"],
         "warn opt notes": ["-notes", "--notes", "-n"],
         "warn opt reason": ["-reason", "--reason", "-r"],
-        "warn opt stasis": ["-stasis", "--stasis", "-s"]
+        "warn opt stasis": ["-stasis", "--stasis", "-s"],
+
+        "fgame opt reset": ["-reset", "--reset", "-r"]
     },
     "_totems": {
         "*": "For assistance in configuring this section, please see https://werewolf.chat/Translation#Totems",
@@ -829,7 +831,7 @@
     "no_see_self": "Seeing yourself would be a waste.",
     "seer_success": "You have a vision; in this vision, you see that {0:@} is {1!role:article} {1!role:bold}!",
     "oracle_success_wolf": "Your paranormal senses are tingling! The spirits tell you that {0:@} is {=wolf!role:article} {=wolf!role:bold}!",
-    "oracle_success_not_wolf": "Your paranormal senses run silent. The spirits [b]do not[/b] believe that {0:@} is {=wolf!role:article} {=wolf!role}.",
+    "oracle_success_not_wolf": "Your paranormal senses run silent. You believe that {0:@} is some type of {=villager!role:bold}.",
     "augur_success_blue": "You have a vision; in this vision, you see that {0:@} exudes a blue aura of innocence!",
     "augur_success_red": "You have a vision; in this vision, you see that {0:@} exudes a red aura of malice!",
     "augur_success_grey": "You have a vision; in this vision, you see that {0:@} exudes a grey aura of indifference!",
@@ -951,7 +953,8 @@
     "village_drunk_notify": "You have been drinking too much! You are {=village drunk!role:article} {=village drunk!role:bold}.",
     "mystic_notify": "You are {=mystic!role:article} {=mystic!role:bold}. Each night you divine the number of evil villagers (including wolves) that are still alive.",
     "insomniac_notify": "You are {=insomniac!role:article} {=insomniac!role:bold}. During your sleepless nights, you listen for noises coming from nearby. You learn whether or not your neighbors were awake each night.",
-    "insomniac_awake": "Faint noises echoed through your house last night, letting you know that either {0:@}, {1:@}, or both were awake!",
+    "insomniac_both_awake": "Faint noises echoed through your house last night, letting you know that both {0:@} and {1:@} were awake!",
+    "insomniac_awake": "Faint noises echoed through your house last night, letting you know that {0:@} was awake!",
     "insomniac_asleep": "Your house was dead silent last night, both {0:@} and {1:@} must have been sleeping.",
     "shaman_notify": "You are {0!role:article} {0!role:bold}. You can select a player to receive a totem each night by using \"{=totem!command} <nick>\". You may give yourself a totem, but you may not give the same player a totem two nights in a row. If you do not give the totem to anyone, it will be given to a random player.",
     "shaman_notify_multiple_random": "You are {0!role:article} {0!role:bold}. You can select players to receive a totem each night by using \"{=totem!command} <nick>\" once for each totem. You may give yourself a totem, but you may not give the same player a totem two nights in a row and you may not give the same player multiple totems in a single night. If you do not give the totems to anyone, they will be given to random players.",
@@ -1128,8 +1131,9 @@
     "dullahan_to_kill": "need to kill {0:join}",
     "dullahan_all_dead": "all targets dead",
     "no_see_wolf": "Seeing another wolf would be a waste.",
+    "no_see_same": "You cannot see the same person two nights in a row.",
     "doomsayer_death": "You have a vision that {0:@} will meet an untimely end tonight.",
-    "doomsayer_lycan": "You have a vision that {0:@} is transforming into a savage beast tomorrow night.",
+    "doomsayer_lycan": "You have a vision of {0:@} being attacked by wolves tomorrow night and then turning into a savage beast themselves.",
     "doomsayer_sick": "You have a vision that {0:@} will become incredibly ill tomorrow and unable to do anything.",
     "doomsayer_wolfchat": "{0:@} is predicting {1:@}'s doom.",
     "succubus_pass": "You have chosen to not entrance anyone tonight.",
@@ -1246,7 +1250,7 @@
     "assassin_no_target": "You are {=assassin!role:article} {=assassin!role:bold} and do not currently have a target.",
     "assassin_revealroles": "targeting {0}",
     "matched_info": "You are [b]in love[/b] with {0:join}.",
-    "no_command_in_channel": "You cannot use this command in channel right now",
+    "no_command_in_channel": "You cannot use this command in channel right now.",
     "no_such_role": "No such role: {0}",
     "ambiguous_role": "Ambiguous role. Possible matches are: {0:join}.",
     "available_modes": "Available game modes: {0:join}",
@@ -1383,8 +1387,13 @@
     "boreal_night_reminder": "The tribe is hungry and needs to be fed {0} {=time,times:plural({0})} tonight. They have gone hungry {1} {=time,times:plural({1})} in the past.",
     "boreal_village_hungry": "The tribe was not fed enough last night and looks increasingly on-edge from their hunger.",
     "boreal_feed_success": "You have given your totem of {0!totem} to the tribe.",
+    "boreal_wolfchat_feed": "{0:@} has given their totem to the tribe.",
     "boreal_ambiguous_feed": "You have multiple types of totems. Use \"feed <type>\" to select a specific totem type to give to the tribe.",
     "boreal_revealroles": "hunger level {0}",
     "sustenance_totem": "The player who is given the sustenance totem will not starve naturally tonight. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
-    "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\"."
+    "hunger_totem": "The player who is given the hunger totem will become hungrier and may die of starvation. Alternatively, you may give this totem to the tribe instead of another player by using \"feed\".",
+    "roles_players": "There {=is,are:plural({0})} {0:bold} playing.",
+    "roles_gamemode": "Using the {0} game mode.",
+    "roles_undefined": "No roles are defined for {0}p games.",
+    "roles_disabled": "{=roles!command:!} is disabled for the {0} game mode. Minimum players: {1}"
 }

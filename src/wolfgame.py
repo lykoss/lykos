@@ -1144,7 +1144,7 @@ def stats(var, wrapper, message):
     wrapper.reply(messages["stats_reply"].format(var.PHASE, first_count, entries))
 
 @handle_error
-def hurry_up(gameid, change):
+def hurry_up(gameid, change, *, admin_forced=False):
     if var.PHASE != "day":
         return
     if gameid and gameid != var.DAY_ID:
@@ -1157,7 +1157,7 @@ def hurry_up(gameid, change):
         return
 
     var.DAY_ID = 0
-    chk_decision(var, timeout=True)
+    chk_decision(var, timeout=True, admin_forced=admin_forced)
 
 @command("fnight", flag="N")
 def fnight(var, wrapper, message):
@@ -1165,7 +1165,7 @@ def fnight(var, wrapper, message):
     if var.PHASE != "day":
         wrapper.pm(messages["not_daytime"])
     else:
-        hurry_up(0, True)
+        hurry_up(0, True, admin_forced=True)
 
 @command("fday", flag="N")
 def fday(var, wrapper, message):
@@ -1510,7 +1510,8 @@ def on_kill_players(evt: Event, var, players: Set[User]):
                 deadchat.append(player)
 
     # attempt to devoice all dead players
-    channels.Main.mode(*cmode)
+    if cmode:
+        channels.Main.mode(*cmode)
 
     if not evt.params.end_game:
         join_deadchat(var, *deadchat)
@@ -2716,23 +2717,31 @@ def wiki(var, wrapper, message):
         return
 
     # Fetch a page from the api, in json format
-    URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&format=json".format(suggestion)
+    URI = "https://werewolf.chat/w/api.php?action=query&prop=extracts&exintro=true&explaintext=true&titles={0}&redirects&format=json".format(suggestion)
     success, pagejson = get_wiki_page(URI)
     if not success:
         wrapper.pm(pagejson)
         return
 
     try:
-        page = pagejson["query"]["pages"].popitem()[1]["extract"]
+        p = pagejson["query"]["pages"].popitem()[1]
+        suggestion = p["title"]
+        page = p["extract"]
     except (KeyError, IndexError):
         wrapper.pm(messages["wiki_no_info"])
         return
+
+    try:
+        fragment = pagejson["query"]["redirects"][0]["tofragment"]
+        suggestion += "#{0}".format(fragment)
+    except (KeyError, IndexError):
+        pass
 
     # We only want the first paragraph
     if page.find("\n") >= 0:
         page = page[:page.find("\n")]
 
-    wikilink = "https://werewolf.chat/{0}".format(suggestion.capitalize())
+    wikilink = "https://werewolf.chat/{0}".format(suggestion.replace(" ", "_"))
     wrapper.reply(wikilink)
     wrapper.pm(page)
 
@@ -2873,15 +2882,17 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        wrapper.reply("There {0} \u0002{1}\u0002 playing. {2}roles is disabled for the {3} game mode.".format("is" if lpl == 1 else "are", lpl, var.CMD_CHAR, gamemode.name), prefix_nick=True)
+        minp = var.GAME_MODES[gamemode.name][1]
+        msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
+        wrapper.reply(msg, prefix_nick=True)
         return
 
     msg = []
 
     if not pieces[0] and lpl:
-        msg.append("There {0} \u0002{1}\u0002 playing.".format("is" if lpl == 1 else "are", lpl))
+        msg.append(messages["roles_players"].format(lpl))
         if var.PHASE in var.GAME_PHASES:
-            msg.append("Using the {0} game mode.".format(gamemode.name))
+            msg.append(messages["roles_gamemode"].format(gamemode.name))
             pieces[0] = str(lpl)
 
     if pieces[0] and not pieces[0].isdigit():
@@ -2903,7 +2914,8 @@ def list_roles(var, wrapper, message):
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            wrapper.reply("{0}roles is disabled for the {1} game mode.".format(var.CMD_CHAR, gamemode.name), prefix_nick=True)
+            minp = var.GAME_MODES[mode][1]
+            wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
     strip = lambda x: re.sub(r"\(.*\)", "", x)
@@ -2923,8 +2935,11 @@ def list_roles(var, wrapper, message):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        msg.append("[{0}]".format(specific))
-        msg.append(", ".join(new))
+        if new and specific <= var.MAX_PLAYERS:
+            msg.append("[{0}]".format(specific))
+            msg.append(", ".join(new))
+        else:
+            msg.append(messages["roles_undefined"].format(specific))
 
     else:
         final = []
@@ -2949,7 +2964,7 @@ def list_roles(var, wrapper, message):
         msg.append(" ".join(final))
 
     if not msg:
-        msg.append("No roles are defined for {0}p games.".format(specific or lpl))
+        msg.append(messages["roles_undefined"].format(specific or lpl))
 
     wrapper.send(*msg)
 
@@ -3512,6 +3527,13 @@ def fgame(var, wrapper, message):
         else:
             gamemode = parts[0]
             modeargs = None
+
+        _fr = messages.raw("_commands", "fgame opt reset")
+        if gamemode in _fr:
+            reset_settings()
+            channels.Main.send(messages["fgame_success"].format(wrapper.source))
+            var.FGAMED = False
+            return
 
         if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
             gamemode = gamemode.split()[0]

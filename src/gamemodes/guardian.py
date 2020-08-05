@@ -25,21 +25,21 @@ class GuardianMode(GameMode):
             23: ["vigilante"]
         }
         self.TOTEM_CHANCES = {
-            "death"         : {"shaman": 4},
-            "protection"    : {"shaman": 8},
-            "silence"       : {"shaman": 2},
-            "revealing"     : {"shaman": 0},
+            "death"         : {"shaman": 10},
+            "protection"    : {"shaman": 0},
+            "silence"       : {"shaman": 10},
+            "revealing"     : {"shaman": 20},
             "desperation"   : {"shaman": 0},
             "impatience"    : {"shaman": 0},
             "pacifism"      : {"shaman": 0},
-            "influence"     : {"shaman": 0},
+            "influence"     : {"shaman": 20},
             "narcolepsy"    : {"shaman": 0},
             "exchange"      : {"shaman": 0},
             "lycanthropy"   : {"shaman": 0},
-            "luck"          : {"shaman": 3},
+            "luck"          : {"shaman": 10},
             "pestilence"    : {"shaman": 0},
-            "retribution"   : {"shaman": 6},
-            "misdirection"  : {"shaman": 4},
+            "retribution"   : {"shaman": 10},
+            "misdirection"  : {"shaman": 20},
             "deceit"        : {"shaman": 0},
         }
         self.set_default_totem_chances()

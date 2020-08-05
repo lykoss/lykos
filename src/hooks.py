@@ -759,7 +759,7 @@ def kicked_from_chan(cli, rawnick, chan, target, reason):
 
     ch = channels.add(chan, cli)
     actor = users.get(rawnick, allow_none=True)
-    user = users.get(target, allow_none=True)
+    user = users.get(target, allow_bot=True)
     Event("chan_kick", {}).dispatch(ch, actor, user, reason)
 
     if user is users.Bot:
@@ -820,12 +820,12 @@ def on_chghost(cli, rawnick, ident, host):
 
     """
 
-    user = users.get(rawnick)
+    user = users.get(rawnick, allow_bot=True)
     old_ident = user.ident
     old_host = user.host
     # we avoid multiple swaps if we change the rawnick instead of ident and host separately
     new_rawnick = "{0}!{1}@{2}".format(user.nick, ident, host)
     user.rawnick = new_rawnick
-    new_user = users.get(new_rawnick)
+    new_user = users.get(new_rawnick, allow_bot=True)
 
     Event("host_change", {}, old=user).dispatch(new_user, old_ident, old_host)
