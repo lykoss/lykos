@@ -4,7 +4,7 @@ from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.events import EventListener
 from src import channels, users
-from src.cats import All, Wolf, Killer
+from src.cats import All, Wolf, Wolf_Objective, Killer
 
 @game_mode("random", minp=8, maxp=24, likelihood=0)
 class RandomMode(GameMode):
@@ -44,14 +44,20 @@ class RandomMode(GameMode):
         }
 
     def role_attribution(self, evt, var, chk_win_conditions, villagers):
-        lpl = len(villagers) - 1
+        lpl = len(villagers)
         addroles = evt.data["addroles"]
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
+        lwolves = 1
         roles = list(All - self.SECONDARY_ROLES.keys() - {"villager", "cultist", "amnesiac"})
-        while lpl:
-            addroles[random.choice(roles)] += 1
-            lpl -= 1
-
+        for i in range(1, lpl):
+            if lwolves >= (lpl / 2) - 1:
+                # Make sure game does not end immediately
+                role = random.choice(list(set(roles) - Wolf_Objective))
+            else:
+                role = random.choice(roles)
+            addroles[role] += 1
+            if role in Wolf_Objective:
+                lwolves += 1
         addroles["gunner/sharpshooter"] = random.randrange(int(len(villagers) ** 1.2 / 4))
         addroles["assassin"] = random.randrange(max(int(len(villagers) ** 1.2 / 8), 1))
 

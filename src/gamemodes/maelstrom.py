@@ -8,7 +8,7 @@ from src.messages import messages
 from src.functions import get_players
 from src.events import Event, EventListener
 from src import channels, users
-from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Killer
+from src.cats import All, Team_Switcher, Win_Stealer, Wolf, Wolf_Objective, Killer
 
 @game_mode("maelstrom", minp=8, maxp=24, likelihood=0)
 class MaelstromMode(GameMode):
@@ -76,13 +76,20 @@ class MaelstromMode(GameMode):
                 var.ORIGINAL_MAIN_ROLES[p] = role
 
     def _role_attribution(self, var, villagers, do_templates):
-        lpl = len(villagers) - 1
+        lpl = len(villagers)
         addroles = Counter()
         addroles[random.choice(list(Wolf & Killer))] += 1 # make sure there's at least one wolf role
+        lwolves = 1
         roles = list(self.roles)
-        while lpl:
-            addroles[random.choice(roles)] += 1
-            lpl -= 1
+        for i in range(1, lpl):
+            if lwolves >= (lpl / 2) - 1:
+                # Make sure game does not end immediately
+                role = random.choice(list(set(roles) - Wolf_Objective))
+            else:
+                role = random.choice(roles)
+            addroles[role] += 1
+            if role in Wolf_Objective:
+                lwolves += 1
 
         if do_templates:
             addroles["gunner/sharpshooter"] = random.randrange(6)
