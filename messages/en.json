@@ -373,7 +373,8 @@
         "For SCIENCE, the villagers throw {0:@} into a volcano. They discover the melting point of {1!role:article} {1!role:bold} is less than that of lava.",
         "For SCIENCE, the villagers electrocute {0:@}. They discover the fried body of {1!role:article} {1!role:bold}.",
         "The angry villagers grab {0:@} by the legs and arms, and throw them into a large fire. It seems that {1!role:article} {1!role:bold}'s body doesn't burn that well, after all.",
-        "The angry villagers tie {0:@} to a pole and burn them at the stake. It seems that {1!role:article} {1!role:bold}'s body doesn't burn that well, after all."
+        "The angry villagers tie {0:@} to a pole and burn them at the stake. It seems that {1!role:article} {1!role:bold}'s body doesn't burn that well, after all.",
+        "The villagers pull {0:@} up to the guillotine. After the blade is released, they find the head of {1!role:article} {1!role:bold}."
     ],
     "lynch_no_reveal": [
         "The villagers, after much debate, finally decide on lynching {0:@}.",
