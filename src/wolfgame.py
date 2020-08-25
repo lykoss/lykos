@@ -2785,7 +2785,8 @@ def wiki(var, wrapper, message):
 
     wikilink = "https://werewolf.chat/{0}".format(suggestion.replace(" ", "_"))
     wrapper.reply(wikilink)
-    wrapper.pm(page)
+    if "#" not in wikilink:
+        wrapper.pm(page)
 
 @hook("invite")
 def on_invite(cli, raw_nick, something, chan):
