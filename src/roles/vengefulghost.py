@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_target, get_main_role
+from src.functions import get_players, get_target, get_main_role, get_all_roles
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
@@ -69,6 +69,12 @@ def on_consecrate(evt, var, actor, target):
     if target in GHOSTS:
         add_silent(var, target)
 
+@event_listener("gun_shoot")
+def on_gun_shoot(evt, var, user, target, role):
+    if evt.data["hit"] and "vengeful ghost" in get_all_roles(target):
+        # VGs automatically die if hit by a gun to make gunner a bit more dangerous in some modes
+        evt.data["kill"] = True
+        
 # needs to happen after regular team win is determined, but before succubus
 # FIXME: I hate priorities, did I mention that?
 @event_listener("team_win", priority=6)
