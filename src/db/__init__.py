@@ -1002,9 +1002,10 @@ def _get_ids(acc, add=False, casemap="ascii"):
         # Maybe have an IRC casefolded version of this account in the db
         # Check in order of most restrictive to least restrictive
         if casemap == "ascii":
-            row = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
+            peid, plid = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
         else:
-            row = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
+            peid, plid = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
+        row = peid, plid, None
 
     if row:
         peid, plid, display_acc = row
