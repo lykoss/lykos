@@ -1548,7 +1548,7 @@ def on_kill_players(evt: Event, var, players: Set[User]):
                     cmode.append(("+" + mode, player.nick))
                 del var.OLD_MODES[player]
             lplayer = player.lower()
-            if lplayer.account not in var.DEADCHAT_PREFS_ACCS and lplayer.host not in var.DEADCHAT_PREFS:
+            if lplayer.account not in var.DEADCHAT_PREFS_ACCS:
                 deadchat.append(player)
 
     # attempt to devoice all dead players
