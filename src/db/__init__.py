@@ -6,27 +6,27 @@ import sys
 import time
 from collections import defaultdict
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import botconfig
 import src.settings as var
 from src.utilities import singular
 from src.messages import messages, get_role_name
-from src.context import lower as irc_lower
 from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 _ts = threading.local()
 
 def init_vars():
+    from src.context import lower
     with var.GRAVEYARD_LOCK:
         conn = _conn()
         c = conn.cursor()
         c.execute("""SELECT
-                       pl.account,
+                       pl.account_display,
                        pe.notice,
                        pe.deadchat,
                        pe.pingif,
@@ -42,35 +42,31 @@ def init_vars():
                        ON at.id = a.template
                      WHERE pl.active = 1""")
 
-        var.PREFER_NOTICE = set()  # cloaks of people who !notice, who want everything /notice'd
         var.PREFER_NOTICE_ACCS = set() # Same as above, except accounts. takes precedence
         var.STASISED_ACCS = defaultdict(int)
-        var.PING_IF_PREFS = {}
         var.PING_IF_PREFS_ACCS = {}
-        var.PING_IF_NUMS = defaultdict(set)
         var.PING_IF_NUMS_ACCS = defaultdict(set)
-        var.DEADCHAT_PREFS = set()
         var.DEADCHAT_PREFS_ACCS = set()
         var.FLAGS_ACCS = defaultdict(str)
         var.DENY_ACCS = defaultdict(set)
 
         for acc, notice, dc, pi, stasis, stasisexp, flags in c:
             if acc is not None:
-                acc = irc_lower(acc)
+                lacc = lower(acc)
                 if notice == 1:
-                    var.PREFER_NOTICE_ACCS.add(acc)
+                    var.PREFER_NOTICE_ACCS.add(lacc)
                 if stasis > 0:
-                    var.STASISED_ACCS[acc] = stasis
+                    var.STASISED_ACCS[lacc] = stasis
                 if pi is not None and pi > 0:
-                    var.PING_IF_PREFS_ACCS[acc] = pi
-                    var.PING_IF_NUMS_ACCS[pi].add(acc)
+                    var.PING_IF_PREFS_ACCS[lacc] = pi
+                    var.PING_IF_NUMS_ACCS[pi].add(lacc)
                 if dc == 1:
-                    var.DEADCHAT_PREFS_ACCS.add(acc)
+                    var.DEADCHAT_PREFS_ACCS.add(lacc)
                 if flags:
-                    var.FLAGS_ACCS[acc] = flags
+                    var.FLAGS_ACCS[lacc] = flags
 
         c.execute("""SELECT
-                       pl.account,
+                       pl.account_display,
                        ws.data
                      FROM warning w
                      JOIN warning_sanction ws
@@ -88,8 +84,8 @@ def init_vars():
                        )""")
         for acc, command in c:
             if acc is not None:
-                acc = irc_lower(acc)
-                var.DENY_ACCS[acc].add(command)
+                lacc = lower(acc)
+                var.DENY_ACCS[lacc].add(command)
 
 def decrement_stasis(acc=None):
     peid, plid = _get_ids(acc)
@@ -830,7 +826,7 @@ def expire_tempbans():
         c = conn.cursor()
         c.execute("""SELECT
                        bt.player,
-                       pl.account
+                       pl.account_display
                      FROM bantrack bt
                      JOIN player pl
                        ON pl.id = bt.player
@@ -906,11 +902,11 @@ def _upgrade(oldversion):
                 # Update FKs to be deferrable, update collations to nocase where it makes sense,
                 # and clean up how fool wins are tracked (giving fools team wins instead of saving the winner's
                 # player id as a string). When nocasing players, this may cause some records to be merged.
-                with open(os.path.join(dn, "db", "upgrade2.sql"), "rt") as f:
+                with open(os.path.join(dn, "upgrade2.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 3:
                 print("Upgrade from version 2 to 3...", file=sys.stderr)
-                with open(os.path.join(dn, "db", "upgrade3.sql"), "rt") as f:
+                with open(os.path.join(dn, "upgrade3.sql"), "rt") as f:
                     c.executescript(f.read())
             if oldversion < 4:
                 print("Upgrade from version 3 to 4...", file=sys.stderr)
@@ -921,6 +917,12 @@ def _upgrade(oldversion):
             if oldversion < 6:
                 print("Upgrade from version 5 to 6...", file=sys.stderr)
                 # no actual upgrades, need to force an index rebuild due to removing custom collation
+            if oldversion < 7:
+                print("Upgrade from version 6 to 7...", file=sys.stderr)
+                # add source column to player and initialize it to 'irc'
+                # also delete hostmask column
+                with open(os.path.join(dn, "upgrade7.sql"), "rt") as f:
+                    c.executescript(f.read())
 
             print("Rebuilding indexes...", file=sys.stderr)
             c.execute("REINDEX")
@@ -928,7 +930,7 @@ def _upgrade(oldversion):
             print("Upgrades complete!", file=sys.stderr)
     except sqlite3.Error:
         print("An error has occurred while upgrading the database schema.",
-              "Please report this issue to ##werewolf-dev on irc.freenode.net.",
+              "Please report this issue to #lykos on irc.freenode.net.",
               "Include all of the following details in your report:",
               sep="\n", file=sys.stderr)
         if have_backup:
@@ -973,7 +975,8 @@ def _install():
         c.executescript(f1.read())
         c.execute("PRAGMA user_version = " + str(SCHEMA_VERSION))
 
-def _get_ids(acc, add=False):
+def _get_ids(acc, add=False, casemap="ascii"):
+    from src.context import lower
     conn = _conn()
     c = conn.cursor()
     if acc == "*":
@@ -981,22 +984,53 @@ def _get_ids(acc, add=False):
     if acc is None:
         return (None, None)
 
+    ascii_acc = lower(acc, casemapping="ascii")
+    rfc1459_acc = lower(acc, casemapping="rfc1459")
+    strict_acc = lower(acc, casemapping="strict-rfc1459")
+
     c.execute("""SELECT pe.id, pl.id
                  FROM player pl
                  JOIN person pe
                    ON pe.id = pl.person
                  WHERE
-                   pl.account = ?
-                   AND pl.hostmask IS NULL
-                   AND pl.active = 1""", (acc,))
+                   pl.account_lower_{0} = ?
+                   AND pl.active = 1""".format(casemap), (acc,))
     row = c.fetchone()
     peid = None
     plid = None
+    if not row:
+        # Maybe have an IRC casefolded version of this account in the db
+        # Check in order of most restrictive to least restrictive
+        if casemap == "ascii":
+            row = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
+        else:
+            row = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
+        if row:
+            # normalize case in the db to what it should be
+            with conn:
+                c.execute("""UPDATE player
+                             SET
+                               account_display=?,
+                               account_lower_ascii=?,
+                               account_lower_rfc1459=?,
+                               account_lower_rfc1459_strict=?
+                             WHERE id=?""",
+                          (acc, ascii_acc, rfc1459_acc, strict_acc, row[1]))
+            # fix up our vars
+            init_vars()
+
     if row:
         peid, plid = row
     elif add:
         with conn:
-            c.execute("INSERT INTO player (account, hostmask) VALUES (?, NULL)", (acc,))
+            c.execute("""INSERT INTO player
+                         (
+                           account_display,
+                           account_lower_ascii,
+                           account_lower_rfc1459,
+                           account_lower_rfc1459_strict
+                         )
+                         VALUES (?, ?, ?, ?)""", (acc, ascii_acc, rfc1459_acc, strict_acc))
             plid = c.lastrowid
             c.execute("INSERT INTO person (primary_player) VALUES (?)", (plid,))
             peid = c.lastrowid
@@ -1008,7 +1042,7 @@ def _get_display_name(peid):
         return None
     conn = _conn()
     c = conn.cursor()
-    c.execute("""SELECT pp.account
+    c.execute("""SELECT pp.account_display
                  FROM person pe
                  JOIN player pp
                    ON pp.id = pe.primary_player

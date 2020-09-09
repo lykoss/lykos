@@ -8,16 +8,22 @@ CREATE TABLE player (
     id INTEGER PRIMARY KEY,
     -- What person this player record belongs to
     person INTEGER REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
-    -- NickServ account name, or NULL if this player is based on a hostmask
-    account TEXT COLLATE NOCASE,
-    -- Hostmask for the player, if not based on an account (NULL otherwise)
-    hostmask TEXT COLLATE NOCASE,
+    -- NickServ account name (as-is)
+    account_display TEXT NOT NULL,
+    -- NickServ account name (lowercase)
+    account_lower_ascii TEXT NOT NULL COLLATE NOCASE,
+    -- NickServ account name (lowercase with RFC1459 case-folding: []\^ => {}|~)
+    account_lower_rfc1459 TEXT NOT NULL COLLATE NOCASE,
+    -- NickServ account name (lowercase with strict RFC1459 case-folding: []\ => {}|)
+    account_lower_rfc1459_strict TEXT NOT NULL COLLATE NOCASE,
     -- If a player entry needs to be retired (for example, an account expired),
     -- setting this to 0 allows for that entry to be re-used without corrupting old stats/logs
     active BOOLEAN NOT NULL DEFAULT 1
 );
 
-CREATE INDEX player_idx ON player (account, hostmask, active);
+CREATE INDEX player_ascii_idx ON player (account_lower_ascii, active);
+CREATE INDEX player_rfc1459_idx ON player (account_lower_rfc1459, active);
+CREATE INDEX player_rfc1459_strict_idx ON player (account_lower_rfc1459_strict, active);
 CREATE INDEX person_idx ON player (person);
 
 -- Person tracking; a person can consist of multiple players (for example, someone may have

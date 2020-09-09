@@ -2626,7 +2626,8 @@ def fflags(var, wrapper, message):
             acc = nick
 
     # var.FLAGS_ACC stores lowercased accounts, ensure acc is lowercased as well
-    lacc = irc_lower(acc)
+    from src.context import lower
+    lacc = lower(acc)
 
     if not flags:
         # display access for the given user

@@ -11,13 +11,9 @@ from src import debuglog
 from src.events import Event
 from src.messages import messages
 
-__all__ = ["complete_role", "irc_lower",
+__all__ = ["complete_role",
            "plural", "singular",
            "complete_match", "complete_one_match"]
-
-def irc_lower(nick): # FIXME: deprecated, use src.context.lower
-    from src.context import lower
-    return lower(nick)
 
 def plural(role, count=2): # FIXME: deprecated, use translation metadata
     if count == 1:

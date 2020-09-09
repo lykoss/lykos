@@ -144,6 +144,7 @@ def fstasis(var, wrapper, message):
     """Removes or views stasis penalties."""
 
     data = re.split(" +", message)
+    from src.context import lower as irc_lower
 
     if data[0]:
         m = users.complete_match(data[0])
