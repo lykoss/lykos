@@ -546,8 +546,8 @@ def list_all_warnings(list_all=False, skip=0, show=0):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -604,8 +604,8 @@ def list_warnings(acc, expired=False, deleted=False, skip=0, show=0):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -662,8 +662,8 @@ def get_warning(warn_id, acc=None):
     c = conn.cursor()
     sql = """SELECT
                warning.id,
-               plt.account AS target,
-               COALESCE(pls.account, ?) AS sender,
+               plt.account_display AS target,
+               COALESCE(pls.account_display, ?) AS sender,
                warning.amount,
                warning.issued,
                warning.expires,
@@ -673,7 +673,7 @@ def get_warning(warn_id, acc=None):
                warning.deleted,
                warning.reason,
                warning.notes,
-               pld.account AS deleted_by,
+               pld.account_display AS deleted_by,
                warning.deleted_on
              FROM warning
              JOIN person pet
@@ -988,7 +988,7 @@ def _get_ids(acc, add=False, casemap="ascii"):
     rfc1459_acc = lower(acc, casemapping="rfc1459")
     strict_acc = lower(acc, casemapping="strict-rfc1459")
 
-    c.execute("""SELECT pe.id, pl.id
+    c.execute("""SELECT pe.id, pl.id, pl.account_display
                  FROM player pl
                  JOIN person pe
                    ON pe.id = pl.person
@@ -1005,7 +1005,10 @@ def _get_ids(acc, add=False, casemap="ascii"):
             row = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
         else:
             row = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
-        if row:
+
+    if row:
+        peid, plid, display_acc = row
+        if acc != display_acc:
             # normalize case in the db to what it should be
             with conn:
                 c.execute("""UPDATE player
@@ -1018,9 +1021,6 @@ def _get_ids(acc, add=False, casemap="ascii"):
                           (acc, ascii_acc, rfc1459_acc, strict_acc, row[1]))
             # fix up our vars
             init_vars()
-
-    if row:
-        peid, plid = row
     elif add:
         with conn:
             c.execute("""INSERT INTO player
