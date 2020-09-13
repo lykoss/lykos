@@ -3265,6 +3265,15 @@ def whoami(var, wrapper, message):
     else:
         wrapper.pm(messages["whoami_loggedout"])
 
+@command("setdisplay", pm=True)
+def setdisplay(var, wrapper, message):
+    if not wrapper.source.account:
+        wrapper.pm(messages["not_logged_in"])
+        return
+
+    db.set_primary_player(wrapper.source.account)
+    wrapper.reply(messages["display_name_set"].format(wrapper.source.account))
+
 # Called from !game and !join, used to vote for a game mode
 def vote_gamemode(var, wrapper, gamemode, doreply):
     if var.FGAMED:

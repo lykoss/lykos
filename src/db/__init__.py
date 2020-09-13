@@ -511,6 +511,14 @@ def get_role_totals(mode=None):
         return (messages["db_rstats_total"].format(total_games), totals)
     return (messages["db_rstats_total_mode"].format(mode, total_games), totals)
 
+def set_primary_player(acc):
+    # set acc to be the primary player for the corresponding person
+    peid, plid = _get_ids(acc)
+    conn = _conn()
+    c = conn.cursor()
+    c.execute("UPDATE person SET primary_player = ? WHERE id = ?", (plid, peid))
+    conn.commit()
+
 def get_warning_points(acc):
     peid, plid = _get_ids(acc)
     conn = _conn()

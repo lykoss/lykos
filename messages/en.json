@@ -199,6 +199,7 @@
         "rolestats": ["rolestats", "rstats"],
         "rules": ["rules"],
         "see" : ["see"],
+        "setdisplay": ["setdisplay"],
         "shoot": ["shoot"],
         "side": ["side"],
         "spectate": ["spectate"],
@@ -1230,6 +1231,7 @@
     "blessed_notify_target": "You suddenly feel very safe.",
     "consecrate_fail": "{0:bold} is not currently playing or is not dead.",
     "consecrate_success": "You have consecrated the body of {0:@}.",
+    "display_name_set": "Your display name has been set to {0:bold}.",
     "coin_toss": "{0:@} tosses a coin into the air...",
     "coin_land": [
         "The coin lands on [b]tails[/b].",
