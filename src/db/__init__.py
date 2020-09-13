@@ -1024,9 +1024,10 @@ def _get_ids(acc, add=False, casemap="ascii"):
         # Check in order of most restrictive to least restrictive
         if casemap == "ascii":
             peid, plid = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
-        else:
+            row = peid, plid, None
+        elif casemap == "rfc1459_strict":
             peid, plid = _get_ids(rfc1459_acc, add=add, casemap="rfc1459")
-        row = peid, plid, None
+            row = peid, plid, None
 
     if row:
         peid, plid, display_acc = row
@@ -1045,6 +1046,7 @@ def _get_ids(acc, add=False, casemap="ascii"):
             # fix up our vars
             init_vars()
     elif add:
+        print("Inserting new player")
         c.execute("""INSERT INTO player
                      (
                        account_display,
