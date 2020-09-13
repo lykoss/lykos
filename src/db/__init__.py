@@ -1022,6 +1022,7 @@ def _get_ids(acc, add=False, casemap="ascii"):
     if not row:
         # Maybe have an IRC casefolded version of this account in the db
         # Check in order of most restrictive to least restrictive
+        # If all three casemappings fail to match, row will still be None
         if casemap == "ascii":
             peid, plid = _get_ids(strict_acc, add=add, casemap="rfc1459_strict")
             row = peid, plid, None
@@ -1046,7 +1047,6 @@ def _get_ids(acc, add=False, casemap="ascii"):
             # fix up our vars
             init_vars()
     elif add:
-        print("Inserting new player")
         c.execute("""INSERT INTO player
                      (
                        account_display,
