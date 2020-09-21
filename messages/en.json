@@ -487,6 +487,8 @@
         "{0:@} saw a job listing for \"{=villager!role}\", and so joined the village. They raised the number of players to {1:bold}.",
         "{0:@} saw a job listing for \"{=wolf!role}\", and so joined the village. They raised the number of players to {1:bold}.",
         "{0:@} saw a job listing for \"{=werekitten!role}\", and so joined the village. They raised the number of players to {1:bold}.",
+        "{0:@} saw a job listing for \"{=doomsayer!role}\", and so joined the village. They raised the number of players to {1:bold}.",
+        "{0:@} saw a job listing for \"{=crazed shaman!role}\", and so joined the village. They raised the number of players to {1:bold}.",
         "{0:@} saw a job listing for \"village leader\", and so joined the village. They raised the number of players to {1:bold}.",
         "{0:@} has run out of food and smelled fresh bread in the village. They raised the number of players to {1:bold}.",
         "{0:@} has run out of food and smelled grilled meat in the village. They raised the number of players to {1:bold}.",
