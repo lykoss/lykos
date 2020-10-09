@@ -3009,12 +3009,16 @@ def list_roles(var, wrapper, message):
                 if role.startswith("-"):
                     if role[1:] not in role_num:
                         rolecnt[role[1:]] -= 1
-                        new.append(role)
+                        roles = role[1:].split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("-{0}".format("/".join(localized_roles)))
                 else:
                     if f"-{role}" not in role_num:
                         rolecnt[role] += 1
                         append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
-                        new.append(role + append)
+                        roles = role.split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("/".join(localized_roles) + append)
 
             final.append(", ".join(new))
 
