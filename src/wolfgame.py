@@ -2926,7 +2926,7 @@ def list_roles(var, wrapper, message):
     gamemode = var.CURRENT_GAMEMODE
 
     if (not pieces[0] or pieces[0].isdigit()) and not hasattr(gamemode, "ROLE_GUIDE"):
-        minp = var.GAME_MODES[gamemode.name][1]
+        minp = max(var.GAME_MODES[gamemode.name][1], var.MIN_PLAYERS)
         msg = " ".join((messages["roles_players"].format(lpl), messages["roles_disabled"].format(gamemode.name, minp)))
         wrapper.reply(msg, prefix_nick=True)
         return
@@ -2958,7 +2958,7 @@ def list_roles(var, wrapper, message):
         try:
             gamemode.ROLE_GUIDE
         except AttributeError:
-            minp = var.GAME_MODES[mode][1]
+            minp = max(var.GAME_MODES[mode][1], var.MIN_PLAYERS)
             wrapper.reply(messages["roles_disabled"].format(gamemode.name, minp), prefix_nick=True)
             return
 
@@ -2979,7 +2979,7 @@ def list_roles(var, wrapper, message):
                 append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
                 new.append(role + append)
 
-        if new and specific <= var.MAX_PLAYERS:
+        if new and var.MIN_PLAYERS <= specific <= var.MAX_PLAYERS:
             msg.append("[{0}]".format(specific))
             msg.append(", ".join(new))
         else:
@@ -2988,7 +2988,18 @@ def list_roles(var, wrapper, message):
     else:
         final = []
 
+        roles_dict = {}
         for num, role_num in roles:
+            roles_dict[num] = list(role_num)
+
+        roles_dict_final = roles_dict.copy()
+
+        for num, role_num in reversed(roles_dict.items()):
+            if num < var.MIN_PLAYERS:
+                roles_dict_final[var.MIN_PLAYERS] = list(role_num) + list(roles_dict_final[var.MIN_PLAYERS])
+                del roles_dict_final[num]
+
+        for num, role_num in roles_dict_final.items():
             snum = "[{0}]".format(num)
             if num <= lpl:
                 snum = "\u0002{0}\u0002".format(snum)
@@ -2996,12 +3007,18 @@ def list_roles(var, wrapper, message):
             new = []
             for role in role_num:
                 if role.startswith("-"):
-                    rolecnt[role[1:]] -= 1
-                    new.append(role)
+                    if role[1:] not in role_num:
+                        rolecnt[role[1:]] -= 1
+                        roles = role[1:].split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("-{0}".format("/".join(localized_roles)))
                 else:
-                    rolecnt[role] += 1
-                    append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
-                    new.append(role + append)
+                    if f"-{role}" not in role_num:
+                        rolecnt[role] += 1
+                        append = "({0})".format(rolecnt[role]) if rolecnt[role] > 1 else ""
+                        roles = role.split("/")
+                        localized_roles = [messages.raw("_roles", x)[0] for x in roles]
+                        new.append("/".join(localized_roles) + append)
 
             final.append(", ".join(new))
 
