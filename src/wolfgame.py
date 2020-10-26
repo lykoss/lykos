@@ -2994,7 +2994,7 @@ def list_roles(var, wrapper, message):
 
         roles_dict_final = roles_dict.copy()
 
-        for num, role_num in reversed(roles_dict.items()):
+        for num, role_num in reversed(list(roles_dict.items())):
             if num < var.MIN_PLAYERS:
                 roles_dict_final[var.MIN_PLAYERS] = list(role_num) + list(roles_dict_final[var.MIN_PLAYERS])
                 del roles_dict_final[num]
