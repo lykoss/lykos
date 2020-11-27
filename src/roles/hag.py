@@ -52,7 +52,6 @@ def hex_cmd(var, wrapper, message):
 @event_listener("del_player")
 def on_del_player(evt, var, player, allroles, death_triggers):
     del LASTHEXED[:player:]
-    del HEXED[:player:]
 
 @event_listener("chk_nightdone")
 def on_chk_nightdone(evt, var):
