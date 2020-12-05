@@ -32,7 +32,7 @@
         "demoniac": ["Besessener", "Besessene"],
         "detective": ["Detektiv", "Detektive"],
         "doctor": ["Arzt", "Ärzte"],
-        "doomsayer": ["Apokalyptiker", "Apokalyptiker"],
+        "doomsayer": ["Schwarzseher", "Schwarzseher"],
         "dullahan": ["Kopfloser Ritter", "Kopflose Ritter"],
         "fallen angel": ["Gefallener Engel", "Gefallene Engel"],
         "fool": ["Dummkopf", "Dummköpfe"],
@@ -388,7 +388,7 @@
         "Die Bürger ziehen {0:@} an den Rand einer Klippe. Bevor {0:@} protestieren kann, rutscht {1!role:article} {1!role:bold} ab und fällt in den Abgrund.",
         "Mit einem schaurigen Kriegsschrei ziehen die Bürger {0:@} bis an den Rand einer Klippe und werfen {0:@} herab. Die Felswand ist nun mit den Überresten ihres verstorbenen Kameraden bedeckt.",
         "{0:@} wird in ein Rudel hungriger Tiere geworfen. {0:@} lebte nicht lange.",
-  ff      "Die wütenden Bürger packen {0:@} an den Beinen und Armen und werfen {0:@} in ein großes Feuer. Es scheint, dass {0:@} nicht so gut brennt,",
+        ff"Die wütenden Bürger packen {0:@} an den Beinen und Armen und werfen {0:@} in ein großes Feuer. Es scheint, dass {0:@} nicht so gut brennt,",
         "Die wütenden Bürger binden {0:@} an einen {0:@} auf dem Scheiterhaufen. Es scheint, dass sie {0:@} nicht so gut verbrannt haben,",
         "Die Bürger ziehen {0:@} bis zur Guillotine, und die Klinge fällt. Sie nimmt {0:@} den Kopf weg."
     ],
