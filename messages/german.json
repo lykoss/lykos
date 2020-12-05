@@ -365,7 +365,6 @@
         "Mit einem schaurigen Kriegsschrei ziehen die Bürger {0:@} an den Rand einer Klippe und werfen {0:@} hinab. Die Felswand ist nun mit den Rester von {0:@} {1!role:article}  {1!role:bold} bedeckt.",
         "{0:@} wird auf ein Rudel hungriger Tiere geworfen. Wodurch das leben von {1!role:bold} nicht lange anhält.",
         "Man wirft {0:@} {1!role:article} {1!role:bold} in einen Vulkan und stellt fesst das dieser schmelzpunkt von {0:@} kleiner ist als der von Lava",
-        "Für die WISSENSCHAFT, die Bürger fesseln {0:@} an einen Elektrischen Stuhl und schalten den Strom ein. Der Verbrannte Körper identifizierte sich dann als {1!role:article} {1!role:bold}.",
         "Die wütenden Bürger packen {0:@} an den Beinen und Armen, und werfen {0:@} in ein großes Feuer. Es scheint, dass {1!role:article} {1!role:bold} nicht so gut brennt",
         "Die wütenden Bürger binden {0:@} an einen Pfahl und verbrennen {0:@} auf dem Scheiterhaufen. Es scheint, dass der Körper von {1!role:article} {1!role:bold} nicht so gut brennt ",
         "Die Bürger ziehen {0:@} bis zur Guillotine hin. Nachdem die Klinge losgelassen wurde, finden sie {1!role:article} {1!role:bold}.",
@@ -389,9 +388,7 @@
         "Die Bürger ziehen {0:@} an den Rand einer Klippe. Bevor {0:@} protestieren kann, rutscht {1!role:article} {1!role:bold} ab und fällt in den Abgrund.",
         "Mit einem schaurigen Kriegsschrei ziehen die Bürger {0:@} bis an den Rand einer Klippe und werfen {0:@} herab. Die Felswand ist nun mit den Überresten ihres verstorbenen Kameraden bedeckt.",
         "{0:@} wird in ein Rudel hungriger Tiere geworfen. {0:@} lebte nicht lange.",
-        "Für die WISSENSCHAFT werfen die Bürger {0:@} in einen Vulkan. Sie entdecken, dass {0:@}'s Schmelzpunkt kleiner ist als der von Lava.",
-        "Für die WISSENSCHAFT setzen die Bürger {0:@} auf einen Elektrostuhl. Sie entdecken dass {0:@}'s Körper ganz gut gebraten wurde",
-        "Die wütenden Bürger packen {0:@} an den Beinen und Armen und werfen {0:@} in ein großes Feuer. Es scheint, dass {0:@} nicht so gut brennt,",
+  ff      "Die wütenden Bürger packen {0:@} an den Beinen und Armen und werfen {0:@} in ein großes Feuer. Es scheint, dass {0:@} nicht so gut brennt,",
         "Die wütenden Bürger binden {0:@} an einen {0:@} auf dem Scheiterhaufen. Es scheint, dass sie {0:@} nicht so gut verbrannt haben,",
         "Die Bürger ziehen {0:@} bis zur Guillotine, und die Klinge fällt. Sie nimmt {0:@} den Kopf weg."
     ],
