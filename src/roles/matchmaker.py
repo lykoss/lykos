@@ -152,6 +152,11 @@ def on_game_end_messages(evt, var):
     if lovers:
         evt.data["messages"].append(messages["lovers_endgame"].format(lovers))
 
+@event_listener("team_win")
+def on_team_win(evt, var, player, main_role, allroles, winner):
+    if winner == "lovers" and player in get_lovers()[0]:
+        evt.data["team_win"] = True
+
 @event_listener("player_win")
 def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, survived):
     if player in LOVERS:
