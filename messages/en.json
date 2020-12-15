@@ -85,9 +85,7 @@
         "lover": ["lover", "lovers"],
         "vg activated": ["vg activated", "vgs activated"],
         "vg driven off": ["vg driven off", "vgs driven off"],
-        "entranced": ["entranced", "entranced"],
-        "****": "The following items are old roles that are no longer in use, but need to be here for legacy reasons",
-        "bureaucrat": ["bureaucrat", "bureaucrats"]
+        "entranced": ["entranced", "entranced"]
     },
     "_gamemodes": {
         "*": "For assistance in configuring this section, please see https://werewolf.chat/Translation#Gamemodes",
@@ -1291,6 +1289,9 @@
     "db_gstats_gm_p": "{0:bold}p: {1}",
     "db_gstats_gm_all_total": "Total games: {0} | {1:join_simple}",
     "db_gstats_gm_specific_total": "Total games ({0!mode:bold}): {1} | {2:join_simple}",
+    "db_gstats_nobody": "Nobody",
+    "db_gstats_no_team_wins": "No Team",
+    "db_gstats_everyone": "Everyone",
     "db_role_stats_global": "{role!role:bold} | Team winners: {team} ({teamp:.0%}), Individual winners: {indiv} ({indivp:.0%}), Overall winners: {overall} ({overallp:.0%}), Total games: {total}.",
     "db_role_stats_specific": "{role!role:bold} in {0!mode} | Team winners: {team} ({teamp:.0%}), Individual winners: {indiv} ({indivp:.0%}), Overall winners: {overall} ({overallp:.0%}), Total games: {total}.",
     "db_rstats_none": "No stats for {0!role:bold}.",

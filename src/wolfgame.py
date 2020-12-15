@@ -3126,7 +3126,7 @@ def gamestats(var, wrapper, message):
     if msg and not msg[0].isdigit():
         gamemode = msg[0]
         if gamemode != "*":
-            matches = match_mode(var, gamemode, remove_spaces=True)
+            matches = match_mode(var, gamemode, remove_spaces=True, allow_extra=True)
             if matches:
                 gamemode = matches.get().key
             elif len(matches) == 0:
@@ -3137,12 +3137,8 @@ def gamestats(var, wrapper, message):
                 return
         msg.pop(0)
 
-    # Check for invalid input
     if msg and msg[0].isdigit():
         gamesize = int(msg[0])
-        if gamemode != "all" and not (var.GAME_MODES[gamemode][1] <= gamesize <= var.GAME_MODES[gamemode][2]):
-            wrapper.pm(messages["integer_range"].format(var.GAME_MODES[gamemode][1], var.GAME_MODES[gamemode][2]))
-            return
 
     # List all games sizes and totals if no size is given
     if not gamesize:
@@ -3200,9 +3196,9 @@ def player_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        matches = match_role(var, role)
+        matches = match_role(var, role, allow_extra=True)
 
-        if not matches:
+        if len(matches) == 0:
             wrapper.send(messages["no_such_role"].format(role))
             return
         elif len(matches) > 1:
@@ -3221,7 +3217,6 @@ def my_stats(var, wrapper, message):
 @command("rolestats", pm=True)
 def role_stats(var, wrapper, message):
     """Gets the stats for a given role in a given gamemode or lists role totals across all games if no role is given."""
-    # NOTE: Need to dynamically translate roles and gamemodes
     if (wrapper.public and var.LAST_RSTATS and var.RSTATS_RATE_LIMIT and
             var.LAST_RSTATS + timedelta(seconds=var.RSTATS_RATE_LIMIT) > datetime.now()):
         wrapper.pm(messages["command_ratelimited"])
@@ -3241,16 +3236,25 @@ def role_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    roles = match_role(var, message)
-    if params[-1] == "all" and not roles:
-        roles = match_role(var, " ".join(params[:-1]))
+    roles = match_role(var, message, allow_extra=True)
+    if params[-1] == "*" and not roles:
+        role = " ".join(params[:-1])
+        roles = match_role(var, role, allow_extra=True)
+        if not roles:
+            if len(roles) > 0:
+                wrapper.pm(messages["ambiguous_role"].format(roles))
+            else:
+                wrapper.pm(messages["no_such_role"].format(role))
+            return
+
     if roles:
         wrapper.pm(db.get_role_stats(roles.get().key))
         return
 
     gamemode = params[-1]
-    matches = match_mode(var, gamemode, remove_spaces=True)
-    if matches:
+    roles = match_role(var, " ".join(params[:-1]), allow_extra=True)
+    matches = match_mode(var, gamemode, remove_spaces=True, allow_extra=True)
+    if matches and roles:
         gamemode = matches.get().key
     else:
         if len(roles) > 0:
@@ -3266,15 +3270,7 @@ def role_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    role = " ".join(params[:-1])
-    roles = match_role(var, role)
-    if not roles:
-        if len(roles) == 0:
-            wrapper.pm(messages["no_such_role"].format(role))
-        else:
-            wrapper.pm(messages["ambiguous_role"].format([r.singular for r in roles]))
-        return
-    wrapper.pm(db.get_role_stats(roles[0], gamemode))
+    wrapper.pm(db.get_role_stats(roles.get().key, gamemode))
 
 @command("whoami", pm=True)
 def whoami(var, wrapper, message):

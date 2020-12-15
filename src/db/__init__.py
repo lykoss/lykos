@@ -331,7 +331,7 @@ def get_game_stats(mode, size):
     conn = _conn()
     c = conn.cursor()
 
-    if mode == "all":
+    if mode == "*":
         c.execute("SELECT COUNT(1) FROM game WHERE gamesize = ?", (size,))
     else:
         c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ? AND gamesize = ?", (mode, size))
@@ -340,7 +340,7 @@ def get_game_stats(mode, size):
     if not total_games:
         return messages["db_gstats_no_game"].format(size)
 
-    if mode == "all":
+    if mode == "*":
         c.execute("""SELECT
                        winner AS team,
                        COUNT(1) AS games,
@@ -376,10 +376,16 @@ def get_game_stats(mode, size):
 
     bits = []
     for row in c:
-        winner = singular(row[0])
-        winner = LocalRole(winner).singular.title()
-        if not winner:
-            winner = botconfig.NICK.title()
+        if row[0] == "no_team_wins":
+            winner = messages["db_gstats_no_team_wins"]
+        elif not row[0]:
+            winner = messages["db_gstats_nobody"]
+        elif row[0] == "everyone":
+            winner = messages["db_gstats_everyone"]
+        else:
+            # FIXME: kill off singular() and convert the db to just store the role key directly instead of a plural
+            winner = LocalRole(singular(row[0])).singular.title()
+
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))
     bits.append(messages["db_gstats_total"].format(total_games))
 
@@ -389,18 +395,18 @@ def get_game_totals(mode):
     conn = _conn()
     c = conn.cursor()
 
-    if mode == "all":
+    if mode == "*":
         c.execute("SELECT COUNT(1) FROM game")
     else:
         c.execute("SELECT COUNT(1) FROM game WHERE gamemode = ?", (mode,))
 
     total_games = c.fetchone()[0]
     if not total_games:
-        if mode == "all":
+        if mode == "*":
             return messages["db_gstats_gm_none_all"]
         return messages["db_gstats_gm_none"].format(mode)
 
-    if mode == "all":
+    if mode == "*":
         c.execute("""SELECT
                        gamesize,
                        COUNT(1) AS games
@@ -419,7 +425,7 @@ def get_game_totals(mode):
     for row in c:
         totals.append(messages["db_gstats_gm_p"].format(row[0], row[1]))
 
-    if mode == "all":
+    if mode == "*":
         return messages["db_gstats_gm_all_total"].format(total_games, totals)
     return messages["db_gstats_gm_specific_total"].format(mode, total_games, totals)
 

@@ -163,7 +163,7 @@ def get_reveal_role(user):
     else:
         return "village member"
 
-def match_role(var, role: str, remove_spaces: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
+def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
     """ Match a partial role or alias name into the internal role key.
 
     :param var: Game state
@@ -171,6 +171,8 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_special: bool 
     :param remove_spaces: Whether or not to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
         prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :param allow_extra: Whether to allow keys that are defined in the translation file but do not exist in the bot.
+        Typically these are roles that were previously removed.
     :param allow_special: Whether to allow special keys (lover, vg activated, etc.).
         If scope is set, this parameter is ignored.
     :param scope: Limit matched roles to these explicitly passed-in roles (iterable of internal role names).
@@ -194,6 +196,8 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_special: bool 
     filtered_matches = set()
     if scope is not None:
         allowed = set(scope)
+    elif allow_extra:
+        allowed = set(role_map.values()) | special_keys
     else:
         allowed = All.roles | special_keys
 
@@ -203,7 +207,7 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_special: bool 
 
     return Match(filtered_matches)
 
-def match_mode(var, mode: str, remove_spaces: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
+def match_mode(var, mode: str, remove_spaces: bool = False, allow_extra: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
     """ Match a partial game mode into the internal game mode key.
 
     :param var: Game state
@@ -211,6 +215,8 @@ def match_mode(var, mode: str, remove_spaces: bool = False, scope: Optional[Iter
     :param remove_spaces: Whether or not to remove all spaces before matching.
         This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
         prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :param allow_extra: Whether to allow keys that are defined in the translation file but do not exist in the bot.
+        Typically these are game modes that were previously removed.
     :param scope: Limit matched modes to these explicitly passed-in modes (iterable of internal mode names).
     :return: Match object with all matches (see src.match.match_all)
     """
@@ -225,6 +231,8 @@ def match_mode(var, mode: str, remove_spaces: bool = False, scope: Optional[Iter
     filtered_matches = set()
     if scope is not None:
         allowed = set(scope)
+    elif allow_extra:
+        allowed = set(mode_map.values())
     else:
         allowed = set(var.GAME_MODES)
 
