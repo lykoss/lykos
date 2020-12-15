@@ -45,8 +45,30 @@ CREATE TABLE person (
     -- each time a game is started, this is decremented by 1, to a minimum of 0
     stasis_amount INTEGER NOT NULL DEFAULT 0,
     -- When the given stasis expires, represented in 'YYYY-MM-DD HH:MM:SS' format
-    stasis_expires DATETIME
+    stasis_expires DATETIME,
+    -- The current amount of achievement points the player has
+    -- May be less than the total if they spent any on various things
+    achievement_current INTEGER NOT NULL DEFAULT 0,
+    -- The total amount of achievement points the player has earned
+    achievement_total INTEGER NOT NULL DEFAULT 0
 );
+
+-- Achievement tracking. Actual achievements and their conditions are defined in the code,
+-- this table serves to track who earned which achievements and when.
+CREATE TABLE achievement (
+    id INTEGER PRIMARY KEY,
+    -- Who earned this achievement
+    player INTEGER NOT NULL REFERENCES person(id) DEFERRABLE INITIALLY DEFERRED,
+    -- Which achievement was earned
+    achievement TEXT NOT NULL,
+    -- How many points the achievement was worth at the time it was earned
+    points INTEGER NOT NULL,
+    -- When the achievement was earned
+    earned DATETIME NOT NULL
+);
+
+CREATE INDEX achievement_idx ON achievement (player, achievement);
+CREATE INDEX achievement_achievement_idx ON achievement (achievement);
 
 -- Sometimes people are bad, this keeps track of that for the purpose of automatically applying
 -- various sanctions and viewing the past history of someone. Outside of specifically-marked

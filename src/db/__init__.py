@@ -16,7 +16,7 @@ from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
 # they do not run by default for performance reasons
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 _ts = threading.local()
 
@@ -939,6 +939,12 @@ def _upgrade(oldversion):
             # add source column to player and initialize it to 'irc'
             # also delete hostmask column
             with open(os.path.join(dn, "upgrade7.sql"), "rt") as f:
+                c.executescript(f.read())
+        if oldversion < 8:
+            print("Upgrade from version 7 to 8...", file=sys.stderr)
+            # add columns to person to track current and total achievement points
+            # and an achievements table to track exactly which achievements were earned by them
+            with open(os.path.join(dn, "upgrade8.sql"), "rt") as f:
                 c.executescript(f.read())
 
         print("Rebuilding indexes...", file=sys.stderr)
