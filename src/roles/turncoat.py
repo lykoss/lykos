@@ -5,12 +5,11 @@ import math
 from collections import defaultdict
 from typing import Tuple
 
-from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
-from src.functions import get_players, get_all_players, get_main_role, get_reveal_role, get_target
+from src.functions import get_players, get_all_players, match_role
 from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages, get_role_name
+from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
 TURNCOATS = UserDict() # type: UserDict[users.User, Tuple[str, int]]
@@ -22,14 +21,13 @@ def change_sides(var, wrapper, message, sendmsg=True):
         wrapper.pm(messages["turncoat_already_turned"])
         return
 
-    possible = (get_role_name("villager", number=None), get_role_name("wolf", number=None))
     team = re.split(" +", message)[0]
-    team = complete_one_match(team, possible)
+    team = match_role(var, team, scope=("villager", "wolf"))
     if not team:
         wrapper.pm(messages["turncoat_error"])
         return
 
-    team = "villager" if team == possible[0] else "wolf"
+    team = team.get().key
 
     wrapper.pm(messages["turncoat_success"].format(team))
     TURNCOATS[wrapper.source] = (team, var.NIGHT_COUNT)

@@ -1,14 +1,18 @@
-from typing import Optional
+from typing import Optional, Iterable
 from collections import Counter
-from src.messages import messages
+import functools
+
+from src.messages import messages, LocalRole, LocalMode, LocalTotem
 from src.events import Event
-from src.cats import Wolfteam, Neutral, Hidden
+from src.cats import Wolfteam, Neutral, Hidden, All
+from src.match import Match, match_all
 from src import settings as var
 
 __all__ = [
     "get_players", "get_all_players", "get_participants",
     "get_target", "change_role",
     "get_main_role", "get_all_roles", "get_reveal_role",
+    "match_role", "match_mode", "match_totem"
     ]
 
 def get_players(roles=None, *, mainroles=None):
@@ -159,4 +163,98 @@ def get_reveal_role(user):
     else:
         return "village member"
 
-# vim: set sw=4 expandtab:
+def match_role(var, role: str, remove_spaces: bool = False, allow_special: bool = True, scope: Optional[Iterable[str]] = None) -> Match[LocalRole]:
+    """ Match a partial role or alias name into the internal role key.
+
+    :param var: Game state
+    :param role: Partial role to match on
+    :param remove_spaces: Whether or not to remove all spaces before matching.
+        This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
+        prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :param allow_special: Whether to allow special keys (lover, vg activated, etc.).
+        If scope is set, this parameter is ignored.
+    :param scope: Limit matched roles to these explicitly passed-in roles (iterable of internal role names).
+    :return: Match object with all matches (see src.match.match_all)
+    """
+    role = role.lower()
+    if remove_spaces:
+        role = role.replace(" ", "")
+
+    role_map = messages.get_role_mapping(reverse=True, remove_spaces=remove_spaces)
+
+    special_keys = set()
+    if scope is None and allow_special:
+        evt = Event("get_role_metadata", {})
+        evt.dispatch(var, "special_keys")
+        special_keys = functools.reduce(lambda x, y: x | y, evt.data.values(), special_keys)
+
+    matches = match_all(role, role_map.keys())
+
+    # strip matches that don't refer to actual roles or special keys (i.e. refer to team names)
+    filtered_matches = set()
+    if scope is not None:
+        allowed = set(scope)
+    else:
+        allowed = All.roles | special_keys
+
+    for match in matches:
+        if role_map[match] in allowed:
+            filtered_matches.add(LocalRole(role_map[match], match))
+
+    return Match(filtered_matches)
+
+def match_mode(var, mode: str, remove_spaces: bool = False, scope: Optional[Iterable[str]] = None) -> Match[LocalMode]:
+    """ Match a partial game mode into the internal game mode key.
+
+    :param var: Game state
+    :param mode: Partial game mode to match on
+    :param remove_spaces: Whether or not to remove all spaces before matching.
+        This is meant for contexts where we truly cannot allow spaces somewhere; otherwise we should
+        prefer that the user matches including spaces where possible for friendlier-looking commands.
+    :param scope: Limit matched modes to these explicitly passed-in modes (iterable of internal mode names).
+    :return: Match object with all matches (see src.match.match_all)
+    """
+    mode = mode.lower()
+    if remove_spaces:
+        mode = mode.replace(" ", "")
+
+    mode_map = messages.get_mode_mapping(reverse=True, remove_spaces=remove_spaces)
+    matches = match_all(mode, mode_map.keys())
+
+    # strip matches that aren't in scope, and convert to LocalMode objects
+    filtered_matches = set()
+    if scope is not None:
+        allowed = set(scope)
+    else:
+        allowed = set(var.GAME_MODES)
+
+    for match in matches:
+        if mode_map[match] in allowed:
+            filtered_matches.add(LocalMode(mode_map[match], match))
+
+    return Match(filtered_matches)
+
+def match_totem(var, totem: str, scope: Optional[Iterable[str]] = None) -> Match[LocalTotem]:
+    """ Match a partial totem into the internal totem key.
+
+    :param var: Game state
+    :param totem: Partial totem to match on
+    :param scope: Limit matched modes to these explicitly passed-in totems (iterable of internal totem names).
+    :return: Match object with all matches (see src.match.match_all)
+    """
+    mode = totem.lower()
+    totem_map = messages.get_totem_mapping(reverse=True)
+    matches = match_all(totem, totem_map.keys())
+
+    # strip matches that aren't in scope, and convert to LocalMode objects
+    filtered_matches = set()
+    if scope is not None:
+        allowed = set(scope)
+    else:
+        allowed = set(totem_map.keys())
+
+    for match in matches:
+        if totem_map[match] in allowed:
+            filtered_matches.add(LocalTotem(totem_map[match], match))
+
+    return Match(filtered_matches)

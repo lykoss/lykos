@@ -56,7 +56,7 @@ from src.lineparse import LineParser, LineParseError, WantsHelp
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.decorators import command, hook, handle_error, event_listener, COMMANDS
 from src.dispatcher import MessageDispatcher
-from src.messages import messages, get_role_name
+from src.messages import messages, LocalMode
 from src.warnings import *
 from src.context import IRCContext
 from src.status import try_protection, add_dying, is_dying, kill_players, get_absent, is_silent
@@ -69,7 +69,7 @@ from src.cats import (
 from src.functions import (
     get_players, get_all_players, get_participants,
     get_main_role, get_all_roles, get_reveal_role,
-    get_target, change_role
+    get_target, change_role, match_role, match_mode
    )
 
 # done this way so that events is accessible in !eval (useful for debugging)
@@ -1523,6 +1523,9 @@ def on_del_player(evt: Event, var, player: User, all_roles: Set[str], death_trig
         if player in var.GAMEMODE_VOTES:
             del var.GAMEMODE_VOTES[player]
 
+        for role in var.FORCE_ROLES:
+            var.FORCE_ROLES[role].discard(player)
+
         # Died during the joining process as a person
         var.ALL_PLAYERS.remove(player)
     if var.PHASE in var.GAME_PHASES:
@@ -2942,16 +2945,16 @@ def list_roles(var, wrapper, message):
     if pieces[0] and not pieces[0].isdigit():
         valid = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES - {"roles"}
         mode = pieces.pop(0)
-        if mode not in valid:
-            matches = complete_match(mode, valid)
-            if not matches:
-                wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
-                return
-            if len(matches) > 1:
-                wrapper.reply(messages["ambiguous_mode"].format(mode, matches), prefix_nick=True)
-                return
 
-            mode = matches[0]
+        matches = match_mode(var, mode, scope=valid, remove_spaces=True)
+        if len(matches) == 0:
+            wrapper.reply(messages["invalid_mode"].format(mode), prefix_nick=True)
+            return
+        elif len(matches) > 1:
+            wrapper.reply(messages["ambiguous_mode"].format([m.local for m in matches]), prefix_nick=True)
+            return
+
+        mode = matches.get().key
 
         gamemode = var.GAME_MODES[mode][0]()
 
@@ -3116,21 +3119,21 @@ def gamestats(var, wrapper, message):
             wrapper.pm(messages["stats_wait_for_game_end"])
             return
 
-    gamemode = "all"
+    gamemode = "*"
     gamesize = None
     msg = message.split()
     # Check for gamemode
     if msg and not msg[0].isdigit():
         gamemode = msg[0]
-        if gamemode != "all" and gamemode not in var.GAME_MODES:
-            matches = complete_match(gamemode, var.GAME_MODES)
-            if len(matches) == 1:
-                gamemode = matches[0]
-            if not matches:
+        if gamemode != "*":
+            matches = match_mode(var, gamemode, remove_spaces=True)
+            if matches:
+                gamemode = matches.get().key
+            elif len(matches) == 0:
                 wrapper.pm(messages["invalid_mode"].format(msg[0]))
                 return
-            if len(matches) > 1:
-                wrapper.pm(messages["ambiguous_mode"].format(msg[0], matches))
+            else:
+                wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
                 return
         msg.pop(0)
 
@@ -3197,17 +3200,16 @@ def player_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ")
     else:
         role = " ".join(params[1:])
-        role_map = messages.get_role_mapping(reverse=True)
-        matches = complete_match(role, role_map.keys())
+        matches = match_role(var, role)
 
         if not matches:
             wrapper.send(messages["no_such_role"].format(role))
             return
-        if len(matches) > 1:
-            wrapper.send(messages["ambiguous_role"].format(matches))
+        elif len(matches) > 1:
+            wrapper.send(messages["ambiguous_role"].format([m.singular for m in matches]))
             return
 
-        role = role_map[matches[0]]
+        role = matches.get().key
         wrapper.send(db.get_player_stats(account, role))
 
 @command("mystats", pm=True)
@@ -3239,26 +3241,25 @@ def role_stats(var, wrapper, message):
         wrapper.pm(*totals, sep=", ", first=first)
         return
 
-    roles = complete_role(var, message)
-    if params[-1] == "all" and len(roles) != 1:
-        roles = complete_role(var, " ".join(params[:-1]))
-    if len(roles) == 1:
-        wrapper.pm(db.get_role_stats(roles[0]))
+    roles = match_role(var, message)
+    if params[-1] == "all" and not roles:
+        roles = match_role(var, " ".join(params[:-1]))
+    if roles:
+        wrapper.pm(db.get_role_stats(roles.get().key))
         return
 
     gamemode = params[-1]
-    if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys())
-        if len(matches) == 1:
-            gamemode = matches[0]
+    matches = match_mode(var, gamemode, remove_spaces=True)
+    if matches:
+        gamemode = matches.get().key
+    else:
+        if len(roles) > 0:
+            wrapper.pm(messages["ambiguous_role"].format(roles))
+        elif len(matches) > 0:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
         else:
-            if len(roles) > 0:
-                wrapper.pm(messages["ambiguous_role"].format(roles))
-            elif len(matches) > 0:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
-            else:
-                wrapper.pm(messages["no_such_role"].format(message))
-            return
+            wrapper.pm(messages["no_such_role"].format(message))
+        return
 
     if len(params) == 1:
         first, totals = db.get_role_totals(gamemode)
@@ -3266,12 +3267,12 @@ def role_stats(var, wrapper, message):
         return
 
     role = " ".join(params[:-1])
-    roles = complete_role(var, role)
-    if len(roles) != 1:
+    roles = match_role(var, role)
+    if not roles:
         if len(roles) == 0:
             wrapper.pm(messages["no_such_role"].format(role))
         else:
-            wrapper.pm(messages["ambiguous_role"].format(roles))
+            wrapper.pm(messages["ambiguous_role"].format([r.singular for r in roles]))
         return
     wrapper.pm(db.get_role_stats(roles[0], gamemode))
 
@@ -3298,34 +3299,34 @@ def vote_gamemode(var, wrapper, gamemode, doreply):
             wrapper.pm(messages["admin_forced_game"])
         return
 
-    if gamemode not in var.GAME_MODES.keys():
-        matches = complete_match(gamemode, var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES)
-        if not matches:
-            if doreply:
-                wrapper.pm(messages["invalid_mode"].format(gamemode))
-            return
-        if len(matches) > 1:
-            if doreply:
-                wrapper.pm(messages["ambiguous_mode"].format(gamemode, matches))
-            return
-        if len(matches) == 1:
-            gamemode = matches[0]
-
-    if gamemode != "roles" and gamemode not in var.DISABLED_GAMEMODES:
-        if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
-            wrapper.pm(messages["already_voted_game"].format(gamemode))
-        else:
-            var.GAMEMODE_VOTES[wrapper.source] = gamemode
-            wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
-    else:
+    allowed = var.GAME_MODES.keys() - {"roles"} - var.DISABLED_GAMEMODES
+    matches = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+    if len(matches) == 0:
         if doreply:
-            wrapper.pm(messages["vote_game_fail"])
+            wrapper.pm(messages["invalid_mode"].format(gamemode))
+        return
+    elif len(matches) > 1:
+        if doreply:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in matches]))
+        return
+
+    gamemode = matches.get().key
+    if var.GAMEMODE_VOTES.get(wrapper.source) == gamemode:
+        wrapper.pm(messages["already_voted_game"].format(gamemode))
+    else:
+        var.GAMEMODE_VOTES[wrapper.source] = gamemode
+        wrapper.send(messages["vote_game_mode"].format(wrapper.source, gamemode))
 
 def _get_gamemodes(var):
     gamemodes = []
+    order = {}
     for gm, (cls, min, max, chance) in var.GAME_MODES.items():
         if gm == "roles" or gm in var.DISABLED_GAMEMODES:
             continue
+        order[LocalMode(gm).local] = (min, max)
+
+    for gm in sorted(order.keys()):
+        min, max = order[gm]
         if min <= len(get_players()) <= max:
             gm = messages["bold"].format(gm)
         gamemodes.append(gm)
@@ -3605,13 +3606,16 @@ def fgame(var, wrapper, message):
             var.FGAMED = False
             return
 
-        if gamemode not in var.GAME_MODES.keys() - var.DISABLED_GAMEMODES:
-            gamemode = gamemode.split()[0]
-            gamemode = complete_one_match(gamemode, var.GAME_MODES.keys() - var.DISABLED_GAMEMODES)
-            if not gamemode:
-                wrapper.pm(messages["invalid_mode"].format(message.split()[0]))
-                return
-            parts[0] = gamemode
+        allowed = var.GAME_MODES.keys() - var.DISABLED_GAMEMODES
+        gamemode = gamemode.split()[0]
+        match = match_mode(var, gamemode, scope=allowed, remove_spaces=True)
+        if len(match) == 0:
+            wrapper.pm(messages["invalid_mode"].format(gamemode))
+            return
+        elif len(match) > 1:
+            wrapper.pm(messages["ambiguous_mode"].format([m.local for m in match]))
+            return
+        parts[0] = match.get().key
 
         if cgamemode("=".join(parts)):
             channels.Main.send(messages["fgame_success"].format(wrapper.source))
@@ -3700,13 +3704,16 @@ def rforce(var, wrapper, message):
         return
 
     target = msg.pop(0).strip().lower()
-    possible = complete_role(var, target)
+    possible = match_role(var, target, allow_special=False, remove_spaces=True)
     if target == "*":
         players = get_players()
-    elif len(possible) == 1:
-        players = get_all_players((possible[0],))
+    elif possible:
+        players = get_all_players((possible.get().key,))
+    elif len(possible) > 1:
+        wrapper.send(messages["ambiguous_role"].format([r.singular for r in possible]))
+        return
     else:
-        wrapper.send("Invalid role")
+        wrapper.send(messages["no_such_role"].format(message))
         return
 
     _force_command(var, wrapper, msg.pop(0), players, " ".join(msg))
@@ -3724,11 +3731,11 @@ def frole(var, wrapper, message):
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         umatch = users.complete_match(name.strip(), pl)
-        rmatch = complete_role(var, role.strip())
+        rmatch = match_role(var, role.strip(), allow_special=False)
         role = None
-        if len(rmatch) == 1:
-            role = rmatch[0]
-        if not umatch or role not in role_order() or role == var.DEFAULT_ROLE:
+        if rmatch:
+            role = rmatch.get().key
+        if not umatch or not rmatch or role == var.DEFAULT_ROLE:
             wrapper.send(messages["frole_incorrect"].format(part))
             return
         var.FORCE_ROLES[role].add(umatch.get())

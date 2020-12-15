@@ -11,7 +11,7 @@ from datetime import datetime
 import botconfig
 import src.settings as var
 from src.utilities import singular
-from src.messages import messages, get_role_name
+from src.messages import messages, LocalRole
 from src.cats import role_order
 
 # increment this whenever making a schema change so that the schema upgrade functions run on start
@@ -377,7 +377,7 @@ def get_game_stats(mode, size):
     bits = []
     for row in c:
         winner = singular(row[0])
-        winner = get_role_name(winner, number=None).title()
+        winner = LocalRole(winner).singular.title()
         if not winner:
             winner = botconfig.NICK.title()
         bits.append(messages["db_gstats_win"].format(winner, row[1], row[1]/total_games))

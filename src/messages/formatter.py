@@ -1,6 +1,5 @@
 import string
 import random
-import re
 import fnmatch
 
 class Formatter(string.Formatter):
@@ -15,9 +14,14 @@ class Formatter(string.Formatter):
     - New spec ":random" for use on list values: Returns an element in the list chosen at random.
     - New spec ":join" to join a list of values. Can be called in four ways:
       :join to join with default settings
-      :join(spec) to apply spec to all list elements and then join with default settings
+      :join(spec) or :join(:spec) to apply spec to all list elements and then join with default settings
+      :join(!conv:spec) to apply conv and then spec to all list elements and then join with default settings
+      :join(!conv) to apply conv to all list elements and then join with default settings
+      If a spec is applied, it cannot take arguments (e.g. plural() is not supported)
     - The ":join_space" and ":join_simple" specs work like ":join", but join with only spaces or only commas
       rather than regular join which adds an "and" and avoids commas when there are only two list elements.
+    - The ":sort", ":sort_space", and ":sort_simple" specs work like their ":join" counterparts, but sort the resulting
+      list before joining it together.
     - New spec ":bold" to bold the value. This can be combined with other format specifiers.
     - New spec ":article to give the indefinite article for the given value.
     - New spec ":!" prefixes the value with the bot's command character.
@@ -63,6 +67,15 @@ class Formatter(string.Formatter):
         if "join_simple" in specs:
             value = self._join_simple(value, specs["join_simple"])
             del specs["join_simple"]
+        if "sort" in specs:
+            value = self._join(value, specs["sort"], sort=True)
+            del specs["sort"]
+        if "sort_space" in specs:
+            value = self._join_space(value, specs["sort_space"], sort=True)
+            del specs["sort_space"]
+        if "sort_simple" in specs:
+            value = self._join_simple(value, specs["sort_simple"], sort=True)
+            del specs["sort_simple"]
 
         if isinstance(value, dict) or isinstance(value, set):
             # we were passed a set/dict, but we only support passing lists up. Convert it.
@@ -91,7 +104,7 @@ class Formatter(string.Formatter):
             del specs["article"]
         if "!" in specs:
             from botconfig import CMD_CHAR
-            value = CMD_CHAR + value
+            value = "{}{}".format(CMD_CHAR, value)
             del specs["!"]
 
         # Combining these is supported, and these specs work on strings
@@ -115,15 +128,22 @@ class Formatter(string.Formatter):
         return super().format_field(value, format_spec)
 
     def convert_field(self, value, conversion):
-        from src.messages import messages
+        from src.messages import messages, LocalRole, LocalMode, LocalTotem
 
         if conversion == "role":
+            if isinstance(value, LocalRole):
+                # FIXME: this doesn't necessarily match the roles metadata (which can have lists of arbitrary length)
+                return [value.singular, value.plural]
             return messages.raw("_roles", value)
         if conversion == "mode":
+            if isinstance(value, LocalMode):
+                return value.local
             return messages.raw("_gamemodes", value)
         if conversion == "command":
             return messages.raw("_commands", value)[0]
         if conversion == "totem":
+            if isinstance(value, LocalTotem):
+                return value.local
             return messages.raw("_totems", value)
         if conversion == "cat":
             return messages.raw("_role_categories", value)
@@ -152,38 +172,57 @@ class Formatter(string.Formatter):
     def _random(self, value, arg):
         return random.choice(value)
 
-    def _join_space(self, value, arg):
-        return self._join(value, arg, join_chars=[" ", " ", " "])
+    def _join_space(self, value, arg, sort=False):
+        return self._join(value, arg, join_chars=[" ", " ", " "], sort=sort)
 
-    def _join_simple(self, value, arg):
+    def _join_simple(self, value, arg, sort=False):
         from src.messages import messages
         # join using only a comma (in English), regardless of the number of list items
         normal_chars = messages.raw("_metadata", "list")
         simple = normal_chars[1]
-        return self._join(value, arg, join_chars=[simple, simple, simple])
+        return self._join(value, arg, join_chars=[simple, simple, simple], sort=sort)
 
-    def _join(self, value, arg, join_chars=None):
+    def _join(self, value, arg, join_chars=None, sort=False):
         from src.messages import messages
 
         spec = None
+        conv = None
         if arg:
-            spec = arg
+            if arg[0] == "!":
+                parts = arg[1:].split(":", maxsplit=1)
+                conv = parts[0]
+                if len(parts) > 1:
+                    spec = parts[1]
+            elif arg[0] == ":":
+                spec = arg[1:]
+            else:
+                spec = arg
 
         if not join_chars:
             join_chars = messages.raw("_metadata", "list")
 
         value = list(value) # make sure we can index it
 
+        def fmt(s):
+            if conv:
+                s = self.convert_field(s, conv)
+            return self.format_field(s, spec)
+
+        value = [fmt(v) for v in value]
+        if sort:
+            # FIXME make this transport-agnostic
+            value = sorted(value, key=lambda v: v.replace("\u0002", "").lower())
+
         if not value:
             return ""
         elif len(value) == 1:
-            return self.format_field(value[0], spec)
+            return value[0]
         elif len(value) == 2:
-            return join_chars[0].join(self.format_field(v, spec) for v in value)
+            return join_chars[0].join(value)
         else:
-            return (join_chars[1].join(self.format_field(v, spec) for v in value[:-1])
+            return (join_chars[1].join(value[:-1])
                     + join_chars[2]
-                    + self.format_field(value[-1], spec))
+                    + value[-1])
 
     def _article(self, value, arg):
         from src.messages import messages

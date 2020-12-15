@@ -158,7 +158,7 @@ class print_traceback:
         message = [str(messages["error_log"])]
 
         link = _tracebacks.get("\n".join(variables))
-        if link is None:
+        if link is None and not botconfig.DEBUG_MODE:
             api_url = "https://ww.chat/submit"
             data = None
             with _local.handler:

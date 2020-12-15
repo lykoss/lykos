@@ -29,15 +29,13 @@ class Messages:
 
         return m
 
-    def get_role_mapping(self,
-                         reverse: bool = False,
-                         remove_spaces: bool = False) -> Dict[str, str]:
+    def get_role_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
         """ Retrieve a mapping between internal role names and localized role names.
 
         :param reverse: If True, maps localized role names and aliases to internal role names.
             If False, maps internal role names to the singular localized version of that name.
         :param remove_spaces: Whether the lookup keys (not values) should have spaces removed
-        :return:
+        :return: A dict in the format described by the reverse parameter.
         """
         cache_key = "role_map_" + str(reverse) + str(remove_spaces)
         if cache_key in self.cache:
@@ -73,6 +71,56 @@ class Messages:
 
         self.cache[cache_key] = roles
         return roles
+
+    def get_mode_mapping(self, reverse: bool = False, remove_spaces: bool = False) -> Dict[str, str]:
+        """ Retrieve a mapping between internal mode names and localized mode names.
+
+        :param reverse: If True, maps localized mode names to internal mode names.
+            If False, maps internal mode names to the localized version of that name.
+        :param remove_spaces: Whether the lookup keys (not values) should have spaces removed
+        :return: A dict in the format described by the reverse parameter.
+        """
+        cache_key = "mode_map_" + str(reverse) + str(remove_spaces)
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        def maybe_remove_spaces(x: str) -> str:
+            return x.replace(" ", "") if remove_spaces else x
+
+        modes = {} # type: Dict[str, str]
+        for internal, local in self.messages["_gamemodes"].items():
+            if internal.startswith("*"):
+                continue
+            if reverse:
+                modes[maybe_remove_spaces(local)] = internal
+            else:
+                modes[maybe_remove_spaces(internal)] = local
+
+        self.cache[cache_key] = modes
+        return modes
+
+    def get_totem_mapping(self, reverse: bool = False) -> Dict[str, str]:
+        """ Retrieve a mapping between internal totem names and localized totem names.
+
+        :param reverse: If True, maps localized totem names to internal totem names.
+            If False, maps internal totem names to the localized version of that name.
+        :return: A dict in the format described by the reverse parameter.
+        """
+        cache_key = "totem_map_" + str(reverse)
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        totems = {}  # type: Dict[str, str]
+        for internal, local in self.messages["_totems"].items():
+            if internal.startswith("*"):
+                continue
+            if reverse:
+                totems[local] = internal
+            else:
+                totems[internal] = local
+
+        self.cache[cache_key] = totems
+        return totems
 
     def _load_messages(self):
         with open(os.path.join(MESSAGES_DIR, self.lang + ".json"), encoding="utf-8") as f:

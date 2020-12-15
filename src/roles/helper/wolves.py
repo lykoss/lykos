@@ -8,7 +8,7 @@ from typing import List
 from src.functions import get_main_role, get_players, get_all_roles, get_all_players, get_target
 from src.decorators import event_listener, command
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
-from src.messages import messages, get_role_name
+from src.messages import messages, LocalRole
 from src.status import try_misdirection, try_exchange, is_silent
 from src.events import Event
 from src.cats import Wolf, Wolfchat, Wolfteam, Killer, Hidden, All
@@ -374,18 +374,18 @@ def get_wolflist(var, player: users.User, *, shuffle: bool = True, remove_player
                 if prole in badguys:
                     if p in cursed:
                         entries.append(messages["players_list_entry"].format(
-                            p, "bold", [get_role_name("cursed villager"), get_role_name(prole)]))
+                            p, "bold", ["cursed villager", prole]))
                     else:
-                        entries.append(messages["players_list_entry"].format(p, "bold", [get_role_name(prole)]))
+                        entries.append(messages["players_list_entry"].format(p, "bold", [prole]))
                 elif p in cursed:
-                    entries.append(messages["players_list_entry"].format(p, "", [get_role_name("cursed villager")]))
+                    entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
                 else:
                     entries.append(messages["players_list_entry"].format(p, "", []))
         elif role == "warlock":
             # warlock not in wolfchat explicitly only sees cursed
             for p in pl:
                 if p in cursed:
-                    entries.append(messages["players_list_entry"].format(p, "", [get_role_name("cursed villager")]))
+                    entries.append(messages["players_list_entry"].format(p, "", ["cursed villager"]))
                 else:
                     entries.append(messages["players_list_entry"].format(p, "", []))
     else:

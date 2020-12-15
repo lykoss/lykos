@@ -24,7 +24,7 @@ from collections import defaultdict
 from typing import Dict
 import itertools
 
-from src import events
+from src.events import Event, EventListener
 
 __all__ = [
     "get", "role_order",
@@ -73,7 +73,7 @@ def role_order():
 
 def _register_roles(evt):
     global FROZEN
-    mevt = events.Event("get_role_metadata", {})
+    mevt = Event("get_role_metadata", {})
     mevt.dispatch(None, "role_categories")
     for role, cats in mevt.data.items():
         if len(cats & {"Wolfteam", "Village", "Neutral", "Hidden"}) != 1:
@@ -89,7 +89,7 @@ def _register_roles(evt):
         cat.freeze()
     FROZEN = True
 
-events.EventListener(_register_roles, priority=1).install("init")
+EventListener(_register_roles, priority=1).install("init")
 
 class Category:
     """Base class for role categories."""

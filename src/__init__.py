@@ -67,7 +67,7 @@ botconfig.VERBOSE_MODE = verbose if not normal else False
 # The top line must only depend on things imported above in our "no dependencies" block
 # All botconfig and settings are fully established at this point and are safe to use
 
-from src import cats, messages
+from src import messages, cats
 from src import context, functions, utilities
 from src import db
 from src import users

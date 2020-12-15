@@ -15,8 +15,7 @@ import botconfig
 import src.settings as var
 from src import decorators, wolfgame, channels, users, errlog as log, stream_handler as alog
 from src.messages import messages
-from src.functions import get_participants, get_all_roles
-from src.utilities import complete_role
+from src.functions import get_participants, get_all_roles, match_role
 from src.dispatcher import MessageDispatcher
 from src.decorators import handle_error, command, hook
 from src.context import Features
@@ -113,11 +112,11 @@ def parse_and_dispatch(var,
 
     if role_prefix is not None:
         # match a role prefix to a role. Multi-word roles are supported by stripping the spaces
-        matches = complete_role(var, role_prefix, remove_spaces=True)
+        matches = match_role(var, role_prefix, remove_spaces=True)
         if len(matches) == 1:
-            role_prefix = matches[0]
+            role_prefix = matches.get().key
         elif len(matches) > 1:
-            wrapper.pm(messages["ambiguous_role"].format(matches))
+            wrapper.pm(messages["ambiguous_role"].format([m.singular for m in matches]))
             return
         else:
             wrapper.pm(messages["no_such_role"].format(role_prefix))

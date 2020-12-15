@@ -5,8 +5,7 @@ from typing import List, Tuple, Dict
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.roles.helper.wolves import send_wolfchat_message
 from src.messages import messages
-from src.functions import get_players, get_all_players, get_main_role, change_role
-from src.utilities import complete_one_match
+from src.functions import get_players, get_all_players, get_main_role, change_role, match_totem
 from src.events import EventListener, find_listener
 from src.containers import DefaultUserDict
 from src.status import add_dying
@@ -254,20 +253,20 @@ class BorealMode(GameMode):
         from src.roles.wolfshaman import TOTEMS as ws_totems, SHAMANS as ws_shamans
 
         pieces = re.split(" +", message)
-        valid = ("sustenance", "hunger")
+        valid = {"sustenance", "hunger"}
         state_vars = ((s_totems, s_shamans), (ws_totems, ws_shamans))
         for TOTEMS, SHAMANS in state_vars:
             if wrapper.source not in TOTEMS:
                 continue
 
-            totem_types = list(TOTEMS[wrapper.source].keys())
-            given = complete_one_match(pieces[0], totem_types)
+            totem_types = set(TOTEMS[wrapper.source].keys()) & valid
+            given = match_totem(var, pieces[0], scope=totem_types)
             if not given and TOTEMS[wrapper.source].get("sustenance", 0) + TOTEMS[wrapper.source].get("hunger", 0) > 1:
                 wrapper.send(messages["boreal_ambiguous_feed"])
                 return
 
             for totem in valid:
-                if (given and totem != given) or TOTEMS[wrapper.source].get(totem, 0) == 0:
+                if (given and totem != given.get().key) or TOTEMS[wrapper.source].get(totem, 0) == 0:
                     continue # doesn't have a totem that can be used to feed tribe
 
                 SHAMANS[wrapper.source][totem].append(users.Bot)
