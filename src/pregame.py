@@ -128,6 +128,8 @@ def on_del_player(evt, var, player, all_roles, death_triggers):
 
 
 def start(var, wrapper, *, forced=False, restart=""):
+    from src.wolfgame import stop_game, chk_win_conditions, cgamemode
+
     if (not forced and LAST_START and wrapper.source in LAST_START and
             LAST_START[wrapper.source][0] + timedelta(seconds=var.START_RATE_LIMIT) >
             datetime.now() and not restart):
@@ -139,8 +141,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         global RESTART_TRIES
         RESTART_TRIES += 1
     if RESTART_TRIES > MAX_RETRIES:
-        from src.wolfgame import stop_game
-        stop_game(var, abort=True)
+        stop_game(var, abort=True, log=False)
         return
 
     if not restart:
@@ -204,7 +205,6 @@ def start(var, wrapper, *, forced=False, restart=""):
                     votes[gamemode] = votes.get(gamemode, 0) + 1
             voted = [gamemode for gamemode in votes if votes[gamemode] == max(votes.values()) and votes[gamemode] >= len(villagers)/2]
             if voted:
-                from src.wolfgame import cgamemode
                 cgamemode(random.choice(voted))
             else:
                 possiblegamemodes = []
@@ -224,15 +224,12 @@ def start(var, wrapper, *, forced=False, restart=""):
                         if len(villagers) >= var.GAME_MODES[gamemode][1] and len(villagers) <= var.GAME_MODES[gamemode][2] and var.GAME_MODES[gamemode][3] > 0:
                             possiblegamemodes += [gamemode] * var.GAME_MODES[gamemode][3]
                     gamemode = random.choice(possiblegamemodes)
-                from src.wolfgame import cgamemode
                 cgamemode(gamemode)
 
     else:
-        from src.wolfgame import cgamemode
         cgamemode(restart)
         var.GAME_ID = time.time() # restart reaper timer
 
-    from src.wolfgame import chk_win_conditions # TODO: Move that into its own postgame module
     event = Event("role_attribution", {"addroles": Counter()})
     if event.dispatch(var, chk_win_conditions, villagers):
         addroles = event.data["addroles"]
@@ -254,9 +251,11 @@ def start(var, wrapper, *, forced=False, restart=""):
             wrapper.send(messages["no_settings_defined"].format(wrapper.source, lv))
             return
         for role, num in defroles.items():
-            addroles[role] = max(addroles.get(role, num), len(var.FORCE_ROLES.get(role, ())))
+            # if an event defined this role, use that number. Otherwise use the number from ROLE_GUIDE
+            addroles[role] = addroles.get(role, num)
         if sum([addroles[r] for r in addroles if r not in var.CURRENT_GAMEMODE.SECONDARY_ROLES]) > lv:
             wrapper.send(messages["too_many_roles"])
+            stop_game(var, abort=True, log=False)
             return
         for role in All:
             addroles.setdefault(role, 0)
@@ -335,28 +334,37 @@ def start(var, wrapper, *, forced=False, restart=""):
     for role in All:
         var.ROLES[role] = UserSet()
     var.ROLES[var.DEFAULT_ROLE] = UserSet()
-    for role, ps in var.FORCE_ROLES.items():
-        if role not in var.CURRENT_GAMEMODE.SECONDARY_ROLES.keys():
-            vils.difference_update(ps)
 
+    # handle forced main roles
     for role, count in addroles.items():
-        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
-            var.ROLES[role] = (None,) * count
-            continue # We deal with those later, see below
-
+        if role in var.CURRENT_GAMEMODE.SECONDARY_ROLES or role not in var.FORCE_ROLES:
+            continue
         to_add = set()
+        force_roles = list(var.FORCE_ROLES[role])
+        random.shuffle(force_roles)
+        for user in force_roles:
+            # If we already assigned enough people to this role, ignore the rest
+            if count == 0:
+                break
+            # If multiple main roles were forced, only honor one of them
+            if user in var.MAIN_ROLES:
+                continue
+            var.ROLES[role].add(user)
+            var.MAIN_ROLES[user] = role
+            var.ORIGINAL_MAIN_ROLES[user] = role
+            vils.remove(user)
+            to_add.add(user)
+            count -= 1
 
-        if role in var.FORCE_ROLES:
-            if len(var.FORCE_ROLES[role]) > count:
-                channels.Main.send(messages["error_frole_too_many"].format(role))
-                return
-            for user in var.FORCE_ROLES[role]:
-                # If multiple main roles were forced, only first one is put in MAIN_ROLES
-                if not user in var.MAIN_ROLES:
-                    var.MAIN_ROLES[user] = role
-                var.ORIGINAL_MAIN_ROLES[user] = role
-                to_add.add(user)
-                count -= 1
+        # update count for next loop that performs regular (non-forced) role assignment
+        addroles[role] = count
+
+    # handle regular role assignment
+    for role, count in addroles.items():
+        # Check if we already assigned enough people to this role above
+        # or if it's a secondary role (those are assigned later on)
+        if count == 0 or role in var.CURRENT_GAMEMODE.SECONDARY_ROLES:
+            continue
 
         selected = random.sample(vils, count)
         for x in selected:
@@ -364,7 +372,8 @@ def start(var, wrapper, *, forced=False, restart=""):
             var.ORIGINAL_MAIN_ROLES[x] = role
             vils.remove(x)
         var.ROLES[role].update(selected)
-        var.ROLES[role].update(to_add)
+        addroles[role] = 0
+
     var.ROLES[var.DEFAULT_ROLE].update(vils)
     for x in vils:
         var.MAIN_ROLES[x] = var.DEFAULT_ROLE
@@ -387,29 +396,25 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     # Now for the secondary roles
     for role, dfn in var.CURRENT_GAMEMODE.SECONDARY_ROLES.items():
-        count = len(var.ROLES[role])
-        var.ROLES[role] = UserSet()
-        if role in var.FORCE_ROLES:
-            ps = var.FORCE_ROLES[role]
-            var.ROLES[role].update(ps)
-            count -= len(ps)
-        # Don't do anything further if this secondary role was forced on enough players already
-        if count <= 0:
-            continue
+        count = addroles[role]
         possible = get_players(dfn)
+        if role in var.FORCE_ROLES:
+            force_roles = list(var.FORCE_ROLES[role])
+            random.shuffle(force_roles)
+            for user in force_roles:
+                if count == 0:
+                    break
+                if user in possible:
+                    var.ROLES[role].add(user)
+                    possible.remove(user)
+                    count -= 1
+        # Don't do anything further if this secondary role was forced on enough players already
+        if count == 0:
+            continue
         if len(possible) < count:
             wrapper.send(messages["not_enough_targets"].format(role))
-            if var.ORIGINAL_SETTINGS:
-                from src.wolfgame import reset_settings
-                var.ROLES.clear()
-                var.ROLES["person"] = UserSet(var.ALL_PLAYERS)
-                reset_settings()
-                wrapper.send(messages["default_reset"])
-                var.PHASE = "join"
-                return
-            else:
-                wrapper.send(messages["role_skipped"])
-                continue
+            stop_game(var, abort=True, log=False)
+            return
         var.ROLES[role].update(x for x in random.sample(possible, count))
 
     with var.WARNING_LOCK: # cancel timers
