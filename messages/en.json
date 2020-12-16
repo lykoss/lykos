@@ -1250,6 +1250,7 @@
     "cat_land": "The cat lands on its [b]feet[/b].",
     "vengeful_role": "You are {=vengeful ghost!role:article} {=vengeful ghost!role:bold} who is against the {0!role:bold:plural}.",
     "show_role": "You are {0!role:article} {0!role:bold}.",
+    "show_role_cursed": "You are {=cursed villager!role:article} {=cursed villager!role:bold} {0!role:bold}.",
     "original_wolves": "Original wolves: {0:join}",
     "assassin_targeting": "You are {=assassin!role:article} {=assassin!role:bold} and targeting {0}.",
     "assassin_no_target": "You are {=assassin!role:article} {=assassin!role:bold} and do not currently have a target.",
