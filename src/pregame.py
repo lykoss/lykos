@@ -310,10 +310,8 @@ def start(var, wrapper, *, forced=False, restart=""):
             need_reset = False
 
         if need_reset:
-            from src.wolfgame import reset_settings
-            reset_settings()
             wrapper.send(messages["default_reset"])
-            var.PHASE = "join"
+            stop_game(var, abort=True, log=False)
             return
 
     if var.ADMIN_TO_PING is not None and not restart:

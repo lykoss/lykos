@@ -178,7 +178,7 @@ class print_traceback:
                 link = _tracebacks["\n".join(variables)] = data["url"]
                 message.append(link)
 
-        else:
+        elif link:
             message.append(link)
 
         if channels.Dev is not None:
