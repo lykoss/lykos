@@ -525,7 +525,7 @@ def replace(var, wrapper, message):
     elif target is not wrapper.source:
         target.swap(wrapper.source)
         if var.PHASE in var.GAME_PHASES:
-            return_to_village(var, target, show_message=False)
+            return_to_village(var, wrapper.source, show_message=False)
 
         cmodes = []
 
