@@ -2712,7 +2712,7 @@ def get_help(var, wrapper, message):
     """Gets help."""
     fns = []
     for name, fn in COMMANDS.items():
-        if name and not fn[0].flag and not fn[0].owner_only and name not in fn[0].aliases and fn[0].chan:
+        if name and not fn[0].flag and not fn[0].owner_only and name not in fn[0].aliases:
             fns.append(name)
     afns = []
     if wrapper.source.is_admin():
