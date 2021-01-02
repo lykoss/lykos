@@ -114,11 +114,11 @@ def setup_variables(rolename):
                             evt.data["killers"][shot].append(victim)
                         elif event.data["hit"]:
                             # shot hit, but didn't kill
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"])
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_hit"].format(victim))
                             add_absent(var, shot, "wounded")
                         else:
                             # shot was fired and missed
-                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"])
+                            evt.data["message"][victim].append(messages["gunner_shoot_overnight_missed"].format(victim))
 
                 # let wolf steal gun if the gunner has any bullets remaining
                 # this gives the looter the "wolf gunner" secondary role

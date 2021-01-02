@@ -19,7 +19,7 @@ def vigilante_kill(var, wrapper, message):
     """Kill someone at night, but you die too if they aren't a wolf or win stealer!"""
     target = get_target(var, wrapper, re.split(" +", message)[0], not_self_message="no_suicide")
     if not target:
-    	return
+        return
 
     orig = target
     target = try_misdirection(var, wrapper.source, target)
