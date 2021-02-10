@@ -21,7 +21,7 @@ _users = CheckedSet("users._users") # type: CheckedSet[User]
 _ghosts = CheckedSet("users._ghosts") # type: CheckedSet[User]
 _pending_account_updates = CheckedDict("users._pending_account_updates") # type: CheckedDict[User, CheckedDict[str, Callable]]
 
-_arg_msg = "(nick={0!r}, ident={1!r}, host={2!r}, account={3!r}, allow_bot={4})"
+_arg_msg = "(user={0:for_tb}, allow_bot={1})"
 
 # This is used to tell if this is a fake nick or not. If this function
 # returns a true value, then it's a fake nick. This is useful for
@@ -76,10 +76,10 @@ def get(nick=None, ident=None, host=None, account=None, *, allow_multiple=False,
 
     if len(potential) > 1:
         raise ValueError("More than one user matches: " +
-              _arg_msg.format(nick, ident, host, account, allow_bot))
+              _arg_msg.format(temp, allow_bot))
 
     if not allow_none:
-        raise KeyError(_arg_msg.format(nick, ident, host, account, allow_bot))
+        raise KeyError(_arg_msg.format(temp, allow_bot))
 
     return None
 
