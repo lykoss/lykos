@@ -54,8 +54,8 @@ def on_add_disease(evt, var, target):
     if target in IMMUNIZED:
         evt.prevent_default = True
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for doctor in get_all_players(("doctor",)):
         if DOCTORS[doctor]: # has immunizations remaining

@@ -52,8 +52,8 @@ def pass_cmd(var, wrapper, message):
 
     debuglog("{0} (turncoat) PASS".format(wrapper.source))
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for turncoat in get_all_players(("turncoat",)):
         # they start out as unsided, but can change n1
         if turncoat not in TURNCOATS:
@@ -64,7 +64,7 @@ def on_transition_night_end(evt, var):
         else:
             message = messages["turncoat_no_team"]
 
-        if TURNCOATS[turncoat][1] < var.NIGHT_COUNT - 1:
+        if TURNCOATS[turncoat][1] < var.NIGHT_COUNT - 1 or var.NIGHT_COUNT == 0:
             # they can act tonight
             turncoat.send(messages["turncoat_notify"], message)
         else:

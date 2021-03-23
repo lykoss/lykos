@@ -61,8 +61,8 @@ def pray(var, wrapper, message):
     debuglog("{0} (prophet) PRAY {1} ({2})".format(wrapper.source, role, target))
 
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for pht in get_all_players(("prophet",)):
         pht.send(messages["prophet_notify"])
 

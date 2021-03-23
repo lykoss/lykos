@@ -97,8 +97,8 @@ def on_chk_nightdone(evt, var):
     hunter_users = get_all_players(("hunter",))
     evt.data["nightroles"].extend([p for p in hunter_users if p not in HUNTERS or p in KILLS])
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for hunter in get_all_players(("hunter",)):
         if hunter in HUNTERS:
@@ -106,7 +106,9 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(hunter)
-        hunter.send(messages["hunter_notify"], messages["players_list"].format(pl), sep="\n")
+        hunter.send(messages["hunter_notify"])
+        if var.NIGHT_COUNT > 0:
+            hunter.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

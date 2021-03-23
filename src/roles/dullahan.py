@@ -129,7 +129,7 @@ def on_chk_nightdone(evt, var):
         if targets & spl and dullahan in spl:
             evt.data["nightroles"].append(dullahan)
 
-@event_listener("transition_night_end", priority=2)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     for dullahan in get_all_players(("dullahan",)):
         targets = list(TARGETS[dullahan])
@@ -140,7 +140,9 @@ def on_transition_night_end(evt, var):
             continue
         random.shuffle(targets)
         t = messages["dullahan_targets"] if targets == list(TARGETS[dullahan]) else messages["dullahan_remaining_targets"]
-        dullahan.send(messages["dullahan_notify"], t.format(targets), sep="\n")
+        dullahan.send(messages["dullahan_notify"])
+        if var.NIGHT_COUNT > 0:
+            dullahan.send(t.format(targets))
 
 @event_listener("visit")
 def on_visit(evt, var, visitor_role, visitor, visited):

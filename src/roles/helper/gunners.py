@@ -87,8 +87,8 @@ def setup_variables(rolename):
             add_dying(var, wrapper.source, killer_role="villager", reason="gunner_suicide") # blame explosion on villager's shoddy gun construction or something
             kill_players(var)
 
-    @event_listener("transition_night_end", listener_id="gunners.<{}>.on_transition_night_end".format(rolename))
-    def on_transition_night_end(evt, var):
+    @event_listener("send_role", listener_id="gunners.<{}>.on_send_role".format(rolename))
+    def on_send_role(evt, var):
         for gunner in get_all_players((rolename,)):
             if GUNNERS[gunner] or var.ALWAYS_PM_ROLE:
                 gunner.send(messages["{0}_notify".format(rolename)].format(GUNNERS[gunner]))

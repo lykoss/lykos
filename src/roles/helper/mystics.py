@@ -19,8 +19,8 @@ def register_mystic(rolename, *, send_role, types):
 
     role = rolename.replace(" ", "_")
 
-    @event_listener("transition_night_end", listener_id="mystics.<{}>.on_transition_night_end".format(rolename))
-    def on_transition_night_end(evt, var):
+    @event_listener("send_role", listener_id="mystics.<{}>.on_send_role".format(rolename))
+    def on_send_role(evt, var):
         values = []
 
         for t in types:

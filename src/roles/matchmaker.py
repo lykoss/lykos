@@ -107,8 +107,8 @@ def on_transition_day_begin(evt, var):
             _set_lovers(*lovers)
             mm.send(messages["random_matchmaker"])
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for mm in get_all_players(("matchmaker",)):
         if mm in MATCHMAKERS and not var.ALWAYS_PM_ROLE:
@@ -116,7 +116,8 @@ def on_transition_night_end(evt, var):
         pl = ps[:]
         random.shuffle(pl)
         mm.send(messages["matchmaker_notify"])
-        mm.send(messages["players_list"].format(pl))
+        if var.NIGHT_COUNT > 0:
+            mm.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

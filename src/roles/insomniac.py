@@ -23,14 +23,16 @@ def _get_targets(var, pl, user):
 
     return (target1, target2)
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
-    if var.NIGHT_COUNT == 1 or var.ALWAYS_PM_ROLE:
+@event_listener("send_role")
+def on_send_role(evt, var):
+    if not var.ROLES_SENT or var.ALWAYS_PM_ROLE:
         for insomniac in get_all_players(("insomniac",)):
             insomniac.send(messages["insomniac_notify"])
 
 @event_listener("transition_day_begin")
 def on_transition_day_begin(evt, var):
+    if var.NIGHT_COUNT == 0: # starting with day
+        return
     pl = get_players()
     for insomniac in get_all_players(("insomniac",)):
         p1, p2 = _get_targets(var, pl, insomniac)

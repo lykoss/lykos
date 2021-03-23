@@ -17,17 +17,20 @@ from src import debuglog, users
 KILLS = UserDict() # type: UserDict[users.User, UserList]
 
 def register_wolf(rolename):
-    @event_listener("transition_night_end", priority=2, listener_id="wolves.<{}>.on_transition_night_end".format(rolename))
+    @event_listener("send_role", listener_id="wolves.<{}>.on_send_role".format(rolename))
     def on_transition_night_end(evt, var):
         wolves = get_all_players((rolename,))
         for wolf in wolves:
             msg = "{0}_notify".format(rolename.replace(" ", "_"))
             wolf.send(messages[msg])
             wolf.send(messages["players_list"].format(get_wolflist(var, wolf)))
-            nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-            nevt.dispatch(var)
-            if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:
-                wolf.send(messages[nevt.data["message"]])
+            if var.NIGHT_COUNT > 0:
+                nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
+                nevt.dispatch(var)
+                if rolename in Killer and not nevt.data["numkills"] and nevt.data["message"]:
+                    wolf.send(messages[nevt.data["message"]])
+        wevt = Event("wolf_notify", {})
+        wevt.dispatch(var, rolename)
 
 @command("kill", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=Wolf)
 def wolf_kill(var, wrapper, message):

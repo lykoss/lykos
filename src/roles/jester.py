@@ -24,8 +24,8 @@ def on_player_win(evt, var, player, main_role, all_roles, winner, team_win, surv
     if player in JESTERS:
         evt.data["individual_win"] = True
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for jester in get_all_players(("jester",)):
         jester.send(messages["jester_notify"])
 

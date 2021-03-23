@@ -1240,153 +1240,150 @@ def stop_game(var, winner="", abort=False, additional_winners=None, log=True):
     if not abort:
         channels.Main.send(gameend_msg)
 
-    roles_msg = []
+        roles_msg = []
 
-    # squirrel away a copy of our original roleset for stats recording, as the following code
-    # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
-    rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
+        # squirrel away a copy of our original roleset for stats recording, as the following code
+        # modifies var.ORIGINAL_ROLES and var.ORIGINAL_MAIN_ROLES.
+        rolecounts = {role: len(players) for role, players in var.ORIGINAL_ROLES.items()}
 
-    # save some typing
-    rolemap = var.ORIGINAL_ROLES
-    mainroles = var.ORIGINAL_MAIN_ROLES
-    orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
+        # save some typing
+        rolemap = var.ORIGINAL_ROLES
+        mainroles = var.ORIGINAL_MAIN_ROLES
+        orig_main = {} # if get_final_role changes mainroles, we want to stash original main role
 
-    for player, role in mainroles.items():
-        evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
-        evt.dispatch(var, player, role)
-        if role != evt.data["role"]:
-            rolemap[role].remove(player)
-            rolemap[evt.data["role"]].add(player)
-            mainroles[player] = evt.data["role"]
-            orig_main[player] = role
+        for player, role in mainroles.items():
+            evt = Event("get_final_role", {"role": var.FINAL_ROLES.get(player, role)})
+            evt.dispatch(var, player, role)
+            if role != evt.data["role"]:
+                rolemap[role].remove(player)
+                rolemap[evt.data["role"]].add(player)
+                mainroles[player] = evt.data["role"]
+                orig_main[player] = role
 
-    # track if we already printed "was" for a role swap, e.g. The wolves were A (was seer), B (harlot)
-    # so that we can make the message a bit more concise
-    roleswap_key = "endgame_roleswap_long"
+        # track if we already printed "was" for a role swap, e.g. The wolves were A (was seer), B (harlot)
+        # so that we can make the message a bit more concise
+        roleswap_key = "endgame_roleswap_long"
 
-    for role in role_order():
-        numrole = len(rolemap[role])
-        if numrole == 0:
-            continue
-        msg = []
-        for player in rolemap[role]:
-            # check if the player changed roles during game, and if so insert the "was X" message
-            player_msg = []
-            if mainroles[player] == role and player in orig_main:
-                player_msg.append(messages[roleswap_key].format(orig_main[player]))
-                roleswap_key = "endgame_roleswap_short"
-            evt = Event("get_endgame_message", {"message": player_msg})
-            evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
-            key = "endgame_role_player_short"
-            if player_msg:
-                key = "endgame_role_player_long"
-            msg.append(messages[key].format(player, player_msg))
+        for role in role_order():
+            numrole = len(rolemap[role])
+            if numrole == 0:
+                continue
+            msg = []
+            for player in rolemap[role]:
+                # check if the player changed roles during game, and if so insert the "was X" message
+                player_msg = []
+                if mainroles[player] == role and player in orig_main:
+                    player_msg.append(messages[roleswap_key].format(orig_main[player]))
+                    roleswap_key = "endgame_roleswap_short"
+                evt = Event("get_endgame_message", {"message": player_msg})
+                evt.dispatch(var, player, role, is_mainrole=mainroles[player] == role)
+                key = "endgame_role_player_short"
+                if player_msg:
+                    key = "endgame_role_player_long"
+                msg.append(messages[key].format(player, player_msg))
 
-        roles_msg.append(messages["endgame_role_msg"].format(role, msg))
+            roles_msg.append(messages["endgame_role_msg"].format(role, msg))
 
-    message = ""
-    count = 0
-    if not abort:
         evt = Event("game_end_messages", {"messages": roles_msg})
         evt.dispatch(var)
 
         channels.Main.send(*roles_msg)
 
-    # map player: all roles of that player (for below)
-    allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
+        # map player: all roles of that player (for below)
+        allroles = {player: frozenset({role for role, players in rolemap.items() if player in players}) for player in mainroles}
 
-    # "" indicates everyone died or abnormal game stop
-    winners = set()
-    player_list = []
+        # "" indicates everyone died or abnormal game stop
+        winners = set()
+        player_list = []
 
-    if winner != "" or log:
-        if additional_winners is not None:
-            winners.update(additional_winners)
+        if winner != "" or log:
+            if additional_winners is not None:
+                winners.update(additional_winners)
 
-        team_wins = set()
-        for player, role in mainroles.items():
-            if player in var.DCED_LOSERS or winner == "":
-                continue
-            won = False
-            # determine default team win for wolves/village
-            if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
-                if winner == "wolves":
-                    won = True
-            elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
-                if winner == "villagers":
-                    won = True
-            # Let events modify this as necessary.
-            # Neutral roles will need to listen in on this to determine team wins
-            event = Event("team_win", {"team_win": won})
-            event.dispatch(var, player, role, allroles[player], winner)
-            if event.data["team_win"]:
-                team_wins.add(player)
+            team_wins = set()
+            for player, role in mainroles.items():
+                if player in var.DCED_LOSERS or winner == "":
+                    continue
+                won = False
+                # determine default team win for wolves/village
+                if role in Wolfteam or (var.HIDDEN_ROLE == "cultist" and role in Hidden):
+                    if winner == "wolves":
+                        won = True
+                elif role in Village or (var.HIDDEN_ROLE == "villager" and role in Hidden):
+                    if winner == "villagers":
+                        won = True
+                # Let events modify this as necessary.
+                # Neutral roles will need to listen in on this to determine team wins
+                event = Event("team_win", {"team_win": won})
+                event.dispatch(var, player, role, allroles[player], winner)
+                if event.data["team_win"]:
+                    team_wins.add(player)
 
-        # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
-        team_wins = frozenset(team_wins)
-        for player, role in mainroles.items():
-            entry = {"version": 3,
-                     "account": player.account,
-                     "main_role": role,
-                     "all_roles": list(allroles[player]),
-                     "special": [],
-                     "team_win": player in team_wins,
-                     "individual_win": False,
-                     "dced": player in var.DCED_LOSERS
-                     }
-            # player.account could be None if they disconnected during the game. Use original tracked account name
-            if entry["account"] is None and player in var.ORIGINAL_ACCS:
-                entry["account"] = var.ORIGINAL_ACCS[player]
+            # Once *all* team wins are settled, we can determine individual wins and get the final list of winners
+            team_wins = frozenset(team_wins)
+            for player, role in mainroles.items():
+                entry = {"version": 3,
+                         "account": player.account,
+                         "main_role": role,
+                         "all_roles": list(allroles[player]),
+                         "special": [],
+                         "team_win": player in team_wins,
+                         "individual_win": False,
+                         "dced": player in var.DCED_LOSERS
+                         }
+                # player.account could be None if they disconnected during the game. Use original tracked account name
+                if entry["account"] is None and player in var.ORIGINAL_ACCS:
+                    entry["account"] = var.ORIGINAL_ACCS[player]
 
-            survived = player in get_players()
-            if not entry["dced"] and winner != "":
-                # by default, get an individual win if the team won and they survived
-                won = entry["team_win"] and survived
+                survived = player in get_players()
+                if not entry["dced"] and winner != "":
+                    # by default, get an individual win if the team won and they survived
+                    won = entry["team_win"] and survived
 
-                # let events modify this default and also add special tags/pseudo-roles to the stats
-                event = Event("player_win", {"individual_win": won, "special": []},
-                              team_wins=team_wins)
-                event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
-                won = event.data["individual_win"]
-                # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
-                entry["special"] = list(event.data["special"])
+                    # let events modify this default and also add special tags/pseudo-roles to the stats
+                    event = Event("player_win", {"individual_win": won, "special": []},
+                                  team_wins=team_wins)
+                    event.dispatch(var, player, role, allroles[player], winner, entry["team_win"], survived)
+                    won = event.data["individual_win"]
+                    # ensure that it is a) a list, and b) a copy (so it can't be mutated out from under us later)
+                    entry["special"] = list(event.data["special"])
 
-                # special-case everyone for after the event
-                if winner == "everyone":
-                    won = True
+                    # special-case everyone for after the event
+                    if winner == "everyone":
+                        won = True
 
-                entry["individual_win"] = won
+                    entry["individual_win"] = won
 
-            if entry["team_win"] or entry["individual_win"]:
-                winners.add(player)
+                if entry["team_win"] or entry["individual_win"]:
+                    winners.add(player)
 
-            if not player.is_fake:
-                # don't record fakes to the database
-                player_list.append(entry)
+                if not player.is_fake:
+                    # don't record fakes to the database
+                    player_list.append(entry)
 
-    if log:
-        game_options = {"role reveal": var.ROLE_REVEAL,
-                        "stats": var.STATS_TYPE,
-                        "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
-                        "roles": {}}
-        for role, pl in var.ORIGINAL_ROLES.items():
-            if len(pl) > 0:
-                game_options["roles"][role] = len(pl)
+        if log:
+            game_options = {"role reveal": var.ROLE_REVEAL,
+                            "stats": var.STATS_TYPE,
+                            "abstain": "on" if var.ABSTAIN_ENABLED and not var.LIMIT_ABSTAIN else "restricted" if var.ABSTAIN_ENABLED else "off",
+                            "roles": {}}
+            for role, pl in var.ORIGINAL_ROLES.items():
+                if len(pl) > 0:
+                    game_options["roles"][role] = len(pl)
 
-        db.add_game(var.CURRENT_GAMEMODE.name,
-                    len(get_players()) + len(var.DEAD),
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
-                    time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
-                    winner,
-                    player_list,
-                    game_options)
+            db.add_game(var.CURRENT_GAMEMODE.name,
+                        len(get_players()) + len(var.DEAD),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(var.GAME_ID)),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+                        winner,
+                        player_list,
+                        game_options)
 
-        # spit out the list of winners
-        if winners:
-            winners = sorted(winners, key=lambda u: u.nick)
-            channels.Main.send(messages["winners"].format(winners))
-        else:
-            channels.Main.send(messages["no_winners"])
+            # spit out the list of winners
+            if winners:
+                winners = sorted(winners, key=lambda u: u.nick)
+                channels.Main.send(messages["winners"].format(winners))
+            else:
+                channels.Main.send(messages["no_winners"])
 
     # Message players in deadchat letting them know that the game has ended
     if var.DEADCHAT_PLAYERS:
@@ -2461,6 +2458,9 @@ def transition_night():
     # game ended from bitten / amnesiac turning, narcolepsy totem expiring, or other weirdness
     if chk_win():
         return
+
+    event_role = Event("send_role", {})
+    event_role.dispatch(var)
 
     event_end = Event("transition_night_end", {})
     event_end.dispatch(var)

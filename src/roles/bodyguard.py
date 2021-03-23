@@ -94,19 +94,18 @@ def on_transition_night_begin(evt, var):
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for bg in get_all_players(("bodyguard",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(bg)
         chance = math.floor(var.BODYGUARD_DIES_CHANCE * 100)
-        warning = ""
-        if chance > 0:
-            warning = messages["bodyguard_death_chance"].format(chance)
 
         bg.send(messages["bodyguard_notify"])
+        if var.NIGHT_COUNT == 0:
+            return
         if chance > 0:
             bg.send(messages["bodyguard_death_chance"].format(chance))
         bg.send(messages["players_list"].format(pl))

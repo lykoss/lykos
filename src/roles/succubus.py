@@ -175,8 +175,8 @@ def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("succubus",)))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     succubi = get_all_players(("succubus",))
     role_map = messages.get_role_mapping()
     for succubus in succubi:

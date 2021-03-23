@@ -114,13 +114,15 @@ def on_new_role(evt, var, player, old_role):
         if player in VISITED:
             VISITED.pop(player).send(messages["harlot_disappeared"].format(player))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for harlot in get_all_players(("harlot",)):
         pl = get_players()
         random.shuffle(pl)
         pl.remove(harlot)
-        harlot.send(messages["harlot_notify"], messages["players_list"].format(pl), sep="\n")
+        harlot.send(messages["harlot_notify"])
+        if var.NIGHT_COUNT > 0:
+            harlot.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

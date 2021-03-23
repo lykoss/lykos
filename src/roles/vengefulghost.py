@@ -180,7 +180,7 @@ def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(KILLS)
     evt.data["nightroles"].extend([p for p in GHOSTS if GHOSTS[p][0] != "!"])
 
-@event_listener("transition_night_end", priority=2)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     # alive VGs are messaged as part of villager.py, this handles dead ones
     villagers = get_players(All - Wolfteam)
@@ -196,7 +196,6 @@ def on_transition_night_end(evt, var):
         random.shuffle(pl)
 
         v_ghost.send(messages["vengeful_ghost_notify"].format(who), messages["vengeful_ghost_team"].format(who, pl), sep="\n")
-        debuglog("GHOST: {0} (target: {1}) - players: {2}".format(v_ghost, who, ", ".join(p.nick for p in pl)))
 
 @event_listener("myrole")
 def on_myrole(evt, var, user):

@@ -2,7 +2,7 @@
 from collections import defaultdict
 from types import SimpleNamespace
 from typing import Callable, Optional
-EVENT_CALLBACKS = defaultdict(set)
+EVENT_CALLBACKS = defaultdict(list)
 
 __all__ = ["find_listener", "Event", "EventListener"]
 
@@ -20,10 +20,11 @@ class EventListener:
     def install(self, event: str):
         if self in EVENT_CALLBACKS[event]:
             raise ValueError("Callback with id {} already registered for the {} event".format(self.id, event))
-        EVENT_CALLBACKS[event].add(self)
+        EVENT_CALLBACKS[event].append(self)
 
     def remove(self, event: str):
-        EVENT_CALLBACKS[event].discard(self)
+        if self in EVENT_CALLBACKS[event]:
+            EVENT_CALLBACKS[event].remove(self)
 
     def __eq__(self, other):
         if not isinstance(other, EventListener):

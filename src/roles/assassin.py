@@ -60,8 +60,8 @@ def on_transition_day(evt, var):
                 ass.send(messages["assassin_random"].format(target))
     PREV_ACTED.update(TARGETED.keys())
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for ass in get_all_players(("assassin",)):
         if ass in TARGETED:
             continue # someone already targeted
@@ -78,7 +78,8 @@ def on_transition_night_end(evt, var):
             PREV_ACTED.add(ass)
         else:
             ass.send(messages["assassin_notify"])
-            ass.send(messages["players_list"].format(pl))
+            if var.NIGHT_COUNT > 0:
+                ass.send(messages["players_list"].format(pl))
 
 @event_listener("del_player")
 def on_del_player(evt, var, player, all_roles, death_triggers):

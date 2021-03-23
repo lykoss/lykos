@@ -102,8 +102,8 @@ def on_transition_night_begin(evt, var):
     # (right now they don't due to other reasons, but that may change)
     GUARDED.clear()
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for gangel in get_all_players(("guardian angel",)):
         pl = ps[:]
@@ -114,6 +114,8 @@ def on_transition_night_end(evt, var):
         chance = math.floor(var.GUARDIAN_ANGEL_DIES_CHANCE * 100)
 
         gangel.send(messages["guardian_angel_notify"])
+        if var.NIGHT_COUNT == 0:
+            return
         if chance > 0:
             gangel.send(messages["bodyguard_death_chance"].format(chance))
         if var.GUARDIAN_ANGEL_CAN_GUARD_SELF:

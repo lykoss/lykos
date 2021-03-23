@@ -22,8 +22,8 @@ def on_get_role_metadata(evt, var, kind):
     if kind == "role_categories":
         evt.data["cursed villager"] = {"Village", "Cursed"}
 
-@event_listener("transition_night_end", priority=3)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     cursed = get_all_players(("cursed villager",))
     wolves = get_all_players(Wolfchat)
     for player in cursed:

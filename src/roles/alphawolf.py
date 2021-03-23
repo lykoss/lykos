@@ -107,9 +107,9 @@ def on_new_role(evt, var, player, oldrole):
     elif evt.data["role"] == "alpha wolf" and ENABLED and var.PHASE == "night":
         evt.data["messages"].append(messages["wolf_bite"])
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
-    if not ENABLED:
+@event_listener("wolf_notify")
+def on_wolf_notify(evt, var, role):
+    if not ENABLED or role != "alpha wolf":
         return
     can_bite = get_all_players(("alpha wolf",)) - ALPHAS
     if can_bite:

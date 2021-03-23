@@ -69,8 +69,8 @@ def consecrate(var, wrapper, message):
         # game didn't immediately end due to marking as absent, see if we should force through a lynch
         chk_decision(var)
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for priest in get_all_players(("priest",)):
         priest.send(messages["priest_notify"])
 

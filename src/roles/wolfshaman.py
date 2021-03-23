@@ -9,7 +9,7 @@ from src.decorators import command, event_listener
 from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.dispatcher import MessageDispatcher
 from src.messages import messages
-from src.events import Event
+from src.events import Event, find_listener
 from src.status import try_misdirection, try_exchange, is_silent
 
 from src.roles.helper.shamans import get_totem_target, give_totem, setup_variables, totem_message
@@ -80,7 +80,7 @@ def on_transition_day_begin(evt, var):
                         send_wolfchat_message(var, shaman, messages["shaman_wolfchat"].format(shaman, target), ("wolf shaman",), role="wolf shaman", command="totem")
                         SHAMANS[shaman][totem].append(given[0])
 
-@event_listener("transition_night_end", priority=1.99)
+@event_listener("send_role")
 def on_transition_night_end(evt, var):
     chances = var.CURRENT_GAMEMODE.TOTEM_CHANCES
     max_totems = sum(x["wolf shaman"] for x in chances.values())
@@ -93,6 +93,9 @@ def on_transition_night_end(evt, var):
     shamans = list(shamans)
     random.shuffle(shamans)
     for shaman in shamans:
+        if var.NIGHT_COUNT == 0:
+            shaman.send(messages["shaman_notify"].format("wolf shaman"))
+            continue
         pl = ps[:]
         random.shuffle(pl)
         for given in itertools.chain.from_iterable(LASTGIVEN[shaman].values()):
@@ -146,3 +149,9 @@ def set_wolf_totems(evt, chances):
     chances["retribution"]  ["wolf shaman"] = 1
     chances["misdirection"] ["wolf shaman"] = 1
     chances["deceit"]       ["wolf shaman"] = 1
+
+# ensure the wolf shaman notify plays before overall wolf notify
+_l = find_listener("send_role", "wolves.<wolf shaman>.on_send_role")
+_l.remove("send_role")
+_l.install("send_role")
+del _l

@@ -35,9 +35,10 @@ class MudkipMode(GameMode):
         # make assassin a primary role
         self.SECONDARY_ROLES.pop("assassin", None)
 
+        self.START_WITH_DAY = True
         self.ROLE_GUIDE = {
-            5:  ["wolf", "cult leader", "insomniac", "insomniac(2)"],
-            6:  ["investigator"],
+            5:  ["wolf", "cult leader", "investigator"],
+            6:  ["insomniac"],
             7:  ["jester"],
             8:  ["assassin"],
             9:  ["-jester", "doomsayer"],

@@ -85,14 +85,16 @@ def on_chk_nightdone(evt, var):
     evt.data["acted"].extend(PASSED)
     evt.data["nightroles"].extend(get_all_players(("vigilante",)))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     ps = get_players()
     for vigilante in get_all_players(("vigilante",)):
         pl = ps[:]
         random.shuffle(pl)
         pl.remove(vigilante)
-        vigilante.send(messages["vigilante_notify"], messages["players_list"].format(pl), sep="\n")
+        vigilante.send(messages["vigilante_notify"])
+        if var.NIGHT_COUNT > 0:
+            vigilante.send(messages["players_list"].format(pl))
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):

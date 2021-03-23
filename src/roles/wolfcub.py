@@ -32,8 +32,8 @@ def on_new_role(evt, var, player, old_role):
     if ANGRY_WOLVES and evt.data["in_wolfchat"] and wolf_can_kill(var, player):
         evt.data["messages"].append(messages["angry_wolves"])
 
-@event_listener("transition_night_end", priority=3)
-def on_transition_night_end(evt, var):
+@event_listener("wolf_notify")
+def on_wolf_notify(evt, var, role):
     if not ANGRY_WOLVES:
         return
 

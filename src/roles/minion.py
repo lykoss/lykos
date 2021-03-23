@@ -22,8 +22,8 @@ def wolf_list(var):
     random.shuffle(wolves)
     return messages["wolves_list"].format(", ".join(wolves))
 
-@event_listener("transition_night_end", priority=2)
-def on_transition_night_end2(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for minion in get_all_players(("minion",)):
         if minion in RECEIVED_INFO and not var.ALWAYS_PM_ROLE:
             continue
@@ -31,8 +31,8 @@ def on_transition_night_end2(evt, var):
         minion.send(wolf_list(var))
         RECEIVED_INFO.add(minion)
 
-@event_listener("transition_night_end", priority=3)
-def on_transition_night_end3(evt, var):
+@event_listener("transition_night_end")
+def on_transition_night_end(evt, var):
     minions = len(get_all_players(("minion",)))
     if minions == 0:
         return

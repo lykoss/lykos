@@ -12,8 +12,8 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-@event_listener("transition_night_end")
-def on_transition_night_end(evt, var):
+@event_listener("send_role")
+def on_send_role(evt, var):
     for drunk in get_all_players(("village drunk",)):
         drunk.send(messages["village_drunk_notify"])
 

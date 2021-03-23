@@ -324,6 +324,7 @@ def start(var, wrapper, *, forced=False, restart=""):
     var.DAY_COUNT = 0
     var.FINAL_ROLES.clear()
     var.EXTRA_WOLVES = 0
+    var.ROLES_SENT = False
 
     var.DEADCHAT_PLAYERS.clear()
     var.SPECTATING_WOLFCHAT.clear()
@@ -472,6 +473,10 @@ def start(var, wrapper, *, forced=False, restart=""):
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night()
     else:
+        # send role messages
+        evt = Event("send_role", {})
+        evt.dispatch(var)
+        var.ROLES_SENT = True
         from src.wolfgame import transition_day
         var.FIRST_DAY = True
         var.GAMEPHASE = "night"

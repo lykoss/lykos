@@ -27,7 +27,7 @@ def setup_variables(rolename):
         evt.data["acted"].extend(SEEN)
         evt.data["nightroles"].extend(get_all_players((rolename,)))
 
-    @event_listener("transition_night_end", priority=2, listener_id="<{}>.on_transition_night_end".format(rolename))
+    @event_listener("send_role", priority=2, listener_id="<{}>.on_send_role".format(rolename))
     def on_transition_night_end(evt, var):
         for seer in get_all_players((rolename,)):
             pl = get_players()
@@ -35,7 +35,8 @@ def setup_variables(rolename):
             pl.remove(seer)  # remove self from list
 
             seer.send(messages["seer_info_general"].format(rolename), messages[rolename + "_info"])
-            seer.send(messages["players_list"].format(pl))
+            if var.NIGHT_COUNT > 0:
+                seer.send(messages["players_list"].format(pl))
 
     @event_listener("begin_day", listener_id="<{}>.on_begin_day".format(rolename))
     def on_begin_day(evt, var):
