@@ -37,8 +37,7 @@ class MudkipMode(GameMode):
 
         self.START_WITH_DAY = True
         self.ROLE_GUIDE = {
-            5:  ["wolf", "cult leader", "investigator"],
-            6:  ["insomniac"],
+            6:  ["wolf", "cult leader", "investigator", "insomniac"],
             7:  ["jester"],
             8:  ["assassin"],
             9:  ["-jester", "doomsayer"],

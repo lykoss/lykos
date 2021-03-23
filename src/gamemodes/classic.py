@@ -9,8 +9,7 @@ class ClassicMode(GameMode):
         super().__init__(arg)
         self.ABSTAIN_ENABLED = False
         self.ROLE_GUIDE = {
-            4:  ["wolf", "seer"],
-            6:  ["cursed villager"],
+            6:  ["wolf", "seer", "cursed villager"],
             8:  ["traitor", "harlot", "village drunk"],
             10: ["wolf(2)", "gunner"],
             12: ["werecrow", "detective"],

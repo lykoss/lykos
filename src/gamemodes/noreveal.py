@@ -10,8 +10,7 @@ class NoRevealMode(GameMode):
         self.STATS_TYPE = "disabled"
         super().__init__(arg)
         self.ROLE_GUIDE = {
-            4:  ["wolf", "seer"],
-            6:  ["cursed villager"],
+            6:  ["wolf", "seer", "cursed villager"],
             8:  ["wolf mystic", "mystic"],
             10: ["traitor", "hunter"],
             12: ["wolf(2)", "guardian angel"],
