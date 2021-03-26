@@ -137,7 +137,7 @@ class BorealMode(GameMode):
         percent = self.village_hunger_percent_base - self.village_hunger_percent_adj * len(get_players(("wolf shaman",)))
         self.village_hunger = round(len(get_players(("shaman",))) * percent)
 
-    def on_wolf_numkills(self, evt, var):
+    def on_wolf_numkills(self, evt, var, wolf):
         evt.data["numkills"] = 0
 
     def on_num_totems(self, evt, var, player, role):

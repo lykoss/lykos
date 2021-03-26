@@ -11,14 +11,14 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import Wolf, Killer
 
-from src.roles.helper.wolves import wolf_can_kill, register_wolf
+from src.roles.helper.wolves import wolf_can_kill, register_wolf, is_known_wolf_ally
 
 register_wolf("wolf cub")
 ANGRY_WOLVES = False
 
 @event_listener("wolf_numkills")
-def on_wolf_numkills(evt, var):
-    if ANGRY_WOLVES:
+def on_wolf_numkills(evt, var, wolf):
+    if ANGRY_WOLVES and is_known_wolf_ally(var, wolf, wolf):
         evt.data["numkills"] = max(evt.data["numkills"], 2)
 
 @event_listener("del_player")

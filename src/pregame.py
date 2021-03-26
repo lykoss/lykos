@@ -416,6 +416,43 @@ def start(var, wrapper, *, forced=False, restart=""):
             return
         var.ROLES[role].update(x for x in random.sample(possible, count))
 
+    # Give game modes the ability to customize who was assigned which role after everything's been set
+    # The listener can add the following tuples into the "actions" dict to specify modifications
+    # Directly modifying var.MAIN_ROLES, var.ROLES, etc. is **NOT SUPPORTED**
+    # ("swap", User, User) -- swaps the main role of the two given users
+    # ("add", User, str) -- adds a secondary role to the user (no-op if user already has that role)
+    # ("remove", User, str) -- removes a secondary role from the user (no-op if it's not a secondary role for user)
+    # Actions are applied in order
+    event = Event("role_attribution_end", {"actions": []})
+    event.dispatch(var, var.MAIN_ROLES, var.ROLES)
+    for tup in event.data["actions"]:
+        if tup[0] == "swap":
+            if tup[1] not in var.MAIN_ROLES or tup[2] not in var.MAIN_ROLES:
+                raise KeyError("Users in role_attribution_end:swap action must be playing")
+            onerole = var.MAIN_ROLES[tup[1]]
+            tworole = var.MAIN_ROLES[tup[2]]
+            var.MAIN_ROLES[tup[1]] = tworole
+            var.ORIGINAL_MAIN_ROLES[tup[1]] = tworole
+            var.ROLES[onerole].discard(tup[1])
+            var.ROLES[tworole].add(tup[1])
+
+            var.MAIN_ROLES[tup[2]] = onerole
+            var.ORIGINAL_MAIN_ROLES[tup[2]] = onerole
+            var.ROLES[tworole].discard(tup[2])
+            var.ROLES[onerole].add(tup[2])
+        elif tup[0] == "add":
+            if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
+                raise KeyError("Invalid user or role in role_attribution_end:add action")
+            var.ROLES[tup[2]].add(tup[1])
+        elif tup[0] == "remove":
+            if tup[1] not in var.MAIN_ROLES or tup[2] not in All:
+                raise KeyError("Invalid user or role in role_attribution_end:remove action")
+            if var.MAIN_ROLES[tup[1]] == tup[2]:
+                raise ValueError("Cannot remove a user's main role in role_attribution_end:remove action")
+            var.ROLES[tup[2]].discard(tup[1])
+        else:
+            raise KeyError("Invalid action for role_attribution_end")
+
     with var.WARNING_LOCK: # cancel timers
         for name in ("join", "join_pinger", "start_votes"):
             if name in var.TIMERS:
