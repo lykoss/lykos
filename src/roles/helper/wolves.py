@@ -225,11 +225,11 @@ def on_chk_nightdone(evt, var):
     if len(kills) == num_kills:
         evt.data["acted"].append(fake)
 
-@event_listener("transition_night_end", priority=3)
-def on_transition_night_end(evt, var):
-    wolves = get_all_players(Wolfchat)
+@event_listener("wolf_notify")
+def on_transition_night_end(evt, var, role):
     # roles allowed to talk in wolfchat
     talkroles = get_talking_roles(var)
+
     # condition imposed on talking in wolfchat (only during day/night, or no talking)
     # 0 = no talking
     # 1 = normal
@@ -245,10 +245,12 @@ def on_transition_night_end(evt, var):
     elif var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
         wccond = 3
 
+    if role not in talkroles or wccond == 0:
+        return
+
+    wolves = get_players(role)
     for wolf in wolves:
-        can_talk = len(get_all_roles(wolf) & talkroles) > 0
-        if len(wolves) > 1 and can_talk and wccond > 0:
-            wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
+        wolf.send(messages["wolfchat_notify_{0}".format(wccond)])
 
 @event_listener("begin_day")
 def on_begin_day(evt, var):
@@ -304,10 +306,10 @@ def get_talking_roles(var):
     return roles
 
 def is_known_wolf_ally(var, actor, target):
-    actor_roles = get_all_roles(actor)
-    target_roles = get_all_roles(target)
+    actor_role = get_main_role(actor)
+    target_role = get_main_role(target)
     wolves = get_wolfchat_roles(var)
-    return actor_roles & wolves and target_roles & wolves
+    return actor_role in wolves and target_role in wolves
 
 def send_wolfchat_message(var, user, message, roles, *, role=None, command=None):
     if role not in Wolf & Killer and var.RESTRICT_WOLFCHAT & var.RW_NO_INTERACTION:
