@@ -33,7 +33,8 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
 
     # bot needs to talk to itself during lagchecks
     from src import lagcheck
-    user = users.get(rawnick, allow_none=True, allow_bot=lagcheck)
+    allow_bot = lagcheck > 0
+    user = users.get(rawnick, allow_none=True, allow_bot=allow_bot)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
