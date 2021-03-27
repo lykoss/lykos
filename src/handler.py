@@ -31,7 +31,9 @@ def on_privmsg(cli, rawnick, chan, msg, *, notice=False):
     if var.USER_DATA_LEVEL == 0 or var.CHANNEL_DATA_LEVEL == 0:
         _ignore_locals_ = True  # don't expose in tb if we're trying to anonymize stuff
 
-    user = users.get(rawnick, allow_none=True)
+    # bot needs to talk to itself during lagchecks
+    from src import lagcheck
+    user = users.get(rawnick, allow_none=True, allow_bot=lagcheck)
 
     ch = chan.lstrip("".join(Features["PREFIX"]))
 
@@ -217,9 +219,12 @@ def run_lagcheck(cli):
     from oyoyo.client import TokenBucket
     cli.tokenbucket = TokenBucket(100, 0.1)
     print("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
+    print("The bot may restart a couple of times during the check.")
 
     # set up initial variables
+    from src import lagcheck
     timings = []
+    max_phases = lagcheck
 
     @command("", pm=True)
     def on_pm(var, wrapper, message):
@@ -233,25 +238,28 @@ def run_lagcheck(cli):
         if phase > 0:
             # timing data for current phase
             timings.append((phase, cur - clock))
-        elif clock < 5:
+        elif clock < max_phases:
             # run another batch
-            _lagcheck_1(cli, int(clock) + 1)
+            # note that clock is correct here; end of phase is sent as phase=0 clock=phase#
+            next_phase = int(clock) + 1
+            print("Testing phase {0}/{1}...".format(next_phase, max_phases))
+            _lagcheck_1(next_phase, max_phases)
         else:
             # process data
-            _lagcheck_2(cli, timings)
+            _lagcheck_2(cli, timings, max_phases)
 
     # we still have startup lag at this point, so delay our check until we receive this message successfully
     users.Bot.send("0 0")
 
-def _lagcheck_1(cli, phase=1):
+def _lagcheck_1(phase, max_phases):
     # Burst some messages and time how long it takes for them to get back to us
-    # This is a bit conservative in order to establish a baseline (so that we don't flood ourselves out)
-    for i in range(12):
+    burst = max(12, 12 - (phase * 2) + max_phases)
+    for i in range(burst):
         users.Bot.send("{0} {1}".format(phase, time.perf_counter()))
     # signal that we're done
     users.Bot.send("0 {0}".format(phase))
 
-def _lagcheck_2(cli, timings):
+def _lagcheck_2(cli, timings, max_phases):
     # Assume our first message isn't throttled and is an accurate representation of the roundtrip time
     # for the server. We use this to normalize all the other timings, as since we bursted N messages
     # at once, message N will have around N*RTT of delay even if there is no throttling going on.
@@ -286,9 +294,9 @@ def _lagcheck_2(cli, timings):
 
     print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
     delay = max(0.8 * fixed[threshold], 0.1)
-    burst = int(4 * threshold)
-    if burst < 12: # we know we can successfully burst at least 12 messages at once
-        burst = 12
+    # establish a reasonable minimum burst amount
+    # we were able to burst 10 + max_phases without getting disconnected so we know for sure it works
+    burst = max(12, 10 + max_phases)
 
     if threshold == 0:
         print("IRC_TB_INIT = 30", "IRC_TB_BURST = 30", "IRC_TB_DELAY = {0:.2f}".format(delay), sep="\n")

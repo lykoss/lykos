@@ -24,7 +24,7 @@ from src import debug, events, lineparse, match
 debug_mode = False
 verbose = False
 normal = False
-lagcheck = False
+lagcheck = 0
 
 # Carry over settings from botconfig into settings.py
 
@@ -51,14 +51,18 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--debug', action='store_true')
 parser.add_argument('--verbose', action='store_true')
 parser.add_argument('--normal', action='store_true')
-parser.add_argument('--lagcheck', action='store_true')
+parser.add_argument('--lagcheck', action='store', nargs='?', const=15, default=lagcheck, type=int)
 
 args = parser.parse_args()
 
-if args.debug: debug_mode = True
-if args.verbose: verbose = True
-if args.normal: normal = True
-if args.lagcheck: lagcheck = True
+if args.debug:
+    debug_mode = True
+if args.verbose:
+    verbose = True
+if args.normal:
+    normal = True
+if args.lagcheck > 0:
+    lagcheck = args.lagcheck
 
 botconfig.DEBUG_MODE = debug_mode if not normal else False
 botconfig.VERBOSE_MODE = verbose if not normal else False

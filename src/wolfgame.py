@@ -396,7 +396,17 @@ def _restart_program(mode=None):
         assert mode in ("normal", "verbose", "debug")
         os.execl(python, python, sys.argv[0], "--{0}".format(mode))
     else:
-        os.execl(python, python, *sys.argv)
+        import src
+        args = []
+        if src.debug_mode:
+            args.append("--debug")
+        if src.verbose:
+            args.append("--verbose")
+        if src.normal:
+            args.append("--normal")
+        if src.lagcheck:
+            args.append("--lagcheck={0}".format(src.lagcheck))
+        os.execl(python, python, sys.argv[0], *args)
 
 
 @command("frestart", flag="D", pm=True)
@@ -2512,6 +2522,9 @@ def cgamemode(arg):
 @hook("error")
 def on_error(cli, pfx, msg):
     if var.RESTARTING or msg.lower().endswith("(excess flood)"):
+        import src
+        if src.lagcheck > 0:
+            src.lagcheck = max(1, src.lagcheck - 1)
         _restart_program()
     elif msg.lower().startswith("closing link:"):
         raise SystemExit
