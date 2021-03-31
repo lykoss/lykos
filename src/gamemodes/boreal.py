@@ -79,7 +79,9 @@ class BorealMode(GameMode):
         self.max_village_starve = 3
         self.num_retribution = 0
         self.saved_messages = {} # type: Dict[str, str]
-        self.feed_command = None
+        kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",),
+                      roles=("shaman", "wolf shaman"), register=False)
+        self.feed_command = command("feed", **kwargs)(self.feed)
 
     def startup(self):
         super().startup()
@@ -95,23 +97,14 @@ class BorealMode(GameMode):
         messages.messages["wolf_shaman_notify"] = "" # don't tell WS they can kill
         messages.messages["vengeful_turn"] = messages.messages["boreal_turn"]
         messages.messages["lynch_reveal"] = messages.messages["boreal_exile"]
-
-        kwargs = dict(chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("shaman", "wolf shaman"))
-        self.feed_command = command("feed", **kwargs)(self.feed)
+        self.feed_command.register()
 
     def teardown(self):
-        from src import decorators
         super().teardown()
-        def remove_command(name, command):
-            if len(decorators.COMMANDS[name]) > 1:
-                decorators.COMMANDS[name].remove(command)
-            else:
-                del decorators.COMMANDS[name]
-
         self.hunger_levels.clear()
         for key, value in self.saved_messages.items():
             messages.messages[key] = value
-        remove_command("feed", self.feed_command)
+        self.feed_command.remove()
 
     def on_totem_assignment(self, evt, var, player, role):
         if role == "shaman":
@@ -274,6 +267,8 @@ class BorealMode(GameMode):
                     SHAMANS[wrapper.source][totem].pop(0)
 
                 wrapper.pm(messages["boreal_feed_success"].format(totem))
-                # send_wolfchat_message already takes care of checking whether the player has access to wolfchat, so this will only be sent for wolf shamans
-                send_wolfchat_message(var, wrapper.source, messages["boreal_wolfchat_feed"].format(wrapper.source), {"wolf shaman"}, role="wolf shaman", command="feed")
+                # send_wolfchat_message already takes care of checking whether the player has access to wolfchat,
+                # so this will only be sent for wolf shamans
+                send_wolfchat_message(var, wrapper.source, messages["boreal_wolfchat_feed"].format(wrapper.source),
+                                      {"wolf shaman"}, role="wolf shaman", command="feed")
                 return

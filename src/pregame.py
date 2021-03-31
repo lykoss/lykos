@@ -469,6 +469,8 @@ def start(var, wrapper, *, forced=False, restart=""):
 
     if not restart:
         gamemode = var.CURRENT_GAMEMODE.name
+        event = Event("start_game", {})
+        event.dispatch(var, gamemode, var.CURRENT_GAMEMODE)
 
         # Alert the players to option changes they may not be aware of
         # All keys begin with gso_* (game start options)

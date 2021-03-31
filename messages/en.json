@@ -1016,7 +1016,7 @@
     "vg_driven_away": "driven away",
     "vg_against": "against {0!role:plural}",
     "vengeful_ghost_revealroles": "[b]dead vengeful ghost[/b]: {0:join}",
-    "sleepy_revealroles": "[b]having nightmare[/b]: {0}",
+    "sleepy_revealroles": "[b]having nightmare[/b]: {0:join}",
     "turncoat_notify": "You are {=turncoat!role:article} {=turncoat!role:bold}. You can change which team you're siding with tonight. Use \"{=side!command} {=villager!role}\" or \"{=side!command} {=wolf!role}\" to select your team. Use \"{=pass!command}\" if you do not wish to change teams tonight.",
     "turncoat_notify_no_act": "You are {=turncoat!role:article} {=turncoat!role:bold}. Because you changed teams last night, you cannot change teams tonight.",
     "turncoat_current_team": "You are currently siding with {0!role:plural:bold}.",

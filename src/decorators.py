@@ -220,7 +220,8 @@ class handle_error:
 class command:
     def __init__(self, command: str, *, flag: Optional[str] = None, owner_only: bool = False,
                  chan: bool = True, pm: bool = False, playing: bool = False, silenced: bool = False,
-                 phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None):
+                 phases: Iterable[str] = (), roles: Iterable[str] = (), users: Iterable[User] = None,
+                 register: bool = True):
 
         # the "d" flag indicates it should only be enabled in debug mode
         if flag == "d" and not botconfig.DEBUG_MODE:
@@ -244,11 +245,13 @@ class command:
         self.name = commands[0]
         self.key = "{0}_{1}".format(command, id(self))
         self.alt_allowed = bool(flag or owner_only)
+        self._disabled = False
 
         alias = False
         self.aliases = []
 
         if var.DISABLED_COMMANDS.intersection(commands):
+            self._disabled = True
             return # command is disabled, do not add to COMMANDS
 
         for name in commands:
@@ -256,7 +259,8 @@ class command:
                 if func.owner_only != owner_only or func.flag != flag:
                     raise ValueError("unmatching access levels for {0}".format(func.name))
 
-            COMMANDS[name].append(self)
+            if register:
+                COMMANDS[name].append(self)
             if name in botconfig.ALLOWED_ALT_CHANNELS_COMMANDS:
                 self.alt_allowed = True
             if name in getattr(botconfig, "OWNERS_ONLY_COMMANDS", ()):
@@ -264,6 +268,8 @@ class command:
             if alias:
                 self.aliases.append(name)
             alias = True
+
+        self._registered = register
 
         if playing: # Don't restrict to owners or allow in alt channels
             self.owner_only = False
@@ -275,6 +281,20 @@ class command:
         self.func = func
         self.__doc__ = func.__doc__
         return self
+
+    def register(self):
+        if not self._registered and not self._disabled:
+            COMMANDS[self.name].append(self)
+            for alias in self.aliases:
+                COMMANDS[alias].append(self)
+            self._registered = True
+
+    def remove(self):
+        if self._registered:
+            COMMANDS[self.name].remove(self)
+            for alias in self.aliases:
+                COMMANDS[alias].remove(self)
+            self._registered = False
 
     @handle_error
     def caller(self, var, wrapper: MessageDispatcher, message: str):
