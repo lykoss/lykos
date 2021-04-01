@@ -95,7 +95,7 @@ def parse_and_dispatch(var,
 
     # check for role prefix
     parts = key.split(sep=":", maxsplit=1)
-    if len(parts) > 1 and len(parts[0]):
+    if len(parts) > 1 and len(parts[0]) and not parts[0].isnumeric():
         key = parts[1]
         role_prefix = parts[0]
     else:
