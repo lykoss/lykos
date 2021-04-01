@@ -72,19 +72,15 @@ def choose(var, wrapper, message):
         return
 
     pieces = re.split(" +", message)
-    victim1 = pieces[0]
-    if len(pieces) > 1:
-        victim2 = pieces[1]
-    else:
-        victim2 = None
-
-    target1 = get_target(var, wrapper, victim1, allow_self=True)
-    target2 = get_target(var, wrapper, victim2, allow_self=True)
+    if len(pieces) < 2:
+        return
+    target1 = get_target(var, wrapper, pieces[0], allow_self=True)
+    target2 = get_target(var, wrapper, pieces[1], allow_self=True)
     if not target1 or not target2:
         return
 
     if target1 is target2:
-        wrapper.send(messages["match_different_people"])
+        wrapper.send(messages["choose_different_people"])
         return
 
     MATCHMAKERS.add(wrapper.source)

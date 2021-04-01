@@ -2001,7 +2001,9 @@ def night_warn(gameid):
     for player, count in idling.items():
         if player.is_fake or count == 0:
             continue
-        player.queue_message(messages["night_idle_notice"])
+        idle_event = Event("night_idled", {})
+        if idle_event.dispatch(var, player):
+            player.queue_message(messages["night_idle_notice"])
     User.send_messages()
 
 

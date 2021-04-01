@@ -878,7 +878,7 @@
     "turncoat_revealroles": "siding with {0!role:plural}",
     "turncoat_revealroles_none": "not siding with anyone",
     "already_matched": "You have already chosen lovers.",
-    "match_different_people": "You must choose two different people.",
+    "choose_different_people": "You must choose two different people.",
     "matchmaker_success": "You have selected {0:@} and {1:@} to be lovers.",
     "matchmaker_target_notify": "You are [b]in love[/b] with {0}. If that player dies for any reason, the pain will be too much for you to bear and you will commit suicide.",
     "lover_pair_endgame": "{0:@}/{1:@}",
