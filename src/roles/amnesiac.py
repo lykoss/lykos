@@ -13,7 +13,7 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange
 from src.cats import role_order, Win_Stealer
 
-ROLES = UserDict()  # type: Dict[users.User, str]
+ROLES = UserDict()  # type: UserDict[users.User, str]
 STATS_FLAG = False # if True, we begin accounting for amnesiac in update_stats
 
 def _get_blacklist(var):
@@ -29,8 +29,7 @@ def on_transition_night_begin(evt, var):
             STATS_FLAG = True
 
         for amn in amnesiacs:
-            role = change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
-            debuglog("{0} REMEMBER: {1}".format(amn, role))
+            change_role(var, amn, "amnesiac", ROLES[amn], message="amnesia_clear")
 
 @event_listener("investigate")
 def on_investigate(evt, var, actor, target):

@@ -1078,11 +1078,7 @@ def stats(var, wrapper, message):
     entries = []
     first_count = 0
 
-    start_roles = set()
-    for r, v in var.ORIGINAL_ROLES.items():
-        if len(v) == 0:
-            continue
-        start_roles.add(r)
+    start_roles = set(var.ORIGINAL_MAIN_ROLES.values())
     for roleset, amount in var.CURRENT_GAMEMODE.ACTIVE_ROLE_SETS.items():
         if amount == 0:
             continue

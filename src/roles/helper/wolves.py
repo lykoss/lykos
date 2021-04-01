@@ -350,7 +350,7 @@ def send_wolfchat_message(var, user, message, roles, *, role=None, command=None)
         if var.PHASE == "day" and var.RESTRICT_WOLFCHAT & var.RW_DISABLE_DAY:
             wcroles = roles
 
-    wcwolves = get_all_players(wcroles)
+    wcwolves = get_players(wcroles)
     wcwolves.remove(user)
 
     player = None
