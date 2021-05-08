@@ -13,7 +13,7 @@ from typing import Optional
 
 import botconfig
 import src.settings as var
-from src import decorators, wolfgame, channels, users, errlog as log, stream_handler as alog
+from src import decorators, wolfgame, channels, users, plog
 from src.messages import messages
 from src.functions import get_participants, get_all_roles, match_role
 from src.dispatcher import MessageDispatcher
@@ -219,8 +219,8 @@ def latency(var, wrapper, message):
 def run_lagcheck(cli):
     from oyoyo.client import TokenBucket
     cli.tokenbucket = TokenBucket(100, 0.1)
-    print("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
-    print("The bot may restart a couple of times during the check.")
+    plog("Lag check in progress. The bot will quit IRC after this is complete. This may take several minutes.")
+    plog("The bot may restart a couple of times during the check.")
 
     # set up initial variables
     from src import lagcheck
@@ -243,7 +243,7 @@ def run_lagcheck(cli):
             # run another batch
             # note that clock is correct here; end of phase is sent as phase=0 clock=phase#
             next_phase = int(clock) + 1
-            print("Testing phase {0}/{1}...".format(next_phase, max_phases))
+            plog("Testing phase {0}/{1}...".format(next_phase, max_phases))
             _lagcheck_1(next_phase, max_phases)
         else:
             # process data
@@ -293,7 +293,7 @@ def _lagcheck_2(cli, timings, max_phases):
             # before i, but i is a decent overestimate of when it happens)
             threshold = i
 
-    print("Lag check complete! We recommend adding the following settings to your botconfig.py:")
+    plog("Lag check complete! We recommend adding the following settings to your botconfig.py:")
     delay = max(0.8 * fixed[threshold], 0.1)
     # establish a reasonable minimum burst amount
     # we were able to burst 10 + max_phases without getting disconnected so we know for sure it works
@@ -322,7 +322,7 @@ def connect_callback(cli):
     @hook("nomotd", hookid=294)
     def prepare_stuff(cli, prefix, *args):
         from src import lagcheck
-        alog("Received end of MOTD from {0}".format(prefix))
+        plog("Received end of MOTD from {0}".format(prefix))
 
         # This callback only sets up event listeners
         wolfgame.connect_callback()
@@ -353,7 +353,7 @@ def connect_callback(cli):
             if var.LOG_CHANNEL:
                 channels.add(var.LOG_CHANNEL, cli)
         else:
-            alog("Preparing lag check")
+            plog("Preparing lag check")
             # if we ARE doing a lagcheck, we need at least our own host or things break
             users.Bot.who()
 
@@ -451,9 +451,9 @@ def connect_callback(cli):
                 return
 
             if botconfig.SASL_AUTHENTICATION and "sasl" not in supported_caps:
-                alog("Server does not support SASL authentication")
+                plog("Server does not support SASL authentication")
                 cli.quit()
-                raise ValueError("Server does not support SASL authentication")
+                sys.exit(1)
 
             common_caps = request_caps & supported_caps
 
@@ -479,15 +479,15 @@ def connect_callback(cli):
                 if supported_sasl is None or mech in supported_sasl:
                     cli.send("AUTHENTICATE {0}".format(mech))
                 else:
-                    alog("Server does not support the SASL {0} mechanism".format(mech))
+                    plog("Server does not support the SASL {0} mechanism".format(mech))
                     cli.quit()
-                    raise ValueError("Server does not support the SASL {0} mechanism".format(mech))
+                    sys.exit(1)
             else:
                 cli.send("CAP END")
         elif cmd == "NAK":
             # This isn't supposed to happen. The server claimed to support a
             # capability but now claims otherwise.
-            alog("Server refused capabilities: {0}".format(" ".join(caps[0])))
+            plog("Server refused capabilities: {0}".format(" ".join(caps[0])))
 
         elif cmd == "NEW":
             # New capability advertised by the server, see if we want to enable it
@@ -538,11 +538,12 @@ def connect_callback(cli):
             if selected_sasl == "EXTERNAL" and (supported_sasl is None or "PLAIN" in supported_sasl):
                 # EXTERNAL failed, retry with PLAIN as we may not have set up the client cert yet
                 selected_sasl = "PLAIN"
-                alog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
+                plog("EXTERNAL auth failed, retrying with PLAIN... ensure the client cert is set up in NickServ")
                 cli.send("AUTHENTICATE PLAIN")
             else:
-                alog("Authentication failed.  Did you fill the account name "
+                plog("Authentication failed.  Did you fill the account name "
                      "in botconfig.USERNAME if it's different from the bot nick?")
                 cli.quit()
+                sys.exit(1)
 
     users.Bot = users.BotUser(cli, botconfig.NICK)
