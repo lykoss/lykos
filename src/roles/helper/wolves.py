@@ -212,7 +212,7 @@ def on_new_role(evt, var, player, old_role):
         if var.PHASE == "night" and evt.data["role"] in Wolf & Killer:
             # inform the new wolf that they can kill and stuff
             nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-            nevt.dispatch(var)
+            nevt.dispatch(var, player)
             if not nevt.data["numkills"] and nevt.data["message"]:
                 evt.data["messages"].append(messages[nevt.data["message"]])
 
@@ -291,9 +291,17 @@ def on_gun_shoot(evt, var, user, target, role):
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):
     if kind == "night_kills":
-        nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-        nevt.dispatch(var)
-        evt.data["wolf"] = nevt.data["numkills"]
+        wolves = [x for x in get_all_players(Wolf & Killer) if not is_silent(var, x)]
+        total_kills = 0
+        for wolf in wolves:
+            nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
+            nevt.dispatch(var, wolf)
+            num_kills = nevt.data["numkills"]
+            if is_known_wolf_ally(var, wolf, wolf):
+                total_kills = max(total_kills, num_kills)
+            else:
+                evt.data["wolf@" + wolf.name] = num_kills
+        evt.data["wolf"] = total_kills
 
 _kill_cmds = ("kill", "retract")
 
@@ -301,7 +309,7 @@ def wolf_can_kill(var, wolf):
     # a wolf can kill if wolves in general can kill, and the wolf is a Killer
     # this is a utility function meant to be used by other wolf role modules
     nevt = Event("wolf_numkills", {"numkills": 1, "message": ""})
-    nevt.dispatch(var)
+    nevt.dispatch(var, wolf)
     num_kills = nevt.data["numkills"]
     if num_kills == 0:
         return False

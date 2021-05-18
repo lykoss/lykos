@@ -34,17 +34,18 @@ def on_new_role(evt, var, player, old_role):
 
 @event_listener("wolf_notify")
 def on_wolf_notify(evt, var, role):
-    if not ANGRY_WOLVES:
+    if not ANGRY_WOLVES or role not in Wolf & Killer:
         return
 
-    wolves = get_players(Wolf & Killer)
-    if not wolves or not wolf_can_kill(var, wolves[0]):
+    wolves = get_players((role,))
+    if not wolves:
         return
 
     for wofl in wolves:
-        wofl.queue_message(messages["angry_wolves"])
+        if wolf_can_kill(var, wofl):
+            wofl.queue_message(messages["angry_wolves"])
 
-    wofl.send_messages()
+    users.User.send_messages()
 
 @event_listener("chk_win", priority=1)
 def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
@@ -61,7 +62,6 @@ def on_chk_win(evt, var, rolemap, mainroles, lpl, lwolves, lrealwolves):
                 # don't set cub's FINAL_ROLE to wolf, since we want them listed in endgame
                 # stats as cub still.
                 wc.send(messages["cub_grow_up"])
-                debuglog("{0} (wolf cub) GROW UP".format(wc))
     if did_something:
         evt.prevent_default = True
         evt.stop_processing = True

@@ -2721,20 +2721,23 @@ def show_rules(var, wrapper, message):
 @command("help", pm=True)
 def get_help(var, wrapper, message):
     """Gets help."""
-    fns = []
-    for name, fn in COMMANDS.items():
-        if name and not fn[0].flag and not fn[0].owner_only and name not in fn[0].aliases:
-            fns.append(name)
-    afns = []
+    commands = set()
+    for name, functions in COMMANDS.items():
+        if not name:
+            continue
+        for fn in functions:
+            if not fn.flag and not fn.owner_only and name not in fn.aliases:
+                commands.add(name)
+                break
+    admin_commands = set()
     if wrapper.source.is_admin():
-        for name, fn in COMMANDS.items():
-            if fn[0].flag and name not in fn[0].aliases:
-                afns.append(name)
-    fns.sort() # Output commands in alphabetical order
-    wrapper.pm(messages["commands_list"].format(fns))
-    if afns:
-        afns.sort()
-        wrapper.pm(messages["admin_commands_list"].format(afns))
+        for name, functions in COMMANDS.items():
+            for fn in functions:
+                if fn.flag and name not in fn.aliases:
+                    admin_commands.add(name)
+    wrapper.pm(messages["commands_list"].format(sorted(commands)))
+    if admin_commands:
+        wrapper.pm(messages["admin_commands_list"].format(sorted(admin_commands)))
     wrapper.pm(messages["commands_further_help"])
 
 def get_wiki_page(URI):
