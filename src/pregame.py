@@ -511,6 +511,7 @@ def start(var, wrapper, *, forced=False, restart=""):
         from src.wolfgame import transition_night
         var.GAMEPHASE = "day" # gamephase needs to be the thing we're transitioning from
         transition_night()
+        var.ROLES_SENT = True
     else:
         # send role messages
         evt = Event("send_role", {})
