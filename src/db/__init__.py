@@ -960,7 +960,7 @@ def _upgrade(oldversion):
         print("Upgrades complete!", file=sys.stderr)
     except sqlite3.Error:
         print("An error has occurred while upgrading the database schema.",
-              "Please report this issue to #lykos on irc.freenode.net.",
+              "Please report this issue to #lykos on irc.libera.net.",
               "Include all of the following details in your report:",
               sep="\n", file=sys.stderr)
         if have_backup:

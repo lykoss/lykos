@@ -41,7 +41,7 @@ except ImportError:
           "If you don't have pip and don't know how to install it, follow this link:",
           "https://pip.pypa.io/en/stable/installing/", "",
           "If you need any further help with setting up and/or running the bot,",
-          "  we will be happy to help you in #lykos on irc.freenode.net", "",
+          "  we will be happy to help you in #lykos on irc.libera.net", "",
           "- The lykos developers"]))
     sys.exit(1)
 

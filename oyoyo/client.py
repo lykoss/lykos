@@ -167,7 +167,7 @@ class IRCClient:
         """ initiates the connection to the server set in self.host:self.port
         and returns a generator object.
 
-        >>> cli = IRCClient(my_handler, host="irc.freenode.net", port=6667)
+        >>> cli = IRCClient(my_handler, host="irc.libera.net", port=6667)
         >>> g = cli.connect()
         >>> while 1:
         ...     next(g)
