@@ -1,4 +1,4 @@
-HOST = "irc.libera.net"
+HOST = "irc.libera.chat"
 PORT = 6697
 NICK = "mywolfbot"
 IDENT = NICK
@@ -16,7 +16,7 @@ SSL_VERIFY = True
 # An example below is for Libera; note that certificate fingerprints can and do change over time,
 # so manual adjustment may be required if you make use of this setting.
 # Example of how to obtain a fingerprint:
-# openssl s_client -connect irc.libera.net:6697 < /dev/null 2>/dev/null | openssl x509 -fingerprint -sha256 -noout -in /dev/stdin
+# openssl s_client -connect irc.libera.chat:6697 < /dev/null 2>/dev/null | openssl x509 -fingerprint -sha256 -noout -in /dev/stdin
 # The comma at the end is required if there is only one fingerprint.
 #SSL_CERTFP = ("51:F4:3A:29:80:49:10:F0:23:5C:5E:F4:3B:0C:0A:6E:D9:42:BF:A1:60:89:4A:28:38:AD:CF:F7:DE:49:B4:16",)
 
