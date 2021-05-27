@@ -114,11 +114,11 @@ Special thanks to LaneAtomic for their work on the messages system, which made c
 
 [mafia]: https://en.wikipedia.org/wiki/Mafia_(party_game)
 [license]: https://github.com/lykoss/lykos/blob/master/LICENSE
-[game_webchat]: https://kiwiirc.com/client/irc.libera.chat/#werewolf
+[game_webchat]: https://web.libera.chat/?channels=#werewolf
 [wikinet]: https://werewolf.chat/Networks
 [wiki]: https://werewolf.chat/Main_Page
 [pydownload]: https://www.python.org/downloads/
 [git]: https://git-scm.com/downloads
-[dev_webchat]: https://kiwiirc.com/client/irc.libera.chat/#lykos
+[dev_webchat]: https://web.libera.chat/?channels=#lykos
 [new_issue]: https://github.com/lykoss/lykos/issues/new
 [events]: https://werewolf.chat/Events
