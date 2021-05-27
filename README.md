@@ -12,7 +12,7 @@ Werewolf is a popular party game, similar to and inspired by [mafia][mafia]. In 
 
 ### Where can I play this game?
 
-We run an instance of the bot in the [#werewolf channel][game_webchat] on Libera. Off-topic discussion happens in ##werewolf-meta on the same network, and channel operators can be reached in #werewolf-ops. There are also other networks listed in the [Networks page][wikinet] of our [official wiki][wiki]. Keep in mind that, just because someone appears online, does not mean they are around or available to play.
+We run an instance of the bot in the [#werewolf channel][game_webchat] on Libera. Off-topic discussion happens in #werewolf-meta on the same network, and channel operators can be reached in #werewolf-ops. There are also other networks listed in the [Networks page][wikinet] of our [official wiki][wiki]. Keep in mind that, just because someone appears online, does not mean they are around or available to play.
 
 ## For players
 
