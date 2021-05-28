@@ -956,7 +956,7 @@
     "investigator_notify": "You are {=investigator!role:article} {=investigator!role:bold}. During the day, you can see if two people are on the same side by using \"{=id!command} <nick1> <nick2>\" in PM.",
     "investigator_help": "Investigate two different people by using \"{=id!command} <nick1> <nick2>\" in PM.",
     "village_drunk_notify": "You have been drinking too much! You are {=village drunk!role:article} {=village drunk!role:bold}.",
-    "mystic_notify": "You are {=mystic!role:article} {=mystic!role:bold}. Each night you divine the number of evil villagers (including wolves) that are still alive.",
+    "mystic_notify": "You are {=mystic!role:article} {=mystic!role:bold}. Each night you divine the number of {=Wolfteam!cat:plural(5)} (such as {=wolf!role:plural(5)} and {=cultist!role:plural(5)}) that are still alive.",
     "insomniac_notify": "You are {=insomniac!role:article} {=insomniac!role:bold}. During your sleepless nights, you listen for noises coming from nearby. You learn whether or not your neighbors were awake each night.",
     "insomniac_both_awake": "Faint noises echoed through your house last night, letting you know that both {0:@} and {1:@} were awake!",
     "insomniac_awake": "Faint noises echoed through your house last night, letting you know that {0:@} was awake!",
