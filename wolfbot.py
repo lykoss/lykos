@@ -21,7 +21,7 @@ import traceback
 import sys
 import os
 
-import botconfig
+import botconfig  # type: ignore
 
 ver = sys.version_info
 if ver < (3, 7):
@@ -30,7 +30,7 @@ if ver < (3, 7):
     sys.exit(1)
 
 try: # need to manually add dependencies here
-    import antlr4
+    import antlr4  # type: ignore
 except ImportError:
     command = "python3"
     if os.name == "nt":

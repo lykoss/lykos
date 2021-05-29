@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from argparse import ArgumentParser, Namespace, Action
 from typing import Optional, Sequence, IO, NoReturn
 
@@ -59,7 +61,8 @@ class LineParser(ArgumentParser):
         self.allow_intermixed = False
         return super().add_subparsers(**kwargs)
 
-    def parse_args(self, args: Optional[Sequence[str]] = None, namespace: Optional[Namespace] = None) -> Namespace:
+    def parse_args(self, args: Optional[Sequence[str]] = None, namespace: Optional[Namespace] = None) -> Namespace:  # type: ignore
+        # parse_args has a difficult type signature to follow
         if args is None:
             # args=None is supported by ArgumentParser to read args from sys.argv but we don't want to do that here
             raise TypeError("LineParser requires an args list to be passed in")
@@ -69,9 +72,9 @@ class LineParser(ArgumentParser):
             parse = self.parse_known_intermixed_args
         else:
             parse = self.parse_known_args
-        args, argv = parse(args, namespace)
+        out_args, argv = parse(args, namespace)
         # allow the help option to work even if all required positionals aren't there
         if argv:
             self.error("unrecognized arguments: {}".format(" ".join(argv)))
 
-        return args
+        return out_args

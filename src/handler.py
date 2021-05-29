@@ -1,5 +1,7 @@
 # The bot commands implemented in here are present no matter which module is loaded
 
+from __future__ import annotations
+
 import base64
 import socket
 import sys
@@ -9,9 +11,9 @@ import traceback
 import functools
 import statistics
 import math
-from typing import Optional
+from typing import List, Optional, Union
 
-import botconfig
+import botconfig  # type: ignore
 import src.settings as var
 from src import decorators, wolfgame, channels, users, plog
 from src.messages import messages
@@ -97,7 +99,7 @@ def parse_and_dispatch(var,
     parts = key.split(sep=":", maxsplit=1)
     if len(parts) > 1 and len(parts[0]) and not parts[0].isnumeric():
         key = parts[1]
-        role_prefix = parts[0]
+        role_prefix: Optional[str] = parts[0]
     else:
         key = parts[0]
         role_prefix = None
@@ -127,7 +129,7 @@ def parse_and_dispatch(var,
 
     # Don't change this into decorators.COMMANDS[key] even though it's a defaultdict,
     # as we don't want to insert bogus command keys into the dict.
-    cmds = []
+    cmds: List[command] = []
     phase = var.PHASE
     if context.source in get_participants():
         roles = get_all_roles(context.source)
@@ -168,7 +170,7 @@ def parse_and_dispatch(var,
         # is executed. In this event, display a helpful error message instructing
         # the user to resolve the ambiguity.
         common_roles = set(roles)
-        info = [0, 0]
+        info: List[Union[str, int]] = [0, 0]
         role_map = messages.get_role_mapping()
         for fn in cmds:
             fn_roles = roles.intersection(fn.roles)
@@ -192,8 +194,10 @@ def parse_and_dispatch(var,
                 wrapper.pm(messages["no_force_admin"])
                 return
             if fn.chan:
+                assert channels.Main is not None
                 context.target = channels.Main
             else:
+                assert users.Bot is not None
                 context.target = users.Bot
         if phase == var.PHASE:  # don't call any more commands if one we just called executed a phase transition
             fn.caller(var, context, message)

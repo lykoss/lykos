@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import fnmatch
 import re
 import threading
 from collections import OrderedDict
+from typing import Any, Dict, FrozenSet
 
 LANGUAGE = 'en'
 
@@ -170,7 +173,7 @@ AMNESIAC_NIGHTS = 3 # amnesiac gets to know their actual role on this night
 
 DOCTOR_IMMUNIZATION_MULTIPLIER = 0.135 # ceil(num_players * multiplier) = number of immunizations
 
-GAME_MODES = {}
+GAME_MODES: Dict[str, Any] = {}
 GAME_PHASES = ("night", "day") # all phases that constitute "in game", game modes can extend this with custom phases
 
 # IP address to bind to before connecting, or empty string to use OS default
@@ -225,13 +228,13 @@ DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
 # Roles listed here cannot be used in !fgame roles=blah.
-DISABLED_ROLES = frozenset()
+DISABLED_ROLES: FrozenSet[str] = frozenset()
 
 # Game modes that cannot be randomly picked or voted for
-DISABLED_GAMEMODES = frozenset()
+DISABLED_GAMEMODES: FrozenSet[str] = frozenset()
 
 # Commands listed here cannot be used by anyone (even admins/owners)
-DISABLED_COMMANDS = frozenset()
+DISABLED_COMMANDS: FrozenSet[str] = frozenset()
 
 GIF_CHANCE = 1/50
 

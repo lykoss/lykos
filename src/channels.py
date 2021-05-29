@@ -1,6 +1,7 @@
 import time
 
 from enum import Enum
+from typing import Optional
 
 from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
@@ -8,9 +9,9 @@ from src import settings as var
 from src import users, stream
 from src.debug import CheckedSet, CheckedDict
 
-Main = None # main channel
-Dummy = None # fake channel
-Dev = None # dev channel
+Main: Optional[Channel] = None # main channel
+Dummy: Optional[Channel] = None # fake channel
+Dev: Optional[Channel] = None # dev channel
 
 _channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 

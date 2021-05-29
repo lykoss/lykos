@@ -2,7 +2,7 @@ import random
 import copy
 from datetime import datetime
 from collections import defaultdict, Counter
-import botconfig
+import botconfig  # type: ignore
 from src.gamemodes import game_mode, GameMode, InvalidModeException
 from src.messages import messages
 from src.functions import get_players

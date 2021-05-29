@@ -8,7 +8,7 @@ from collections import defaultdict
 import threading
 from datetime import datetime
 
-import botconfig
+import botconfig  # type: ignore
 import src.settings as var
 from src.utilities import singular
 from src.messages import messages, LocalRole

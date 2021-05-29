@@ -20,6 +20,8 @@
 # Village Objective: If all of the players with this cat are dead, the village wins.
 #    Only main roles are considered for this.
 
+from __future__ import annotations
+
 from collections import defaultdict
 from typing import Dict
 import itertools
@@ -32,10 +34,10 @@ __all__ = [
     "Spy", "Intuitive", "Cursed", "Innocent", "Team_Switcher", "Wolf_Objective", "Village_Objective", "All"
 ]
 
-_dict_keys = type(dict().keys())
+_dict_keys = type(dict().keys())  # type: ignore
 
 # Mapping of category names to the categories themselves; populated in Category.__init__
-ROLE_CATS = {} # type: Dict[str, Category]
+ROLE_CATS: Dict[str, Category] = {}
 
 # the ordering in which we list roles (values should be categories, and roles are ordered within the categories in alphabetical order,
 # with exception that wolf is first in the wolf category and villager is last in the village category)
@@ -44,7 +46,7 @@ ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Win Stealer"
 
 FROZEN = False
 
-ROLES = {}
+ROLES: Dict[str, str] = {}
 
 def get(cat):
     if not FROZEN:

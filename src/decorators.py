@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import traceback
 import threading
 import string
@@ -6,13 +8,13 @@ import json
 import re
 import os.path
 import functools
-from typing import Optional, Iterable
+from typing import Any, Callable, Dict, List, Optional, Iterable
 
 import urllib.request, urllib.parse
 
 from collections import defaultdict
 
-import botconfig
+import botconfig  # type: ignore
 import src.settings as var
 import src
 from src.functions import get_players
@@ -23,22 +25,22 @@ from src.dispatcher import MessageDispatcher
 
 adminlog = logger.logger("audit.log")
 
-COMMANDS = defaultdict(list)
-HOOKS = defaultdict(list)
+COMMANDS: Dict[str, List[command]] = defaultdict(list)
+HOOKS: Dict[str, List[hook]] = defaultdict(list)
 
 # Error handler decorators and context managers
 
-class _local(threading.local):
+class _local_cls(threading.local):
     handler = None
     level = 0
 
-_local = _local()
+_local = _local_cls()
 
 # This is a mapping of stringified tracebacks to (link, uuid) tuples
 # That way, we don't have to call in to the website everytime we have
 # another error.
 
-_tracebacks = {}
+_tracebacks: Dict[str, str] = {}
 
 class chain_exceptions:
 
@@ -192,7 +194,7 @@ class print_traceback:
 
 class handle_error:
 
-    def __new__(cls, func=None, *, instance=None):
+    def __new__(cls, func: Optional[Callable[..., None]]=None, *, instance=None):
         if isinstance(func, cls) and instance is func.instance: # already decorated
             return func
 
@@ -307,6 +309,7 @@ class command:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
+            assert self.func is not None
             self.func(var, wrapper, message)
             return
 
@@ -339,6 +342,7 @@ class command:
             return
 
         if self.playing or self.roles or self.users:
+            assert self.func is not None
             self.func(var, wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
@@ -349,6 +353,7 @@ class command:
         if self.owner_only:
             if wrapper.source.is_owner():
                 adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                assert self.func is not None
                 self.func(var, wrapper, message)
                 return
 
@@ -361,6 +366,7 @@ class command:
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+            assert self.func is not None
             return self.func(var, wrapper, message)
 
         denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
@@ -372,12 +378,14 @@ class command:
         if self.flag:
             if self.flag in flags:
                 adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
+                assert self.func is not None
                 self.func(var, wrapper, message)
                 return
 
             wrapper.pm(messages["not_an_admin"])
             return
 
+        assert self.func is not None
         self.func(var, wrapper, message)
 
 class hook:

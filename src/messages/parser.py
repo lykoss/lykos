@@ -1,6 +1,6 @@
 import sys
 from typing import TextIO
-from antlr4 import TokenStream
+from antlr4 import TokenStream  # type: ignore
 from src.messages.message_parser import message_parser
 
 class Parser(message_parser):

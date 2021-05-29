@@ -310,7 +310,7 @@ def give_totem(var, wrapper, target, totem, *, key, role) -> Optional[Tuple[user
 
     target = try_misdirection(var, wrapper.source, target)
     if try_exchange(var, wrapper.source, target):
-        return
+        return None
 
     targrole = get_main_role(target)
 

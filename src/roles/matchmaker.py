@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -13,9 +16,12 @@ from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Win_Stealer
 
+if TYPE_CHECKING:
+    from src.users import User
+
 MATCHMAKERS = UserSet()
 ACTED = UserSet()
-LOVERS = UserDict()
+LOVERS: UserDict[User, User] = UserDict()
 
 def _set_lovers(target1, target2):
     if target1 in LOVERS:

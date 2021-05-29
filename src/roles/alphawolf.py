@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import users, channels, debuglog, errlog, plog
@@ -11,11 +14,14 @@ from src.status import try_misdirection, try_exchange, add_lycanthropy, add_lyca
 from src.cats import Wolf, All
 from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, register_wolf
 
+if TYPE_CHECKING:
+    from src.users import User
+
 register_wolf("alpha wolf")
 
 ENABLED = False
-ALPHAS = UserSet() # type: UserSet[users.User]
-BITTEN = UserDict() # type: UserDict[users.User, users.User]
+ALPHAS = UserSet()
+BITTEN: UserDict[User, User] = UserDict()
 
 @command("bite", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("alpha wolf",))
 def observe(var, wrapper, message):

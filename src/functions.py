@@ -1,4 +1,6 @@
-from typing import Optional, Iterable
+from __future__ import annotations
+
+from typing import Optional, Set, Iterable
 from collections import Counter
 import functools
 
@@ -184,7 +186,7 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = 
 
     role_map = messages.get_role_mapping(reverse=True, remove_spaces=remove_spaces)
 
-    special_keys = set()
+    special_keys: Set[str] = set()
     if scope is None and allow_special:
         evt = Event("get_role_metadata", {})
         evt.dispatch(var, "special_keys")
@@ -193,7 +195,7 @@ def match_role(var, role: str, remove_spaces: bool = False, allow_extra: bool = 
     matches = match_all(role, role_map.keys())
 
     # strip matches that don't refer to actual roles or special keys (i.e. refer to team names)
-    filtered_matches = set()
+    filtered_matches: Set[LocalRole] = set()
     if scope is not None:
         allowed = set(scope)
     elif allow_extra:

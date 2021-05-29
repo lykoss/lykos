@@ -1,13 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
 from src.containers import UserDict, DefaultUserDict
 from src.decorators import event_listener
 from src.functions import get_players
 from src.messages import messages
 from src.events import Event
-from src.cats import All
+from src.cats import All, Category
+
+if TYPE_CHECKING:
+    from src.users import User
 
 __all__ = ["add_protection", "try_protection", "remove_all_protections"]
 
-PROTECTIONS = UserDict() # type: UserDict[User, UserDict[Optional[User], List[Tuple[Category, str]]]]
+PROTECTIONS: UserDict[User, UserDict[Optional[User], List[Tuple[Category, str]]]] = UserDict()
 
 def add_protection(var, target, protector, protector_role, scope=All):
     """Add a protection to the target affecting the relevant scope."""
