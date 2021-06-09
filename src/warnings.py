@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from typing import Union, List, Optional
 import re
 
-import botconfig
+import botconfig  # type: ignore
 import src.settings as var
 from src import channels, db, users
 from src.lineparse import LineParser, LineParseError, WantsHelp
@@ -212,25 +214,25 @@ def _parse_expires(expires: str, base: Optional[str] = None) -> Optional[datetim
         raise ValueError("amount cannot be negative")
 
     if not base:
-        base = datetime.utcnow()
+        base_dt = datetime.utcnow()
     else:
-        base = datetime.strptime(base, "%Y-%m-%d %H:%M:%S")
+        base_dt = datetime.strptime(base, "%Y-%m-%d %H:%M:%S")
 
     if suffix == messages.raw("day_suffix"):
-        expires = base + timedelta(days=amount)
+        expires_dt = base_dt + timedelta(days=amount)
     elif suffix == messages.raw("hour_suffix"):
-        expires = base + timedelta(hours=amount)
+        expires_dt = base_dt + timedelta(hours=amount)
     elif suffix == messages.raw("minute_suffix"):
-        expires = base + timedelta(minutes=amount)
+        expires_dt = base_dt + timedelta(minutes=amount)
     else:
         raise ValueError("unrecognized time suffix")
 
     round_add = 0
-    if expires.second >= 30:
+    if expires_dt.second >= 30:
         round_add = 1
-    expires -= timedelta(seconds=expires.second, microseconds=expires.microsecond)
-    expires += timedelta(minutes=round_add)
-    return expires
+    expires_dt -= timedelta(seconds=expires_dt.second, microseconds=expires_dt.microsecond)
+    expires_dt += timedelta(minutes=round_add)
+    return expires_dt
 
 def warn_list(var, wrapper, args):
     if args.help:

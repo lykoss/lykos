@@ -16,7 +16,7 @@ from src.roles.helper.wolves import is_known_wolf_ally, send_wolfchat_message, r
 
 register_wolf("sorcerer")
 
-OBSERVED = UserSet() # type: UserSet[users.User]
+OBSERVED = UserSet()
 
 @command("observe", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("sorcerer",))
 def observe(var, wrapper, message):

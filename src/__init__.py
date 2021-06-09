@@ -2,7 +2,7 @@ import argparse
 import datetime
 import time
 
-import botconfig
+import botconfig  # type: ignore
 
 # Enforce a strict import ordering to ensure things are properly defined when they need to be
 

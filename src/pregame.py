@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 
@@ -7,6 +9,7 @@ import random
 import time
 import math
 import re
+from typing import TYPE_CHECKING, List, Union
 
 from src.containers import UserDict, UserSet
 from src.decorators import COMMANDS, command, event_listener, handle_error
@@ -17,16 +20,19 @@ from src.events import Event
 from src.cats import Wolfchat, All
 from src import channels
 
-import botconfig
+if TYPE_CHECKING:
+    from src.users import User
+
+import botconfig  # type: ignore
 
 WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
 WAIT_LAST = 0
 
-LAST_START = UserDict() # type: UserDict[users.User, List[datetime, int]]
-LAST_WAIT = UserDict() # type: UserDict[users.User, datetime]
-START_VOTES = UserSet() # type: UserSet[users.User]
-RESTART_TRIES = 0 # type: int
+LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()
+LAST_WAIT: UserDict[User, datetime] = UserDict()
+START_VOTES: UserSet = UserSet()
+RESTART_TRIES: int = 0
 MAX_RETRIES = 3 # constant: not a setting
 
 @command("wait", playing=True, phases=("join",))

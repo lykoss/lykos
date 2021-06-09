@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from argparse import ArgumentParser, Namespace, Action
 from typing import Optional, Sequence, IO, NoReturn
 
@@ -69,9 +71,9 @@ class LineParser(ArgumentParser):
             parse = self.parse_known_intermixed_args
         else:
             parse = self.parse_known_args
-        args, argv = parse(args, namespace)
+        out_args, argv = parse(args, namespace)
         # allow the help option to work even if all required positionals aren't there
         if argv:
             self.error("unrecognized arguments: {}".format(" ".join(argv)))
 
-        return args
+        return out_args

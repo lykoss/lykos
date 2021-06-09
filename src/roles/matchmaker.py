@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -12,6 +15,9 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange, add_dying
 from src.cats import Win_Stealer
+
+if TYPE_CHECKING:
+    from src.users import User
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()

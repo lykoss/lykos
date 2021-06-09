@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import time
 
 from enum import Enum
+from typing import Optional
 
 from src.context import IRCContext, Features, lower
 from src.events import Event, EventListener
@@ -8,9 +11,9 @@ from src import settings as var
 from src import users, stream
 from src.debug import CheckedSet, CheckedDict
 
-Main = None # main channel
-Dummy = None # fake channel
-Dev = None # dev channel
+Main: Channel = None # type: ignore[assignment]
+Dummy: Channel = None # type: ignore[assignment]
+Dev: Optional[Channel] = None # dev channel
 
 _channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
 
@@ -346,5 +349,3 @@ class FakeChannel(Channel):
                     targets.append(target)
 
         self.update_modes(users.Bot, "".join(modes), targets)
-
-# vim: set sw=4 expandtab:

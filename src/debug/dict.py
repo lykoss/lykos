@@ -1,16 +1,14 @@
-from typing import Iterator, TypeVar, Union, Set, Dict, Mapping, Iterable
+from typing import Generic, Iterator, TypeVar, Union, Set, Dict, Mapping, Iterable
 import collections.abc
-import botconfig
+import botconfig  # type: ignore
 from src.debug.history import History
 
 __all__ = ["CheckedDict"]
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
-KT_co = TypeVar("KT_co", covariant=True)
-VT_co = TypeVar("VT_co", covariant=True)
 
-class CheckedDict(collections.abc.MutableMapping):
+class CheckedDict(collections.abc.MutableMapping, Generic[KT, VT]):
     """ Dict container with additional features to aid in debugging.
 
     Common mutation methods are exposed to more easily set breakpoints,
@@ -30,9 +28,9 @@ class CheckedDict(collections.abc.MutableMapping):
     def __init__(self, name: str, arg: Union[None, Mapping, Iterable] = None, **kwargs):
         self._history = History(name)
         if arg is None:
-            self._dict = dict(**kwargs) # type: Dict[KT, VT]
+            self._dict: Dict[KT, VT] = dict(**kwargs)
         else:
-            self._dict = dict(arg, **kwargs) # type: Dict[KT, VT]
+            self._dict = dict(arg, **kwargs)
 
     def clear(self) -> None:
         self._history.add("clear")
@@ -46,7 +44,7 @@ class CheckedDict(collections.abc.MutableMapping):
         self._history.add("delitem", k)
         del self._dict[k]
 
-    def __getitem__(self, k: KT) -> VT_co:
+    def __getitem__(self, k: KT) -> VT:
         return self._dict[k]
 
     def __len__(self) -> int:
@@ -61,5 +59,5 @@ class CheckedDict(collections.abc.MutableMapping):
     def __repr__(self) -> str:
         return repr(self._dict)
 
-    def __iter__(self) -> Iterator[KT_co]:
+    def __iter__(self) -> Iterator[KT]:
         return iter(self._dict)

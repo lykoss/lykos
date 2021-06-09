@@ -1,10 +1,10 @@
-from typing import Generic, Iterable, TypeVar, Optional
+from typing import Generic, Iterable, Iterator, TypeVar, Optional
 
 __all__ = ["Match", "match_all", "match_one"]
 
 T = TypeVar("T")
 
-class Match(Generic[T]):
+class Match(Iterable[T], Generic[T]):
     def __init__(self, matches: Iterable[T]):
         self._matches = list(matches)
 
@@ -14,7 +14,7 @@ class Match(Generic[T]):
     def __len__(self) -> int:
         return len(self._matches)
 
-    def __iter__(self) -> Iterable[T]:
+    def __iter__(self) -> Iterator[T]:
         return iter(self._matches)
 
     def get(self) -> T:

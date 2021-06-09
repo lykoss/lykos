@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import sys
 from collections import defaultdict, OrderedDict
 from operator import attrgetter
-from typing import Dict, Any, List, Set, Optional, Tuple
+from typing import Dict, Any, ClassVar, List, Set, Optional, Tuple
 
 import src.settings as var # FIXME
 from src.messages.message import Message
@@ -305,11 +306,11 @@ class IRCFeatures:
         self._features["CHANLIMIT"] = {}
         parts = value.split(",")
         for part in parts:
-            prefixes, limit = part.split(":")
-            if limit == "":
-                limit = None
+            prefixes, limit_str = part.split(":")
+            if limit_str == "":
+                limit: Optional[int] = None
             else:
-                limit = int(limit)
+                limit = int(limit_str)
             for prefix in prefixes:
                 self._features["CHANLIMIT"][prefix] = limit
 
@@ -372,6 +373,7 @@ class IRCFeatures:
 
     @EXTBAN.setter
     def EXTBAN(self, value: str):
+        prefix: Optional[str]
         prefix, types = value.split(",")
         if not prefix:
             prefix = None

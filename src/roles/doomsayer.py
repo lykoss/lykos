@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import re
 import random
+from typing import TYPE_CHECKING
 
 from src import users, channels, status, debuglog, errlog, plog
 from src.functions import get_players, get_all_players, get_main_role, get_target
@@ -11,13 +14,16 @@ from src.cats import All
 
 from src.roles.helper.wolves import is_known_wolf_ally, register_wolf, send_wolfchat_message
 
+if TYPE_CHECKING:
+    from src.users import User
+
 register_wolf("doomsayer")
 
 SEEN = UserSet()
-LASTSEEN = UserDict() # type: UserDict[users.User, users.User]
-KILLS = UserDict()
-SICK = UserDict()
-LYCANS = UserDict()
+LASTSEEN: UserDict[User, User] = UserDict()
+KILLS: UserDict[User, User] = UserDict()
+SICK: UserDict[User, User] = UserDict()
+LYCANS: UserDict[User, User] = UserDict()
 
 _mappings = ("death", KILLS), ("lycan", LYCANS), ("sick", SICK)
 

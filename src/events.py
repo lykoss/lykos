@@ -1,8 +1,10 @@
 # event system
+from __future__ import annotations
+
 from collections import defaultdict
 from types import SimpleNamespace
-from typing import Callable, Optional
-EVENT_CALLBACKS = defaultdict(list)
+from typing import Callable, Dict, List, Optional
+EVENT_CALLBACKS: Dict[str, List[EventListener]] = defaultdict(list)
 
 __all__ = ["find_listener", "Event", "EventListener"]
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import traceback
 import threading
 import string
@@ -6,13 +8,13 @@ import json
 import re
 import os.path
 import functools
-from typing import Optional, Iterable
+from typing import Any, Callable, Dict, List, Optional, Iterable
 
 import urllib.request, urllib.parse
 
 from collections import defaultdict
 
-import botconfig
+import botconfig  # type: ignore
 import src.settings as var
 import src
 from src.functions import get_players
@@ -23,16 +25,16 @@ from src.dispatcher import MessageDispatcher
 
 adminlog = logger.logger("audit.log")
 
-COMMANDS = defaultdict(list)
-HOOKS = defaultdict(list)
+COMMANDS: Dict[str, List[command]] = defaultdict(list)
+HOOKS: Dict[str, List[hook]] = defaultdict(list)
 
 # Error handler decorators and context managers
 
-class _local(threading.local):
+class _local_cls(threading.local):
     handler = None
     level = 0
 
-_local = _local()
+_local = _local_cls()
 
 # This is a mapping of stringified tracebacks to (link, uuid) tuples
 # That way, we don't have to call in to the website everytime we have
@@ -192,7 +194,7 @@ class print_traceback:
 
 class handle_error:
 
-    def __new__(cls, func=None, *, instance=None):
+    def __new__(cls, func: Callable[..., None], *, instance=None):
         if isinstance(func, cls) and instance is func.instance: # already decorated
             return func
 
@@ -240,7 +242,7 @@ class command:
         self.phases = phases
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
-        self.func = None
+        self.func: Callable[[Any, MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name = commands[0]
         self.key = "{0}_{1}".format(command, id(self))

@@ -12,7 +12,7 @@ from src.containers import UserList, UserSet, UserDict, DefaultUserDict
 from src.messages import messages
 from src.status import try_misdirection, try_exchange
 
-JESTERS = UserSet() # type: UserSet[users.User]
+JESTERS = UserSet()
 
 @event_listener("lynch")
 def on_lynch(evt, var, votee, voters):

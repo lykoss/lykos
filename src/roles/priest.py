@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
@@ -13,7 +15,7 @@ from src.messages import messages
 from src.events import Event
 from src.status import try_misdirection, try_exchange, add_absent
 
-PRIESTS = UserSet() # type: Set[users.User]
+PRIESTS = UserSet()
 
 @command("bless", chan=False, pm=True, playing=True, silenced=True, phases=("day",), roles=("priest",))
 def bless(var, wrapper, message):

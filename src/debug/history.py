@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import traceback
 from typing import Set, List, Tuple, Dict, Optional
-import botconfig
+import botconfig  # type: ignore
 
 __all__ = ["History", "enable_history", "disable_history"]
 

@@ -1,7 +1,7 @@
 import datetime
 import time
 
-import botconfig
+import botconfig  # type: ignore
 
 def logger(file, write=True, display=True):
     if file is not None:

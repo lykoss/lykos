@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import fnmatch
 import re
 import threading
 from collections import OrderedDict
+from typing import Any, Dict, FrozenSet
 
 LANGUAGE = 'en'
 
@@ -225,13 +228,13 @@ DEFAULT_ROLE = "villager"
 HIDDEN_ROLE = "villager"
 
 # Roles listed here cannot be used in !fgame roles=blah.
-DISABLED_ROLES = frozenset()
+DISABLED_ROLES: FrozenSet[str] = frozenset()
 
 # Game modes that cannot be randomly picked or voted for
-DISABLED_GAMEMODES = frozenset()
+DISABLED_GAMEMODES: FrozenSet[str] = frozenset()
 
 # Commands listed here cannot be used by anyone (even admins/owners)
-DISABLED_COMMANDS = frozenset()
+DISABLED_COMMANDS: FrozenSet[str] = frozenset()
 
 GIF_CHANCE = 1/50
 

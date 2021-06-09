@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 import random
 import itertools
 import math
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from src.utilities import *
 from src import channels, users, debuglog, errlog, plog
@@ -14,7 +17,10 @@ from src.status import try_misdirection, try_exchange
 
 from src.roles.helper.wolves import get_wolfchat_roles
 
-IDOLS = UserDict()
+if TYPE_CHECKING:
+    from src.users import User
+
+IDOLS: UserDict[User, User] = UserDict()
 CAN_ACT = UserSet()
 ACTED = UserSet()
 

@@ -19,6 +19,8 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+from __future__ import annotations
+
 import copy
 import fnmatch
 import functools
@@ -41,13 +43,13 @@ import urllib.request
 
 from collections import defaultdict, deque, Counter
 from datetime import datetime, timedelta
-from typing import Set, Optional, Callable, Tuple
+from typing import TYPE_CHECKING, Set, Optional, Callable, Tuple
 
 from oyoyo.parse import parse_nick
 
-import botconfig
+import botconfig  # type: ignore
 import src
-import src.settings as var
+import src.settings as var  # type: ignore
 from src.utilities import *
 from src import db, events, dispatcher, channels, users, hooks, logger, debuglog, errlog, plog, cats, handler
 from src.users import User
@@ -72,62 +74,65 @@ from src.functions import (
     get_target, change_role, match_role, match_mode
    )
 
+if TYPE_CHECKING:
+    from src.channels import Channel
+
 # done this way so that events is accessible in !eval (useful for debugging)
 Event = events.Event
 EventListener = events.EventListener
 
 # Game Logic Begins:
 
-var.LAST_STATS = None
-var.LAST_ADMINS = None
-var.LAST_GSTATS = None
-var.LAST_PSTATS = None
-var.LAST_RSTATS = None
-var.LAST_TIME = None
-var.LAST_GOAT = UserDict() # type: UserDict[users.User, datetime]
+var.LAST_STATS = None  # type: ignore
+var.LAST_ADMINS = None  # type: ignore
+var.LAST_GSTATS = None  # type: ignore
+var.LAST_PSTATS = None  # type: ignore
+var.LAST_RSTATS = None  # type: ignore
+var.LAST_TIME = None  # type: ignore
+var.LAST_GOAT = UserDict() # type: ignore # actually UserDict[users.User, datetime]
 
-var.ADMIN_PINGING = False
-var.DCED_LOSERS = UserSet()
-var.ADMIN_TO_PING = None
-var.AFTER_FLASTGAME = None
-var.PINGING_IFS = False
-var.TIMERS = {}
-var.PHASE = "none"
-var.OLD_MODES = defaultdict(set)
+var.ADMIN_PINGING = False  # type: ignore
+var.DCED_LOSERS = UserSet()  # type: ignore
+var.ADMIN_TO_PING = None  # type: ignore
+var.AFTER_FLASTGAME = None  # type: ignore
+var.PINGING_IFS = False  # type: ignore
+var.TIMERS = {}  # type: ignore
+var.PHASE = "none"  # type: ignore
+var.OLD_MODES = defaultdict(set)  # type: ignore
 
-var.ROLES = UserDict() # type: UserDict[str, UserSet]
-var.ORIGINAL_ROLES = UserDict() # type: UserDict[str, UserSet]
-var.MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
-var.ORIGINAL_MAIN_ROLES = UserDict() # type: UserDict[users.User, str]
-var.FINAL_ROLES = UserDict() # type: UserDict[users.User, str]
-var.ALL_PLAYERS = UserList()
-var.FORCE_ROLES = DefaultUserDict(UserSet)
-var.ORIGINAL_ACCS = UserDict() # type: UserDict[users.User, str]
+var.ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
+var.ORIGINAL_ROLES = UserDict() # type: ignore # actually UserDict[str, UserSet]
+var.MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.ORIGINAL_MAIN_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.FINAL_ROLES = UserDict() # type: ignore # actually UserDict[users.User, str]
+var.ALL_PLAYERS = UserList() # type: ignore
+var.FORCE_ROLES = DefaultUserDict(UserSet) # type: ignore
+var.ORIGINAL_ACCS = UserDict() # type: ignore # actually UserDict[users.User, str]
 
-var.IDLE_WARNED = UserSet()
-var.IDLE_WARNED_PM = UserSet()
-var.NIGHT_IDLED = UserSet()
-var.NIGHT_IDLE_EXEMPT = UserSet()
+var.IDLE_WARNED = UserSet() # type: ignore
+var.IDLE_WARNED_PM = UserSet() # type: ignore
+var.NIGHT_IDLED = UserSet() # type: ignore
+var.NIGHT_IDLE_EXEMPT = UserSet() # type: ignore
 
-var.DEAD = UserSet()
+var.DEAD = UserSet() # type: ignore
 
-var.DEADCHAT_PLAYERS = UserSet()
+var.DEADCHAT_PLAYERS = UserSet() # type: ignore
 
-var.SPECTATING_WOLFCHAT = UserSet()
-var.SPECTATING_DEADCHAT = UserSet()
+var.SPECTATING_WOLFCHAT = UserSet() # type: ignore
+var.SPECTATING_DEADCHAT = UserSet() # type: ignore
 
-var.ORIGINAL_SETTINGS = {}
-var.GAMEMODE_VOTES = UserDict()
+var.ORIGINAL_SETTINGS = {} # type: ignore
+var.GAMEMODE_VOTES = UserDict() # type: ignore
 
-var.LAST_SAID_TIME = UserDict()
+var.LAST_SAID_TIME = UserDict() # type: ignore
 
-var.GAME_START_TIME = datetime.now()  # for idle checker only
-var.CAN_START_TIME = 0
-var.STARTED_DAY_PLAYERS = 0
+var.GAME_START_TIME = datetime.now()  # type: ignore # for idle checker only
+var.CAN_START_TIME = 0 # type: ignore
+var.STARTED_DAY_PLAYERS = 0 # type: ignore
 
-var.DISCONNECTED = UserDict() # type: UserDict[User, Tuple[datetime, str]]
+var.DISCONNECTED = UserDict() # type: ignore # actually UserDict[User, Tuple[datetime, str]]
 
-var.RESTARTING = False
+var.RESTARTING = False # type: ignore
 
 if botconfig.DEBUG_MODE and var.DISABLE_DEBUG_MODE_TIMERS:
     var.NIGHT_TIME_LIMIT = 0 # 120
