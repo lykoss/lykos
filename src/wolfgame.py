@@ -958,7 +958,6 @@ def fjoin(var, wrapper: MessageDispatcher, message: str):
 
     parts = re.split(" +", message)
     to_join = []
-    assert isinstance(wrapper.target, Channel)
     if not botconfig.DEBUG_MODE:
         match = users.complete_match(parts[0], wrapper.target.users)
         if match:
