@@ -20,7 +20,7 @@ from src.users import User
 
 GUARDED: UserDict[User, User] = UserDict()
 PASSED = UserSet()
-DYING: Set[User] = set()
+DYING = UserSet()
 
 @command("guard", chan=False, pm=True, playing=True, silenced=True, phases=("night",), roles=("bodyguard",))
 def guard(var, wrapper, message):
@@ -147,6 +147,7 @@ def on_begin_day(evt, var):
 def on_reset(evt, var):
     GUARDED.clear()
     PASSED.clear()
+    DYING.clear()
 
 @event_listener("get_role_metadata")
 def on_get_role_metadata(evt, var, kind):

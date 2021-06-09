@@ -17,7 +17,7 @@ import botconfig  # type: ignore
 __all__ = ["Bot", "predicate", "get", "add", "users", "disconnected", "complete_match",
            "parse_rawnick", "parse_rawnick_as_dict", "User", "FakeUser", "BotUser"]
 
-Bot: Optional[BotUser] = None # bot instance
+Bot: BotUser = None # type: ignore[assignment]
 
 _users: CheckedSet[User] = CheckedSet("users._users")
 _ghosts: CheckedSet[User] = CheckedSet("users._ghosts")

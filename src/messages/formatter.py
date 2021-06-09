@@ -103,7 +103,7 @@ class Formatter(string.Formatter):
             value = self._article(value, specs["article"])
             del specs["article"]
         if "!" in specs:
-            from botconfig import CMD_CHAR  # type: ignore
+            from botconfig import CMD_CHAR
             value = "{}{}".format(CMD_CHAR, value)
             del specs["!"]
 

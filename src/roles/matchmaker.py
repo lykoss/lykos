@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 MATCHMAKERS = UserSet()
 ACTED = UserSet()
-LOVERS: UserDict[User, User] = UserDict()
+LOVERS = UserDict()
 
 def _set_lovers(target1, target2):
     if target1 in LOVERS:

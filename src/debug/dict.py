@@ -7,8 +7,6 @@ __all__ = ["CheckedDict"]
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
-KT_co = TypeVar("KT_co", covariant=True)
-VT_co = TypeVar("VT_co", covariant=True)
 
 class CheckedDict(collections.abc.MutableMapping, Generic[KT, VT]):
     """ Dict container with additional features to aid in debugging.

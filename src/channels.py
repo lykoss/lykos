@@ -11,8 +11,8 @@ from src import settings as var
 from src import users, stream
 from src.debug import CheckedSet, CheckedDict
 
-Main: Optional[Channel] = None # main channel
-Dummy: Optional[Channel] = None # fake channel
+Main: Channel = None # type: ignore[assignment]
+Dummy: Channel = None # type: ignore[assignment]
 Dev: Optional[Channel] = None # dev channel
 
 _channels = CheckedDict("channels._channels") # type: CheckedDict[str, Channel]
@@ -349,5 +349,3 @@ class FakeChannel(Channel):
                     targets.append(target)
 
         self.update_modes(users.Bot, "".join(modes), targets)
-
-# vim: set sw=4 expandtab:

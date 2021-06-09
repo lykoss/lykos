@@ -29,7 +29,7 @@ WAIT_LOCK = threading.RLock()
 WAIT_TOKENS = 0
 WAIT_LAST = 0
 
-LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()  # FIXME: this should probably be a class containing two fields
+LAST_START: UserDict[User, List[Union[datetime, int]]] = UserDict()
 LAST_WAIT: UserDict[User, datetime] = UserDict()
 START_VOTES: UserSet = UserSet()
 RESTART_TRIES: int = 0

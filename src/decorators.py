@@ -40,7 +40,7 @@ _local = _local_cls()
 # That way, we don't have to call in to the website everytime we have
 # another error.
 
-_tracebacks: Dict[str, str] = {}
+_tracebacks = {}
 
 class chain_exceptions:
 
@@ -194,7 +194,7 @@ class print_traceback:
 
 class handle_error:
 
-    def __new__(cls, func: Optional[Callable[..., None]]=None, *, instance=None):
+    def __new__(cls, func: Callable[..., None], *, instance=None):
         if isinstance(func, cls) and instance is func.instance: # already decorated
             return func
 
@@ -242,7 +242,7 @@ class command:
         self.phases = phases
         self.roles = roles
         self.users = users # iterable of users that can use the command at any time (should be a mutable object)
-        self.func = None
+        self.func: Callable[[Any, MessageDispatcher, str], None] = None # type: ignore[assignment]
         self.aftergame = False
         self.name = commands[0]
         self.key = "{0}_{1}".format(command, id(self))
@@ -309,7 +309,6 @@ class command:
                 return # commands not allowed in alt channels
 
         if "" in self.commands:
-            assert self.func is not None
             self.func(var, wrapper, message)
             return
 
@@ -342,7 +341,6 @@ class command:
             return
 
         if self.playing or self.roles or self.users:
-            assert self.func is not None
             self.func(var, wrapper, message) # don't check restrictions for game commands
             # Role commands might end the night if it's nighttime
             if var.PHASE == "night":
@@ -353,7 +351,6 @@ class command:
         if self.owner_only:
             if wrapper.source.is_owner():
                 adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
-                assert self.func is not None
                 self.func(var, wrapper, message)
                 return
 
@@ -366,7 +363,6 @@ class command:
 
         if self.flag and (wrapper.source.is_admin() or wrapper.source.is_owner()):
             adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
-            assert self.func is not None
             return self.func(var, wrapper, message)
 
         denied_commands = var.DENY_ACCS[temp.account] # TODO: add denied commands handling to User
@@ -378,14 +374,12 @@ class command:
         if self.flag:
             if self.flag in flags:
                 adminlog(wrapper.target.name, wrapper.source.rawnick, self.name, message)
-                assert self.func is not None
                 self.func(var, wrapper, message)
                 return
 
             wrapper.pm(messages["not_an_admin"])
             return
 
-        assert self.func is not None
         self.func(var, wrapper, message)
 
 class hook:

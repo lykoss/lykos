@@ -121,11 +121,9 @@ def add_warning(target: Union[str, users.User], amount: int, actor: users.User, 
         cmodes = []
         for acc in acclist:
             cmodes.append(("+b", "{0}{1}".format(var.ACCOUNT_PREFIX, acc)))
-        assert channels.Main is not None
         channels.Main.mode(*cmodes)
         for user in channels.Main.users:
             if user.account in acclist:
-                assert users.Bot is not None
                 channels.Main.kick(user, messages["tempban_kick"].format(nick=user, botnick=users.Bot.nick, reason=reason))
 
     # Update any tracking vars that may have changed due to this

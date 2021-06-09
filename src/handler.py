@@ -194,10 +194,8 @@ def parse_and_dispatch(var,
                 wrapper.pm(messages["no_force_admin"])
                 return
             if fn.chan:
-                assert channels.Main is not None
                 context.target = channels.Main
             else:
-                assert users.Bot is not None
                 context.target = users.Bot
         if phase == var.PHASE:  # don't call any more commands if one we just called executed a phase transition
             fn.caller(var, context, message)

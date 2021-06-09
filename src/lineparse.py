@@ -61,8 +61,7 @@ class LineParser(ArgumentParser):
         self.allow_intermixed = False
         return super().add_subparsers(**kwargs)
 
-    def parse_args(self, args: Optional[Sequence[str]] = None, namespace: Optional[Namespace] = None) -> Namespace:  # type: ignore
-        # parse_args has a difficult type signature to follow
+    def parse_args(self, args: Optional[Sequence[str]] = None, namespace: Optional[Namespace] = None) -> Namespace:
         if args is None:
             # args=None is supported by ArgumentParser to read args from sys.argv but we don't want to do that here
             raise TypeError("LineParser requires an args list to be passed in")

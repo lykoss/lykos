@@ -122,9 +122,7 @@ def context_types(*types):
 class IRCContext:
     """Base class for channels and users."""
 
-    _messages: Dict[str, List[IRCContext]] = defaultdict(list)
-
-    is_fake: ClassVar[bool] = False
+    _messages = defaultdict(list)
 
     def __init__(self, name, client):
         self.name = name
@@ -321,8 +319,7 @@ class IRCFeatures:
         modes = self._features.get("CHANMODES", [])
         while len(modes) < 4:
             modes.append("")
-        rA, rB, rC, rD = modes[:4]
-        return (rA, rB, rC, rD)
+        return tuple(modes[:4])
 
     @CHANMODES.setter
     def CHANMODES(self, value: str):

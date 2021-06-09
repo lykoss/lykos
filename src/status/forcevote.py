@@ -22,27 +22,27 @@ __all__ = ["add_force_vote", "add_force_abstain", "can_vote", "can_abstain", "ge
 FORCED_COUNTS: UserDict[User, int] = UserDict()
 FORCED_TARGETS: UserDict[User, UserSet] = UserDict()
 
-def _add_count(var, votee : User, amount : int) -> None:
+def _add_count(var, votee: User, amount: int) -> None:
     FORCED_COUNTS[votee] = FORCED_COUNTS.get(votee, 0) + amount
     if FORCED_COUNTS[votee] == 0:
         # don't clear out FORCED_TARGETS, in case a future call re-forces votes
         # we want to maintain the full set of people to vote for
         del FORCED_COUNTS[votee]
 
-def add_force_vote(var, votee : User, targets : Iterable[User]) -> None:
+def add_force_vote(var, votee: User, targets: Iterable[User]) -> None:
     """Force votee to vote for the specified targets."""
     if votee not in get_players():
         return
     _add_count(var, votee, 1)
     FORCED_TARGETS.setdefault(votee, UserSet()).update(targets)
 
-def add_force_abstain(var, votee : User) -> None:
+def add_force_abstain(var, votee: User) -> None:
     """Force votee to abstain."""
     if votee not in get_players():
         return
     _add_count(var, votee, -1)
 
-def can_vote(var, votee : User, target : User) -> bool:
+def can_vote(var, votee: User, target: User) -> bool:
     """Check whether the votee can vote the target."""
     c = FORCED_COUNTS.get(votee, 0)
     if c < 0:
@@ -51,11 +51,11 @@ def can_vote(var, votee : User, target : User) -> bool:
         return True
     return target in FORCED_TARGETS[votee]
 
-def can_abstain(var, votee : User) -> bool:
+def can_abstain(var, votee: User) -> bool:
     """Check whether the votee can abstain."""
     return FORCED_COUNTS.get(votee, 0) <= 0
 
-def get_forced_votes(var, target : User) -> Set[User]:
+def get_forced_votes(var, target: User) -> Set[User]:
     """Retrieve the players who are being forced to vote target."""
     return {votee for votee, targets in FORCED_TARGETS.items() if target in targets}
 

@@ -1565,7 +1565,6 @@ def on_kill_players(evt: Event, var, players: Set[User]):
 
     # attempt to devoice all dead players
     if cmode:
-        assert channels.Main is not None
         channels.Main.mode(*cmode)
 
     if not evt.params.end_game:

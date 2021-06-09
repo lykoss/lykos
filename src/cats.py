@@ -46,7 +46,7 @@ ROLE_ORDER = ["Wolf", "Wolfchat", "Wolfteam", "Village", "Hidden", "Win Stealer"
 
 FROZEN = False
 
-ROLES: Dict[str, str] = {}
+ROLES = {}
 
 def get(cat):
     if not FROZEN:
